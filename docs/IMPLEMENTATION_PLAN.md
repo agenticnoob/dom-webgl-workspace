@@ -371,7 +371,7 @@ Tests:
 
 ## M7: Renderables
 
-- [ ] **Task 15: Base Renderable Interface**
+- [x] **Task 15: Base Renderable Interface**
 
   **Goal:** Define a uniform renderable abstraction.
 
