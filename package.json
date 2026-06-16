@@ -1,0 +1,22 @@
+{
+  "name": "dom-webgl-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run typecheck && npm test -- --run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
