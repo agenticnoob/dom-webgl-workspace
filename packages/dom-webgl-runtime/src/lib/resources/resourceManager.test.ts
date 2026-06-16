@@ -72,6 +72,30 @@ describe("createResourceManager", () => {
       error,
     });
   });
+
+  test("adopts the existing image element for image resources", () => {
+    const manager = createResourceManager();
+    const descriptor = createImageDescriptor("/assets/hero.png");
+
+    const handle = manager.acquire(descriptor);
+
+    expect(handle.record).toMatchObject({
+      kind: "image",
+      element: descriptor.element,
+    });
+  });
+
+  test("adopts the existing video element identity for video resources", () => {
+    const manager = createResourceManager();
+    const descriptor = createVideoDescriptor("/assets/hero.mp4");
+
+    const handle = manager.acquire(descriptor);
+
+    expect(handle.record).toMatchObject({
+      kind: "video",
+      element: descriptor.element,
+    });
+  });
 });
 
 function createSnapshotDescriptor(key: string): WebGLSourceDescriptor {
@@ -91,6 +115,17 @@ function createImageDescriptor(src: string): WebGLSourceDescriptor {
 
   return {
     kind: "image",
+    element,
+    src,
+  };
+}
+
+function createVideoDescriptor(src: string): WebGLSourceDescriptor {
+  const element = document.createElement("video");
+  element.src = src;
+
+  return {
+    kind: "video",
     element,
     src,
   };

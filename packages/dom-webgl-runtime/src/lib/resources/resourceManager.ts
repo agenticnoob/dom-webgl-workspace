@@ -6,6 +6,7 @@ export type ResourceRecord<T = unknown> = {
   kind: WebGLSourceDescriptor["kind"];
   status: WebGLResourceStatus;
   refCount: number;
+  element?: HTMLImageElement | HTMLVideoElement;
   value?: T;
   error?: unknown;
 };
@@ -39,6 +40,7 @@ export function createResourceManager(): ResourceManager {
           kind: descriptor.kind,
           status: "idle",
           refCount: 0,
+          element: readAdoptedElement(descriptor),
         };
         records.set(key, record);
       }
@@ -111,6 +113,19 @@ function createResourceKey(descriptor: WebGLSourceDescriptor): string {
       return `video:${normalizeResourceUrl(descriptor.src)}`;
     case "model":
       return `model:${descriptor.format}:${normalizeResourceUrl(descriptor.src)}`;
+  }
+}
+
+function readAdoptedElement(
+  descriptor: WebGLSourceDescriptor,
+): HTMLImageElement | HTMLVideoElement | undefined {
+  switch (descriptor.kind) {
+    case "image":
+    case "video":
+      return descriptor.element;
+    case "snapshot":
+    case "model":
+      return undefined;
   }
 }
 

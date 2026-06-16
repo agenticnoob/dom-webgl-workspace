@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 13 complete.
+Task 14 complete.
 
 ## Last Completed Task
-Task 13: Resource Record Lifecycle.
+Task 14: DOM-Native Resource Adoption.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -20,17 +20,18 @@ Task 13: Resource Record Lifecycle.
 - Task 11: renderRole Inference.
 - Task 12: Render Policy Compilation.
 - Task 13: Resource Record Lifecycle.
+- Task 14: DOM-Native Resource Adoption.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (red: failed because `./resourceManager` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (green: 4 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (red: failed because image/video resource records did not store adopted DOM elements)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (green: 6 tests passed)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 13 verification passed: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` ran with 4 passing tests after adding the minimal shared resource manager. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+Targeted Task 14 verification passed: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` ran with 6 passing tests after adopting existing image/video DOM element references in resource records. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
 
 ## Files Changed
 - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
@@ -39,7 +40,7 @@ Targeted Task 13 verification passed: `packages/dom-webgl-runtime/src/lib/resour
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-None for Task 13. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
+None for Task 14. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -58,4 +59,4 @@ None for Task 13. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 14: DOM-Native Resource Adoption.
+Start Task 15: Base Renderable Interface.

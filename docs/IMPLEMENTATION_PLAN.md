@@ -351,7 +351,7 @@ Tests:
 
   **Completion condition:** Resources are shared by key and expose inspectable status.
 
-- [ ] **Task 14: DOM-Native Resource Adoption**
+- [x] **Task 14: DOM-Native Resource Adoption**
 
   **Goal:** Avoid duplicate image/video acquisition for DOM-native media.
 
