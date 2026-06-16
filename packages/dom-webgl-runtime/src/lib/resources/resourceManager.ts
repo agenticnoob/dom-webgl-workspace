@@ -3,13 +3,15 @@ import type { WebGLResourceStatus } from "../types";
 
 export type ResourceRecord<T = unknown> = {
   key: string;
-  kind: WebGLSourceDescriptor["kind"];
+  kind: WebGLResourceKind;
   status: WebGLResourceStatus;
   refCount: number;
   element?: HTMLImageElement | HTMLVideoElement;
   value?: T;
   error?: unknown;
 };
+
+export type WebGLResourceKind = "snapshot" | "image" | "video" | "model/glb";
 
 export type ResourceHandle<T = unknown> = {
   record: ResourceRecord<T>;
@@ -51,7 +53,7 @@ export function createResourceManager(): ResourceManager {
       if (!record) {
         record = {
           key,
-          kind: descriptor.kind,
+          kind: readResourceKind(descriptor),
           status: "idle",
           refCount: 0,
           element: readAdoptedElement(descriptor),
@@ -67,6 +69,17 @@ export function createResourceManager(): ResourceManager {
       return records.get(key);
     },
   };
+}
+
+function readResourceKind(descriptor: WebGLSourceDescriptor): WebGLResourceKind {
+  switch (descriptor.kind) {
+    case "snapshot":
+    case "image":
+    case "video":
+      return descriptor.kind;
+    case "model":
+      return `model/${descriptor.format}`;
+  }
 }
 
 function createResourceHandle<T>(

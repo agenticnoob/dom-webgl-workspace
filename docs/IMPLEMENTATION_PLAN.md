@@ -403,7 +403,7 @@ Tests:
 
   **Completion condition:** Element snapshot participates in renderable lifecycle and measurement update path.
 
-- [ ] **Task 17: Text Snapshot Renderable**
+- [x] **Task 17: Text Snapshot Renderable**
 
   **Goal:** Add minimal text snapshot renderable.
 
@@ -419,7 +419,13 @@ Tests:
 
   **Completion condition:** Text snapshot renderable is separate from element surface renderable.
 
-- [ ] **Task 18: Image Renderable**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`; `npm run typecheck -w @project/dom-webgl-runtime`; `git diff --check`
+  - Test results: targeted test passed after implementation; nearby element snapshot + text snapshot tests passed; package typecheck passed; diff check passed.
+  - Review results: spec review passed; code quality review found one minor test-strength issue, fixed by updating the dispose test to assert previously captured text is cleared.
+
+- [x] **Task 18: Image Renderable**
 
   **Goal:** Add image renderable backed by resource manager.
 
@@ -435,7 +441,13 @@ Tests:
 
   **Completion condition:** Image renderable reports loading/ready/error through resource status.
 
-- [ ] **Task 19: Video Renderable**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`
+  - Commands run: `npx vitest packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts --run`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`; `npm run typecheck --workspace @project/dom-webgl-runtime`
+  - Test results: targeted image renderable test passed after implementation; resource manager + image renderable nearby tests passed; package typecheck passed.
+  - Review results: spec review passed; code quality review found no issues.
+
+- [x] **Task 19: Video Renderable**
 
   **Goal:** Add video renderable backed by resource manager.
 
@@ -451,7 +463,13 @@ Tests:
 
   **Completion condition:** Video renderable uses shared lifecycle and releases references on dispose.
 
-- [ ] **Task 20: GLB Model Renderable**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted video renderable test passed after implementation and after review fixes; resource manager + video renderable nearby tests passed; typecheck and diff check passed in implementer verification.
+  - Review results: spec review passed; code quality review found an important production video error handling gap, fixed by making the adopted DOM video loader reject on existing or emitted media errors while keeping fallback visible.
+
+- [x] **Task 20: GLB Model Renderable**
 
   **Goal:** Add GLB model renderable with minimal loader boundary.
 
@@ -467,7 +485,13 @@ Tests:
 
   **Completion condition:** GLB renderable exists, is ordered as `model`, and has visible error state.
 
-- [ ] **Task 21: Renderable Factory**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`; `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`; `npm run typecheck --workspace @project/dom-webgl-runtime`
+  - Test results: targeted model renderable test passed after implementation and after the `model/glb` resource-kind fix; resource manager tests passed; M7 renderables + resource manager suite passed; package typecheck passed.
+  - Review results: initial spec review found model resources were recorded as `model` instead of `model/glb`; fixed by adding an internal `WebGLResourceKind` mapping. Spec re-review passed. Final M8 review later found the default GLB path still used a missing-adapter fallback, so a runtime pipeline regression test was added and the default adapter now dynamically imports Three.js `GLTFLoader` only during model loading.
+
+- [x] **Task 21: Renderable Factory**
 
   **Goal:** Compile descriptors into concrete renderables.
 
@@ -483,11 +507,17 @@ Tests:
 
   **Completion condition:** The pipeline can produce renderables without demo-specific logic.
 
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`; `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`; `npm run typecheck --workspace @project/dom-webgl-runtime`
+  - Test results: targeted factory test passed after implementation and after role/policy preservation fixes; concrete renderable tests passed after preserving upstream role/policy; M7 renderables + resource manager suite passed; package typecheck passed.
+  - Review results: spec review passed; code quality review found that factory tests were blessing hidden role inference and missed unsupported snapshot/model branches. Fixed by preserving provided role/policy in concrete renderables, adding an explicit overlay preservation test, and adding unsupported snapshot mode/model format tests. Re-review found no issues.
+
 ---
 
 ## M8: Single Renderer
 
-- [ ] **Task 22: Runtime Creation Is SSR-Safe**
+- [x] **Task 22: Runtime Creation Is SSR-Safe**
 
   **Goal:** Ensure imports are SSR-safe and browser work is execution-only.
 
@@ -504,7 +534,14 @@ Tests:
 
   **Completion condition:** Package import is SSR-safe; client-only execution fails visibly outside browser.
 
-- [ ] **Task 23: Single Three.js Renderer**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`; `packages/dom-webgl-runtime/src/index.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`; `npm run typecheck`
+  - Test results: targeted runtime test failed first because `createWebGLRuntime` was not exported/implemented; after implementation, targeted runtime test passed with 3 tests. Root typecheck passed.
+  - Review results: quality review found the no-canvas test only proved no appended canvas, not that detached canvas creation was avoided. Fixed by spying on `document.createElement` after creating the test container and asserting no `"canvas"` creation; reran targeted runtime test and root typecheck.
+  - Notes: runtime creation now performs the DOM guard only when `createWebGLRuntime(options)` is called. Public import stays SSR-safe and does not create a canvas or instantiate Three.js renderer work at module import time.
+
+- [x] **Task 23: Single Three.js Renderer**
 
   **Goal:** Create exactly one renderer/canvas per runtime instance.
 
@@ -521,7 +558,13 @@ Tests:
 
   **Completion condition:** A runtime instance never creates multiple canvases.
 
-- [ ] **Task 24: Runtime Pipeline Sync**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`; `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`; `packages/dom-webgl-runtime/package.json`; `package-lock.json`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts`; `npm test -- --run`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted Task 23 test first failed because `./threeRenderer` did not exist. After the initial implementation, targeted Task 23 test passed with 3 tests and nearby Task 22+23 renderer tests passed with 6 tests. Spec review then found the default host used a no-op adapter instead of a real Three.js renderer. Added failing tests proving the default path constructs `WebGLRenderer`, `Scene`, and `PerspectiveCamera` through mocked Three modules, and proving injected object creation keeps jsdom tests GPU-free; those tests failed against the no-op adapter. After the real-renderer fix, targeted Task 23 test passed with 4 tests and nearby Task 22+23 renderer tests passed with 7 tests. Code quality review then found a full-suite public type regression: the first deep-import fix used a local `three-src.d.ts` sidecar that was brittle for public type compilation. With `@types/three` installed, kept SSR-safe `three/src/*` imports and removed the local sidecar declaration so public type tests use package-provided Three declarations. Final targeted host test passed with 4 tests; nearby runtime+host tests passed with 7 tests; public types test passed; full suite passed with 21 files / 67 tests; root typecheck passed; diff check passed.
+  - Notes: `three` is a runtime dependency and `@types/three` is a runtime-package devDependency. `createThreeRendererHost(container)` now owns one canvas, a real default Three.js renderer adapter, one scene, and one perspective camera per host through SSR-safe direct Three.js module imports. Tests mock those direct modules or inject `createObjects` so no real GPU/WebGL context is required. Runtime creation still mounts exactly one host/canvas per runtime instance; repeated placeholder `registerTarget` and `sync` calls do not create extra canvases; `dispose()` is idempotent, removes the canvas, disposes the host renderer, and releases internally tracked renderables. No Three-specific types are exported from the public root API.
+
+- [x] **Task 24: Runtime Pipeline Sync**
 
   **Goal:** Connect registry, source inference, role inference, policy, and renderable factory.
 
@@ -536,6 +579,13 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
   **Completion condition:** The full Phase 1 compile pipeline works without React.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`; `docs/IMPLEMENTATION_PLAN.md`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/registry.test.ts packages/dom-webgl-runtime/src/lib/source/inferSource.test.ts packages/dom-webgl-runtime/src/lib/render/renderRole.test.ts packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`; `npm run typecheck`; `git diff --check`
+  - Test results: Task 24 test was written first and failed RED with three expected missing-behavior failures: `sync()` created no renderable, image/video/model role counts were empty, and `runtime.unregisterTarget` did not exist. After the minimal runtime pipeline implementation, targeted Task 24 test passed with 3 tests, nearby renderer runtime tests passed with 3 files / 10 tests, previous registry/source/role/policy/factory pipeline tests passed with 5 files / 27 tests, root typecheck passed, and diff check passed. Final M8 review then found public model sync without an injected loader failed; the added regression failed RED with the missing-adapter error, then passed after the default dynamic GLTFLoader adapter fix.
+  - Review results: final M8 code review found one Important issue: public runtime model declarations could fail because tests only covered internally injected `loadModel`. Fixed by adding the default GLB loader path while keeping it execution-time and SSR-safe.
+  - Notes: Runtime now owns a target registry and resource manager, returns `TargetDescriptor` from `registerTarget`, stores created renderables by target key, creates renderables on `sync()` through source inference, role inference, render policy compilation, and the existing renderable factory, and disposes the matching renderable once on `unregisterTarget(key)`. `sync()` updates current renderables and returns a simple promise only when renderable updates are async. The implementation remains non-React, preserves one renderer host/canvas per runtime, dynamically imports the GLTFLoader only when a model renderable loads, and does not expose Three policy fields or full debug state.
 
 ---
 
