@@ -148,7 +148,7 @@ Tests:
 
   **Completion condition:** Package has stable public export entries and TypeScript can resolve both public entrypoints.
 
-- [ ] **Task 3: Demo Package Skeleton**
+- [x] **Task 3: Demo Package Skeleton**
 
   **Goal:** Create a Vite React demo app that depends on the runtime package.
 
