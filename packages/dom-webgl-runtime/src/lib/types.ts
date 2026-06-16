@@ -54,3 +54,50 @@ export type WebGLDeclaration = {
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
 };
+
+export type WebGLPointerState = {
+  x: number;
+  y: number;
+  normalizedX: number;
+  normalizedY: number;
+  isInside: boolean;
+  isDown: boolean;
+  downTime: number;
+  pressDuration: number;
+  isDragging: boolean;
+  dragStartX: number;
+  dragStartY: number;
+  dragDeltaX: number;
+  dragDeltaY: number;
+  lastClickTime?: number;
+  clickCount: number;
+};
+
+export type WebGLFrameInput = {
+  time: number;
+  delta: number;
+  scroll: {
+    mode: "page";
+    pageProgress: number;
+    direction: -1 | 0 | 1;
+    velocity: number;
+  };
+  pointer: WebGLPointerState;
+};
+
+export type WebGLResourceStatus = "idle" | "loading" | "ready" | "error";
+
+export type WebGLDebugState = {
+  targetCount: number;
+  renderableCount: number;
+  currentScrollMode: "page";
+  pointer: WebGLPointerState;
+  targets: Array<{
+    key: string;
+    sourceKind: string;
+    renderRole: WebGLRenderRole;
+    resourceStatus: WebGLResourceStatus;
+    visible: boolean;
+    error?: string;
+  }>;
+};

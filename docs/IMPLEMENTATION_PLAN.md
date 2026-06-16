@@ -189,7 +189,7 @@ Tests:
 
   **Completion condition:** Public declaration types compile and do not expose `renderOrder`, `transparent`, or `depthWrite`.
 
-- [ ] **Task 5: Frame, Pointer, Debug Types**
+- [x] **Task 5: Frame, Pointer, Debug Types**
 
   **Goal:** Define shared runtime state types.
 
