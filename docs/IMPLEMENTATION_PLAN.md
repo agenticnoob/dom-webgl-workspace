@@ -387,7 +387,7 @@ Tests:
 
   **Completion condition:** All concrete renderables can implement the same lifecycle contract.
 
-- [ ] **Task 16: Element Snapshot Renderable**
+- [x] **Task 16: Element Snapshot Renderable**
 
   **Goal:** Add minimal element snapshot renderable.
 

@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 15 completed.
+Task 16 completed.
 
 ## Last Completed Task
-Task 15: Base Renderable Interface.
+Task 16: Element Snapshot Renderable.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -22,26 +22,27 @@ Task 15: Base Renderable Interface.
 - Task 13: Resource Record Lifecycle.
 - Task 14: DOM-Native Resource Adoption.
 - Task 15: Base Renderable Interface.
+- Task 16: Element Snapshot Renderable.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (red: failed because `createRenderable` was not implemented)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (green: 2 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts` (red: failed because `./elementSnapshotRenderable` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts` (green: 2 tests passed)
 - `git diff --check` (green)
 
 ## Last Result
-Task 15 passed: added the base renderable contract and lifecycle helper in `renderable.ts`; targeted verification passes with 2 tests and `git diff --check` passes.
+Task 16 passed: added the minimal element snapshot renderable and measurement update hook; targeted verification passes with 2 tests and `git diff --check` passes.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No new issues found in Task 15. Pre-existing untracked `.codegraph/`, `apps/demo/dist/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
+No new issues found in Task 16. Pre-existing untracked `docs/00-goal.md` was left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -60,4 +61,4 @@ No new issues found in Task 15. Pre-existing untracked `.codegraph/`, `apps/demo
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 16: Element Snapshot Renderable.
+Start Task 17: Text Snapshot Renderable.
