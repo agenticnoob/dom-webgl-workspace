@@ -263,7 +263,7 @@ Tests:
 
   **Completion condition:** Internal source descriptor union represents all Phase 1 source kinds.
 
-- [ ] **Task 9: DOM Source Inference**
+- [x] **Task 9: DOM Source Inference**
 
   **Goal:** Infer sources from DOM elements.
 

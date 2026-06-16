@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 8 complete.
+Task 9 complete.
 
 ## Last Completed Task
-Task 8: Source Descriptor Types.
+Task 9: DOM Source Inference.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -15,27 +15,27 @@ Task 8: Source Descriptor Types.
 - Task 6: Target Descriptor Normalization.
 - Task 7: Runtime Target Registry.
 - Task 8: Source Descriptor Types.
+- Task 9: DOM Source Inference.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (initial false green because Vitest did not typecheck a missing type-only import)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (red: failed because `sourceDescriptor.ts` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (green)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/inferSource.test.ts` (red: failed because `inferSource.ts` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/inferSource.test.ts` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 8 verification passed: `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` ran with 1 passing test after adding the internal source descriptor union. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+Targeted Task 9 verification passed: `packages/dom-webgl-runtime/src/lib/source/inferSource.test.ts` ran with 4 passing tests after adding DOM source inference. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.ts`
-- `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts`
+- `packages/dom-webgl-runtime/src/lib/source/inferSource.ts`
+- `packages/dom-webgl-runtime/src/lib/source/inferSource.test.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-None.
+None for Task 9. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -54,4 +54,4 @@ None.
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 9: DOM Source Inference.
+Start Task 10: Explicit Model Source.
