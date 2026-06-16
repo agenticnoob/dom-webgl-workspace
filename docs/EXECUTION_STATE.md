@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-M6 Resource Manager review fixes complete.
+Review backlog blocking issue R-001 fixed.
 
 ## Last Completed Task
 Task 14: DOM-Native Resource Adoption.
@@ -26,20 +26,23 @@ Task 14: DOM-Native Resource Adoption.
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (red: failed because anonymous snapshots and distinct same-src DOM media elements shared resource records)
+- `npm run typecheck` (red before fix: failed because `resourceManager.test.ts` helpers returned the `WebGLSourceDescriptor` union before accessing `.element`)
+- `npm run typecheck && npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check` (green)
+- `npm run typecheck` (green)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (green: 9 tests passed)
+- `npm test -- --run` (green: 35 tests passed)
 - `git diff --check` (green)
 
 ## Last Result
-M6 review blocking fixes passed: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` ran with 9 passing tests after isolating anonymous snapshot records and distinct same-src DOM image/video element records. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+Review backlog blocking issue R-001 passed: `resourceManager.test.ts` helper return types now use concrete source descriptor variants, `npm run typecheck` passes, the resource manager targeted suite passes with 9 tests, the full suite passes with 35 tests, and `git diff --check` passes.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
 - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+- `docs/REVIEW_BACKLOG.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-None for the M6 blocking review issues. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
+No remaining blocking review issues. Non-blocking R-002 remains in `docs/REVIEW_BACKLOG.md`: absolute URL origins can collide in resource keys. Deferred/not Phase 1 items remain listed in the review backlog. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.

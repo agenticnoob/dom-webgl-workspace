@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
+import type {
+  WebGLImageSourceDescriptor,
+  WebGLModelSourceDescriptor,
+  WebGLSnapshotSourceDescriptor,
+  WebGLVideoSourceDescriptor,
+} from "../source/sourceDescriptor";
 import { createResourceManager } from "./resourceManager";
 
 describe("createResourceManager", () => {
@@ -133,7 +138,7 @@ describe("createResourceManager", () => {
   });
 });
 
-function createSnapshotDescriptor(key: string): WebGLSourceDescriptor {
+function createSnapshotDescriptor(key: string): WebGLSnapshotSourceDescriptor {
   const element = document.createElement("section");
   element.setAttribute("data-webgl-key", key);
 
@@ -144,7 +149,7 @@ function createSnapshotDescriptor(key: string): WebGLSourceDescriptor {
   };
 }
 
-function createAnonymousSnapshotDescriptor(): WebGLSourceDescriptor {
+function createAnonymousSnapshotDescriptor(): WebGLSnapshotSourceDescriptor {
   const element = document.createElement("section");
 
   return {
@@ -154,7 +159,7 @@ function createAnonymousSnapshotDescriptor(): WebGLSourceDescriptor {
   };
 }
 
-function createImageDescriptor(src: string): WebGLSourceDescriptor {
+function createImageDescriptor(src: string): WebGLImageSourceDescriptor {
   const element = document.createElement("img");
   element.src = src;
 
@@ -165,7 +170,7 @@ function createImageDescriptor(src: string): WebGLSourceDescriptor {
   };
 }
 
-function createModelDescriptor(src: string): WebGLSourceDescriptor {
+function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
   const anchor = document.createElement("div");
 
   return {
@@ -176,7 +181,7 @@ function createModelDescriptor(src: string): WebGLSourceDescriptor {
   };
 }
 
-function createVideoDescriptor(src: string): WebGLSourceDescriptor {
+function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
   const element = document.createElement("video");
   element.src = src;
 
