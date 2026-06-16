@@ -247,7 +247,7 @@ Tests:
 
 ## M4: Source Descriptor Inference
 
-- [ ] **Task 8: Source Descriptor Types**
+- [x] **Task 8: Source Descriptor Types**
 
   **Goal:** Define internal source descriptor variants.
 

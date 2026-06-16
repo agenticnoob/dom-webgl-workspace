@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 7 complete.
+Task 8 complete.
 
 ## Last Completed Task
-Task 7: Runtime Target Registry.
+Task 8: Source Descriptor Types.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -14,23 +14,23 @@ Task 7: Runtime Target Registry.
 - Task 5: Frame, Pointer, Debug Types.
 - Task 6: Target Descriptor Normalization.
 - Task 7: Runtime Target Registry.
+- Task 8: Source Descriptor Types.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` (red: failed because `./registry` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` (green)
-- `npm run typecheck` (green)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (initial false green because Vitest did not typecheck a missing type-only import)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (red: failed because `sourceDescriptor.ts` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 7 verification passed: `packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` ran with 3 passing tests. `npm run typecheck` passed because the public package entrypoint changed. `git diff --check` passed.
+Targeted Task 8 verification passed: `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts` ran with 1 passing test after adding the internal source descriptor union. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/dom/registry.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/registry.test.ts`
-- `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.ts`
+- `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.test.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
@@ -54,4 +54,4 @@ None.
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 8: Source Descriptor Types.
+Start Task 9: DOM Source Inference.
