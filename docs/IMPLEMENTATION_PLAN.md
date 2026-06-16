@@ -299,7 +299,7 @@ Tests:
 
 ## M5: renderRole + Render Policy
 
-- [ ] **Task 11: renderRole Inference**
+- [x] **Task 11: renderRole Inference**
 
   **Goal:** Infer semantic render roles from source descriptors.
 
