@@ -210,7 +210,7 @@ Tests:
 
 ## M3: Target Descriptor
 
-- [ ] **Task 6: Target Descriptor Normalization**
+- [x] **Task 6: Target Descriptor Normalization**
 
   **Goal:** Convert a DOM element and declaration into a normalized target descriptor.
 
