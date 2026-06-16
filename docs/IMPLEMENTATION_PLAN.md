@@ -172,7 +172,7 @@ Tests:
 
 ## M2: Public Types
 
-- [ ] **Task 4: WebGLDeclaration Types**
+- [x] **Task 4: WebGLDeclaration Types**
 
   **Goal:** Define the public declaration schema.
 

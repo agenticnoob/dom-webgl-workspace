@@ -1,37 +1,34 @@
 # Execution State
 
 ## Current Status
-Task 3 complete.
+Task 4 complete.
 
 ## Last Completed Task
-Task 3: Demo Package Skeleton.
+Task 4: WebGLDeclaration Types.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
 - Task 2: Runtime Package Skeleton.
 - Task 3: Demo Package Skeleton.
+- Task 4: WebGLDeclaration Types.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run apps/demo/src/App.test.tsx` (red: failed because `apps/demo/src/App.tsx` did not exist)
-- `npm install --ignore-scripts`
-- `npm test -- --run apps/demo/src/App.test.tsx` (green)
-- `npm run typecheck`
-- `git diff --check`
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts` (initial test shape was invalid: passed because Vitest erased type-only imports)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts` (red: failed because public WebGL declaration types were not exported)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts` (green)
+- `npm run typecheck` (green)
+- `git diff --check` (green)
 
 ## Last Result
-Targeted Task 3 verification passed: `apps/demo/src/App.test.tsx` ran with 1 passing test. `npm run typecheck` passed. `git diff --check` passed.
+Targeted Task 4 verification passed: `packages/dom-webgl-runtime/src/lib/types.test.ts` ran with 1 passing test. `npm run typecheck` passed. `git diff --check` passed.
 
 ## Files Changed
-- `package-lock.json`
-- `apps/demo/package.json`
-- `apps/demo/index.html`
-- `apps/demo/src/main.tsx`
-- `apps/demo/src/App.tsx`
-- `apps/demo/src/demo.css`
-- `apps/demo/src/App.test.tsx`
+- `packages/dom-webgl-runtime/src/lib/types.ts`
+- `packages/dom-webgl-runtime/src/lib/types.test.ts`
+- `packages/dom-webgl-runtime/src/index.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
@@ -55,4 +52,4 @@ None.
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 4: WebGLDeclaration Types.
+Start Task 5: Frame, Pointer, Debug Types.
