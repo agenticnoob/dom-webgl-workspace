@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 6 complete.
+Task 7 complete.
 
 ## Last Completed Task
-Task 6: Target Descriptor Normalization.
+Task 7: Runtime Target Registry.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -13,21 +13,24 @@ Task 6: Target Descriptor Normalization.
 - Task 4: WebGLDeclaration Types.
 - Task 5: Frame, Pointer, Debug Types.
 - Task 6: Target Descriptor Normalization.
+- Task 7: Runtime Target Registry.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts` (red: failed because `./targetDescriptor` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts` (green)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` (red: failed because `./registry` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` (green)
+- `npm run typecheck` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 6 verification passed: `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts` ran with 2 passing tests. Typecheck was not required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+Targeted Task 7 verification passed: `packages/dom-webgl-runtime/src/lib/dom/registry.test.ts` ran with 3 passing tests. `npm run typecheck` passed because the public package entrypoint changed. `git diff --check` passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts`
+- `packages/dom-webgl-runtime/src/lib/dom/registry.ts`
+- `packages/dom-webgl-runtime/src/lib/dom/registry.test.ts`
+- `packages/dom-webgl-runtime/src/index.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
@@ -51,4 +54,4 @@ None.
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 7: Runtime Target Registry.
+Start Task 8: Source Descriptor Types.

@@ -226,7 +226,7 @@ Tests:
 
   **Completion condition:** Descriptor creation is deterministic and validates `key`.
 
-- [ ] **Task 7: Runtime Target Registry**
+- [x] **Task 7: Runtime Target Registry**
 
   **Goal:** Register and unregister DOM targets by stable key.
 
