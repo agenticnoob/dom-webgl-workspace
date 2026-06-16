@@ -335,7 +335,7 @@ Tests:
 
 ## M6: Resource Manager
 
-- [ ] **Task 13: Resource Record Lifecycle**
+- [x] **Task 13: Resource Record Lifecycle**
 
   **Goal:** Add minimal shared resource records.
 
