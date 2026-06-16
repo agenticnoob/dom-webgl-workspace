@@ -28,10 +28,24 @@ type ManagedResourceRecord<T = unknown> = ResourceRecord<T> & {
 
 export function createResourceManager(): ResourceManager {
   const records = new Map<string, ManagedResourceRecord>();
+  const elementKeys = new WeakMap<Element, string>();
+  let nextElementKey = 0;
+
+  const readElementKey = (element: Element): string => {
+    let key = elementKeys.get(element);
+
+    if (!key) {
+      nextElementKey += 1;
+      key = `element-${nextElementKey}`;
+      elementKeys.set(element, key);
+    }
+
+    return key;
+  };
 
   return {
     acquire<T = unknown>(descriptor: WebGLSourceDescriptor): ResourceHandle<T> {
-      const key = createResourceKey(descriptor);
+      const key = createResourceKey(descriptor, readElementKey);
       let record = records.get(key) as ManagedResourceRecord<T> | undefined;
 
       if (!record) {
@@ -103,14 +117,24 @@ function createResourceHandle<T>(
   };
 }
 
-function createResourceKey(descriptor: WebGLSourceDescriptor): string {
+function createResourceKey(
+  descriptor: WebGLSourceDescriptor,
+  readElementKey: (element: Element) => string,
+): string {
   switch (descriptor.kind) {
     case "snapshot":
-      return `snapshot:${descriptor.mode}:${readSnapshotKey(descriptor.element)}`;
+      return `snapshot:${descriptor.mode}:${readSnapshotKey(
+        descriptor.element,
+        readElementKey,
+      )}`;
     case "image":
-      return `image:${normalizeResourceUrl(descriptor.src)}`;
+      return `image:${readElementKey(descriptor.element)}:${normalizeResourceUrl(
+        descriptor.src,
+      )}`;
     case "video":
-      return `video:${normalizeResourceUrl(descriptor.src)}`;
+      return `video:${readElementKey(descriptor.element)}:${normalizeResourceUrl(
+        descriptor.src,
+      )}`;
     case "model":
       return `model:${descriptor.format}:${normalizeResourceUrl(descriptor.src)}`;
   }
@@ -129,12 +153,21 @@ function readAdoptedElement(
   }
 }
 
-function readSnapshotKey(element: HTMLElement): string {
-  return (
-    element.getAttribute("data-webgl-key") ??
-    element.id ??
-    "anonymous-snapshot"
-  );
+function readSnapshotKey(
+  element: HTMLElement,
+  readElementKey: (element: Element) => string,
+): string {
+  const declaredKey = element.getAttribute("data-webgl-key")?.trim();
+
+  if (declaredKey) {
+    return declaredKey;
+  }
+
+  if (element.id) {
+    return element.id;
+  }
+
+  return readElementKey(element);
 }
 
 function normalizeResourceUrl(src: string): string {

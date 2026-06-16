@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Task 14 complete.
+M6 Resource Manager review fixes complete.
 
 ## Last Completed Task
 Task 14: DOM-Native Resource Adoption.
@@ -26,21 +26,20 @@ Task 14: DOM-Native Resource Adoption.
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (red: failed because image/video resource records did not store adopted DOM elements)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (green: 6 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (red: failed because anonymous snapshots and distinct same-src DOM media elements shared resource records)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` (green: 9 tests passed)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 14 verification passed: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` ran with 6 passing tests after adopting existing image/video DOM element references in resource records. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+M6 review blocking fixes passed: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts` ran with 9 passing tests after isolating anonymous snapshot records and distinct same-src DOM image/video element records. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
 
 ## Files Changed
 - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
 - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
-- `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-None for Task 14. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
+None for the M6 blocking review issues. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.

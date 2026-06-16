@@ -21,8 +21,8 @@ describe("createResourceManager", () => {
 
   test("shares records by normalized resource key and reference counts handles", () => {
     const manager = createResourceManager();
-    const first = manager.acquire(createImageDescriptor("/assets/hero.png"));
-    const second = manager.acquire(createImageDescriptor("/assets/./hero.png"));
+    const first = manager.acquire(createModelDescriptor("/models/hero.glb"));
+    const second = manager.acquire(createModelDescriptor("/models/./hero.glb"));
 
     expect(second.record).toBe(first.record);
     expect(first.record.refCount).toBe(2);
@@ -34,7 +34,42 @@ describe("createResourceManager", () => {
     expect(second.record.refCount).toBe(1);
 
     second.dispose();
-    expect(manager.inspect("image:/assets/hero.png")).toBeUndefined();
+    expect(manager.inspect("model:glb:/models/hero.glb")).toBeUndefined();
+  });
+
+  test("keeps anonymous snapshot elements in separate resource records", () => {
+    const manager = createResourceManager();
+    const first = manager.acquire(createAnonymousSnapshotDescriptor());
+    const second = manager.acquire(createAnonymousSnapshotDescriptor());
+
+    expect(second.record).not.toBe(first.record);
+    expect(first.record.key).not.toBe(second.record.key);
+  });
+
+  test("does not share image resource records across distinct DOM image elements", () => {
+    const manager = createResourceManager();
+    const firstDescriptor = createImageDescriptor("/assets/hero.png");
+    const secondDescriptor = createImageDescriptor("/assets/hero.png");
+
+    const first = manager.acquire(firstDescriptor);
+    const second = manager.acquire(secondDescriptor);
+
+    expect(second.record).not.toBe(first.record);
+    expect(first.record.element).toBe(firstDescriptor.element);
+    expect(second.record.element).toBe(secondDescriptor.element);
+  });
+
+  test("does not share video resource records across distinct DOM video elements", () => {
+    const manager = createResourceManager();
+    const firstDescriptor = createVideoDescriptor("/assets/hero.mp4");
+    const secondDescriptor = createVideoDescriptor("/assets/hero.mp4");
+
+    const first = manager.acquire(firstDescriptor);
+    const second = manager.acquire(secondDescriptor);
+
+    expect(second.record).not.toBe(first.record);
+    expect(first.record.element).toBe(firstDescriptor.element);
+    expect(second.record.element).toBe(secondDescriptor.element);
   });
 
   test("loads records through loading to ready", async () => {
@@ -109,6 +144,16 @@ function createSnapshotDescriptor(key: string): WebGLSourceDescriptor {
   };
 }
 
+function createAnonymousSnapshotDescriptor(): WebGLSourceDescriptor {
+  const element = document.createElement("section");
+
+  return {
+    kind: "snapshot",
+    mode: "element",
+    element,
+  };
+}
+
 function createImageDescriptor(src: string): WebGLSourceDescriptor {
   const element = document.createElement("img");
   element.src = src;
@@ -116,6 +161,17 @@ function createImageDescriptor(src: string): WebGLSourceDescriptor {
   return {
     kind: "image",
     element,
+    src,
+  };
+}
+
+function createModelDescriptor(src: string): WebGLSourceDescriptor {
+  const anchor = document.createElement("div");
+
+  return {
+    kind: "model",
+    format: "glb",
+    anchor,
     src,
   };
 }
