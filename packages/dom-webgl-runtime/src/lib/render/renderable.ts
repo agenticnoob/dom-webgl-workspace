@@ -1,6 +1,6 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
-import type { WebGLRenderRole } from "../types";
+import type { WebGLFrameInput, WebGLRenderRole } from "../types";
 import type { RenderPolicy } from "./renderPolicy";
 
 export type RenderableStatus = "idle" | "ready" | "error" | "disposed";
@@ -18,7 +18,7 @@ export type Renderable = {
   role: WebGLRenderRole;
   policy: RenderPolicy;
   status: RenderableStatus;
-  update(): void | Promise<void>;
+  update(input?: WebGLFrameInput): void | Promise<void>;
   setVisible(visible: boolean): void;
   dispose(): void;
 };
@@ -35,6 +35,7 @@ type RenderableHooks = {
   update?(
     context: RenderableContext,
     lifecycle: RenderableLifecycleController,
+    input: WebGLFrameInput,
   ): void | Promise<void>;
   setVisible?(visible: boolean): void;
   dispose?(): void;
@@ -94,13 +95,17 @@ export function createRenderable(
     get status() {
       return lifecycle.status;
     },
-    update(): void | Promise<void> {
+    update(input?: WebGLFrameInput): void | Promise<void> {
       if (disposed) {
         return;
       }
 
       try {
-        const result = hooks.update?.(context, lifecycle);
+        const result = hooks.update?.(
+          context,
+          lifecycle,
+          input ?? createEmptyFrameInput(),
+        );
 
         if (result && typeof result === "object" && "then" in result) {
           return result
@@ -134,6 +139,35 @@ export function createRenderable(
       disposed = true;
       lifecycle.markDisposed();
       hooks.dispose?.();
+    },
+  };
+}
+
+function createEmptyFrameInput(): WebGLFrameInput {
+  return {
+    time: 0,
+    delta: 0,
+    scroll: {
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    },
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
     },
   };
 }

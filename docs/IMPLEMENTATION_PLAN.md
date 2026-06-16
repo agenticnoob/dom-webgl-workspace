@@ -591,7 +591,7 @@ Tests:
 
 ## M9: Frame Input, Page Scroll, Pointer State
 
-- [ ] **Task 25: Basic Page Scroll State**
+- [x] **Task 25: Basic Page Scroll State**
 
   **Goal:** Provide page scroll mode for frame input.
 
@@ -607,7 +607,13 @@ Tests:
 
   **Completion condition:** Frame input can report page scroll only.
 
-- [ ] **Task 26: Pointer Move/Click/Drag State**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`; `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`; `npm run typecheck`
+  - Test results: targeted page scroll test failed RED because `./pageScroll` did not exist, then passed with 2 tests after implementation; root typecheck passed.
+  - Review results: spec review passed; code quality review passed with one non-blocking suggestion to add a future no-scrollable-range test. No gate mode, scroll lock, `sceneProgress`, reverse gate, scene-gated scroll, or React work was introduced.
+
+- [x] **Task 26: Pointer Move/Click/Drag State**
 
   **Goal:** Normalize pointer state in one runtime-owned controller.
 
@@ -623,7 +629,14 @@ Tests:
 
   **Completion condition:** Pointer state is centralized and frame-readable.
 
-- [ ] **Task 27: Shared WebGLFrameInput**
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/input/pointerController.ts`; `packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted pointer controller test failed RED because `./pointerController` did not exist, then passed after implementation. Code review regressions for stale drag state and mutable `getState()` snapshots failed RED, then passed with 6 tests after fixes. Root typecheck and diff check passed in implementation verification.
+  - Review results: spec review passed; code quality review found stale `isDragging` after pointer up and externally mutable state snapshots. Fixed by clearing `isDragging` on `pointerup`, returning a shallow state snapshot from `getState()`, and adding regression tests. Re-review passed.
+  - Scope notes: implemented runtime-owned pointer event listeners on the target element only; no runtime, frame input, debug state, React, renderable-level, or Task 27+ files were changed.
+
+- [x] **Task 27: Shared WebGLFrameInput**
 
   **Goal:** Compose time, delta, scroll, and pointer into one frame input.
 
@@ -640,11 +653,18 @@ Tests:
 
   **Completion condition:** Renderables receive one normalized frame input.
 
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`; `packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts`; `packages/dom-webgl-runtime/src/lib/render/renderable.ts`; `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`; `npm run typecheck`; `git diff --check`; `npm test -- --run`
+  - Test results: targeted frame input test failed RED because `./frameInput` did not exist, then passed after implementation. Code quality review regression for mutable frame snapshots failed RED, then passed after defensive-copy fixes. Final nearby frame input + runtime pipeline + renderable tests passed with 3 files / 9 tests; implementation verification also ran the full suite with 25 files / 81 tests.
+  - Review results: spec review passed; code quality review found frame input snapshots could be mutated by renderables and leak into later reads. Fixed by copying scroll/pointer into internal state and returning defensive frame snapshots while preserving runtime's one shared input per `sync()` call. Re-review passed.
+  - Scope notes: implemented the shared frame input source and runtime handoff only; no effect consumers, scene animation, scene gate progress, debug state, React changes, Task 28, or Task 29 work was added.
+
 ---
 
 ## M10: Debug State
 
-- [ ] **Task 28: Lightweight Debug State**
+- [x] **Task 28: Lightweight Debug State**
 
   **Goal:** Expose runtime state for tests and demo inspection.
 
@@ -661,6 +681,13 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
 
   **Completion condition:** Debug state is public and stable enough for demo and tests.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`; `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`; `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`; `packages/dom-webgl-runtime/src/index.ts`; `docs/IMPLEMENTATION_PLAN.md`; `docs/EXECUTION_STATE.md`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`; `npm run typecheck`; `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`; `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`; `npm test -- --run`; `git diff --check`
+  - Test results: targeted debug state test failed RED because `./debugState` did not exist, then passed after implementation. Code quality review regressions for disposed debug snapshots, async error notification, pending `loading` status, and sync error notification failed RED, then passed after fixes. Final debug state test passed with 7 tests; nearby renderer/debug suite passed with 4 files / 19 tests; M9/M10 input/debug suite passed with 4 files / 17 tests; full suite passed with 26 files / 89 tests; root typecheck and diff check passed.
+  - Review results: spec review passed; code quality review found missing final empty debug snapshot on dispose, missing error notification on failed updates, and missing pending `loading` status. Fixed with lightweight runtime debug bookkeeping and regression tests. Final re-review passed.
+  - Scope notes: implemented lightweight debug snapshots, runtime `getDebugState()`, and optional `onDebugStateChange` only. No devtools layer, performance budgets, viewport lifecycle ranges, React adapter, Task 29 work, or Three.js render-order/depth policy fields were added.
 
 ---
 

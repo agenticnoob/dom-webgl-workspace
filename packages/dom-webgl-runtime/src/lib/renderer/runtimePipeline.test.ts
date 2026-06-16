@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import type { PageScrollStateController } from "../input/pageScroll";
+import type { PointerController } from "../input/pointerController";
 import type { Renderable } from "../render/renderable";
 import type {
   WebGLModelSourceDescriptor,
   WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
+import type { WebGLFrameInput } from "../types";
 import type { createWebGLRuntime, WebGLRuntime } from "./runtime";
 import type { ThreeRendererHost } from "./threeRenderer";
 
@@ -27,6 +30,9 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
   ) => Promise<HTMLVideoElement>;
   loadModel?: (source: WebGLModelSourceDescriptor) => Promise<unknown>;
   onRenderableCreated?: (renderable: Renderable) => void;
+  scrollState?: PageScrollStateController;
+  pointerController?: PointerController;
+  clock?: () => number;
 };
 
 type RuntimeWithPipelineSurface = WebGLRuntime & {
@@ -169,6 +175,57 @@ describe("runtime pipeline sync", () => {
 
     runtime.dispose();
   });
+
+  test("passes one shared frame input to renderables during sync", async () => {
+    const scrollState = createScrollStateController();
+    const pointerController = createPointerController();
+    const receivedInputs: WebGLFrameInput[] = [];
+    const runtime = await createPipelineRuntime({
+      scrollState,
+      pointerController,
+      clock: () => 250,
+      onRenderableCreated(renderable) {
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = (input) => {
+          if (!input) {
+            throw new Error("Expected runtime to pass WebGLFrameInput.");
+          }
+
+          receivedInputs.push(input);
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), { key: "hero" });
+    runtime.registerTarget(document.createElement("section"), { key: "details" });
+
+    await runtime.sync();
+
+    expect(receivedInputs).toHaveLength(2);
+    expect(receivedInputs[0]).toBe(receivedInputs[1]);
+    expect(receivedInputs[0]).toMatchObject({
+      time: 250,
+      delta: 0,
+      scroll: {
+        mode: "page",
+        pageProgress: 0.4,
+        direction: 1,
+        velocity: 12,
+      },
+      pointer: {
+        x: 12,
+        y: 24,
+        normalizedX: -0.5,
+        normalizedY: 0.25,
+        isInside: true,
+      },
+    });
+
+    runtime.dispose();
+    expect(pointerController.dispose).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function createPipelineRuntime(
@@ -224,4 +281,46 @@ function countRoles(renderables: Renderable[]): Partial<Record<string, number>> 
     },
     {},
   );
+}
+
+function createScrollStateController(): PageScrollStateController {
+  const scroll = {
+    mode: "page" as const,
+    pageProgress: 0.4,
+    direction: 1 as const,
+    velocity: 12,
+  };
+
+  return {
+    getState() {
+      return scroll;
+    },
+    update() {
+      return scroll;
+    },
+  };
+}
+
+function createPointerController(): PointerController {
+  return {
+    getState() {
+      return {
+        x: 12,
+        y: 24,
+        normalizedX: -0.5,
+        normalizedY: 0.25,
+        isInside: true,
+        isDown: false,
+        downTime: 0,
+        pressDuration: 0,
+        isDragging: false,
+        dragStartX: 0,
+        dragStartY: 0,
+        dragDeltaX: 0,
+        dragDeltaY: 0,
+        clickCount: 0,
+      };
+    },
+    dispose: vi.fn(),
+  };
 }

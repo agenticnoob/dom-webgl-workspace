@@ -39,8 +39,11 @@ describe("createRenderable", () => {
     renderable.setVisible(false);
     expect(onSetVisible).toHaveBeenCalledWith(false);
 
-    await renderable.update();
+    const frameInput = createFrameInput();
+
+    await renderable.update(frameInput);
     expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith(expect.any(Object), expect.any(Object), frameInput);
     expect(renderable.status).toBe("ready");
   });
 
@@ -79,5 +82,34 @@ function createSnapshotDescriptor(
     kind: "snapshot",
     mode: "element",
     element,
+  };
+}
+
+function createFrameInput() {
+  return {
+    time: 0,
+    delta: 0,
+    scroll: {
+      mode: "page" as const,
+      pageProgress: 0,
+      direction: 0 as const,
+      velocity: 0,
+    },
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
   };
 }

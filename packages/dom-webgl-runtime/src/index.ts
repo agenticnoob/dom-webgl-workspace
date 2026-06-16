@@ -8,8 +8,8 @@ export {
   type WebGLRuntimeOptions,
 } from "./lib/renderer/runtime";
 export type { TargetDescriptor } from "./lib/dom/targetDescriptor";
+export type { WebGLDebugState } from "./lib/types";
 export type {
-  WebGLDebugState,
   WebGLDeclaration,
   WebGLFrameInput,
   WebGLLifecycleDeclaration,
