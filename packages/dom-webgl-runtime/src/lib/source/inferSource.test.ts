@@ -47,6 +47,45 @@ describe("inferSourceDescriptor", () => {
     });
   });
 
+  test("creates a model source from an explicit GLB declaration", () => {
+    const element = document.createElement("div");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "hero.model",
+        source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+      },
+      0,
+    );
+
+    expect(inferSourceDescriptor(target)).toEqual({
+      kind: "model",
+      format: "glb",
+      anchor: element,
+      src: "/models/hero.glb",
+    });
+  });
+
+  test("rejects unsupported explicit model formats", () => {
+    const element = document.createElement("div");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "hero.model",
+        source: {
+          kind: "model",
+          format: "obj" as "glb",
+          src: "/models/hero.obj",
+        },
+      },
+      0,
+    );
+
+    expect(() => inferSourceDescriptor(target)).toThrow(
+      'Unsupported model source format "obj". Only "glb" is supported.',
+    );
+  });
+
   test("falls back to an element snapshot", () => {
     const element = document.createElement("section");
     const target = createTargetDescriptor(element, { key: "hero.surface" }, 0);

@@ -16,6 +16,23 @@ export function inferSourceDescriptor(
     };
   }
 
+  if (declaredSource?.kind === "model") {
+    const modelFormat = declaredSource.format as string;
+
+    if (modelFormat !== "glb") {
+      throw new Error(
+        `Unsupported model source format "${modelFormat}". Only "glb" is supported.`,
+      );
+    }
+
+    return {
+      kind: "model",
+      format: "glb",
+      anchor: element,
+      src: declaredSource.src,
+    };
+  }
+
   if (isImageElement(element)) {
     return {
       kind: "image",

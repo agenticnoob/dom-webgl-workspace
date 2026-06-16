@@ -279,7 +279,7 @@ Tests:
 
   **Completion condition:** Source inference handles DOM-native image/video and snapshot fallback.
 
-- [ ] **Task 10: Explicit Model Source**
+- [x] **Task 10: Explicit Model Source**
 
   **Goal:** Support explicit GLB model source declaration.
 
