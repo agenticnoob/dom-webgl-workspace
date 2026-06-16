@@ -1,34 +1,35 @@
 # Execution State
 
 ## Current Status
-Task 1 complete.
+Task 2 complete.
 
 ## Last Completed Task
-Task 1: Root Workspace Skeleton.
+Task 2: Runtime Package Skeleton.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
+- Task 2: Runtime Package Skeleton.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run workspace.test.ts` (red: failed because root `package.json` did not exist)
-- `npm test -- --run workspace.test.ts` (red: failed because `vitest` was not installed)
-- `npm install` (sandboxed install hung under restricted network and was terminated)
-- `npm install` (with approved network access)
-- `npm test -- --run workspace.test.ts` (green)
+- `npm test -- --run packages/dom-webgl-runtime/src/index.test.ts` (red: failed because `packages/dom-webgl-runtime/package.json` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/index.test.ts` (green)
+- `npm install --package-lock-only --ignore-scripts`
+- `npm run typecheck`
 - `git diff --check`
 
 ## Last Result
-Targeted Task 1 verification passed: `workspace.test.ts` ran with 1 passing test. `git diff --check` passed.
+Targeted Task 2 verification passed: `packages/dom-webgl-runtime/src/index.test.ts` ran with 1 passing test. `npm run typecheck` passed. `git diff --check` passed.
 
 ## Files Changed
-- `package.json`
 - `package-lock.json`
-- `tsconfig.base.json`
-- `vitest.config.ts`
-- `workspace.test.ts`
+- `packages/dom-webgl-runtime/package.json`
+- `packages/dom-webgl-runtime/tsconfig.json`
+- `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/react.ts`
+- `packages/dom-webgl-runtime/src/index.test.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
@@ -52,4 +53,4 @@ None.
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 2: Runtime Package Skeleton.
+Start Task 3: Demo Package Skeleton.

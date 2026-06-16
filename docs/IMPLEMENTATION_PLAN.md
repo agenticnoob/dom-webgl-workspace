@@ -129,7 +129,7 @@ Tests:
 
   **Completion condition:** The workspace structure test fails before root config exists, then passes after config exists.
 
-- [ ] **Task 2: Runtime Package Skeleton**
+- [x] **Task 2: Runtime Package Skeleton**
 
   **Goal:** Create the runtime package shell and package export surface.
 
