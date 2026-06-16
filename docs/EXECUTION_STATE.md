@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 11 complete.
+Task 12 complete.
 
 ## Last Completed Task
-Task 11: renderRole Inference.
+Task 12: Render Policy Compilation.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -18,26 +18,27 @@ Task 11: renderRole Inference.
 - Task 9: DOM Source Inference.
 - Task 10: Explicit Model Source.
 - Task 11: renderRole Inference.
+- Task 12: Render Policy Compilation.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderRole.test.ts` (red: failed because `./renderRole` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderRole.test.ts` (green: 6 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts` (red: failed because `./renderPolicy` did not exist)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts` (green: 3 tests passed)
 - `git diff --check` (green)
 
 ## Last Result
-Targeted Task 11 verification passed: `packages/dom-webgl-runtime/src/lib/render/renderRole.test.ts` ran with 6 passing tests after adding render role inference. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
+Targeted Task 12 verification passed: `packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts` ran with 3 passing tests after adding internal render policy compilation. No extra typecheck was required because no public types, package exports, React exports, or build config changed. `git diff --check` passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/render/renderRole.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderRole.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-None for Task 11. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
+None for Task 12. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `node_modules/` were left untouched.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -56,4 +57,4 @@ None for Task 11. Pre-existing untracked `.codegraph/`, `docs/00-goal.md`, and `
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 12: Render Policy Compilation.
+Start Task 13: Resource Record Lifecycle.

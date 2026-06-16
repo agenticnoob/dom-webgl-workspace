@@ -315,7 +315,7 @@ Tests:
 
   **Completion condition:** Role inference matches the goal document and supports explicit overrides.
 
-- [ ] **Task 12: Render Policy Compilation**
+- [x] **Task 12: Render Policy Compilation**
 
   **Goal:** Compile role into internal render policy without exposing Three.js flags publicly.
 
