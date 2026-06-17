@@ -1,4 +1,4 @@
-import { act, createElement } from "react";
+import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -86,9 +86,48 @@ describe("WebGLRuntime", () => {
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith({
       container: host.firstElementChild,
-      onDebugStateChange,
+      onDebugStateChange: expect.any(Function),
     });
+    runtimeMocks.createWebGLRuntime.mock.calls[0][0].onDebugStateChange?.(
+      createEmptyDebugState(),
+    );
+    expect(onDebugStateChange).toHaveBeenCalledTimes(1);
     expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
+  });
+
+  test("does not recreate the runtime when debug callbacks update parent state", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    let latestDebugCallback: ((state: unknown) => void) | undefined;
+
+    runtimeMocks.createWebGLRuntime.mockImplementation((options) => {
+      latestDebugCallback = options.onDebugStateChange;
+      return createRuntimeStub(options.container);
+    });
+
+    function RuntimeHost() {
+      const [, setDebugRevision] = useState(0);
+
+      return createElement(WebGLRuntime, {
+        onDebugStateChange: () => {
+          setDebugRevision((revision) => revision + 1);
+        },
+      });
+    }
+
+    await act(async () => {
+      root.render(createElement(RuntimeHost));
+    });
+
+    const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      latestDebugCallback?.({});
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(firstRuntime.dispose).not.toHaveBeenCalled();
   });
 
   test("renders children inside the runtime provider", async () => {
@@ -190,5 +229,30 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
       };
     },
     dispose: vi.fn(),
+  };
+}
+
+function createEmptyDebugState() {
+  return {
+    targetCount: 0,
+    renderableCount: 0,
+    currentScrollMode: "page" as const,
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+    targets: [],
   };
 }

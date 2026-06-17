@@ -1,4 +1,4 @@
-import { act, createElement } from "react";
+import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -126,6 +126,40 @@ describe("WebGLTarget", () => {
         },
       },
     });
+  });
+
+  test("does not re-register when an equivalent inline declaration is recreated", async () => {
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+    let rerender!: () => void;
+
+    function TargetHost() {
+      const [, setRevision] = useState(0);
+      rerender = () => setRevision((revision) => revision + 1);
+
+      return createElement(WebGLTarget, {
+        webgl: { key: "story.inline" },
+        id: "story-inline",
+      });
+    }
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(TargetHost),
+        ),
+      );
+    });
+
+    await act(async () => {
+      rerender();
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledTimes(1);
+    expect(runtime.unregisterTarget).not.toHaveBeenCalled();
   });
 
   test("keeps runtime internals out of the React public entrypoint", async () => {

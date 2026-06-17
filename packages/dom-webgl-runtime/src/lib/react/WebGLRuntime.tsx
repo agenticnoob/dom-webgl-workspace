@@ -31,7 +31,10 @@ export function WebGLRuntime({
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingRuntimeRef = useRef<RuntimeInstance | null>(null);
+  const onDebugStateChangeRef = useRef(onDebugStateChange);
   const [runtime, setRuntime] = useState<RuntimeInstance | null>(null);
+
+  onDebugStateChangeRef.current = onDebugStateChange;
 
   if (pendingRuntimeRef.current === null) {
     pendingRuntimeRef.current = createPendingRuntime();
@@ -46,7 +49,9 @@ export function WebGLRuntime({
 
     const nextRuntime = createWebGLRuntime({
       container,
-      onDebugStateChange,
+      onDebugStateChange(state) {
+        onDebugStateChangeRef.current?.(state);
+      },
     });
 
     setRuntime(nextRuntime);
@@ -54,7 +59,7 @@ export function WebGLRuntime({
     return () => {
       nextRuntime.dispose();
     };
-  }, [onDebugStateChange]);
+  }, []);
 
   return createElement(
     "div",

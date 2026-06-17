@@ -26,6 +26,9 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
 }: WebGLTargetProps<TElement>) {
   const runtime = useWebGLRuntime();
   const elementRef = useRef<HTMLElement | null>(null);
+  const webglRef = useRef(webgl);
+
+  webglRef.current = webgl;
 
   useEffect(() => {
     const element = elementRef.current;
@@ -34,12 +37,12 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
       return;
     }
 
-    runtime.registerTarget(element, webgl);
+    runtime.registerTarget(element, webglRef.current);
 
     return () => {
       runtime.unregisterTarget(webgl.key);
     };
-  }, [runtime, webgl]);
+  }, [runtime, webgl.key]);
 
   return createElement(as ?? "div", { ...props, ref: elementRef }, children);
 }
