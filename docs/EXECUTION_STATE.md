@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Task 35 complete. Public export contract is tightened; stop before Task 36 / Full Check.
+Task 35 complete. Follow-up demo preview fixes and assets are staged for commit; stop before Task 36 / Full Check.
 
 ## Last Completed Task
 Task 35: Public Export Contract.
@@ -47,23 +47,28 @@ Task 35: Public Export Contract.
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (red: root entrypoint still exposed `createTargetRegistry`; type fixture also showed `TargetDescriptor` was still importable from root)
-- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (partial green: public export test passed; typecheck failed because `WebGLTarget.test.tsx` still imported `TargetDescriptor` from root)
-- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (green: public export test passed with 3 tests; root typecheck passed)
-- `git diff --check` (green)
+- `npm test -- --run apps/demo/src/main-entry-build.test.ts` (red: built demo bundle emitted an unbound `React.createElement` from the JSX entrypoint)
+- `npm test -- --run apps/demo/src/main-entry-build.test.ts` (green after binding the React namespace in `apps/demo/src/main.tsx`)
+- `npm run check` (green after fixing the new test type import)
+- `npm test -- --run apps/demo/src/App.test.tsx` (red after updating expected image source to `/demo/image.png`, while implementation still used `/demo/image.jpg`)
+- `npm test -- --run apps/demo/src/App.test.tsx && npm run check` (green after updating the demo image DOM src and WebGL source to `/demo/image.png`)
 
 ## Last Result
-Task 35 completed with strict TDD. Added `packages/dom-webgl-runtime/src/publicExports.test.ts` to verify the root public entrypoint exposes `createWebGLRuntime` and public runtime/types while hiding internal registry/descriptor exports, and to verify the React entrypoint exposes `WebGLRuntime`, `WebGLTarget`, and `useWebGLRuntime`. The new test failed first because root still exported `createTargetRegistry` and `TargetDescriptor`. The fix removed those root re-exports from `packages/dom-webgl-runtime/src/index.ts`. Root typecheck then exposed an old React adapter test importing `TargetDescriptor` from the public root, so that test now imports the internal stub type from the internal path. Final targeted Task 35 verification and `git diff --check` passed. Task 36 was not started.
+Follow-up demo preview fixes completed after Task 35. The browser runtime error `React is not defined` was reproduced with a new Vite-build regression test, then fixed by binding the React namespace in `apps/demo/src/main.tsx`. The user-provided demo assets were added under `apps/demo/public`, and the demo image target was updated from `/demo/image.jpg` to `/demo/image.png` with a red/green `App.test.tsx` update. A new README documents setup, LAN demo access, public API imports, demo asset paths, verification commands, and the current Phase 1 visual boundary: DOM targets are registered and resource lifecycle/debug state are wired, but visible Three.js image/video/model scene output is not yet implemented. Task 36 was not started.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/publicExports.test.ts`
-- `packages/dom-webgl-runtime/src/index.ts`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
-- `docs/IMPLEMENTATION_PLAN.md`
+- `README.md`
+- `apps/demo/public/demo/image.png`
+- `apps/demo/public/demo/video.mp4`
+- `apps/demo/public/models/hero.glb`
+- `apps/demo/src/main.tsx`
+- `apps/demo/src/main-entry-build.test.ts`
+- `apps/demo/src/App.tsx`
+- `apps/demo/src/App.test.tsx`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No Task 35 blocking issues are open based on current verification. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
+No blocking issues are open based on the latest targeted and root `npm run check` verification. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.

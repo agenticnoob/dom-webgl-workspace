@@ -78,7 +78,7 @@ describe("demo App", () => {
     ).toEqual([
       { key: "demo.surface", source: { kind: "snapshot", mode: "element" } },
       { key: "demo.text", source: { kind: "snapshot", mode: "text" } },
-      { key: "demo.image", source: { kind: "image", src: "/demo/image.jpg" } },
+      { key: "demo.image", source: { kind: "image", src: "/demo/image.png" } },
       { key: "demo.video", source: { kind: "video", src: "/demo/video.mp4" } },
       {
         key: "demo.model",

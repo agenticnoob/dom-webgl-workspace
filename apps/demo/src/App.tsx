@@ -50,10 +50,10 @@ export default function App() {
               as="img"
               className="demo-card demo-card-media"
               alt="Demo image target"
-              src="/demo/image.jpg"
+              src="/demo/image.png"
               webgl={{
                 key: "demo.image",
-                source: { kind: "image", src: "/demo/image.jpg" },
+                source: { kind: "image", src: "/demo/image.png" },
               }}
             />
 
