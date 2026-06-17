@@ -2,11 +2,8 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type {
-  TargetDescriptor,
-  WebGLDeclaration,
-  WebGLRuntime,
-} from "../../index";
+import type { TargetDescriptor } from "../dom/targetDescriptor";
+import type { WebGLDeclaration, WebGLRuntime } from "../../index";
 
 const roots: Root[] = [];
 

@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-M11 review blocking issue fixed after Task 31.
+Task 35 complete. Public export contract is tightened; stop before Task 36 / Full Check.
 
 ## Last Completed Task
-Task 31: React WebGLTarget Component.
+Task 35: Public Export Contract.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -38,29 +38,32 @@ Task 31: React WebGLTarget Component.
 - Task 29: React Runtime Context.
 - Task 30: React WebGLRuntime Component.
 - Task 31: React WebGLTarget Component.
+- Task 32: Demo Uses Public API Only.
+- Task 33: Demo DOM Scene.
+- Task 34: Demo Debug Panel.
+- Task 35: Public Export Contract.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (red: review regression failed because SSR/static markup output was `<div></div>` and did not preserve the DOM target)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green: 1 file / 5 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green: 3 files / 10 tests passed)
-- `npm run typecheck` (initial failure: pending runtime `container` getter needed an explicit `HTMLElement` return type)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green after type fix: 3 files / 10 tests passed)
-- `npm run typecheck` (green)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (red: root entrypoint still exposed `createTargetRegistry`; type fixture also showed `TargetDescriptor` was still importable from root)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (partial green: public export test passed; typecheck failed because `WebGLTarget.test.tsx` still imported `TargetDescriptor` from root)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck` (green: public export test passed with 3 tests; root typecheck passed)
 - `git diff --check` (green)
 
 ## Last Result
-M11 review blocking issue fixed: `WebGLRuntime` now preserves ordinary DOM children and `WebGLTarget` markup before the client runtime is ready by providing a pending runtime context value. Real runtime creation still happens in the client effect, and real target registration still happens after the actual runtime is available. The regression test failed first, then passed after the fix. M11 React targeted tests and root typecheck passed.
+Task 35 completed with strict TDD. Added `packages/dom-webgl-runtime/src/publicExports.test.ts` to verify the root public entrypoint exposes `createWebGLRuntime` and public runtime/types while hiding internal registry/descriptor exports, and to verify the React entrypoint exposes `WebGLRuntime`, `WebGLTarget`, and `useWebGLRuntime`. The new test failed first because root still exported `createTargetRegistry` and `TargetDescriptor`. The fix removed those root re-exports from `packages/dom-webgl-runtime/src/index.ts`. Root typecheck then exposed an old React adapter test importing `TargetDescriptor` from the public root, so that test now imports the internal stub type from the internal path. Final targeted Task 35 verification and `git diff --check` passed. Task 36 was not started.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
+- `packages/dom-webgl-runtime/src/publicExports.test.ts`
+- `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
+- `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No M11 blocking review issues remain after the fix. Non-blocking review notes remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs. Task 32 still needs to add the demo public import boundary verification.
+No Task 35 blocking issues are open based on current verification. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -79,4 +82,4 @@ No M11 blocking review issues remain after the fix. Non-blocking review notes re
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 32: Demo Uses Public API Only.
+Start Task 36: Full Check.

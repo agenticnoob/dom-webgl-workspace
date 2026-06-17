@@ -1,13 +1,8 @@
 export {
-  createTargetRegistry,
-  type TargetRegistry,
-} from "./lib/dom/registry";
-export {
   createWebGLRuntime,
   type WebGLRuntime,
   type WebGLRuntimeOptions,
 } from "./lib/renderer/runtime";
-export type { TargetDescriptor } from "./lib/dom/targetDescriptor";
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLDeclaration,

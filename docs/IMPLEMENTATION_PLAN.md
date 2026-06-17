@@ -767,7 +767,7 @@ Tests:
 
 ## M12: Demo
 
-- [ ] **Task 32: Demo Uses Public API Only**
+- [x] **Task 32: Demo Uses Public API Only**
 
   **Goal:** Enforce app/package boundary.
 
@@ -784,7 +784,13 @@ Tests:
 
   **Completion condition:** Demo cannot consume runtime internals.
 
-- [ ] **Task 33: Demo DOM Scene**
+  **Execution record:**
+  - Files changed: `scripts/assert-demo-public-imports.mjs`; `apps/demo/src/demo-import-boundary.test.ts`; `package.json`
+  - Commands run: `npm test -- --run apps/demo/src/demo-import-boundary.test.ts`; `npm run check:imports`
+  - Test results: targeted import-boundary test failed RED because the scanner was unimplemented, then failed RED on missing side-effect import parsing and on test-file scanning, then passed GREEN with 3 tests after the scanner covered public imports, runtime source-path escapes, and ignored colocated `*.test.*` files. `npm run check:imports` initially failed because the scanner counted the test fixture itself, then passed after excluding test files. Follow-up review found bypasses via `packages/dom-webgl-runtime/src/index`, `src/react`, and CommonJS `require(...)`; regression tests were added first, then the scanner was tightened from `src/lib/**` to all `packages/dom-webgl-runtime/src/**` source-path imports and expanded to parse `require(...)`.
+  - Review results: spec review passed. Code quality review found real public-boundary bypasses through workspace `src` entry files, matching relative escapes, and CommonJS `require(...)`; fixed with additional red tests and a narrower allowlist that only permits `@project/dom-webgl-runtime` and `@project/dom-webgl-runtime/react`.
+
+- [x] **Task 33: Demo DOM Scene**
 
   **Goal:** Build a demo scene that declares Phase 1 targets.
 
@@ -801,7 +807,13 @@ Tests:
 
   **Completion condition:** Demo exercises every Phase 1 source category through public React API.
 
-- [ ] **Task 34: Demo Debug Panel**
+  **Execution record:**
+  - Files changed: `apps/demo/src/App.tsx`; `apps/demo/src/demo.css`; `apps/demo/src/App.test.tsx`
+  - Commands run: `npm test -- --run apps/demo/src/App.test.tsx`; `npm run check:imports`
+  - Test results: the new scene test failed RED because `App` did not use the public React runtime entrypoint yet, then failed again because the test was not flushing React work, then failed on the existing classic JSX runtime requirement (`React is not defined`). After importing `React` explicitly in `App.tsx`, wrapping render/unmount in `act`, and setting `IS_REACT_ACT_ENVIRONMENT`, the targeted test passed GREEN with 1 test and `npm run check:imports` stayed green with no warnings.
+  - Review results: no separate review run yet; Task 34 final review will cover the integrated M12 demo surface.
+
+- [x] **Task 34: Demo Debug Panel**
 
   **Goal:** Show lightweight debug state in the demo.
 
@@ -818,11 +830,17 @@ Tests:
 
   **Completion condition:** Demo exposes debug state without internal imports.
 
+  **Execution record:**
+  - Files changed: `apps/demo/src/debugPanel.tsx`; `apps/demo/src/debugPanel.test.tsx`; `apps/demo/src/App.tsx`; `apps/demo/src/demo.css`; `apps/demo/src/demo-import-boundary.test.ts`; `apps/demo/src/App.test.tsx`; `tsconfig.base.json`
+  - Commands run: `npm test -- --run apps/demo/src/debugPanel.test.tsx`; `npm test -- --run apps/demo/src/demo-import-boundary.test.ts apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`; `npm run check:imports`; `npm run typecheck`; `git diff --check`
+  - Test results: the new debug-panel test failed RED because `./debugPanel` did not exist, then passed GREEN after the minimal component implementation. Follow-up typecheck failed on test-only ReactNode typings and on importing the `.mjs` scanner helper from TypeScript tests. Those blocking M12 integration regressions were fixed by tightening test prop types, switching the boundary test to a typed dynamic import with an explicit `@ts-expect-error`, and broadening root tsconfig includes to `scripts/**/*.d.ts`. Final M12 demo tests (5 total), React adapter tests (10 total), `check:imports`, `typecheck`, and `git diff --check` all passed.
+  - Review results: integrated code review found one blocking gap in Task 32 (`require(...)` was not scanned) and one stale-doc issue while Task 34 was in flight. The import-boundary gap was fixed and re-verified; the docs were already brought up to date in the same rollout. No Task 35/M13 work was started.
+
 ---
 
 ## M13: Final Verification
 
-- [ ] **Task 35: Public Export Contract**
+- [x] **Task 35: Public Export Contract**
 
   **Goal:** Verify all intended public exports exist and no internal exports leak.
 
@@ -838,6 +856,12 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck`
 
   **Completion condition:** Public API is small and matches Phase 1 scope.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/publicExports.test.ts`; `packages/dom-webgl-runtime/src/index.ts`; `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts && npm run typecheck`
+  - Test results: the new public export test failed RED because the root entrypoint still exposed `createTargetRegistry` and `TargetDescriptor`. After removing those internal root re-exports, the targeted test passed, then `typecheck` exposed an old React adapter test that still imported `TargetDescriptor` from the root public entrypoint. That test was updated to import the internal stub type from the internal path, and the full Task 35 verification command passed.
+  - Review results: not run. Scope stayed limited to public export contract testing, root export cleanup, and one test import correction required by the public contract.
 
 - [ ] **Task 36: Full Check**
 
