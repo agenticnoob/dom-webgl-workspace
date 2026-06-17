@@ -10,6 +10,13 @@ const guardedBrowserGlobals = [
   "document",
   "HTMLElement",
   "HTMLCanvasElement",
+  "HTMLImageElement",
+  "HTMLMediaElement",
+  "HTMLVideoElement",
+  "Image",
+  "DOMRect",
+  "ResizeObserver",
+  "requestAnimationFrame",
   "WebGLRenderingContext",
 ] as const;
 

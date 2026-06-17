@@ -39,6 +39,20 @@ describe("public package exports", () => {
         import type { WebGLTargetProps } from "${importPath}";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
+        // @ts-expect-error Scene objects are internal renderer state.
+        import type { WebGLSceneObject } from "${importPath}";
+        // @ts-expect-error Scene object controllers are internal renderer state.
+        import type { WebGLSceneObjectController } from "${importPath}";
+        // @ts-expect-error Scene object ordering is an internal render policy detail.
+        import type { WebGLSceneObjectOrdering } from "${importPath}";
+        // @ts-expect-error Scene adapters are internal renderer state.
+        import type { WebGLSceneAdapter } from "${importPath}";
+        // @ts-expect-error DOM projection is an internal renderer detail.
+        import type { ProjectedDOMRect } from "${importPath}";
+        // @ts-expect-error DOM viewport projection is an internal renderer detail.
+        import type { DOMViewportSize } from "${importPath}";
+        // @ts-expect-error Render policy ordering is internal.
+        import type { SceneObjectOrdering } from "${importPath}";
 
         WebGLRuntime satisfies unknown;
         WebGLTarget satisfies unknown;
@@ -143,6 +157,18 @@ describe("public package exports", () => {
         import type { WebGLSceneObject } from "${importPath}";
         // @ts-expect-error Scene adapters are internal renderer state.
         import type { WebGLSceneAdapter } from "${importPath}";
+        // @ts-expect-error Scene object controllers are internal renderer state.
+        import type { WebGLSceneObjectController } from "${importPath}";
+        // @ts-expect-error Scene object ordering is internal render state.
+        import type { WebGLSceneObjectOrdering } from "${importPath}";
+        // @ts-expect-error DOM projection is an internal renderer detail.
+        import type { ProjectedDOMRect } from "${importPath}";
+        // @ts-expect-error DOM viewport projection is an internal renderer detail.
+        import type { DOMViewportSize } from "${importPath}";
+        // @ts-expect-error Render policy is an internal compilation result.
+        import type { RenderPolicy } from "${importPath}";
+        // @ts-expect-error Render policy ordering is internal.
+        import type { SceneObjectOrdering } from "${importPath}";
 
         createWebGLRuntime satisfies (
           options: WebGLRuntimeOptions,

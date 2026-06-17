@@ -14,7 +14,7 @@ export default function App() {
       <WebGLRuntime className="demo-runtime" onDebugStateChange={setDebugState}>
         <section className="demo-scene" aria-label="DOM WebGL demo scene">
           <header className="demo-header">
-            <p className="demo-kicker">Phase 1 Demo</p>
+            <p className="demo-kicker">Phase 3 Demo</p>
             <h1>One runtime, five source categories, no internal imports.</h1>
             <p className="demo-summary">
               The DOM stays author-facing. The runtime compiles declared targets into a
@@ -34,6 +34,7 @@ export default function App() {
                   duration: 1,
                   release: "both-directions-complete",
                 },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
               }}
             >
               <p className="demo-label">Element snapshot</p>

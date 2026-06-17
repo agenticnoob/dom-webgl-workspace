@@ -7,6 +7,8 @@ export type DebugPanelProps = {
 };
 
 export function DebugPanel({ state }: DebugPanelProps) {
+  const visibleTargetCount = state.targets.filter((target) => target.visible).length;
+
   return (
     <aside className="debug-panel" aria-label="Runtime debug panel">
       <div className="debug-panel__metric">
@@ -16,6 +18,12 @@ export function DebugPanel({ state }: DebugPanelProps) {
       <div className="debug-panel__metric">
         <span className="debug-panel__label">Renderables</span>
         <strong>{state.renderableCount}</strong>
+      </div>
+      <div className="debug-panel__metric">
+        <span className="debug-panel__label">WebGL visible</span>
+        <strong>
+          {visibleTargetCount}/{state.targets.length}
+        </strong>
       </div>
       <div className="debug-panel__metric">
         <span className="debug-panel__label">Scroll</span>

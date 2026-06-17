@@ -128,6 +128,45 @@ describe("WebGLTarget", () => {
     });
   });
 
+  test("forwards lifecycle fallback declarations through the public webgl prop", async () => {
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../react");
+    const runtime = createRuntimeStub();
+    const webgl: WebGLDeclaration = {
+      key: "story.surface",
+      source: { kind: "snapshot", mode: "element" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+    };
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLTarget,
+            {
+              webgl,
+              id: "story-surface",
+            },
+            createElement("span", null, "Visible child"),
+          ),
+        ),
+      );
+    });
+
+    const target = host.querySelector("#story-surface");
+    const descriptor = runtime.registerTarget.mock.results[0]?.value;
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(target, webgl);
+    expect(descriptor).toMatchObject({
+      key: "story.surface",
+      declaration: {
+        lifecycle: { hideWhenReady: true, hideMode: "self" },
+      },
+    });
+  });
+
   test("does not re-register when an equivalent inline declaration is recreated", async () => {
     const { WebGLRuntimeProvider, WebGLTarget } = await import("../../react");
     const runtime = createRuntimeStub();

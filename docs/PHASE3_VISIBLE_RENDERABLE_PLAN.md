@@ -411,7 +411,7 @@ Docs and state:
 
   **Completion condition:** Scene content is rendered through the single runtime renderer whenever sync changes visible state.
 
-- [ ] **Task 69: React And Demo Visible Smoke**
+- [x] **Task 69: React And Demo Visible Smoke**
 
   **Goal:** Prove the public React demo can declare every source type and have each one enter the WebGL scene through public APIs only.
 
@@ -435,7 +435,7 @@ Docs and state:
 
   **Completion condition:** The demo exercises every visible renderable path through public APIs and preserves child DOM visibility.
 
-- [ ] **Task 70: SSR And Public Boundary Regression**
+- [x] **Task 70: SSR And Public Boundary Regression**
 
   **Goal:** Prove Phase 3 visible scene work does not break SSR-safe imports or public API boundaries.
 
@@ -487,4 +487,4 @@ Docs and state:
 
 ## Suggested Next Round
 
-Batch B is complete through Task 66. Next start Task 67 only after an explicit request.
+Batch D is complete through Task 70. Next start Batch E Tasks 71-72 only after an explicit request.

@@ -1,13 +1,13 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content. Phase 3 Batch C is complete through Task 68: renderRole policies now drive internal scene object ordering, and runtime sync renders visible scene changes through the single scene adapter.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content. Phase 3 Batch C is complete through Task 68: renderRole policies now drive internal scene object ordering, and runtime sync renders visible scene changes through the single scene adapter. Phase 3 Batch D is complete through Task 70: the React demo declares every visible renderable path through public APIs, and SSR/public export boundaries are covered by stronger regressions.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
-Task 68: Runtime Renders Scene On Sync.
+Task 70: SSR And Public Boundary Regression.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -78,9 +78,11 @@ Task 68: Runtime Renders Scene On Sync.
 - Task 66: GLB Model Scene Object.
 - Task 67: Internal Render Policy Ordering.
 - Task 68: Runtime Renders Scene On Sync.
+- Task 69: React And Demo Visible Smoke.
+- Task 70: SSR And Public Boundary Regression.
 
 ## Current Task
-Phase 3 Batch C is complete. Stop here unless explicitly asked to start Batch D Task 69.
+Phase 3 Batch D is complete. Stop here unless explicitly asked to start Batch E Task 71.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -265,6 +267,18 @@ Phase 3 Batch C is complete. Stop here unless explicitly asked to start Batch D 
 - Remaining non-blocking issues: none for Batch C. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch C did not run a production build.
 - Next batch: Batch D Tasks 69-70: React And Demo Visible Smoke; SSR And Public Boundary Regression. Do not start until explicitly requested.
 
+## Phase 3 Batch D Completed Task Record
+- Completed tasks: Task 69 React And Demo Visible Smoke; Task 70 SSR And Public Boundary Regression.
+- Files changed: `apps/demo/src/App.tsx`, `apps/demo/src/App.test.tsx`, `apps/demo/src/debugPanel.tsx`, `apps/demo/src/debugPanel.test.tsx`, `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`, `packages/dom-webgl-runtime/src/publicExports.test.ts`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- RED evidence: `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts` failed before Task 69 implementation because the demo surface target did not declare `lifecycle: { hideWhenReady: true, hideMode: "self" }`, the child-preserving fallback smoke was not demonstrated, and the debug panel did not show WebGL-visible readiness. Task 70 regression tests were added before implementation and passed against the existing code, confirming no production boundary fix was needed.
+- GREEN verification: Task 69 verification `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` passed. Task 70 verification `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` passed. Batch D checkpoint `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts && npm run check:imports && npm run typecheck && git diff --check` passed with 6 files / 34 tests.
+- Demo/API reviewer result: approved with no blocking or non-blocking issues. The demo imports only public package entrypoints, declares element snapshot, text snapshot, image, video, and GLB model targets through `WebGLTarget`, demonstrates `hideWhenReady` with `hideMode: "self"`, and reads debug readiness from public `WebGLDebugState`.
+- SSR/public boundary reviewer result: approved with no blocking or non-blocking issues. Root and React entrypoints remain SSR-safe with expanded browser-global import guards, and internal scene object, controller, projection, adapter, render policy, and render ordering types remain absent from public root and React exports.
+- Phase scope reviewer result: approved with no blocking or non-blocking issues. Batch D added no effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple canvas path, or public Three.js `renderOrder`, `transparent`, or `depthWrite` flags. Phase 2 scene-gate behavior was not changed.
+- Blocking issues fixed: none found by review. During local verification, a React test mock warning from cloned children without key handling was fixed by using `Children.map`.
+- Remaining non-blocking issues: none for Batch D.
+- Next batch: Batch E Tasks 71-72: Phase 3 Full Verification and Phase 3 Documentation Alignment. Do not start until explicitly requested.
+
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 - `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -318,32 +332,27 @@ Phase 3 Batch C is complete. Stop here unless explicitly asked to start Batch D 
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts && npm run typecheck` (green Task 67 verification)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck` (green Task 68 verification after mixed sync+async render fix: 3 files / 34 tests passed)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck && git diff --check` (green Phase 3 Batch C checkpoint verification: 7 files / 50 tests passed)
+- `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts` (RED before Task 69 implementation: 3 expected failures for missing self lifecycle fallback and WebGL-visible readiness display)
+- `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` (green Task 69 verification: 4 files / 17 tests passed, demo import boundary passed, typecheck passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` (green Task 70 verification: 3 files / 20 tests passed, demo import boundary passed, typecheck passed)
+- `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts && npm run check:imports && npm run typecheck && git diff --check` (green Phase 3 Batch D checkpoint verification: 6 files / 34 tests passed)
 
 ## Last Result
-Phase 3 Batch C is complete through Task 68. Ordering, runtime render, and debug/tests/docs reviewers approved after fixes for actual renderable ordering propagation, mixed sync+async render timing, and Batch C docs synchronization.
+Phase 3 Batch D is complete through Task 70. The demo now declares every visible renderable path through public React APIs, demonstrates child-preserving fallback hiding, shows WebGL-visible readiness from public debug state, and has stronger SSR/public export boundary regressions. Demo/API, SSR/public boundary, and Phase scope reviewers approved with no blocking or non-blocking issues.
 
 ## Files Changed
+- `apps/demo/src/App.tsx`
+- `apps/demo/src/App.test.tsx`
+- `apps/demo/src/debugPanel.tsx`
+- `apps/demo/src/debugPanel.test.tsx`
 - `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
 - `docs/EXECUTION_STATE.md`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts`
+- `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
 ## Known Issues
-No blocking or non-blocking Batch C review issues remain. Batch C does not implement Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch C did not run a production build.
+No blocking or non-blocking Batch D review issues remain. Batch D does not implement Task 71 full Phase 3 verification or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch D did not run a production build.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -366,4 +375,4 @@ No blocking or non-blocking Batch C review issues remain. Batch C does not imple
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch C. Next implementation round is Batch D: Task 69 React And Demo Visible Smoke, then Task 70 SSR And Public Boundary Regression. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch D. Next implementation round is Batch E: Task 71 Phase 3 Full Verification, then Task 72 Phase 3 Documentation Alignment. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

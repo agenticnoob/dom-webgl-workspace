@@ -1,4 +1,11 @@
-import { act, createElement, type ReactNode } from "react";
+import {
+  act,
+  Children,
+  cloneElement,
+  createElement,
+  isValidElement,
+  type ReactNode,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -27,8 +34,25 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
     children,
     ...props
   }: TargetMockProps) => {
+    const lifecycle = webgl.lifecycle as
+      | { hideWhenReady?: boolean; hideMode?: "subtree" | "self" }
+      | undefined;
+    const fallbackHidden =
+      lifecycle?.hideWhenReady === true && lifecycle.hideMode === "self";
+    const renderedChildren = fallbackHidden
+      ? cloneChildrenWithVisibleFallback(children)
+      : children;
+
     targetProps.push({ ...props, as, webgl, children });
-    return createElement(as, props, children);
+    return createElement(
+      as,
+      {
+        ...props,
+        "data-fallback-hidden": fallbackHidden ? "self" : undefined,
+        style: fallbackHidden ? { visibility: "hidden" } : undefined,
+      },
+      renderedChildren,
+    );
   },
 }));
 
@@ -48,7 +72,7 @@ describe("demo App", () => {
     document.body.replaceChildren();
   });
 
-  test("renders the Phase 1 demo scene through the public React runtime API", async () => {
+  test("renders the visible renderable demo through the public React runtime API", async () => {
     const { default: App } = await import("./App");
     const host = document.createElement("div");
     document.body.append(host);
@@ -90,16 +114,51 @@ describe("demo App", () => {
     ).toEqual(["div", "h2", "img", "video", "div"]);
   });
 
-  test("declares a scene gate target through the public WebGLTarget API", async () => {
-    const { default: App } = await import("./App");
-    const host = document.createElement("div");
-    document.body.append(host);
-    const root = createRoot(host);
-    roots.push(root);
+  test("declares every visible source category through public WebGLTarget props", async () => {
+    await renderApp();
 
-    await act(async () => {
-      root.render(createElement(App));
+    expect(webglDeclarationFor("demo.surface")).toMatchObject({
+      key: "demo.surface",
+      source: { kind: "snapshot", mode: "element" },
     });
+    expect(webglDeclarationFor("demo.text")).toMatchObject({
+      key: "demo.text",
+      source: { kind: "snapshot", mode: "text" },
+    });
+    expect(webglDeclarationFor("demo.image")).toMatchObject({
+      key: "demo.image",
+      source: { kind: "image", src: "/demo/image.png" },
+    });
+    expect(webglDeclarationFor("demo.video")).toMatchObject({
+      key: "demo.video",
+      source: { kind: "video", src: "/demo/video.mp4" },
+    });
+    expect(webglDeclarationFor("demo.model")).toMatchObject({
+      key: "demo.model",
+      source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+    });
+  });
+
+  test("declares child-preserving fallback hiding on a container target", async () => {
+    await renderApp();
+
+    expect(webglDeclarationFor("demo.surface")).toMatchObject({
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+    });
+  });
+
+  test("keeps child DOM visible when the parent fallback paint is hidden", async () => {
+    const host = await renderApp();
+    const surface = host.querySelector<HTMLElement>(".demo-card-surface");
+    const child = surface?.querySelector<HTMLElement>("strong");
+
+    expect(surface?.dataset.fallbackHidden).toBe("self");
+    expect(surface?.style.visibility).toBe("hidden");
+    expect(child?.style.visibility).toBe("visible");
+  });
+
+  test("declares a scene gate target through the public WebGLTarget API", async () => {
+    await renderApp();
 
     expect(
       targetProps.some(({ webgl }) => {
@@ -116,3 +175,40 @@ describe("demo App", () => {
     ).toBe(true);
   });
 });
+
+async function renderApp(): Promise<HTMLElement> {
+  const { default: App } = await import("./App");
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  roots.push(root);
+
+  await act(async () => {
+    root.render(createElement(App));
+  });
+
+  return host;
+}
+
+function webglDeclarationFor(key: string): Record<string, unknown> | undefined {
+  return targetProps.find(
+    ({ webgl }) => (webgl as { key?: string }).key === key,
+  )?.webgl as Record<string, unknown> | undefined;
+}
+
+function cloneChildrenWithVisibleFallback(children: ReactNode): ReactNode {
+  return Children.map(children, cloneChildWithVisibleFallback);
+}
+
+function cloneChildWithVisibleFallback(child: ReactNode): ReactNode {
+  if (!isValidElement<{ style?: Record<string, unknown> }>(child)) {
+    return child;
+  }
+
+  return cloneElement(child, {
+    style: {
+      ...child.props.style,
+      visibility: "visible",
+    },
+  });
+}

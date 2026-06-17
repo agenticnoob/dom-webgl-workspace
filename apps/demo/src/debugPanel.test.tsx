@@ -28,7 +28,22 @@ describe("DebugPanel", () => {
         dragDeltaY: 0,
         clickCount: 2,
       },
-      targets: [],
+      targets: [
+        {
+          key: "demo.surface",
+          sourceKind: "snapshot",
+          renderRole: "surface",
+          resourceStatus: "ready",
+          visible: true,
+        },
+        {
+          key: "demo.image",
+          sourceKind: "image",
+          renderRole: "media",
+          resourceStatus: "loading",
+          visible: false,
+        },
+      ],
     };
 
     const markup = renderToStaticMarkup(createElement(DebugPanel, { state }));
@@ -37,6 +52,8 @@ describe("DebugPanel", () => {
     expect(markup).toContain("5");
     expect(markup).toContain("Renderables");
     expect(markup).toContain("4");
+    expect(markup).toContain("WebGL visible");
+    expect(markup).toContain("1/2");
     expect(markup).toContain("Scroll");
     expect(markup).toContain("page");
     expect(markup).toContain("Pointer");
