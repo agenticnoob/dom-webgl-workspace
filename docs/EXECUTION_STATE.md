@@ -4,6 +4,7 @@
 Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
+Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
 Task 56: Phase 2 Documentation Alignment.
@@ -267,6 +268,8 @@ Phase 2 is complete. Do not start Phase 3 work unless explicitly requested.
 ## Last Result
 Task 56 is complete. Final Phase 2 review passed after fixing blocking docs/state and public API boundary issues. Final full Phase 2 verification after review fixes passed.
 
+The stale next-step note that said Phase 2 was "ready to commit" has been replaced. Phase 2 is already committed at `40a76f2`, and the next planned work is Phase 3 visible renderables.
+
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
@@ -328,6 +331,9 @@ No blocking issues are open based on the latest verification. The Vite productio
 - apps/demo must import only public package APIs:
   - @project/dom-webgl-runtime
   - @project/dom-webgl-runtime/react
+- Phase 3 visible renderables must keep scene object and render policy details internal.
+- `lifecycle.hideWhenReady` may hide DOM fallback only after the WebGL renderable is visually ready.
+- Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Phase 2 is ready to commit. Do not start Phase 3 work. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Use `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md` for the next implementation round. Start with Task 57 only: Internal Scene Object Contract. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

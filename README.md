@@ -7,6 +7,8 @@ DOM-first interactive WebGL runtime workspace.
 Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
 Phase 2 scene-gated scroll work is complete through Task 56 in
 `docs/PHASE2_SCENE_GATE_PLAN.md`.
+The next implementation plan is Phase 3 visible renderables in
+`docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 Current demo behavior:
 
@@ -27,6 +29,9 @@ Current visual boundary:
 - The demo still shows DOM fallback content as the primary visible surface.
 - The runtime does not yet render DOM snapshots, image/video planes, or GLB
   objects as visible Three.js scene content.
+- Phase 3 will make every supported source type enter the runtime-owned Three.js
+  scene and will add verified DOM fallback hiding, including a child-preserving
+  mode for container targets.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
 - Effect registry, animation/effect layers, WebGL raycast picking, Lenis, GSAP,
