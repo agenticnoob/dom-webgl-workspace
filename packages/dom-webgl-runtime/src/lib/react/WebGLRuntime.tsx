@@ -7,12 +7,12 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  createWebGLRuntime,
-  type WebGLRuntime as RuntimeInstance,
-} from "../renderer/runtime";
-import { createTargetDescriptor } from "../dom/targetDescriptor";
-import type { WebGLDebugState, WebGLDeclaration } from "../types";
+import { createWebGLRuntime } from "../renderer/runtime";
+import type {
+  WebGLDebugState,
+  WebGLDeclaration,
+  WebGLRuntime as RuntimeInstance,
+} from "../types";
 
 import { WebGLRuntimeProvider } from "./runtimeContext";
 
@@ -72,9 +72,7 @@ function createPendingRuntime(): RuntimeInstance {
     get container(): HTMLElement {
       throw new Error("WebGL runtime container is not ready yet.");
     },
-    registerTarget(element: HTMLElement, declaration: WebGLDeclaration) {
-      return createTargetDescriptor(element, declaration, 0);
-    },
+    registerTarget(_element: HTMLElement, _declaration: WebGLDeclaration) {},
     unregisterTarget() {},
     sync() {},
     getDebugState() {

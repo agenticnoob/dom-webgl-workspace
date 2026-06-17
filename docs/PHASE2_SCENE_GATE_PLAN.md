@@ -395,7 +395,7 @@ Docs and state:
 
   **Completion condition:** Phase 2 keeps the Phase 1 SSR and public import guarantees.
 
-- [ ] **Task 55: Phase 2 Full Verification**
+- [x] **Task 55: Phase 2 Full Verification**
 
   **Goal:** Run the complete project check after behavior tasks are complete.
 
@@ -412,7 +412,7 @@ Docs and state:
 
   **Completion condition:** Full verification passes and Phase 2 behavior remains within this plan's scope.
 
-- [ ] **Task 56: Phase 2 Documentation Alignment**
+- [x] **Task 56: Phase 2 Documentation Alignment**
 
   **Goal:** Align user-facing docs with the delivered Phase 2 scene gate behavior.
 

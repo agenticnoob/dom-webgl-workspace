@@ -1,12 +1,12 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 implementation is active for scene-gated scroll, scroll lock, `sceneProgress`, and explicit reverse gate behavior.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Last Completed Task
-Task 54: SSR And Import Boundary Regression.
+Task 56: Phase 2 Documentation Alignment.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -63,9 +63,11 @@ Task 54: SSR And Import Boundary Regression.
 - Task 52: Demo Declares A Scene Gate.
 - Task 53: Demo Debug Panel Shows Gate State.
 - Task 54: SSR And Import Boundary Regression.
+- Task 55: Phase 2 Full Verification.
+- Task 56: Phase 2 Documentation Alignment.
 
 ## Current Task
-Phase 2 Batch C Task 51 through Task 54 are complete. Do not start Task 55 until explicitly requested.
+Phase 2 is complete. Do not start Phase 3 work unless explicitly requested.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -167,6 +169,25 @@ Phase 2 Batch C Task 51 through Task 54 are complete. Do not start Task 55 until
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts apps/demo/src/demo-import-boundary.test.ts` (new React public import SSR regression passed against existing production code; one added type fixture initially failed due test temp-directory React resolution, then the fixture was corrected); `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` (green Task 54 verification).
 - Review checkpoint: public root and React entrypoint imports remain SSR-safe under throwing browser-global getters, the React public type surface accepts gate declarations without exposing runtime internals, and the demo import-boundary check remains green. No browser-only scroll listener or lock creation moved because no import-time side effects were found.
 - Next task: Task 55: Phase 2 Full Verification. Do not start until explicitly requested.
+- Completed task: Task 55: Phase 2 Full Verification.
+- Files changed: `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green full Phase 2 verification: 38 Vitest files / 171 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed).
+- Review checkpoint: pending final Phase 2 review after Task 56 documentation alignment.
+- Next task: Task 56: Phase 2 Documentation Alignment.
+- Completed task: Task 56: Phase 2 Documentation Alignment.
+- Files changed: `README.md`, `docs/00-goal.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm run check && npm run build && npm run check:imports && git diff --check` (green post-documentation verification: typecheck passed, 38 Vitest files / 171 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed).
+- Documentation checklist result: README now documents setup/verification commands, public gate declaration shape, debug state fields, forward and reverse gate release behavior, and deferred Phase 3 scope. `docs/00-goal.md` and this execution state now reflect Phase 2 completion through Task 56.
+- Review checkpoint: pending final Phase 2 review.
+- Next task: none in Phase 2. Do not start Phase 3 work unless explicitly requested.
+
+## Phase 2 Documentation Checklist
+- Pre-edit Task 56 checklist recorded after Task 55 verification and before user-facing doc edits.
+- Document implemented gate behavior: public `webgl.scroll` gate declarations, start matching, viewport-multiple `duration`, scroll lock while active, `sceneProgress`, `activeGateKey`, and completion release.
+- Document reverse policy: `release: "forward-complete"` does not trap reverse scrolling; `release: "both-directions-complete"` supports reverse entry from below and backward release at `sceneProgress: 0`.
+- Document debug state fields: `currentScrollMode`, `activeGateKey`, and `sceneProgress`, with gate-only fields omitted in page mode.
+- Document setup and verification commands: `npm run check`, `npm run build`, `npm run check:imports`, and `git diff --check`.
+- Keep still-forbidden Phase 3 scope explicit: no effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple canvas, or public Three.js `renderOrder`, `transparent`, or `depthWrite`.
 
 ## Phase 2 Review Checkpoint
 - Review scope: completed Phase 2 tasks only (Task 38 through Task 50), current git status/diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, and relevant tests.
@@ -187,6 +208,17 @@ Phase 2 Batch C Task 51 through Task 54 are complete. Do not start Task 55 until
 - Remaining non-blocking issues: none for the completed Task 51-54 review scope.
 - Verification after checkpoint: reviewers ran the Batch C targeted suite (`packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`, `apps/demo/src/App.test.tsx`, `apps/demo/src/debugPanel.test.tsx`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`, `packages/dom-webgl-runtime/src/publicExports.test.ts`, `apps/demo/src/demo-import-boundary.test.ts`) with 6 files / 24 tests passing; `npm run check:imports`, `npm run typecheck`, and `git diff --check` passed. Contract reviewer also reran `packages/dom-webgl-runtime/src/lib/input/sceneGate.test.ts` and `packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts` to confirm explicit reverse gate behavior remained green.
 - Next task at this checkpoint: Task 55: Phase 2 Full Verification. Do not start until explicitly requested.
+
+## Final Phase 2 Review Checkpoint
+- Review scope: entire completed Phase 2 diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, relevant tests, public API exports, demo imports, and SSR safety.
+- Contract reviewer result: approved after blocking public API boundary fixes. `WebGLRuntime` and `WebGLRuntimeOptions` now live on the public/shared `types.ts` boundary, root exports those types from `lib/types`, public `registerTarget()` returns `void`, React context imports the runtime type from `../types`, and public export regressions cover the boundary.
+- Runtime safety reviewer result: approved with no blocking or non-blocking issues. Scroll lock release, active gate cleanup, reverse gate behavior, event listener cleanup, SSR import safety, one renderer/canvas ownership, and Phase 3 scope boundaries remain intact.
+- Test coverage reviewer result: approved with no blocking or non-blocking issues. Coverage is sufficient for the delivered Task 38-56 contract.
+- Docs/state reviewer result: approved after blocking doc fixes. `docs/00-goal.md` now matches delivered public gate, frame input, and debug state shapes.
+- Blocking issues fixed: stale `docs/00-goal.md` type sketches for optional gate `release`, page/gate `WebGLFrameInput.scroll`, and debug `sceneProgress`; public API leak where `WebGLRuntime.registerTarget()` exposed internal `TargetDescriptor`; React provider/runtime component type imports pointed at the internal renderer module instead of the public/shared type boundary.
+- Remaining non-blocking issues: none from the final Phase 2 review checkpoint.
+- Verification after fixes: `npm run check && npm run build && npm run check:imports && git diff --check` passed after the docs fixes. `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck && npm run check:imports && git diff --check` passed after the public API boundary fixes.
+- Next task at this checkpoint: none in Phase 2. Do not start Phase 3 work unless explicitly requested.
 
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -226,9 +258,14 @@ Phase 2 Batch C Task 51 through Task 54 are complete. Do not start Task 55 until
 - `npm run check:imports` (green pre-commit verification after docs alignment)
 - `git diff --check` (green pre-commit verification after docs alignment)
 - Credential scan over changed docs, demo source, and runtime source found no matches.
+- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green Task 55 full Phase 2 verification: 38 Vitest files / 171 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm run check && npm run build && npm run check:imports && git diff --check` (green Task 56 post-documentation verification: typecheck passed, 38 Vitest files / 171 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm run check && npm run build && npm run check:imports && git diff --check` (green after final docs/state review fixes: typecheck passed, 38 Vitest files / 171 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck && npm run check:imports && git diff --check` (green after final contract review fixes: 6 Vitest files / 32 tests passed, typecheck passed, demo import boundary passed, diff check passed)
+- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green final full Phase 2 verification after review fixes: 38 Vitest files / 172 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Task 54 is complete. Phase 2 Batch C Task 51 through Task 54 are implemented, individually verified, reviewed by contract, runtime safety, and demo/API reviewers with no blocking or non-blocking issues, and docs are aligned for handoff. Do not start Task 55 until explicitly requested.
+Task 56 is complete. Final Phase 2 review passed after fixing blocking docs/state and public API boundary issues. Final full Phase 2 verification after review fixes passed.
 
 ## Files Changed
 - `README.md`
@@ -237,6 +274,8 @@ Task 54 is complete. Phase 2 Batch C Task 51 through Task 54 are implemented, in
 - `docs/EXECUTION_STATE.md`
 - `docs/PHASE2_SCENE_GATE_PLAN.md`
 - `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx`
 - `packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts`
 - `packages/dom-webgl-runtime/src/lib/runtime-state.test.ts`
 - `packages/dom-webgl-runtime/src/lib/types.test.ts`
@@ -291,4 +330,4 @@ No blocking issues are open based on the latest verification. The Vite productio
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Task 54 is complete. Next unchecked Phase 2 task is Task 55: Phase 2 Full Verification, but it must not be started until explicitly requested. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Phase 2 is ready to commit. Do not start Phase 3 work. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.

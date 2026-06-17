@@ -1,8 +1,4 @@
-export {
-  createWebGLRuntime,
-  type WebGLRuntime,
-  type WebGLRuntimeOptions,
-} from "./lib/renderer/runtime";
+export { createWebGLRuntime } from "./lib/renderer/runtime";
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLDeclaration,
@@ -15,6 +11,8 @@ export type {
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
+  WebGLRuntime,
+  WebGLRuntimeOptions,
   WebGLScrollBehavior,
   WebGLSnapshotSourceDeclaration,
   WebGLSourceDeclaration,

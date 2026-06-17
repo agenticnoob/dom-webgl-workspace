@@ -66,6 +66,20 @@ export type WebGLDeclaration = {
   lifecycle?: WebGLLifecycleDeclaration;
 };
 
+export type WebGLRuntimeOptions = {
+  container: HTMLElement;
+  onDebugStateChange?: (state: WebGLDebugState) => void;
+};
+
+export type WebGLRuntime = {
+  readonly container: HTMLElement;
+  registerTarget(element: HTMLElement, declaration: WebGLDeclaration): void;
+  unregisterTarget(key: string): void;
+  sync(): void | Promise<void>;
+  getDebugState(): WebGLDebugState;
+  dispose(): void;
+};
+
 export type WebGLPointerState = {
   x: number;
   y: number;

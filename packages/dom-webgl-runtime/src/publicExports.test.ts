@@ -86,6 +86,19 @@ describe("public package exports", () => {
     }
   });
 
+  test("React public provider props use the public runtime type boundary", () => {
+    const runtimeContextSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(runtimeContextSource).not.toContain("../renderer/runtime");
+    expect(runtimeContextSource).toContain("../types");
+  });
+
   test("root entrypoint type-checks public types and hides internal types", () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-public-exports-"));
@@ -184,6 +197,15 @@ describe("public package exports", () => {
           key: "hero.scene",
           scroll: gateScroll,
         } satisfies WebGLDeclaration;
+
+        declare const runtime: WebGLRuntime;
+        declare const element: HTMLElement;
+        const registeredTarget = runtime.registerTarget(element, declaration);
+        registeredTarget satisfies void;
+        // @ts-expect-error public registration does not expose internal target descriptor state.
+        registeredTarget.scanOrder;
+        // @ts-expect-error public registration does not expose internal target descriptor DOM references.
+        registeredTarget.element;
 
         const pointer = {
           x: 0,

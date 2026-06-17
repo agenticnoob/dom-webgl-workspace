@@ -8,6 +8,8 @@ import type {
   WebGLDeclaration,
   WebGLFrameInput,
   WebGLResourceStatus,
+  WebGLRuntime,
+  WebGLRuntimeOptions,
 } from "../types";
 
 import {
@@ -44,22 +46,7 @@ import {
   type ThreeRendererHost,
 } from "./threeRenderer";
 
-export type WebGLRuntimeOptions = {
-  container: HTMLElement;
-  onDebugStateChange?: (state: WebGLDebugState) => void;
-};
-
-export type WebGLRuntime = {
-  readonly container: HTMLElement;
-  registerTarget(
-    element: HTMLElement,
-    declaration: WebGLDeclaration,
-  ): TargetDescriptor;
-  unregisterTarget(key: string): void;
-  sync(): void | Promise<void>;
-  getDebugState(): WebGLDebugState;
-  dispose(): void;
-};
+export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
 type DisposableRenderable = {
   dispose(): void;
@@ -151,7 +138,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       registerGateTarget(scrollState, descriptor);
       emitDebugState();
 
-      return descriptor;
+      return;
     },
     unregisterTarget(key) {
       const targetKey = key.trim();

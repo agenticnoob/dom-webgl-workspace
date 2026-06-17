@@ -4,13 +4,12 @@ Date: 2026-06-16
 
 ## Implementation Status Note
 
-The product goal below includes future scene-gated scroll and effect-oriented
-behavior. Phase 1 is complete through Task 37. Phase 2 scene-gated scroll is
-complete through Task 54, including public gate declarations, scroll lock,
-`sceneProgress`, explicit reverse gate behavior, demo gate declaration, debug
-state display, and SSR/import-boundary regressions. Task 55 full verification and
-Task 56 final documentation alignment have not started. Effects remain future
-work.
+The product goal below includes future effect-oriented behavior. Phase 1 is
+complete through Task 37. Phase 2 scene-gated scroll is complete through Task
+56, including public gate declarations, scroll lock, `sceneProgress`, explicit
+reverse gate behavior, demo gate declaration, debug state display,
+SSR/import-boundary regressions, full verification, and final documentation
+alignment. Effects remain future work.
 
 ## Purpose
 
@@ -278,16 +277,16 @@ scroll input
   -> release back to page scroll
 ```
 
-Candidate API shape:
+Delivered Phase 2 API shape:
 
 ```ts
 type WebGLScrollBehavior =
-  | { type: "page" }
+  | { type?: "page" }
   | {
       type: "gate";
       start: string;
       duration: number;
-      release: "forward-complete" | "both-directions-complete";
+      release?: "forward-complete" | "both-directions-complete";
     };
 ```
 
@@ -297,7 +296,9 @@ Required behavior:
 - Lock page scroll while the gate is active.
 - Convert scroll delta into `sceneProgress` from `0` to `1`.
 - Release page scroll when the gate completes.
-- Support reverse direction deliberately, not accidentally.
+- Default omitted `release` to `"forward-complete"`.
+- Support reverse direction deliberately through
+  `release: "both-directions-complete"`.
 - Avoid coupling this behavior to any specific renderRole.
 
 ## Pointer Contract
@@ -355,13 +356,20 @@ Animation code should receive one normalized frame input instead of reading DOM,
 type WebGLFrameInput = {
   time: number;
   delta: number;
-  scroll: {
-    mode: "page" | "gate";
-    pageProgress: number;
-    sceneProgress?: number;
-    direction: -1 | 0 | 1;
-    velocity: number;
-  };
+  scroll:
+    | {
+        mode: "page";
+        pageProgress: number;
+        direction: -1 | 0 | 1;
+        velocity: number;
+      }
+    | {
+        mode: "gate";
+        sceneProgress: number;
+        activeGateKey: string;
+        direction: -1 | 0 | 1;
+        velocity: number;
+      };
   pointer: WebGLPointerState;
 };
 ```
@@ -870,6 +878,7 @@ type WebGLDebugState = {
   renderableCount: number;
   currentScrollMode: "page" | "gate";
   activeGateKey?: string;
+  sceneProgress?: number;
   pointer: WebGLPointerState;
   targets: Array<{
     key: string;

@@ -1,6 +1,6 @@
 import { createContext, type ReactNode } from "react";
 
-import type { WebGLRuntime } from "../renderer/runtime";
+import type { WebGLRuntime } from "../types";
 
 export const WebGLRuntimeContext = createContext<WebGLRuntime | null>(null);
 

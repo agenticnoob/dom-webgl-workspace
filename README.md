@@ -5,9 +5,8 @@ DOM-first interactive WebGL runtime workspace.
 ## Status
 
 Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
-Phase 2 scene-gated scroll work is complete through Task 54 in
-`docs/PHASE2_SCENE_GATE_PLAN.md`. Task 55 full verification and Task 56 final
-documentation alignment have not started.
+Phase 2 scene-gated scroll work is complete through Task 56 in
+`docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 Current demo behavior:
 
@@ -93,6 +92,43 @@ import {
 ```
 
 `apps/demo` must not import from `packages/dom-webgl-runtime/src/*`.
+
+## Scene Gates
+
+Declare a scene gate through the same public `webgl` object used by regular
+targets:
+
+```tsx
+<WebGLTarget
+  as="section"
+  webgl={{
+    key: "demo.surface",
+    scroll: {
+      type: "gate",
+      start: "top top",
+      duration: 1,
+      release: "both-directions-complete",
+    },
+  }}
+/>
+```
+
+Gate behavior:
+
+- `start` supports the Phase 2 geometry anchors covered by tests, including
+  `top top`, `center center`, and `bottom bottom`.
+- `duration` is a viewport-multiple scroll budget. With a 1000px viewport and
+  `duration: 1`, a 250px wheel delta advances `sceneProgress` by `0.25`.
+- While a gate is active, the runtime locks page scroll, consumes wheel/touch
+  deltas, and emits frame input with `mode: "gate"`, `activeGateKey`, and
+  `sceneProgress`.
+- Completion releases scroll lock and returns to page scroll mode.
+- `release: "forward-complete"` does not trap reverse scrolling.
+- `release: "both-directions-complete"` supports reverse entry from below,
+  starts at `sceneProgress: 1`, and releases backward at `sceneProgress: 0`.
+
+The debug panel and public `WebGLDebugState` expose `currentScrollMode`,
+`activeGateKey`, and `sceneProgress`. Gate-only fields are omitted in page mode.
 
 ## Verification
 
