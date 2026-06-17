@@ -1,0 +1,149 @@
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+import type {
+  WebGLRuntime as RuntimeInstance,
+  WebGLRuntimeOptions,
+} from "../renderer/runtime";
+
+const runtimeMocks = vi.hoisted(() => ({
+  createWebGLRuntime: vi.fn(),
+}));
+
+vi.mock("../renderer/runtime", () => ({
+  createWebGLRuntime: runtimeMocks.createWebGLRuntime,
+}));
+
+const roots: Root[] = [];
+
+describe("WebGLRuntime", () => {
+  beforeEach(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
+      true;
+    runtimeMocks.createWebGLRuntime.mockReset();
+    runtimeMocks.createWebGLRuntime.mockImplementation(
+      (options: WebGLRuntimeOptions) => createRuntimeStub(options.container),
+    );
+  });
+
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      act(() => {
+        root.unmount();
+      });
+    }
+    document.body.replaceChildren();
+  });
+
+  test("does not create a runtime at module import time", async () => {
+    const reactEntrypoint = await import("../../react");
+
+    expect(reactEntrypoint.WebGLRuntime).toBeTypeOf("function");
+    expect(runtimeMocks.createWebGLRuntime).not.toHaveBeenCalled();
+  });
+
+  test("creates a runtime after mount and passes runtime events", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root, host } = createTestRoot();
+    const onDebugStateChange = vi.fn();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntime,
+          { onDebugStateChange },
+          createElement("span", { "data-runtime-child": true }, "child"),
+        ),
+      );
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith({
+      container: host.firstElementChild,
+      onDebugStateChange,
+    });
+    expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
+  });
+
+  test("renders children inside the runtime provider", async () => {
+    const { WebGLRuntime, useWebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    let providedRuntime: RuntimeInstance | undefined;
+
+    function RuntimeConsumer() {
+      providedRuntime = useWebGLRuntime();
+      return createElement("span", null, "provided");
+    }
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, null, createElement(RuntimeConsumer)));
+    });
+
+    expect(providedRuntime).toBe(runtimeMocks.createWebGLRuntime.mock.results[0].value);
+  });
+
+  test("disposes the runtime on unmount", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime));
+    });
+
+    const runtime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+function createTestRoot(): { root: Root; host: HTMLElement } {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  roots.push(root);
+
+  return { root, host };
+}
+
+function createRuntimeStub(container: HTMLElement): RuntimeInstance {
+  return {
+    container,
+    registerTarget() {
+      throw new Error("not implemented in test");
+    },
+    unregisterTarget() {},
+    sync() {},
+    getDebugState() {
+      return {
+        targetCount: 0,
+        renderableCount: 0,
+        currentScrollMode: "page",
+        pointer: {
+          x: 0,
+          y: 0,
+          normalizedX: 0,
+          normalizedY: 0,
+          isInside: false,
+          isDown: false,
+          downTime: 0,
+          pressDuration: 0,
+          isDragging: false,
+          dragStartX: 0,
+          dragStartY: 0,
+          dragDeltaX: 0,
+          dragDeltaY: 0,
+          clickCount: 0,
+        },
+        targets: [],
+      };
+    },
+    dispose: vi.fn(),
+  };
+}

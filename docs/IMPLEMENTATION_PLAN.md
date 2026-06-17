@@ -717,7 +717,7 @@ Tests:
   - Test results: targeted React runtime hook test failed first because `@project/dom-webgl-runtime/react` did not export the provider or hook, then passed with 1 file / 2 tests after the minimal context implementation; root typecheck passed; diff check passed.
   - Review results: not run.
 
-- [ ] **Task 30: React WebGLRuntime Component**
+- [x] **Task 30: React WebGLRuntime Component**
 
   **Goal:** Mount runtime behind a client boundary.
 
@@ -733,6 +733,12 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
 
   **Completion condition:** React runtime component owns runtime lifecycle and is SSR-safe at import time.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`; `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`; `packages/dom-webgl-runtime/src/react.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted React runtime component test failed RED because `WebGLRuntime` was not exported/implemented, then passed with 1 file / 4 tests after the minimal component implementation; root typecheck passed; diff check passed.
+  - Review results: not run.
 
 - [ ] **Task 31: React WebGLTarget Component**
 

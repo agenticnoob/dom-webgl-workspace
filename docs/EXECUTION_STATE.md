@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 29 completed.
+Task 30 completed.
 
 ## Last Completed Task
-Task 29: React Runtime Context.
+Task 30: React WebGLRuntime Component.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -36,29 +36,29 @@ Task 29: React Runtime Context.
 - Task 27: Shared WebGLFrameInput.
 - Task 28: Lightweight Debug State.
 - Task 29: React Runtime Context.
+- Task 30: React WebGLRuntime Component.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export `WebGLRuntimeProvider` or `useWebGLRuntime`)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx` (green: 1 file / 2 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export/implement `WebGLRuntime`)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green: 1 file / 4 tests passed)
 - `npm run typecheck` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Task 29 passed: added a React runtime context provider and `useWebGLRuntime` hook. The public `@project/dom-webgl-runtime/react` entrypoint now exports both, the hook returns the runtime inside the provider, and it throws a clear error when used outside the provider. The targeted hook test, root typecheck, and diff check passed.
+Task 30 passed: added a React `WebGLRuntime` component that creates the runtime after mount, passes `onDebugStateChange` into runtime creation, renders children inside `WebGLRuntimeProvider`, and disposes the runtime on unmount. The public `@project/dom-webgl-runtime/react` entrypoint now exports the component and props type. The targeted component test, root typecheck, and diff check passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx`
-- `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.ts`
-- `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
 - `packages/dom-webgl-runtime/src/react.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No new issues found in Task 29. Task 30 still needs to mount and own the runtime lifecycle; Task 29 only provides provider/hook access.
+No new issues found in Task 30. Task 31 still needs to implement `WebGLTarget` registration from React refs.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -77,4 +77,4 @@ No new issues found in Task 29. Task 30 still needs to mount and own the runtime
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 30: React WebGLRuntime Component.
+Start Task 31: React WebGLTarget Component.
