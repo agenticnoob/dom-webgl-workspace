@@ -155,6 +155,53 @@ describe("createScrollController", () => {
     });
   });
 
+  test("unregistering the active gate target releases the lock and returns to page mode", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const rect = {
+      top: 80,
+      height: 200,
+    };
+    const scrollLock = createScrollLockStub();
+    const scrollController = createScrollController({
+      getScrollMetrics: () => metrics,
+      scrollLock,
+    });
+
+    scrollController.registerGateTarget({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+      getRect: () => rect,
+    });
+
+    metrics.scrollY = 80;
+    rect.top = 0;
+
+    expect(scrollController.update()).toMatchObject({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0,
+    });
+    expect(scrollLock.isLocked()).toBe(true);
+
+    scrollController.unregisterGateTarget("hero.scene");
+
+    expect(scrollLock.isLocked()).toBe(false);
+    expect(scrollController.getState()).toEqual({
+      mode: "page",
+      pageProgress: 0.08,
+      direction: 1,
+      velocity: 80,
+    });
+  });
+
   test("can feed frame input through the generic scroll state controller port", () => {
     const metrics = {
       scrollY: 0,

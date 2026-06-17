@@ -81,7 +81,10 @@ type RuntimeScrollController = ScrollStateController &
   Partial<
     Pick<
       ScrollController,
-      "registerGateTarget" | "unregisterGateTarget" | "dispose"
+      | "registerGateTarget"
+      | "unregisterGateTarget"
+      | "releaseActiveGate"
+      | "dispose"
     >
   >;
 
@@ -112,6 +115,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       scrollLock: createScrollLockController(document.documentElement),
       eventTarget: options.container,
     });
+  const ownerDocument = options.container.ownerDocument;
   const pointerController =
     internalOptions.pointerController ?? createPointerController(options.container);
   const frameInputSource = createFrameInputSource(
@@ -132,6 +136,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   };
   let nextScanOrder = 0;
   let disposed = false;
+
+  ownerDocument.addEventListener("visibilitychange", handleVisibilityChange);
 
   return {
     container: options.container,
@@ -204,6 +210,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           result = renderable.update(frameInput);
         } catch (error: unknown) {
           markDebugRecordError(debugRecord, error);
+          releaseActiveGate(scrollState);
           emitDebugState();
           throw error;
         }
@@ -217,6 +224,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
               })
               .catch((error: unknown) => {
                 markDebugRecordError(debugRecord, error);
+                releaseActiveGate(scrollState);
                 throw error;
               }),
           );
@@ -259,6 +267,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         renderablesByTargetKey.clear();
         renderables.clear();
         debugRecordsByTargetKey.clear();
+        ownerDocument.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
+        releaseActiveGate(scrollState);
         scrollState.dispose?.();
         pointerController.dispose();
         rendererHost.dispose();
@@ -270,12 +283,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   function createCurrentDebugState(): WebGLDebugState {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.getState();
+    const scroll = scrollState.getState();
 
     if (disposed) {
       return createDebugState({
         targetCount: 0,
         renderableCount: 0,
-        ...readDebugScrollState(frameInput.scroll),
+        ...readDebugScrollState(scroll),
         pointer: frameInput.pointer,
         targets: [],
       });
@@ -284,7 +298,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     return createDebugState({
       targetCount: descriptors.length,
       renderableCount: renderablesByTargetKey.size,
-      ...readDebugScrollState(frameInput.scroll),
+      ...readDebugScrollState(scroll),
       pointer: frameInput.pointer,
       targets: descriptors.map((descriptor) => ({
         key: descriptor.key,
@@ -295,6 +309,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
   function emitDebugState(): void {
     internalOptions.onDebugStateChange?.(createCurrentDebugState());
+  }
+
+  function handleVisibilityChange(): void {
+    if (disposed || ownerDocument.visibilityState !== "hidden") {
+      return;
+    }
+
+    releaseActiveGate(scrollState);
+    emitDebugState();
   }
 }
 
@@ -465,7 +488,17 @@ function unregisterGateTarget(
     return;
   }
 
+  const scroll = scrollState.getState();
+
+  if (scroll.mode === "gate" && scroll.activeGateKey === descriptor.key) {
+    releaseActiveGate(scrollState);
+  }
+
   scrollState.unregisterGateTarget?.(descriptor.key);
+}
+
+function releaseActiveGate(scrollState: RuntimeScrollController): void {
+  scrollState.releaseActiveGate?.();
 }
 
 function measureElement(element: HTMLElement): DOMRect {

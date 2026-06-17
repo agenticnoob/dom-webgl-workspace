@@ -33,6 +33,7 @@ export type ScrollControllerGateTarget = {
 export type ScrollController = PageScrollStateController & {
   registerGateTarget(target: ScrollControllerGateTarget): void;
   unregisterGateTarget(key: string): void;
+  releaseActiveGate(): WebGLFrameInput["scroll"];
   consumeScrollDelta(deltaY: number): WebGLFrameInput["scroll"];
   dispose(): void;
 };
@@ -105,6 +106,14 @@ export function createScrollController(input: {
     unregisterGateTarget(key: string): void {
       gateTargets.delete(key);
       previousOffsets.delete(key);
+
+      if (activeGate?.gateKey === key) {
+        releaseActiveGate();
+      }
+    },
+
+    releaseActiveGate(): WebGLFrameInput["scroll"] {
+      return releaseActiveGate();
     },
 
     consumeScrollDelta(deltaY: number): WebGLFrameInput["scroll"] {
@@ -112,7 +121,7 @@ export function createScrollController(input: {
     },
 
     dispose(): void {
-      activeGate = null;
+      releaseActiveGate();
       eventRouter?.dispose();
       input.scrollLock.dispose();
     },
@@ -138,14 +147,19 @@ export function createScrollController(input: {
     });
 
     if (nextGate.kind !== "active") {
-      activeGate = null;
-      input.scrollLock.unlock();
-      state = pageScroll.getState();
-      return state;
+      return releaseActiveGate();
     }
 
     activeGate = nextGate;
     state = createGateScrollState(activeGate, deltaY);
+
+    return state;
+  }
+
+  function releaseActiveGate(): WebGLFrameInput["scroll"] {
+    activeGate = null;
+    input.scrollLock.unlock();
+    state = pageScroll.getState();
 
     return state;
   }

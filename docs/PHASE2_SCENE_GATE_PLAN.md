@@ -312,7 +312,7 @@ Docs and state:
 
   **Completion condition:** Demo and tests can inspect gate state without importing internal scroll modules.
 
-- [ ] **Task 50: Runtime Cleanup Releases Scroll Lock**
+- [x] **Task 50: Runtime Cleanup Releases Scroll Lock**
 
   **Goal:** Guarantee scroll lock release on active gate removal, visibility loss, runtime disposal, and fatal update errors.
 

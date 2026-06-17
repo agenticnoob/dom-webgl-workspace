@@ -6,7 +6,7 @@ Phase 1 is complete through Task 37. Phase 2 implementation is active for scene-
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Last Completed Task
-Task 49: Debug State Reports Gate Mode.
+Task 50: Runtime Cleanup Releases Scroll Lock.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -58,9 +58,10 @@ Task 49: Debug State Reports Gate Mode.
 - Task 47: Frame Input Carries Gate State.
 - Task 48: Runtime Registers Gate Targets.
 - Task 49: Debug State Reports Gate Mode.
+- Task 50: Runtime Cleanup Releases Scroll Lock.
 
 ## Current Task
-Stopped after Task 49 as requested. Next implementation task is Task 50 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
+Stopped after Task 50 as requested. Next implementation task is Task 51 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -137,6 +138,11 @@ Stopped after Task 49 as requested. Next implementation task is Task 50 in `docs
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck` (RED before implementation for missing `activeGateKey` and `sceneProgress` in debug state; GREEN after implementation and type fix).
 - Review checkpoint: debug state now copies gate-only fields from `frameInput.scroll` when current scroll mode is `gate`, omits them in page mode, and does not expose effect or renderer internals.
 - Next task: Task 50: Runtime Cleanup Releases Scroll Lock.
+- Completed task: Task 50: Runtime Cleanup Releases Scroll Lock.
+- Files changed: `packages/dom-webgl-runtime/src/lib/input/scrollController.ts`, `packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`, `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck` (RED before implementation for active gate unregister/cleanup release gaps; GREEN after adding the shared release path and debug scroll-state refresh).
+- Review checkpoint: active gate release is now idempotent across gate unregister, visibility hidden, runtime disposal, and renderable update errors. Debug error reporting remains intact, and the implementation adds no effect registry, animation/effect layer, third-party scroll adapter, picking, multiple canvas, or public Three.js render flags.
+- Next task: Task 51: React Gate Declaration Smoke.
 
 ## Phase 2 Review Checkpoint
 - Review scope: completed Phase 2 tasks only (Task 38 through Task 44), current git diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, and relevant tests.
@@ -168,9 +174,10 @@ Stopped after Task 49 as requested. Next implementation task is Task 50 in `docs
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts && npm run typecheck` (green Task 47 verification, 1 file / 3 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (green Task 48 verification, 3 files / 18 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck` (green Task 49 verification, 2 files / 17 tests)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck` (green Task 50 verification, 3 files / 25 tests)
 
 ## Last Result
-Task 49 completed debug state gate reporting. `createDebugState` now includes `activeGateKey` and `sceneProgress` only for gate mode, and `createWebGLRuntime().getDebugState()` passes those fields through from the existing frame input scroll state. Stopped here as requested; runtime cleanup release paths remain Task 50.
+Task 50 completed runtime cleanup release paths. Active gates now release through an idempotent scroll controller path on active gate unregister, visibility hidden, runtime disposal, and renderable update errors; runtime debug state reads the latest scroll controller state after cleanup. Stopped here as requested; React gate declaration smoke coverage remains Task 51.
 
 ## Files Changed
 - `README.md`
@@ -200,6 +207,7 @@ Task 49 completed debug state gate reporting. `createDebugState` now includes `a
 - `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
 - `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 - `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
 - `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
@@ -225,4 +233,4 @@ No blocking issues are open based on the latest verification. The Vite productio
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Stopped after Task 49 as requested. Next unchecked Phase 2 task is Task 50: Runtime Cleanup Releases Scroll Lock. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Stopped after Task 50 as requested. Next unchecked Phase 2 task is Task 51: React Gate Declaration Smoke. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
