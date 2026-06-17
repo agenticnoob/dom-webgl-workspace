@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 28 completed.
+Task 29 completed.
 
 ## Last Completed Task
-Task 28: Lightweight Debug State.
+Task 29: React Runtime Context.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -35,67 +35,30 @@ Task 28: Lightweight Debug State.
 - Task 26: Pointer Move/Click/Drag State.
 - Task 27: Shared WebGLFrameInput.
 - Task 28: Lightweight Debug State.
+- Task 29: React Runtime Context.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm run typecheck` (baseline green)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` (baseline green: 3 files / 11 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts` (red: failed because `./pageScroll` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts` (green: 1 file / 2 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export `WebGLRuntimeProvider` or `useWebGLRuntime`)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx` (green: 1 file / 2 tests passed)
 - `npm run typecheck` (green)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts` (red: failed because `./pointerController` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts` (green: 1 file / 4 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts` (red: review regression tests failed for stale `isDragging` and mutable `getState()` snapshot)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts` (green: 1 file / 6 tests passed)
-- `npm run typecheck` (green)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts` (red: failed because `./frameInput` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts` (green: 1 file / 1 test passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` (green: 1 file / 5 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (green: 1 file / 2 tests passed)
-- `npm run typecheck` (red: direct renderable tests still called `update()` without a frame input)
-- `npm run typecheck` (red: runtime pipeline test wrapper needed to assert non-undefined frame input after keeping `Renderable.update()` direct-call compatible)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (green: 3 files / 8 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts` (red: review regression test failed because frame snapshots were externally mutable)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (green: 3 files / 9 tests passed)
-- `npm run typecheck` (green)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (red: failed because `./debugState` did not exist)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green: 1 file / 3 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` (green: 1 file / 5 tests passed)
-- `npm run typecheck` (green)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green: 4 files / 15 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (red: review regression tests failed for disposed debug snapshots, async error notification, and pending `loading` status)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green: 1 file / 6 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green: 1 file / 7 tests passed after adding sync-error notification coverage)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts` (green: 4 files / 19 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green: 4 files / 17 tests passed)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts` (green: 4 files / 14 tests passed)
 - `git diff --check` (green)
-- `npm test -- --run` (green: 26 files / 89 tests passed)
 
 ## Last Result
-Task 28 passed: added lightweight debug state snapshots with target/renderable counts, current page scroll mode, pointer state, and per-target summaries for key, source kind, renderRole, resource status, visible, and error. Runtime now exposes `getDebugState()` and can notify `onDebugStateChange` after target/sync/dispose/error/loading changes. Targeted M9/M10 tests, nearby runtime/renderable tests, root typecheck, diff check, and the full suite pass.
+Task 29 passed: added a React runtime context provider and `useWebGLRuntime` hook. The public `@project/dom-webgl-runtime/react` entrypoint now exports both, the hook returns the runtime inside the provider, and it throws a clear error when used outside the provider. The targeted hook test, root typecheck, and diff check passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`
-- `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/pointerController.ts`
-- `packages/dom-webgl-runtime/src/lib/input/pointerController.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
-- `packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
-- `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.ts`
+- `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`
+- `packages/dom-webgl-runtime/src/react.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No new issues found in Task 28. Pre-existing untracked `docs/00-goal.md` was left untouched. Debug state derives resource status from lightweight runtime/renderable bookkeeping and does not inspect or expose Three.js renderer internals.
+No new issues found in Task 29. Task 30 still needs to mount and own the runtime lifecycle; Task 29 only provides provider/hook access.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -114,4 +77,4 @@ No new issues found in Task 28. Pre-existing untracked `docs/00-goal.md` was lef
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 29: React Runtime Context.
+Start Task 30: React WebGLRuntime Component.

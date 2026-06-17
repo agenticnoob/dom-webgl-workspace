@@ -693,7 +693,7 @@ Tests:
 
 ## M11: React Adapter
 
-- [ ] **Task 29: React Runtime Context**
+- [x] **Task 29: React Runtime Context**
 
   **Goal:** Provide React context and hook for runtime access.
 
@@ -710,6 +710,12 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`
 
   **Completion condition:** React consumers can access runtime safely.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx`; `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.ts`; `packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`; `packages/dom-webgl-runtime/src/react.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`; `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted React runtime hook test failed first because `@project/dom-webgl-runtime/react` did not export the provider or hook, then passed with 1 file / 2 tests after the minimal context implementation; root typecheck passed; diff check passed.
+  - Review results: not run.
 
 - [ ] **Task 30: React WebGLRuntime Component**
 
