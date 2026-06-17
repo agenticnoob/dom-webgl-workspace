@@ -884,7 +884,7 @@ Tests:
   - Test results: full verification passed with 33 Vitest files / 107 tests, root typecheck passed, workspace build passed, demo import boundary passed, and diff check passed.
   - Notes: This was a verification-only task; no runtime, React, demo behavior, scene-gated scroll, scroll lock, `sceneProgress`, effect registry, multiple canvas, or picking behavior was added.
 
-- [ ] **Task 37: Documentation Alignment**
+- [x] **Task 37: Documentation Alignment**
 
   **Goal:** Ensure docs match the delivered Phase 1 behavior.
 
@@ -899,6 +899,12 @@ Tests:
   **Verification command:** `npm run check && git diff --check`
 
   **Completion condition:** Documentation matches implemented Phase 1 scope and does not claim gated scroll or effects.
+
+  **Execution record:**
+  - Files changed: `README.md`; `docs/00-goal.md`; `docs/IMPLEMENTATION_PLAN.md`; `docs/EXECUTION_STATE.md`
+  - Commands run: `npm run check && git diff --check`; `npm run check && git diff --check`
+  - Test results: Task 37 used a documentation checklist recorded in `docs/EXECUTION_STATE.md` as the required test-first artifact. The verification command stayed green before and after the doc edits because runtime behavior was already verified in Task 36; the actual RED condition was documentation drift (`README.md` still pointed at Task 35/36 status and `docs/00-goal.md` lacked a Phase 1 status note).
+  - Notes: Documentation now reflects the completed Phase 1 scope, the public import paths, setup/verification commands, and the explicit exclusion of scene-gated scroll and effect work from the delivered runtime.
 
 ---
 

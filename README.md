@@ -4,8 +4,9 @@ DOM-first interactive WebGL runtime workspace.
 
 ## Status
 
-Phase 1 runtime implementation is complete through Task 35 in
-`docs/IMPLEMENTATION_PLAN.md`. The next planned step is Task 36: Full Check.
+Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
+The delivered runtime covers the Phase 1 MVP only; scene-gated scroll and
+effect work remain future scope.
 
 Current demo behavior:
 
@@ -23,13 +24,23 @@ Current Phase 1 visual boundary:
 - Phase 1 does not yet render DOM snapshots, image/video planes, or GLB objects as
   visible Three.js scene content.
 - Scene-gated scroll, effect registry, scroll lock, `sceneProgress`, WebGL
-  raycast picking, Lenis, and GSAP ScrollTrigger adapters are intentionally out of
-  scope.
+  raycast picking, reverse gate behavior, Lenis, and GSAP ScrollTrigger adapters
+  are intentionally out of scope.
+- Phase 1 keeps one WebGL canvas per runtime instance and does not expose
+  Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 
 ## Setup
 
 ```bash
 npm install
+```
+
+Workspace checks:
+
+```bash
+npm run check
+npm run build
+npm run check:imports
 ```
 
 ## Demo
@@ -86,10 +97,4 @@ npm run check
 npm run build
 npm run check:imports
 git diff --check
-```
-
-Task 36 final verification command:
-
-```bash
-npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check
 ```

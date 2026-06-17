@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 36 complete. Full project verification passed; stop before Task 37 / Documentation Alignment.
+Task 37 complete. Documentation is aligned with the delivered Phase 1 runtime scope.
 
 ## Last Completed Task
-Task 36: Full Check.
+Task 37: Documentation Alignment.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -43,22 +43,34 @@ Task 36: Full Check.
 - Task 34: Demo Debug Panel.
 - Task 35: Public Export Contract.
 - Task 36: Full Check.
+- Task 37: Documentation Alignment.
 
 ## Current Task
 None.
 
+## Completed Task Record
+- Completed task: Task 37: Documentation Alignment.
+- Files changed: `README.md`, `docs/00-goal.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/EXECUTION_STATE.md`
+- Commands run: `npm run check && git diff --check` (pre-doc baseline); `npm run check && git diff --check` (post-doc verification)
+- Test result: verification command passed before and after the doc edits; the task-specific RED condition was documentation drift captured by the checklist recorded before editing.
+- Next task: None. Phase 1 implementation plan is fully checked off.
+- Known issues: no new blocking issues introduced. Existing non-blocking limitations remain: the demo still uses DOM fallback as the visible surface, and scene-gated scroll/effects are future work.
+
 ## Last Commands Run
-- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green: 33 Vitest files / 107 tests passed, root typecheck passed, workspace build passed, demo import boundary passed, and diff check passed)
+- `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
+- `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 
 ## Last Result
-Task 36 completed as a verification-only task. The full project command passed without requiring runtime, React, demo behavior, or build configuration changes. The Vite build emitted the existing non-blocking chunk-size warning, but exited successfully. Task 37 was not started.
+Task 37 completed as a documentation-only task. Runtime behavior and checks were already green; the work aligned README/goal wording with delivered Phase 1 scope and preserved the existing verification baseline.
 
 ## Files Changed
+- `README.md`
+- `docs/00-goal.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No blocking issues are open based on the latest full verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
+No blocking issues are open based on the latest verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -77,4 +89,4 @@ No blocking issues are open based on the latest full verification. The Vite prod
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 37: Documentation Alignment.
+None. `docs/IMPLEMENTATION_PLAN.md` is fully complete.

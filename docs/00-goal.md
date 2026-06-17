@@ -2,6 +2,13 @@
 
 Date: 2026-06-16
 
+## Phase 1 Status Note
+
+The product goal below includes future scene-gated scroll and effect-oriented
+behavior. The delivered Phase 1 runtime in this repository stops at page scroll,
+pointer state, one renderer, public React/vanilla entrypoints, and demo/debug
+surfaces; scene-gated scroll and effects remain future work.
+
 ## Purpose
 
 Build a new DOM-first interactive WebGL runtime from zero with a clear product model.
