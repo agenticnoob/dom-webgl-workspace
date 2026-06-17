@@ -16,16 +16,18 @@ import type { TargetDescriptor } from "../dom/targetDescriptor";
 import {
   createFrameInputSource,
   type FrameClock,
+  type ScrollStateController,
 } from "../input/frameInput";
-import {
-  createPageScrollState,
-  type PageScrollMetrics,
-  type PageScrollStateController,
-} from "../input/pageScroll";
+import { type PageScrollMetrics } from "../input/pageScroll";
 import {
   createPointerController,
   type PointerController,
 } from "../input/pointerController";
+import {
+  createScrollController,
+  type ScrollController,
+} from "../input/scrollController";
+import { createScrollLockController } from "../input/scrollLock";
 import {
   createRenderable,
   type RenderableFactoryContext,
@@ -68,10 +70,18 @@ type RuntimeInternalOptions = WebGLRuntimeOptions & {
   loadVideo?: RenderableFactoryContext["loadVideo"];
   loadModel?: RenderableFactoryContext["loadModel"];
   onRenderableCreated?: (renderable: Renderable) => void;
-  scrollState?: PageScrollStateController;
+  scrollState?: RuntimeScrollController;
   pointerController?: PointerController;
   clock?: FrameClock;
 };
+
+type RuntimeScrollController = ScrollStateController &
+  Partial<
+    Pick<
+      ScrollController,
+      "registerGateTarget" | "unregisterGateTarget" | "dispose"
+    >
+  >;
 
 type TargetDebugRecord = Omit<DebugTargetState, "key">;
 
@@ -94,7 +104,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const registry = createTargetRegistry();
   const resourceManager = createResourceManager();
   const scrollState =
-    internalOptions.scrollState ?? createPageScrollState(readPageScrollMetrics);
+    internalOptions.scrollState ??
+    createScrollController({
+      getScrollMetrics: readPageScrollMetrics,
+      scrollLock: createScrollLockController(document.documentElement),
+      eventTarget: options.container,
+    });
   const pointerController =
     internalOptions.pointerController ?? createPointerController(options.container);
   const frameInputSource = createFrameInputSource(
@@ -125,13 +140,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       const descriptor = registry.register(element, declaration, nextScanOrder);
       nextScanOrder += 1;
+      registerGateTarget(scrollState, descriptor);
       emitDebugState();
 
       return descriptor;
     },
     unregisterTarget(key) {
       const targetKey = key.trim();
+      const descriptor = registry.get(targetKey);
+
       registry.unregister(targetKey);
+      unregisterGateTarget(scrollState, descriptor);
       disposeTargetRenderable(
         targetKey,
         renderablesByTargetKey,
@@ -238,6 +257,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         renderablesByTargetKey.clear();
         renderables.clear();
         debugRecordsByTargetKey.clear();
+        scrollState.dispose?.();
         pointerController.dispose();
         rendererHost.dispose();
         emitDebugState();
@@ -399,6 +419,34 @@ function readRenderableResourceStatus(
 
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {
   return registry.list().sort((left, right) => left.scanOrder - right.scanOrder);
+}
+
+function registerGateTarget(
+  scrollState: RuntimeScrollController,
+  descriptor: TargetDescriptor,
+): void {
+  const scroll = descriptor.declaration.scroll;
+
+  if (scroll?.type !== "gate") {
+    return;
+  }
+
+  scrollState.registerGateTarget?.({
+    key: descriptor.key,
+    scroll,
+    getRect: () => descriptor.element.getBoundingClientRect(),
+  });
+}
+
+function unregisterGateTarget(
+  scrollState: RuntimeScrollController,
+  descriptor: TargetDescriptor | undefined,
+): void {
+  if (descriptor?.declaration.scroll?.type !== "gate") {
+    return;
+  }
+
+  scrollState.unregisterGateTarget?.(descriptor.key);
 }
 
 function measureElement(element: HTMLElement): DOMRect {

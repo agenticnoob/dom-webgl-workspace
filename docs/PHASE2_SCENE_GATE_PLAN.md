@@ -277,7 +277,7 @@ Docs and state:
 
   **Completion condition:** Renderables can consume gate progress through the existing frame input contract.
 
-- [ ] **Task 48: Runtime Registers Gate Targets**
+- [x] **Task 48: Runtime Registers Gate Targets**
 
   **Goal:** Wire gate declarations from target descriptors into the runtime scroll controller.
 

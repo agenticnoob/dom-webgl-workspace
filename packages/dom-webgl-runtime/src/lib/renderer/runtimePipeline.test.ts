@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { PageScrollStateController } from "../input/pageScroll";
+import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
+import type { ScrollControllerGateTarget } from "../input/scrollController";
 import type { Renderable } from "../render/renderable";
 import type {
   WebGLModelSourceDescriptor,
@@ -30,7 +31,7 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
   ) => Promise<HTMLVideoElement>;
   loadModel?: (source: WebGLModelSourceDescriptor) => Promise<unknown>;
   onRenderableCreated?: (renderable: Renderable) => void;
-  scrollState?: PageScrollStateController;
+  scrollState?: ScrollStateController;
   pointerController?: PointerController;
   clock?: () => number;
 };
@@ -226,6 +227,90 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
     expect(pointerController.dispose).toHaveBeenCalledTimes(1);
   });
+
+  test("registers and unregisters gate targets with the scroll controller", async () => {
+    const scrollController = createGateAwareScrollController();
+    const runtime = await createPipelineRuntime({ scrollState: scrollController });
+    const gateElement = document.createElement("section");
+    const gateRect = readZeroDOMRect();
+    const getBoundingClientRect = vi.fn(() => gateRect);
+
+    gateElement.getBoundingClientRect = getBoundingClientRect;
+
+    runtime.registerTarget(gateElement, {
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+        release: "both-directions-complete",
+      },
+    });
+
+    expect(scrollController.registerGateTarget).toHaveBeenCalledWith({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+        release: "both-directions-complete",
+      },
+      getRect: expect.any(Function),
+    });
+    expect(scrollController.registeredGateTargets[0]?.getRect()).toBe(gateRect);
+    expect(getBoundingClientRect).toHaveBeenCalledTimes(1);
+
+    runtime.unregisterTarget(" hero.scene ");
+
+    expect(scrollController.unregisterGateTarget).toHaveBeenCalledWith(
+      "hero.scene",
+    );
+
+    runtime.dispose();
+  });
+
+  test("passes gate frame input to renderables after the scroll controller enters a gate", async () => {
+    const scrollController = createGateAwareScrollController();
+    const receivedInputs: WebGLFrameInput[] = [];
+    const runtime = await createPipelineRuntime({
+      scrollState: scrollController,
+      onRenderableCreated(renderable) {
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = (input) => {
+          if (!input) {
+            throw new Error("Expected runtime to pass WebGLFrameInput.");
+          }
+
+          receivedInputs.push(input);
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+    });
+    scrollController.enterGate("hero.scene", 0.25);
+
+    await runtime.sync();
+
+    expect(receivedInputs).toHaveLength(1);
+    expect(receivedInputs[0]?.scroll).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.25,
+      direction: 1,
+      velocity: 250,
+    });
+
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -273,6 +358,15 @@ function readZeroMeasurement(): ElementMeasurement {
   };
 }
 
+function readZeroDOMRect(): DOMRect {
+  return {
+    ...readZeroMeasurement(),
+    toJSON() {
+      return readZeroMeasurement();
+    },
+  } as DOMRect;
+}
+
 function countRoles(renderables: Renderable[]): Partial<Record<string, number>> {
   return renderables.reduce<Partial<Record<string, number>>>(
     (counts, renderable) => {
@@ -283,7 +377,7 @@ function countRoles(renderables: Renderable[]): Partial<Record<string, number>> 
   );
 }
 
-function createScrollStateController(): PageScrollStateController {
+function createScrollStateController(): ScrollStateController {
   const scroll = {
     mode: "page" as const,
     pageProgress: 0.4,
@@ -297,6 +391,52 @@ function createScrollStateController(): PageScrollStateController {
     },
     update() {
       return scroll;
+    },
+  };
+}
+
+function createGateAwareScrollController(): ScrollStateController & {
+  registeredGateTargets: ScrollControllerGateTarget[];
+  registerGateTarget: ReturnType<typeof vi.fn>;
+  unregisterGateTarget: ReturnType<typeof vi.fn>;
+  enterGate(key: string, sceneProgress: number): void;
+} {
+  let scroll: WebGLFrameInput["scroll"] = {
+    mode: "page",
+    pageProgress: 0,
+    direction: 0,
+    velocity: 0,
+  };
+  const registeredGateTargets: ScrollControllerGateTarget[] = [];
+
+  return {
+    registeredGateTargets,
+    getState() {
+      return scroll;
+    },
+    update() {
+      return scroll;
+    },
+    registerGateTarget: vi.fn((target: ScrollControllerGateTarget) => {
+      registeredGateTargets.push(target);
+    }),
+    unregisterGateTarget: vi.fn((key: string) => {
+      const index = registeredGateTargets.findIndex(
+        (target) => target.key === key,
+      );
+
+      if (index !== -1) {
+        registeredGateTargets.splice(index, 1);
+      }
+    }),
+    enterGate(key: string, sceneProgress: number) {
+      scroll = {
+        mode: "gate",
+        activeGateKey: key,
+        sceneProgress,
+        direction: 1,
+        velocity: 250,
+      };
     },
   };
 }

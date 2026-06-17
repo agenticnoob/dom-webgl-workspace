@@ -6,7 +6,7 @@ Phase 1 is complete through Task 37. Phase 2 implementation is active for scene-
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Last Completed Task
-Task 47: Frame Input Carries Gate State.
+Task 48: Runtime Registers Gate Targets.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -56,9 +56,10 @@ Task 47: Frame Input Carries Gate State.
 - Task 45: Scene Gate Scroll Controller.
 - Task 46: Browser Scroll Event Routing.
 - Task 47: Frame Input Carries Gate State.
+- Task 48: Runtime Registers Gate Targets.
 
 ## Current Task
-Stopped after Task 47 as requested. Next implementation task is Task 48 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
+Stopped after Task 48 as requested. Next implementation task is Task 49 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -125,6 +126,11 @@ Stopped after Task 47 as requested. Next implementation task is Task 48 in `docs
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts` (new gate snapshot coverage passed against the existing frame input clone behavior); `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts && npm run typecheck` (green Task 47 verification).
 - Review checkpoint: existing frame input cloning already preserved the page/gate scroll union immutably, so no production code change was needed. The new test locks gate `mode`, `activeGateKey`, `sceneProgress`, and snapshot immutability while keeping existing page-mode coverage.
 - Next task: Task 48: Runtime Registers Gate Targets.
+- Completed task: Task 48: Runtime Registers Gate Targets.
+- Files changed: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`, `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (RED before implementation for missing runtime gate target registration; GREEN after implementation and test type fix).
+- Review checkpoint: runtime now creates the Phase 2 scroll controller by default, forwards gate target registration/unregistration from normalized target descriptors, and keeps the existing injected scroll-state test seam compatible.
+- Next task: Task 49: Debug State Reports Gate Mode.
 
 ## Phase 2 Review Checkpoint
 - Review scope: completed Phase 2 tasks only (Task 38 through Task 44), current git diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, and relevant tests.
@@ -154,9 +160,10 @@ Stopped after Task 47 as requested. Next implementation task is Task 48 in `docs
 - `git diff --check` (green Task 45 review-fix verification)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (green Task 46 verification, 2 files / 18 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts && npm run typecheck` (green Task 47 verification, 1 file / 3 tests)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (green Task 48 verification, 3 files / 18 tests)
 
 ## Last Result
-Task 47 completed frame input gate-state coverage. `createFrameInputSource` now has explicit tests showing gate-mode scroll snapshots preserve `activeGateKey` and `sceneProgress`, returned-frame mutations do not affect later snapshots, and existing page-mode behavior remains covered. Stopped here as requested; runtime gate target registration remains Task 48.
+Task 48 completed runtime gate target registration. `createWebGLRuntime` now uses the Phase 2 scroll controller by default, forwards gate descriptors to the controller, unregisters gate targets by normalized key, and passes gate-mode frame input through the existing renderable update path. Stopped here as requested; debug state gate reporting remains Task 49.
 
 ## Files Changed
 - `README.md`
@@ -185,6 +192,8 @@ Task 47 completed frame input gate-state coverage. `createFrameInputSource` now 
 - `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`
 - `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
 - `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
 ## Known Issues
 No blocking issues are open based on the latest verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
@@ -207,4 +216,4 @@ No blocking issues are open based on the latest verification. The Vite productio
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Stopped after Task 47 as requested. Next unchecked Phase 2 task is Task 48: Runtime Registers Gate Targets. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Stopped after Task 48 as requested. Next unchecked Phase 2 task is Task 49: Debug State Reports Gate Mode. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
