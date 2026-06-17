@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   DEFAULT_SCROLL_LINE_HEIGHT,
   createTouchDeltaTracker,
+  readFirstTouchClientY,
   readTouchMoveDelta,
   readWheelDeltaY,
 } from "./scrollDelta";
@@ -75,5 +76,19 @@ describe("createTouchDeltaTracker", () => {
 
     tracker.reset();
     expect(tracker.move(240)).toBe(0);
+  });
+});
+
+describe("readFirstTouchClientY", () => {
+  test("reads the first active touch clientY", () => {
+    expect(
+      readFirstTouchClientY({
+        touches: [{ clientY: 320 }, { clientY: 120 }],
+      }),
+    ).toBe(320);
+  });
+
+  test("returns null when no active touch is present", () => {
+    expect(readFirstTouchClientY({ touches: [] })).toBeNull();
   });
 });

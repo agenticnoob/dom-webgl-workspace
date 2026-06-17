@@ -5,6 +5,11 @@ import {
   type PageScrollStateController,
 } from "./pageScroll";
 import {
+  createTouchDeltaTracker,
+  readFirstTouchClientY,
+  readWheelDeltaY,
+} from "./scrollDelta";
+import {
   createSceneGateStateMachine,
   detectSceneGateCrossing,
   measureSceneGateStart,
@@ -14,6 +19,10 @@ import {
 import type { ScrollLockController } from "./scrollLock";
 
 export type ScrollLockPort = ScrollLockController;
+export type ScrollControllerEventTarget = Pick<
+  EventTarget,
+  "addEventListener" | "removeEventListener"
+>;
 
 export type ScrollControllerGateTarget = {
   key: string;
@@ -31,6 +40,8 @@ export type ScrollController = PageScrollStateController & {
 export function createScrollController(input: {
   getScrollMetrics: () => PageScrollMetrics;
   scrollLock: ScrollLockPort;
+  eventTarget?: ScrollControllerEventTarget;
+  lineHeight?: number;
 }): ScrollController {
   const pageScroll = createPageScrollState(input.getScrollMetrics);
   const sceneGate = createSceneGateStateMachine();
@@ -38,6 +49,14 @@ export function createScrollController(input: {
   const previousOffsets = new Map<string, number>();
   let activeGate: SceneGateActiveState | null = null;
   let state = pageScroll.getState();
+  const eventRouter = input.eventTarget
+    ? createScrollEventRouter({
+        target: input.eventTarget,
+        getViewportHeight: () => input.getScrollMetrics().viewportHeight,
+        lineHeight: input.lineHeight,
+        consumeDelta: routeBrowserScrollDelta,
+      })
+    : null;
 
   return {
     getState(): WebGLFrameInput["scroll"] {
@@ -89,35 +108,47 @@ export function createScrollController(input: {
     },
 
     consumeScrollDelta(deltaY: number): WebGLFrameInput["scroll"] {
-      if (activeGate === null) {
-        state = pageScroll.getState();
-        return state;
-      }
-
-      const nextGate = sceneGate.applyScrollDelta({
-        state: activeGate,
-        viewportHeight: input.getScrollMetrics().viewportHeight,
-        deltaY,
-      });
-
-      if (nextGate.kind !== "active") {
-        activeGate = null;
-        input.scrollLock.unlock();
-        state = pageScroll.getState();
-        return state;
-      }
-
-      activeGate = nextGate;
-      state = createGateScrollState(activeGate, deltaY);
-
-      return state;
+      return scrollDeltaThroughController(deltaY);
     },
 
     dispose(): void {
       activeGate = null;
+      eventRouter?.dispose();
       input.scrollLock.dispose();
     },
   };
+
+  function routeBrowserScrollDelta(deltaY: number): boolean {
+    const previousState = state;
+    const nextState = scrollDeltaThroughController(deltaY);
+
+    return didGateConsumeDelta(previousState, nextState, deltaY);
+  }
+
+  function scrollDeltaThroughController(deltaY: number): WebGLFrameInput["scroll"] {
+    if (activeGate === null) {
+      state = pageScroll.getState();
+      return state;
+    }
+
+    const nextGate = sceneGate.applyScrollDelta({
+      state: activeGate,
+      viewportHeight: input.getScrollMetrics().viewportHeight,
+      deltaY,
+    });
+
+    if (nextGate.kind !== "active") {
+      activeGate = null;
+      input.scrollLock.unlock();
+      state = pageScroll.getState();
+      return state;
+    }
+
+    activeGate = nextGate;
+    state = createGateScrollState(activeGate, deltaY);
+
+    return state;
+  }
 
   function findGateCrossing(viewportHeight: number): {
     direction: "forward" | "reverse";
@@ -154,6 +185,115 @@ export function createScrollController(input: {
 
     return null;
   }
+}
+
+function createScrollEventRouter(input: {
+  target: ScrollControllerEventTarget;
+  getViewportHeight: () => number;
+  lineHeight?: number;
+  consumeDelta(deltaY: number): boolean;
+}): { dispose(): void } {
+  const touchTracker = createTouchDeltaTracker();
+  const activeListenerOptions: AddEventListenerOptions = { passive: false };
+  const passiveListenerOptions: AddEventListenerOptions = { passive: true };
+  let disposed = false;
+
+  function onWheel(event: Event): void {
+    const wheelEvent = event as WheelEvent;
+    const consumed = input.consumeDelta(
+      readWheelDeltaY(wheelEvent, {
+        viewportHeight: input.getViewportHeight(),
+        lineHeight: input.lineHeight,
+      }),
+    );
+
+    if (consumed && event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function onTouchStart(event: Event): void {
+    const clientY = readFirstTouchClientY(event as TouchEvent);
+
+    if (clientY !== null) {
+      touchTracker.start(clientY);
+    }
+  }
+
+  function onTouchMove(event: Event): void {
+    const clientY = readFirstTouchClientY(event as TouchEvent);
+
+    if (clientY === null) {
+      return;
+    }
+
+    const consumed = input.consumeDelta(touchTracker.move(clientY));
+
+    if (consumed && event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function onTouchEnd(): void {
+    touchTracker.reset();
+  }
+
+  input.target.addEventListener("wheel", onWheel, activeListenerOptions);
+  input.target.addEventListener("touchstart", onTouchStart, passiveListenerOptions);
+  input.target.addEventListener("touchmove", onTouchMove, activeListenerOptions);
+  input.target.addEventListener("touchend", onTouchEnd, passiveListenerOptions);
+  input.target.addEventListener("touchcancel", onTouchEnd, passiveListenerOptions);
+
+  return {
+    dispose(): void {
+      if (disposed) {
+        return;
+      }
+
+      input.target.removeEventListener("wheel", onWheel, activeListenerOptions);
+      input.target.removeEventListener(
+        "touchstart",
+        onTouchStart,
+        passiveListenerOptions,
+      );
+      input.target.removeEventListener(
+        "touchmove",
+        onTouchMove,
+        activeListenerOptions,
+      );
+      input.target.removeEventListener(
+        "touchend",
+        onTouchEnd,
+        passiveListenerOptions,
+      );
+      input.target.removeEventListener(
+        "touchcancel",
+        onTouchEnd,
+        passiveListenerOptions,
+      );
+      touchTracker.reset();
+      disposed = true;
+    },
+  };
+}
+
+function didGateConsumeDelta(
+  previousState: WebGLFrameInput["scroll"],
+  nextState: WebGLFrameInput["scroll"],
+  deltaY: number,
+): boolean {
+  if (deltaY === 0 || previousState.mode !== "gate") {
+    return false;
+  }
+
+  if (nextState.mode !== "gate") {
+    return true;
+  }
+
+  return (
+    nextState.activeGateKey !== previousState.activeGateKey ||
+    nextState.sceneProgress !== previousState.sceneProgress
+  );
 }
 
 function measureTargetOffset(

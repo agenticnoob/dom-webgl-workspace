@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   createFrameInputSource,
@@ -179,7 +179,202 @@ describe("createScrollController", () => {
       velocity: 0,
     });
   });
+
+  test("routes active gate wheel input and prevents page scroll only when consumed", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const rect = {
+      top: 80,
+      height: 200,
+    };
+    const eventTarget = document.createElement("div");
+    const scrollLock = createScrollLockStub();
+    const scrollController = createScrollController({
+      getScrollMetrics: () => metrics,
+      scrollLock,
+      eventTarget,
+    });
+
+    scrollController.registerGateTarget({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+      getRect: () => rect,
+    });
+
+    metrics.scrollY = 80;
+    rect.top = 0;
+    expect(scrollController.update()).toMatchObject({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0,
+    });
+
+    const wheelEvent = createWheelEvent(250);
+    eventTarget.dispatchEvent(wheelEvent);
+
+    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(scrollController.getState()).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.25,
+      direction: 1,
+      velocity: 250,
+    });
+    expect(scrollLock.isLocked()).toBe(true);
+  });
+
+  test("leaves inactive page-mode wheel input unprevented", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const eventTarget = document.createElement("div");
+    const scrollController = createScrollController({
+      getScrollMetrics: () => metrics,
+      scrollLock: createScrollLockStub(),
+      eventTarget,
+    });
+
+    const wheelEvent = createWheelEvent(250);
+    eventTarget.dispatchEvent(wheelEvent);
+
+    expect(wheelEvent.defaultPrevented).toBe(false);
+    expect(scrollController.getState()).toEqual({
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    });
+  });
+
+  test("routes touch move input through the same active gate delta path", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const rect = {
+      top: 80,
+      height: 200,
+    };
+    const eventTarget = document.createElement("div");
+    const scrollController = createScrollController({
+      getScrollMetrics: () => metrics,
+      scrollLock: createScrollLockStub(),
+      eventTarget,
+    });
+
+    scrollController.registerGateTarget({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+      getRect: () => rect,
+    });
+
+    metrics.scrollY = 80;
+    rect.top = 0;
+    scrollController.update();
+
+    eventTarget.dispatchEvent(createTouchEvent("touchstart", 300));
+    const touchMoveEvent = createTouchEvent("touchmove", 250);
+    eventTarget.dispatchEvent(touchMoveEvent);
+
+    expect(touchMoveEvent.defaultPrevented).toBe(true);
+    expect(scrollController.getState()).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.05,
+      direction: 1,
+      velocity: 50,
+    });
+  });
+
+  test("dispose removes browser listeners and unlocks active gates", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const rect = {
+      top: 80,
+      height: 200,
+    };
+    const eventTarget = document.createElement("div");
+    const removeEventListener = vi.spyOn(eventTarget, "removeEventListener");
+    const scrollLock = createScrollLockStub();
+    const scrollController = createScrollController({
+      getScrollMetrics: () => metrics,
+      scrollLock,
+      eventTarget,
+    });
+
+    scrollController.registerGateTarget({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+      getRect: () => rect,
+    });
+
+    metrics.scrollY = 80;
+    rect.top = 0;
+    scrollController.update();
+    expect(scrollLock.isLocked()).toBe(true);
+
+    scrollController.dispose();
+    scrollController.dispose();
+
+    const wheelEvent = createWheelEvent(250);
+    eventTarget.dispatchEvent(wheelEvent);
+
+    expect(scrollLock.isLocked()).toBe(false);
+    expect(wheelEvent.defaultPrevented).toBe(false);
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "wheel",
+      expect.any(Function),
+      expect.objectContaining({ passive: false }),
+    );
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "touchmove",
+      expect.any(Function),
+      expect.objectContaining({ passive: false }),
+    );
+  });
 });
+
+function createWheelEvent(deltaY: number, deltaMode = 0): WheelEvent {
+  const event = new Event("wheel", { cancelable: true }) as WheelEvent;
+
+  Object.defineProperties(event, {
+    deltaY: { value: deltaY },
+    deltaMode: { value: deltaMode },
+  });
+
+  return event;
+}
+
+function createTouchEvent(type: string, clientY: number): TouchEvent {
+  const event = new Event(type, { cancelable: true }) as TouchEvent;
+
+  Object.defineProperty(event, "touches", {
+    value: [{ clientY }],
+  });
+
+  return event;
+}
 
 function createScrollLockStub(): ScrollLockPort {
   let locked = false;

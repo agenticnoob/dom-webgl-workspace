@@ -243,7 +243,7 @@ Docs and state:
 
   **Completion condition:** A non-DOM test can drive page mode and gate mode through one scroll controller.
 
-- [ ] **Task 46: Browser Scroll Event Routing**
+- [x] **Task 46: Browser Scroll Event Routing**
 
   **Goal:** Route browser wheel/touch input into the scene gate scroll controller and prevent page scroll only while a gate consumes the input.
 

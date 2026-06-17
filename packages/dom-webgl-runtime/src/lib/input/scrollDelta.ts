@@ -18,6 +18,10 @@ export type TouchMoveDeltaInput = {
   currentY: number;
 };
 
+export type TouchClientYInput = {
+  touches: ArrayLike<{ clientY: number }>;
+};
+
 export type TouchDeltaTracker = {
   start(y: number): void;
   move(y: number): number;
@@ -41,6 +45,10 @@ export function readWheelDeltaY(
 
 export function readTouchMoveDelta(input: TouchMoveDeltaInput): number {
   return input.previousY - input.currentY;
+}
+
+export function readFirstTouchClientY(input: TouchClientYInput): number | null {
+  return input.touches.length > 0 ? (input.touches[0]?.clientY ?? null) : null;
 }
 
 export function createTouchDeltaTracker(): TouchDeltaTracker {
