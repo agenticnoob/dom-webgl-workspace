@@ -294,7 +294,7 @@ Docs and state:
 
   **Completion condition:** Gate configuration flows from public declarations into runtime frame input without changing renderable creation or renderer ownership.
 
-- [ ] **Task 49: Debug State Reports Gate Mode**
+- [x] **Task 49: Debug State Reports Gate Mode**
 
   **Goal:** Expose active gate and progress through debug state.
 

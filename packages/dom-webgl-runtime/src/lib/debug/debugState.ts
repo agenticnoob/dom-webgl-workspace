@@ -18,6 +18,8 @@ export type DebugRuntimeState = {
   targetCount: number;
   renderableCount: number;
   currentScrollMode: WebGLDebugState["currentScrollMode"];
+  activeGateKey?: string;
+  sceneProgress?: number;
   pointer: WebGLPointerState;
   targets: readonly DebugTargetState[];
 };
@@ -25,7 +27,7 @@ export type DebugRuntimeState = {
 export function createDebugState(
   runtimeState: DebugRuntimeState,
 ): WebGLDebugState {
-  return {
+  const state: WebGLDebugState = {
     targetCount: runtimeState.targetCount,
     renderableCount: runtimeState.renderableCount,
     currentScrollMode: runtimeState.currentScrollMode,
@@ -47,6 +49,13 @@ export function createDebugState(
       return summary;
     }),
   };
+
+  if (runtimeState.currentScrollMode === "gate") {
+    state.activeGateKey = runtimeState.activeGateKey;
+    state.sceneProgress = runtimeState.sceneProgress;
+  }
+
+  return state;
 }
 
 function readErrorMessage(error: unknown): string | undefined {

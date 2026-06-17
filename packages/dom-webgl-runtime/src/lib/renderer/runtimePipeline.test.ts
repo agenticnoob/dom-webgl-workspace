@@ -311,6 +311,23 @@ describe("runtime pipeline sync", () => {
 
     runtime.dispose();
   });
+
+  test("reports active gate state through runtime debug state", async () => {
+    const scrollController = createGateAwareScrollController();
+    const runtime = await createPipelineRuntime({ scrollState: scrollController });
+
+    scrollController.enterGate("hero.scene", 0.5);
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState()).toMatchObject({
+      currentScrollMode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.5,
+    });
+
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(

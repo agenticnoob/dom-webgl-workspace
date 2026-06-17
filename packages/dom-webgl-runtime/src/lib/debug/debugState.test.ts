@@ -1,16 +1,16 @@
 import { describe, expect, test, vi } from "vitest";
 
-import type { PageScrollStateController } from "../input/pageScroll";
+import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { WebGLDebugState, WebGLPointerState } from "../types";
-import { createDebugState } from "./debugState";
+import { createDebugState, type DebugRuntimeState } from "./debugState";
 import type { createWebGLRuntime, WebGLRuntime } from "../renderer/runtime";
 import type { ThreeRendererHost } from "../renderer/threeRenderer";
 
 type RuntimeDebugOptions = Parameters<typeof createWebGLRuntime>[0] & {
   rendererHostFactory?: (container: HTMLElement) => ThreeRendererHost;
   onDebugStateChange?: (state: WebGLDebugState) => void;
-  scrollState?: PageScrollStateController;
+  scrollState?: ScrollStateController;
   pointerController?: PointerController;
   clock?: () => number;
   measureElement?: () => DOMRect;
@@ -60,6 +60,30 @@ describe("debug state", () => {
         },
       ],
     });
+  });
+
+  test("reports active gate fields only for gate scroll mode", () => {
+    const gateState: DebugRuntimeState = {
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.5,
+      pointer: createPointerState(),
+      targets: [],
+    };
+    const pageState: DebugRuntimeState = {
+      ...gateState,
+      currentScrollMode: "page",
+    };
+
+    expect(createDebugState(gateState)).toMatchObject({
+      currentScrollMode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.5,
+    });
+    expect(createDebugState(pageState)).not.toHaveProperty("activeGateKey");
+    expect(createDebugState(pageState)).not.toHaveProperty("sceneProgress");
   });
 
   test("runtime exposes current target renderable and input summaries", async () => {
@@ -119,6 +143,23 @@ describe("debug state", () => {
           visible: true,
         },
       ],
+    });
+
+    runtime.dispose();
+  });
+
+  test("runtime debug state exposes active gate frame input", async () => {
+    const runtime = await createRuntime({
+      scrollState: createGateScrollStateController(),
+      pointerController: createPointerController(),
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState()).toMatchObject({
+      currentScrollMode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.25,
     });
 
     runtime.dispose();
@@ -324,12 +365,31 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
   };
 }
 
-function createScrollStateController(): PageScrollStateController {
+function createScrollStateController(): ScrollStateController {
   const scroll = {
     mode: "page" as const,
     pageProgress: 0.4,
     direction: 1 as const,
     velocity: 12,
+  };
+
+  return {
+    getState() {
+      return scroll;
+    },
+    update() {
+      return scroll;
+    },
+  };
+}
+
+function createGateScrollStateController(): ScrollStateController {
+  const scroll = {
+    mode: "gate" as const,
+    activeGateKey: "hero.scene",
+    sceneProgress: 0.25,
+    direction: 1 as const,
+    velocity: 250,
   };
 
   return {

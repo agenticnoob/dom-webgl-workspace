@@ -6,7 +6,7 @@ Phase 1 is complete through Task 37. Phase 2 implementation is active for scene-
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Last Completed Task
-Task 48: Runtime Registers Gate Targets.
+Task 49: Debug State Reports Gate Mode.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -57,9 +57,10 @@ Task 48: Runtime Registers Gate Targets.
 - Task 46: Browser Scroll Event Routing.
 - Task 47: Frame Input Carries Gate State.
 - Task 48: Runtime Registers Gate Targets.
+- Task 49: Debug State Reports Gate Mode.
 
 ## Current Task
-Stopped after Task 48 as requested. Next implementation task is Task 49 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
+Stopped after Task 49 as requested. Next implementation task is Task 50 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -131,6 +132,11 @@ Stopped after Task 48 as requested. Next implementation task is Task 49 in `docs
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (RED before implementation for missing runtime gate target registration; GREEN after implementation and test type fix).
 - Review checkpoint: runtime now creates the Phase 2 scroll controller by default, forwards gate target registration/unregistration from normalized target descriptors, and keeps the existing injected scroll-state test seam compatible.
 - Next task: Task 49: Debug State Reports Gate Mode.
+- Completed task: Task 49: Debug State Reports Gate Mode.
+- Files changed: `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`, `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`, `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck` (RED before implementation for missing `activeGateKey` and `sceneProgress` in debug state; GREEN after implementation and type fix).
+- Review checkpoint: debug state now copies gate-only fields from `frameInput.scroll` when current scroll mode is `gate`, omits them in page mode, and does not expose effect or renderer internals.
+- Next task: Task 50: Runtime Cleanup Releases Scroll Lock.
 
 ## Phase 2 Review Checkpoint
 - Review scope: completed Phase 2 tasks only (Task 38 through Task 44), current git diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, and relevant tests.
@@ -161,9 +167,10 @@ Stopped after Task 48 as requested. Next implementation task is Task 49 in `docs
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (green Task 46 verification, 2 files / 18 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts && npm run typecheck` (green Task 47 verification, 1 file / 3 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts && npm run typecheck` (green Task 48 verification, 3 files / 18 tests)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck` (green Task 49 verification, 2 files / 17 tests)
 
 ## Last Result
-Task 48 completed runtime gate target registration. `createWebGLRuntime` now uses the Phase 2 scroll controller by default, forwards gate descriptors to the controller, unregisters gate targets by normalized key, and passes gate-mode frame input through the existing renderable update path. Stopped here as requested; debug state gate reporting remains Task 49.
+Task 49 completed debug state gate reporting. `createDebugState` now includes `activeGateKey` and `sceneProgress` only for gate mode, and `createWebGLRuntime().getDebugState()` passes those fields through from the existing frame input scroll state. Stopped here as requested; runtime cleanup release paths remain Task 50.
 
 ## Files Changed
 - `README.md`
@@ -194,6 +201,8 @@ Task 48 completed runtime gate target registration. `createWebGLRuntime` now use
 - `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
+- `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
+- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
 
 ## Known Issues
 No blocking issues are open based on the latest verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
@@ -216,4 +225,4 @@ No blocking issues are open based on the latest verification. The Vite productio
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Stopped after Task 48 as requested. Next unchecked Phase 2 task is Task 49: Debug State Reports Gate Mode. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Stopped after Task 49 as requested. Next unchecked Phase 2 task is Task 50: Runtime Cleanup Releases Scroll Lock. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.

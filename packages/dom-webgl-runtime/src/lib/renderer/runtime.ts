@@ -1,10 +1,12 @@
 import {
   createDebugState,
+  type DebugRuntimeState,
   type DebugTargetState,
 } from "../debug/debugState";
 import type {
   WebGLDebugState,
   WebGLDeclaration,
+  WebGLFrameInput,
   WebGLResourceStatus,
 } from "../types";
 
@@ -273,7 +275,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return createDebugState({
         targetCount: 0,
         renderableCount: 0,
-        currentScrollMode: frameInput.scroll.mode,
+        ...readDebugScrollState(frameInput.scroll),
         pointer: frameInput.pointer,
         targets: [],
       });
@@ -282,7 +284,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     return createDebugState({
       targetCount: descriptors.length,
       renderableCount: renderablesByTargetKey.size,
-      currentScrollMode: frameInput.scroll.mode,
+      ...readDebugScrollState(frameInput.scroll),
       pointer: frameInput.pointer,
       targets: descriptors.map((descriptor) => ({
         key: descriptor.key,
@@ -294,6 +296,23 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   function emitDebugState(): void {
     internalOptions.onDebugStateChange?.(createCurrentDebugState());
   }
+}
+
+function readDebugScrollState(
+  scroll: WebGLFrameInput["scroll"],
+): Pick<
+  DebugRuntimeState,
+  "currentScrollMode" | "activeGateKey" | "sceneProgress"
+> {
+  if (scroll.mode === "gate") {
+    return {
+      currentScrollMode: "gate",
+      activeGateKey: scroll.activeGateKey,
+      sceneProgress: scroll.sceneProgress,
+    };
+  }
+
+  return { currentScrollMode: "page" };
 }
 
 function createPipelineRenderable(
