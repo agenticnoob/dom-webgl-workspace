@@ -1,8 +1,26 @@
 import { describe, expect, test } from "vitest";
 
-import { createPageScrollState } from "./pageScroll";
+import { createPageScrollFrameState, createPageScrollState } from "./pageScroll";
 
 describe("createPageScrollState", () => {
+  test("creates reusable page scroll frame state from metrics and delta", () => {
+    expect(
+      createPageScrollFrameState(
+        {
+          scrollY: 250,
+          scrollHeight: 2000,
+          viewportHeight: 1000,
+        },
+        125,
+      ),
+    ).toEqual({
+      mode: "page",
+      pageProgress: 0.25,
+      direction: 1,
+      velocity: 125,
+    });
+  });
+
   test("reports page mode by default and clamps page progress", () => {
     const metrics = {
       scrollY: -20,

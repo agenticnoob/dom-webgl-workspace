@@ -225,7 +225,7 @@ Docs and state:
 
   **Completion condition:** Scroll lock is isolated, restorable, and safe to call from runtime cleanup paths.
 
-- [ ] **Task 45: Scene Gate Scroll Controller**
+- [x] **Task 45: Scene Gate Scroll Controller**
 
   **Goal:** Compose page scroll state, gate targets, pure gate progress, normalized deltas, and scroll lock behind one controller interface.
 

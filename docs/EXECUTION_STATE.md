@@ -6,7 +6,7 @@ Phase 1 is complete through Task 37. Phase 2 implementation is active for scene-
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Last Completed Task
-Task 44: Scroll Lock Controller.
+Task 45: Scene Gate Scroll Controller.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -53,9 +53,10 @@ Task 44: Scroll Lock Controller.
 - Task 42: Reverse Gate Behavior.
 - Task 43: Scroll Delta Normalization.
 - Task 44: Scroll Lock Controller.
+- Task 45: Scene Gate Scroll Controller.
 
 ## Current Task
-Stopped after Task 44 as requested. Next implementation task is Task 45 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
+Stopped after Task 45 as requested. Next implementation task is Task 46 in `docs/PHASE2_SCENE_GATE_PLAN.md`.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -107,6 +108,20 @@ Stopped after Task 44 as requested. Next implementation task is Task 45 in `docs
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/scrollLock.test.ts` (RED before implementation; GREEN after implementation).
 - Review checkpoint: spec review approved; code quality review approved with no issues.
 - Next task: Task 45: Scene Gate Scroll Controller.
+- Completed task: Task 45: Scene Gate Scroll Controller.
+- Files changed: `packages/dom-webgl-runtime/src/lib/input/scrollController.ts`, `packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts`, `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`, `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`, `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`, `docs/PHASE2_SCENE_GATE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts` (RED before implementation for missing controller/helpers; GREEN after implementation); `npm run typecheck` (RED during review fix for missing generic `ScrollStateController`, GREEN after fix); `git diff --check` (GREEN).
+- Review checkpoint: spec review approved. Code quality review requested a generic `ScrollStateController` frame-input port and stronger controller boundary tests; re-review approved with no remaining issues.
+- Next task: Task 46: Browser Scroll Event Routing.
+
+## Phase 2 Review Checkpoint
+- Review scope: completed Phase 2 tasks only (Task 38 through Task 44), current git diff, `docs/EXECUTION_STATE.md`, `docs/PHASE2_SCENE_GATE_PLAN.md`, and relevant tests.
+- Current diff before this checkpoint record: empty working tree; Phase 2 implementation is contained in commit `88c63bc` on `feat-phase2` relative to `master`.
+- Contract reviewer result: no blocking issues. Public API remains within the Phase 2 contract; no public Three.js flags, effect registry, or animation/effect layer were introduced; demo imports use only public package exports. Non-blocking issue: React public entrypoint still lacks a no-browser-global import guard matching the root entrypoint SSR import test.
+- Runtime safety reviewer result: no blocking or non-blocking issues. Scroll lock is idempotent; reverse gate behavior is explicit; frame/debug type state matches the completed public type slice. Active gate cleanup release paths remain planned for unchecked Task 50 and are not required by completed Tasks 38-44.
+- Fixes applied: none. No blocking issues were found, and the non-blocking React SSR import guard coverage gap is deferred.
+- Verification after checkpoint: targeted Phase 2 tests passed (10 files / 49 tests); `npm run check:imports` passed; `npm run typecheck` passed; `git diff --check` passed.
+- Next task at this checkpoint: Task 45: Scene Gate Scroll Controller. Task 45 is now complete; current next task is Task 46.
 
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -118,9 +133,16 @@ Stopped after Task 44 as requested. Next implementation task is Task 45 in `docs
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/sceneGate.test.ts` (green Task 42 verification, 15 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts` (green Task 43 verification, 8 tests)
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/input/scrollLock.test.ts` (green Task 44 verification, 5 tests)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/lib/runtime-state.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts packages/dom-webgl-runtime/src/lib/input/scrollDeclaration.test.ts packages/dom-webgl-runtime/src/lib/input/sceneGate.test.ts packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts packages/dom-webgl-runtime/src/lib/input/scrollLock.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts apps/demo/src/demo-import-boundary.test.ts` (green Phase 2 checkpoint verification, 10 files / 49 tests)
+- `npm run check:imports` (green Phase 2 checkpoint verification)
+- `npm run typecheck` (green Phase 2 checkpoint verification)
+- `git diff --check` (green Phase 2 checkpoint verification)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts` (green Task 45 verification, 2 files / 7 tests)
+- `npm run typecheck` (green Task 45 review-fix verification)
+- `git diff --check` (green Task 45 review-fix verification)
 
 ## Last Result
-Task 44 completed the isolated scroll lock side-effect boundary. Stopped here as requested; runtime behavior remains at the delivered Phase 1 scope until Task 45+ controller wiring consumes the Phase 2 helpers.
+Task 45 completed the non-DOM scene gate scroll controller. The input layer can now drive page mode and gate mode through one scroll controller, lock while a gate is active, advance `sceneProgress` from consumed deltas, and unlock on gate completion. Stopped here as requested; browser wheel/touch routing remains Task 46 and runtime registration remains Task 48.
 
 ## Files Changed
 - `README.md`
@@ -144,6 +166,11 @@ Task 44 completed the isolated scroll lock side-effect boundary. Stopped here as
 - `packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts`
 - `packages/dom-webgl-runtime/src/lib/input/scrollLock.ts`
 - `packages/dom-webgl-runtime/src/lib/input/scrollLock.test.ts`
+- `packages/dom-webgl-runtime/src/lib/input/scrollController.ts`
+- `packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts`
+- `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`
+- `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
+- `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
 
 ## Known Issues
 No blocking issues are open based on the latest verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
@@ -166,4 +193,4 @@ No blocking issues are open based on the latest verification. The Vite productio
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Stopped after Task 44 as requested. Next unchecked Phase 2 task is Task 45: Scene Gate Scroll Controller. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.
+Stopped after Task 45 as requested. Next unchecked Phase 2 task is Task 46: Browser Scroll Event Routing. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and should not be reopened for Phase 2 task tracking.

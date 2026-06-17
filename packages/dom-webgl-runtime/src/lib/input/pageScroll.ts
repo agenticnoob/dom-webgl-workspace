@@ -1,4 +1,5 @@
 import type { WebGLFrameInput } from "../types";
+import type { ScrollStateController } from "./frameInput";
 
 export type PageScrollMetrics = {
   scrollY: number;
@@ -6,17 +7,14 @@ export type PageScrollMetrics = {
   viewportHeight: number;
 };
 
-export type PageScrollStateController = {
-  getState(): WebGLFrameInput["scroll"];
-  update(): WebGLFrameInput["scroll"];
-};
+export type PageScrollStateController = ScrollStateController;
 
 export function createPageScrollState(
   getScrollMetrics: () => PageScrollMetrics,
 ): PageScrollStateController {
   const initialMetrics = getScrollMetrics();
   let previousScrollY = initialMetrics.scrollY;
-  let state = createScrollState(initialMetrics, 0);
+  let state = createPageScrollFrameState(initialMetrics, 0);
 
   return {
     getState(): WebGLFrameInput["scroll"] {
@@ -27,14 +25,14 @@ export function createPageScrollState(
       const deltaY = metrics.scrollY - previousScrollY;
 
       previousScrollY = metrics.scrollY;
-      state = createScrollState(metrics, deltaY);
+      state = createPageScrollFrameState(metrics, deltaY);
 
       return state;
     },
   };
 }
 
-function createScrollState(
+export function createPageScrollFrameState(
   metrics: PageScrollMetrics,
   deltaY: number,
 ): WebGLFrameInput["scroll"] {

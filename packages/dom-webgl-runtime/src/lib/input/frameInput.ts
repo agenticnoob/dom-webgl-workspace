@@ -1,8 +1,12 @@
 import type { WebGLFrameInput } from "../types";
-import type { PageScrollStateController } from "./pageScroll";
 import type { PointerController } from "./pointerController";
 
 export type FrameClock = () => number;
+
+export type ScrollStateController = {
+  getState(): WebGLFrameInput["scroll"];
+  update(): WebGLFrameInput["scroll"];
+};
 
 export type WebGLFrameInputSource = {
   getState(): WebGLFrameInput;
@@ -10,7 +14,7 @@ export type WebGLFrameInputSource = {
 };
 
 export function createFrameInputSource(
-  scrollState: PageScrollStateController,
+  scrollState: ScrollStateController,
   pointerController: PointerController,
   clock: FrameClock,
 ): WebGLFrameInputSource {
