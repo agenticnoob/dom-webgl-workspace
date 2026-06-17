@@ -11,7 +11,8 @@ import {
   createWebGLRuntime,
   type WebGLRuntime as RuntimeInstance,
 } from "../renderer/runtime";
-import type { WebGLDebugState } from "../types";
+import { createTargetDescriptor } from "../dom/targetDescriptor";
+import type { WebGLDebugState, WebGLDeclaration } from "../types";
 
 import { WebGLRuntimeProvider } from "./runtimeContext";
 
@@ -29,7 +30,12 @@ export function WebGLRuntime({
   onDebugStateChange,
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingRuntimeRef = useRef<RuntimeInstance | null>(null);
   const [runtime, setRuntime] = useState<RuntimeInstance | null>(null);
+
+  if (pendingRuntimeRef.current === null) {
+    pendingRuntimeRef.current = createPendingRuntime();
+  }
 
   useEffect(() => {
     const container = containerRef.current;
@@ -53,8 +59,48 @@ export function WebGLRuntime({
   return createElement(
     "div",
     { ref: containerRef, className, style },
-    runtime === null
-      ? null
-      : createElement(WebGLRuntimeProvider, { runtime }, children),
+    createElement(
+      WebGLRuntimeProvider,
+      { runtime: runtime ?? pendingRuntimeRef.current },
+      children,
+    ),
   );
+}
+
+function createPendingRuntime(): RuntimeInstance {
+  return {
+    get container(): HTMLElement {
+      throw new Error("WebGL runtime container is not ready yet.");
+    },
+    registerTarget(element: HTMLElement, declaration: WebGLDeclaration) {
+      return createTargetDescriptor(element, declaration, 0);
+    },
+    unregisterTarget() {},
+    sync() {},
+    getDebugState() {
+      return {
+        targetCount: 0,
+        renderableCount: 0,
+        currentScrollMode: "page",
+        pointer: {
+          x: 0,
+          y: 0,
+          normalizedX: 0,
+          normalizedY: 0,
+          isInside: false,
+          isDown: false,
+          downTime: 0,
+          pressDuration: 0,
+          isDragging: false,
+          dragStartX: 0,
+          dragStartY: 0,
+          dragDeltaX: 0,
+          dragDeltaY: 0,
+          clickCount: 0,
+        },
+        targets: [],
+      };
+    },
+    dispose() {},
+  };
 }

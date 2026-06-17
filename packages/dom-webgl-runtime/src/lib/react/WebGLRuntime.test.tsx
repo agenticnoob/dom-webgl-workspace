@@ -1,5 +1,6 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type {
@@ -40,6 +41,30 @@ describe("WebGLRuntime", () => {
     const reactEntrypoint = await import("../../react");
 
     expect(reactEntrypoint.WebGLRuntime).toBeTypeOf("function");
+    expect(runtimeMocks.createWebGLRuntime).not.toHaveBeenCalled();
+  });
+
+  test("preserves ordinary DOM targets before the runtime is ready", async () => {
+    const { WebGLRuntime, WebGLTarget } = await import("../../react");
+
+    const markup = renderToStaticMarkup(
+      createElement(
+        WebGLRuntime,
+        null,
+        createElement(
+          WebGLTarget,
+          {
+            as: "section",
+            webgl: { key: "hero.ssr" },
+            id: "ssr-target",
+          },
+          "SSR fallback target",
+        ),
+      ),
+    );
+
+    expect(markup).toContain("ssr-target");
+    expect(markup).toContain("SSR fallback target");
     expect(runtimeMocks.createWebGLRuntime).not.toHaveBeenCalled();
   });
 

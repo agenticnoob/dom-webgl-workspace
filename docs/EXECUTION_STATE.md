@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Task 31 completed.
+M11 review blocking issue fixed after Task 31.
 
 ## Last Completed Task
 Task 31: React WebGLTarget Component.
@@ -43,25 +43,24 @@ Task 31: React WebGLTarget Component.
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export/implement `WebGLTarget`)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green: 1 file / 3 tests passed)
-- `npm run typecheck` (initial failure: test fixture used `data-testid`, which current props typing did not accept)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green after narrowing the test fixture to standard DOM props)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (red: review regression failed because SSR/static markup output was `<div></div>` and did not preserve the DOM target)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green: 1 file / 5 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green: 3 files / 10 tests passed)
+- `npm run typecheck` (initial failure: pending runtime `container` getter needed an explicit `HTMLElement` return type)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green after type fix: 3 files / 10 tests passed)
 - `npm run typecheck` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Task 31 passed: added a React `WebGLTarget` component that renders the requested DOM element, registers the element and grouped `webgl` declaration through runtime context on mount, and unregisters by declaration key on unmount. The public `@project/dom-webgl-runtime/react` entrypoint now exports the component and props type. The targeted component test, root typecheck, and diff check passed.
+M11 review blocking issue fixed: `WebGLRuntime` now preserves ordinary DOM children and `WebGLTarget` markup before the client runtime is ready by providing a pending runtime context value. Real runtime creation still happens in the client effect, and real target registration still happens after the actual runtime is available. The regression test failed first, then passed after the fix. M11 React targeted tests and root typecheck passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.tsx`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
-- `packages/dom-webgl-runtime/src/react.ts`
-- `docs/IMPLEMENTATION_PLAN.md`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No new issues found in Task 31. Task 32 still needs to add the demo public import boundary verification.
+No M11 blocking review issues remain after the fix. Non-blocking review notes remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs. Task 32 still needs to add the demo public import boundary verification.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
