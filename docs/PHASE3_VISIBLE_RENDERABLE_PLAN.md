@@ -260,7 +260,7 @@ Docs and state:
 
   **Completion condition:** Runtime controls DOM fallback visibility from renderable readiness, not from registration timing.
 
-- [ ] **Task 62: Element Snapshot Scene Plane**
+- [x] **Task 62: Element Snapshot Scene Plane**
 
   **Goal:** Make element snapshot renderables create a visible scene plane from the measured DOM element.
 
@@ -283,7 +283,7 @@ Docs and state:
 
   **Completion condition:** Element snapshot targets enter the Three scene as visible runtime-owned objects.
 
-- [ ] **Task 63: Text Snapshot Scene Plane**
+- [x] **Task 63: Text Snapshot Scene Plane**
 
   **Goal:** Make text snapshot renderables create visible text content in the scene.
 
@@ -304,7 +304,7 @@ Docs and state:
 
   **Completion condition:** Text DOM targets can become visible WebGL scene content.
 
-- [ ] **Task 64: Image Scene Plane**
+- [x] **Task 64: Image Scene Plane**
 
   **Goal:** Make image renderables create visible textured scene planes.
 
@@ -326,7 +326,7 @@ Docs and state:
 
   **Completion condition:** Image DOM targets can become visible WebGL scene content and hide their DOM fallback when ready.
 
-- [ ] **Task 65: Video Scene Plane**
+- [x] **Task 65: Video Scene Plane**
 
   **Goal:** Make video renderables create visible video-textured scene planes and preserve video lifecycle safety.
 
@@ -348,7 +348,7 @@ Docs and state:
 
   **Completion condition:** Video DOM targets can become visible WebGL scene content without losing existing pause/dispose behavior.
 
-- [ ] **Task 66: GLB Model Scene Object**
+- [x] **Task 66: GLB Model Scene Object**
 
   **Goal:** Make GLB model renderables add the loaded model scene/object to the runtime scene.
 
@@ -487,4 +487,4 @@ Docs and state:
 
 ## Suggested Next Round
 
-Batch A is complete through Task 61. Next start Batch B at Task 62 only after an explicit request.
+Batch B is complete through Task 66. Next start Task 67 only after an explicit request.

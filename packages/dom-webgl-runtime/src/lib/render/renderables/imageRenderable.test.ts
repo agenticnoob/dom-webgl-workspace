@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLImageSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createImageRenderable } from "./imageRenderable";
@@ -21,6 +22,7 @@ describe("createImageRenderable", () => {
     const resourceManager = createResourceManager();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const decode = stubDecode(source.element);
+    const sceneAdapter = createSceneAdapter();
 
     const renderable = createImageRenderable(
       {
@@ -29,7 +31,11 @@ describe("createImageRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(20, 40, 200, 100),
+      },
     );
 
     expect(renderable.key).toBe("hero.image");
@@ -43,12 +49,39 @@ describe("createImageRenderable", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(renderable.status).toBe("ready");
     expect(renderable.fallbackVisible).toBe(false);
+    expect(renderable.hasSceneObject).toBe(true);
+    expect(sceneAdapter.objects).toHaveLength(1);
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.image",
+      textureSource: source.element,
+      visible: true,
+      lastLayout: { x: 120, y: 510, width: 200, height: 100 },
+    });
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      isMesh: true,
+      geometry: { type: "PlaneGeometry" },
+      material: {
+        map: {
+          isTexture: true,
+          source: { data: source.element },
+        },
+      },
+    });
     expect(resourceManager.inspect("image:element-1:/assets/hero.png")).toMatchObject({
       kind: "image",
       status: "ready",
       element: source.element,
       value: source.element,
     });
+
+    renderable.setVisible(false);
+    expect(sceneAdapter.objects[0]?.visible).toBe(false);
+
+    renderable.dispose();
+
+    expect(sceneAdapter.removeObject).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.objects[0]?.disposed).toBe(true);
+    expect(resourceManager.inspect("image:element-1:/assets/hero.png")).toBeUndefined();
   });
 
   test("keeps fallback visible when the image resource fails", async () => {
@@ -61,6 +94,7 @@ describe("createImageRenderable", () => {
     const resourceManager = createResourceManager();
     const error = new Error("decode failed");
     stubDecode(source.element, async () => Promise.reject(error));
+    const sceneAdapter = createSceneAdapter();
     const renderable = createImageRenderable(
       {
         descriptor,
@@ -68,13 +102,19 @@ describe("createImageRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
 
     await expect(renderable.update()).rejects.toThrow("decode failed");
 
     expect(renderable.status).toBe("error");
     expect(renderable.fallbackVisible).toBe(true);
+    expect(renderable.hasSceneObject).toBe(false);
+    expect(sceneAdapter.objects).toHaveLength(0);
     expect(resourceManager.inspect("image:element-1:/assets/missing.png")).toMatchObject({
       status: "error",
       error,
@@ -104,7 +144,11 @@ describe("createImageRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
     const second = createImageRenderable(
       {
@@ -113,7 +157,11 @@ describe("createImageRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
 
     const firstUpdate = first.update();
@@ -128,6 +176,54 @@ describe("createImageRenderable", () => {
     expect(second.status).toBe("ready");
   });
 });
+
+type TestSceneObject = {
+  key: string;
+  textureSource?: unknown;
+  visible: boolean;
+  disposed: boolean;
+  lastLayout?: unknown;
+  object3D?: unknown;
+};
+
+function createSceneAdapter(): WebGLSceneAdapter & {
+  objects: TestSceneObject[];
+  removeObject: ReturnType<typeof vi.fn>;
+} {
+  const objects: TestSceneObject[] = [];
+
+  return {
+    objects,
+    addObject(object: TestSceneObject) {
+      objects.push(object);
+    },
+    removeObject: vi.fn(),
+    render() {
+      return;
+    },
+  } as unknown as WebGLSceneAdapter & {
+    objects: TestSceneObject[];
+    removeObject: ReturnType<typeof vi.fn>;
+  };
+}
+
+function createMeasurement(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
+  };
+}
 
 function createImageDescriptor(src: string): WebGLImageSourceDescriptor {
   const element = document.createElement("img");

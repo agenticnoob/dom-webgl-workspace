@@ -5,6 +5,7 @@ import type { WebGLSceneAdapter, WebGLSceneObject } from "./sceneObject";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
+  setSize?(width: number, height: number, updateStyle?: boolean): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
 };
@@ -44,6 +45,7 @@ export function createThreeRendererHost(
   let disposed = false;
 
   container.appendChild(canvas);
+  configureCSSPixelViewport(container, objects.renderer, objects.camera);
 
   return {
     canvas,
@@ -74,9 +76,12 @@ function createDefaultThreeRendererObjects(
   });
 
   return {
-    camera: new OrthographicCamera(0, 1, 1, 0, 0.1, 1000),
+    camera: new OrthographicCamera(0, 800, 600, 0, 0.1, 1000),
     renderer: {
       canvas,
+      setSize(width, height, updateStyle) {
+        readRendererSetSize(renderer)?.(width, height, updateStyle);
+      },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
       },
@@ -86,6 +91,45 @@ function createDefaultThreeRendererObjects(
     },
     scene: new Scene(),
   };
+}
+
+function configureCSSPixelViewport(
+  container: HTMLElement,
+  renderer: ThreeRendererAdapter,
+  camera: object,
+): void {
+  const width = container.clientWidth || window.innerWidth || 800;
+  const height = container.clientHeight || window.innerHeight || 600;
+
+  renderer.setSize?.(width, height, false);
+  configureOrthographicCamera(camera, width, height);
+}
+
+function configureOrthographicCamera(
+  camera: object,
+  width: number,
+  height: number,
+): void {
+  Object.assign(camera, {
+    left: 0,
+    right: width,
+    top: height,
+    bottom: 0,
+  });
+
+  const position = (camera as { position?: { set?: unknown } }).position;
+
+  if (position && typeof position.set === "function") {
+    position.set(0, 0, 500);
+  }
+
+  const updateProjectionMatrix = (camera as {
+    updateProjectionMatrix?: unknown;
+  }).updateProjectionMatrix;
+
+  if (typeof updateProjectionMatrix === "function") {
+    updateProjectionMatrix.call(camera);
+  }
 }
 
 function createThreeSceneAdapter(
@@ -141,4 +185,20 @@ function readRendererRender(
   }
 
   return render.bind(renderer) as (scene: object, camera: object) => void;
+}
+
+function readRendererSetSize(
+  renderer: object,
+): ((width: number, height: number, updateStyle?: boolean) => void) | undefined {
+  const setSize = (renderer as Record<string, unknown>).setSize;
+
+  if (typeof setSize !== "function") {
+    return undefined;
+  }
+
+  return setSize.bind(renderer) as (
+    width: number,
+    height: number,
+    updateStyle?: boolean,
+  ) => void;
 }

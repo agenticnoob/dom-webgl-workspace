@@ -3,6 +3,12 @@ import {
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import {
+  createElementPlaneSceneRenderableController,
+  type SceneRenderableController,
+} from "./sceneRenderableObject";
+import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 
 type ElementMeasurement = {
   x: number;
@@ -16,7 +22,9 @@ type ElementMeasurement = {
 };
 
 type ElementSnapshotRenderableOptions = {
+  sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
+  getViewportSize?(): DOMViewportSize;
 };
 
 export function createElementSnapshotRenderable(
@@ -26,6 +34,7 @@ export function createElementSnapshotRenderable(
   const state: {
     visible: boolean;
     measurement?: ElementMeasurement;
+    scene?: SceneRenderableController;
   } = {
     visible: true,
   };
@@ -33,13 +42,27 @@ export function createElementSnapshotRenderable(
   return createRenderable(context, {
     update() {
       state.measurement = options.measureElement(context.descriptor.element);
+      state.scene ??= createElementPlaneSceneRenderableController({
+        key: context.descriptor.key,
+        sceneAdapter: options.sceneAdapter,
+        measureElement: options.measureElement,
+        getViewportSize: options.getViewportSize,
+        element: context.descriptor.element,
+      });
+      state.scene.updateLayout(state.measurement);
+      state.scene.attach();
     },
     setVisible(nextVisible) {
       state.visible = nextVisible;
+      state.scene?.controller.setVisible(nextVisible);
+    },
+    sceneObjectController() {
+      return state.scene?.controller;
     },
     dispose() {
       state.visible = false;
       state.measurement = undefined;
+      state.scene?.controller.dispose();
     },
   });
 }

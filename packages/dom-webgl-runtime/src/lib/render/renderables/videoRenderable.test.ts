@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLVideoSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createVideoRenderable } from "./videoRenderable";
@@ -21,6 +22,8 @@ describe("createVideoRenderable", () => {
     const resourceManager = createResourceManager();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const createElementSpy = vi.spyOn(document, "createElement");
+    const sceneAdapter = createSceneAdapter();
+    const pause = stubPause(source.element);
 
     const renderable = createVideoRenderable(
       {
@@ -29,7 +32,11 @@ describe("createVideoRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(40, 60, 320, 180),
+      },
     );
 
     expect(renderable.key).toBe("hero.video");
@@ -47,12 +54,40 @@ describe("createVideoRenderable", () => {
     expect(renderable.status).toBe("ready");
     expect(renderable.fallbackVisible).toBe(false);
     expect(renderable.resourceReady).toBe(true);
+    expect(renderable.hasSceneObject).toBe(true);
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.video",
+      textureSource: source.element,
+      visible: true,
+      lastLayout: { x: 200, y: 450, width: 320, height: 180 },
+    });
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      isMesh: true,
+      geometry: { type: "PlaneGeometry" },
+      material: {
+        map: {
+          isVideoTexture: true,
+          source: { data: source.element },
+        },
+      },
+    });
     expect(resourceManager.inspect("video:element-1:/assets/hero.mp4")).toMatchObject({
       kind: "video",
       status: "ready",
       element: source.element,
       value: source.element,
     });
+
+    renderable.setVisible(false);
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.objects[0]?.visible).toBe(false);
+
+    renderable.dispose();
+
+    expect(pause).toHaveBeenCalledTimes(2);
+    expect(sceneAdapter.removeObject).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.objects[0]?.disposed).toBe(true);
+    expect(resourceManager.inspect("video:element-1:/assets/hero.mp4")).toBeUndefined();
   });
 
   test("pauses video playback when inactive and when disposed", () => {
@@ -64,6 +99,7 @@ describe("createVideoRenderable", () => {
     );
     const resourceManager = createResourceManager();
     const pause = stubPause(source.element);
+    const sceneAdapter = createSceneAdapter();
     const renderable = createVideoRenderable(
       {
         descriptor,
@@ -71,12 +107,17 @@ describe("createVideoRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
 
     renderable.setVisible(false);
 
     expect(pause).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.objects[0]?.visible).toBeUndefined();
 
     renderable.dispose();
     renderable.dispose();
@@ -95,6 +136,7 @@ describe("createVideoRenderable", () => {
     );
     const resourceManager = createResourceManager();
     const error = new Error("video load failed");
+    const sceneAdapter = createSceneAdapter();
     const renderable = createVideoRenderable(
       {
         descriptor,
@@ -105,6 +147,8 @@ describe("createVideoRenderable", () => {
       {
         resourceManager,
         loadVideo: async () => Promise.reject(error),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
       },
     );
 
@@ -113,6 +157,8 @@ describe("createVideoRenderable", () => {
     expect(renderable.status).toBe("error");
     expect(renderable.fallbackVisible).toBe(true);
     expect(renderable.resourceReady).toBe(false);
+    expect(renderable.hasSceneObject).toBe(false);
+    expect(sceneAdapter.objects).toHaveLength(0);
     expect(resourceManager.inspect("video:element-1:/assets/missing.mp4")).toMatchObject({
       status: "error",
       error,
@@ -131,6 +177,7 @@ describe("createVideoRenderable", () => {
       configurable: true,
       value: { code: 4, message: "unsupported source" },
     });
+    const sceneAdapter = createSceneAdapter();
     const renderable = createVideoRenderable(
       {
         descriptor,
@@ -138,7 +185,11 @@ describe("createVideoRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
 
     await expect(renderable.update()).rejects.toThrow("unsupported source");
@@ -146,6 +197,7 @@ describe("createVideoRenderable", () => {
     expect(renderable.status).toBe("error");
     expect(renderable.fallbackVisible).toBe(true);
     expect(renderable.resourceReady).toBe(false);
+    expect(sceneAdapter.objects).toHaveLength(0);
     expect(resourceManager.inspect("video:element-1:/assets/broken.mp4")).toMatchObject({
       status: "error",
     });
@@ -159,6 +211,7 @@ describe("createVideoRenderable", () => {
       0,
     );
     const resourceManager = createResourceManager();
+    const sceneAdapter = createSceneAdapter();
     const renderable = createVideoRenderable(
       {
         descriptor,
@@ -166,7 +219,11 @@ describe("createVideoRenderable", () => {
         role: "media",
         policy: compileRenderPolicy("media"),
       },
-      { resourceManager },
+      {
+        resourceManager,
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
     );
 
     const update = renderable.update();
@@ -181,8 +238,57 @@ describe("createVideoRenderable", () => {
     expect(renderable.status).toBe("error");
     expect(renderable.fallbackVisible).toBe(true);
     expect(renderable.resourceReady).toBe(false);
+    expect(sceneAdapter.objects).toHaveLength(0);
   });
 });
+
+type TestSceneObject = {
+  key: string;
+  textureSource?: unknown;
+  visible: boolean;
+  disposed: boolean;
+  lastLayout?: unknown;
+  object3D?: unknown;
+};
+
+function createSceneAdapter(): WebGLSceneAdapter & {
+  objects: TestSceneObject[];
+  removeObject: ReturnType<typeof vi.fn>;
+} {
+  const objects: TestSceneObject[] = [];
+
+  return {
+    objects,
+    addObject(object: TestSceneObject) {
+      objects.push(object);
+    },
+    removeObject: vi.fn(),
+    render() {
+      return;
+    },
+  } as unknown as WebGLSceneAdapter & {
+    objects: TestSceneObject[];
+    removeObject: ReturnType<typeof vi.fn>;
+  };
+}
+
+function createMeasurement(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
+  };
+}
 
 function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
   const element = document.createElement("video");

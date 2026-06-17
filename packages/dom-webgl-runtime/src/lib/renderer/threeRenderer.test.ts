@@ -58,7 +58,7 @@ describe("createThreeRendererHost", () => {
       canvas: host.canvas,
     });
     expect(Scene).toHaveBeenCalledTimes(1);
-    expect(OrthographicCamera).toHaveBeenCalledWith(0, 1, 1, 0, 0.1, 1000);
+    expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
     expect(host.scene).toBe(scene);
     expect(host.camera).toBe(camera);
     expect(host.sceneAdapter).toEqual(expect.any(Object));
@@ -106,6 +106,62 @@ describe("createThreeRendererHost", () => {
 
     expect(rendererDispose).toHaveBeenCalledTimes(1);
     expect(container.querySelector("canvas")).toBeNull();
+  });
+
+  test("configures the default camera and canvas for CSS-pixel scene coordinates", async () => {
+    const rendererSetSize = vi.fn();
+    const rendererDispose = vi.fn();
+    const camera = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      position: { set: vi.fn() },
+      updateProjectionMatrix: vi.fn(),
+    };
+    const WebGLRenderer = vi.fn(
+      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
+        canvas: options.canvas,
+        setSize: rendererSetSize,
+        dispose: rendererDispose,
+      } as ThreeRendererAdapter),
+    );
+    const Scene = vi.fn(() => ({}));
+    const OrthographicCamera = vi.fn(() => camera);
+
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
+    }));
+    vi.doMock("three/src/renderers/WebGLRenderer.js", () => ({
+      WebGLRenderer,
+    }));
+    vi.doMock("three/src/scenes/Scene.js", () => ({ Scene }));
+
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("div");
+
+    Object.defineProperty(container, "clientWidth", {
+      configurable: true,
+      value: 1024,
+    });
+    Object.defineProperty(container, "clientHeight", {
+      configurable: true,
+      value: 768,
+    });
+
+    const host = createThreeRendererHost(container);
+
+    expect(rendererSetSize).toHaveBeenCalledWith(1024, 768, false);
+    expect(camera).toMatchObject({
+      left: 0,
+      right: 1024,
+      top: 768,
+      bottom: 0,
+    });
+    expect(camera.position.set).toHaveBeenCalledWith(0, 0, 500);
+    expect(camera.updateProjectionMatrix).toHaveBeenCalledTimes(1);
+
+    host.dispose();
   });
 });
 

@@ -1,13 +1,13 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
-Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready.
+Task 66: GLB Model Scene Object.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -71,9 +71,14 @@ Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready.
 - Task 59: Lifecycle Hide Mode Types.
 - Task 60: DOM Fallback Visibility Controller.
 - Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready.
+- Task 62: Element Snapshot Scene Plane.
+- Task 63: Text Snapshot Scene Plane.
+- Task 64: Image Scene Plane.
+- Task 65: Video Scene Plane.
+- Task 66: GLB Model Scene Object.
 
 ## Current Task
-Phase 3 Batch A is complete. Stop here unless explicitly asked to start Batch B Tasks 62-66.
+Phase 3 Batch B is complete. Stop here unless explicitly asked to start Task 67.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -236,6 +241,16 @@ Phase 3 Batch A is complete. Stop here unless explicitly asked to start Batch B 
 - Remaining non-blocking issues: none from Batch A review. Batch A is a foundation slice only; supported source types still do not create visible scene planes/textures/models until Batch B.
 - Next batch: Batch B Tasks 62-66, visible renderable scene paths for element snapshot, text snapshot, image, video, and GLB model sources.
 
+## Phase 3 Batch B Completed Task Record
+- Completed tasks: Task 62 Element Snapshot Scene Plane; Task 63 Text Snapshot Scene Plane; Task 64 Image Scene Plane; Task 65 Video Scene Plane; Task 66 GLB Model Scene Object.
+- Files changed: `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`, `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`, `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- RED evidence: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts` failed before implementation because renderables did not create or attach scene objects.
+- GREEN verification: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` passed with 10 files / 59 tests; `npm run typecheck` passed; `npm run check:imports` passed; `git diff --check` passed.
+- Contract reviewer result: initially found blocking issues because the first pass used metadata-only scene objects and model layout/visibility did not affect the loaded object. Fixes landed: element/text/image/video now create internal Three plane/texture objects, model renderables apply layout/visibility to the actual object, clone cached GLB scenes per renderable, and runtime passes real viewport size for DOM-pixel projection. Re-review approved with no blocking or spec-relevant issues.
+- Code quality reviewer result: initially found blocking issues for CSS-pixel camera/frustum mismatch, repeated GLB clone leaks on later updates, and unsafe same-src GLB shared geometry/material disposal. Fixes landed: default renderer configures a CSS-pixel orthographic camera and renderer size, model renderables clone only once per renderable, and model disposal no longer recursively disposes shared geometry/material. Final re-review found no Critical or Important issues.
+- Remaining non-blocking issues: none from Batch B review. Batch B intentionally stops before Task 67 internal render policy ordering, Task 68 render-on-sync, Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, and Task 72 documentation alignment.
+- Next task: Task 67: Internal Render Policy Ordering. Do not start until explicitly requested.
+
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 - `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -282,9 +297,13 @@ Phase 3 Batch A is complete. Stop here unless explicitly asked to start Batch B 
 - `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` (green Phase 3 Batch A verification after review fixes: 11 Vitest files / 54 tests passed)
 - `npm run typecheck` (green Phase 3 Batch A verification)
 - `git diff --check` (green Phase 3 Batch A verification)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` (green Phase 3 Batch B targeted verification after review fixes: 10 files / 59 tests passed)
+- `npm run typecheck` (green Phase 3 Batch B verification)
+- `npm run check:imports` (green Phase 3 Batch B verification)
+- `git diff --check` (green Phase 3 Batch B verification)
 
 ## Last Result
-Phase 3 Batch A is complete through Task 61. Contract reviewer and runtime safety reviewer approved after fixes for subtree descendant hiding, scene object readiness coupling, stale async same-key fallback mutation, and scene adapter attached ordering.
+Phase 3 Batch B is complete through Task 66. Contract and code quality reviewers approved after fixes for real Three plane/texture creation, model object visibility/layout, per-renderable GLB clone ownership, CSS-pixel camera projection, repeated update clone leakage, and shared model disposal safety.
 
 ## Files Changed
 - `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
@@ -297,6 +316,17 @@ Phase 3 Batch A is complete through Task 61. Contract reviewer and runtime safet
 - `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/domProjection.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
@@ -311,7 +341,7 @@ Phase 3 Batch A is complete through Task 61. Contract reviewer and runtime safet
 - `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
 ## Known Issues
-No blocking or non-blocking Batch A review issues remain. Batch A is foundation only: supported source types still do not create visible scene planes/textures/models until Batch B. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch A did not run a production build.
+No blocking or non-blocking Batch B review issues remain. Batch B does not implement Task 67 renderRole ordering, Task 68 render-on-sync, Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch B did not run a production build.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -334,4 +364,4 @@ No blocking or non-blocking Batch A review issues remain. Batch A is foundation 
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch A. Next implementation round is Batch B Tasks 62-66: visible renderable scene paths for element snapshot, text snapshot, image, video, and GLB model sources. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch B. Next implementation round is Task 67: Internal Render Policy Ordering. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

@@ -35,6 +35,8 @@ describe("createRenderable factory", () => {
       bottom: 122,
       left: 1,
     }));
+    const sceneAdapter = createSceneAdapter();
+    const getViewportSize = vi.fn(() => ({ width: 1000, height: 700 }));
 
     const renderable = createRenderable(
       descriptor,
@@ -43,8 +45,9 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("surface"),
       {
         resourceManager: createResourceManager(),
-        sceneAdapter: createSceneAdapter(),
+        sceneAdapter,
         measureElement,
+        getViewportSize,
       },
     );
 
@@ -54,6 +57,14 @@ describe("createRenderable factory", () => {
     expect(renderable.role).toBe("surface");
     expect(renderable.policy).toEqual(compileRenderPolicy("surface"));
     expect(measureElement).toHaveBeenCalledWith(element);
+    expect(sceneAdapter.objects[0]?.key).toBe("hero.snapshot");
+    expect(sceneAdapter.objects[0]?.lastLayout).toEqual({
+      x: 151,
+      y: 638,
+      width: 300,
+      height: 120,
+    });
+    expect(getViewportSize).toHaveBeenCalledTimes(1);
   });
 
   test("creates a text snapshot renderable for snapshot/text sources", () => {
@@ -65,6 +76,7 @@ describe("createRenderable factory", () => {
       mode: "text",
       element,
     };
+    const sceneAdapter = createSceneAdapter();
 
     const renderable = createRenderable(
       descriptor,
@@ -73,8 +85,8 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("content"),
       {
         resourceManager: createResourceManager(),
-        sceneAdapter: createSceneAdapter(),
-        measureElement: () => element.getBoundingClientRect(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 200, 40),
       },
     );
 
@@ -87,12 +99,17 @@ describe("createRenderable factory", () => {
     expect((renderable as unknown as { textContent: string }).textContent).toBe(
       "Readable overlay copy",
     );
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.copy",
+      textContent: "Readable overlay copy",
+    });
   });
 
   test("creates an image renderable for image sources", async () => {
     const source = createImageDescriptor("/assets/hero.png");
     const descriptor = createTargetDescriptor(source.element, { key: "hero.image" }, 0);
     const resourceManager = createResourceManager();
+    const sceneAdapter = createSceneAdapter();
     const decode = vi.fn(async () => undefined);
     Object.defineProperty(source.element, "decode", {
       configurable: true,
@@ -106,8 +123,8 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("media"),
       {
         resourceManager,
-        sceneAdapter: createSceneAdapter(),
-        measureElement: () => source.element.getBoundingClientRect(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
       },
     );
 
@@ -118,6 +135,10 @@ describe("createRenderable factory", () => {
     expect((renderable as unknown as { fallbackVisible: boolean }).fallbackVisible).toBe(
       false,
     );
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.image",
+      textureSource: source.element,
+    });
     expect(resourceManager.inspect("image:element-1:/assets/hero.png")).toMatchObject({
       kind: "image",
       status: "ready",
@@ -130,6 +151,7 @@ describe("createRenderable factory", () => {
     const source = createVideoDescriptor("/assets/intro.mp4");
     const descriptor = createTargetDescriptor(source.element, { key: "hero.video" }, 0);
     const loadVideo = vi.fn(async () => source.element);
+    const sceneAdapter = createSceneAdapter();
 
     const renderable = createRenderable(
       descriptor,
@@ -138,8 +160,8 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("media"),
       {
         resourceManager: createResourceManager(),
-        sceneAdapter: createSceneAdapter(),
-        measureElement: () => source.element.getBoundingClientRect(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
         loadVideo,
       },
     );
@@ -151,6 +173,10 @@ describe("createRenderable factory", () => {
     expect((renderable as unknown as { resourceReady: boolean }).resourceReady).toBe(
       true,
     );
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.video",
+      textureSource: source.element,
+    });
   });
 
   test("creates a model renderable for model/glb sources", async () => {
@@ -158,6 +184,7 @@ describe("createRenderable factory", () => {
     const descriptor = createTargetDescriptor(source.anchor, { key: "hero.model" }, 0);
     const loadedModel = { scene: "model" };
     const loadModel = vi.fn(async () => loadedModel);
+    const sceneAdapter = createSceneAdapter();
 
     const renderable = createRenderable(
       descriptor,
@@ -166,8 +193,8 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("model"),
       {
         resourceManager: createResourceManager(),
-        sceneAdapter: createSceneAdapter(),
-        measureElement: () => source.anchor.getBoundingClientRect(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
         loadModel,
       },
     );
@@ -179,6 +206,10 @@ describe("createRenderable factory", () => {
     expect((renderable as unknown as { resourceReady: boolean }).resourceReady).toBe(
       true,
     );
+    expect(sceneAdapter.objects[0]).toMatchObject({
+      key: "hero.model",
+      object3D: "model",
+    });
   });
 
   test("preserves the upstream role and policy for explicit role overrides", async () => {
@@ -317,10 +348,21 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
   };
 }
 
+type TestSceneObject = {
+  key?: string;
+  textContent?: string;
+  textureSource?: unknown;
+  object3D?: unknown;
+  lastLayout?: unknown;
+};
+
 function createSceneAdapter() {
+  const objects: TestSceneObject[] = [];
+
   return {
-    addObject() {
-      return;
+    objects,
+    addObject(object: TestSceneObject) {
+      objects.push(object);
     },
     removeObject() {
       return;
@@ -328,5 +370,23 @@ function createSceneAdapter() {
     render() {
       return;
     },
+  };
+}
+
+function createMeasurement(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
   };
 }

@@ -132,6 +132,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     resourceManager,
     sceneAdapter: rendererHost.sceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
+    getViewportSize: readViewportSize,
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
   };
@@ -595,6 +596,13 @@ function releaseActiveGate(scrollState: RuntimeScrollController): void {
 
 function measureElement(element: HTMLElement): DOMRect {
   return element.getBoundingClientRect();
+}
+
+function readViewportSize(): { width: number; height: number } {
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
 }
 
 function readPageScrollMetrics(): PageScrollMetrics {

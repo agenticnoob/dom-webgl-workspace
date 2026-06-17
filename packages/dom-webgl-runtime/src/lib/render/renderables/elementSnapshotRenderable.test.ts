@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLSnapshotSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createElementSnapshotRenderable } from "./elementSnapshotRenderable";
@@ -24,6 +25,7 @@ describe("createElementSnapshotRenderable", () => {
       bottom: 200,
       left: 10,
     }));
+    const sceneAdapter = createSceneAdapter();
 
     const renderable = createElementSnapshotRenderable(
       {
@@ -32,7 +34,7 @@ describe("createElementSnapshotRenderable", () => {
         role: "surface",
         policy: compileRenderPolicy("surface"),
       },
-      { measureElement },
+      { measureElement, sceneAdapter },
     );
 
     expect(renderable.key).toBe("hero.surface");
@@ -42,7 +44,24 @@ describe("createElementSnapshotRenderable", () => {
     await renderable.update();
 
     expect(measureElement).toHaveBeenCalledWith(element);
+    expect(sceneAdapter.addObject).toHaveBeenCalledTimes(1);
+    expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.status).toBe("ready");
+
+    renderable.setVisible(false);
+    expect(sceneAdapter.objects[0]?.visible).toBe(false);
+
+    renderable.setVisible(true);
+    expect(sceneAdapter.objects[0]?.visible).toBe(true);
+
+    renderable.dispose();
+
+    expect(sceneAdapter.removeObject).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.objects[0]?.disposed).toBe(true);
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      isMesh: true,
+      geometry: { type: "PlaneGeometry" },
+    });
   });
 
   test("marks the renderable as disposed", () => {
@@ -71,6 +90,7 @@ describe("createElementSnapshotRenderable", () => {
           bottom: 1,
           left: 0,
         }),
+        sceneAdapter: createSceneAdapter(),
       },
     );
 
@@ -79,6 +99,35 @@ describe("createElementSnapshotRenderable", () => {
     expect(renderable.status).toBe("disposed");
   });
 });
+
+type TestSceneObject = {
+  key: string;
+  visible: boolean;
+  disposed: boolean;
+  lastLayout?: unknown;
+  object3D?: unknown;
+};
+
+function createSceneAdapter(): WebGLSceneAdapter & {
+  objects: TestSceneObject[];
+  addObject: ReturnType<typeof vi.fn>;
+  removeObject: ReturnType<typeof vi.fn>;
+} {
+  const objects: TestSceneObject[] = [];
+
+  return {
+    objects,
+    addObject: vi.fn((object: TestSceneObject) => {
+      objects.push(object);
+    }),
+    removeObject: vi.fn(),
+    render: vi.fn(),
+  } as unknown as WebGLSceneAdapter & {
+    objects: TestSceneObject[];
+    addObject: ReturnType<typeof vi.fn>;
+    removeObject: ReturnType<typeof vi.fn>;
+  };
+}
 
 function createSnapshotDescriptor(
   element: HTMLElement,

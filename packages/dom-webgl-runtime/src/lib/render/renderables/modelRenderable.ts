@@ -1,10 +1,16 @@
 import type { ResourceManager } from "../../resources/resourceManager";
+import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import {
+  createSceneRenderableController,
+  type SceneRenderableController,
+} from "./sceneRenderableObject";
 
 export type ModelRenderable = Renderable & {
   readonly fallbackVisible: boolean;
@@ -13,7 +19,21 @@ export type ModelRenderable = Renderable & {
 
 type ModelRenderableOptions = {
   resourceManager: ResourceManager;
+  sceneAdapter: WebGLSceneAdapter;
+  measureElement(element: HTMLElement): ElementMeasurement;
+  getViewportSize?(): DOMViewportSize;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
+};
+
+type ElementMeasurement = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 type GLTFLoaderConstructor = new () => {
@@ -30,16 +50,39 @@ export function createModelRenderable(
   const state = {
     fallbackVisible: true,
     resourceReady: false,
+    scene: undefined as SceneRenderableController | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       async update() {
-        await resource.load(async () => loadModel(source));
+        const model = await resource.load(async () => loadModel(source));
+
+        if (!state.scene) {
+          state.scene = createSceneRenderableController({
+            key: context.descriptor.key,
+            sceneAdapter: options.sceneAdapter,
+            measureElement: options.measureElement,
+            getViewportSize: options.getViewportSize,
+            element: source.anchor,
+            object3D: instantiateModelSceneObject(model),
+            disposeObject3D: true,
+          });
+        }
+
+        state.scene.updateLayout();
+        state.scene.attach();
         state.fallbackVisible = false;
         state.resourceReady = true;
       },
+      setVisible(visible) {
+        state.scene?.controller.setVisible(visible);
+      },
+      sceneObjectController() {
+        return state.scene?.controller;
+      },
       dispose() {
+        state.scene?.controller.dispose();
         resource.dispose();
       },
     },
@@ -57,6 +100,34 @@ export function createModelRenderable(
       },
     },
   }) as ModelRenderable;
+}
+
+function instantiateModelSceneObject(model: unknown): unknown {
+  const sceneObject = readModelSceneObject(model);
+
+  if (
+    sceneObject &&
+    typeof sceneObject === "object" &&
+    "clone" in sceneObject &&
+    typeof (sceneObject as { clone?: unknown }).clone === "function"
+  ) {
+    return (sceneObject as { clone: () => unknown }).clone();
+  }
+
+  return sceneObject;
+}
+
+function readModelSceneObject(model: unknown): unknown {
+  if (
+    model &&
+    typeof model === "object" &&
+    "scene" in model &&
+    (model as { scene?: unknown }).scene
+  ) {
+    return (model as { scene: unknown }).scene;
+  }
+
+  return model;
 }
 
 function readModelSource(

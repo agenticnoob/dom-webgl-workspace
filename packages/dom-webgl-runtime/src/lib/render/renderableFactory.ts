@@ -1,5 +1,6 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import type { ResourceManager } from "../resources/resourceManager";
+import type { DOMViewportSize } from "../renderer/domProjection";
 import type { WebGLSceneAdapter } from "../renderer/sceneObject";
 import type {
   WebGLModelSourceDescriptor,
@@ -30,6 +31,7 @@ export type RenderableFactoryContext = {
   resourceManager: ResourceManager;
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
+  getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
 };
@@ -52,28 +54,43 @@ export function createRenderable(
     case "snapshot":
       if (sourceDescriptor.mode === "element") {
         return createElementSnapshotRenderable(renderableContext, {
+          sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
+          getViewportSize: context.getViewportSize,
         });
       }
 
       if (sourceDescriptor.mode === "text") {
-        return createTextSnapshotRenderable(renderableContext);
+        return createTextSnapshotRenderable(renderableContext, {
+          sceneAdapter: context.sceneAdapter,
+          measureElement: context.measureElement,
+          getViewportSize: context.getViewportSize,
+        });
       }
 
       throwUnsupportedSourceDescriptor(sourceDescriptor);
     case "image":
       return createImageRenderable(renderableContext, {
         resourceManager: context.resourceManager,
+        sceneAdapter: context.sceneAdapter,
+        measureElement: context.measureElement,
+        getViewportSize: context.getViewportSize,
       });
     case "video":
       return createVideoRenderable(renderableContext, {
         resourceManager: context.resourceManager,
+        sceneAdapter: context.sceneAdapter,
+        measureElement: context.measureElement,
+        getViewportSize: context.getViewportSize,
         loadVideo: context.loadVideo,
       });
     case "model":
       if (sourceDescriptor.format === "glb") {
         return createModelRenderable(renderableContext, {
           resourceManager: context.resourceManager,
+          sceneAdapter: context.sceneAdapter,
+          measureElement: context.measureElement,
+          getViewportSize: context.getViewportSize,
           loadModel: context.loadModel,
         });
       }

@@ -1,10 +1,16 @@
 import type { ResourceManager } from "../../resources/resourceManager";
+import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLVideoSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import {
+  createTexturePlaneSceneRenderableController,
+  type SceneRenderableController,
+} from "./sceneRenderableObject";
 
 export type VideoRenderable = Renderable & {
   readonly fallbackVisible: boolean;
@@ -13,7 +19,21 @@ export type VideoRenderable = Renderable & {
 
 type VideoRenderableOptions = {
   resourceManager: ResourceManager;
+  sceneAdapter: WebGLSceneAdapter;
+  measureElement(element: HTMLElement): ElementMeasurement;
+  getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
+};
+
+type ElementMeasurement = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 export function createVideoRenderable(
@@ -26,12 +46,24 @@ export function createVideoRenderable(
   const state = {
     fallbackVisible: true,
     resourceReady: false,
+    scene: undefined as SceneRenderableController | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       async update() {
-        await resource.load(async () => loadVideo(source));
+        const video = await resource.load(async () => loadVideo(source));
+        state.scene ??= createTexturePlaneSceneRenderableController({
+          key: context.descriptor.key,
+          sceneAdapter: options.sceneAdapter,
+          measureElement: options.measureElement,
+          getViewportSize: options.getViewportSize,
+          element: source.element,
+          textureKind: "video",
+          textureSource: video,
+        });
+        state.scene.updateLayout();
+        state.scene.attach();
         state.fallbackVisible = false;
         state.resourceReady = true;
       },
@@ -39,9 +71,14 @@ export function createVideoRenderable(
         if (!visible) {
           source.element.pause();
         }
+        state.scene?.controller.setVisible(visible);
+      },
+      sceneObjectController() {
+        return state.scene?.controller;
       },
       dispose() {
         source.element.pause();
+        state.scene?.controller.dispose();
         resource.dispose();
       },
     },

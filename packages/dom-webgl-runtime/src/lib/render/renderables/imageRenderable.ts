@@ -1,10 +1,16 @@
 import type { ResourceManager } from "../../resources/resourceManager";
+import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLImageSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import {
+  createTexturePlaneSceneRenderableController,
+  type SceneRenderableController,
+} from "./sceneRenderableObject";
 
 export type ImageRenderable = Renderable & {
   readonly fallbackVisible: boolean;
@@ -12,6 +18,20 @@ export type ImageRenderable = Renderable & {
 
 type ImageRenderableOptions = {
   resourceManager: ResourceManager;
+  sceneAdapter: WebGLSceneAdapter;
+  measureElement(element: HTMLElement): ElementMeasurement;
+  getViewportSize?(): DOMViewportSize;
+};
+
+type ElementMeasurement = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 export function createImageRenderable(
@@ -22,15 +42,34 @@ export function createImageRenderable(
   const resource = options.resourceManager.acquire<HTMLImageElement>(source);
   const state = {
     fallbackVisible: true,
+    scene: undefined as SceneRenderableController | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       async update() {
-        await resource.load(async () => loadDomImage(source));
+        const image = await resource.load(async () => loadDomImage(source));
+        state.scene ??= createTexturePlaneSceneRenderableController({
+          key: context.descriptor.key,
+          sceneAdapter: options.sceneAdapter,
+          measureElement: options.measureElement,
+          getViewportSize: options.getViewportSize,
+          element: source.element,
+          textureKind: "image",
+          textureSource: image,
+        });
+        state.scene.updateLayout();
+        state.scene.attach();
         state.fallbackVisible = false;
       },
+      setVisible(visible) {
+        state.scene?.controller.setVisible(visible);
+      },
+      sceneObjectController() {
+        return state.scene?.controller;
+      },
       dispose() {
+        state.scene?.controller.dispose();
         resource.dispose();
       },
     },
