@@ -9,7 +9,7 @@ import type {
   WebGLSourceDescriptor,
   WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
-import { compileRenderPolicy } from "./renderPolicy";
+import { compileRenderPolicy, toSceneObjectOrdering } from "./renderPolicy";
 import { createRenderable } from "./renderableFactory";
 
 describe("createRenderable factory", () => {
@@ -220,6 +220,7 @@ describe("createRenderable factory", () => {
       0,
     );
     const policy = compileRenderPolicy("overlay");
+    const sceneAdapter = createSceneAdapter();
     Object.defineProperty(source.element, "decode", {
       configurable: true,
       value: vi.fn(async () => undefined),
@@ -232,7 +233,7 @@ describe("createRenderable factory", () => {
       policy,
       {
         resourceManager: createResourceManager(),
-        sceneAdapter: createSceneAdapter(),
+        sceneAdapter,
         measureElement: () => source.element.getBoundingClientRect(),
       },
     );
@@ -241,6 +242,9 @@ describe("createRenderable factory", () => {
 
     expect(renderable.role).toBe("overlay");
     expect(renderable.policy).toBe(policy);
+    expect(sceneAdapter.objects[0]?.ordering).toEqual(
+      toSceneObjectOrdering(policy),
+    );
   });
 
   test("throws a clear runtime error for unsupported source descriptor kinds", () => {
@@ -350,6 +354,7 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
 
 type TestSceneObject = {
   key?: string;
+  ordering?: unknown;
   textContent?: string;
   textureSource?: unknown;
   object3D?: unknown;

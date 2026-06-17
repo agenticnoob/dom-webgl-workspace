@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
+import type { WebGLRenderRole } from "../types";
+import { compileRenderPolicy, toSceneObjectOrdering } from "../render/renderPolicy";
 import {
   createSceneObjectController,
   type WebGLSceneAdapter,
@@ -30,11 +32,67 @@ describe("createSceneObjectController", () => {
     expect(adapter.removeObject).toHaveBeenCalledWith(object);
     expect(object.dispose).toHaveBeenCalledTimes(1);
   });
+
+  test("applies deterministic internal ordering before attaching objects", () => {
+    const expectedByRole = {
+      surface: {
+        renderOrder: 0,
+        transparent: false,
+        depthWrite: false,
+      },
+      content: {
+        renderOrder: 100,
+        transparent: true,
+        depthWrite: false,
+      },
+      media: {
+        renderOrder: 200,
+        transparent: true,
+        depthWrite: false,
+      },
+      model: {
+        renderOrder: 300,
+        transparent: true,
+        depthWrite: true,
+      },
+      overlay: {
+        renderOrder: 400,
+        transparent: true,
+        depthWrite: false,
+      },
+    } satisfies Record<WebGLRenderRole, ReturnType<typeof toSceneObjectOrdering>>;
+
+    for (const [role, expected] of Object.entries(expectedByRole)) {
+      const object3D = {
+        material: {},
+      };
+      const object = createSceneObject(`hero.${role}`, object3D);
+      const adapter = createSceneAdapter();
+      const controller = createSceneObjectController(
+        adapter,
+        object,
+        toSceneObjectOrdering(compileRenderPolicy(role as WebGLRenderRole)),
+      );
+
+      controller.attach();
+
+      expect(adapter.addObject).toHaveBeenCalledWith(object);
+      expect(object.ordering).toEqual(expected);
+      expect(object3D).toMatchObject({
+        renderOrder: expected.renderOrder,
+        material: {
+          transparent: expected.transparent,
+          depthWrite: expected.depthWrite,
+        },
+      });
+    }
+  });
 });
 
-function createSceneObject(key: string): WebGLSceneObject {
+function createSceneObject(key: string, object3D?: unknown): WebGLSceneObject {
   return {
     key,
+    object3D,
     setVisible: vi.fn(),
     updateLayout: vi.fn(),
     dispose: vi.fn(),

@@ -145,6 +145,7 @@ function createFrameInput() {
 function createSceneObjectControllerStub(): WebGLSceneObjectController {
   let attached = false;
   let disposed = false;
+  let visible = true;
 
   return {
     get attached() {
@@ -153,10 +154,15 @@ function createSceneObjectControllerStub(): WebGLSceneObjectController {
     get disposed() {
       return disposed;
     },
+    get visible() {
+      return visible;
+    },
     attach() {
       attached = true;
     },
-    setVisible: vi.fn(),
+    setVisible: vi.fn((nextVisible: boolean) => {
+      visible = nextVisible;
+    }),
     updateLayout: vi.fn(),
     render: vi.fn(),
     dispose() {

@@ -4,7 +4,9 @@ import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { WebGLDebugState, WebGLPointerState } from "../types";
 import { createDebugState, type DebugRuntimeState } from "./debugState";
+import type { Renderable } from "../render/renderable";
 import type { createWebGLRuntime, WebGLRuntime } from "../renderer/runtime";
+import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { ThreeRendererHost } from "../renderer/threeRenderer";
 
 type RuntimeDebugOptions = Parameters<typeof createWebGLRuntime>[0] & {
@@ -14,6 +16,7 @@ type RuntimeDebugOptions = Parameters<typeof createWebGLRuntime>[0] & {
   pointerController?: PointerController;
   clock?: () => number;
   measureElement?: () => DOMRect;
+  onRenderableCreated?: (renderable: Renderable) => void;
 };
 
 type RuntimeWithDebugState = WebGLRuntime & {
@@ -331,6 +334,38 @@ describe("debug state", () => {
 
     runtime.dispose();
   });
+
+  test("runtime target visibility follows actual scene object visibility", async () => {
+    const sceneObjectController = createVisibleSceneObjectController();
+    const runtime = await createRuntime({
+      pointerController: createPointerController(),
+      scrollState: createScrollStateController(),
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => sceneObjectController,
+        });
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), { key: "hero" });
+
+    await runtime.sync();
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero",
+      visible: true,
+    });
+
+    sceneObjectController.setVisible(false);
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero",
+      visible: false,
+    });
+
+    runtime.dispose();
+  });
 });
 
 async function createRuntime(
@@ -439,5 +474,32 @@ function createPointerState(): WebGLPointerState {
     dragDeltaX: 0,
     dragDeltaY: 0,
     clickCount: 0,
+  };
+}
+
+function createVisibleSceneObjectController(): WebGLSceneObjectController {
+  let visible = true;
+
+  return {
+    attached: true,
+    disposed: false,
+    get visible() {
+      return visible;
+    },
+    attach() {
+      return;
+    },
+    setVisible(nextVisible) {
+      visible = nextVisible;
+    },
+    updateLayout() {
+      return;
+    },
+    render() {
+      return;
+    },
+    dispose() {
+      return;
+    },
   };
 }

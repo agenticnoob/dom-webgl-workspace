@@ -3,6 +3,7 @@ import {
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import { toSceneObjectOrdering } from "../renderPolicy";
 import {
   createElementPlaneSceneRenderableController,
   type SceneRenderableController,
@@ -48,6 +49,7 @@ export function createElementSnapshotRenderable(
         measureElement: options.measureElement,
         getViewportSize: options.getViewportSize,
         element: context.descriptor.element,
+        ordering: toSceneObjectOrdering(context.policy),
       });
       state.scene.updateLayout(state.measurement);
       state.scene.attach();

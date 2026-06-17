@@ -370,7 +370,7 @@ Docs and state:
 
   **Completion condition:** GLB model targets can become visible scene objects instead of only loaded resources.
 
-- [ ] **Task 67: Internal Render Policy Ordering**
+- [x] **Task 67: Internal Render Policy Ordering**
 
   **Goal:** Apply renderRole ordering internally so all visible scene objects draw predictably without public Three.js flags.
 
@@ -388,7 +388,7 @@ Docs and state:
 
   **Completion condition:** Ordering works through renderRole/policy, not public Three.js knobs.
 
-- [ ] **Task 68: Runtime Renders Scene On Sync**
+- [x] **Task 68: Runtime Renders Scene On Sync**
 
   **Goal:** Ensure runtime sync creates, updates, and renders the scene after visible objects change.
 

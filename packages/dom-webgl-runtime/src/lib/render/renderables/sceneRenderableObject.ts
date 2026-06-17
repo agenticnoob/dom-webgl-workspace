@@ -7,6 +7,7 @@ import {
   type WebGLSceneAdapter,
   type WebGLSceneObject,
   type WebGLSceneObjectController,
+  type WebGLSceneObjectOrdering,
 } from "../../renderer/sceneObject";
 import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
@@ -42,6 +43,7 @@ export type SceneRenderableControllerOptions = {
   getViewportSize?(): DOMViewportSize;
   element: HTMLElement;
   object3D?: unknown;
+  ordering?: WebGLSceneObjectOrdering;
   textContent?: string;
   textureSource?: unknown;
   disposeObject3D?: boolean;
@@ -88,7 +90,11 @@ export function createSceneRenderableController(
       }
     },
   };
-  const controller = createSceneObjectController(options.sceneAdapter, object);
+  const controller = createSceneObjectController(
+    options.sceneAdapter,
+    object,
+    options.ordering,
+  );
 
   return {
     object,

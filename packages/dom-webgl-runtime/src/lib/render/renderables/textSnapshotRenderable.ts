@@ -3,6 +3,7 @@ import {
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import { toSceneObjectOrdering } from "../renderPolicy";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import {
   createTextPlaneSceneRenderableController,
@@ -50,6 +51,7 @@ export function createTextSnapshotRenderable(
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
           element: context.descriptor.element,
+          ordering: toSceneObjectOrdering(context.policy),
           textContent: state.textContent,
         });
         state.scene.updateTextContent(state.textContent);

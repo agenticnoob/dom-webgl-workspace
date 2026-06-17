@@ -4,6 +4,7 @@ import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { ScrollControllerGateTarget } from "../input/scrollController";
 import type { Renderable } from "../render/renderable";
+import type { WebGLSceneAdapter } from "./sceneObject";
 import type {
   WebGLModelSourceDescriptor,
   WebGLVideoSourceDescriptor,
@@ -351,6 +352,94 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("async resource completion renders after the scene object attaches", async () => {
+    let resolveLoad: (() => void) | undefined;
+    const sceneAdapter = createRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+          }),
+        });
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = async (input) => {
+          await new Promise<void>((resolve) => {
+            resolveLoad = resolve;
+          });
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "hero.async",
+    });
+
+    const syncResult = runtime.sync();
+
+    expect(sceneAdapter.render).not.toHaveBeenCalled();
+
+    resolveLoad?.();
+    await syncResult;
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+  });
+
+  test("mixed synchronous and async updates render synchronous scene changes before async completion", async () => {
+    let resolveLoad: (() => void) | undefined;
+    const sceneAdapter = createRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      onRenderableCreated(renderable) {
+        if (renderable.key !== "hero.async") {
+          return;
+        }
+
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible: true,
+          }),
+        });
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = async (input) => {
+          await new Promise<void>((resolve) => {
+            resolveLoad = resolve;
+          });
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "hero.sync",
+    });
+    runtime.registerTarget(document.createElement("section"), {
+      key: "hero.async",
+    });
+
+    const syncResult = runtime.sync();
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    resolveLoad?.();
+    await syncResult;
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(2);
+
+    runtime.dispose();
+  });
+
   test("does not let stale async readiness hide a new same-key target", async () => {
     let resolveOldUpdate: (() => void) | undefined;
     let createdCount = 0;
@@ -429,7 +518,7 @@ describe("runtime pipeline sync", () => {
 });
 
 async function createPipelineRuntime(
-  options: Omit<RuntimePipelineOptions, "container" | "rendererHostFactory"> = {},
+  options: Omit<RuntimePipelineOptions, "container"> = {},
 ): Promise<RuntimeWithPipelineSurface> {
   const { createWebGLRuntime } = await import("./runtime");
   const container = document.createElement("div");
@@ -441,7 +530,10 @@ async function createPipelineRuntime(
   } as RuntimePipelineOptions) as RuntimeWithPipelineSurface;
 }
 
-function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
+function createRendererHostStub(
+  container: HTMLElement,
+  sceneAdapter: WebGLSceneAdapter = createRecordingSceneAdapter(),
+): ThreeRendererHost {
   const canvas = container.ownerDocument.createElement("canvas");
 
   return {
@@ -457,20 +549,24 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
       },
     },
     scene: {},
-    sceneAdapter: {
-      addObject() {
-        return;
-      },
-      removeObject() {
-        return;
-      },
-      render() {
-        return;
-      },
-    },
+    sceneAdapter,
     dispose() {
       canvas.remove();
     },
+  };
+}
+
+function createRecordingSceneAdapter(): WebGLSceneAdapter & {
+  render: ReturnType<typeof vi.fn>;
+} {
+  return {
+    addObject() {
+      return;
+    },
+    removeObject() {
+      return;
+    },
+    render: vi.fn(),
   };
 }
 

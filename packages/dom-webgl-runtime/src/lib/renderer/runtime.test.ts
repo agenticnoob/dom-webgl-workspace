@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { Renderable } from "../render/renderable";
+import type { WebGLSceneAdapter } from "./sceneObject";
 import type { createWebGLRuntime, WebGLRuntime } from "./runtime";
 import type { ThreeRendererHost } from "./threeRenderer";
 
@@ -265,6 +266,42 @@ describe("createWebGLRuntime", () => {
 
     expect(document.documentElement.style.overflow).toBe("");
   });
+
+  test("sync renders the scene after synchronous visible updates", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const runtime = await createRuntimeForCleanupTest({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+    });
+
+    runtime.registerTarget(document.createElement("section"), { key: "hero" });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    await runtime.sync();
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(2);
+
+    runtime.dispose();
+  });
+
+  test("disposed runtime does not render the scene again", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const runtime = await createRuntimeForCleanupTest({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+    });
+
+    runtime.registerTarget(document.createElement("section"), { key: "hero" });
+    await runtime.sync();
+
+    runtime.dispose();
+    runtime.sync();
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+  });
 });
 
 function installThreeRendererModuleMocks() {
@@ -286,10 +323,7 @@ function installThreeRendererModuleMocks() {
 }
 
 async function createRuntimeForCleanupTest(
-  options: Omit<
-    RuntimeInternalTestOptions,
-    "container" | "rendererHostFactory"
-  > = {},
+  options: Omit<RuntimeInternalTestOptions, "container"> = {},
 ): Promise<WebGLRuntime> {
   const { createWebGLRuntime } = await import("./runtime");
   const container = document.createElement("div");
@@ -301,7 +335,10 @@ async function createRuntimeForCleanupTest(
   } as RuntimeInternalTestOptions);
 }
 
-function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
+function createRendererHostStub(
+  container: HTMLElement,
+  sceneAdapter: WebGLSceneAdapter = createRecordingSceneAdapter(),
+): ThreeRendererHost {
   const canvas = container.ownerDocument.createElement("canvas");
 
   container.appendChild(canvas);
@@ -319,20 +356,24 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
       },
     },
     scene: {},
-    sceneAdapter: {
-      addObject() {
-        return;
-      },
-      removeObject() {
-        return;
-      },
-      render() {
-        return;
-      },
-    },
+    sceneAdapter,
     dispose() {
       canvas.remove();
     },
+  };
+}
+
+function createRecordingSceneAdapter(): WebGLSceneAdapter & {
+  render: ReturnType<typeof vi.fn>;
+} {
+  return {
+    addObject() {
+      return;
+    },
+    removeObject() {
+      return;
+    },
+    render: vi.fn(),
   };
 }
 

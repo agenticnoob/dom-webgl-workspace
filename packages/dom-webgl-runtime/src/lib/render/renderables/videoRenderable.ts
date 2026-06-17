@@ -7,6 +7,7 @@ import {
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import { toSceneObjectOrdering } from "../renderPolicy";
 import {
   createTexturePlaneSceneRenderableController,
   type SceneRenderableController,
@@ -59,6 +60,7 @@ export function createVideoRenderable(
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
           element: source.element,
+          ordering: toSceneObjectOrdering(context.policy),
           textureKind: "video",
           textureSource: video,
         });

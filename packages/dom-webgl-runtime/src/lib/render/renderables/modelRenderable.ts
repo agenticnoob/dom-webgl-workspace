@@ -7,6 +7,7 @@ import {
   type Renderable,
   type RenderableContext,
 } from "../renderable";
+import { toSceneObjectOrdering } from "../renderPolicy";
 import {
   createSceneRenderableController,
   type SceneRenderableController,
@@ -66,6 +67,7 @@ export function createModelRenderable(
             getViewportSize: options.getViewportSize,
             element: source.anchor,
             object3D: instantiateModelSceneObject(model),
+            ordering: toSceneObjectOrdering(context.policy),
             disposeObject3D: true,
           });
         }

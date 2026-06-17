@@ -204,6 +204,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       const pendingUpdates: Array<Promise<void>> = [];
+      let didSynchronousUpdate = false;
 
       for (const descriptor of descriptors) {
         const renderable = renderablesByTargetKey.get(descriptor.key);
@@ -244,6 +245,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
                   renderable,
                   fallbackControllersByTargetKey,
                 );
+                renderScene();
               })
               .catch((error: unknown) => {
                 if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
@@ -266,10 +268,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             renderable,
             fallbackControllersByTargetKey,
           );
+          didSynchronousUpdate = true;
         }
       }
 
       if (pendingUpdates.length > 0) {
+        if (didSynchronousUpdate) {
+          renderScene();
+        }
+
         emitDebugState();
 
         return Promise.all(pendingUpdates).then(
@@ -283,6 +290,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         );
       }
 
+      renderScene();
       emitDebugState();
     },
     getDebugState() {
@@ -347,6 +355,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
   function emitDebugState(): void {
     internalOptions.onDebugStateChange?.(createCurrentDebugState());
+  }
+
+  function renderScene(): void {
+    if (disposed) {
+      return;
+    }
+
+    rendererHost.sceneAdapter.render();
   }
 
   function handleVisibilityChange(): void {
@@ -509,10 +525,21 @@ function syncDebugRecordFromRenderable(
   renderable: Renderable,
 ): void {
   debugRecord.resourceStatus = readRenderableResourceStatus(renderable);
+  debugRecord.visible = readRenderableSceneVisibility(renderable);
 
   if (renderable.status !== "error") {
     delete debugRecord.error;
   }
+}
+
+function readRenderableSceneVisibility(renderable: Renderable): boolean {
+  const controller = renderable.sceneObjectController;
+
+  if (controller) {
+    return controller.attached && controller.visible;
+  }
+
+  return renderable.status !== "disposed";
 }
 
 function markDebugRecordError(

@@ -1,13 +1,13 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content. Phase 3 Batch C is complete through Task 68: renderRole policies now drive internal scene object ordering, and runtime sync renders visible scene changes through the single scene adapter.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
-Task 66: GLB Model Scene Object.
+Task 68: Runtime Renders Scene On Sync.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -76,9 +76,11 @@ Task 66: GLB Model Scene Object.
 - Task 64: Image Scene Plane.
 - Task 65: Video Scene Plane.
 - Task 66: GLB Model Scene Object.
+- Task 67: Internal Render Policy Ordering.
+- Task 68: Runtime Renders Scene On Sync.
 
 ## Current Task
-Phase 3 Batch B is complete. Stop here unless explicitly asked to start Task 67.
+Phase 3 Batch C is complete. Stop here unless explicitly asked to start Batch D Task 69.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -251,6 +253,18 @@ Phase 3 Batch B is complete. Stop here unless explicitly asked to start Task 67.
 - Remaining non-blocking issues: none from Batch B review. Batch B intentionally stops before Task 67 internal render policy ordering, Task 68 render-on-sync, Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, and Task 72 documentation alignment.
 - Next task: Task 67: Internal Render Policy Ordering. Do not start until explicitly requested.
 
+## Phase 3 Batch C Completed Task Record
+- Completed tasks: Task 67 Internal Render Policy Ordering; Task 68 Runtime Renders Scene On Sync.
+- Files changed: `packages/dom-webgl-runtime/src/lib/render/renderPolicy.ts`, `packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`, `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.ts`, `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`, `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- RED evidence: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts` failed before Task 67 implementation because `toSceneObjectOrdering` did not exist and scene objects had no internal ordering applied before attach. `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts` then failed until the actual visible renderable pipeline passed `context.policy` ordering into scene objects. `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts` failed before Task 68 implementation because sync/async updates did not call `sceneAdapter.render()` and debug target visibility did not read scene object visibility. Runtime review also found a mixed sync+async RED case where synchronous visible updates were not rendered before async completion.
+- GREEN verification: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts && npm run typecheck` passed. `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck` passed after the mixed sync+async render fix with 3 files / 34 tests. Batch C extended checkpoint `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck && git diff --check` passed with 7 files / 50 tests.
+- Ordering reviewer result: approved with no blocking issues. Deterministic internal ordering covers `surface`, `content`, `media`, `model`, and `overlay`; ordering flows from `renderRole` to `RenderPolicy` to scene object ordering and into actual renderable scene controllers; public declarations still reject `renderOrder`, `transparent`, and `depthWrite`; package root and React entrypoints do not export ordering or scene object types.
+- Runtime render reviewer result: initially found a blocking mixed sync+async render gap. Fix landed by tracking synchronous updates and rendering them before returning the pending async promise; re-review approved with no blocking or non-blocking issues. The runtime still uses the single internal scene adapter render path, adds no `requestAnimationFrame` loop, no extra renderer/canvas, no effect layer, and no public Three.js policy knobs.
+- Debug/tests/docs reviewer result: code/test scope approved with non-blocking note that the debug visibility test uses an injected scene controller seam while the production scene object chain supports the behavior. The reviewer required docs synchronization, which this record and the Task 67-68 checkboxes complete. README and `docs/00-goal.md` do not need Batch C updates because no public API or product contract changed.
+- Blocking issues fixed: actual visible renderables initially did not pass internal ordering from `RenderPolicy` into their scene object controllers; mixed sync+async runtime sync initially delayed synchronous visible scene renders until async completion; docs initially still showed Batch C as pending.
+- Remaining non-blocking issues: none for Batch C. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch C did not run a production build.
+- Next batch: Batch D Tasks 69-70: React And Demo Visible Smoke; SSR And Public Boundary Regression. Do not start until explicitly requested.
+
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 - `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -301,47 +315,35 @@ Phase 3 Batch B is complete. Stop here unless explicitly asked to start Task 67.
 - `npm run typecheck` (green Phase 3 Batch B verification)
 - `npm run check:imports` (green Phase 3 Batch B verification)
 - `git diff --check` (green Phase 3 Batch B verification)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts && npm run typecheck` (green Task 67 verification)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck` (green Task 68 verification after mixed sync+async render fix: 3 files / 34 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts && npm run typecheck && git diff --check` (green Phase 3 Batch C checkpoint verification: 7 files / 50 tests passed)
 
 ## Last Result
-Phase 3 Batch B is complete through Task 66. Contract and code quality reviewers approved after fixes for real Three plane/texture creation, model object visibility/layout, per-renderable GLB clone ownership, CSS-pixel camera projection, repeated update clone leakage, and shared model disposal safety.
+Phase 3 Batch C is complete through Task 68. Ordering, runtime render, and debug/tests/docs reviewers approved after fixes for actual renderable ordering propagation, mixed sync+async render timing, and Batch C docs synchronization.
 
 ## Files Changed
 - `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 - `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderPolicy.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/imageRenderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/domProjection.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
-- `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`
-- `packages/dom-webgl-runtime/src/lib/types.ts`
-- `packages/dom-webgl-runtime/src/lib/types.test.ts`
-- `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
 ## Known Issues
-No blocking or non-blocking Batch B review issues remain. Batch B does not implement Task 67 renderRole ordering, Task 68 render-on-sync, Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch B did not run a production build.
+No blocking or non-blocking Batch C review issues remain. Batch C does not implement Task 69 React/demo visible smoke, Task 70 SSR/public boundary regression, Task 71 full verification, or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch C did not run a production build.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -364,4 +366,4 @@ No blocking or non-blocking Batch B review issues remain. Batch B does not imple
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch B. Next implementation round is Task 67: Internal Render Policy Ordering. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch C. Next implementation round is Batch D: Task 69 React And Demo Visible Smoke, then Task 70 SSR And Public Boundary Regression. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

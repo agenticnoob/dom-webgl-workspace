@@ -7,6 +7,12 @@ export type RenderPolicy = {
   opacityMode: "opaque" | "alpha" | "source";
 };
 
+export type SceneObjectOrdering = {
+  renderOrder: number;
+  transparent: boolean;
+  depthWrite: boolean;
+};
+
 export function compileRenderPolicy(renderRole: WebGLRenderRole): RenderPolicy {
   switch (renderRole) {
     case "surface":
@@ -45,4 +51,12 @@ export function compileRenderPolicy(renderRole: WebGLRenderRole): RenderPolicy {
         opacityMode: "alpha",
       };
   }
+}
+
+export function toSceneObjectOrdering(policy: RenderPolicy): SceneObjectOrdering {
+  return {
+    renderOrder: policy.band * 100,
+    transparent: policy.opacityMode !== "opaque",
+    depthWrite: policy.depthMode === "model",
+  };
 }

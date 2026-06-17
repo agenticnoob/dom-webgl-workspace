@@ -5,7 +5,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
 import type { WebGLRenderRole } from "../types";
-import { compileRenderPolicy } from "./renderPolicy";
+import { compileRenderPolicy, toSceneObjectOrdering } from "./renderPolicy";
 
 describe("compileRenderPolicy", () => {
   test("assigns stable render bands in semantic role order", () => {
@@ -53,6 +53,34 @@ describe("compileRenderPolicy", () => {
       band: 4,
       depthMode: "flat",
       opacityMode: "alpha",
+    });
+  });
+
+  test("maps policies to deterministic internal scene object ordering", () => {
+    expect(toSceneObjectOrdering(compileRenderPolicy("surface"))).toEqual({
+      renderOrder: 0,
+      transparent: false,
+      depthWrite: false,
+    });
+    expect(toSceneObjectOrdering(compileRenderPolicy("content"))).toEqual({
+      renderOrder: 100,
+      transparent: true,
+      depthWrite: false,
+    });
+    expect(toSceneObjectOrdering(compileRenderPolicy("media"))).toEqual({
+      renderOrder: 200,
+      transparent: true,
+      depthWrite: false,
+    });
+    expect(toSceneObjectOrdering(compileRenderPolicy("model"))).toEqual({
+      renderOrder: 300,
+      transparent: true,
+      depthWrite: true,
+    });
+    expect(toSceneObjectOrdering(compileRenderPolicy("overlay"))).toEqual({
+      renderOrder: 400,
+      transparent: true,
+      depthWrite: false,
     });
   });
 
