@@ -740,7 +740,7 @@ Tests:
   - Test results: targeted React runtime component test failed RED because `WebGLRuntime` was not exported/implemented, then passed with 1 file / 4 tests after the minimal component implementation; root typecheck passed; diff check passed.
   - Review results: not run.
 
-- [ ] **Task 31: React WebGLTarget Component**
+- [x] **Task 31: React WebGLTarget Component**
 
   **Goal:** Register DOM targets from React refs.
 
@@ -756,6 +756,12 @@ Tests:
   **Verification command:** `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
 
   **Completion condition:** React target maps ordinary DOM to runtime declarations.
+
+  **Execution record:**
+  - Files changed: `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.tsx`; `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`; `packages/dom-webgl-runtime/src/react.ts`
+  - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`; `npm run typecheck`; `git diff --check`
+  - Test results: targeted React target test failed RED because `WebGLTarget` was not exported/implemented, then passed with 1 file / 3 tests after the minimal component implementation; root typecheck passed after narrowing the test fixture to standard DOM props; diff check passed.
+  - Review results: not run.
 
 ---
 

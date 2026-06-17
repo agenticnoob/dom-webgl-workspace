@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 30 completed.
+Task 31 completed.
 
 ## Last Completed Task
-Task 30: React WebGLRuntime Component.
+Task 31: React WebGLTarget Component.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -37,28 +37,31 @@ Task 30: React WebGLRuntime Component.
 - Task 28: Lightweight Debug State.
 - Task 29: React Runtime Context.
 - Task 30: React WebGLRuntime Component.
+- Task 31: React WebGLTarget Component.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export/implement `WebGLRuntime`)
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green: 1 file / 4 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (red: failed because `@project/dom-webgl-runtime/react` did not export/implement `WebGLTarget`)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green: 1 file / 3 tests passed)
+- `npm run typecheck` (initial failure: test fixture used `data-testid`, which current props typing did not accept)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx` (green after narrowing the test fixture to standard DOM props)
 - `npm run typecheck` (green)
 - `git diff --check` (green)
 
 ## Last Result
-Task 30 passed: added a React `WebGLRuntime` component that creates the runtime after mount, passes `onDebugStateChange` into runtime creation, renders children inside `WebGLRuntimeProvider`, and disposes the runtime on unmount. The public `@project/dom-webgl-runtime/react` entrypoint now exports the component and props type. The targeted component test, root typecheck, and diff check passed.
+Task 31 passed: added a React `WebGLTarget` component that renders the requested DOM element, registers the element and grouped `webgl` declaration through runtime context on mount, and unregisters by declaration key on unmount. The public `@project/dom-webgl-runtime/react` entrypoint now exports the component and props type. The targeted component test, root typecheck, and diff check passed.
 
 ## Files Changed
-- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
 - `packages/dom-webgl-runtime/src/react.ts`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No new issues found in Task 30. Task 31 still needs to implement `WebGLTarget` registration from React refs.
+No new issues found in Task 31. Task 32 still needs to add the demo public import boundary verification.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -77,4 +80,4 @@ No new issues found in Task 30. Task 31 still needs to implement `WebGLTarget` r
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 31: React WebGLTarget Component.
+Start Task 32: Demo Uses Public API Only.
