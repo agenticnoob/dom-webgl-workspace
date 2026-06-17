@@ -1,8 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import type { PageScrollStateController } from "./pageScroll";
 import type { PointerController } from "./pointerController";
-import { createFrameInputSource } from "./frameInput";
+import {
+  createFrameInputSource,
+  type ScrollStateController,
+} from "./frameInput";
+import type { PageScrollStateController } from "./pageScroll";
 
 describe("createFrameInputSource", () => {
   test("combines monotonic time delta scroll and pointer into one frame input", () => {
@@ -116,6 +119,51 @@ describe("createFrameInputSource", () => {
       },
     });
   });
+
+  test("preserves gate scroll state in immutable frame snapshots", () => {
+    const scrollState = createGateScrollStateController();
+    const pointerController = createPointerController();
+    const frameInput = createFrameInputSource(
+      scrollState,
+      pointerController,
+      () => 100,
+    );
+
+    const firstFrame = frameInput.update();
+
+    expect(firstFrame.scroll).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.model",
+      sceneProgress: 0.4,
+      direction: 1,
+      velocity: 250,
+    });
+
+    if (firstFrame.scroll.mode !== "gate") {
+      throw new Error("Expected gate scroll frame in test fixture.");
+    }
+    firstFrame.scroll.activeGateKey = "mutated";
+    firstFrame.scroll.sceneProgress = 0.95;
+
+    scrollState.scroll.sceneProgress = 0.6;
+    scrollState.scroll.velocity = 125;
+
+    expect(frameInput.getState().scroll).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.model",
+      sceneProgress: 0.4,
+      direction: 1,
+      velocity: 250,
+    });
+
+    expect(frameInput.update().scroll).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.model",
+      sceneProgress: 0.6,
+      direction: 1,
+      velocity: 125,
+    });
+  });
 });
 
 function createScrollStateController(): PageScrollStateController & {
@@ -126,6 +174,34 @@ function createScrollStateController(): PageScrollStateController & {
     pageProgress: 0.25,
     direction: 1,
     velocity: 24,
+  };
+
+  return {
+    scroll,
+    getState() {
+      return scroll;
+    },
+    update() {
+      return scroll;
+    },
+  };
+}
+
+function createGateScrollStateController(): ScrollStateController & {
+  scroll: Extract<
+    ReturnType<ScrollStateController["getState"]>,
+    { mode: "gate" }
+  >;
+} {
+  const scroll: Extract<
+    ReturnType<ScrollStateController["getState"]>,
+    { mode: "gate" }
+  > = {
+    mode: "gate",
+    activeGateKey: "hero.model",
+    sceneProgress: 0.4,
+    direction: 1,
+    velocity: 250,
   };
 
   return {

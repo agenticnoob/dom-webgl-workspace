@@ -261,7 +261,7 @@ Docs and state:
 
   **Completion condition:** Runtime-owned input can gate wheel/touch scroll without Lenis, GSAP, or effect-layer code.
 
-- [ ] **Task 47: Frame Input Carries Gate State**
+- [x] **Task 47: Frame Input Carries Gate State**
 
   **Goal:** Ensure `WebGLFrameInput` snapshots preserve gate scroll fields immutably.
 
