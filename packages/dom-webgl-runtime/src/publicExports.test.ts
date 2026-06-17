@@ -20,6 +20,72 @@ describe("public package exports", () => {
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
+  test("React entrypoint type-checks public gate declarations only", () => {
+    const repoRoot = process.cwd();
+    const tempDir = mkdtempSync(resolve(repoRoot, ".tmp-dom-webgl-react-exports-"));
+    const fixturePath = resolve(tempDir, "fixture.tsx");
+    const reactPath = resolve(repoRoot, "packages/dom-webgl-runtime/src/react.ts");
+    const relativeReactPath = relative(dirname(fixturePath), reactPath)
+      .split(sep)
+      .join("/");
+    const importPath = relativeReactPath.startsWith(".")
+      ? relativeReactPath
+      : `./${relativeReactPath}`;
+
+    writeFileSync(
+      fixturePath,
+      `
+        import { WebGLRuntime, WebGLTarget } from "${importPath}";
+        import type { WebGLTargetProps } from "${importPath}";
+        // @ts-expect-error Runtime internals are not part of the React entrypoint.
+        import { createWebGLRuntime } from "${importPath}";
+
+        WebGLRuntime satisfies unknown;
+        WebGLTarget satisfies unknown;
+
+        const props = {
+          webgl: {
+            key: "hero.gate",
+            scroll: {
+              type: "gate",
+              start: "top top",
+              duration: 1,
+              release: "both-directions-complete",
+            },
+          },
+        } satisfies WebGLTargetProps;
+      `,
+    );
+
+    try {
+      const configPath = resolve(repoRoot, "tsconfig.base.json");
+      const configFile = ts.readConfigFile(configPath, (fileName) =>
+        readFileSync(fileName, "utf8"),
+      );
+      const parsedConfig = ts.parseJsonConfigFileContent(
+        configFile.config,
+        ts.sys,
+        repoRoot,
+        {
+          jsx: ts.JsxEmit.ReactJSX,
+          noEmit: true,
+          allowImportingTsExtensions: true,
+          types: [],
+        },
+        configPath,
+      );
+      const program = ts.createProgram(
+        [fixturePath, reactPath],
+        parsedConfig.options,
+      );
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+
+      expect(formatDiagnostics(diagnostics)).toBe("");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   test("root entrypoint type-checks public types and hides internal types", () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-public-exports-"));

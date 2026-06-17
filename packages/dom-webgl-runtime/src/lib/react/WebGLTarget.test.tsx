@@ -2,7 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { TargetDescriptor } from "../dom/targetDescriptor";
+import { createTargetDescriptor, type TargetDescriptor } from "../dom/targetDescriptor";
 import type { WebGLDeclaration, WebGLRuntime } from "../../index";
 
 const roots: Root[] = [];
@@ -84,6 +84,50 @@ describe("WebGLTarget", () => {
     expect(runtime.unregisterTarget).toHaveBeenCalledWith("story.card");
   });
 
+  test("forwards gate scroll declarations through the public webgl prop", async () => {
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../react");
+    const runtime = createRuntimeStub();
+    const webgl: WebGLDeclaration = {
+      key: "story.gate",
+      scroll: {
+        type: "gate",
+        start: " top top ",
+        duration: 1.5,
+        release: "both-directions-complete",
+      },
+    };
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLTarget, {
+            webgl,
+            id: "story-gate",
+          }),
+        ),
+      );
+    });
+
+    const target = host.querySelector("#story-gate");
+    const descriptor = runtime.registerTarget.mock.results[0]?.value;
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(target, webgl);
+    expect(descriptor).toMatchObject({
+      key: "story.gate",
+      declaration: {
+        scroll: {
+          type: "gate",
+          start: "top top",
+          duration: 1.5,
+          release: "both-directions-complete",
+        },
+      },
+    });
+  });
+
   test("keeps runtime internals out of the React public entrypoint", async () => {
     const reactEntrypoint = await import("../../react");
 
@@ -110,7 +154,7 @@ function createRuntimeStub(): WebGLRuntime & {
   return {
     container: document.createElement("div"),
     registerTarget: vi.fn((element: HTMLElement, declaration: WebGLDeclaration) =>
-      createTargetDescriptorStub(element, declaration),
+      createTargetDescriptor(element, declaration, 0),
     ),
     unregisterTarget: vi.fn(),
     sync() {},
@@ -118,17 +162,5 @@ function createRuntimeStub(): WebGLRuntime & {
       throw new Error("not implemented in test");
     },
     dispose() {},
-  };
-}
-
-function createTargetDescriptorStub(
-  element: HTMLElement,
-  declaration: WebGLDeclaration,
-): TargetDescriptor {
-  return {
-    key: declaration.key,
-    element,
-    scanOrder: 0,
-    declaration,
   };
 }

@@ -28,6 +28,12 @@ export default function App() {
               webgl={{
                 key: "demo.surface",
                 source: { kind: "snapshot", mode: "element" },
+                scroll: {
+                  type: "gate",
+                  start: "top top",
+                  duration: 1,
+                  release: "both-directions-complete",
+                },
               }}
             >
               <p className="demo-label">Element snapshot</p>

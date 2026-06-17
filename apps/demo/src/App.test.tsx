@@ -89,4 +89,30 @@ describe("demo App", () => {
       targetProps.map(({ as }) => as),
     ).toEqual(["div", "h2", "img", "video", "div"]);
   });
+
+  test("declares a scene gate target through the public WebGLTarget API", async () => {
+    const { default: App } = await import("./App");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(createElement(App));
+    });
+
+    expect(
+      targetProps.some(({ webgl }) => {
+        const scroll = (webgl as { scroll?: Record<string, unknown> }).scroll;
+
+        return (
+          scroll?.type === "gate" &&
+          scroll.start === "top top" &&
+          typeof scroll.duration === "number" &&
+          scroll.duration > 0 &&
+          typeof scroll.release === "string"
+        );
+      }),
+    ).toBe(true);
+  });
 });

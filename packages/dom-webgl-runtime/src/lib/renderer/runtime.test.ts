@@ -19,6 +19,12 @@ type RuntimePublicApi = {
   };
 };
 
+type ReactPublicApi = {
+  WebGLRuntime?: unknown;
+  WebGLTarget?: unknown;
+  useWebGLRuntime?: unknown;
+};
+
 type RuntimeInternalTestOptions = Parameters<typeof createWebGLRuntime>[0] & {
   rendererHostFactory?: (container: HTMLElement) => ThreeRendererHost;
   onRenderableCreated?: (renderable: Renderable) => void;
@@ -48,6 +54,23 @@ describe("createWebGLRuntime", () => {
     }
 
     expect(runtimeApi?.createWebGLRuntime).toEqual(expect.any(Function));
+  });
+
+  test("imports the public React API without touching browser globals", async () => {
+    vi.resetModules();
+
+    const restoreBrowserGlobals = installThrowingBrowserGlobalGetters();
+    let reactApi: ReactPublicApi | undefined;
+
+    try {
+      reactApi = (await import("../../react")) as ReactPublicApi;
+    } finally {
+      restoreBrowserGlobals();
+    }
+
+    expect(reactApi?.WebGLRuntime).toEqual(expect.any(Function));
+    expect(reactApi?.WebGLTarget).toEqual(expect.any(Function));
+    expect(reactApi?.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
   test("throws a clear error when runtime creation executes without a DOM", async () => {

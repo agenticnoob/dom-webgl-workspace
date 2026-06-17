@@ -5,28 +5,34 @@ DOM-first interactive WebGL runtime workspace.
 ## Status
 
 Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
-The delivered runtime covers the Phase 1 MVP only; scene-gated scroll and
-effect work remain future scope.
+Phase 2 scene-gated scroll work is complete through Task 54 in
+`docs/PHASE2_SCENE_GATE_PLAN.md`. Task 55 full verification and Task 56 final
+documentation alignment have not started.
 
 Current demo behavior:
 
-- React demo declares five Phase 1 target categories through public APIs:
-  element snapshot, text snapshot, image, video, and GLB model.
+- React demo declares five target categories through public APIs: element
+  snapshot, text snapshot, image, video, and GLB model.
+- The demo declares one scene gate through `WebGLTarget` using the public
+  `webgl.scroll` gate declaration shape.
 - Runtime registration, source inference, render role inference, renderable
-  creation, resource lifecycle, debug state, page scroll state, and pointer state
-  are wired.
+  creation, resource lifecycle, debug state, page scroll state, scene gate state,
+  scroll lock, and pointer state are wired.
+- The debug panel shows current scroll mode plus active gate key and
+  `sceneProgress` while a gate is active.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
 - Demo assets are loaded from `apps/demo/public`.
 
-Current Phase 1 visual boundary:
+Current visual boundary:
 
 - The demo still shows DOM fallback content as the primary visible surface.
-- Phase 1 does not yet render DOM snapshots, image/video planes, or GLB objects as
-  visible Three.js scene content.
-- Scene-gated scroll, effect registry, scroll lock, `sceneProgress`, WebGL
-  raycast picking, reverse gate behavior, Lenis, and GSAP ScrollTrigger adapters
-  are intentionally out of scope.
-- Phase 1 keeps one WebGL canvas per runtime instance and does not expose
+- The runtime does not yet render DOM snapshots, image/video planes, or GLB
+  objects as visible Three.js scene content.
+- Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
+  explicit reverse gate behavior.
+- Effect registry, animation/effect layers, WebGL raycast picking, Lenis, GSAP,
+  and ScrollTrigger adapters remain intentionally out of scope.
+- The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 
 ## Setup

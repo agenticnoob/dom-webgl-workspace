@@ -329,7 +329,7 @@ Docs and state:
 
   **Completion condition:** Removing, hiding, failing, or unmounting a runtime with an active gate cannot leave the page locked, and repeated cleanup calls are harmless.
 
-- [ ] **Task 51: React Gate Declaration Smoke**
+- [x] **Task 51: React Gate Declaration Smoke**
 
   **Goal:** Verify React targets can author gate declarations through the public `webgl` prop.
 
@@ -344,7 +344,7 @@ Docs and state:
 
   **Completion condition:** React remains a thin public adapter over the runtime declaration object.
 
-- [ ] **Task 52: Demo Declares A Scene Gate**
+- [x] **Task 52: Demo Declares A Scene Gate**
 
   **Goal:** Add one demo gate target using only public package APIs.
 
@@ -361,7 +361,7 @@ Docs and state:
 
   **Completion condition:** The demo exercises scene-gated scroll declarations through the same public API a real app would use.
 
-- [ ] **Task 53: Demo Debug Panel Shows Gate State**
+- [x] **Task 53: Demo Debug Panel Shows Gate State**
 
   **Goal:** Surface gate mode and progress in the existing debug panel.
 
@@ -378,7 +378,7 @@ Docs and state:
 
   **Completion condition:** Gate state is inspectable in the demo without internal imports or marketing-style UI changes.
 
-- [ ] **Task 54: SSR And Import Boundary Regression**
+- [x] **Task 54: SSR And Import Boundary Regression**
 
   **Goal:** Prove Phase 2 scroll modules do not break SSR-safe public imports or demo import boundaries.
 

@@ -2,12 +2,15 @@
 
 Date: 2026-06-16
 
-## Phase 1 Status Note
+## Implementation Status Note
 
 The product goal below includes future scene-gated scroll and effect-oriented
-behavior. The delivered Phase 1 runtime in this repository stops at page scroll,
-pointer state, one renderer, public React/vanilla entrypoints, and demo/debug
-surfaces; scene-gated scroll and effects remain future work.
+behavior. Phase 1 is complete through Task 37. Phase 2 scene-gated scroll is
+complete through Task 54, including public gate declarations, scroll lock,
+`sceneProgress`, explicit reverse gate behavior, demo gate declaration, debug
+state display, and SSR/import-boundary regressions. Task 55 full verification and
+Task 56 final documentation alignment have not started. Effects remain future
+work.
 
 ## Purpose
 
