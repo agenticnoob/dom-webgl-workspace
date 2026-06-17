@@ -32,9 +32,20 @@ export type WebGLModelSourceDeclaration = {
   src: string;
 };
 
-export type WebGLScrollBehavior = {
+export type WebGLPageScrollBehavior = {
   type?: "page";
 };
+
+export type WebGLGateScrollBehavior = {
+  type: "gate";
+  start: string;
+  duration: number;
+  release?: "forward-complete" | "both-directions-complete";
+};
+
+export type WebGLScrollBehavior =
+  | WebGLPageScrollBehavior
+  | WebGLGateScrollBehavior;
 
 export type WebGLPointerDeclaration = {
   move?: boolean;
@@ -76,12 +87,20 @@ export type WebGLPointerState = {
 export type WebGLFrameInput = {
   time: number;
   delta: number;
-  scroll: {
-    mode: "page";
-    pageProgress: number;
-    direction: -1 | 0 | 1;
-    velocity: number;
-  };
+  scroll:
+    | {
+        mode: "page";
+        pageProgress: number;
+        direction: -1 | 0 | 1;
+        velocity: number;
+      }
+    | {
+        mode: "gate";
+        sceneProgress: number;
+        activeGateKey: string;
+        direction: -1 | 0 | 1;
+        velocity: number;
+      };
   pointer: WebGLPointerState;
 };
 
@@ -90,7 +109,9 @@ export type WebGLResourceStatus = "idle" | "loading" | "ready" | "error";
 export type WebGLDebugState = {
   targetCount: number;
   renderableCount: number;
-  currentScrollMode: "page";
+  currentScrollMode: "page" | "gate";
+  activeGateKey?: string;
+  sceneProgress?: number;
   pointer: WebGLPointerState;
   targets: Array<{
     key: string;

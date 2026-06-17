@@ -5,7 +5,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
 describe("WebGLDeclaration public types", () => {
-  test("accepts the phase 1 schema and rejects Three.js policy fields", () => {
+  test("accepts scene-gate declarations and still rejects internal policy fields", () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-types-"));
     const fixturePath = resolve(tempDir, "fixture.ts");
@@ -36,7 +36,13 @@ describe("WebGLDeclaration public types", () => {
         } satisfies WebGLSourceDeclaration;
 
         const renderRole = "model" satisfies WebGLRenderRole;
-        const scroll = { type: "page" } satisfies WebGLScrollBehavior;
+        const pageScroll = { type: "page" } satisfies WebGLScrollBehavior;
+        const gateScroll = {
+          type: "gate",
+          start: "top top",
+          duration: 1,
+          release: "both-directions-complete",
+        } satisfies WebGLScrollBehavior;
         const pointer = {
           move: true,
           click: true,
@@ -50,12 +56,18 @@ describe("WebGLDeclaration public types", () => {
           key: "hero.model",
           source,
           renderRole,
-          scroll,
+          scroll: pageScroll,
           pointer,
           lifecycle,
         } satisfies WebGLDeclaration;
 
+        const gateDeclaration = {
+          key: "hero.scene",
+          scroll: gateScroll,
+        } satisfies WebGLDeclaration;
+
         declaration.key satisfies string;
+        gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
 
         ({
           key: "hero.surface",
@@ -73,6 +85,18 @@ describe("WebGLDeclaration public types", () => {
           key: "hero.surface",
           // @ts-expect-error depthWrite is an internal render policy detail.
           depthWrite: false,
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error effect is not part of the public declaration contract.
+          effect: "blur",
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error effects are not part of the public declaration contract.
+          effects: ["blur"],
         } satisfies WebGLDeclaration);
       `,
     );

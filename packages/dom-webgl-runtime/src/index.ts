@@ -7,6 +7,7 @@ export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLDeclaration,
   WebGLFrameInput,
+  WebGLGateScrollBehavior,
   WebGLLifecycleDeclaration,
   WebGLImageSourceDeclaration,
   WebGLModelSourceDeclaration,

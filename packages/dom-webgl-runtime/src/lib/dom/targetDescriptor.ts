@@ -1,4 +1,5 @@
 import type { WebGLDeclaration } from "../types";
+import { normalizeScrollBehavior } from "../input/scrollDeclaration";
 
 export type TargetDescriptor = {
   key: string;
@@ -25,7 +26,7 @@ export function createTargetDescriptor(
     declaration: {
       ...declaration,
       key,
-      scroll: declaration.scroll ?? { type: "page" },
+      scroll: normalizeScrollBehavior(declaration.scroll),
       pointer: declaration.pointer ?? {},
       lifecycle: declaration.lifecycle ?? {},
     },

@@ -42,6 +42,10 @@ describe("createFrameInputSource", () => {
       },
     });
 
+    expect(scrollState.scroll.mode).toBe("page");
+    if (scrollState.scroll.mode !== "page") {
+      throw new Error("Expected page scroll state in test fixture.");
+    }
     scrollState.scroll.pageProgress = 0.5;
     scrollState.scroll.direction = -1;
     scrollState.scroll.velocity = -8;
@@ -85,6 +89,10 @@ describe("createFrameInputSource", () => {
 
     const firstFrame = frameInput.update();
     firstFrame.time = 999;
+    expect(firstFrame.scroll.mode).toBe("page");
+    if (firstFrame.scroll.mode !== "page") {
+      throw new Error("Expected page scroll frame in test fixture.");
+    }
     firstFrame.scroll.pageProgress = 0.95;
     firstFrame.pointer.x = 999;
 

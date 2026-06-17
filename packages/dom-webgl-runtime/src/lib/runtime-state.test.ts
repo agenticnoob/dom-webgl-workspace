@@ -5,7 +5,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
 describe("runtime state public types", () => {
-  test("exports frame, pointer, debug, and resource status types", () => {
+  test("exports page and gate frame/debug state types", () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-state-types-"));
     const fixturePath = resolve(tempDir, "fixture.ts");
@@ -57,6 +57,19 @@ describe("runtime state public types", () => {
           pointer,
         } satisfies WebGLFrameInput;
 
+        const gateFrame = {
+          time: 1400,
+          delta: 16.67,
+          scroll: {
+            mode: "gate",
+            sceneProgress: 0.5,
+            activeGateKey: "hero.scene",
+            direction: 1,
+            velocity: 0.2,
+          },
+          pointer,
+        } satisfies WebGLFrameInput;
+
         const resourceStatus = "ready" satisfies WebGLResourceStatus;
 
         const debugState = {
@@ -75,21 +88,18 @@ describe("runtime state public types", () => {
           ],
         } satisfies WebGLDebugState;
 
-        debugState.targets[0]?.key satisfies string | undefined;
+        const gateDebugState = {
+          targetCount: 1,
+          renderableCount: 1,
+          currentScrollMode: "gate",
+          sceneProgress: gateFrame.scroll.sceneProgress,
+          activeGateKey: gateFrame.scroll.activeGateKey,
+          pointer: gateFrame.pointer,
+          targets: debugState.targets,
+        } satisfies WebGLDebugState;
 
-        ({
-          time: 1200,
-          delta: 16.67,
-          scroll: {
-            mode: "page",
-            pageProgress: 0.4,
-            direction: 1,
-            velocity: 0.2,
-            // @ts-expect-error sceneProgress is outside the Phase 1 public state.
-            sceneProgress: 0.5,
-          },
-          pointer,
-        } satisfies WebGLFrameInput);
+        debugState.targets[0]?.key satisfies string | undefined;
+        gateDebugState.activeGateKey satisfies string | undefined;
       `,
     );
 

@@ -40,6 +40,7 @@ describe("public package exports", () => {
           WebGLDebugState,
           WebGLDeclaration,
           WebGLFrameInput,
+          WebGLGateScrollBehavior,
           WebGLLifecycleDeclaration,
           WebGLImageSourceDeclaration,
           WebGLModelSourceDeclaration,
@@ -93,7 +94,14 @@ describe("public package exports", () => {
           click: true,
           drag: true,
         } satisfies WebGLPointerDeclaration;
-        const scroll = { type: "page" } satisfies WebGLScrollBehavior;
+        const pageScroll = { type: "page" } satisfies WebGLScrollBehavior;
+        const gateScroll = {
+          type: "gate",
+          start: "top top",
+          duration: 1,
+          release: "both-directions-complete",
+        } satisfies WebGLGateScrollBehavior;
+        gateScroll satisfies WebGLScrollBehavior;
         const lifecycle = {
           hideWhenReady: true,
         } satisfies WebGLLifecycleDeclaration;
@@ -102,9 +110,13 @@ describe("public package exports", () => {
           key: "hero.model",
           source: modelSource,
           renderRole,
-          scroll,
+          scroll: pageScroll,
           pointer: pointerDeclaration,
           lifecycle,
+        } satisfies WebGLDeclaration;
+        const gateDeclaration = {
+          key: "hero.scene",
+          scroll: gateScroll,
         } satisfies WebGLDeclaration;
 
         const pointer = {
@@ -134,6 +146,32 @@ describe("public package exports", () => {
           },
           pointer,
         } satisfies WebGLFrameInput;
+        const gateFrame = {
+          time: 20,
+          delta: 10,
+          scroll: {
+            mode: "gate",
+            sceneProgress: 0.25,
+            activeGateKey: gateDeclaration.key,
+            direction: 1,
+            velocity: 0.1,
+          },
+          pointer,
+        } satisfies WebGLFrameInput;
+        ({
+          time: 30,
+          delta: 10,
+          scroll: {
+            mode: "gate",
+            sceneProgress: 0.5,
+            activeGateKey: gateDeclaration.key,
+            // @ts-expect-error gate frame input is scene-based and does not expose pageProgress.
+            pageProgress: 0.25,
+            direction: 1,
+            velocity: 0.1,
+          },
+          pointer,
+        } satisfies WebGLFrameInput);
         const resourceStatus = "idle" satisfies WebGLResourceStatus;
         const debugState = {
           targetCount: 1,
@@ -150,8 +188,30 @@ describe("public package exports", () => {
             },
           ],
         } satisfies WebGLDebugState;
+        const gateDebugState = {
+          targetCount: 1,
+          renderableCount: 1,
+          currentScrollMode: "gate",
+          sceneProgress: gateFrame.scroll.sceneProgress,
+          activeGateKey: gateFrame.scroll.activeGateKey,
+          pointer: gateFrame.pointer,
+          targets: debugState.targets,
+        } satisfies WebGLDebugState;
 
         debugState.targets[0]?.key satisfies string | undefined;
+        gateDebugState.sceneProgress satisfies number | undefined;
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error effect is not part of the public declaration contract.
+          effect: "blur",
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error effects are not part of the public declaration contract.
+          effects: ["blur"],
+        } satisfies WebGLDeclaration);
       `,
     );
 
