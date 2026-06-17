@@ -1,10 +1,10 @@
 # Execution State
 
 ## Current Status
-Task 35 complete. Follow-up demo preview fixes and assets are staged for commit; stop before Task 36 / Full Check.
+Task 36 complete. Full project verification passed; stop before Task 37 / Documentation Alignment.
 
 ## Last Completed Task
-Task 35: Public Export Contract.
+Task 36: Full Check.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -42,33 +42,23 @@ Task 35: Public Export Contract.
 - Task 33: Demo DOM Scene.
 - Task 34: Demo Debug Panel.
 - Task 35: Public Export Contract.
+- Task 36: Full Check.
 
 ## Current Task
 None.
 
 ## Last Commands Run
-- `npm test -- --run apps/demo/src/main-entry-build.test.ts` (red: built demo bundle emitted an unbound `React.createElement` from the JSX entrypoint)
-- `npm test -- --run apps/demo/src/main-entry-build.test.ts` (green after binding the React namespace in `apps/demo/src/main.tsx`)
-- `npm run check` (green after fixing the new test type import)
-- `npm test -- --run apps/demo/src/App.test.tsx` (red after updating expected image source to `/demo/image.png`, while implementation still used `/demo/image.jpg`)
-- `npm test -- --run apps/demo/src/App.test.tsx && npm run check` (green after updating the demo image DOM src and WebGL source to `/demo/image.png`)
+- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green: 33 Vitest files / 107 tests passed, root typecheck passed, workspace build passed, demo import boundary passed, and diff check passed)
 
 ## Last Result
-Follow-up demo preview fixes completed after Task 35. The browser runtime error `React is not defined` was reproduced with a new Vite-build regression test, then fixed by binding the React namespace in `apps/demo/src/main.tsx`. The user-provided demo assets were added under `apps/demo/public`, and the demo image target was updated from `/demo/image.jpg` to `/demo/image.png` with a red/green `App.test.tsx` update. A new README documents setup, LAN demo access, public API imports, demo asset paths, verification commands, and the current Phase 1 visual boundary: DOM targets are registered and resource lifecycle/debug state are wired, but visible Three.js image/video/model scene output is not yet implemented. Task 36 was not started.
+Task 36 completed as a verification-only task. The full project command passed without requiring runtime, React, demo behavior, or build configuration changes. The Vite build emitted the existing non-blocking chunk-size warning, but exited successfully. Task 37 was not started.
 
 ## Files Changed
-- `README.md`
-- `apps/demo/public/demo/image.png`
-- `apps/demo/public/demo/video.mp4`
-- `apps/demo/public/models/hero.glb`
-- `apps/demo/src/main.tsx`
-- `apps/demo/src/main-entry-build.test.ts`
-- `apps/demo/src/App.tsx`
-- `apps/demo/src/App.test.tsx`
+- `docs/IMPLEMENTATION_PLAN.md`
 - `docs/EXECUTION_STATE.md`
 
 ## Known Issues
-No blocking issues are open based on the latest targeted and root `npm run check` verification. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
+No blocking issues are open based on the latest full verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the Phase 1 demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Non-blocking review notes from M11 remain deferred: stronger no-DOM SSR import coverage for the React public entrypoint, and git history cannot independently prove test-first beyond the recorded red/green command logs.
 
 ## Important Constraints
 - Do not implement scene-gated scroll.
@@ -87,4 +77,4 @@ No blocking issues are open based on the latest targeted and root `npm run check
   - @project/dom-webgl-runtime/react
 
 ## Next Step
-Start Task 36: Full Check.
+Start Task 37: Documentation Alignment.

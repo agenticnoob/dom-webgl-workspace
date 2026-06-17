@@ -863,7 +863,7 @@ Tests:
   - Test results: the new public export test failed RED because the root entrypoint still exposed `createTargetRegistry` and `TargetDescriptor`. After removing those internal root re-exports, the targeted test passed, then `typecheck` exposed an old React adapter test that still imported `TargetDescriptor` from the root public entrypoint. That test was updated to import the internal stub type from the internal path, and the full Task 35 verification command passed.
   - Review results: not run. Scope stayed limited to public export contract testing, root export cleanup, and one test import correction required by the public contract.
 
-- [ ] **Task 36: Full Check**
+- [x] **Task 36: Full Check**
 
   **Goal:** Run final project verification.
 
@@ -877,6 +877,12 @@ Tests:
   **Verification command:** `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check`
 
   **Completion condition:** All commands pass; demo import boundary passes; runtime package builds; no second-stage scope slipped into Phase 1.
+
+  **Execution record:**
+  - Files changed: `docs/IMPLEMENTATION_PLAN.md`; `docs/EXECUTION_STATE.md`
+  - Commands run: `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check`
+  - Test results: full verification passed with 33 Vitest files / 107 tests, root typecheck passed, workspace build passed, demo import boundary passed, and diff check passed.
+  - Notes: This was a verification-only task; no runtime, React, demo behavior, scene-gated scroll, scroll lock, `sceneProgress`, effect registry, multiple canvas, or picking behavior was added.
 
 - [ ] **Task 37: Documentation Alignment**
 
