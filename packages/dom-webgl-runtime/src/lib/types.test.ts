@@ -50,6 +50,11 @@ describe("WebGLDeclaration public types", () => {
         } satisfies WebGLPointerDeclaration;
         const lifecycle = {
           hideWhenReady: true,
+          hideMode: "self",
+        } satisfies WebGLLifecycleDeclaration;
+        const subtreeLifecycle = {
+          hideWhenReady: true,
+          hideMode: "subtree",
         } satisfies WebGLLifecycleDeclaration;
 
         const declaration = {
@@ -68,6 +73,13 @@ describe("WebGLDeclaration public types", () => {
 
         declaration.key satisfies string;
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
+        subtreeLifecycle satisfies WebGLLifecycleDeclaration;
+
+        ({
+          hideWhenReady: true,
+          // @ts-expect-error hideMode only supports high-level fallback modes.
+          hideMode: "children",
+        } satisfies WebGLLifecycleDeclaration);
 
         ({
           key: "hero.surface",

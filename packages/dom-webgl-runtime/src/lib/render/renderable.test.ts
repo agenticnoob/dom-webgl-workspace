@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../dom/targetDescriptor";
+import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSnapshotSourceDescriptor } from "../source/sourceDescriptor";
 import { compileRenderPolicy } from "./renderPolicy";
 import { createRenderable } from "./renderable";
@@ -73,6 +74,33 @@ describe("createRenderable", () => {
     expect(onDispose).toHaveBeenCalledTimes(1);
     expect(renderable.status).toBe("disposed");
   });
+
+  test("reports scene object ownership from an attached scene object controller", async () => {
+    const descriptor = createTargetDescriptor(
+      document.createElement("section"),
+      { key: "hero.surface" },
+      0,
+    );
+    const sceneObjectController = createSceneObjectControllerStub();
+    const renderable = createRenderable(
+      {
+        descriptor,
+        source: createSnapshotDescriptor(descriptor.element),
+        role: "surface",
+        policy: compileRenderPolicy("surface"),
+      },
+      {
+        sceneObjectController: () => sceneObjectController,
+      },
+    );
+
+    expect(renderable.hasSceneObject).toBe(false);
+
+    sceneObjectController.attach();
+    await renderable.update(createFrameInput());
+
+    expect(renderable.hasSceneObject).toBe(true);
+  });
 });
 
 function createSnapshotDescriptor(
@@ -110,6 +138,30 @@ function createFrameInput() {
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+    },
+  };
+}
+
+function createSceneObjectControllerStub(): WebGLSceneObjectController {
+  let attached = false;
+  let disposed = false;
+
+  return {
+    get attached() {
+      return attached;
+    },
+    get disposed() {
+      return disposed;
+    },
+    attach() {
+      attached = true;
+    },
+    setVisible: vi.fn(),
+    updateLayout: vi.fn(),
+    render: vi.fn(),
+    dispose() {
+      disposed = true;
+      attached = false;
     },
   };
 }

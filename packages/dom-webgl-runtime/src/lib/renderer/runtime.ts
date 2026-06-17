@@ -16,6 +16,11 @@ import {
   createTargetRegistry,
   type TargetRegistry,
 } from "../dom/registry";
+import {
+  createFallbackVisibilityController,
+  type FallbackHideMode,
+  type FallbackVisibilityController,
+} from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import {
   createFrameInputSource,
@@ -36,11 +41,15 @@ import {
   createRenderable,
   type RenderableFactoryContext,
 } from "../render/renderableFactory";
-import type { Renderable } from "../render/renderable";
+import {
+  isRenderableVisuallyReady,
+  type Renderable,
+} from "../render/renderable";
 import { compileRenderPolicy } from "../render/renderPolicy";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
+import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import {
   createThreeRendererHost,
   type ThreeRendererHost,
@@ -115,8 +124,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   );
   const renderablesByTargetKey = new Map<string, Renderable>();
   const debugRecordsByTargetKey = new Map<string, TargetDebugRecord>();
+  const fallbackControllersByTargetKey = new Map<
+    string,
+    FallbackVisibilityController
+  >();
   const renderableFactoryContext: RenderableFactoryContext = {
     resourceManager,
+    sceneAdapter: rendererHost.sceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
@@ -146,6 +160,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       registry.unregister(targetKey);
       unregisterGateTarget(scrollState, descriptor);
+      restoreFallbackVisibility(fallbackControllersByTargetKey, targetKey);
+      fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(
         targetKey,
         renderablesByTargetKey,
@@ -167,13 +183,21 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           continue;
         }
 
-        const { renderable, debugRecord } = createPipelineRenderable(
+        const { renderable, debugRecord, source } = createPipelineRenderable(
           descriptor,
           renderableFactoryContext,
         );
 
         renderablesByTargetKey.set(descriptor.key, renderable);
         debugRecordsByTargetKey.set(descriptor.key, debugRecord);
+        fallbackControllersByTargetKey.set(
+          descriptor.key,
+          createFallbackVisibilityController(
+            descriptor.element,
+            descriptor.declaration.lifecycle ?? {},
+            { defaultHideMode: readDefaultFallbackHideMode(source) },
+          ),
+        );
         renderables.add(renderable);
         internalOptions.onRenderableCreated?.(renderable);
       }
@@ -197,6 +221,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           result = renderable.update(frameInput);
         } catch (error: unknown) {
           markDebugRecordError(debugRecord, error);
+          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
           releaseActiveGate(scrollState);
           emitDebugState();
           throw error;
@@ -204,19 +229,42 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
         if (isPromiseLike(result)) {
           markDebugRecordLoading(debugRecord);
+          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
           pendingUpdates.push(
             result
               .then(() => {
+                if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                  return;
+                }
+
                 syncDebugRecordFromRenderable(debugRecord, renderable);
+                syncFallbackVisibility(
+                  descriptor,
+                  renderable,
+                  fallbackControllersByTargetKey,
+                );
               })
               .catch((error: unknown) => {
+                if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                  throw error;
+                }
+
                 markDebugRecordError(debugRecord, error);
+                restoreFallbackVisibility(
+                  fallbackControllersByTargetKey,
+                  descriptor.key,
+                );
                 releaseActiveGate(scrollState);
                 throw error;
               }),
           );
         } else {
           syncDebugRecordFromRenderable(debugRecord, renderable);
+          syncFallbackVisibility(
+            descriptor,
+            renderable,
+            fallbackControllersByTargetKey,
+          );
         }
       }
 
@@ -254,6 +302,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         renderablesByTargetKey.clear();
         renderables.clear();
         debugRecordsByTargetKey.clear();
+        restoreAllFallbackVisibility(fallbackControllersByTargetKey);
+        fallbackControllersByTargetKey.clear();
         ownerDocument.removeEventListener(
           "visibilitychange",
           handleVisibilityChange,
@@ -328,7 +378,11 @@ function readDebugScrollState(
 function createPipelineRenderable(
   descriptor: TargetDescriptor,
   context: RenderableFactoryContext,
-): { renderable: Renderable; debugRecord: TargetDebugRecord } {
+): {
+  renderable: Renderable;
+  debugRecord: TargetDebugRecord;
+  source: WebGLSourceDescriptor;
+} {
   const source = inferSourceDescriptor(descriptor);
   const role = inferRenderRole(source, descriptor.declaration);
   const policy = compileRenderPolicy(role);
@@ -343,6 +397,7 @@ function createPipelineRenderable(
   return {
     renderable: attachDebugBookkeeping(renderable, debugRecord),
     debugRecord,
+    source,
   };
 }
 
@@ -363,6 +418,46 @@ function disposeTargetRenderable(
   renderables.delete(renderable);
   debugRecordsByTargetKey.delete(key);
   renderable.dispose();
+}
+
+function syncFallbackVisibility(
+  descriptor: TargetDescriptor,
+  renderable: Renderable,
+  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
+): void {
+  const controller = fallbackControllersByTargetKey.get(descriptor.key);
+
+  if (!controller) {
+    return;
+  }
+
+  if (isRenderableVisuallyReady(renderable)) {
+    controller.hide();
+    return;
+  }
+
+  controller.restore();
+}
+
+function restoreFallbackVisibility(
+  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
+  key: string,
+): void {
+  const controller = fallbackControllersByTargetKey.get(key);
+
+  if (!controller) {
+    return;
+  }
+
+  controller.restore();
+}
+
+function restoreAllFallbackVisibility(
+  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
+): void {
+  for (const controller of fallbackControllersByTargetKey.values()) {
+    controller.restore();
+  }
 }
 
 function readTargetDebugRecord(
@@ -444,6 +539,16 @@ function readRenderableResourceStatus(
     case "disposed":
       return "idle";
   }
+}
+
+function readDefaultFallbackHideMode(
+  source: WebGLSourceDescriptor,
+): FallbackHideMode {
+  if (source.kind === "snapshot" && source.mode === "element") {
+    return "self";
+  }
+
+  return "subtree";
 }
 
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {

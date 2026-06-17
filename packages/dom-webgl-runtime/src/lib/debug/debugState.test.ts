@@ -354,11 +354,25 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
     camera: {},
     renderer: {
       canvas,
+      render() {
+        // Tests cover runtime ownership without touching a real WebGL context.
+      },
       dispose() {
         // Tests cover runtime ownership without touching a real WebGL context.
       },
     },
     scene: {},
+    sceneAdapter: {
+      addObject() {
+        return;
+      },
+      removeObject() {
+        return;
+      },
+      render() {
+        return;
+      },
+    },
     dispose() {
       canvas.remove();
     },

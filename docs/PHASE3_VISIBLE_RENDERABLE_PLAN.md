@@ -146,7 +146,7 @@ Docs and state:
 
 ## Tasks
 
-- [ ] **Task 57: Internal Scene Object Contract**
+- [x] **Task 57: Internal Scene Object Contract**
 
   **Goal:** Add an internal scene object abstraction that renderables can own without exposing Three.js types publicly.
 
@@ -181,7 +181,7 @@ Docs and state:
 
   **Completion condition:** Runtime code has a testable internal scene-object boundary and no public API leak.
 
-- [ ] **Task 58: DOM Rect Projection**
+- [x] **Task 58: DOM Rect Projection**
 
   **Goal:** Define a deterministic internal mapping from DOM rects to scene object layout.
 
@@ -199,7 +199,7 @@ Docs and state:
 
   **Completion condition:** Renderables can update scene layout from DOM measurements with deterministic tests.
 
-- [ ] **Task 59: Lifecycle Hide Mode Types**
+- [x] **Task 59: Lifecycle Hide Mode Types**
 
   **Goal:** Add child-preserving fallback hiding to the public lifecycle declaration without exposing implementation details.
 
@@ -216,7 +216,7 @@ Docs and state:
 
   **Completion condition:** Public lifecycle can request child-preserving DOM fallback hiding in a high-level way.
 
-- [ ] **Task 60: DOM Fallback Visibility Controller**
+- [x] **Task 60: DOM Fallback Visibility Controller**
 
   **Goal:** Add a DOM fallback visibility controller that can hide a whole subtree or only the target element's own paint, then restore exactly.
 
@@ -238,7 +238,7 @@ Docs and state:
 
   **Completion condition:** DOM fallback visibility is independently testable and reversible.
 
-- [ ] **Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready**
+- [x] **Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready**
 
   **Goal:** Wire fallback hiding into runtime lifecycle so DOM hides only after a renderable has a visible scene object.
 
@@ -487,4 +487,4 @@ Docs and state:
 
 ## Suggested Next Round
 
-Start with Task 57 only. It creates the internal scene object boundary required by every later visible renderable path and should be completed, verified, documented in `docs/EXECUTION_STATE.md`, committed, and stopped before Task 58.
+Batch A is complete through Task 61. Next start Batch B at Task 62 only after an explicit request.

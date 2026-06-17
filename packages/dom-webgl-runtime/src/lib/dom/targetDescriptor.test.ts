@@ -50,6 +50,27 @@ describe("createTargetDescriptor", () => {
     expect(descriptor.declaration.lifecycle).toEqual({});
   });
 
+  test("preserves high-level lifecycle fallback hide modes", () => {
+    const element = document.createElement("section");
+
+    const descriptor = createTargetDescriptor(
+      element,
+      {
+        key: "hero.surface",
+        lifecycle: {
+          hideWhenReady: true,
+          hideMode: "self",
+        },
+      },
+      0,
+    );
+
+    expect(descriptor.declaration.lifecycle).toEqual({
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+  });
+
   test("throws before registration when gate scroll declarations are invalid", () => {
     const element = document.createElement("div");
 

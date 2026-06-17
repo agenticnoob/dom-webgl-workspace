@@ -43,6 +43,7 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("surface"),
       {
         resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
         measureElement,
       },
     );
@@ -72,6 +73,7 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("content"),
       {
         resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
         measureElement: () => element.getBoundingClientRect(),
       },
     );
@@ -104,6 +106,7 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("media"),
       {
         resourceManager,
+        sceneAdapter: createSceneAdapter(),
         measureElement: () => source.element.getBoundingClientRect(),
       },
     );
@@ -135,6 +138,7 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("media"),
       {
         resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
         measureElement: () => source.element.getBoundingClientRect(),
         loadVideo,
       },
@@ -162,6 +166,7 @@ describe("createRenderable factory", () => {
       compileRenderPolicy("model"),
       {
         resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
         measureElement: () => source.anchor.getBoundingClientRect(),
         loadModel,
       },
@@ -196,6 +201,7 @@ describe("createRenderable factory", () => {
       policy,
       {
         resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
         measureElement: () => source.element.getBoundingClientRect(),
       },
     );
@@ -222,6 +228,7 @@ describe("createRenderable factory", () => {
         compileRenderPolicy("surface"),
         {
           resourceManager: createResourceManager(),
+          sceneAdapter: createSceneAdapter(),
           measureElement: () => element.getBoundingClientRect(),
         },
       ),
@@ -245,6 +252,7 @@ describe("createRenderable factory", () => {
         compileRenderPolicy("surface"),
         {
           resourceManager: createResourceManager(),
+          sceneAdapter: createSceneAdapter(),
           measureElement: () => element.getBoundingClientRect(),
         },
       ),
@@ -269,6 +277,7 @@ describe("createRenderable factory", () => {
         compileRenderPolicy("model"),
         {
           resourceManager: createResourceManager(),
+          sceneAdapter: createSceneAdapter(),
           measureElement: () => anchor.getBoundingClientRect(),
         },
       ),
@@ -305,5 +314,19 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
     format: "glb",
     anchor: document.createElement("div"),
     src,
+  };
+}
+
+function createSceneAdapter() {
+  return {
+    addObject() {
+      return;
+    },
+    removeObject() {
+      return;
+    },
+    render() {
+      return;
+    },
   };
 }

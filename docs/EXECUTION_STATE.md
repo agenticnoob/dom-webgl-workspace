@@ -1,13 +1,13 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
-Task 56: Phase 2 Documentation Alignment.
+Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -66,9 +66,14 @@ Task 56: Phase 2 Documentation Alignment.
 - Task 54: SSR And Import Boundary Regression.
 - Task 55: Phase 2 Full Verification.
 - Task 56: Phase 2 Documentation Alignment.
+- Task 57: Internal Scene Object Contract.
+- Task 58: DOM Rect Projection.
+- Task 59: Lifecycle Hide Mode Types.
+- Task 60: DOM Fallback Visibility Controller.
+- Task 61: Runtime Applies Fallback Visibility Only After WebGL Ready.
 
 ## Current Task
-Phase 2 is complete. Do not start Phase 3 work unless explicitly requested.
+Phase 3 Batch A is complete. Stop here unless explicitly asked to start Batch B Tasks 62-66.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -221,6 +226,16 @@ Phase 2 is complete. Do not start Phase 3 work unless explicitly requested.
 - Verification after fixes: `npm run check && npm run build && npm run check:imports && git diff --check` passed after the docs fixes. `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck && npm run check:imports && git diff --check` passed after the public API boundary fixes.
 - Next task at this checkpoint: none in Phase 2. Do not start Phase 3 work unless explicitly requested.
 
+## Phase 3 Batch A Completed Task Record
+- Completed tasks: Task 57 Internal Scene Object Contract; Task 58 DOM Rect Projection; Task 59 Lifecycle Hide Mode Types; Task 60 DOM Fallback Visibility Controller; Task 61 Runtime Applies Fallback Visibility Only After WebGL Ready.
+- Files changed: `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.ts`, `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/domProjection.ts`, `packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`, `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderable.ts`, `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`, `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`, `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`, `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.ts`, `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts`, `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`, `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`, `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`, `packages/dom-webgl-runtime/src/lib/types.ts`, `packages/dom-webgl-runtime/src/lib/types.test.ts`, `packages/dom-webgl-runtime/src/publicExports.test.ts`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `docs/EXECUTION_STATE.md`.
+- RED evidence: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` failed before implementation because `sceneObject`, `domProjection`, and `fallbackVisibility` modules were missing, `hideMode` was not accepted by public lifecycle types, and runtime fallback hiding was not wired to visual scene object readiness.
+- GREEN verification: `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` passed with 11 files / 54 tests; `npm run typecheck` passed; `git diff --check` passed.
+- Contract reviewer result: approved with no blocking or non-blocking issues. Public Three.js `renderOrder`, `transparent`, and `depthWrite` remain rejected; scene object/adapter types remain internal and are not root or React exports; lifecycle `hideMode?: "subtree" | "self"` stays high-level; public imports remain SSR-safe; no forbidden effect/adapters/picking/multiple-canvas scope was added.
+- Runtime safety reviewer result: initially requested fixes for subtree descendant hiding, visual readiness coupling, async same-key stale readiness, and scene adapter attached ordering. Fixes landed and re-review approved with no blocking or non-blocking issues.
+- Remaining non-blocking issues: none from Batch A review. Batch A is a foundation slice only; supported source types still do not create visible scene planes/textures/models until Batch B.
+- Next batch: Batch B Tasks 62-66, visible renderable scene paths for element snapshot, text snapshot, image, video, and GLB model sources.
+
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 - `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -264,56 +279,39 @@ Phase 2 is complete. Do not start Phase 3 work unless explicitly requested.
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green after final docs/state review fixes: typecheck passed, 38 Vitest files / 171 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 - `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx packages/dom-webgl-runtime/src/lib/react/useWebGLRuntime.test.tsx packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts && npm run typecheck && npm run check:imports && git diff --check` (green after final contract review fixes: 6 Vitest files / 32 tests passed, typecheck passed, demo import boundary passed, diff check passed)
 - `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green final full Phase 2 verification after review fixes: 38 Vitest files / 172 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts packages/dom-webgl-runtime/src/lib/render/renderable.test.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts` (green Phase 3 Batch A verification after review fixes: 11 Vitest files / 54 tests passed)
+- `npm run typecheck` (green Phase 3 Batch A verification)
+- `git diff --check` (green Phase 3 Batch A verification)
 
 ## Last Result
-Task 56 is complete. Final Phase 2 review passed after fixing blocking docs/state and public API boundary issues. Final full Phase 2 verification after review fixes passed.
-
-The stale next-step note that said Phase 2 was "ready to commit" has been replaced. Phase 2 is already committed at `40a76f2`, and the next planned work is Phase 3 visible renderables.
+Phase 3 Batch A is complete through Task 61. Contract reviewer and runtime safety reviewer approved after fixes for subtree descendant hiding, scene object readiness coupling, stale async same-key fallback mutation, and scene adapter attached ordering.
 
 ## Files Changed
-- `README.md`
-- `docs/00-goal.md`
-- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
 - `docs/EXECUTION_STATE.md`
-- `docs/PHASE2_SCENE_GATE_PLAN.md`
-- `packages/dom-webgl-runtime/src/index.ts`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
-- `packages/dom-webgl-runtime/src/lib/react/runtimeContext.tsx`
-- `packages/dom-webgl-runtime/src/lib/input/frameInput.test.ts`
-- `packages/dom-webgl-runtime/src/lib/runtime-state.test.ts`
-- `packages/dom-webgl-runtime/src/lib/types.test.ts`
-- `packages/dom-webgl-runtime/src/lib/types.ts`
-- `packages/dom-webgl-runtime/src/publicExports.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollDeclaration.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollDeclaration.test.ts`
-- `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.ts`
+- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
+- `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.ts`
+- `packages/dom-webgl-runtime/src/lib/dom/fallbackVisibility.test.ts`
 - `packages/dom-webgl-runtime/src/lib/dom/targetDescriptor.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/sceneGate.ts`
-- `packages/dom-webgl-runtime/src/lib/input/sceneGate.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollDelta.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollLock.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollLock.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollController.ts`
-- `packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/pageScroll.ts`
-- `packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts`
-- `packages/dom-webgl-runtime/src/lib/input/frameInput.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderable.test.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderableFactory.test.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/domProjection.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
-- `apps/demo/src/App.tsx`
-- `apps/demo/src/App.test.tsx`
-- `apps/demo/src/debugPanel.tsx`
-- `apps/demo/src/debugPanel.test.tsx`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/sceneObject.test.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`
+- `packages/dom-webgl-runtime/src/lib/types.ts`
+- `packages/dom-webgl-runtime/src/lib/types.test.ts`
 - `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
 ## Known Issues
-No blocking issues are open based on the latest verification. The Vite production build still emits a non-blocking chunk-size warning for the generated demo bundle. Remaining scope boundary: the demo registers targets and loads resources, but does not yet render DOM snapshots, image/video planes, or GLB objects as visible Three.js scene content. Git history cannot independently prove test-first beyond the recorded red/green command logs.
+No blocking or non-blocking Batch A review issues remain. Batch A is foundation only: supported source types still do not create visible scene planes/textures/models until Batch B. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch A did not run a production build.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -336,4 +334,4 @@ No blocking issues are open based on the latest verification. The Vite productio
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Use `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md` for the next implementation round. Start with Task 57 only: Internal Scene Object Contract. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch A. Next implementation round is Batch B Tasks 62-66: visible renderable scene paths for element snapshot, text snapshot, image, video, and GLB model sources. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

@@ -166,6 +166,85 @@ describe("createWebGLRuntime", () => {
     runtime.dispose();
   });
 
+  test("keeps fallback DOM visible until a ready renderable has a scene object", async () => {
+    let visuallyReady = false;
+    const runtime = await createRuntimeForCleanupTest({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: visuallyReady,
+          }),
+        });
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "hero.surface",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    expect(element.style.visibility).toBe("");
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("");
+
+    visuallyReady = true;
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+
+    runtime.dispose();
+    expect(element.style.visibility).toBe("");
+  });
+
+  test("restores fallback DOM on unregister and renderable errors keep DOM visible", async () => {
+    let shouldThrow = false;
+    const runtime = await createRuntimeForCleanupTest({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+          }),
+        });
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = (input) => {
+          if (shouldThrow) {
+            throw new Error("render failed");
+          }
+
+          return originalUpdate(input);
+        };
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "hero.surface",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+
+    runtime.unregisterTarget("hero.surface");
+    expect(element.style.visibility).toBe("");
+
+    const failingElement = document.createElement("section");
+    runtime.registerTarget(failingElement, {
+      key: "hero.error",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+    shouldThrow = true;
+
+    expect(() => runtime.sync()).toThrow("render failed");
+    expect(failingElement.style.visibility).toBe("");
+
+    runtime.dispose();
+  });
+
   test("runtime cleanup is idempotent across visibility hidden unregister and dispose", async () => {
     const visibilityState = vi
       .spyOn(document, "visibilityState", "get")
@@ -232,11 +311,25 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
     camera: {},
     renderer: {
       canvas,
+      render() {
+        // Tests cover runtime cleanup without a real WebGL context.
+      },
       dispose() {
         // Tests cover runtime cleanup without a real WebGL context.
       },
     },
     scene: {},
+    sceneAdapter: {
+      addObject() {
+        return;
+      },
+      removeObject() {
+        return;
+      },
+      render() {
+        return;
+      },
+    },
     dispose() {
       canvas.remove();
     },

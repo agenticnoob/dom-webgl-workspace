@@ -1,4 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
+import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLRenderRole } from "../types";
 import type { RenderPolicy } from "./renderPolicy";
@@ -18,6 +19,8 @@ export type Renderable = {
   role: WebGLRenderRole;
   policy: RenderPolicy;
   status: RenderableStatus;
+  readonly sceneObjectController?: WebGLSceneObjectController;
+  readonly hasSceneObject: boolean;
   update(input?: WebGLFrameInput): void | Promise<void>;
   setVisible(visible: boolean): void;
   dispose(): void;
@@ -38,6 +41,7 @@ type RenderableHooks = {
     input: WebGLFrameInput,
   ): void | Promise<void>;
   setVisible?(visible: boolean): void;
+  sceneObjectController?(): WebGLSceneObjectController | undefined;
   dispose?(): void;
 };
 
@@ -95,6 +99,12 @@ export function createRenderable(
     get status() {
       return lifecycle.status;
     },
+    get sceneObjectController() {
+      return hooks.sceneObjectController?.();
+    },
+    get hasSceneObject() {
+      return this.sceneObjectController?.attached === true;
+    },
     update(input?: WebGLFrameInput): void | Promise<void> {
       if (disposed) {
         return;
@@ -141,6 +151,13 @@ export function createRenderable(
       hooks.dispose?.();
     },
   };
+}
+
+export function isRenderableVisuallyReady(renderable: Renderable): boolean {
+  return (
+    renderable.status === "ready" &&
+    renderable.sceneObjectController?.attached === true
+  );
 }
 
 function createEmptyFrameInput(): WebGLFrameInput {

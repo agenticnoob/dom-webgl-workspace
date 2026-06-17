@@ -20,7 +20,7 @@ type RuntimeWithInternalRenderableSeed = Parameters<typeof createWebGLRuntime>[0
 describe("createThreeRendererHost", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.doUnmock("three/src/cameras/PerspectiveCamera.js");
+    vi.doUnmock("three/src/cameras/OrthographicCamera.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
     vi.doUnmock("three/src/scenes/Scene.js");
     vi.resetModules();
@@ -37,10 +37,10 @@ describe("createThreeRendererHost", () => {
       }),
     );
     const Scene = vi.fn(() => scene);
-    const PerspectiveCamera = vi.fn(() => camera);
+    const OrthographicCamera = vi.fn(() => camera);
 
-    vi.doMock("three/src/cameras/PerspectiveCamera.js", () => ({
-      PerspectiveCamera,
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
     }));
     vi.doMock("three/src/renderers/WebGLRenderer.js", () => ({
       WebGLRenderer,
@@ -58,9 +58,11 @@ describe("createThreeRendererHost", () => {
       canvas: host.canvas,
     });
     expect(Scene).toHaveBeenCalledTimes(1);
-    expect(PerspectiveCamera).toHaveBeenCalledWith(50, 1, 0.1, 1000);
+    expect(OrthographicCamera).toHaveBeenCalledWith(0, 1, 1, 0, 0.1, 1000);
     expect(host.scene).toBe(scene);
     expect(host.camera).toBe(camera);
+    expect(host.sceneAdapter).toEqual(expect.any(Object));
+    host.sceneAdapter.render();
 
     host.dispose();
     host.dispose();
@@ -94,6 +96,7 @@ describe("createThreeRendererHost", () => {
     expect(createObjects).toHaveBeenCalledWith(host.canvas);
     expect(host.scene).toBe(scene);
     expect(host.camera).toBe(camera);
+    expect(host.sceneAdapter).toEqual(expect.any(Object));
     expect(canvasCreateCalls(createElement)).toHaveLength(1);
     expect(container.querySelectorAll("canvas")).toHaveLength(1);
     expect(container.querySelector("canvas")).toBe(host.canvas);
@@ -168,6 +171,9 @@ function createRendererObjectsStub(canvas: HTMLCanvasElement) {
     camera: {},
     renderer: {
       canvas,
+      render() {
+        // Tests assert host/runtime ownership, not GPU behavior.
+      },
       dispose() {
         // Tests assert host/runtime ownership, not GPU behavior.
       },

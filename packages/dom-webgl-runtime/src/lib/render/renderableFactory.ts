@@ -1,5 +1,6 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import type { ResourceManager } from "../resources/resourceManager";
+import type { WebGLSceneAdapter } from "../renderer/sceneObject";
 import type {
   WebGLModelSourceDescriptor,
   WebGLSourceDescriptor,
@@ -27,6 +28,7 @@ type ElementMeasurement = {
 
 export type RenderableFactoryContext = {
   resourceManager: ResourceManager;
+  sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;

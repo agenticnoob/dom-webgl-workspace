@@ -139,6 +139,10 @@ describe("public package exports", () => {
         import { createTargetRegistry } from "${importPath}";
         // @ts-expect-error Target descriptors are internal pipeline state.
         import type { TargetDescriptor } from "${importPath}";
+        // @ts-expect-error Scene objects are internal renderer state.
+        import type { WebGLSceneObject } from "${importPath}";
+        // @ts-expect-error Scene adapters are internal renderer state.
+        import type { WebGLSceneAdapter } from "${importPath}";
 
         createWebGLRuntime satisfies (
           options: WebGLRuntimeOptions,
@@ -183,6 +187,7 @@ describe("public package exports", () => {
         gateScroll satisfies WebGLScrollBehavior;
         const lifecycle = {
           hideWhenReady: true,
+          hideMode: "subtree",
         } satisfies WebGLLifecycleDeclaration;
 
         const declaration = {

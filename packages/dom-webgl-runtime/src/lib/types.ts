@@ -55,6 +55,7 @@ export type WebGLPointerDeclaration = {
 
 export type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
+  hideMode?: "subtree" | "self";
 };
 
 export type WebGLDeclaration = {

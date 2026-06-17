@@ -312,6 +312,104 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("keeps fallback visible while async renderable loading is pending", async () => {
+    let resolveLoad: (() => void) | undefined;
+    const runtime = await createPipelineRuntime({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+          }),
+        });
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = async (input) => {
+          await new Promise<void>((resolve) => {
+            resolveLoad = resolve;
+          });
+          return originalUpdate(input);
+        };
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "hero.async",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    const syncResult = runtime.sync();
+
+    expect(element.style.visibility).toBe("");
+
+    resolveLoad?.();
+    await syncResult;
+
+    expect(element.style.visibility).toBe("hidden");
+
+    runtime.dispose();
+  });
+
+  test("does not let stale async readiness hide a new same-key target", async () => {
+    let resolveOldUpdate: (() => void) | undefined;
+    let createdCount = 0;
+    const runtime = await createPipelineRuntime({
+      onRenderableCreated(renderable) {
+        createdCount += 1;
+
+        if (createdCount === 1) {
+          Object.defineProperty(renderable, "sceneObjectController", {
+            configurable: true,
+            get: () => ({
+              attached: true,
+            }),
+          });
+          const originalUpdate = renderable.update.bind(renderable);
+
+          renderable.update = async (input) => {
+            await new Promise<void>((resolve) => {
+              resolveOldUpdate = resolve;
+            });
+            return originalUpdate(input);
+          };
+          return;
+        }
+
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: false,
+          }),
+        });
+      },
+    });
+    const oldElement = document.createElement("section");
+    const newElement = document.createElement("section");
+
+    runtime.registerTarget(oldElement, {
+      key: "hero.async",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    const oldSync = runtime.sync();
+
+    runtime.unregisterTarget("hero.async");
+    runtime.registerTarget(newElement, {
+      key: "hero.async",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+    await runtime.sync();
+
+    resolveOldUpdate?.();
+    await oldSync;
+
+    expect(oldElement.style.visibility).toBe("");
+    expect(newElement.style.visibility).toBe("");
+
+    runtime.dispose();
+  });
+
   test("reports active gate state through runtime debug state", async () => {
     const scrollController = createGateAwareScrollController();
     const runtime = await createPipelineRuntime({ scrollState: scrollController });
@@ -351,11 +449,25 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
     camera: {},
     renderer: {
       canvas,
+      render() {
+        // Tests cover runtime ownership without touching a real WebGL context.
+      },
       dispose() {
         // Tests cover runtime ownership without touching a real WebGL context.
       },
     },
     scene: {},
+    sceneAdapter: {
+      addObject() {
+        return;
+      },
+      removeObject() {
+        return;
+      },
+      render() {
+        return;
+      },
+    },
     dispose() {
       canvas.remove();
     },
