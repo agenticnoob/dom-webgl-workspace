@@ -68,10 +68,10 @@ export function WebGLRuntime({
 }
 
 function createPendingRuntime(): RuntimeInstance {
+  const container = createPendingRuntimeContainer();
+
   return {
-    get container(): HTMLElement {
-      throw new Error("WebGL runtime container is not ready yet.");
-    },
+    container,
     registerTarget(_element: HTMLElement, _declaration: WebGLDeclaration) {},
     unregisterTarget() {},
     sync() {},
@@ -101,4 +101,12 @@ function createPendingRuntime(): RuntimeInstance {
     },
     dispose() {},
   };
+}
+
+function createPendingRuntimeContainer(): HTMLElement {
+  if (typeof document !== "undefined") {
+    return document.createElement("div");
+  }
+
+  return { tagName: "DIV" } as HTMLElement;
 }

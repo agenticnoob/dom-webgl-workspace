@@ -108,6 +108,26 @@ describe("WebGLRuntime", () => {
     expect(providedRuntime).toBe(runtimeMocks.createWebGLRuntime.mock.results[0].value);
   });
 
+  test("allows consumers to read the pending runtime container before mount effects run", async () => {
+    const { WebGLRuntime, useWebGLRuntime } = await import("../../react");
+
+    function RuntimeConsumer() {
+      const runtime = useWebGLRuntime();
+
+      return createElement(
+        "span",
+        { "data-pending-container": runtime.container.tagName },
+        "pending",
+      );
+    }
+
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(WebGLRuntime, null, createElement(RuntimeConsumer)),
+      ),
+    ).not.toThrow();
+  });
+
   test("disposes the runtime on unmount", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
