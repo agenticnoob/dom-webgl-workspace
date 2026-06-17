@@ -4,6 +4,8 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
+const TYPECHECK_TEST_TIMEOUT_MS = 15_000;
+
 describe("public package exports", () => {
   test("root entrypoint exposes runtime APIs without internal helpers", async () => {
     const rootApi = await import("./index");
@@ -98,7 +100,7 @@ describe("public package exports", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, TYPECHECK_TEST_TIMEOUT_MS);
 
   test("React public provider props use the public runtime type boundary", () => {
     const runtimeContextSource = readFileSync(
@@ -360,7 +362,7 @@ describe("public package exports", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, TYPECHECK_TEST_TIMEOUT_MS);
 });
 
 function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {

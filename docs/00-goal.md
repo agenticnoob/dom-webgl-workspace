@@ -9,7 +9,11 @@ complete through Task 37. Phase 2 scene-gated scroll is complete through Task
 56, including public gate declarations, scroll lock, `sceneProgress`, explicit
 reverse gate behavior, demo gate declaration, debug state display,
 SSR/import-boundary regressions, full verification, and final documentation
-alignment. Effects remain future work.
+alignment. Phase 3 visible renderables are complete through Task 72: DOM-authored
+element snapshots, text snapshots, images, videos, and GLB models now become
+runtime-owned visible scene objects, fallback visibility is tied to renderable
+readiness, and public/SSR import boundaries remain covered. Effects remain
+future work.
 
 ## Purpose
 
@@ -31,6 +35,7 @@ DOM element
   -> source descriptor
   -> renderRole
   -> renderable
+  -> runtime-owned scene object
   -> single renderer
 ```
 
@@ -49,6 +54,9 @@ Page authors should not think about:
 - Three.js `renderOrder`.
 - Three.js `transparent`.
 - Three.js `depthWrite`.
+- Internal scene objects.
+- DOM rect projection.
+- Renderer adapters.
 - Renderer pass order.
 - Multiple WebGL canvases.
 - Effects that scan DOM or own separate resource pipelines.
@@ -67,6 +75,11 @@ type WebGLDeclaration = {
   scroll?: WebGLScrollBehavior;
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
+};
+
+type WebGLLifecycleDeclaration = {
+  hideWhenReady?: boolean;
+  hideMode?: "subtree" | "self";
 };
 ```
 
@@ -114,6 +127,10 @@ Disallowed declarations:
 - Three.js `renderOrder`.
 - Three.js `transparent`.
 - Three.js `depthWrite`.
+- Internal scene object ownership.
+- DOM projection details.
+- Scene adapter details.
+- Internal render ordering types.
 - Renderer pass details.
 - Canvas layer details.
 - Effect-owned resource pipelines.
@@ -255,6 +272,20 @@ model   -> model band, normal 3D depth within the model
 overlay -> highest controlled band
 ```
 
+Delivered Phase 3 behavior:
+
+- Element snapshot targets create visible runtime-owned scene planes.
+- Text snapshot targets create visible runtime-owned scene planes.
+- Image targets create visible runtime-owned image scene planes.
+- Video targets create visible runtime-owned video scene planes.
+- GLB model targets create visible runtime-owned model scene objects.
+- DOM rects are projected into scene coordinates internally.
+- Ordering comes from `renderRole` through internal render policy, not public
+  Three.js flags.
+- Runtime sync renders visible scene changes through the single scene adapter.
+- Async resource completion requests a render after the visual scene object is
+  ready.
+
 ## Scroll Contract
 
 The runtime must support two kinds of scroll behavior.
@@ -386,6 +417,9 @@ The runtime owns:
 - Render role inference.
 - Render policy compilation.
 - Base renderable creation.
+- Runtime-owned scene object creation, layout updates, visibility, and disposal.
+- DOM rect projection into scene layout.
+- Internal render policy ordering.
 - One Three.js renderer and canvas.
 - Scroll input routing.
 - Scene gate state.
@@ -465,6 +499,8 @@ The library owns:
 - Source descriptor inference.
 - `renderRole` inference and render policy compilation.
 - Base renderable creation.
+- Runtime-owned visible scene objects.
+- DOM rect projection and internal render ordering.
 - Scroll controller and scene gates.
 - Pointer controller.
 - Renderer loop.
@@ -600,7 +636,18 @@ type WebGLRuntimeEvents = {
 };
 ```
 
-`hideWhenReady` and related lifecycle options must only hide fallback visuals after the matching WebGL resource is ready.
+`hideWhenReady` and related lifecycle options must only hide fallback visuals
+after the matching WebGL scene object is visually ready.
+
+Delivered fallback visibility behavior:
+
+- Loading renderables keep the DOM fallback visible.
+- Failed renderables keep the DOM fallback visible.
+- `hideWhenReady: true` hides fallback only after visual scene object readiness.
+- `hideMode: "subtree"` hides the target and descendants after readiness.
+- `hideMode: "self"` hides only the target element's own fallback paint and
+  preserves child DOM visibility.
+- Target unregister and runtime disposal restore fallback visibility.
 
 ## DOM To WebGL Performance Contract
 

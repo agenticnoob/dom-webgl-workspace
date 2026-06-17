@@ -1,13 +1,13 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 Batch A is complete through Task 61: internal scene object/projection foundation and DOM fallback lifecycle wiring. Phase 3 Batch B is complete through Task 66: element, text, image, video, and GLB model renderables now create runtime-owned Three scene content. Phase 3 Batch C is complete through Task 68: renderRole policies now drive internal scene object ordering, and runtime sync renders visible scene changes through the single scene adapter. Phase 3 Batch D is complete through Task 70: the React demo declares every visible renderable path through public APIs, and SSR/public export boundaries are covered by stronger regressions.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; render-on-sync, demo coverage, public import boundaries, and final documentation alignment are complete.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 
 ## Last Completed Task
-Task 70: SSR And Public Boundary Regression.
+Task 72: Phase 3 Documentation Alignment.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -80,9 +80,11 @@ Task 70: SSR And Public Boundary Regression.
 - Task 68: Runtime Renders Scene On Sync.
 - Task 69: React And Demo Visible Smoke.
 - Task 70: SSR And Public Boundary Regression.
+- Task 71: Phase 3 Full Verification.
+- Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 3 Batch D is complete. Stop here unless explicitly asked to start Batch E Task 71.
+Phase 3 is complete through Task 72. Stop here; do not start the next phase.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -279,6 +281,43 @@ Phase 3 Batch D is complete. Stop here unless explicitly asked to start Batch E 
 - Remaining non-blocking issues: none for Batch D.
 - Next batch: Batch E Tasks 71-72: Phase 3 Full Verification and Phase 3 Documentation Alignment. Do not start until explicitly requested.
 
+## Phase 3 Documentation Checklist
+- Visible element snapshot path.
+- Visible text snapshot path.
+- Visible image path.
+- Visible video path.
+- Visible GLB model path.
+- Internal scene object ownership.
+- DOM rect projection.
+- Internal render policy ordering.
+- Render-on-sync behavior.
+- Fallback visibility semantics.
+- `hideWhenReady`.
+- `hideMode: "subtree"`.
+- `hideMode: "self"`.
+- Child-preserving fallback visibility.
+- Public API boundary.
+- Demo public imports only.
+- SSR-safe public imports.
+- Still-forbidden effect registry.
+- Still-forbidden animation/effect layer.
+- Still-forbidden Lenis / GSAP / ScrollTrigger adapter.
+- Still-forbidden WebGL raycast picking.
+- Still-forbidden multiple canvas.
+- Still-forbidden public Three.js `renderOrder`, `transparent`, and `depthWrite`.
+
+## Phase 3 Batch E Completed Task Record
+- Completed tasks: Task 71 Phase 3 Full Verification; Task 72 Phase 3 Documentation Alignment.
+- Files changed: `README.md`, `docs/00-goal.md`, `docs/EXECUTION_STATE.md`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `packages/dom-webgl-runtime/src/publicExports.test.ts`, `vitest.config.ts`.
+- Commands run: `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts -t "React entrypoint type-checks public gate declarations only"` reproduced the public export typecheck as passing in isolation. `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts` passed after the timeout fix. `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` passed for Task 71 full verification after increasing the test timeout budget for compile/build-heavy tests. Post-doc verification command is recorded below after docs alignment.
+- Verification results: full Phase 3 verification passed with 41 Vitest files / 202 tests, typecheck passed, build passed, demo import boundary passed, and `git diff --check` passed. The build emitted the existing non-blocking Vite chunk-size warning.
+- Supported source paths verified: element snapshot, text snapshot, image, video, and GLB model all have visible scene path coverage through renderable tests and demo smoke coverage.
+- Blocking issues fixed: the first full verification run exposed Vitest default 5 second timeout failures in TypeScript/Vite compile-heavy boundary tests under full-suite parallel load. Fixes landed by adding a 30 second global Vitest timeout and explicit timeout coverage for the public export typecheck tests. No runtime or public API behavior changed.
+- Review results by subagent: final contract reviewer approved with no blocking issues; runtime safety reviewer approved with no blocking issues; test coverage reviewer approved with no blocking issues; docs/state reviewer approved with no blocking issues.
+- Remaining non-blocking issues: demo production build still emits Vite's default chunk-size warning for a large demo bundle.
+- Final commit hash: pending until commit.
+- Next recommended phase: plan the effect/animation layer as a separate next phase; do not start it from Batch E.
+
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
 - `npm run check && git diff --check` (green post-doc verification: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -336,23 +375,24 @@ Phase 3 Batch D is complete. Stop here unless explicitly asked to start Batch E 
 - `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` (green Task 69 verification: 4 files / 17 tests passed, demo import boundary passed, typecheck passed)
 - `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts apps/demo/src/demo-import-boundary.test.ts && npm run check:imports && npm run typecheck` (green Task 70 verification: 3 files / 20 tests passed, demo import boundary passed, typecheck passed)
 - `npm test -- --run apps/demo/src/App.test.tsx apps/demo/src/debugPanel.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx apps/demo/src/demo-import-boundary.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts && npm run check:imports && npm run typecheck && git diff --check` (green Phase 3 Batch D checkpoint verification: 6 files / 34 tests passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts -t "React entrypoint type-checks public gate declarations only"` (green Batch E timeout investigation: targeted public React entrypoint typecheck passed in isolation)
+- `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts` (green Batch E targeted verification after timeout fix: 5 tests passed)
+- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green Task 71 full verification: 41 Vitest files / 202 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 3 Batch D is complete through Task 70. The demo now declares every visible renderable path through public React APIs, demonstrates child-preserving fallback hiding, shows WebGL-visible readiness from public debug state, and has stronger SSR/public export boundary regressions. Demo/API, SSR/public boundary, and Phase scope reviewers approved with no blocking or non-blocking issues.
+Phase 3 Batch E is complete through Task 72. Full verification is green after stabilizing compile/build-heavy test timeouts. User-facing docs now describe delivered visible renderables, fallback visibility, render-on-sync behavior, public boundaries, and deferred effect/adapters/picking scope. Final contract, runtime safety, test coverage, and docs/state reviewers approved with no blocking issues.
 
 ## Files Changed
-- `apps/demo/src/App.tsx`
-- `apps/demo/src/App.test.tsx`
-- `apps/demo/src/debugPanel.tsx`
-- `apps/demo/src/debugPanel.test.tsx`
-- `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
+- `README.md`
+- `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
-- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.test.tsx`
-- `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
+- `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
 - `packages/dom-webgl-runtime/src/publicExports.test.ts`
+- `vitest.config.ts`
 
 ## Known Issues
-No blocking or non-blocking Batch D review issues remain. Batch D does not implement Task 71 full Phase 3 verification or Task 72 final documentation alignment. The existing non-blocking Vite production build chunk-size warning remains outside this batch because Batch D did not run a production build.
+No blocking Batch E issues remain after final review. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -375,4 +415,4 @@ No blocking or non-blocking Batch D review issues remain. Batch D does not imple
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch D. Next implementation round is Batch E: Task 71 Phase 3 Full Verification, then Task 72 Phase 3 Documentation Alignment. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch E. Phase 3 is complete through Task 72. The recommended next phase is effect/animation planning, but do not start it from this batch. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

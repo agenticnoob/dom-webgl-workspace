@@ -452,7 +452,7 @@ Docs and state:
 
   **Completion condition:** Visible renderable internals stay internal and SSR/public import guarantees remain intact.
 
-- [ ] **Task 71: Phase 3 Full Verification**
+- [x] **Task 71: Phase 3 Full Verification**
 
   **Goal:** Run full workspace verification after all visible renderable paths are complete.
 
@@ -467,7 +467,7 @@ Docs and state:
 
   **Completion condition:** Full verification passes and every supported source type has a verified visible scene path.
 
-- [ ] **Task 72: Phase 3 Documentation Alignment**
+- [x] **Task 72: Phase 3 Documentation Alignment**
 
   **Goal:** Align user-facing docs with delivered visible renderable and fallback visibility behavior.
 
@@ -487,4 +487,5 @@ Docs and state:
 
 ## Suggested Next Round
 
-Batch D is complete through Task 70. Next start Batch E Tasks 71-72 only after an explicit request.
+Phase 3 is complete through Task 72. The recommended next phase is effect or
+animation planning, but do not start it from this Phase 3 plan.
