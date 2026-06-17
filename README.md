@@ -9,6 +9,8 @@ Phase 2 scene-gated scroll work is complete through Task 56 in
 `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
+The next required correction is Phase 3.5 runtime performance and stage work in
+`docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 
 Current demo behavior:
 
@@ -19,6 +21,10 @@ Current demo behavior:
 - Runtime registration, source inference, render role inference, renderable
   creation, resource lifecycle, debug state, page scroll state, scene gate state,
   scroll lock, and pointer state are wired.
+- The React runtime automatically syncs on animation frames after mount, so
+  declared DOM targets are pushed into the internal scene without app code
+  calling `runtime.sync()`. This is a post-Task 72 bridge, not the final
+  performance model.
 - Element snapshots, text snapshots, images, videos, and GLB models now create
   runtime-owned visible scene objects in the single internal Three.js scene.
 - The debug panel shows current scroll mode plus active gate key and
@@ -31,7 +37,8 @@ Current visual behavior:
 - DOM-authored targets compile into source descriptors, render roles, internal
   render policy ordering, and runtime-owned scene objects.
 - DOM rects are projected into scene layout during runtime sync.
-- Runtime sync renders visible scene changes through the single scene adapter.
+- Automatic runtime sync renders visible scene changes through the single scene
+  adapter.
 - `lifecycle.hideWhenReady` hides fallback DOM only after the matching scene
   object is visually ready.
 - Loading and error renderables keep fallback DOM visible.
@@ -45,6 +52,10 @@ Current visual behavior:
   and ScrollTrigger adapters remain intentionally out of scope.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
+- Phase 3.5 must replace the bridge sync with a renderer-owned loop, make the
+  canvas an internal stage layer instead of document-flow content, add renderer
+  performance defaults and a DPR cap, batch layout reads, and separate layout,
+  content, and resource update boundaries before effect or animation work starts.
 
 ## Setup
 

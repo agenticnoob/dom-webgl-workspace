@@ -61,6 +61,60 @@ export function WebGLRuntime({
     };
   }, []);
 
+  useEffect(() => {
+    if (runtime === null) {
+      return;
+    }
+
+    const ownerWindow = runtime.container.ownerDocument.defaultView ?? window;
+    const requestFrame = ownerWindow.requestAnimationFrame.bind(ownerWindow);
+    const cancelFrame = ownerWindow.cancelAnimationFrame.bind(ownerWindow);
+    let frameId = 0;
+    let disposed = false;
+    let syncPending = false;
+
+    const reportSyncError = (error: unknown) => {
+      console.error("WebGL runtime sync failed.", error);
+    };
+
+    const syncRuntime = () => {
+      if (syncPending) {
+        return;
+      }
+
+      try {
+        const result = runtime.sync();
+
+        if (isPromiseLike(result)) {
+          syncPending = true;
+          result
+            .catch(reportSyncError)
+            .finally(() => {
+              syncPending = false;
+            });
+        }
+      } catch (error: unknown) {
+        reportSyncError(error);
+      }
+    };
+
+    const tick = () => {
+      if (disposed) {
+        return;
+      }
+
+      syncRuntime();
+      frameId = requestFrame(tick);
+    };
+
+    frameId = requestFrame(tick);
+
+    return () => {
+      disposed = true;
+      cancelFrame(frameId);
+    };
+  }, [runtime]);
+
   return createElement(
     "div",
     { ref: containerRef, className, style },
@@ -114,4 +168,8 @@ function createPendingRuntimeContainer(): HTMLElement {
   }
 
   return { tagName: "DIV" } as HTMLElement;
+}
+
+function isPromiseLike(value: void | Promise<void>): value is Promise<void> {
+  return typeof value === "object" && value !== null && "then" in value;
 }

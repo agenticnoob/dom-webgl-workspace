@@ -1,13 +1,14 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; render-on-sync, demo coverage, public import boundaries, and final documentation alignment are complete.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72 plus a post-Task 72 runtime drive bridge: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; mounted React runtimes automatically sync on animation frames; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 is now the next required correction before effects: fix runtime performance and stage display so the canvas is an internal WebGL stage layer, the renderer owns the loop, layout reads are batched, and snapshot/resource updates follow dirty/lifecycle boundaries.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
+Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 
 ## Last Completed Task
-Task 72: Phase 3 Documentation Alignment.
+Phase 3.5 Runtime Performance And Stage Plan.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -84,7 +85,7 @@ Task 72: Phase 3 Documentation Alignment.
 - Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 3 is complete through Task 72. Stop here; do not start the next phase.
+Phase 3 is complete through Task 72. The next task is Phase 3.5 runtime performance and stage correction. Do not start the effect or animation layer until Phase 3.5 is implemented and verified.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -316,7 +317,7 @@ Phase 3 is complete through Task 72. Stop here; do not start the next phase.
 - Review results by subagent: final contract reviewer approved with no blocking issues; runtime safety reviewer approved with no blocking issues; test coverage reviewer approved with no blocking issues; docs/state reviewer approved with no blocking issues.
 - Remaining non-blocking issues: demo production build still emits Vite's default chunk-size warning for a large demo bundle.
 - Final commit hash: pending until commit.
-- Next recommended phase: plan the effect/animation layer as a separate next phase; do not start it from Batch E.
+- Next recommended phase: implement Phase 3.5 runtime performance and stage correction before planning the effect/animation layer.
 
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -415,4 +416,4 @@ No blocking Batch E issues remain after final review. The existing non-blocking 
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch E. Phase 3 is complete through Task 72. The recommended next phase is effect/animation planning, but do not start it from this batch. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Stop after Phase 3 Batch E. Phase 3 is complete through Task 72. The required next phase is Phase 3.5 runtime performance and stage correction; do not start effect/animation planning until Phase 3.5 is implemented and verified. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.

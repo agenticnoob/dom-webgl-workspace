@@ -147,6 +147,50 @@ describe("WebGLRuntime", () => {
     expect(providedRuntime).toBe(runtimeMocks.createWebGLRuntime.mock.results[0].value);
   });
 
+  test("automatically syncs the mounted runtime on animation frames", async () => {
+    const { WebGLRuntime, WebGLTarget } = await import("../../react");
+    const { root } = createTestRoot();
+    const animationFrames: FrameRequestCallback[] = [];
+    const requestAnimationFrame = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        animationFrames.push(callback);
+        return animationFrames.length;
+      });
+    const cancelAnimationFrame = vi
+      .spyOn(globalThis, "cancelAnimationFrame")
+      .mockImplementation(() => {});
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntime,
+          null,
+          createElement(WebGLTarget, {
+            webgl: { key: "hero.surface" },
+            id: "hero-surface",
+          }),
+        ),
+      );
+    });
+
+    const runtime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      animationFrames.shift()?.(16);
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "hero-surface" }),
+      { key: "hero.surface" },
+    );
+    expect(runtime.sync).toHaveBeenCalledTimes(1);
+
+    requestAnimationFrame.mockRestore();
+    cancelAnimationFrame.mockRestore();
+  });
+
   test("allows consumers to read the pending runtime container before mount effects run", async () => {
     const { WebGLRuntime, useWebGLRuntime } = await import("../../react");
 
@@ -199,11 +243,9 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 function createRuntimeStub(container: HTMLElement): RuntimeInstance {
   return {
     container,
-    registerTarget() {
-      throw new Error("not implemented in test");
-    },
-    unregisterTarget() {},
-    sync() {},
+    registerTarget: vi.fn(),
+    unregisterTarget: vi.fn(),
+    sync: vi.fn(),
     getDebugState() {
       return {
         targetCount: 0,
