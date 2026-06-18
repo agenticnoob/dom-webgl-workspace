@@ -17,11 +17,14 @@ performance and stage correction is implemented: the canvas is a fixed
 transparent internal viewport stage layer, the renderer owns the frame loop,
 layout reads are batched, snapshot content rebuilds follow dirty boundaries,
 target lifecycle state is reported separately from resource status, and
-resource/render-target disposal contracts are covered. Phase 4 DOM style
-fidelity and responsive mapping is implemented: supported common CSS box paint,
-shared text style snapshots, media object-fit mapping, cached renderer resize,
-dirty DOM invalidation, and a public-API-only responsive demo harness are in
-place. Effects remain future work.
+resource/render-target disposal contracts are covered. Phase 4 is now narrowed
+to DOM layout/content mapping: layout snapshots, cached renderer resize, dirty
+DOM invalidation, placement-only style snapshots, transparent element anchors,
+text placement/raster sizing, media content-box object-fit mapping, and a
+public-API-only responsive demo harness are in place. The forward direction is
+not to expand CSS fidelity. DOM supplies layout, content, accessibility, and
+interaction state; WebGL effects/materials should own final visual styling.
+Effects remain future work.
 
 ## Purpose
 
@@ -41,15 +44,35 @@ The runtime pipeline is:
 DOM element
   -> target descriptor
   -> source descriptor
+  -> layout/content snapshot
   -> renderRole
   -> renderable
+  -> effect/material policy
   -> runtime-owned scene object
   -> single renderer
 ```
 
-The authoring model is DOM. WebGL is the compiled visual runtime. Only declared
-targets enter WebGL; ordinary undeclared DOM remains visible, native, and
-interactive.
+The authoring model is DOM. DOM is the source for layout, content,
+accessibility, and interaction state. WebGL is the compiled visual runtime and
+effects/materials are the source for final visual styling. Only declared targets
+enter WebGL; ordinary undeclared DOM remains visible, native, and interactive.
+
+The runtime should know enough DOM information to place and populate WebGL
+objects:
+
+- Border-box and content-box position and size.
+- Text content, media sources, model sources, and resource metadata.
+- DOM/source ordering and lifecycle state.
+- Scroll, pointer, visibility, and interaction state.
+- Minimal style data when it changes content placement, such as padding,
+  object-fit/object-position, font metrics, line height, and text alignment.
+
+The runtime should not treat browser CSS as the visual truth for WebGL. General
+backgrounds, borders, radii, shadows, gradients, filters, blend modes, masks,
+decorative opacity, and material appearance should be declared or selected by
+the WebGL effect/material layer. The former Phase 4 CSS box renderer has been
+removed from the active runtime path; it is historical context, not a
+compatibility foundation to preserve.
 
 Declared targets default to WebGL visual replacement: once the WebGL scene
 object is visually ready, the target's own fallback paint is hidden with
@@ -70,6 +93,8 @@ Page authors should think about:
 - Where it sits in the DOM tree and source order.
 - Whether it follows page scroll or participates in a gated scene.
 - Whether pointer input should affect it.
+- Which effect or material should own its WebGL visual treatment once the
+  effect layer exists.
 
 Page authors should not think about:
 
@@ -82,6 +107,7 @@ Page authors should not think about:
 - Renderer pass order.
 - Multiple WebGL canvases.
 - Effects that scan DOM or own separate resource pipelines.
+- Matching arbitrary CSS visual paint in WebGL.
 
 ## Declarative Authoring Contract
 
@@ -265,7 +291,9 @@ type WebGLRenderRole =
 
 Role meanings:
 
-- `surface`: the element's own visual surface, such as box paint, background, border, or an element snapshot.
+- `surface`: a DOM-anchored visual surface. It is positioned by the DOM box, but
+  its final visual treatment should come from WebGL material/effect policy
+  rather than arbitrary CSS paint.
 - `content`: text-like or content-like snapshots.
 - `media`: image and video sources.
 - `model`: GLB or future 3D sources.
@@ -304,6 +332,9 @@ Delivered Phase 3 behavior:
 - GLB model targets create visible runtime-owned model scene objects. Model
   layout reads the loaded `Object3D` bounds once and contains those bounds inside
   the DOM anchor rect with a uniform XYZ scale.
+- The default renderer scene includes a small ambient plus directional light rig
+  so lit GLB/PBR materials have baseline visibility without demo-specific
+  branches.
 - DOM rects are projected into scene coordinates internally.
 - Ordering comes from `renderRole` through internal render policy, not public
   Three.js flags.
@@ -322,14 +353,14 @@ Delivered Phase 3 behavior:
 - Async resource completion requests a render after the visual scene object is
   ready.
 
-## DOM Fidelity And Responsive Mapping Contract
+## DOM Layout, Content, And Responsive Mapping Contract
 
-DOM remains the authoring and layout source of truth. WebGL renderables should
-track DOM anchors closely enough that supported 2D targets do not visibly drift
-from their DOM counterparts during normal page scroll, window resize, DPR
-changes, or mobile layout changes.
+DOM remains the authoring, layout, content, accessibility, and interaction
+source of truth. WebGL renderables should track DOM anchors closely enough that
+targets do not visibly drift from their DOM layout during normal page scroll,
+window resize, DPR changes, or mobile layout changes.
 
-Phase 4 introduces a shared layout/style snapshot contract:
+Phase 4 introduced a shared layout/style snapshot contract:
 
 ```ts
 type DOMStyleSnapshot = {
@@ -346,38 +377,41 @@ type ElementLayoutSnapshot = ElementMeasurement & {
 };
 ```
 
-Implemented first-version fidelity rules:
+Forward mapping rules:
 
 - One runtime layout pass should read rect, viewport size, capped DPR, and
   geometry signatures for active targets.
-- Computed style snapshots should be captured from the DOM at initial
-  renderable creation. Later DOM CSS changes are intentionally not tracked in
-  this phase; layout, size, DPR, content, and resource boundaries remain active.
+- Computed style reads should be limited to layout/content placement fields.
+  Later DOM CSS visual changes are intentionally not the styling model; layout,
+  size, DPR, content, resource, and explicit effect/material boundaries remain
+  active.
 - Position and size projection should preserve CSS-pixel fractional values until
   the final scene object update.
 - Renderer size, DPR, and orthographic camera projection should update on
   window resize, visual viewport changes, orientation changes, and manual sync,
   but should not reconfigure every frame if nothing changed.
-- Element snapshots should render supported CSS box paint through a canvas-backed
-  texture instead of only a solid color plane.
-- Text snapshots should consume the initial style snapshot for CSS box paint,
-  font, color, line height, padding, alignment, and DPR-aware canvas sizing.
-- Image and video renderables should keep an initial border-box CSS backing
-  plane, place the media texture plane in the CSS content box, and respect
-  common `object-fit` / `object-position` behavior within that content box.
+- Element snapshots are transparent DOM anchors for effects/materials. They
+  should not clone CSS box paint.
+- Text snapshots should consume only text placement and rasterization inputs:
+  font, line height, padding, alignment, content, and DPR-aware canvas
+  sizing.
+- Image and video renderables should place the media texture plane in the CSS
+  content box and respect common `object-fit` / `object-position` behavior
+  within that content box. They should not keep a CSS-painted backing plane.
 - Snapshot rebuilds should happen after content, size, capped DPR, or
   explicit invalidation changes, not every frame, and pure position changes
   should not trigger texture rebuilds.
-- Unsupported CSS features should be documented or reported through debug
-  metadata instead of silently being presented as supported.
+- Unsupported CSS visual features should not be chased one-by-one. They should
+  either remain native DOM fallback or move into explicit WebGL effects/materials.
 
-Phase 4 supported CSS prioritizes common 2D page styles: opacity, solid
-background color, borders, border radius, one outer box shadow, text style,
-padding, alignment, and media object fit. Phase 4 only guarantees transformed
-DOM bounding-box alignment, not matrix-level transform reproduction on WebGL
-objects. Full DOM subtree rasterization, pseudo-elements, filters, backdrop
-filters, blend modes, masks, clip paths, complete gradient rendering, and
-multi-shadow fidelity remain future work.
+Phase 4's CSS paint compatibility path has been narrowed back out of the active
+runtime contract. The active contract keeps DOM layout/content placement fields:
+display/visibility lifecycle state, padding and border widths when they affect
+content boxes, text font/line-height/alignment, and media object fit/position.
+Opacity, background color, border colors, border radius, shadows, text color,
+transforms, gradients, filters, backdrop filters, blend modes, masks, clip
+paths, and full DOM subtree rasterization are not runtime styling truth. Prefer
+DOM layout/content mapping plus effect/material declarations for final visuals.
 
 ## Scroll Contract
 
@@ -1144,15 +1178,21 @@ Must support:
 
 Add the first animation/effect layer.
 
-Only after base renderables, render roles, scroll gates, and pointer state are stable, introduce effects as consumers of runtime-owned objects.
+Only after base renderables, render roles, scroll gates, pointer state, and
+layout/content mapping are stable, introduce effects as consumers of
+runtime-owned objects. This is the main path for WebGL visual styling.
 
 Effect rules:
 
-- Effects consume target descriptors, renderables, frame input, and pointer/scroll state.
+- Effects consume target descriptors, layout/content snapshots, renderables,
+  frame input, and pointer/scroll state.
 - Effects do not scan DOM.
 - Effects do not create separate renderers.
 - Effects do not create independent asset pipelines.
 - Effects must declare what render roles or source kinds they can consume.
+- Effects/materials own visual styling such as backgrounds, borders, shadows,
+  gradients, transitions, deformations, particles, and shader-driven appearance.
+- Effects must not depend on arbitrary browser CSS paint matching.
 
 ## Non-Goals For The New Project
 
@@ -1163,17 +1203,23 @@ Effect rules:
 - Do not use class-based effect compatibility layers.
 - Do not let every renderable or effect own its own pointer listeners.
 - Do not let scroll behavior, render role, and pointer behavior collapse into one mixed abstraction.
+- Do not build a full CSS-to-WebGL engine as the primary visual styling path.
+- Do not fix visual differences by hardcoding demo CSS, demo class names, or
+  demo asset paths into runtime code.
 
 ## Architecture Principles
 
 1. DOM is the authoring model.
-2. WebGL is the compiled visual runtime.
-3. `renderRole` is the semantic bridge between source and render policy.
-4. Public API defaults should cover common cases with minimal configuration.
-5. Scroll input can either move the page or drive a gated scene.
-6. Pointer input is shared runtime state.
-7. Effects come after the base path and consume runtime-owned objects.
-8. One renderer owns visual output.
-9. Keep page semantics out of core runtime.
-10. Prefer explicit internal contracts over historical compatibility.
-11. Optimize for a straight path a new maintainer can understand quickly.
+2. DOM provides layout, content, accessibility, and interaction state.
+3. WebGL effects/materials provide final visual styling.
+4. WebGL is the compiled visual runtime.
+5. `renderRole` is the semantic bridge between source and render policy.
+6. Public API defaults should cover common cases with minimal configuration.
+7. Scroll input can either move the page or drive a gated scene.
+8. Pointer input is shared runtime state.
+9. Effects come after the base path and consume runtime-owned objects.
+10. CSS paint cloning is not the roadmap.
+11. One renderer owns visual output.
+12. Keep page semantics out of core runtime.
+13. Prefer explicit internal contracts over historical compatibility.
+14. Optimize for a straight path a new maintainer can understand quickly.

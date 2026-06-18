@@ -2,7 +2,6 @@ import {
   readDOMStyleSnapshot,
   type DOMStyleSnapshot,
 } from "../../dom/styleSnapshot";
-import { drawCSSBoxToCanvas } from "./cssBoxCanvas";
 
 export type TextCanvasMeasurement = {
   width: number;
@@ -19,7 +18,6 @@ export type TextCanvasRenderState = {
   height: number;
   devicePixelRatio: number;
   font: string;
-  color: string;
   lineHeight: number;
   blockAlignment: TextBlockAlignment;
   textAlign: CanvasTextAlign;
@@ -59,7 +57,6 @@ export function readTextCanvasRenderState(
     ),
     devicePixelRatio: input?.devicePixelRatio ?? 1,
     font: style.text.font,
-    color: style.text.color,
     lineHeight: style.text.lineHeight,
     blockAlignment: style.text.blockAlignment,
     textAlign: style.text.textAlign,
@@ -79,13 +76,10 @@ export function drawTextSnapshotToCanvas(
 ): void {
   const dpr = Math.min(Math.max(1, state.devicePixelRatio), 1.5);
 
-  drawCSSBoxToCanvas(canvas, context, {
-    width: state.width,
-    height: state.height,
-    devicePixelRatio: state.devicePixelRatio,
-    style: state.style,
-  });
+  canvas.width = Math.max(1, Math.ceil(state.width * dpr));
+  canvas.height = Math.max(1, Math.ceil(state.height * dpr));
   context.setTransform?.(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
   context.scale?.(dpr, dpr);
   drawTextToCanvas(context, textContent, state);
 }
@@ -102,7 +96,7 @@ export function drawTextToCanvas(
   textContent: string,
   state: TextCanvasRenderState,
 ): void {
-  context.fillStyle = state.color;
+  context.fillStyle = "#000000";
   context.font = state.font;
   context.textAlign = state.textAlign;
   context.textBaseline = "top";

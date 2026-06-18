@@ -93,24 +93,24 @@ export default function App() {
             </WebGLTarget>
           </div>
 
-          <section className="demo-fidelity" aria-label="DOM fidelity targets">
+          <section className="demo-layout" aria-label="DOM layout and content targets">
             <WebGLTarget
-              className="demo-fidelity-card demo-fidelity-card-surface"
+              className="demo-layout-card demo-layout-card-surface"
               webgl={{
-                key: "demo.fidelity.surface",
+                key: "demo.layout.surface",
                 source: { kind: "snapshot", mode: "element" },
               }}
             >
-              <p className="demo-label">Fidelity surface</p>
-              <strong>Rounded, bordered, shadowed CSS box</strong>
-              <span>Opacity, radius, border, and one outer shadow.</span>
+              <p className="demo-label">Layout anchor</p>
+              <strong>Content box target</strong>
+              <span>Padding and measured layout feed WebGL placement.</span>
             </WebGLTarget>
 
             <WebGLTarget
               as="p"
-              className="demo-fidelity-card demo-fidelity-card-text"
+              className="demo-layout-card demo-layout-card-text"
               webgl={{
-                key: "demo.fidelity.text",
+                key: "demo.layout.text",
                 source: { kind: "snapshot", mode: "text" },
               }}
             >
@@ -120,12 +120,12 @@ export default function App() {
 
             <WebGLTarget
               as="img"
-              className="demo-fidelity-card demo-fidelity-card-media"
+              className="demo-layout-card demo-layout-card-media"
               alt="Responsive object-fit cover target"
-              src="/demo/fidelity-cover.png"
+              src="/demo/layout-cover.png"
               webgl={{
-                key: "demo.fidelity.image",
-                source: { kind: "image", src: "/demo/fidelity-cover.png" },
+                key: "demo.layout.image",
+                source: { kind: "image", src: "/demo/layout-cover.png" },
               }}
             />
           </section>

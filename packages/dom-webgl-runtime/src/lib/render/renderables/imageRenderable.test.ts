@@ -71,15 +71,6 @@ describe("createImageRenderable", () => {
           geometry: { type: "PlaneGeometry" },
           material: {
             map: {
-              isCanvasTexture: true,
-            },
-          },
-        },
-        {
-          isMesh: true,
-          geometry: { type: "PlaneGeometry" },
-          material: {
-            map: {
               isTexture: true,
               source: { data: source.element },
             },

@@ -1,4 +1,6 @@
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
+import { AmbientLight } from "three/src/lights/AmbientLight.js";
+import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
 import { capDevicePixelRatio } from "./layoutPass";
@@ -102,6 +104,7 @@ export function createThreeRendererHost(
 function createDefaultThreeRendererObjects(
   canvas: HTMLCanvasElement,
 ): ThreeRendererObjects {
+  const scene = new Scene();
   const renderer = new WebGLRenderer({
     antialias: false,
     alpha: true,
@@ -109,6 +112,7 @@ function createDefaultThreeRendererObjects(
     canvas,
   });
   readRendererSetClearAlpha(renderer)?.(0);
+  configureDefaultSceneLighting(scene);
 
   return {
     camera: new OrthographicCamera(0, 800, 600, 0, 0.1, 1000),
@@ -133,8 +137,23 @@ function createDefaultThreeRendererObjects(
         renderer.dispose();
       },
     },
-    scene: new Scene(),
+    scene,
   };
+}
+
+function configureDefaultSceneLighting(scene: object): void {
+  const add = readSceneMethod(scene, "add");
+
+  if (!add) {
+    return;
+  }
+
+  const ambientLight = new AmbientLight(0xffffff, 0.45);
+  const directionalLight = new DirectionalLight(0xffffff, 1);
+
+  directionalLight.position.set(1, 1.5, 2);
+  add(ambientLight);
+  add(directionalLight);
 }
 
 function configureCSSPixelViewport(

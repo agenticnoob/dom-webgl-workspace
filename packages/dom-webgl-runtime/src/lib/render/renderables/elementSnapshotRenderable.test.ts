@@ -100,15 +100,21 @@ describe("createElementSnapshotRenderable", () => {
     expect(renderable.status).toBe("disposed");
   });
 
-  test("does not rebuild the CSS box snapshot for pure position changes", async () => {
+  test("does not read visual CSS paint for element surface anchors", async () => {
     const element = document.createElement("section");
-    Object.assign(element.style, { backgroundColor: "rgb(240, 248, 255)" });
+    Object.assign(element.style, {
+      backgroundColor: "rgb(240, 248, 255)",
+      border: "2px solid rgb(12, 34, 56)",
+      borderRadius: "18px",
+      boxShadow: "0 12px 30px rgba(0, 0, 0, 0.2)",
+    });
     const descriptor = createTargetDescriptor(
       element,
       { key: "hero.surface" },
       0,
     );
     const getComputedStyle = vi.spyOn(window, "getComputedStyle");
+    const sceneAdapter = createSceneAdapter();
     const renderable = createElementSnapshotRenderable(
       {
         descriptor,
@@ -118,7 +124,7 @@ describe("createElementSnapshotRenderable", () => {
       },
       {
         measureElement: () => createMeasurement(0, 0, 200, 100),
-        sceneAdapter: createSceneAdapter(),
+        sceneAdapter,
       },
     );
 
@@ -126,7 +132,14 @@ describe("createElementSnapshotRenderable", () => {
     renderable.updateLayout?.(createMeasurement(0, 0, 200, 100));
     renderable.updateLayout?.(createMeasurement(40, 80, 200, 100));
 
-    expect(getComputedStyle).toHaveBeenCalledTimes(1);
+    expect(getComputedStyle).not.toHaveBeenCalled();
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      isMesh: true,
+      visible: false,
+      material: {
+        opacity: 0,
+      },
+    });
   });
 });
 

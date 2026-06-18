@@ -11,8 +11,11 @@ Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
-Phase 4 DOM style fidelity and responsive mapping is implemented in
-`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
+Phase 4 has been narrowed to DOM layout/content mapping and responsive
+projection in
+`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`;
+the forward architecture is now DOM layout/content driven WebGL effects, not
+general CSS-to-WebGL fidelity.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -30,7 +33,7 @@ Current demo behavior:
 
 - React demo declares five base target categories through public APIs: element
   snapshot, text snapshot, image, video, and GLB model. It also includes a
-  Phase 4 fidelity harness for rounded box paint, multiline text, object-fit
+  layout/content harness for transparent anchors, multiline text, object-fit
   media, and narrow viewport layout.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
@@ -52,6 +55,15 @@ Current visual behavior:
 
 - DOM-authored targets compile into source descriptors, render roles, internal
   render policy ordering, and runtime-owned scene objects.
+- DOM is the source for layout, content, accessibility, and interaction state.
+  WebGL effects/materials are the source for final visual styling. The runtime
+  should not try to clone all browser CSS into WebGL.
+- Runtime CSS reads should stay limited to fields needed for layout/content
+  mapping: rects, content boxes, padding when it affects placement, text metrics,
+  media object-fit/object-position, visibility, and lifecycle state.
+- Backgrounds, borders, radii, shadows, gradients, filters, decorative opacity,
+  and other visual styling should be expressed by future effect/material
+  declarations instead of treated as DOM visual truth.
 - Unregistered DOM remains ordinary page DOM: it stays visible, keeps native
   interaction, and is not blocked by the transparent WebGL stage.
 - DOM rects are measured in a batched runtime layout pass and projected into
@@ -71,19 +83,20 @@ Current visual behavior:
 - Renderer defaults keep the stage transparent over the page background and cap
   device pixel ratio.
 - Snapshot content rebuilds are driven by layout, size, DPR, content, and
-  resource boundaries; computed CSS style is captured at initial renderable
-  creation and later DOM CSS changes are intentionally not tracked.
+  resource boundaries. Computed-style capture is limited to placement-critical
+  layout/content fields, not DOM visual paint cloning.
 - Text snapshots build their internal canvas from the measured DOM text box and
-  computed text color/font/alignment so the WebGL plane does not stretch a
-  fixed-size text texture.
-- Element snapshots render a canvas-backed CSS box texture for supported common
-  2D box paint: opacity, solid background color, solid borders, border radius,
-  and one outer box shadow.
-- Text snapshots consume the initial DOM style snapshot for box paint, font,
-  color, line height, padding, alignment, and DPR-aware canvas sizing.
-- Image and video renderables keep an initial border-box CSS backing plane, then
-  place their media texture planes inside the CSS content box before applying
-  common `object-fit` / `object-position` mapping.
+  computed font, line height, padding, alignment, and DPR so the WebGL plane
+  does not stretch a fixed-size text texture. DOM text color is not treated as
+  WebGL material truth.
+- Element snapshots are transparent DOM anchors for future effects/materials;
+  they do not render CSS backgrounds, borders, radii, shadows, opacity, or
+  transforms.
+- Text snapshots consume only the style information required to place and render
+  text content, such as font, line height, padding, alignment, and DPR.
+- Image and video renderables place their media texture planes inside the CSS
+  content box before applying common `object-fit` / `object-position` mapping;
+  they do not keep a CSS-painted backing plane.
 - Renderer resize, DPR, and orthographic camera projection are cached and update
   on viewport changes without reconfiguring unchanged frames.
 - Runtime invalidation observes target resize and viewport changes, then routes
@@ -108,10 +121,12 @@ Current visual behavior:
   a fixed transparent internal stage layer, added renderer performance defaults
   and a DPR cap, batched layout reads, and separated layout, content, resource,
   and lifecycle boundaries before effect or animation work starts.
-- Phase 4 improves DOM-to-WebGL fidelity with a narrow performance-first slice:
-  cached resize/DPR adaptation, geometry/layout alignment, initial style
-  snapshots, canvas-backed CSS box snapshots for common 2D styles, object-fit
-  mapping, and a responsive demo harness.
+- Phase 4 now keeps the foundation focused on cached resize/DPR adaptation,
+  geometry/layout alignment, placement-only style snapshots, transparent DOM
+  anchors, media content-box object-fit mapping, and a responsive demo harness.
+  Do not expand this into full CSS fidelity; the next architecture step is an
+  effect/material layer consuming DOM layout, content, scroll, pointer, and
+  lifecycle state.
 
 ## Setup
 
@@ -155,7 +170,7 @@ Demo assets must exist at:
 
 ```txt
 apps/demo/public/demo/image.png
-apps/demo/public/demo/fidelity-cover.png
+apps/demo/public/demo/layout-cover.png
 apps/demo/public/demo/video.mp4
 apps/demo/public/models/hero.glb
 ```
@@ -164,7 +179,7 @@ The demo references them as:
 
 ```txt
 /demo/image.png
-/demo/fidelity-cover.png
+/demo/layout-cover.png
 /demo/video.mp4
 /models/hero.glb
 ```
@@ -172,6 +187,8 @@ The demo references them as:
 The GLB demo target hides its DOM fallback subtree after the model is ready. Runtime
 model layout contains the loaded model bounds inside the target DOM rect with a
 uniform XYZ scale so model depth is not flattened or stretched independently.
+The default runtime scene includes a low-cost ambient plus directional light rig
+so GLB/PBR materials are not rendered unlit by default.
 The demo also reserves a stable scrollbar gutter so DOM anchor rects do not
 reflow horizontally while the runtime tracks page scroll.
 

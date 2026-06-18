@@ -4,7 +4,7 @@ import { createFallbackVisibilityController } from "./fallbackVisibility";
 import { readDOMStyleSnapshot } from "./styleSnapshot";
 
 describe("readDOMStyleSnapshot", () => {
-  test("reads common box text and media computed styles", () => {
+  test("reads layout content and media placement styles only", () => {
     const element = document.createElement("div");
 
     Object.assign(element.style, {
@@ -27,28 +27,23 @@ describe("readDOMStyleSnapshot", () => {
     const snapshot = readDOMStyleSnapshot(element);
 
     expect(snapshot.box).toMatchObject({
-      opacity: 0.72,
-      backgroundColor: "rgb(240, 248, 255)",
       borderTopWidth: 2,
       borderRightWidth: 2,
       borderBottomWidth: 2,
       borderLeftWidth: 2,
-      borderTopColor: "rgb(12, 34, 56)",
-      borderRightColor: "rgb(12, 34, 56)",
-      borderBottomColor: "rgb(12, 34, 56)",
-      borderLeftColor: "rgb(12, 34, 56)",
-      borderTopLeftRadius: 18,
-      borderTopRightRadius: 12,
-      borderBottomRightRadius: 10,
-      borderBottomLeftRadius: 8,
       paddingTop: 10,
       paddingRight: 14,
       paddingBottom: 10,
       paddingLeft: 14,
-      boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.2)",
     });
+    expect(snapshot.box).not.toHaveProperty("opacity");
+    expect(snapshot.box).not.toHaveProperty("backgroundColor");
+    expect(snapshot.box).not.toHaveProperty("borderTopColor");
+    expect(snapshot.box).not.toHaveProperty("borderTopLeftRadius");
+    expect(snapshot.box).not.toHaveProperty("boxShadow");
+    expect(snapshot.box).not.toHaveProperty("transform");
+    expect(snapshot.box).not.toHaveProperty("transformOrigin");
     expect(snapshot.text).toMatchObject({
-      color: "rgb(20, 24, 28)",
       lineHeight: 30,
       paddingTop: 10,
       paddingRight: 14,
@@ -56,11 +51,13 @@ describe("readDOMStyleSnapshot", () => {
       paddingLeft: 14,
       textAlign: "center",
     });
+    expect(snapshot.text).not.toHaveProperty("color");
     expect(snapshot.media).toEqual({
       objectFit: "cover",
       objectPosition: "25% 75%",
     });
-    expect(snapshot.rasterSignature).toContain("rgb(240, 248, 255)");
+    expect(snapshot.rasterSignature).not.toContain("rgb(240, 248, 255)");
+    expect(snapshot.rasterSignature).not.toContain("rgba(0, 0, 0, 0.2)");
   });
 
   test("reads author visibility after runtime fallback hiding", () => {

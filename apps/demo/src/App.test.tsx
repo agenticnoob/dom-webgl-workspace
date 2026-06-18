@@ -96,9 +96,9 @@ describe("demo App", () => {
       "demo.image",
       "demo.video",
       "demo.model",
-      "demo.fidelity.surface",
-      "demo.fidelity.text",
-      "demo.fidelity.image",
+      "demo.layout.surface",
+      "demo.layout.text",
+      "demo.layout.image",
     ]);
     expect(
       targetProps.map(({ webgl }) => ({
@@ -120,16 +120,16 @@ describe("demo App", () => {
         source: { kind: "model", format: "glb", src: "/models/hero.glb" },
       },
       {
-        key: "demo.fidelity.surface",
+        key: "demo.layout.surface",
         source: { kind: "snapshot", mode: "element" },
       },
       {
-        key: "demo.fidelity.text",
+        key: "demo.layout.text",
         source: { kind: "snapshot", mode: "text" },
       },
       {
-        key: "demo.fidelity.image",
-        source: { kind: "image", src: "/demo/fidelity-cover.png" },
+        key: "demo.layout.image",
+        source: { kind: "image", src: "/demo/layout-cover.png" },
       },
     ]);
     expect(
@@ -163,28 +163,31 @@ describe("demo App", () => {
     });
   });
 
-  test("declares the Phase 4 fidelity harness through public WebGLTarget props", async () => {
+  test("declares the layout/content harness through public WebGLTarget props", async () => {
     await renderApp();
 
-    expect(webglDeclarationFor("demo.fidelity.surface")).toMatchObject({
-      key: "demo.fidelity.surface",
+    expect(webglDeclarationFor("demo.layout.surface")).toMatchObject({
+      key: "demo.layout.surface",
       source: { kind: "snapshot", mode: "element" },
     });
-    expect(webglDeclarationFor("demo.fidelity.text")).toMatchObject({
-      key: "demo.fidelity.text",
+    expect(webglDeclarationFor("demo.layout.text")).toMatchObject({
+      key: "demo.layout.text",
       source: { kind: "snapshot", mode: "text" },
     });
-    expect(webglDeclarationFor("demo.fidelity.image")).toMatchObject({
-      key: "demo.fidelity.image",
-      source: { kind: "image", src: "/demo/fidelity-cover.png" },
+    expect(webglDeclarationFor("demo.layout.image")).toMatchObject({
+      key: "demo.layout.image",
+      source: { kind: "image", src: "/demo/layout-cover.png" },
     });
+    expect(targetProps.some(({ webgl }) => (webgl as { key: string }).key.includes("fidelity"))).toBe(
+      false,
+    );
   });
 
   test("uses mapped-target default self fallback hiding on container targets", async () => {
     await renderApp();
 
     expect(webglDeclarationFor("demo.section")).not.toHaveProperty("lifecycle");
-    expect(webglDeclarationFor("demo.fidelity.surface")).not.toHaveProperty(
+    expect(webglDeclarationFor("demo.layout.surface")).not.toHaveProperty(
       "lifecycle",
     );
   });
@@ -202,12 +205,20 @@ describe("demo App", () => {
 
   test("keeps child DOM visible when the parent fallback paint is hidden", async () => {
     const host = await renderApp();
-    const surface = host.querySelector<HTMLElement>(".demo-fidelity-card-surface");
+    const surface = host.querySelector<HTMLElement>(".demo-layout-card-surface");
     const child = surface?.querySelector<HTMLElement>("strong");
 
     expect(surface?.dataset.fallbackHidden).toBe("self");
     expect(surface?.style.visibility).toBe("hidden");
     expect(child?.style.visibility).toBe("visible");
+  });
+
+  test("labels the extra demo section as layout/content rather than fidelity", async () => {
+    const host = await renderApp();
+
+    expect(host.querySelector('[aria-label="DOM layout and content targets"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="DOM fidelity targets"]')).toBeNull();
+    expect(host.textContent).not.toContain("Fidelity");
   });
 
   test("does not enable scene gate locking in the default scroll demo", async () => {

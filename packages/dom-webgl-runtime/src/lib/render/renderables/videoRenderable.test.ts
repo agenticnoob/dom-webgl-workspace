@@ -75,15 +75,6 @@ describe("createVideoRenderable", () => {
           geometry: { type: "PlaneGeometry" },
           material: {
             map: {
-              isCanvasTexture: true,
-            },
-          },
-        },
-        {
-          isMesh: true,
-          geometry: { type: "PlaneGeometry" },
-          material: {
-            map: {
               isVideoTexture: true,
               source: { data: source.element },
             },
@@ -456,7 +447,7 @@ function readMediaMesh(object3D: unknown): {
     return undefined;
   }
 
-  return children[1] as
+  return children[0] as
     | {
         position: { x: number; y: number; z: number };
         scale: { x: number; y: number; z: number };

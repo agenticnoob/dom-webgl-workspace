@@ -24,10 +24,6 @@ import { VideoTexture } from "three/src/textures/VideoTexture.js";
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
 import {
-  createCSSBoxCanvasSignature,
-  drawCSSBoxToCanvas,
-} from "./cssBoxCanvas";
-import {
   computeObjectFitContentBox,
   computeObjectFitTextureTransform,
 } from "./objectFit";
@@ -151,75 +147,24 @@ export function createSceneRenderableController(
 export function createElementPlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
 ): SceneRenderableController {
-  const canvas = options.element.ownerDocument.createElement("canvas");
-  const texture = new CanvasTexture(canvas);
   const geometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
-    map: texture,
     transparent: true,
+    opacity: 0,
   });
+  material.transparent = true;
   const mesh = new Mesh(geometry, material);
-  const initialStyle = readDOMStyleSnapshot(options.element);
-  let lastLayout: ElementLayoutSnapshot | undefined;
-  let lastRenderSignature = "";
-  let lastRasterGeometrySignature = "";
+
+  mesh.visible = false;
 
   const controller = createSceneRenderableController({
     ...options,
     object3D: mesh,
-    textureSource: canvas,
     disposeResources() {
-      texture.dispose();
       geometry.dispose();
       material.dispose();
     },
   });
-
-  const renderCSSBox = (layout = lastLayout, force = false) => {
-    if (!layout) {
-      return;
-    }
-
-    const rasterGeometrySignature = createRasterGeometrySignature(layout);
-
-    if (
-      !force &&
-      lastRenderSignature &&
-      rasterGeometrySignature === lastRasterGeometrySignature
-    ) {
-      return;
-    }
-
-    const state = {
-      width: layout.width,
-      height: layout.height,
-      devicePixelRatio: layout.devicePixelRatio,
-      style: initialStyle,
-    };
-    const signature = createCSSBoxCanvasSignature(state);
-
-    if (!force && signature === lastRenderSignature) {
-      return;
-    }
-
-    lastRenderSignature = signature;
-    lastRasterGeometrySignature = rasterGeometrySignature;
-    updateCSSBoxCanvas(canvas, texture, state);
-    applyBoxStyleToMaterialAndObject(material, mesh, initialStyle);
-    setObject3DVisible(
-      mesh,
-      isBoxStyleRenderable(initialStyle) && hasVisibleOwnBoxPaint(initialStyle.box),
-    );
-  };
-
-  controller.object.updateTextLayout = (measurement) => {
-    lastLayout = measurement as ElementLayoutSnapshot;
-    renderCSSBox(lastLayout);
-  };
-  controller.object.invalidateContent = () => {
-    lastRenderSignature = "";
-    renderCSSBox(lastLayout, true);
-  };
 
   return controller;
 }
@@ -299,7 +244,7 @@ export function createTextPlaneSceneRenderableController(
     lastRenderSignature = signature;
     lastRasterGeometrySignature = rasterGeometrySignature;
     updateTextCanvas(canvas, texture, textContent, state);
-    applyBoxStyleToMaterialAndObject(material, mesh, initialStyle);
+    applyDOMActivityVisibility(mesh, initialStyle);
   };
 
   controller.object.updateTextContent = (nextTextContent) => {
@@ -339,14 +284,6 @@ export function createTexturePlaneSceneRenderableController(
     textureSource: HTMLImageElement | HTMLVideoElement;
   },
 ): SceneRenderableController {
-  const boxCanvas = options.element.ownerDocument.createElement("canvas");
-  const boxTexture = new CanvasTexture(boxCanvas);
-  const boxGeometry = new PlaneGeometry(1, 1);
-  const boxMaterial = new MeshBasicMaterial({
-    map: boxTexture,
-    transparent: true,
-  });
-  const boxMesh = new Mesh(boxGeometry, boxMaterial);
   const texture =
     options.textureKind === "video"
       ? new VideoTexture(options.textureSource as HTMLVideoElement)
@@ -359,21 +296,14 @@ export function createTexturePlaneSceneRenderableController(
   const mediaMesh = new Mesh(mediaGeometry, material);
   const group = new Group();
   const initialStyle = readDOMStyleSnapshot(options.element);
-  let lastLayout: ElementLayoutSnapshot | undefined;
-  let lastBoxRenderSignature = "";
-  let lastBoxGeometrySignature = "";
   let lastTextureTransformSignature = "";
 
-  group.add(boxMesh);
   group.add(mediaMesh);
   texture.needsUpdate = true;
   const controller = createSceneRenderableController({
     ...options,
     object3D: group,
     disposeResources() {
-      boxTexture.dispose();
-      boxGeometry.dispose();
-      boxMaterial.dispose();
       texture.dispose();
       mediaGeometry.dispose();
       material.dispose();
@@ -382,40 +312,6 @@ export function createTexturePlaneSceneRenderableController(
       updateMediaGroupLayout(object3D, layout);
     },
   });
-
-  const renderCSSBox = (layout = lastLayout, force = false) => {
-    if (!layout) {
-      return;
-    }
-
-    const boxGeometrySignature = createRasterGeometrySignature(layout);
-
-    if (
-      !force &&
-      lastBoxRenderSignature &&
-      boxGeometrySignature === lastBoxGeometrySignature
-    ) {
-      return;
-    }
-
-    const state = {
-      width: layout.width,
-      height: layout.height,
-      devicePixelRatio: layout.devicePixelRatio,
-      style: initialStyle,
-    };
-    const signature = createCSSBoxCanvasSignature(state);
-
-    if (!force && signature === lastBoxRenderSignature) {
-      return;
-    }
-
-    lastBoxRenderSignature = signature;
-    lastBoxGeometrySignature = boxGeometrySignature;
-    updateCSSBoxCanvas(boxCanvas, boxTexture, state);
-    applyBoxStyleToMaterialAndObject(boxMaterial, group, initialStyle);
-    setObject3DVisible(group, isBoxStyleRenderable(initialStyle));
-  };
 
   const updateTextureTransform = (
     measurement: ElementMeasurement,
@@ -451,17 +347,14 @@ export function createTexturePlaneSceneRenderableController(
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
     applyMediaContentBox(mediaMesh, mediaBox, contentBox);
-    applyBoxStyleToMaterialAndObject(material, mediaMesh, initialStyle);
+    applyDOMActivityVisibility(group, initialStyle);
+    applyDOMActivityVisibility(mediaMesh, initialStyle);
   };
   controller.object.updateTextLayout = (measurement) => {
-    lastLayout = measurement as ElementLayoutSnapshot;
-    renderCSSBox(lastLayout);
     updateTextureTransform(measurement);
   };
   controller.object.invalidateContent = () => {
     lastTextureTransformSignature = "";
-    lastBoxRenderSignature = "";
-    renderCSSBox(lastLayout, true);
   };
 
   return controller;
@@ -512,17 +405,6 @@ function updateMediaGroupLayout(
 
   setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
   setVector3((object3D as { scale?: unknown }).scale, 1, 1, 1);
-
-  const children = (object3D as { children?: unknown }).children;
-  const boxMesh = Array.isArray(children) ? children[0] : undefined;
-
-  setVector3((boxMesh as { position?: unknown } | undefined)?.position, 0, 0, 0);
-  setVector3(
-    (boxMesh as { scale?: unknown } | undefined)?.scale,
-    layout.width,
-    layout.height,
-    1,
-  );
 }
 
 function computeMediaContentArea(
@@ -778,98 +660,15 @@ function updateTextCanvas(
   }
 }
 
-function updateCSSBoxCanvas(
-  canvas: HTMLCanvasElement,
-  texture: CanvasTexture,
-  state: Parameters<typeof drawCSSBoxToCanvas>[2],
-): void {
-  if (!canvas.ownerDocument.defaultView?.CanvasRenderingContext2D) {
-    texture.needsUpdate = true;
-    return;
-  }
-
-  try {
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      return;
-    }
-
-    drawCSSBoxToCanvas(canvas, context, state);
-    texture.needsUpdate = true;
-  } catch {
-    texture.needsUpdate = true;
-  }
-}
-
-function applyBoxStyleToMaterialAndObject(
-  material: MeshBasicMaterial,
+function applyDOMActivityVisibility(
   object3D: unknown,
-  style: { box: { opacity: number; display: string; visibility: string } },
+  style: { box: { display: string; visibility: string } },
 ): void {
-  material.opacity = style.box.opacity;
-  material.transparent = style.box.opacity < 1 || material.transparent;
-  setObject3DVisible(
-    object3D,
-    style.box.display !== "none" &&
-      style.box.visibility !== "hidden" &&
-      style.box.opacity > 0,
-  );
+  setObject3DVisible(object3D, isDOMTargetRenderable(style));
 }
 
-function isBoxStyleRenderable(style: {
-  box: { opacity: number; display: string; visibility: string };
+function isDOMTargetRenderable(style: {
+  box: { display: string; visibility: string };
 }): boolean {
-  return (
-    style.box.display !== "none" &&
-    style.box.visibility !== "hidden" &&
-    style.box.opacity > 0
-  );
-}
-
-function hasVisibleOwnBoxPaint(style: {
-  backgroundColor: string;
-  borderTopWidth: number;
-  borderRightWidth: number;
-  borderBottomWidth: number;
-  borderLeftWidth: number;
-  borderTopColor: string;
-  borderRightColor: string;
-  borderBottomColor: string;
-  borderLeftColor: string;
-  boxShadow: string;
-}): boolean {
-  return (
-    isVisibleCSSColor(style.backgroundColor) ||
-    (style.borderTopWidth > 0 && isVisibleCSSColor(style.borderTopColor)) ||
-    (style.borderRightWidth > 0 && isVisibleCSSColor(style.borderRightColor)) ||
-    (style.borderBottomWidth > 0 && isVisibleCSSColor(style.borderBottomColor)) ||
-    (style.borderLeftWidth > 0 && isVisibleCSSColor(style.borderLeftColor)) ||
-    hasVisibleBoxShadow(style.boxShadow)
-  );
-}
-
-function hasVisibleBoxShadow(value: string): boolean {
-  return value !== "" && value !== "none" && isVisibleCSSColor(value);
-}
-
-function isVisibleCSSColor(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-
-  if (
-    normalized === "" ||
-    normalized === "transparent" ||
-    normalized === "rgba(0, 0, 0, 0)" ||
-    normalized === "rgba(0,0,0,0)"
-  ) {
-    return false;
-  }
-
-  const alphaMatch = normalized.match(/rgba\([^)]*,\s*(\d*\.?\d+)\s*\)/);
-
-  if (alphaMatch) {
-    return Number.parseFloat(alphaMatch[1] ?? "1") > 0;
-  }
-
-  return true;
+  return style.box.display !== "none" && style.box.visibility !== "hidden";
 }

@@ -21,6 +21,8 @@ describe("createThreeRendererHost", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/src/cameras/OrthographicCamera.js");
+    vi.doUnmock("three/src/lights/AmbientLight.js");
+    vi.doUnmock("three/src/lights/DirectionalLight.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
     vi.doUnmock("three/src/scenes/Scene.js");
     vi.resetModules();
@@ -111,6 +113,55 @@ describe("createThreeRendererHost", () => {
 
     expect(rendererDispose).toHaveBeenCalledTimes(1);
     expect(container.querySelector("canvas")).toBeNull();
+  });
+
+  test("adds low-cost default lights to the default scene for lit model materials", async () => {
+    const rendererDispose = vi.fn();
+    const rendererSetClearAlpha = vi.fn();
+    const sceneAdd = vi.fn();
+    const scene = { add: sceneAdd };
+    const camera = { kind: "camera" };
+    const ambientLight = { kind: "ambient-light" };
+    const directionalLight = {
+      kind: "directional-light",
+      position: { set: vi.fn() },
+    };
+    const WebGLRenderer = vi.fn(
+      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
+        canvas: options.canvas,
+        setClearAlpha: rendererSetClearAlpha,
+        dispose: rendererDispose,
+      }),
+    );
+    const Scene = vi.fn(() => scene);
+    const OrthographicCamera = vi.fn(() => camera);
+    const AmbientLight = vi.fn(() => ambientLight);
+    const DirectionalLight = vi.fn(() => directionalLight);
+
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
+    }));
+    vi.doMock("three/src/lights/AmbientLight.js", () => ({ AmbientLight }));
+    vi.doMock("three/src/lights/DirectionalLight.js", () => ({
+      DirectionalLight,
+    }));
+    vi.doMock("three/src/renderers/WebGLRenderer.js", () => ({
+      WebGLRenderer,
+    }));
+    vi.doMock("three/src/scenes/Scene.js", () => ({ Scene }));
+
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("div");
+
+    const host = createThreeRendererHost(container);
+
+    expect(AmbientLight).toHaveBeenCalledWith(0xffffff, 0.45);
+    expect(DirectionalLight).toHaveBeenCalledWith(0xffffff, 1);
+    expect(directionalLight.position.set).toHaveBeenCalledWith(1, 1.5, 2);
+    expect(sceneAdd).toHaveBeenCalledWith(ambientLight);
+    expect(sceneAdd).toHaveBeenCalledWith(directionalLight);
+
+    host.dispose();
   });
 
   test("positions the renderer canvas below the DOM children as a fixed viewport stage layer", async () => {

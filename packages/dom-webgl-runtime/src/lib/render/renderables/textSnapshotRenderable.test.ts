@@ -170,7 +170,7 @@ describe("createTextSnapshotRenderable", () => {
     expect(textureCanvas?.width).toBe(240);
     expect(textureCanvas?.height).toBe(132);
     expect(context.font).toContain("36px");
-    expect(context.fillStyle).toBe("rgb(29, 33, 28)");
+    expect(context.fillStyle).toBe("#000000");
     expect(context.textAlign).toBe("center");
     expect(fillText).toHaveBeenCalled();
   });

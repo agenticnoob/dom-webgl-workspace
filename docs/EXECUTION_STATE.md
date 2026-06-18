@@ -1,24 +1,25 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 DOM style fidelity and responsive mapping is implemented as a narrow performance-first slice: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, element snapshots use canvas-backed CSS box paint, text snapshots consume initial style snapshots, media renderables keep initial border-box CSS backing planes with content-box media texture placement and object-fit mapping, and the demo includes a public-API-only responsive fidelity harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Current architecture direction is now explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
-Phase 4 DOM style fidelity and responsive mapping plan file: `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
+Phase 4 layout/content mapping plan file: `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Phase 4.1 Mapping Takeover Semantics And Interaction-Safe Stage.
+Phase 4.2 Architecture Direction: DOM Layout/Content Source And Effect-Owned Visuals.
 
 ## Latest Documentation Note
-Phase 4.1 documentation now reflects the product contract: undeclared DOM stays
-native and interactive, declared WebGL targets default to visual replacement
-after readiness, default fallback hiding uses `self`, `hideWhenReady: false`
-opts out, `subtree` is explicit, and the fixed canvas is inserted before author
-DOM with `z-index: 0` while direct author DOM children are kept above it with
-`z-index: 1`, rather than adding a global DOM wrapper layer.
+Phase 4.2 documentation and runtime code now fix the forward architecture
+direction: DOM is not the WebGL visual truth. DOM provides rects, content boxes,
+text/media/model sources, ordering, lifecycle, pointer, scroll, visibility, and
+the minimal style data needed for content placement. Backgrounds, border colors,
+radii, shadows, gradients, filters, transitions, deformations, particles, text
+color, and other visual styling belong to explicit WebGL effects/materials.
+The former CSS box canvas paint path has been removed from the active runtime.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -95,9 +96,27 @@ DOM with `z-index: 0` while direct author DOM children are kept above it with
 - Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 4 DOM style fidelity and responsive mapping is implemented and verified in this branch.
+Phase 4.2 architecture direction is documented: stop expanding CSS fidelity as
+the main path, and move future visuals into an effect/material layer fed by DOM
+layout, content, scroll, pointer, and lifecycle state.
 
-## Phase 4 DOM Style Fidelity And Responsive Mapping Checklist
+## Phase 4.2 DOM Layout/Content And Effect-Owned Visuals Checklist
+- DOM is the source for layout, content, accessibility, and interaction state.
+- WebGL effects/materials are the source for final visual styling.
+- Runtime DOM reads should prioritize border boxes, content boxes, text/media/model
+  sources, ordering, visibility, lifecycle, scroll, pointer, and placement-only
+  style data such as padding, object-fit/object-position, font metrics, line
+  height, and text alignment.
+- Background color, borders, border radius, shadows, gradients, filters, blend
+  modes, decorative opacity, transitions, deformations, and shader appearance
+  should be represented by effect/material declarations instead of arbitrary CSS
+  cloning.
+- The former Phase 4 CSS box canvas paint path has been removed from the active
+  runtime; it remains only as historical context in the Phase 4 plan.
+- `apps/demo` remains a public API consumer and must not drive runtime behavior
+  through demo keys, class names, asset paths, or DOM structure.
+
+## Phase 4 DOM Layout/Content And Responsive Mapping Checklist
 - Layout snapshots include CSS rect, viewport size, capped DPR, and layout signatures.
 - DOM projection preserves fractional CSS-pixel coordinates.
 - Renderer host caches viewport size, DPR, and orthographic projection updates.
@@ -106,14 +125,15 @@ Phase 4 DOM style fidelity and responsive mapping is implemented and verified in
 - DOM invalidation is target-scoped to resize and viewport changes; DOM
   `style` / `class` mutations are intentionally not tracked after initial style
   capture.
-- Element snapshots render supported CSS box paint through canvas-backed textures.
+- Element snapshots are transparent DOM anchors and do not render CSS box paint.
 - Transparent layout-only element snapshots remain invisible instead of painting
   black or opaque planes.
-- Text snapshots consume initial DOM style snapshots for CSS box paint, font,
-  color, line height, padding, alignment, and DPR.
-- Image and video renderables keep initial border-box CSS backing planes, place
-  media texture planes in the CSS content box, and apply common `object-fit`
-  and `object-position` mapping inside that content box.
+- Text snapshots consume initial DOM style snapshots only for placement-critical
+  font, line height, padding, alignment, and DPR. DOM text color is ignored by
+  the runtime paint path.
+- Image and video renderables place media texture planes in the CSS content box
+  and apply common `object-fit` and `object-position` mapping inside that
+  content box. They do not keep CSS-painted backing planes.
 - Registered WebGL targets default to `hideWhenReady: true` and
   `hideMode: "self"` after visual readiness.
 - `hideWhenReady: false` keeps mapped DOM fallback visible, and
@@ -123,11 +143,18 @@ Phase 4 DOM style fidelity and responsive mapping is implemented and verified in
   visual order and pointer interaction.
 - Parent `hideMode: "self"` containers preserve ordinary child DOM but do not
   override nested WebGL targets that already manage fallback visibility.
-- Demo fidelity targets use only public `WebGLTarget` declarations.
-- Deferred: full DOM subtree rasterization, pseudo-elements, gradients, filters, backdrop filters, masks, clip paths, blend modes, multiple shadows, matrix-level transform reproduction, effect registry, animation layer, third-party scroll adapters, raycast picking, multiple canvases, and public Three.js render flags.
+- Demo layout/content targets use only public `WebGLTarget` declarations.
+- Deferred and no longer preferred as the primary roadmap: full DOM subtree
+  rasterization, pseudo-elements, gradients, filters, backdrop filters, masks,
+  clip paths, blend modes, multiple shadows, matrix-level transform reproduction,
+  and full browser CSS cloning. Future visual work should favor effect/material
+  declarations over CSS fidelity expansion.
+- Still deferred as implementation features: effect registry, animation layer,
+  third-party scroll adapters, raycast picking, multiple canvases, and public
+  Three.js render flags.
 
 ## Phase 4 Completed Task Record
-- Completed work: Added initial DOM style snapshots, layout snapshots with viewport/DPR signatures, cached renderer resize, target-scoped resize/viewport invalidation, CSS box canvas rendering, text style consumption, media CSS box backing/content-box placement/object-fit mapping, runtime dirty-key invalidation, a responsive demo fidelity harness, and Phase 4.1 mapped-target default fallback takeover semantics.
+- Completed work: Added layout snapshots with viewport/DPR signatures, cached renderer resize, target-scoped resize/viewport invalidation, placement-only DOM style snapshots, transparent element anchors, text placement style consumption, media content-box placement/object-fit mapping, runtime dirty-key invalidation, a responsive demo layout/content harness, and Phase 4.1 mapped-target default fallback takeover semantics.
 - Files changed: runtime DOM/renderer/renderable internals, renderable tests, runtime pipeline tests, demo app/CSS/tests, README, goal docs, execution state, and the Phase 4 plan checklist.
 - Verification: `npm test -- --run` passed with 53 test files / 253 tests; `npm run typecheck` passed; `npm run build` passed with the existing non-blocking Vite chunk-size warning; `npm run check:imports` passed with `Demo import boundary OK`; `git diff --check` passed.
 - Boundary notes: No demo keys, demo asset paths, demo DOM structure, effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, or public Three.js render flags were introduced into runtime/package implementation.
@@ -140,8 +167,8 @@ Phase 4 DOM style fidelity and responsive mapping is implemented and verified in
 - Layout reads are batched.
 - Snapshot content rebuilds only on dirty invalidation.
 - Text snapshot canvases are sized from measured DOM text boxes and use
-  computed font, color, and alignment to avoid stretched fixed-size text
-  textures.
+  computed font, line height, padding, and alignment to avoid stretched
+  fixed-size text textures.
 - Lifecycle state separates resource status from target activity.
 - Hidden/inactive targets skip high-cost updates.
 - Resources and render targets dispose deterministically.
@@ -377,7 +404,7 @@ Phase 4 DOM style fidelity and responsive mapping is implemented and verified in
 - Files changed: `README.md`, `docs/00-goal.md`, `docs/EXECUTION_STATE.md`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`, `packages/dom-webgl-runtime/src/publicExports.test.ts`, `vitest.config.ts`.
 - Commands run: `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts -t "React entrypoint type-checks public gate declarations only"` reproduced the public export typecheck as passing in isolation. `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts` passed after the timeout fix. `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` passed for Task 71 full verification after increasing the test timeout budget for compile/build-heavy tests. Post-doc verification command is recorded below after docs alignment.
 - Verification results: full Phase 3 verification passed with 41 Vitest files / 202 tests, typecheck passed, build passed, demo import boundary passed, and `git diff --check` passed. The build emitted the existing non-blocking Vite chunk-size warning.
-- Supported source paths verified: element snapshot, text snapshot, image, video, and GLB model all have visible scene path coverage through renderable tests and demo smoke coverage. GLB model layout now contains loaded model bounds inside the DOM anchor with uniform XYZ scale, and the demo model target hides its DOM fallback subtree once ready so model content does not cover fallback text.
+- Supported source paths verified: element snapshot, text snapshot, image, video, and GLB model all have visible scene path coverage through renderable tests and demo smoke coverage. GLB model layout now contains loaded model bounds inside the DOM anchor with uniform XYZ scale, the default runtime scene has baseline ambient plus directional lighting for lit GLB/PBR materials, and the demo model target hides its DOM fallback subtree once ready so model content does not cover fallback text.
 - Scroll stability correction: renderer viewport sizing now follows the fixed
   canvas stage's actual rendered CSS box, and the demo keeps a stable scrollbar
   gutter so DOM anchor widths do not reflow during runtime scroll.
@@ -455,14 +482,14 @@ Phase 4 DOM style fidelity and responsive mapping is implemented and verified in
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 4 DOM style fidelity and responsive mapping is implemented and verified in this branch. User-facing docs now describe delivered DOM fidelity support, responsive demo coverage, public boundary constraints, and deferred CSS/effect scope. The existing non-blocking Vite production build chunk-size warning remains.
+Phase 4 is now narrowed to DOM layout/content mapping and verified in this branch. User-facing docs describe placement-only DOM style reads, responsive demo layout/content coverage, public boundary constraints, and deferred CSS/effect scope. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
 - `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`
-- Runtime DOM, renderer, renderables, runtime pipeline tests, demo app/tests/CSS, and Phase 4 fidelity helpers.
+- Runtime DOM, renderer, renderables, runtime pipeline tests, demo app/tests/CSS, and Phase 4 layout/content helpers.
 
 ## Known Issues
 No blocking Phase 4 issue remains after verification. The existing non-blocking Vite production build chunk-size warning remains.
