@@ -20,14 +20,17 @@ describe("WebGLDeclaration public types", () => {
     writeFileSync(
       fixturePath,
       `
-        import type {
-          WebGLDeclaration,
-          WebGLLifecycleState,
-          WebGLLifecycleDeclaration,
-          WebGLPointerDeclaration,
-          WebGLRenderRole,
-          WebGLScrollBehavior,
-          WebGLSourceDeclaration,
+	        import type {
+	          WebGLDeclaration,
+	          WebGLEffectsDeclaration,
+	          WebGLLifecycleState,
+	          WebGLLifecycleDeclaration,
+	          WebGLMaterialDeclaration,
+	          WebGLMotionDeclaration,
+	          WebGLPointerDeclaration,
+	          WebGLRenderRole,
+	          WebGLScrollBehavior,
+	          WebGLSourceDeclaration,
         } from "${importPath}";
 
         const source = {
@@ -53,21 +56,36 @@ describe("WebGLDeclaration public types", () => {
           hideWhenReady: true,
           hideMode: "self",
         } satisfies WebGLLifecycleDeclaration;
-        const lifecycleState =
-          "active" satisfies WebGLLifecycleState;
-        const subtreeLifecycle = {
-          hideWhenReady: true,
-          hideMode: "subtree",
-        } satisfies WebGLLifecycleDeclaration;
+	        const lifecycleState =
+	          "active" satisfies WebGLLifecycleState;
+	        const subtreeLifecycle = {
+	          hideWhenReady: true,
+	          hideMode: "subtree",
+	        } satisfies WebGLLifecycleDeclaration;
+	        const material = {
+	          kind: "solid",
+	          color: 0x111827,
+	          opacity: 0.82,
+	        } satisfies WebGLMaterialDeclaration;
+	        const motion = {
+	          kind: "pointer-tilt",
+	          strength: 0.6,
+	          maxDegrees: 8,
+	        } satisfies WebGLMotionDeclaration;
+	        const effects = {
+	          material,
+	          motion,
+	        } satisfies WebGLEffectsDeclaration;
 
-        const declaration = {
-          key: "hero.model",
-          source,
-          renderRole,
-          scroll: pageScroll,
-          pointer,
-          lifecycle,
-        } satisfies WebGLDeclaration;
+	        const declaration = {
+	          key: "hero.model",
+	          source,
+	          renderRole,
+	          scroll: pageScroll,
+	          pointer,
+	          lifecycle,
+	          effects,
+	        } satisfies WebGLDeclaration;
 
         const gateDeclaration = {
           key: "hero.scene",
@@ -112,19 +130,37 @@ describe("WebGLDeclaration public types", () => {
           depthWrite: false,
         } satisfies WebGLDeclaration);
 
-        ({
-          key: "hero.surface",
-          // @ts-expect-error effect is not part of the public declaration contract.
-          effect: "blur",
-        } satisfies WebGLDeclaration);
+	        ({
+	          key: "hero.surface",
+	          // @ts-expect-error effect is not part of the public declaration contract.
+	          effect: "blur",
+	        } satisfies WebGLDeclaration);
 
-        ({
-          key: "hero.surface",
-          // @ts-expect-error effects are not part of the public declaration contract.
-          effects: ["blur"],
-        } satisfies WebGLDeclaration);
-      `,
-    );
+	        ({
+	          key: "hero.surface",
+	          // @ts-expect-error effects must be a built-in effect declaration object.
+	          effects: ["blur"],
+	        } satisfies WebGLDeclaration);
+
+	        ({
+	          key: "hero.surface",
+	          effects: {
+	            material: {
+	              // @ts-expect-error only the built-in solid material is supported.
+	              kind: "gradient",
+	            },
+	          },
+	        } satisfies WebGLDeclaration);
+
+	        ({
+	          key: "hero.surface",
+	          effects: {
+	            // @ts-expect-error custom effect callbacks are not public API.
+	            custom: () => undefined,
+	          },
+	        } satisfies WebGLDeclaration);
+	      `,
+	    );
 
     try {
       const configPath = resolve(repoRoot, "tsconfig.base.json");

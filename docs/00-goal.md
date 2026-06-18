@@ -24,7 +24,10 @@ text placement/raster sizing, media content-box object-fit mapping, and a
 public-API-only responsive demo harness are in place. The forward direction is
 not to expand CSS fidelity. DOM supplies layout, content, accessibility, and
 interaction state; WebGL effects/materials should own final visual styling.
-Effects remain future work.
+Phase 5 adds the first public minimum effect/material layer with built-in
+`solid` material and `pointer-tilt` motion declarations. General custom effect
+registration, shader authoring, particles, picking, third-party scroll adapters,
+multiple canvases, and public Three.js render flags remain future work.
 
 ## Purpose
 
@@ -123,11 +126,29 @@ type WebGLDeclaration = {
   scroll?: WebGLScrollBehavior;
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
+  effects?: WebGLEffectsDeclaration;
 };
 
 type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
   hideMode?: "subtree" | "self";
+};
+
+type WebGLEffectsDeclaration = {
+  material?: WebGLMaterialDeclaration;
+  motion?: WebGLMotionDeclaration;
+};
+
+type WebGLMaterialDeclaration = {
+  kind: "solid";
+  color?: number;
+  opacity?: number;
+};
+
+type WebGLMotionDeclaration = {
+  kind: "pointer-tilt";
+  strength?: number;
+  maxDegrees?: number;
 };
 ```
 
@@ -168,6 +189,7 @@ Allowed declarations:
 - Scroll behavior.
 - Pointer behavior.
 - Lifecycle and fallback behavior.
+- Built-in effect/material declarations.
 
 Disallowed declarations:
 
@@ -181,6 +203,7 @@ Disallowed declarations:
 - Renderer pass details.
 - Canvas layer details.
 - Effect-owned resource pipelines.
+- Custom effect callbacks or registries.
 
 The same declaration schema should be usable by React, vanilla DOM registration, and future framework adapters.
 
@@ -1193,6 +1216,20 @@ Effect rules:
 - Effects/materials own visual styling such as backgrounds, borders, shadows,
   gradients, transitions, deformations, particles, and shader-driven appearance.
 - Effects must not depend on arbitrary browser CSS paint matching.
+
+Delivered Phase 5 behavior:
+
+- Public declarations support `effects.material: { kind: "solid" }` for
+  explicit WebGL-owned element snapshot surfaces.
+- Public declarations support `effects.motion: { kind: "pointer-tilt" }` for
+  small pointer-driven target rotation from shared frame input.
+- Effect controllers are target-scoped and consume renderables, layout snapshots,
+  and `WebGLFrameInput`.
+- `solid` material applies only to `snapshot/element` targets. Other sources
+  report a target error and keep fallback behavior through the existing runtime
+  error path.
+- Effects do not scan DOM, add pointer listeners, create renderers, own resource
+  loaders, expose Three.js flags, or form a custom registry.
 
 ## Non-Goals For The New Project
 

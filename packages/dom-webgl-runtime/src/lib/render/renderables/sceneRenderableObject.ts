@@ -22,6 +22,7 @@ import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
 
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
+import type { WebGLEffectTarget } from "../../effects/effectController";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
 import {
   computeObjectFitContentBox,
@@ -51,6 +52,7 @@ export type SceneRenderableObject = WebGLSceneObject & {
   lastLayout?: ReturnType<typeof projectDOMRectToSceneLayout>;
   textContent?: string;
   textureSource?: unknown;
+  effectTarget?: WebGLEffectTarget;
   updateTextContent?(textContent: string): void;
   updateTextLayout?(measurement: ElementMeasurement): void;
   invalidateContent?(): void;
@@ -66,6 +68,7 @@ export type SceneRenderableControllerOptions = {
   ordering?: WebGLSceneObjectOrdering;
   textContent?: string;
   textureSource?: unknown;
+  effectTarget?: WebGLEffectTarget;
   disposeObject3D?: boolean;
   disposeResources?(): void;
   layoutObject3D?(object3D: unknown, layout: ProjectedDOMRect): void;
@@ -94,6 +97,8 @@ export function createSceneRenderableController(
     disposed: false,
     textContent: options.textContent,
     textureSource: options.textureSource,
+    effectTarget:
+      options.effectTarget ?? createObject3DEffectTarget(options.object3D),
     setVisible(visible) {
       object.visible = visible;
       setObject3DVisible(options.object3D, visible);
@@ -160,6 +165,7 @@ export function createElementPlaneSceneRenderableController(
   const controller = createSceneRenderableController({
     ...options,
     object3D: mesh,
+    effectTarget: createElementPlaneEffectTarget(mesh, material),
     disposeResources() {
       geometry.dispose();
       material.dispose();
@@ -599,6 +605,60 @@ function setObject3DVisible(object3D: unknown, visible: boolean): void {
   }
 
   (object3D as { visible?: boolean }).visible = visible;
+}
+
+function createElementPlaneEffectTarget(
+  mesh: Mesh,
+  material: MeshBasicMaterial,
+): WebGLEffectTarget {
+  return {
+    applySolidMaterial(nextMaterial) {
+      material.color.setHex(nextMaterial.color);
+      material.opacity = nextMaterial.opacity;
+      material.transparent = true;
+      mesh.visible = true;
+    },
+    setRotation(x, y) {
+      setObject3DRotation(mesh, x, y);
+    },
+  };
+}
+
+function createObject3DEffectTarget(
+  object3D: unknown,
+): WebGLEffectTarget | undefined {
+  if (!object3D || typeof object3D !== "object") {
+    return undefined;
+  }
+
+  return {
+    setRotation(x, y) {
+      setObject3DRotation(object3D, x, y);
+    },
+  };
+}
+
+function setObject3DRotation(object3D: unknown, x: number, y: number): void {
+  if (!object3D || typeof object3D !== "object") {
+    return;
+  }
+
+  const rotation = (object3D as { rotation?: unknown }).rotation;
+
+  if (rotation && typeof rotation === "object" && "set" in rotation) {
+    const set = (rotation as { set?: unknown }).set;
+
+    if (typeof set === "function") {
+      const z = (rotation as { z?: number }).z ?? 0;
+
+      set.call(rotation, x, y, z);
+      return;
+    }
+  }
+
+  if (rotation && typeof rotation === "object") {
+    Object.assign(rotation, { x, y });
+  }
 }
 
 function setVector3(vector: unknown, x: number, y: number, z: number): void {

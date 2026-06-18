@@ -73,6 +73,9 @@ export function createVideoRenderable(
       sceneObjectController() {
         return state.scene?.controller;
       },
+      effectTarget() {
+        return state.scene?.object.effectTarget;
+      },
       dispose() {
         source.element.pause();
         state.scene?.controller.dispose();

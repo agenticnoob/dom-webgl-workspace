@@ -1,25 +1,25 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Current architecture direction is now explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5 adds the first public minimum effect/material layer: `effects.material: { kind: "solid" }` makes explicit element snapshot surfaces WebGL-visible, `effects.motion: { kind: "pointer-tilt" }` consumes shared pointer frame input, and target-scoped effect controllers update from runtime renderables plus layout snapshots. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 Phase 4 layout/content mapping plan file: `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
+Phase 5 effect/material layer plan file: `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Phase 4.2 Architecture Direction: DOM Layout/Content Source And Effect-Owned Visuals.
+Phase 5 Public Minimum Effect/Material Layer.
 
 ## Latest Documentation Note
-Phase 4.2 documentation and runtime code now fix the forward architecture
-direction: DOM is not the WebGL visual truth. DOM provides rects, content boxes,
-text/media/model sources, ordering, lifecycle, pointer, scroll, visibility, and
-the minimal style data needed for content placement. Backgrounds, border colors,
-radii, shadows, gradients, filters, transitions, deformations, particles, text
-color, and other visual styling belong to explicit WebGL effects/materials.
-The former CSS box canvas paint path has been removed from the active runtime.
+Phase 5 documentation and runtime code now introduce a bounded public
+effect/material declaration surface. `solid` material is limited to
+`snapshot/element` targets, and `pointer-tilt` consumes shared runtime pointer
+state. This is not a custom effect registry, shader API, CSS paint clone, public
+Three.js render-flag surface, picking path, scroll adapter, particle system, or
+multiple-canvas architecture.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -94,11 +94,56 @@ The former CSS box canvas paint path has been removed from the active runtime.
 - Task 70: SSR And Public Boundary Regression.
 - Task 71: Phase 3 Full Verification.
 - Task 72: Phase 3 Documentation Alignment.
+- Task 73: Public Effect/Material Declaration Types.
+- Task 74: Internal Effect Normalization And Controller.
+- Task 75: Scene Object Effect Target Surface.
+- Task 76: Runtime Effect Pipeline Integration.
+- Task 77: Demo Effect/Material Harness.
+- Task 78: Phase 5 Documentation Alignment.
 
 ## Current Task
-Phase 4.2 architecture direction is documented: stop expanding CSS fidelity as
-the main path, and move future visuals into an effect/material layer fed by DOM
-layout, content, scroll, pointer, and lifecycle state.
+Phase 5 public minimum effect/material layer is implemented: authors can declare
+the built-in `solid` material and `pointer-tilt` motion through public
+`WebGLDeclaration.effects`, while runtime/package internals keep the effect
+surface target-scoped and non-demo-specific.
+
+## Phase 5 Public Minimum Effect/Material Checklist
+- `WebGLDeclaration.effects` is part of the public type contract.
+- Root public exports include `WebGLEffectsDeclaration`,
+  `WebGLMaterialDeclaration`, and `WebGLMotionDeclaration`.
+- `solid` material defaults and clamps color/opacity and applies only to
+  `snapshot/element` sources.
+- Unsupported `solid` source combinations report target errors through the
+  existing runtime debug/error path.
+- `pointer-tilt` defaults and clamps strength/max degrees, consumes shared
+  `WebGLFrameInput.pointer`, and resets when the pointer is outside.
+- Effects update after renderable layout with the same layout snapshot and frame
+  input used by the runtime pipeline.
+- Effect targets are internal renderable/scene object state and are not exported
+  from root or React public entrypoints.
+- Demo effect/material usage goes through public `WebGLTarget` declarations
+  only.
+- Still out of scope: custom effect registry, shader authoring API, particles,
+  third-party scroll adapters, WebGL raycast picking, multiple canvases, public
+  Three.js render flags, and CSS-to-WebGL fidelity expansion.
+
+## Phase 5 Completed Task Record
+- Completed work: Added public effect/material declaration types, an internal
+  built-in effect normalizer/controller, internal scene object effect targets,
+  runtime effect pipeline updates, target-scoped incompatible-source errors, a
+  public-API-only demo effect harness, and Phase 5 documentation alignment.
+- Files changed: public types/exports, internal effect controller, renderable
+  interfaces, scene renderable object helpers, runtime pipeline, demo app/CSS
+  and tests, README, goal docs, execution state, and the Phase 5 plan.
+- Verification: `npm run test -- --run` passed with 53 test files / 266 tests;
+  `npm run typecheck` passed; `npm run build` passed with the existing
+  non-blocking Vite chunk-size warning; `npm run check:imports` passed with
+  `Demo import boundary OK`; `git diff --check` passed.
+- Boundary notes: No demo keys, demo asset paths, demo DOM structure, custom
+  effect registry, shader authoring API, particle system, Lenis/GSAP/
+  ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, public
+  Three.js render flags, or CSS-to-WebGL fidelity expansion were introduced into
+  runtime/package implementation.
 
 ## Phase 4.2 DOM Layout/Content And Effect-Owned Visuals Checklist
 - DOM is the source for layout, content, accessibility, and interaction state.
@@ -480,27 +525,33 @@ layout, content, scroll, pointer, and lifecycle state.
 - `npm test -- --run packages/dom-webgl-runtime/src/publicExports.test.ts` (green Batch E targeted verification after timeout fix: 5 tests passed)
 - `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green Task 71 full verification: 41 Vitest files / 202 tests passed, typecheck passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts` (RED before implementation: `effects` and public effect/material types were missing; GREEN after public type updates)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effectController.test.ts` (RED before implementation: `effectController.ts` missing; GREEN after internal effect controller implementation, 6 tests)
+- `npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts -t "effects"` (RED before runtime integration: effects were not applied/reported; GREEN after runtime effect pipeline integration)
+- `npm test -- --run apps/demo/src/App.test.tsx -t "effect harness|visible renderable"` (RED before demo implementation: `demo.effects.surface` missing; GREEN after public-API-only demo effect harness)
+- `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green Phase 5 full verification: 53 Vitest files / 266 tests passed, typecheck passed, build passed with the existing Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 4 is now narrowed to DOM layout/content mapping and verified in this branch. User-facing docs describe placement-only DOM style reads, responsive demo layout/content coverage, public boundary constraints, and deferred CSS/effect scope. The existing non-blocking Vite production build chunk-size warning remains.
+Phase 5 adds the first public minimum effect/material declaration layer. User-facing docs describe built-in `solid` material and `pointer-tilt` motion, runtime-owned effect controllers, public boundary constraints, and the continued rejection of CSS fidelity expansion or public Three.js render flags. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
-- `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`
-- Runtime DOM, renderer, renderables, runtime pipeline tests, demo app/tests/CSS, and Phase 4 layout/content helpers.
+- `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`
+- Runtime public types/exports, effects internals, renderables, runtime pipeline tests, demo app/tests/CSS, and Phase 5 docs.
 
 ## Known Issues
-No blocking Phase 4 issue remains after verification. The existing non-blocking Vite production build chunk-size warning remains.
+No blocking Phase 5 issue remains after full verification. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
 - Phase 2 may implement scroll lock while a scene gate is active.
 - Phase 2 may expose `sceneProgress` through frame/debug state.
 - Phase 2 may implement explicit reverse gate behavior.
-- Do not implement an effect registry.
-- Do not implement an animation/effect layer.
+- Do not implement a custom effect registry.
+- Do not expand beyond the built-in `solid` material and `pointer-tilt` motion
+  without a new plan.
 - Do not create multiple WebGL canvases.
 - Do not implement WebGL raycast picking.
 - Do not add Lenis / GSAP ScrollTrigger adapters.
@@ -517,4 +568,4 @@ No blocking Phase 4 issue remains after verification. The existing non-blocking 
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-The next step may plan effect or animation work from a new plan while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, and no third-party scroll adapter unless explicitly planned.
+The next step may plan a broader effect/material capability from a new plan while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, no third-party scroll adapter, no CSS paint cloning, and no custom effect registry unless explicitly planned.

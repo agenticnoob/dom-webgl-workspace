@@ -93,9 +93,9 @@ export default function App() {
             </WebGLTarget>
           </div>
 
-          <section className="demo-layout" aria-label="DOM layout and content targets">
-            <WebGLTarget
-              className="demo-layout-card demo-layout-card-surface"
+	          <section className="demo-layout" aria-label="DOM layout and content targets">
+	            <WebGLTarget
+	              className="demo-layout-card demo-layout-card-surface"
               webgl={{
                 key: "demo.layout.surface",
                 source: { kind: "snapshot", mode: "element" },
@@ -126,12 +126,30 @@ export default function App() {
               webgl={{
                 key: "demo.layout.image",
                 source: { kind: "image", src: "/demo/layout-cover.png" },
-              }}
-            />
-          </section>
+	              }}
+	            />
+	          </section>
 
-          <DebugPanel state={debugState} />
-        </WebGLTarget>
+	          <section className="demo-effects" aria-label="WebGL effect and material targets">
+	            <WebGLTarget
+	              className="demo-effect-surface"
+	              webgl={{
+	                key: "demo.effects.surface",
+	                source: { kind: "snapshot", mode: "element" },
+	                effects: {
+	                  material: { kind: "solid", color: 0x111827, opacity: 0.82 },
+	                  motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
+	                },
+	              }}
+	            >
+	              <p className="demo-label">Effect material</p>
+	              <strong>Solid WebGL surface</strong>
+	              <span>Pointer state drives a small runtime-owned tilt.</span>
+	            </WebGLTarget>
+	          </section>
+
+	          <DebugPanel state={debugState} />
+	        </WebGLTarget>
       </WebGLRuntime>
     </main>
   );

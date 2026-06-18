@@ -25,6 +25,10 @@ import {
 } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import {
+  createWebGLEffectController,
+  type WebGLEffectController,
+} from "../effects/effectController";
+import {
   createFrameInputSource,
   type FrameClock,
   type ScrollStateController,
@@ -140,6 +144,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.renderables ?? [],
   );
   const renderablesByTargetKey = new Map<string, Renderable>();
+  const effectControllersByTargetKey = new Map<string, WebGLEffectController>();
   const debugRecordsByTargetKey = new Map<string, TargetDebugRecord>();
   const fallbackControllersByTargetKey = new Map<
     string,
@@ -219,6 +224,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       disposeTargetRenderable(
         targetKey,
         renderablesByTargetKey,
+        effectControllersByTargetKey,
         renderables,
         debugRecordsByTargetKey,
       );
@@ -258,6 +264,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           renderable.dispose();
         }
       } finally {
+        for (const effectController of effectControllersByTargetKey.values()) {
+          effectController.dispose();
+        }
+        effectControllersByTargetKey.clear();
         renderablesByTargetKey.clear();
         renderables.clear();
         debugRecordsByTargetKey.clear();
@@ -367,6 +377,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (viewportState === "disposed") {
         if (renderable) {
+          effectControllersByTargetKey.get(descriptor.key)?.dispose();
+          effectControllersByTargetKey.delete(descriptor.key);
           renderable.dispose();
           renderables.delete(renderable);
           renderablesByTargetKey.delete(descriptor.key);
@@ -383,14 +395,25 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       if (!renderable) {
-        const pipeline = createPipelineRenderable(
-          descriptor,
-          renderableFactoryContext,
-        );
+        let pipeline: ReturnType<typeof createPipelineRenderable>;
+
+        try {
+          pipeline = createPipelineRenderable(descriptor, renderableFactoryContext);
+        } catch (error: unknown) {
+          markDebugRecordError(debugRecord, error);
+          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+          releaseActiveGate(scrollState);
+          emitDebugState();
+          throw error;
+        }
 
         renderable = pipeline.renderable;
         debugRecord = pipeline.debugRecord;
         renderablesByTargetKey.set(descriptor.key, renderable);
+        effectControllersByTargetKey.set(
+          descriptor.key,
+          pipeline.effectController,
+        );
         debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
         fallbackControllersByTargetKey.set(
           descriptor.key,
@@ -432,6 +455,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
               if (layoutMeasurement) {
                 renderable.updateLayout?.(layoutMeasurement);
+                effectControllersByTargetKey
+                  .get(descriptor.key)
+                  ?.update(frameInput, layoutMeasurement);
               }
               syncDebugRecordFromRenderable(debugRecord, renderable);
               syncFallbackVisibility(
@@ -457,6 +483,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       } else {
         if (layoutMeasurement) {
           renderable.updateLayout?.(layoutMeasurement);
+          effectControllersByTargetKey
+            .get(descriptor.key)
+            ?.update(frameInput, layoutMeasurement);
         }
         syncDebugRecordFromRenderable(debugRecord, renderable);
         syncFallbackVisibility(
@@ -530,6 +559,7 @@ function createPipelineRenderable(
   context: RenderableFactoryContext,
 ): {
   renderable: Renderable;
+  effectController: WebGLEffectController;
   debugRecord: TargetDebugRecord;
 } {
   const source = inferSourceDescriptor(descriptor);
@@ -543,9 +573,16 @@ function createPipelineRenderable(
     visible: true,
   };
   const renderable = createRenderable(descriptor, source, role, policy, context);
+  const effectController = createWebGLEffectController({
+    key: descriptor.key,
+    declaration: descriptor.declaration.effects,
+    source,
+    getTarget: () => renderable.effectTarget,
+  });
 
   return {
     renderable: attachDebugBookkeeping(renderable, debugRecord),
+    effectController,
     debugRecord,
   };
 }
@@ -553,10 +590,15 @@ function createPipelineRenderable(
 function disposeTargetRenderable(
   key: string,
   renderablesByTargetKey: Map<string, Renderable>,
+  effectControllersByTargetKey: Map<string, WebGLEffectController>,
   renderables: Set<DisposableRenderable>,
   debugRecordsByTargetKey: Map<string, TargetDebugRecord>,
 ): void {
   const renderable = renderablesByTargetKey.get(key);
+  const effectController = effectControllersByTargetKey.get(key);
+
+  effectControllersByTargetKey.delete(key);
+  effectController?.dispose();
 
   if (!renderable) {
     debugRecordsByTargetKey.delete(key);

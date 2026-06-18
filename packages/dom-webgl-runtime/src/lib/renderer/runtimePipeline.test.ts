@@ -235,6 +235,78 @@ describe("runtime pipeline sync", () => {
     expect(pointerController.dispose).toHaveBeenCalledTimes(1);
   });
 
+  test("applies declared material and pointer tilt effects after layout", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
+      pointerController: createPointerController({
+        isInside: true,
+        normalizedX: 1,
+        normalizedY: -0.5,
+      }),
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "effect.surface",
+      source: { kind: "snapshot", mode: "element" },
+      effects: {
+        material: { kind: "solid", color: 0x112233, opacity: 0.42 },
+        motion: { kind: "pointer-tilt", strength: 0.5, maxDegrees: 10 },
+      },
+    });
+
+    await runtime.sync();
+
+    const mesh = sceneAdapter.objects[0]?.object3D as {
+      visible?: boolean;
+      rotation?: { x?: number; y?: number };
+      material?: {
+        opacity?: number;
+        transparent?: boolean;
+        color?: { getHex(): number };
+      };
+    };
+
+    expect(mesh.visible).toBe(true);
+    expect(mesh.material?.transparent).toBe(true);
+    expect(mesh.material?.opacity).toBe(0.42);
+    expect(mesh.material?.color?.getHex()).toBe(0x112233);
+    expect(mesh.rotation?.x).toBeCloseTo(-0.0436332313);
+    expect(mesh.rotation?.y).toBeCloseTo(0.0872664626);
+
+    runtime.dispose();
+  });
+
+  test("reports incompatible solid material effects as target errors", async () => {
+    const runtime = await createPipelineRuntime();
+    const image = document.createElement("img");
+
+    image.setAttribute("src", "/poster.png");
+    runtime.registerTarget(image, {
+      key: "effect.image",
+      source: { kind: "image", src: "/poster.png" },
+      effects: {
+        material: { kind: "solid", color: 0x112233 },
+      },
+    });
+
+    expect(() => runtime.sync()).toThrow(
+      'WebGL target "effect.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
+    );
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "effect.image",
+      resourceStatus: "error",
+      lifecycleState: "error",
+      error:
+        'WebGL target "effect.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
+    });
+
+    runtime.dispose();
+  });
+
   test("registers and unregisters gate targets with the scroll controller", async () => {
     const scrollController = createGateAwareScrollController();
     const runtime = await createPipelineRuntime({ scrollState: scrollController });
@@ -638,6 +710,28 @@ function createRecordingSceneAdapter(): WebGLSceneAdapter & {
   };
 }
 
+function createObjectRecordingSceneAdapter(): WebGLSceneAdapter & {
+  objects: Array<{ object3D?: unknown }>;
+  render: ReturnType<typeof vi.fn>;
+} {
+  const objects: Array<{ object3D?: unknown }> = [];
+
+  return {
+    objects,
+    addObject(object) {
+      objects.push(object);
+    },
+    removeObject(object) {
+      const index = objects.indexOf(object);
+
+      if (index !== -1) {
+        objects.splice(index, 1);
+      }
+    },
+    render: vi.fn(),
+  };
+}
+
 function readZeroMeasurement(): ElementMeasurement {
   return {
     x: 0,
@@ -658,6 +752,24 @@ function readZeroDOMRect(): DOMRect {
       return readZeroMeasurement();
     },
   } as DOMRect;
+}
+
+function createLayoutMeasurement(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): ElementMeasurement {
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
+  };
 }
 
 function countRoles(renderables: Renderable[]): Partial<Record<string, number>> {
@@ -734,7 +846,9 @@ function createGateAwareScrollController(): ScrollStateController & {
   };
 }
 
-function createPointerController(): PointerController {
+function createPointerController(
+  pointer: Partial<WebGLFrameInput["pointer"]> = {},
+): PointerController {
   return {
     getState() {
       return {
@@ -752,6 +866,7 @@ function createPointerController(): PointerController {
         dragDeltaX: 0,
         dragDeltaY: 0,
         clickCount: 0,
+        ...pointer,
       };
     },
     dispose: vi.fn(),

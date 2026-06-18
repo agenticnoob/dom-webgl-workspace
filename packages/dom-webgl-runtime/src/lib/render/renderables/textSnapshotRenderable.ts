@@ -67,6 +67,9 @@ export function createTextSnapshotRenderable(
       sceneObjectController() {
         return state.scene?.controller;
       },
+      effectTarget() {
+        return state.scene?.object.effectTarget;
+      },
       dispose() {
         state.textContent = "";
         state.scene?.controller.dispose();

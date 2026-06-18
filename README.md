@@ -16,6 +16,10 @@ projection in
 `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`;
 the forward architecture is now DOM layout/content driven WebGL effects, not
 general CSS-to-WebGL fidelity.
+Phase 5 adds the first public minimum effect/material layer in
+`docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`: declared
+targets may opt into the built-in `solid` material and `pointer-tilt` motion
+without exposing Three.js render flags or a custom effect registry.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -34,7 +38,7 @@ Current demo behavior:
 - React demo declares five base target categories through public APIs: element
   snapshot, text snapshot, image, video, and GLB model. It also includes a
   layout/content harness for transparent anchors, multiline text, object-fit
-  media, and narrow viewport layout.
+  media, narrow viewport layout, and a Phase 5 effect/material harness.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -58,6 +62,9 @@ Current visual behavior:
 - DOM is the source for layout, content, accessibility, and interaction state.
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
+- Declared targets can opt into the first built-in effect/material declarations:
+  `effects.material: { kind: "solid" }` and
+  `effects.motion: { kind: "pointer-tilt" }`.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -92,6 +99,11 @@ Current visual behavior:
 - Element snapshots are transparent DOM anchors for future effects/materials;
   they do not render CSS backgrounds, borders, radii, shadows, opacity, or
   transforms.
+- Element snapshots with an explicit `solid` material are visibly WebGL-owned
+  surfaces. The default element snapshot path remains a transparent layout
+  anchor.
+- `pointer-tilt` consumes the shared runtime pointer frame input and writes a
+  small target rotation; it does not add DOM listeners or own pointer state.
 - Text snapshots consume only the style information required to place and render
   text content, such as font, line height, padding, alignment, and DPR.
 - Image and video renderables place their media texture planes inside the CSS
@@ -127,6 +139,10 @@ Current visual behavior:
   Do not expand this into full CSS fidelity; the next architecture step is an
   effect/material layer consuming DOM layout, content, scroll, pointer, and
   lifecycle state.
+- Phase 5 starts that effect/material layer with two built-ins only. Custom
+  effect registration, shader authoring, particles, public Three.js render
+  flags, multiple canvases, raycast picking, and third-party scroll adapters
+  remain out of scope.
 
 ## Setup
 
@@ -219,6 +235,15 @@ Targets may tune fallback hiding through the public lifecycle declaration:
 type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
   hideMode?: "subtree" | "self";
+};
+```
+
+Targets may opt into the first built-in effect/material declarations:
+
+```ts
+type WebGLEffectsDeclaration = {
+  material?: { kind: "solid"; color?: number; opacity?: number };
+  motion?: { kind: "pointer-tilt"; strength?: number; maxDegrees?: number };
 };
 ```
 

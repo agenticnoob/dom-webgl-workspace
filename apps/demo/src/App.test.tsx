@@ -95,11 +95,12 @@ describe("demo App", () => {
       "demo.text",
       "demo.image",
       "demo.video",
-      "demo.model",
-      "demo.layout.surface",
-      "demo.layout.text",
-      "demo.layout.image",
-    ]);
+	      "demo.model",
+	      "demo.layout.surface",
+	      "demo.layout.text",
+	      "demo.layout.image",
+	      "demo.effects.surface",
+	    ]);
     expect(
       targetProps.map(({ webgl }) => ({
         key: (webgl as { key: string }).key,
@@ -127,15 +128,30 @@ describe("demo App", () => {
         key: "demo.layout.text",
         source: { kind: "snapshot", mode: "text" },
       },
-      {
-        key: "demo.layout.image",
-        source: { kind: "image", src: "/demo/layout-cover.png" },
-      },
-    ]);
-    expect(
-      targetProps.map(({ as }) => as),
-    ).toEqual(["section", "div", "h2", "img", "video", "div", "div", "p", "img"]);
-  });
+	      {
+	        key: "demo.layout.image",
+	        source: { kind: "image", src: "/demo/layout-cover.png" },
+	      },
+	      {
+	        key: "demo.effects.surface",
+	        source: { kind: "snapshot", mode: "element" },
+	      },
+	    ]);
+	    expect(
+	      targetProps.map(({ as }) => as),
+	    ).toEqual([
+	      "section",
+	      "div",
+	      "h2",
+	      "img",
+	      "video",
+	      "div",
+	      "div",
+	      "p",
+	      "img",
+	      "div",
+	    ]);
+	  });
 
   test("declares every visible source category through public WebGLTarget props", async () => {
     await renderApp();
@@ -163,8 +179,8 @@ describe("demo App", () => {
     });
   });
 
-  test("declares the layout/content harness through public WebGLTarget props", async () => {
-    await renderApp();
+	  test("declares the layout/content harness through public WebGLTarget props", async () => {
+	    await renderApp();
 
     expect(webglDeclarationFor("demo.layout.surface")).toMatchObject({
       key: "demo.layout.surface",
@@ -178,10 +194,23 @@ describe("demo App", () => {
       key: "demo.layout.image",
       source: { kind: "image", src: "/demo/layout-cover.png" },
     });
-    expect(targetProps.some(({ webgl }) => (webgl as { key: string }).key.includes("fidelity"))).toBe(
-      false,
-    );
-  });
+	    expect(targetProps.some(({ webgl }) => (webgl as { key: string }).key.includes("fidelity"))).toBe(
+	      false,
+	    );
+	  });
+
+	  test("declares the Phase 5 effect harness through public WebGLTarget props", async () => {
+	    await renderApp();
+
+	    expect(webglDeclarationFor("demo.effects.surface")).toMatchObject({
+	      key: "demo.effects.surface",
+	      source: { kind: "snapshot", mode: "element" },
+	      effects: {
+	        material: { kind: "solid", color: 0x111827, opacity: 0.82 },
+	        motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
+	      },
+	    });
+	  });
 
   test("uses mapped-target default self fallback hiding on container targets", async () => {
     await renderApp();

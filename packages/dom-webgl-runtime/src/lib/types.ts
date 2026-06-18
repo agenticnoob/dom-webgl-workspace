@@ -58,6 +58,23 @@ export type WebGLLifecycleDeclaration = {
   hideMode?: "subtree" | "self";
 };
 
+export type WebGLMaterialDeclaration = {
+  kind: "solid";
+  color?: number;
+  opacity?: number;
+};
+
+export type WebGLMotionDeclaration = {
+  kind: "pointer-tilt";
+  strength?: number;
+  maxDegrees?: number;
+};
+
+export type WebGLEffectsDeclaration = {
+  material?: WebGLMaterialDeclaration;
+  motion?: WebGLMotionDeclaration;
+};
+
 export type WebGLDeclaration = {
   key: string;
   source?: WebGLSourceDeclaration;
@@ -65,6 +82,7 @@ export type WebGLDeclaration = {
   scroll?: WebGLScrollBehavior;
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
+  effects?: WebGLEffectsDeclaration;
 };
 
 export type WebGLRuntimeOptions = {

@@ -56,6 +56,9 @@ export function createElementSnapshotRenderable(
     sceneObjectController() {
       return state.scene?.controller;
     },
+    effectTarget() {
+      return state.scene?.object.effectTarget;
+    },
     dispose() {
       state.visible = false;
       state.measurement = undefined;

@@ -59,18 +59,22 @@ describe("public package exports", () => {
         WebGLRuntime satisfies unknown;
         WebGLTarget satisfies unknown;
 
-        const props = {
-          webgl: {
-            key: "hero.gate",
-            scroll: {
-              type: "gate",
-              start: "top top",
-              duration: 1,
-              release: "both-directions-complete",
-            },
-          },
-        } satisfies WebGLTargetProps;
-      `,
+	        const props = {
+	          webgl: {
+	            key: "hero.gate",
+	            scroll: {
+	              type: "gate",
+	              start: "top top",
+	              duration: 1,
+	              release: "both-directions-complete",
+	            },
+	            effects: {
+	              material: { kind: "solid", color: 0x111827, opacity: 0.82 },
+	              motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
+	            },
+	          },
+	        } satisfies WebGLTargetProps;
+	      `,
     );
 
     try {
@@ -131,17 +135,20 @@ describe("public package exports", () => {
       fixturePath,
       `
         import { createWebGLRuntime } from "${importPath}";
-        import type {
-          WebGLDebugState,
-          WebGLDeclaration,
-          WebGLFrameInput,
-          WebGLGateScrollBehavior,
-          WebGLLifecycleDeclaration,
-          WebGLImageSourceDeclaration,
-          WebGLModelSourceDeclaration,
-          WebGLPointerDeclaration,
-          WebGLPointerState,
-          WebGLRenderRole,
+	        import type {
+	          WebGLDebugState,
+	          WebGLDeclaration,
+	          WebGLEffectsDeclaration,
+	          WebGLFrameInput,
+	          WebGLGateScrollBehavior,
+	          WebGLLifecycleDeclaration,
+	          WebGLImageSourceDeclaration,
+	          WebGLMaterialDeclaration,
+	          WebGLModelSourceDeclaration,
+	          WebGLMotionDeclaration,
+	          WebGLPointerDeclaration,
+	          WebGLPointerState,
+	          WebGLRenderRole,
           WebGLResourceStatus,
           WebGLRuntime,
           WebGLRuntimeOptions,
@@ -169,8 +176,10 @@ describe("public package exports", () => {
         import type { DOMViewportSize } from "${importPath}";
         // @ts-expect-error Render policy is an internal compilation result.
         import type { RenderPolicy } from "${importPath}";
-        // @ts-expect-error Render policy ordering is internal.
-        import type { SceneObjectOrdering } from "${importPath}";
+	        // @ts-expect-error Render policy ordering is internal.
+	        import type { SceneObjectOrdering } from "${importPath}";
+	        // @ts-expect-error Effect targets are internal renderable state.
+	        import type { WebGLEffectTarget } from "${importPath}";
 
         createWebGLRuntime satisfies (
           options: WebGLRuntimeOptions,
@@ -213,19 +222,34 @@ describe("public package exports", () => {
           release: "both-directions-complete",
         } satisfies WebGLGateScrollBehavior;
         gateScroll satisfies WebGLScrollBehavior;
-        const lifecycle = {
-          hideWhenReady: true,
-          hideMode: "subtree",
-        } satisfies WebGLLifecycleDeclaration;
+	        const lifecycle = {
+	          hideWhenReady: true,
+	          hideMode: "subtree",
+	        } satisfies WebGLLifecycleDeclaration;
+	        const material = {
+	          kind: "solid",
+	          color: 0x111827,
+	          opacity: 0.82,
+	        } satisfies WebGLMaterialDeclaration;
+	        const motion = {
+	          kind: "pointer-tilt",
+	          strength: 0.6,
+	          maxDegrees: 8,
+	        } satisfies WebGLMotionDeclaration;
+	        const effects = {
+	          material,
+	          motion,
+	        } satisfies WebGLEffectsDeclaration;
 
-        const declaration = {
-          key: "hero.model",
-          source: modelSource,
-          renderRole,
-          scroll: pageScroll,
-          pointer: pointerDeclaration,
-          lifecycle,
-        } satisfies WebGLDeclaration;
+	        const declaration = {
+	          key: "hero.model",
+	          source: modelSource,
+	          renderRole,
+	          scroll: pageScroll,
+	          pointer: pointerDeclaration,
+	          lifecycle,
+	          effects,
+	        } satisfies WebGLDeclaration;
         const gateDeclaration = {
           key: "hero.scene",
           scroll: gateScroll,
@@ -323,19 +347,27 @@ describe("public package exports", () => {
         debugState.targets[0]?.key satisfies string | undefined;
         gateDebugState.sceneProgress satisfies number | undefined;
 
-        ({
-          key: "hero.surface",
-          // @ts-expect-error effect is not part of the public declaration contract.
-          effect: "blur",
-        } satisfies WebGLDeclaration);
+	        ({
+	          key: "hero.surface",
+	          // @ts-expect-error effect is not part of the public declaration contract.
+	          effect: "blur",
+	        } satisfies WebGLDeclaration);
 
-        ({
-          key: "hero.surface",
-          // @ts-expect-error effects are not part of the public declaration contract.
-          effects: ["blur"],
-        } satisfies WebGLDeclaration);
-      `,
-    );
+	        ({
+	          key: "hero.surface",
+	          // @ts-expect-error effects must be a built-in effect declaration object.
+	          effects: ["blur"],
+	        } satisfies WebGLDeclaration);
+
+	        ({
+	          key: "hero.surface",
+	          effects: {
+	            // @ts-expect-error custom effect callbacks are not public API.
+	            custom: () => undefined,
+	          },
+	        } satisfies WebGLDeclaration);
+	      `,
+	    );
 
     try {
       const configPath = resolve(repoRoot, "tsconfig.base.json");

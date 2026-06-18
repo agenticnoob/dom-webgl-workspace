@@ -79,6 +79,9 @@ export function createImageRenderable(
       sceneObjectController() {
         return state.scene?.controller;
       },
+      effectTarget() {
+        return state.scene?.object.effectTarget;
+      },
       dispose() {
         state.scene?.controller.dispose();
         resource.dispose();
