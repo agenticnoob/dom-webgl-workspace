@@ -11,6 +11,8 @@ Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
+Reusable architecture lessons from the sibling `codex-web` project are captured
+in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current demo behavior:
 
@@ -37,11 +39,15 @@ Current visual behavior:
   render policy ordering, and runtime-owned scene objects.
 - DOM rects are measured in a batched runtime layout pass and projected into
   scene layout before renderables receive layout updates.
-- The internal canvas is an absolute-positioned WebGL stage layer anchored to
-  the runtime container, not document-flow content below the DOM scene.
-- Renderer defaults are performance-oriented and cap device pixel ratio.
+- The internal canvas is a fixed viewport WebGL stage layer, not document-flow
+  content below the DOM scene or a layer constrained by the demo content width.
+- Renderer defaults keep the stage transparent over the page background and cap
+  device pixel ratio.
 - Snapshot content rebuilds are dirty-boundary driven; frame updates apply
   layout without redrawing text content.
+- Text snapshots build their internal canvas from the measured DOM text box and
+  computed text color/font/alignment so the WebGL plane does not stretch a
+  fixed-size text texture.
 - Target lifecycle state is reported separately from resource load status.
 - `lifecycle.hideWhenReady` hides fallback DOM only after the matching scene
   object is visually ready.
@@ -57,9 +63,9 @@ Current visual behavior:
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
-  an internal stage layer, added renderer performance defaults and a DPR cap,
-  batched layout reads, and separated layout, content, resource, and lifecycle
-  boundaries before effect or animation work starts.
+  a fixed transparent internal stage layer, added renderer performance defaults
+  and a DPR cap, batched layout reads, and separated layout, content, resource,
+  and lifecycle boundaries before effect or animation work starts.
 
 ## Setup
 

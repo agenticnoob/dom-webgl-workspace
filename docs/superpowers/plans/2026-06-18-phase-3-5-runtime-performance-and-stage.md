@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Execution status:** Implemented and verified in branch `codex/phase3-5-runtime-performance-stage`. Targeted Phase 3.5 tests passed with 16 files / 75 tests; full Vitest passed with 45 files / 212 tests; `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` passed. The existing non-blocking Vite chunk-size warning remains.
+**Execution status:** Implemented and verified in branch `codex/phase3-5-runtime-performance-stage`. Targeted Phase 3.5 tests passed with 16 files / 75 tests; full Vitest passed with 45 files / 212 tests; `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` passed. A follow-up display correction makes the internal canvas a fixed transparent viewport stage so it is not constrained by demo content width and does not paint an opaque black background. The existing non-blocking Vite chunk-size warning remains.
 
 **Goal:** Bring Phase 1-3 runtime behavior up to the `docs/00-goal.md` performance and display contracts before adding any effect or animation layer.
 
-**Architecture:** Keep the DOM-first target/source/renderable pipeline, but replace the current loose canvas placement and unconditional React RAF sync with a single owned WebGL stage, one renderer loop, batched layout reads, explicit content/resource dirty boundaries, and lifecycle-aware updates. The canvas must share the DOM coordinate space with targets, must not participate in normal document flow, and must be driven by the runtime renderer loop rather than by component-level loops.
+**Architecture:** Keep the DOM-first target/source/renderable pipeline, but replace the current loose canvas placement and unconditional React RAF sync with a single owned fixed viewport WebGL stage, one renderer loop, batched layout reads, explicit content/resource dirty boundaries, and lifecycle-aware updates. The canvas must share the viewport coordinate space with targets, must not participate in normal document flow, must remain transparent over the page background, and must be driven by the runtime renderer loop rather than by component-level loops.
 
 **Tech Stack:** TypeScript, React, Three.js, Vitest, Vite demo app.
 
@@ -18,7 +18,7 @@
 - Current Phase 1-3 implementation proves the base pipeline and visible renderables, but does not fully implement those performance contracts.
 - The canvas is appended as a normal child of the runtime container, so it appears below DOM content instead of acting as a WebGL stage layer.
 - The recently added React animation-frame sync is too broad: it drives full runtime sync continuously from React instead of a single renderer-owned frame loop.
-- The current renderer uses `antialias: true` and does not set `alpha: false`, `powerPreference: "high-performance"`, or a DPR cap.
+- The pre-correction renderer used `antialias: true`, painted an opaque default canvas, and did not set `powerPreference: "high-performance"` or a DPR cap.
 - Current `textSnapshotRenderable` redraws text content on every `sync()` call, which violates the goal that snapshots are resource builds, not frame updates.
 - Layout measurement is still scattered through renderable `update()` calls; `00-goal.md` requires batched runtime layout measurement.
 - Lifecycle states are still `idle/loading/ready/error/disposed` style resource states, not the goal-level `declared/preloading/loaded/mounted/active/inactive/paused/disposed/error` target lifecycle.
@@ -57,7 +57,7 @@
 - Modify: `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
   - Replace "automatic RAF sync" tests with "runtime owns frame loop" tests.
 - Modify: `apps/demo/src/demo.css`
-  - Ensure the runtime container reserves the intended area while canvas is absolute-positioned and not in document flow.
+  - Ensure the runtime container reserves the intended area while the runtime-owned canvas is fixed to the viewport and not in document flow.
 - Modify: `README.md`, `docs/00-goal.md`, `docs/EXECUTION_STATE.md`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
   - Mark Phase 3.5 as implemented and verified before effect/animation work.
 
@@ -72,7 +72,7 @@
 Add a test asserting that the created canvas is not a normal document-flow child.
 
 ```ts
-test("positions the renderer canvas as an internal stage layer", () => {
+test("positions the renderer canvas as a fixed viewport stage layer", () => {
   const container = document.createElement("section");
   Object.defineProperties(container, {
     clientWidth: { configurable: true, value: 640 },
@@ -84,12 +84,13 @@ test("positions the renderer canvas as an internal stage layer", () => {
   });
 
   expect(container.style.position).toBe("relative");
-  expect(host.canvas.style.position).toBe("absolute");
+  expect(host.canvas.style.position).toBe("fixed");
   expect(host.canvas.style.inset).toBe("0px");
-  expect(host.canvas.style.width).toBe("100%");
-  expect(host.canvas.style.height).toBe("100%");
+  expect(host.canvas.style.width).toBe("100vw");
+  expect(host.canvas.style.height).toBe("100vh");
   expect(host.canvas.style.pointerEvents).toBe("none");
   expect(host.canvas.style.display).toBe("block");
+  expect(host.canvas.style.zIndex).toBe("0");
 
   host.dispose();
 });
@@ -116,12 +117,13 @@ function configureCanvasStage(container: HTMLElement, canvas: HTMLCanvasElement)
   }
 
   Object.assign(canvas.style, {
-    position: "absolute",
+    position: "fixed",
     inset: "0px",
-    width: "100%",
-    height: "100%",
+    width: "100vw",
+    height: "100vh",
     pointerEvents: "none",
     display: "block",
+    zIndex: "0",
   });
 }
 ```
@@ -172,7 +174,7 @@ test("uses performance-oriented WebGLRenderer defaults", async () => {
 
   expect(createdOptions[0]).toMatchObject({
     antialias: false,
-    alpha: false,
+    alpha: true,
     powerPreference: "high-performance",
   });
 });
@@ -226,7 +228,7 @@ Change renderer creation:
 ```ts
 const renderer = new WebGLRenderer({
   antialias: false,
-  alpha: false,
+  alpha: true,
   powerPreference: "high-performance",
   canvas,
 });
@@ -899,12 +901,15 @@ In `docs/EXECUTION_STATE.md`, add a section:
 
 ```md
 ## Phase 3.5 Runtime Performance And Stage Checklist
-- Canvas is an internal stage layer, not document-flow content.
-- Renderer uses performance defaults and DPR cap.
+- Canvas is a fixed transparent internal viewport stage layer, not document-flow content.
+- Renderer uses transparent stage defaults and a DPR cap.
 - Runtime owns one renderer loop through `setAnimationLoop`.
 - React does not own a frame loop.
 - Layout reads are batched.
 - Snapshot content rebuilds only on dirty invalidation.
+- Text snapshot canvases are sized from measured DOM text boxes and use
+  computed font, color, and alignment to avoid stretched fixed-size text
+  textures.
 - Lifecycle state separates resource status from target activity.
 - Hidden/inactive targets skip high-cost updates.
 - Resources and render targets dispose deterministically.

@@ -489,7 +489,7 @@ Docs and state:
 
 Phase 3 is complete through Task 72. Phase 3.5 runtime performance and stage
 correction has replaced the post-Task 72 React RAF bridge with a renderer-owned
-loop, internal canvas stage placement, batched layout reads, dirty snapshot
-content boundaries, lifecycle debug state, viewport lifecycle classification,
-and render target pooling. Do not start effect or animation planning until
-Phase 3.5 full verification is complete.
+loop, fixed transparent internal viewport canvas stage placement, batched
+layout reads, dirty snapshot content boundaries, lifecycle debug state,
+viewport lifecycle classification, and render target pooling. Do not start
+effect or animation planning until Phase 3.5 full verification is complete.

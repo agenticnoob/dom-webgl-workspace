@@ -13,11 +13,12 @@ alignment. Phase 3 visible renderables are complete through Task 72: DOM-authore
 element snapshots, text snapshots, images, videos, and GLB models now become
 runtime-owned visible scene objects, fallback visibility is tied to renderable
 readiness, and public/SSR import boundaries remain covered. Phase 3.5 runtime
-performance and stage correction is implemented: the canvas is an internal
-stage layer, the renderer owns the frame loop, layout reads are batched,
-snapshot content rebuilds follow dirty boundaries, target lifecycle state is
-reported separately from resource status, and resource/render-target disposal
-contracts are covered. Effects remain future work.
+performance and stage correction is implemented: the canvas is a fixed
+transparent internal viewport stage layer, the renderer owns the frame loop,
+layout reads are batched, snapshot content rebuilds follow dirty boundaries,
+target lifecycle state is reported separately from resource status, and
+resource/render-target disposal contracts are covered. Effects remain future
+work.
 
 ## Purpose
 
@@ -279,7 +280,9 @@ overlay -> highest controlled band
 Delivered Phase 3 behavior:
 
 - Element snapshot targets create visible runtime-owned scene planes.
-- Text snapshot targets create visible runtime-owned scene planes.
+- Text snapshot targets create visible runtime-owned scene planes sized from
+  the measured DOM text box with computed text style applied to the internal
+  text canvas.
 - Image targets create visible runtime-owned image scene planes.
 - Video targets create visible runtime-owned video scene planes.
 - GLB model targets create visible runtime-owned model scene objects.

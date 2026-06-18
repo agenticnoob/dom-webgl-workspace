@@ -16,6 +16,13 @@ import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
 
+import {
+  createTextCanvasRenderSignature,
+  drawTextToCanvas,
+  readTextCanvasRenderState,
+  type TextCanvasRenderState,
+} from "./textCanvasLayout";
+
 type ElementMeasurement = {
   x: number;
   y: number;
@@ -34,6 +41,7 @@ export type SceneRenderableObject = WebGLSceneObject & {
   textContent?: string;
   textureSource?: unknown;
   updateTextContent?(textContent: string): void;
+  updateTextLayout?(measurement: ElementMeasurement): void;
 };
 
 export type SceneRenderableControllerOptions = {
@@ -100,6 +108,7 @@ export function createSceneRenderableController(
     object,
     controller,
     updateLayout(measurement = options.measureElement(options.element)): void {
+      object.updateTextLayout?.(measurement);
       controller.updateLayout(
         projectDOMRectToSceneLayout(
           measurement,
@@ -147,6 +156,9 @@ export function createTextPlaneSceneRenderableController(
     transparent: true,
   });
   const mesh = new Mesh(geometry, material);
+  let textContent = options.textContent ?? "";
+  let lastMeasurement: ElementMeasurement | undefined;
+  let lastRenderSignature = "";
   const controller = createSceneRenderableController({
     ...options,
     object3D: mesh,
@@ -157,9 +169,35 @@ export function createTextPlaneSceneRenderableController(
       material.dispose();
     },
   });
+  const renderTextSnapshot = (measurement = lastMeasurement) => {
+    const state = readTextCanvasRenderState(
+      options.element,
+      textContent,
+      measurement,
+    );
+    const signature = createTextCanvasRenderSignature(textContent, state);
 
-  controller.object.updateTextContent = (textContent) => {
-    drawTextToCanvas(canvas, texture, textContent);
+    if (signature === lastRenderSignature) {
+      return;
+    }
+
+    lastRenderSignature = signature;
+    updateTextCanvas(canvas, texture, textContent, state);
+  };
+
+  controller.object.updateTextContent = (nextTextContent) => {
+    textContent = nextTextContent;
+    lastRenderSignature = "";
+    updateTextCanvas(
+      canvas,
+      texture,
+      textContent,
+      readTextCanvasRenderState(options.element, textContent, lastMeasurement),
+    );
+  };
+  controller.object.updateTextLayout = (measurement) => {
+    lastMeasurement = measurement;
+    renderTextSnapshot(measurement);
   };
 
   if (options.textContent) {
@@ -264,13 +302,14 @@ function readElementColor(element: HTMLElement): string {
   return backgroundColor;
 }
 
-function drawTextToCanvas(
+function updateTextCanvas(
   canvas: HTMLCanvasElement,
   texture: CanvasTexture,
   textContent: string,
+  state: TextCanvasRenderState,
 ): void {
-  canvas.width = Math.max(1, textContent.length * 12);
-  canvas.height = 32;
+  canvas.width = state.width;
+  canvas.height = state.height;
 
   if (!canvas.ownerDocument.defaultView?.CanvasRenderingContext2D) {
     texture.needsUpdate = true;
@@ -284,11 +323,7 @@ function drawTextToCanvas(
       return;
     }
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = "#ffffff";
-    context.font = "16px sans-serif";
-    context.textBaseline = "middle";
-    context.fillText(textContent, 0, canvas.height / 2);
+    drawTextToCanvas(context, textContent, state);
     texture.needsUpdate = true;
   } catch {
     texture.needsUpdate = true;

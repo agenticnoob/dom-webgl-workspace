@@ -55,7 +55,7 @@ describe("createThreeRendererHost", () => {
     expect(WebGLRenderer).toHaveBeenCalledTimes(1);
     expect(WebGLRenderer).toHaveBeenCalledWith({
       antialias: false,
-      alpha: false,
+      alpha: true,
       powerPreference: "high-performance",
       canvas: host.canvas,
     });
@@ -110,7 +110,7 @@ describe("createThreeRendererHost", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
-  test("positions the renderer canvas as an internal stage layer", async () => {
+  test("positions the renderer canvas as a fixed viewport stage layer", async () => {
     const { createThreeRendererHost } = await import("./threeRenderer");
     const container = document.createElement("section");
 
@@ -124,12 +124,13 @@ describe("createThreeRendererHost", () => {
     });
 
     expect(container.style.position).toBe("relative");
-    expect(host.canvas.style.position).toBe("absolute");
+    expect(host.canvas.style.position).toBe("fixed");
     expect(host.canvas.style.inset).toBe("0px");
-    expect(host.canvas.style.width).toBe("100%");
-    expect(host.canvas.style.height).toBe("100%");
+    expect(host.canvas.style.width).toBe("100vw");
+    expect(host.canvas.style.height).toBe("100vh");
     expect(host.canvas.style.pointerEvents).toBe("none");
     expect(host.canvas.style.display).toBe("block");
+    expect(host.canvas.style.zIndex).toBe("0");
 
     host.dispose();
   });
@@ -174,14 +175,22 @@ describe("createThreeRendererHost", () => {
       configurable: true,
       value: 768,
     });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1440,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
 
     const host = createThreeRendererHost(container);
 
-    expect(rendererSetSize).toHaveBeenCalledWith(1024, 768, false);
+    expect(rendererSetSize).toHaveBeenCalledWith(1440, 900, false);
     expect(camera).toMatchObject({
       left: 0,
-      right: 1024,
-      top: 768,
+      right: 1440,
+      top: 900,
       bottom: 0,
     });
     expect(camera.position.set).toHaveBeenCalledWith(0, 0, 500);

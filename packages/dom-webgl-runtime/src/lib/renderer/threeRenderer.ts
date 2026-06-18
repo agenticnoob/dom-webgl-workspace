@@ -75,7 +75,7 @@ function createDefaultThreeRendererObjects(
 ): ThreeRendererObjects {
   const renderer = new WebGLRenderer({
     antialias: false,
-    alpha: false,
+    alpha: true,
     powerPreference: "high-performance",
     canvas,
   });
@@ -109,8 +109,8 @@ function configureCSSPixelViewport(
   renderer: ThreeRendererAdapter,
   camera: object,
 ): void {
-  const width = container.clientWidth || window.innerWidth || 800;
-  const height = container.clientHeight || window.innerHeight || 600;
+  const width = window.innerWidth || container.clientWidth || 800;
+  const height = window.innerHeight || container.clientHeight || 600;
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 
   renderer.setPixelRatio?.(pixelRatio);
@@ -127,12 +127,13 @@ function configureCanvasStage(
   }
 
   Object.assign(canvas.style, {
-    position: "absolute",
+    position: "fixed",
     inset: "0px",
-    width: "100%",
-    height: "100%",
+    width: "100vw",
+    height: "100vh",
     pointerEvents: "none",
     display: "block",
+    zIndex: "0",
   });
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
@@ -6,7 +6,17 @@ import type { WebGLSnapshotSourceDescriptor } from "../../source/sourceDescripto
 import { compileRenderPolicy } from "../renderPolicy";
 import { createTextSnapshotRenderable } from "./textSnapshotRenderable";
 
+const originalCanvasRenderingContext2D = window.CanvasRenderingContext2D;
+
 describe("createTextSnapshotRenderable", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Object.defineProperty(window, "CanvasRenderingContext2D", {
+      configurable: true,
+      value: originalCanvasRenderingContext2D,
+    });
+  });
+
   test("creates a content renderable and captures target text on update", async () => {
     const element = document.createElement("h1");
     element.textContent = "Hello WebGL text";
@@ -107,6 +117,131 @@ describe("createTextSnapshotRenderable", () => {
     expect(renderable.textContent).toBe("Initial");
   });
 
+  test("sizes the text texture to the measured DOM box so it is not stretched", async () => {
+    const element = document.createElement("h2");
+    element.textContent = "Text snapshot target";
+    Object.assign(element.style, {
+      color: "rgb(29, 33, 28)",
+      fontFamily: "Arial",
+      fontSize: "36px",
+      fontWeight: "700",
+      lineHeight: "44px",
+      textAlign: "center",
+    });
+    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const sceneAdapter = createSceneAdapter();
+    const fillText = vi.fn();
+    const context = {
+      clearRect: vi.fn(),
+      fillText,
+      measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
+      textBaseline: "",
+      textAlign: "",
+      fillStyle: "",
+      font: "",
+    };
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName) => {
+      const createdElement = createElement(tagName);
+
+      if (tagName === "canvas") {
+        Object.assign(createdElement, {
+          getContext: vi.fn(() => context),
+        });
+      }
+
+      return createdElement;
+    });
+    Object.defineProperty(window, "CanvasRenderingContext2D", {
+      configurable: true,
+      value: function CanvasRenderingContext2D() {},
+    });
+    const renderable = createTextSnapshotRenderable(
+      {
+        descriptor,
+        source: createTextSnapshotDescriptor(element),
+        role: "content",
+        policy: compileRenderPolicy("content"),
+      },
+      {
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 240, 132),
+      },
+    );
+
+    await renderable.update();
+    renderable.updateLayout?.(createMeasurement(0, 0, 240, 132));
+
+    const textureCanvas = sceneAdapter.objects[0]?.textureSource as
+      | HTMLCanvasElement
+      | undefined;
+    expect(textureCanvas?.width).toBe(240);
+    expect(textureCanvas?.height).toBe(132);
+    expect(context.font).toContain("36px");
+    expect(context.fillStyle).toBe("rgb(29, 33, 28)");
+    expect(context.textAlign).toBe("center");
+    expect(fillText).toHaveBeenCalled();
+  });
+
+  test("uses computed block alignment when positioning text in the texture", async () => {
+    const element = document.createElement("h2");
+    element.textContent = "Title";
+    Object.assign(element.style, {
+      alignContent: "center",
+      color: "rgb(29, 33, 28)",
+      display: "grid",
+      fontFamily: "Arial",
+      fontSize: "36px",
+      lineHeight: "40px",
+      padding: "20px",
+    });
+    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const sceneAdapter = createSceneAdapter();
+    const fillText = vi.fn();
+    const context = {
+      clearRect: vi.fn(),
+      fillText,
+      measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
+      textBaseline: "",
+      textAlign: "",
+      fillStyle: "",
+      font: "",
+    };
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName) => {
+      const createdElement = createElement(tagName);
+
+      if (tagName === "canvas") {
+        Object.assign(createdElement, {
+          getContext: vi.fn(() => context),
+        });
+      }
+
+      return createdElement;
+    });
+    Object.defineProperty(window, "CanvasRenderingContext2D", {
+      configurable: true,
+      value: function CanvasRenderingContext2D() {},
+    });
+    const renderable = createTextSnapshotRenderable(
+      {
+        descriptor,
+        source: createTextSnapshotDescriptor(element),
+        role: "content",
+        policy: compileRenderPolicy("content"),
+      },
+      {
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 240, 180),
+      },
+    );
+
+    await renderable.update();
+    renderable.updateLayout?.(createMeasurement(0, 0, 240, 180));
+
+    expect(fillText).toHaveBeenCalledWith("Title", 20, 70);
+  });
+
   test("disposes idempotently", async () => {
     const element = document.createElement("p");
     element.textContent = "Disposable copy";
@@ -145,6 +280,7 @@ type TestSceneObject = {
   disposed: boolean;
   lastLayout?: unknown;
   object3D?: unknown;
+  textureSource?: unknown;
 };
 
 function createSceneAdapter(): WebGLSceneAdapter & {

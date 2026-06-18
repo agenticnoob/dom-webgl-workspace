@@ -1,14 +1,22 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is an internal WebGL stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
+Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Phase 3.5 Runtime Performance And Stage Implementation.
+Codex Web Reference Learnings Documentation.
+
+## Latest Documentation Note
+Captured the reusable `codex-web` architecture lessons in
+`docs/CODEX_WEB_REFERENCE_LEARNINGS.md`: package boundaries, DOM contract,
+source descriptor shape, snapshot adapter direction, default renderable factory
+shape, fallback visibility invariants, boundary tests, and the parts that should
+not be copied into this open-source runtime.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -88,18 +96,21 @@ Phase 3.5 Runtime Performance And Stage Implementation.
 Phase 3.5 runtime performance and stage correction is implemented and verified. The next phase may plan effect or animation work, but no effect registry, animation layer, third-party scroll adapter, picking path, multiple-canvas path, or public Three.js render flags are implemented yet.
 
 ## Phase 3.5 Runtime Performance And Stage Checklist
-- Canvas is an internal stage layer, not document-flow content.
-- Renderer uses performance defaults and a DPR cap.
+- Canvas is a fixed transparent internal viewport stage layer, not document-flow content.
+- Renderer uses transparent stage defaults and a DPR cap.
 - Runtime owns one renderer loop through `setAnimationLoop`.
 - React does not own a frame loop.
 - Layout reads are batched.
 - Snapshot content rebuilds only on dirty invalidation.
+- Text snapshot canvases are sized from measured DOM text boxes and use
+  computed font, color, and alignment to avoid stretched fixed-size text
+  textures.
 - Lifecycle state separates resource status from target activity.
 - Hidden/inactive targets skip high-cost updates.
 - Resources and render targets dispose deterministically.
 
 ## Phase 3.5 Completed Task Record
-- Completed work: Canvas stage placement, renderer performance defaults, renderer-owned loop, batched layout pass, dirty snapshot content boundary, lifecycle debug state, viewport lifecycle classification, render target pool, demo stage CSS, and documentation alignment.
+- Completed work: Fixed transparent canvas stage placement, renderer performance defaults, renderer-owned loop, batched layout pass, dirty snapshot content boundary, text snapshot style/texture sizing, lifecycle debug state, viewport lifecycle classification, render target pool, demo stage CSS, and documentation alignment.
 - Files changed: runtime renderer, React runtime wrapper, renderables, resources, demo CSS/tests, public/debug types, and status docs.
 - Verification: targeted Phase 3.5 tests passed with 16 files / 75 tests; full Vitest suite passed with 45 files / 212 tests; `npm run typecheck` passed; `npm run build` passed with the existing Vite chunk-size warning; `npm run check:imports` passed with `Demo import boundary OK`; `git diff --check` passed.
 - Boundary notes: No effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, or public Three.js render flags were introduced.
@@ -399,7 +410,7 @@ Phase 3.5 runtime performance and stage correction is implemented and verified. 
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 3.5 runtime performance and stage correction is implemented and verified. User-facing docs now describe delivered visible renderables, fallback visibility, renderer-owned loop behavior, stage canvas placement, batched layout reads, lifecycle/resource boundaries, public boundaries, and deferred effect/adapters/picking scope. The existing non-blocking Vite production build chunk-size warning remains.
+Phase 3.5 runtime performance and stage correction is implemented and verified. User-facing docs now describe delivered visible renderables, fallback visibility, renderer-owned loop behavior, fixed transparent viewport stage canvas placement, batched layout reads, lifecycle/resource boundaries, public boundaries, and deferred effect/adapters/picking scope. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Files Changed
 - `README.md`
