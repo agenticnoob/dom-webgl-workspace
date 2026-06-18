@@ -12,10 +12,12 @@ SSR/import-boundary regressions, full verification, and final documentation
 alignment. Phase 3 visible renderables are complete through Task 72: DOM-authored
 element snapshots, text snapshots, images, videos, and GLB models now become
 runtime-owned visible scene objects, fallback visibility is tied to renderable
-readiness, the React runtime drives automatic animation-frame sync for mounted
-targets as a post-Task 72 bridge, and public/SSR import boundaries remain
-covered. Phase 3.5 must complete the runtime performance and stage contracts
-before any effect or animation layer starts. Effects remain future work.
+readiness, and public/SSR import boundaries remain covered. Phase 3.5 runtime
+performance and stage correction is implemented: the canvas is an internal
+stage layer, the renderer owns the frame loop, layout reads are batched,
+snapshot content rebuilds follow dirty boundaries, target lifecycle state is
+reported separately from resource status, and resource/render-target disposal
+contracts are covered. Effects remain future work.
 
 ## Purpose
 
@@ -284,10 +286,11 @@ Delivered Phase 3 behavior:
 - DOM rects are projected into scene coordinates internally.
 - Ordering comes from `renderRole` through internal render policy, not public
   Three.js flags.
-- Mounted React runtimes currently use a post-Task 72 automatic sync bridge to
-  render visible scene changes through the single scene adapter. Phase 3.5 must
-  replace this bridge with the renderer-owned loop described in the performance
-  contract below.
+- Mounted React runtimes create and dispose the runtime but do not own a frame
+  loop.
+- The runtime owns a renderer-driven loop through the renderer host and renders
+  visible scene changes through the single scene adapter.
+- Layout reads are batched before renderables receive layout updates.
 - Async resource completion requests a render after the visual scene object is
   ready.
 

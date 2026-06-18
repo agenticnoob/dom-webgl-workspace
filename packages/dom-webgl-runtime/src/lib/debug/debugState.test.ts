@@ -37,6 +37,7 @@ describe("debug state", () => {
           sourceKind: "image",
           renderRole: "media",
           resourceStatus: "error",
+          lifecycleState: "error",
           visible: false,
           error: new Error("Image decode failed"),
         },
@@ -58,6 +59,7 @@ describe("debug state", () => {
           sourceKind: "image",
           renderRole: "media",
           resourceStatus: "error",
+          lifecycleState: "error",
           visible: false,
           error: "Image decode failed",
         },
@@ -119,10 +121,11 @@ describe("debug state", () => {
       targets: [
         {
           key: "poster",
-          sourceKind: "image",
-          renderRole: "media",
-          resourceStatus: "idle",
-          visible: true,
+            sourceKind: "image",
+            renderRole: "media",
+            resourceStatus: "idle",
+            lifecycleState: "declared",
+            visible: true,
         },
       ],
     });
@@ -141,9 +144,10 @@ describe("debug state", () => {
         {
           key: "poster",
           sourceKind: "image",
-          renderRole: "media",
-          resourceStatus: "ready",
-          visible: true,
+            renderRole: "media",
+            resourceStatus: "ready",
+            lifecycleState: "active",
+            visible: true,
         },
       ],
     });
@@ -190,6 +194,7 @@ describe("debug state", () => {
             sourceKind: "snapshot",
             renderRole: "surface",
             resourceStatus: "ready",
+            lifecycleState: "active",
             visible: true,
           }),
         ],

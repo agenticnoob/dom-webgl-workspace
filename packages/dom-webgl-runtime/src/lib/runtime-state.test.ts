@@ -83,6 +83,7 @@ describe("runtime state public types", () => {
               sourceKind: "image",
               renderRole: "media",
               resourceStatus,
+              lifecycleState: "active",
               visible: true,
             },
           ],

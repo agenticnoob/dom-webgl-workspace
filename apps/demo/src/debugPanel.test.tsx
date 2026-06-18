@@ -34,6 +34,7 @@ describe("DebugPanel", () => {
           sourceKind: "snapshot",
           renderRole: "surface",
           resourceStatus: "ready",
+          lifecycleState: "active",
           visible: true,
         },
         {
@@ -41,6 +42,7 @@ describe("DebugPanel", () => {
           sourceKind: "image",
           renderRole: "media",
           resourceStatus: "loading",
+          lifecycleState: "preloading",
           visible: false,
         },
       ],

@@ -1,6 +1,8 @@
 # Phase 3.5 Runtime Performance And Stage Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+
+**Execution status:** Implemented and verified in branch `codex/phase3-5-runtime-performance-stage`. Targeted Phase 3.5 tests passed with 16 files / 75 tests; full Vitest passed with 45 files / 212 tests; `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` passed. The existing non-blocking Vite chunk-size warning remains.
 
 **Goal:** Bring Phase 1-3 runtime behavior up to the `docs/00-goal.md` performance and display contracts before adding any effect or animation layer.
 
@@ -57,7 +59,7 @@
 - Modify: `apps/demo/src/demo.css`
   - Ensure the runtime container reserves the intended area while canvas is absolute-positioned and not in document flow.
 - Modify: `README.md`, `docs/00-goal.md`, `docs/EXECUTION_STATE.md`, `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
-  - Mark Phase 3.5 as the next required correction before effect/animation work.
+  - Mark Phase 3.5 as implemented and verified before effect/animation work.
 
 ## Task 1: Canvas Stage Placement Contract
 
@@ -65,7 +67,7 @@
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`
 
-- [ ] **Step 1: Write the failing canvas placement test**
+- [x] **Step 1: Write the failing canvas placement test**
 
 Add a test asserting that the created canvas is not a normal document-flow child.
 
@@ -93,7 +95,7 @@ test("positions the renderer canvas as an internal stage layer", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -103,7 +105,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test
 
 Expected: FAIL because canvas styles are not set.
 
-- [ ] **Step 3: Implement minimal stage placement**
+- [x] **Step 3: Implement minimal stage placement**
 
 In `createThreeRendererHost`, add a small helper:
 
@@ -126,7 +128,7 @@ function configureCanvasStage(container: HTMLElement, canvas: HTMLCanvasElement)
 
 Call it before `container.appendChild(canvas)`.
 
-- [ ] **Step 4: Verify the stage placement test passes**
+- [x] **Step 4: Verify the stage placement test passes**
 
 Run:
 
@@ -142,7 +144,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`
 
-- [ ] **Step 1: Write failing renderer options and DPR tests**
+- [x] **Step 1: Write failing renderer options and DPR tests**
 
 Add a test that mocks the Three.js renderer constructor and verifies options:
 
@@ -207,7 +209,7 @@ test("caps renderer pixel ratio at 1.5", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -217,7 +219,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test
 
 Expected: FAIL because current renderer uses `antialias: true` and does not set DPR.
 
-- [ ] **Step 3: Implement renderer defaults**
+- [x] **Step 3: Implement renderer defaults**
 
 Change renderer creation:
 
@@ -245,7 +247,7 @@ const pixelRatio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
 renderer.setPixelRatio?.(pixelRatio);
 ```
 
-- [ ] **Step 4: Verify renderer tests pass**
+- [x] **Step 4: Verify renderer tests pass**
 
 Run:
 
@@ -265,7 +267,7 @@ Expected: PASS.
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx`
 
-- [ ] **Step 1: Write failing renderer loop tests**
+- [x] **Step 1: Write failing renderer loop tests**
 
 Create `rendererLoop.test.ts`:
 
@@ -332,7 +334,7 @@ test("does not own a React requestAnimationFrame sync loop", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -342,7 +344,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.
 
 Expected: FAIL because `rendererLoop.ts` does not exist and React still owns a RAF loop.
 
-- [ ] **Step 3: Implement `createRendererLoop`**
+- [x] **Step 3: Implement `createRendererLoop`**
 
 Create `rendererLoop.ts`:
 
@@ -394,7 +396,7 @@ export function createRendererLoop(options: RendererLoopOptions): RendererLoop {
 }
 ```
 
-- [ ] **Step 4: Wire the runtime to own the loop**
+- [x] **Step 4: Wire the runtime to own the loop**
 
 In `runtime.ts`, create the loop after `rendererHost` and call `loop.start()`.
 
@@ -414,11 +416,11 @@ const loop = createRendererLoop({
 
 Extract the current update work from `sync()` into an internal `syncFrame()` that performs frame input, renderable updates, fallback state, and debug state without calling render directly. Keep public `sync()` as a compatibility method that calls `syncFrame()` then renders once.
 
-- [ ] **Step 5: Remove React-owned RAF loop**
+- [x] **Step 5: Remove React-owned RAF loop**
 
 Delete the `useEffect` in `WebGLRuntime.tsx` that calls `requestAnimationFrame`. React should only create/dispose runtime and provide it through context.
 
-- [ ] **Step 6: Verify loop ownership**
+- [x] **Step 6: Verify loop ownership**
 
 Run:
 
@@ -438,7 +440,7 @@ Expected: PASS.
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/layoutPass.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
-- [ ] **Step 1: Write failing layout pass test**
+- [x] **Step 1: Write failing layout pass test**
 
 Create `layoutPass.test.ts`:
 
@@ -470,7 +472,7 @@ describe("layout pass", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -480,7 +482,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/layoutPass.test.ts
 
 Expected: FAIL because `layoutPass.ts` does not exist.
 
-- [ ] **Step 3: Implement layout pass**
+- [x] **Step 3: Implement layout pass**
 
 Create `layoutPass.ts`:
 
@@ -527,7 +529,7 @@ export function createLayoutPass(options: {
 }
 ```
 
-- [ ] **Step 4: Refactor renderables to accept measured layout**
+- [x] **Step 4: Refactor renderables to accept measured layout**
 
 Add a renderable method:
 
@@ -537,7 +539,7 @@ updateLayout?(measurement: ElementMeasurement): void;
 
 Move per-frame `measureElement()` calls out of renderable `update()` and into runtime layout pass. Renderables should apply received measurements to scene controllers.
 
-- [ ] **Step 5: Verify layout batching**
+- [x] **Step 5: Verify layout batching**
 
 Run:
 
@@ -556,7 +558,7 @@ Expected: PASS and existing runtime pipeline expectations updated to expect one 
 - Test: `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`
 
-- [ ] **Step 1: Write failing text snapshot test**
+- [x] **Step 1: Write failing text snapshot test**
 
 Add a test:
 
@@ -574,7 +576,7 @@ test("does not redraw text content during layout-only frame updates", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run:
 
@@ -584,7 +586,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/textSnap
 
 Expected: FAIL because current update path rereads `textContent`.
 
-- [ ] **Step 3: Implement dirty-only content update**
+- [x] **Step 3: Implement dirty-only content update**
 
 Capture text once during initial content build:
 
@@ -594,7 +596,7 @@ const initialTextContent = context.descriptor.element.textContent ?? "";
 
 Use `updateLayout()` for frame layout and reserve `update()` for resource/content build. Do not call `updateTextContent()` from layout-only updates.
 
-- [ ] **Step 4: Add explicit invalidation placeholder without public API expansion**
+- [x] **Step 4: Add explicit invalidation placeholder without public API expansion**
 
 Add an internal method only if needed by tests:
 
@@ -604,7 +606,7 @@ invalidateContent?(): void;
 
 Do not expose it publicly until a later API design requires it.
 
-- [ ] **Step 5: Verify snapshot tests**
+- [x] **Step 5: Verify snapshot tests**
 
 Run:
 
@@ -624,7 +626,7 @@ Expected: PASS.
 - Test: `packages/dom-webgl-runtime/src/lib/types.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
 
-- [ ] **Step 1: Write failing public/internal type tests**
+- [x] **Step 1: Write failing public/internal type tests**
 
 Add type coverage for lifecycle states:
 
@@ -649,7 +651,7 @@ expect(state.targets[0]).toMatchObject({
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -659,7 +661,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-
 
 Expected: FAIL because lifecycle state is not exposed in debug state.
 
-- [ ] **Step 3: Implement lifecycle state**
+- [x] **Step 3: Implement lifecycle state**
 
 Add:
 
@@ -678,7 +680,7 @@ export type WebGLLifecycleState =
 
 Use this state in renderable lifecycle bookkeeping and debug target records. Keep resource status separate from lifecycle state.
 
-- [ ] **Step 4: Verify lifecycle tests**
+- [x] **Step 4: Verify lifecycle tests**
 
 Run:
 
@@ -695,7 +697,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/viewportLifecycle.test.ts`
 
-- [ ] **Step 1: Write failing viewport lifecycle tests**
+- [x] **Step 1: Write failing viewport lifecycle tests**
 
 Create tests for range classification:
 
@@ -715,7 +717,7 @@ test("classifies targets as active only inside active margin", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -725,11 +727,11 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/viewportLifecycle.
 
 Expected: FAIL because module does not exist.
 
-- [ ] **Step 3: Implement viewport lifecycle classification**
+- [x] **Step 3: Implement viewport lifecycle classification**
 
 Support `vh` margins for the first version. Do not add complex CSS parser behavior.
 
-- [ ] **Step 4: Use lifecycle state to skip expensive work**
+- [x] **Step 4: Use lifecycle state to skip expensive work**
 
 In runtime frame update:
 
@@ -737,7 +739,7 @@ In runtime frame update:
 - Inactive targets retain resources but skip snapshot rebuilds and effect hooks.
 - Disposed/unloaded targets release GPU resources through renderable dispose.
 
-- [ ] **Step 5: Verify lifecycle behavior**
+- [x] **Step 5: Verify lifecycle behavior**
 
 Run:
 
@@ -755,7 +757,7 @@ Expected: PASS.
 - Test: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/resources/renderTargetPool.test.ts`
 
-- [ ] **Step 1: Write failing resource budget and render target pool tests**
+- [x] **Step 1: Write failing resource budget and render target pool tests**
 
 For resource manager:
 
@@ -796,7 +798,7 @@ test("reuses released render targets and disposes retained targets", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -806,11 +808,11 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.t
 
 Expected: render target pool test fails because the module does not exist.
 
-- [ ] **Step 3: Implement render target pool**
+- [x] **Step 3: Implement render target pool**
 
 Create a minimal generic pool around `{ dispose(): void }` objects. Keep Three.js `WebGLRenderTarget` creation behind an injected factory for testability.
 
-- [ ] **Step 4: Ensure renderable disposal releases GPU resources**
+- [x] **Step 4: Ensure renderable disposal releases GPU resources**
 
 Audit all renderables:
 
@@ -820,7 +822,7 @@ Audit all renderables:
 - Model recursively disposes geometry/material/texture where possible.
 - Resource handles decrement ref counts.
 
-- [ ] **Step 5: Verify resource tests**
+- [x] **Step 5: Verify resource tests**
 
 Run:
 
@@ -837,7 +839,7 @@ Expected: PASS.
 - Modify: `apps/demo/src/App.test.tsx`
 - Test: `apps/demo/src/App.test.tsx`
 
-- [ ] **Step 1: Write failing demo stage test**
+- [x] **Step 1: Write failing demo stage test**
 
 Add an assertion that the demo runtime root receives stage-safe layout classes and does not rely on canvas in document flow:
 
@@ -848,7 +850,7 @@ expect(host.querySelector(".demo-scene")).not.toBeNull();
 
 Add CSS expectations through class naming rather than computed browser layout in unit tests.
 
-- [ ] **Step 2: Run demo tests**
+- [x] **Step 2: Run demo tests**
 
 Run:
 
@@ -858,7 +860,7 @@ npm test -- --run apps/demo/src/App.test.tsx
 
 Expected: FAIL if class contract is missing.
 
-- [ ] **Step 3: Update demo CSS**
+- [x] **Step 3: Update demo CSS**
 
 Ensure the runtime has an explicit stage area and the content layer remains readable:
 
@@ -873,7 +875,7 @@ Ensure the runtime has an explicit stage area and the content layer remains read
 
 Do not style the internal canvas from app CSS if runtime owns it.
 
-- [ ] **Step 4: Verify demo tests**
+- [x] **Step 4: Verify demo tests**
 
 Run:
 
@@ -891,7 +893,7 @@ Expected: PASS.
 - Modify: `docs/EXECUTION_STATE.md`
 - Modify: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
 
-- [ ] **Step 1: Document the Phase 3.5 checklist before editing code status**
+- [x] **Step 1: Document the Phase 3.5 checklist before editing code status**
 
 In `docs/EXECUTION_STATE.md`, add a section:
 
@@ -908,15 +910,15 @@ In `docs/EXECUTION_STATE.md`, add a section:
 - Resources and render targets dispose deterministically.
 ```
 
-- [ ] **Step 2: Update README demo expectations**
+- [x] **Step 2: Update README demo expectations**
 
 State that visible renderables appear in the runtime stage at DOM anchor positions and that the canvas must not appear below DOM content.
 
-- [ ] **Step 3: Update `docs/00-goal.md` implementation status**
+- [x] **Step 3: Update `docs/00-goal.md` implementation status**
 
 Mark Phase 3.5 as the next correction required before effects. Do not claim effect/animation support.
 
-- [ ] **Step 4: Verify docs formatting**
+- [x] **Step 4: Verify docs formatting**
 
 Run:
 
@@ -931,7 +933,7 @@ Expected: no output.
 **Files:**
 - Modify only if verification exposes a bug in Phase 3.5 work.
 
-- [ ] **Step 1: Run targeted tests**
+- [x] **Step 1: Run targeted tests**
 
 Run:
 
@@ -941,7 +943,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test
 
 Expected: PASS.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 Run:
 
@@ -951,7 +953,7 @@ npm test -- --run
 
 Expected: PASS.
 
-- [ ] **Step 3: Run typecheck**
+- [x] **Step 3: Run typecheck**
 
 Run:
 
@@ -961,7 +963,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 4: Run build**
+- [x] **Step 4: Run build**
 
 Run:
 
@@ -971,7 +973,7 @@ npm run build
 
 Expected: PASS. Existing Vite chunk-size warning is acceptable unless a new warning appears.
 
-- [ ] **Step 5: Run public import boundary**
+- [x] **Step 5: Run public import boundary**
 
 Run:
 
@@ -981,7 +983,7 @@ npm run check:imports
 
 Expected: `Demo import boundary OK`.
 
-- [ ] **Step 6: Run whitespace check**
+- [x] **Step 6: Run whitespace check**
 
 Run:
 

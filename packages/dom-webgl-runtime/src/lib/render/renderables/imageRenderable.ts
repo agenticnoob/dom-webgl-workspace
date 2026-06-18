@@ -1,5 +1,6 @@
 import type { ResourceManager } from "../../resources/resourceManager";
 import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLImageSourceDescriptor } from "../../source/sourceDescriptor";
 import {
@@ -22,17 +23,6 @@ type ImageRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
-};
-
-type ElementMeasurement = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
 };
 
 export function createImageRenderable(
@@ -60,9 +50,11 @@ export function createImageRenderable(
           textureKind: "image",
           textureSource: image,
         });
-        state.scene.updateLayout();
         state.scene.attach();
         state.fallbackVisible = false;
+      },
+      updateLayout(_context, _lifecycle, measurement) {
+        state.scene?.updateLayout(measurement);
       },
       setVisible(visible) {
         state.scene?.controller.setVisible(visible);

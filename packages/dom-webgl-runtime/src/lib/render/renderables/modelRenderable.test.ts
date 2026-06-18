@@ -44,6 +44,7 @@ describe("createModelRenderable", () => {
 
     await renderable.update();
     await renderable.update();
+    renderable.updateLayout?.(createMeasurement(10, 30, 240, 160));
 
     expect(loadModel).toHaveBeenCalledTimes(1);
     expect(loadModel).toHaveBeenCalledWith(source);

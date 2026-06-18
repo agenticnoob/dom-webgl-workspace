@@ -84,7 +84,9 @@ describe("demo App", () => {
     });
 
     expect(runtimeProps).toHaveLength(1);
+    expect(runtimeProps[0]?.className).toBe("demo-runtime");
     expect(host.querySelector('[data-testid="webgl-runtime"]')).not.toBeNull();
+    expect(host.querySelector(".demo-scene")).not.toBeNull();
 
     expect(targetProps.map(({ webgl }) => (webgl as { key: string }).key)).toEqual([
       "demo.surface",

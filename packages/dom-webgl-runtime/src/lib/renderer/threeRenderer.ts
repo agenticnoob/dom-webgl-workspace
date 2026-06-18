@@ -5,6 +5,8 @@ import type { WebGLSceneAdapter, WebGLSceneObject } from "./sceneObject";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
+  setAnimationLoop?(callback: ((time: number) => void) | null): void;
+  setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
@@ -44,6 +46,7 @@ export function createThreeRendererHost(
   );
   let disposed = false;
 
+  configureCanvasStage(container, canvas);
   container.appendChild(canvas);
   configureCSSPixelViewport(container, objects.renderer, objects.camera);
 
@@ -71,7 +74,9 @@ function createDefaultThreeRendererObjects(
   canvas: HTMLCanvasElement,
 ): ThreeRendererObjects {
   const renderer = new WebGLRenderer({
-    antialias: true,
+    antialias: false,
+    alpha: false,
+    powerPreference: "high-performance",
     canvas,
   });
 
@@ -81,6 +86,12 @@ function createDefaultThreeRendererObjects(
       canvas,
       setSize(width, height, updateStyle) {
         readRendererSetSize(renderer)?.(width, height, updateStyle);
+      },
+      setPixelRatio(ratio) {
+        readRendererSetPixelRatio(renderer)?.(ratio);
+      },
+      setAnimationLoop(callback) {
+        readRendererSetAnimationLoop(renderer)?.(callback);
       },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
@@ -100,9 +111,29 @@ function configureCSSPixelViewport(
 ): void {
   const width = container.clientWidth || window.innerWidth || 800;
   const height = container.clientHeight || window.innerHeight || 600;
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 
+  renderer.setPixelRatio?.(pixelRatio);
   renderer.setSize?.(width, height, false);
   configureOrthographicCamera(camera, width, height);
+}
+
+function configureCanvasStage(
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+): void {
+  if (!container.style.position) {
+    container.style.position = "relative";
+  }
+
+  Object.assign(canvas.style, {
+    position: "absolute",
+    inset: "0px",
+    width: "100%",
+    height: "100%",
+    pointerEvents: "none",
+    display: "block",
+  });
 }
 
 function configureOrthographicCamera(
@@ -200,5 +231,31 @@ function readRendererSetSize(
     width: number,
     height: number,
     updateStyle?: boolean,
+  ) => void;
+}
+
+function readRendererSetPixelRatio(
+  renderer: object,
+): ((ratio: number) => void) | undefined {
+  const setPixelRatio = (renderer as Record<string, unknown>).setPixelRatio;
+
+  if (typeof setPixelRatio !== "function") {
+    return undefined;
+  }
+
+  return setPixelRatio.bind(renderer) as (ratio: number) => void;
+}
+
+function readRendererSetAnimationLoop(
+  renderer: object,
+): ((callback: ((time: number) => void) | null) => void) | undefined {
+  const setAnimationLoop = (renderer as Record<string, unknown>).setAnimationLoop;
+
+  if (typeof setAnimationLoop !== "function") {
+    return undefined;
+  }
+
+  return setAnimationLoop.bind(renderer) as (
+    callback: ((time: number) => void) | null,
   ) => void;
 }

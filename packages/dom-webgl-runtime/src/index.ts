@@ -5,6 +5,7 @@ export type {
   WebGLFrameInput,
   WebGLGateScrollBehavior,
   WebGLLifecycleDeclaration,
+  WebGLLifecycleState,
   WebGLImageSourceDeclaration,
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,

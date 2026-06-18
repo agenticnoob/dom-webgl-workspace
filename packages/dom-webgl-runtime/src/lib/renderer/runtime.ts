@@ -7,6 +7,7 @@ import type {
   WebGLDebugState,
   WebGLDeclaration,
   WebGLFrameInput,
+  WebGLLifecycleState,
   WebGLResourceStatus,
   WebGLRuntime,
   WebGLRuntimeOptions,
@@ -50,10 +51,13 @@ import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
+import { createLayoutPass, type ElementMeasurement } from "./layoutPass";
 import {
   createThreeRendererHost,
   type ThreeRendererHost,
 } from "./threeRenderer";
+import { createRendererLoop } from "./rendererLoop";
+import { createViewportLifecycle } from "./viewportLifecycle";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -85,6 +89,11 @@ type RuntimeScrollController = ScrollStateController &
   >;
 
 type TargetDebugRecord = Omit<DebugTargetState, "key">;
+
+type SyncFrameResult = {
+  didSynchronousUpdate: boolean;
+  pendingUpdate?: Promise<void>;
+};
 
 type BrowserDOMGlobals = typeof globalThis & {
   window?: unknown;
@@ -119,6 +128,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     pointerController,
     internalOptions.clock ?? readClock,
   );
+  const layoutPass = createLayoutPass({
+    measureElement: internalOptions.measureElement ?? measureElement,
+  });
   const renderables = new Set<DisposableRenderable>(
     internalOptions.renderables ?? [],
   );
@@ -138,8 +150,39 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   };
   let nextScanOrder = 0;
   let disposed = false;
+  let loopSyncPending = false;
+
+  const rendererLoop = createRendererLoop({
+    renderer: rendererHost.renderer,
+    beforeRender() {
+      if (loopSyncPending) {
+        return;
+      }
+
+      try {
+        const result = syncFrame();
+
+        if (result.pendingUpdate) {
+          loopSyncPending = true;
+          result.pendingUpdate
+            .catch((error: unknown) => {
+              console.error("WebGL runtime frame sync failed.", error);
+            })
+            .finally(() => {
+              loopSyncPending = false;
+            });
+        }
+      } catch (error: unknown) {
+        console.error("WebGL runtime frame sync failed.", error);
+      }
+    },
+    render() {
+      renderScene();
+    },
+  });
 
   ownerDocument.addEventListener("visibilitychange", handleVisibilityChange);
+  rendererLoop.start();
 
   return {
     container: options.container,
@@ -176,122 +219,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         return;
       }
 
-      const descriptors = listTargetsInScanOrder(registry);
-      const frameInput = frameInputSource.update();
+      const result = syncFrame();
 
-      for (const descriptor of descriptors) {
-        if (renderablesByTargetKey.has(descriptor.key)) {
-          continue;
-        }
-
-        const { renderable, debugRecord, source } = createPipelineRenderable(
-          descriptor,
-          renderableFactoryContext,
-        );
-
-        renderablesByTargetKey.set(descriptor.key, renderable);
-        debugRecordsByTargetKey.set(descriptor.key, debugRecord);
-        fallbackControllersByTargetKey.set(
-          descriptor.key,
-          createFallbackVisibilityController(
-            descriptor.element,
-            descriptor.declaration.lifecycle ?? {},
-            { defaultHideMode: readDefaultFallbackHideMode(source) },
-          ),
-        );
-        renderables.add(renderable);
-        internalOptions.onRenderableCreated?.(renderable);
-      }
-
-      const pendingUpdates: Array<Promise<void>> = [];
-      let didSynchronousUpdate = false;
-
-      for (const descriptor of descriptors) {
-        const renderable = renderablesByTargetKey.get(descriptor.key);
-
-        if (!renderable) {
-          continue;
-        }
-
-        const debugRecord = readTargetDebugRecord(
-          descriptor,
-          debugRecordsByTargetKey,
-        );
-        let result: void | Promise<void>;
-
-        try {
-          result = renderable.update(frameInput);
-        } catch (error: unknown) {
-          markDebugRecordError(debugRecord, error);
-          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
-          releaseActiveGate(scrollState);
-          emitDebugState();
-          throw error;
-        }
-
-        if (isPromiseLike(result)) {
-          markDebugRecordLoading(debugRecord);
-          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
-          pendingUpdates.push(
-            result
-              .then(() => {
-                if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
-                  return;
-                }
-
-                syncDebugRecordFromRenderable(debugRecord, renderable);
-                syncFallbackVisibility(
-                  descriptor,
-                  renderable,
-                  fallbackControllersByTargetKey,
-                );
-                renderScene();
-              })
-              .catch((error: unknown) => {
-                if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
-                  throw error;
-                }
-
-                markDebugRecordError(debugRecord, error);
-                restoreFallbackVisibility(
-                  fallbackControllersByTargetKey,
-                  descriptor.key,
-                );
-                releaseActiveGate(scrollState);
-                throw error;
-              }),
-          );
-        } else {
-          syncDebugRecordFromRenderable(debugRecord, renderable);
-          syncFallbackVisibility(
-            descriptor,
-            renderable,
-            fallbackControllersByTargetKey,
-          );
-          didSynchronousUpdate = true;
-        }
-      }
-
-      if (pendingUpdates.length > 0) {
-        if (didSynchronousUpdate) {
+      if (result.pendingUpdate) {
+        if (result.didSynchronousUpdate) {
           renderScene();
         }
 
-        emitDebugState();
-
-        return Promise.all(pendingUpdates).then(
-          () => {
-            emitDebugState();
-          },
-          (error: unknown) => {
-            emitDebugState();
-            throw error;
-          },
-        );
+        return result.pendingUpdate.then(() => {
+          renderScene();
+        });
       }
 
       renderScene();
-      emitDebugState();
     },
     getDebugState() {
       return createCurrentDebugState();
@@ -320,6 +260,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         releaseActiveGate(scrollState);
         scrollState.dispose?.();
         pointerController.dispose();
+        rendererLoop.dispose();
         rendererHost.dispose();
         emitDebugState();
       }
@@ -365,6 +306,170 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     rendererHost.sceneAdapter.render();
   }
 
+  function syncFrame(): SyncFrameResult {
+    if (disposed) {
+      return { didSynchronousUpdate: false };
+    }
+
+    const descriptors = listTargetsInScanOrder(registry);
+    const frameInput = frameInputSource.update();
+
+    let layoutMeasurements: Map<string, ElementMeasurement>;
+
+    try {
+      layoutMeasurements = layoutPass.measure(
+        descriptors.map((descriptor) => ({
+          key: descriptor.key,
+          element: descriptor.element,
+          active: true,
+        })),
+      );
+    } catch (error: unknown) {
+      for (const descriptor of descriptors) {
+        markDebugRecordError(
+          readTargetDebugRecord(descriptor, debugRecordsByTargetKey),
+          error,
+        );
+      }
+      releaseActiveGate(scrollState);
+      emitDebugState();
+      throw error;
+    }
+
+    const viewportLifecycle = createCurrentViewportLifecycle();
+    const pendingUpdates: Array<Promise<void>> = [];
+    let didSynchronousUpdate = false;
+
+    for (const descriptor of descriptors) {
+      let debugRecord = readTargetDebugRecord(
+        descriptor,
+        debugRecordsByTargetKey,
+      );
+      const layoutMeasurement = layoutMeasurements.get(descriptor.key);
+      const viewportState = layoutMeasurement
+        ? viewportLifecycle.classify(layoutMeasurement)
+        : "active";
+      let renderable = renderablesByTargetKey.get(descriptor.key);
+
+      if (viewportState === "disposed") {
+        if (renderable) {
+          renderable.dispose();
+          renderables.delete(renderable);
+          renderablesByTargetKey.delete(descriptor.key);
+        }
+        debugRecord.lifecycleState = "disposed";
+        debugRecord.visible = false;
+        continue;
+      }
+
+      if (viewportState !== "active") {
+        debugRecord.lifecycleState =
+          viewportState === "preloading" ? "preloading" : "inactive";
+        continue;
+      }
+
+      if (!renderable) {
+        const pipeline = createPipelineRenderable(
+          descriptor,
+          renderableFactoryContext,
+        );
+
+        renderable = pipeline.renderable;
+        debugRecord = pipeline.debugRecord;
+        renderablesByTargetKey.set(descriptor.key, renderable);
+        debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
+        fallbackControllersByTargetKey.set(
+          descriptor.key,
+          createFallbackVisibilityController(
+            descriptor.element,
+            descriptor.declaration.lifecycle ?? {},
+            { defaultHideMode: readDefaultFallbackHideMode(pipeline.source) },
+          ),
+        );
+        renderables.add(renderable);
+        internalOptions.onRenderableCreated?.(renderable);
+      }
+
+      let result: void | Promise<void>;
+
+      try {
+        result = renderable.update(frameInput);
+      } catch (error: unknown) {
+        markDebugRecordError(debugRecord, error);
+        restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+        releaseActiveGate(scrollState);
+        emitDebugState();
+        throw error;
+      }
+
+      if (isPromiseLike(result)) {
+        markDebugRecordLoading(debugRecord);
+        restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+        pendingUpdates.push(
+          result
+            .then(() => {
+              if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                return;
+              }
+
+              if (layoutMeasurement) {
+                renderable.updateLayout?.(layoutMeasurement);
+              }
+              syncDebugRecordFromRenderable(debugRecord, renderable);
+              syncFallbackVisibility(
+                descriptor,
+                renderable,
+                fallbackControllersByTargetKey,
+              );
+            })
+            .catch((error: unknown) => {
+              if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                throw error;
+              }
+
+              markDebugRecordError(debugRecord, error);
+              restoreFallbackVisibility(
+                fallbackControllersByTargetKey,
+                descriptor.key,
+              );
+              releaseActiveGate(scrollState);
+              throw error;
+            }),
+        );
+      } else {
+        if (layoutMeasurement) {
+          renderable.updateLayout?.(layoutMeasurement);
+        }
+        syncDebugRecordFromRenderable(debugRecord, renderable);
+        syncFallbackVisibility(
+          descriptor,
+          renderable,
+          fallbackControllersByTargetKey,
+        );
+        didSynchronousUpdate = true;
+      }
+    }
+
+    emitDebugState();
+
+    if (pendingUpdates.length === 0) {
+      return { didSynchronousUpdate };
+    }
+
+    return {
+      didSynchronousUpdate,
+      pendingUpdate: Promise.all(pendingUpdates).then(
+        () => {
+          emitDebugState();
+        },
+        (error: unknown) => {
+          emitDebugState();
+          throw error;
+        },
+      ),
+    };
+  }
+
   function handleVisibilityChange(): void {
     if (disposed || ownerDocument.visibilityState !== "hidden") {
       return;
@@ -372,6 +477,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
     releaseActiveGate(scrollState);
     emitDebugState();
+  }
+
+  function createCurrentViewportLifecycle() {
+    return createViewportLifecycle({
+      viewportHeight: window.innerHeight || 600,
+      activeMargin: "50vh",
+      preloadMargin: "150vh",
+      mountMargin: "100vh",
+      unloadMargin: "250vh",
+    });
   }
 }
 
@@ -407,6 +522,7 @@ function createPipelineRenderable(
     sourceKind: source.kind,
     renderRole: role,
     resourceStatus: "idle",
+    lifecycleState: "declared",
     visible: true,
   };
   const renderable = createRenderable(descriptor, source, role, policy, context);
@@ -492,6 +608,7 @@ function readTargetDebugRecord(
     sourceKind: source.kind,
     renderRole: inferRenderRole(source, descriptor.declaration),
     resourceStatus: "idle",
+    lifecycleState: "declared",
     visible: true,
   };
 
@@ -513,6 +630,7 @@ function attachDebugBookkeeping(
   };
   renderable.dispose = () => {
     debugRecord.visible = false;
+    debugRecord.lifecycleState = "disposed";
     dispose();
     syncDebugRecordFromRenderable(debugRecord, renderable);
   };
@@ -525,6 +643,7 @@ function syncDebugRecordFromRenderable(
   renderable: Renderable,
 ): void {
   debugRecord.resourceStatus = readRenderableResourceStatus(renderable);
+  debugRecord.lifecycleState = readRenderableLifecycleState(renderable);
   debugRecord.visible = readRenderableSceneVisibility(renderable);
 
   if (renderable.status !== "error") {
@@ -547,11 +666,13 @@ function markDebugRecordError(
   error: unknown,
 ): void {
   debugRecord.resourceStatus = "error";
+  debugRecord.lifecycleState = "error";
   debugRecord.error = error;
 }
 
 function markDebugRecordLoading(debugRecord: TargetDebugRecord): void {
   debugRecord.resourceStatus = "loading";
+  debugRecord.lifecycleState = "preloading";
   delete debugRecord.error;
 }
 
@@ -566,6 +687,21 @@ function readRenderableResourceStatus(
     case "idle":
     case "disposed":
       return "idle";
+  }
+}
+
+function readRenderableLifecycleState(renderable: Renderable): WebGLLifecycleState {
+  switch (renderable.status) {
+    case "ready":
+      return renderable.sceneObjectController?.visible === false
+        ? "inactive"
+        : "active";
+    case "error":
+      return "error";
+    case "disposed":
+      return "disposed";
+    case "idle":
+      return "mounted";
   }
 }
 

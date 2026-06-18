@@ -22,6 +22,7 @@ describe("WebGLDeclaration public types", () => {
       `
         import type {
           WebGLDeclaration,
+          WebGLLifecycleState,
           WebGLLifecycleDeclaration,
           WebGLPointerDeclaration,
           WebGLRenderRole,
@@ -52,6 +53,8 @@ describe("WebGLDeclaration public types", () => {
           hideWhenReady: true,
           hideMode: "self",
         } satisfies WebGLLifecycleDeclaration;
+        const lifecycleState =
+          "active" satisfies WebGLLifecycleState;
         const subtreeLifecycle = {
           hideWhenReady: true,
           hideMode: "subtree",
@@ -74,6 +77,16 @@ describe("WebGLDeclaration public types", () => {
         declaration.key satisfies string;
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
         subtreeLifecycle satisfies WebGLLifecycleDeclaration;
+        lifecycleState satisfies
+          | "declared"
+          | "preloading"
+          | "loaded"
+          | "mounted"
+          | "active"
+          | "inactive"
+          | "paused"
+          | "disposed"
+          | "error";
 
         ({
           hideWhenReady: true,

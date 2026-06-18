@@ -305,6 +305,7 @@ describe("public package exports", () => {
               sourceKind: "model",
               renderRole: declaration.renderRole,
               resourceStatus,
+              lifecycleState: "declared",
               visible: true,
             },
           ],

@@ -9,7 +9,7 @@ Phase 2 scene-gated scroll work is complete through Task 56 in
 `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
-The next required correction is Phase 3.5 runtime performance and stage work in
+Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 
 Current demo behavior:
@@ -21,10 +21,9 @@ Current demo behavior:
 - Runtime registration, source inference, render role inference, renderable
   creation, resource lifecycle, debug state, page scroll state, scene gate state,
   scroll lock, and pointer state are wired.
-- The React runtime automatically syncs on animation frames after mount, so
-  declared DOM targets are pushed into the internal scene without app code
-  calling `runtime.sync()`. This is a post-Task 72 bridge, not the final
-  performance model.
+- The runtime owns one renderer-driven frame loop through the renderer host;
+  React creates and disposes the runtime but does not own an animation-frame
+  sync loop.
 - Element snapshots, text snapshots, images, videos, and GLB models now create
   runtime-owned visible scene objects in the single internal Three.js scene.
 - The debug panel shows current scroll mode plus active gate key and
@@ -36,9 +35,14 @@ Current visual behavior:
 
 - DOM-authored targets compile into source descriptors, render roles, internal
   render policy ordering, and runtime-owned scene objects.
-- DOM rects are projected into scene layout during runtime sync.
-- Automatic runtime sync renders visible scene changes through the single scene
-  adapter.
+- DOM rects are measured in a batched runtime layout pass and projected into
+  scene layout before renderables receive layout updates.
+- The internal canvas is an absolute-positioned WebGL stage layer anchored to
+  the runtime container, not document-flow content below the DOM scene.
+- Renderer defaults are performance-oriented and cap device pixel ratio.
+- Snapshot content rebuilds are dirty-boundary driven; frame updates apply
+  layout without redrawing text content.
+- Target lifecycle state is reported separately from resource load status.
 - `lifecycle.hideWhenReady` hides fallback DOM only after the matching scene
   object is visually ready.
 - Loading and error renderables keep fallback DOM visible.
@@ -52,10 +56,10 @@ Current visual behavior:
   and ScrollTrigger adapters remain intentionally out of scope.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
-- Phase 3.5 must replace the bridge sync with a renderer-owned loop, make the
-  canvas an internal stage layer instead of document-flow content, add renderer
-  performance defaults and a DPR cap, batch layout reads, and separate layout,
-  content, and resource update boundaries before effect or animation work starts.
+- Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
+  an internal stage layer, added renderer performance defaults and a DPR cap,
+  batched layout reads, and separated layout, content, resource, and lifecycle
+  boundaries before effect or animation work starts.
 
 ## Setup
 

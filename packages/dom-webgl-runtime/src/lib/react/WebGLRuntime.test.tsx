@@ -147,45 +147,22 @@ describe("WebGLRuntime", () => {
     expect(providedRuntime).toBe(runtimeMocks.createWebGLRuntime.mock.results[0].value);
   });
 
-  test("automatically syncs the mounted runtime on animation frames", async () => {
-    const { WebGLRuntime, WebGLTarget } = await import("../../react");
+  test("does not own a React requestAnimationFrame sync loop", async () => {
+    const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
-    const animationFrames: FrameRequestCallback[] = [];
     const requestAnimationFrame = vi
       .spyOn(globalThis, "requestAnimationFrame")
-      .mockImplementation((callback) => {
-        animationFrames.push(callback);
-        return animationFrames.length;
-      });
+      .mockImplementation(() => 1);
     const cancelAnimationFrame = vi
       .spyOn(globalThis, "cancelAnimationFrame")
       .mockImplementation(() => {});
 
     await act(async () => {
-      root.render(
-        createElement(
-          WebGLRuntime,
-          null,
-          createElement(WebGLTarget, {
-            webgl: { key: "hero.surface" },
-            id: "hero-surface",
-          }),
-        ),
-      );
+      root.render(createElement(WebGLRuntime));
     });
 
-    const runtime = runtimeMocks.createWebGLRuntime.mock.results[0]
-      .value as RuntimeInstance;
-
-    await act(async () => {
-      animationFrames.shift()?.(16);
-    });
-
-    expect(runtime.registerTarget).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "hero-surface" }),
-      { key: "hero.surface" },
-    );
-    expect(runtime.sync).toHaveBeenCalledTimes(1);
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+    expect(cancelAnimationFrame).not.toHaveBeenCalled();
 
     requestAnimationFrame.mockRestore();
     cancelAnimationFrame.mockRestore();

@@ -121,6 +121,17 @@ export type WebGLFrameInput = {
 
 export type WebGLResourceStatus = "idle" | "loading" | "ready" | "error";
 
+export type WebGLLifecycleState =
+  | "declared"
+  | "preloading"
+  | "loaded"
+  | "mounted"
+  | "active"
+  | "inactive"
+  | "paused"
+  | "disposed"
+  | "error";
+
 export type WebGLDebugState = {
   targetCount: number;
   renderableCount: number;
@@ -133,6 +144,7 @@ export type WebGLDebugState = {
     sourceKind: string;
     renderRole: WebGLRenderRole;
     resourceStatus: WebGLResourceStatus;
+    lifecycleState: WebGLLifecycleState;
     visible: boolean;
     error?: string;
   }>;

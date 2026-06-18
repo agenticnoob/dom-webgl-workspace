@@ -54,7 +54,9 @@ describe("createThreeRendererHost", () => {
 
     expect(WebGLRenderer).toHaveBeenCalledTimes(1);
     expect(WebGLRenderer).toHaveBeenCalledWith({
-      antialias: true,
+      antialias: false,
+      alpha: false,
+      powerPreference: "high-performance",
       canvas: host.canvas,
     });
     expect(Scene).toHaveBeenCalledTimes(1);
@@ -106,6 +108,30 @@ describe("createThreeRendererHost", () => {
 
     expect(rendererDispose).toHaveBeenCalledTimes(1);
     expect(container.querySelector("canvas")).toBeNull();
+  });
+
+  test("positions the renderer canvas as an internal stage layer", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("section");
+
+    Object.defineProperties(container, {
+      clientWidth: { configurable: true, value: 640 },
+      clientHeight: { configurable: true, value: 360 },
+    });
+
+    const host = createThreeRendererHost(container, {
+      createObjects: createRendererObjectsStub,
+    });
+
+    expect(container.style.position).toBe("relative");
+    expect(host.canvas.style.position).toBe("absolute");
+    expect(host.canvas.style.inset).toBe("0px");
+    expect(host.canvas.style.width).toBe("100%");
+    expect(host.canvas.style.height).toBe("100%");
+    expect(host.canvas.style.pointerEvents).toBe("none");
+    expect(host.canvas.style.display).toBe("block");
+
+    host.dispose();
   });
 
   test("configures the default camera and canvas for CSS-pixel scene coordinates", async () => {
@@ -160,6 +186,37 @@ describe("createThreeRendererHost", () => {
     });
     expect(camera.position.set).toHaveBeenCalledWith(0, 0, 500);
     expect(camera.updateProjectionMatrix).toHaveBeenCalledTimes(1);
+
+    host.dispose();
+  });
+
+  test("caps renderer pixel ratio at 1.5", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const setPixelRatio = vi.fn();
+    const container = document.createElement("div");
+
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 3,
+    });
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera: {},
+          renderer: {
+            canvas,
+            setPixelRatio,
+            setSize: vi.fn(),
+            render: vi.fn(),
+            dispose: vi.fn(),
+          },
+          scene: {},
+        };
+      },
+    });
+
+    expect(setPixelRatio).toHaveBeenCalledWith(1.5);
 
     host.dispose();
   });

@@ -10,20 +10,10 @@ import {
   type SceneRenderableController,
 } from "./sceneRenderableObject";
 import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { ElementMeasurement } from "../../renderer/layoutPass";
 
 export type TextSnapshotRenderable = Renderable & {
   readonly textContent: string;
-};
-
-type ElementMeasurement = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
 };
 
 type TextSnapshotRenderableOptions = {
@@ -38,13 +28,18 @@ export function createTextSnapshotRenderable(
 ): TextSnapshotRenderable {
   const state = {
     textContent: "",
+    contentDirty: true,
     scene: undefined as SceneRenderableController | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       update() {
-        state.textContent = context.descriptor.element.textContent ?? "";
+        if (state.contentDirty) {
+          state.textContent = context.descriptor.element.textContent ?? "";
+          state.contentDirty = false;
+        }
+
         state.scene ??= createTextPlaneSceneRenderableController({
           key: context.descriptor.key,
           sceneAdapter: options.sceneAdapter,
@@ -54,9 +49,16 @@ export function createTextSnapshotRenderable(
           ordering: toSceneObjectOrdering(context.policy),
           textContent: state.textContent,
         });
-        state.scene.updateTextContent(state.textContent);
-        state.scene.updateLayout();
+        if (state.scene.object.textContent !== state.textContent) {
+          state.scene.updateTextContent(state.textContent);
+        }
         state.scene.attach();
+      },
+      updateLayout(_context, _lifecycle, measurement) {
+        state.scene?.updateLayout(measurement);
+      },
+      invalidateContent() {
+        state.contentDirty = true;
       },
       setVisible(visible) {
         state.scene?.controller.setVisible(visible);

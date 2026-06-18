@@ -7,7 +7,7 @@ import { compileRenderPolicy } from "../renderPolicy";
 import { createElementSnapshotRenderable } from "./elementSnapshotRenderable";
 
 describe("createElementSnapshotRenderable", () => {
-  test("creates a surface renderable and measures the target element on update", async () => {
+  test("creates a surface renderable and applies measured layout separately", async () => {
     const element = document.createElement("section");
     const descriptor = createTargetDescriptor(
       element,
@@ -42,8 +42,9 @@ describe("createElementSnapshotRenderable", () => {
     expect(renderable.status).toBe("idle");
 
     await renderable.update();
+    renderable.updateLayout?.(createMeasurement(10, 20, 300, 180));
 
-    expect(measureElement).toHaveBeenCalledWith(element);
+    expect(measureElement).not.toHaveBeenCalled();
     expect(sceneAdapter.addObject).toHaveBeenCalledTimes(1);
     expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.status).toBe("ready");
@@ -99,6 +100,24 @@ describe("createElementSnapshotRenderable", () => {
     expect(renderable.status).toBe("disposed");
   });
 });
+
+function createMeasurement(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: left,
+    y: top,
+    width,
+    height,
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
+  };
+}
 
 type TestSceneObject = {
   key: string;

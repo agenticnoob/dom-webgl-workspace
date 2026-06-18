@@ -16,8 +16,10 @@ body {
 }
 
 .demo-runtime {
+  position: relative;
   width: min(1120px, 100%);
   margin: 0 auto;
+  min-height: 100vh;
 }
 
 .demo-scene {

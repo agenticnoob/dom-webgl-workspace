@@ -3,6 +3,7 @@ import type {
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
+  WebGLLifecycleState,
 } from "../types";
 
 export type DebugTargetState = {
@@ -10,6 +11,7 @@ export type DebugTargetState = {
   sourceKind: string;
   renderRole: WebGLRenderRole;
   resourceStatus: WebGLResourceStatus;
+  lifecycleState: WebGLLifecycleState;
   visible: boolean;
   error?: unknown;
 };
@@ -39,6 +41,7 @@ export function createDebugState(
         sourceKind: target.sourceKind,
         renderRole: target.renderRole,
         resourceStatus: target.resourceStatus,
+        lifecycleState: target.lifecycleState,
         visible: target.visible,
       };
 

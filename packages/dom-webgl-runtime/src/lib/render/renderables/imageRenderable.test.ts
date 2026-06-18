@@ -44,6 +44,7 @@ describe("createImageRenderable", () => {
     expect(renderable.fallbackVisible).toBe(true);
 
     await renderable.update();
+    renderable.updateLayout?.(createMeasurement(20, 40, 200, 100));
 
     expect(decode).toHaveBeenCalledTimes(1);
     expect(fetchSpy).not.toHaveBeenCalled();

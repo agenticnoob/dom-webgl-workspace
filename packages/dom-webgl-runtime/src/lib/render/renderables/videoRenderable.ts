@@ -1,5 +1,6 @@
 import type { ResourceManager } from "../../resources/resourceManager";
 import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLVideoSourceDescriptor } from "../../source/sourceDescriptor";
 import {
@@ -24,17 +25,6 @@ type VideoRenderableOptions = {
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
-};
-
-type ElementMeasurement = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
 };
 
 export function createVideoRenderable(
@@ -64,10 +54,12 @@ export function createVideoRenderable(
           textureKind: "video",
           textureSource: video,
         });
-        state.scene.updateLayout();
         state.scene.attach();
         state.fallbackVisible = false;
         state.resourceReady = true;
+      },
+      updateLayout(_context, _lifecycle, measurement) {
+        state.scene?.updateLayout(measurement);
       },
       setVisible(visible) {
         if (!visible) {

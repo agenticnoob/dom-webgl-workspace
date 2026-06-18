@@ -48,6 +48,7 @@ describe("createVideoRenderable", () => {
     const update = renderable.update();
     source.element.dispatchEvent(new Event("loadeddata"));
     await update;
+    renderable.updateLayout?.(createMeasurement(40, 60, 320, 180));
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(createElementSpy).not.toHaveBeenCalledWith("video");

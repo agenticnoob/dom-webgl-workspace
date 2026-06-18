@@ -487,12 +487,9 @@ Docs and state:
 
 ## Suggested Next Round
 
-Phase 3 is complete through Task 72, with a post-completion correction that
-starts automatic animation-frame sync from mounted React runtimes so declared DOM
-targets are pushed into the internal scene without app code calling
-`runtime.sync()`. That correction is a bridge, not the final performance or
-stage model. The required next phase is Phase 3.5 runtime performance and stage
-correction in
-`docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`;
-do not start effect or animation planning until Phase 3.5 is implemented and
-verified.
+Phase 3 is complete through Task 72. Phase 3.5 runtime performance and stage
+correction has replaced the post-Task 72 React RAF bridge with a renderer-owned
+loop, internal canvas stage placement, batched layout reads, dirty snapshot
+content boundaries, lifecycle debug state, viewport lifecycle classification,
+and render target pooling. Do not start effect or animation planning until
+Phase 3.5 full verification is complete.

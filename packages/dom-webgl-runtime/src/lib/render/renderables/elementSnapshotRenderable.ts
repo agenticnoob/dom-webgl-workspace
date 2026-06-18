@@ -9,18 +9,8 @@ import {
   type SceneRenderableController,
 } from "./sceneRenderableObject";
 import type { DOMViewportSize } from "../../renderer/domProjection";
+import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-
-type ElementMeasurement = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
 
 type ElementSnapshotRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
@@ -42,7 +32,6 @@ export function createElementSnapshotRenderable(
 
   return createRenderable(context, {
     update() {
-      state.measurement = options.measureElement(context.descriptor.element);
       state.scene ??= createElementPlaneSceneRenderableController({
         key: context.descriptor.key,
         sceneAdapter: options.sceneAdapter,
@@ -51,8 +40,11 @@ export function createElementSnapshotRenderable(
         element: context.descriptor.element,
         ordering: toSceneObjectOrdering(context.policy),
       });
-      state.scene.updateLayout(state.measurement);
       state.scene.attach();
+    },
+    updateLayout(_context, _lifecycle, measurement) {
+      state.measurement = measurement;
+      state.scene?.updateLayout(state.measurement);
     },
     setVisible(nextVisible) {
       state.visible = nextVisible;

@@ -1,4 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
+import type { ElementMeasurement } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLRenderRole } from "../types";
@@ -22,6 +23,8 @@ export type Renderable = {
   readonly sceneObjectController?: WebGLSceneObjectController;
   readonly hasSceneObject: boolean;
   update(input?: WebGLFrameInput): void | Promise<void>;
+  updateLayout?(measurement: ElementMeasurement): void;
+  invalidateContent?(): void;
   setVisible(visible: boolean): void;
   dispose(): void;
 };
@@ -40,6 +43,15 @@ type RenderableHooks = {
     lifecycle: RenderableLifecycleController,
     input: WebGLFrameInput,
   ): void | Promise<void>;
+  updateLayout?(
+    context: RenderableContext,
+    lifecycle: RenderableLifecycleController,
+    measurement: ElementMeasurement,
+  ): void;
+  invalidateContent?(
+    context: RenderableContext,
+    lifecycle: RenderableLifecycleController,
+  ): void;
   setVisible?(visible: boolean): void;
   sceneObjectController?(): WebGLSceneObjectController | undefined;
   dispose?(): void;
@@ -140,6 +152,20 @@ export function createRenderable(
       }
 
       hooks.setVisible?.(visible);
+    },
+    updateLayout(measurement): void {
+      if (disposed) {
+        return;
+      }
+
+      hooks.updateLayout?.(context, lifecycle, measurement);
+    },
+    invalidateContent(): void {
+      if (disposed) {
+        return;
+      }
+
+      hooks.invalidateContent?.(context, lifecycle);
     },
     dispose(): void {
       if (disposed) {

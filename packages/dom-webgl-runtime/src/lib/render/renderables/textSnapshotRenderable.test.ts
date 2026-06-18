@@ -32,6 +32,7 @@ describe("createTextSnapshotRenderable", () => {
     expect(renderable.status).toBe("idle");
 
     await renderable.update();
+    renderable.updateLayout?.(createMeasurement(12, 24, 200, 40));
 
     expect(renderable.textContent).toBe("Hello WebGL text");
     expect(sceneAdapter.objects[0]).toMatchObject({
@@ -43,14 +44,67 @@ describe("createTextSnapshotRenderable", () => {
     expect(renderable.status).toBe("ready");
 
     element.textContent = "Updated WebGL text";
-    await renderable.update();
+    renderable.updateLayout?.(createMeasurement(12, 24, 200, 40));
 
     expect(sceneAdapter.objects).toHaveLength(1);
-    expect(sceneAdapter.objects[0]?.textContent).toBe("Updated WebGL text");
+    expect(sceneAdapter.objects[0]?.textContent).toBe("Hello WebGL text");
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
       isMesh: true,
       geometry: { type: "PlaneGeometry" },
     });
+  });
+
+  test("redraws text content only after internal content invalidation", async () => {
+    const element = document.createElement("h1");
+    element.textContent = "Initial";
+    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const renderable = createTextSnapshotRenderable(
+      {
+        descriptor,
+        source: createTextSnapshotDescriptor(element),
+        role: "content",
+        policy: compileRenderPolicy("content"),
+      },
+      {
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 200, 50),
+      },
+    );
+
+    await renderable.update();
+    element.textContent = "Changed";
+    renderable.updateLayout?.(createMeasurement(0, 0, 200, 50));
+
+    expect(renderable.textContent).toBe("Initial");
+
+    renderable.invalidateContent?.();
+    await renderable.update();
+
+    expect(renderable.textContent).toBe("Changed");
+  });
+
+  test("does not redraw text content during repeated frame updates", async () => {
+    const element = document.createElement("h1");
+    element.textContent = "Initial";
+    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const renderable = createTextSnapshotRenderable(
+      {
+        descriptor,
+        source: createTextSnapshotDescriptor(element),
+        role: "content",
+        policy: compileRenderPolicy("content"),
+      },
+      {
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 200, 50),
+      },
+    );
+
+    await renderable.update();
+    element.textContent = "Changed";
+    await renderable.update();
+
+    expect(renderable.textContent).toBe("Initial");
   });
 
   test("disposes idempotently", async () => {

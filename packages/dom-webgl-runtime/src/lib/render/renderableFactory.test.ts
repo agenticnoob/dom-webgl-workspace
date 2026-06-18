@@ -52,11 +52,12 @@ describe("createRenderable factory", () => {
     );
 
     renderable.update();
+    renderable.updateLayout?.(createMeasurement(1, 2, 300, 120));
 
     expect(renderable.key).toBe("hero.snapshot");
     expect(renderable.role).toBe("surface");
     expect(renderable.policy).toEqual(compileRenderPolicy("surface"));
-    expect(measureElement).toHaveBeenCalledWith(element);
+    expect(measureElement).not.toHaveBeenCalled();
     expect(sceneAdapter.objects[0]?.key).toBe("hero.snapshot");
     expect(sceneAdapter.objects[0]?.lastLayout).toEqual({
       x: 151,

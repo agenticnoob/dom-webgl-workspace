@@ -1,14 +1,14 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72 plus a post-Task 72 runtime drive bridge: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; mounted React runtimes automatically sync on animation frames; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 is now the next required correction before effects: fix runtime performance and stage display so the canvas is an internal WebGL stage layer, the renderer owns the loop, layout reads are batched, and snapshot/resource updates follow dirty/lifecycle boundaries.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is an internal WebGL stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 
 ## Last Completed Task
-Phase 3.5 Runtime Performance And Stage Plan.
+Phase 3.5 Runtime Performance And Stage Implementation.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -85,7 +85,24 @@ Phase 3.5 Runtime Performance And Stage Plan.
 - Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 3 is complete through Task 72. The next task is Phase 3.5 runtime performance and stage correction. Do not start the effect or animation layer until Phase 3.5 is implemented and verified.
+Phase 3.5 runtime performance and stage correction is implemented and verified. The next phase may plan effect or animation work, but no effect registry, animation layer, third-party scroll adapter, picking path, multiple-canvas path, or public Three.js render flags are implemented yet.
+
+## Phase 3.5 Runtime Performance And Stage Checklist
+- Canvas is an internal stage layer, not document-flow content.
+- Renderer uses performance defaults and a DPR cap.
+- Runtime owns one renderer loop through `setAnimationLoop`.
+- React does not own a frame loop.
+- Layout reads are batched.
+- Snapshot content rebuilds only on dirty invalidation.
+- Lifecycle state separates resource status from target activity.
+- Hidden/inactive targets skip high-cost updates.
+- Resources and render targets dispose deterministically.
+
+## Phase 3.5 Completed Task Record
+- Completed work: Canvas stage placement, renderer performance defaults, renderer-owned loop, batched layout pass, dirty snapshot content boundary, lifecycle debug state, viewport lifecycle classification, render target pool, demo stage CSS, and documentation alignment.
+- Files changed: runtime renderer, React runtime wrapper, renderables, resources, demo CSS/tests, public/debug types, and status docs.
+- Verification: targeted Phase 3.5 tests passed with 16 files / 75 tests; full Vitest suite passed with 45 files / 212 tests; `npm run typecheck` passed; `npm run build` passed with the existing Vite chunk-size warning; `npm run check:imports` passed with `Demo import boundary OK`; `git diff --check` passed.
+- Boundary notes: No effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, or public Three.js render flags were introduced.
 
 ## Completed Task Record
 - Completed task: Task 37: Documentation Alignment.
@@ -317,7 +334,7 @@ Phase 3 is complete through Task 72. The next task is Phase 3.5 runtime performa
 - Review results by subagent: final contract reviewer approved with no blocking issues; runtime safety reviewer approved with no blocking issues; test coverage reviewer approved with no blocking issues; docs/state reviewer approved with no blocking issues.
 - Remaining non-blocking issues: demo production build still emits Vite's default chunk-size warning for a large demo bundle.
 - Final commit hash: pending until commit.
-- Next recommended phase: implement Phase 3.5 runtime performance and stage correction before planning the effect/animation layer.
+- Next recommended phase at Phase 3 completion was Phase 3.5 runtime performance and stage correction; that correction is now implemented and verified in the current branch.
 
 ## Last Commands Run
 - `npm run check && git diff --check` (green pre-doc baseline: root typecheck passed, 33 Vitest files / 107 tests passed, diff check passed)
@@ -382,18 +399,17 @@ Phase 3 is complete through Task 72. The next task is Phase 3.5 runtime performa
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 3 Batch E is complete through Task 72. Full verification is green after stabilizing compile/build-heavy test timeouts. User-facing docs now describe delivered visible renderables, fallback visibility, render-on-sync behavior, public boundaries, and deferred effect/adapters/picking scope. Final contract, runtime safety, test coverage, and docs/state reviewers approved with no blocking issues.
+Phase 3.5 runtime performance and stage correction is implemented and verified. User-facing docs now describe delivered visible renderables, fallback visibility, renderer-owned loop behavior, stage canvas placement, batched layout reads, lifecycle/resource boundaries, public boundaries, and deferred effect/adapters/picking scope. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
 - `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
-- `packages/dom-webgl-runtime/src/publicExports.test.ts`
-- `vitest.config.ts`
+- Runtime renderer, React runtime wrapper, renderables, resource helpers, public/debug type tests, and demo tests/CSS touched by Phase 3.5.
 
 ## Known Issues
-No blocking Batch E issues remain after final review. The existing non-blocking Vite production build chunk-size warning remains.
+No blocking Phase 3.5 issues remain after verification. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -416,4 +432,4 @@ No blocking Batch E issues remain after final review. The existing non-blocking 
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Stop after Phase 3 Batch E. Phase 3 is complete through Task 72. The required next phase is Phase 3.5 runtime performance and stage correction; do not start effect/animation planning until Phase 3.5 is implemented and verified. `docs/IMPLEMENTATION_PLAN.md` remains the completed Phase 1 plan and `docs/PHASE2_SCENE_GATE_PLAN.md` remains the completed Phase 2 plan.
+Phase 3.5 is complete and verified. The next step may plan effect or animation work from a new plan, while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, and no third-party scroll adapter unless explicitly planned.
