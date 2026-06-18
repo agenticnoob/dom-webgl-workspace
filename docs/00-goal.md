@@ -17,10 +17,11 @@ performance and stage correction is implemented: the canvas is a fixed
 transparent internal viewport stage layer, the renderer owns the frame loop,
 layout reads are batched, snapshot content rebuilds follow dirty boundaries,
 target lifecycle state is reported separately from resource status, and
-resource/render-target disposal contracts are covered. Effects remain future
-work. Phase 4 is planned next to improve DOM style fidelity, CSS-pixel
-alignment, viewport resize behavior, and mobile responsive mapping before any
-effect or animation layer is added.
+resource/render-target disposal contracts are covered. Phase 4 DOM style
+fidelity and responsive mapping is implemented: supported common CSS box paint,
+shared text style snapshots, media object-fit mapping, cached renderer resize,
+dirty DOM invalidation, and a public-API-only responsive demo harness are in
+place. Effects remain future work.
 
 ## Purpose
 
@@ -306,7 +307,7 @@ track DOM anchors closely enough that supported 2D targets do not visibly drift
 from their DOM counterparts during normal page scroll, window resize, DPR
 changes, or mobile layout changes.
 
-Phase 4 should introduce a shared layout/style snapshot contract:
+Phase 4 introduces a shared layout/style snapshot contract:
 
 ```ts
 type DOMStyleSnapshot = {
@@ -323,7 +324,7 @@ type ElementLayoutSnapshot = ElementMeasurement & {
 };
 ```
 
-First-version fidelity rules:
+Implemented first-version fidelity rules:
 
 - One runtime layout pass should read rect, viewport size, capped DPR, and
   geometry signatures for active targets.
@@ -347,7 +348,7 @@ First-version fidelity rules:
 - Unsupported CSS features should be documented or reported through debug
   metadata instead of silently being presented as supported.
 
-Phase 4 supported CSS should prioritize common 2D page styles: opacity, solid
+Phase 4 supported CSS prioritizes common 2D page styles: opacity, solid
 background color, borders, border radius, one outer box shadow, text style,
 padding, alignment, and media object fit. Phase 4 only guarantees transformed
 DOM bounding-box alignment, not matrix-level transform reproduction on WebGL

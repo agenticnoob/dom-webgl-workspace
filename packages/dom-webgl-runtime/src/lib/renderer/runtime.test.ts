@@ -364,6 +364,12 @@ function createRendererHostStub(
     },
     scene: {},
     sceneAdapter,
+    getViewportSize() {
+      return { width: 800, height: 600 };
+    },
+    resizeIfNeeded() {
+      return;
+    },
     dispose() {
       canvas.remove();
     },

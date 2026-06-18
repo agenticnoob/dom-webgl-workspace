@@ -1,11 +1,22 @@
+import {
+  readDOMStyleSnapshot,
+  type DOMStyleSnapshot,
+} from "../../dom/styleSnapshot";
+
 export type TextCanvasMeasurement = {
   width: number;
   height: number;
 };
 
+export type TextCanvasRenderInput = TextCanvasMeasurement & {
+  style?: DOMStyleSnapshot;
+  devicePixelRatio?: number;
+};
+
 export type TextCanvasRenderState = {
   width: number;
   height: number;
+  devicePixelRatio: number;
   font: string;
   color: string;
   lineHeight: number;
@@ -22,37 +33,38 @@ type TextBlockAlignment = "start" | "center" | "end";
 export function readTextCanvasRenderState(
   element: HTMLElement,
   textContent: string,
-  measurement: TextCanvasMeasurement | undefined,
+  input: TextCanvasRenderInput | undefined,
 ): TextCanvasRenderState {
-  const view = element.ownerDocument.defaultView;
-  const computedStyle = view?.getComputedStyle(element);
-  const fontSize = parseCSSPixelValue(computedStyle?.fontSize) ?? 16;
-  const lineHeight =
-    parseCSSPixelValue(computedStyle?.lineHeight) ?? Math.ceil(fontSize * 1.2);
-  const fallbackWidth = Math.max(1, Math.ceil(textContent.length * fontSize * 0.6));
-  const fallbackHeight = Math.max(1, Math.ceil(lineHeight));
+  const style = input?.style ?? readDOMStyleSnapshot(element);
+  const fontSize = parseFontSize(style.text.font);
+  const fallbackWidth = Math.max(
+    1,
+    Math.ceil(textContent.length * fontSize * 0.6),
+  );
+  const fallbackHeight = Math.max(1, Math.ceil(style.text.lineHeight));
   const domRect = element.getBoundingClientRect();
 
   return {
     width: Math.max(
       1,
-      Math.ceil(measurement?.width ?? domRect.width ?? element.clientWidth ?? fallbackWidth),
+      Math.ceil(input?.width ?? domRect.width ?? element.clientWidth ?? fallbackWidth),
     ),
     height: Math.max(
       1,
       Math.ceil(
-        measurement?.height ?? domRect.height ?? element.clientHeight ?? fallbackHeight,
+        input?.height ?? domRect.height ?? element.clientHeight ?? fallbackHeight,
       ),
     ),
-    font: readCanvasFont(computedStyle),
-    color: computedStyle?.color || "#000000",
-    lineHeight,
-    blockAlignment: readBlockAlignment(computedStyle),
-    textAlign: readCanvasTextAlign(computedStyle?.textAlign),
-    paddingTop: parseCSSPixelValue(computedStyle?.paddingTop) ?? 0,
-    paddingRight: parseCSSPixelValue(computedStyle?.paddingRight) ?? 0,
-    paddingBottom: parseCSSPixelValue(computedStyle?.paddingBottom) ?? 0,
-    paddingLeft: parseCSSPixelValue(computedStyle?.paddingLeft) ?? 0,
+    devicePixelRatio: input?.devicePixelRatio ?? 1,
+    font: style.text.font,
+    color: style.text.color,
+    lineHeight: style.text.lineHeight,
+    blockAlignment: style.text.blockAlignment,
+    textAlign: style.text.textAlign,
+    paddingTop: style.text.paddingTop,
+    paddingRight: style.text.paddingRight,
+    paddingBottom: style.text.paddingBottom,
+    paddingLeft: style.text.paddingLeft,
   };
 }
 
@@ -91,81 +103,6 @@ export function drawTextToCanvas(
     context.fillText(line, x, y);
     y += state.lineHeight;
   }
-}
-
-function readCanvasFont(computedStyle: CSSStyleDeclaration | undefined): string {
-  if (computedStyle?.font) {
-    return computedStyle.font;
-  }
-
-  const fontStyle =
-    computedStyle?.fontStyle && computedStyle.fontStyle !== "normal"
-      ? computedStyle.fontStyle
-      : "";
-  const fontVariant =
-    computedStyle?.fontVariant && computedStyle.fontVariant !== "normal"
-      ? computedStyle.fontVariant
-      : "";
-  const fontWeight = computedStyle?.fontWeight || "400";
-  const fontSize = computedStyle?.fontSize || "16px";
-  const fontFamily = computedStyle?.fontFamily || "sans-serif";
-
-  return [fontStyle, fontVariant, fontWeight, fontSize, fontFamily]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function readBlockAlignment(
-  computedStyle: CSSStyleDeclaration | undefined,
-): TextBlockAlignment {
-  return normalizeBlockAlignment(
-    firstNonDefaultCSSValue(
-      computedStyle?.alignContent,
-      computedStyle?.placeContent?.split(/\s+/)[0],
-    ),
-  );
-}
-
-function normalizeBlockAlignment(value: string | undefined): TextBlockAlignment {
-  if (value === "center") {
-    return "center";
-  }
-
-  if (
-    value === "end" ||
-    value === "flex-end" ||
-    value === "self-end" ||
-    value === "last baseline"
-  ) {
-    return "end";
-  }
-
-  return "start";
-}
-
-function firstNonDefaultCSSValue(
-  ...values: Array<string | undefined>
-): string | undefined {
-  return values.find(
-    (value) =>
-      value !== undefined &&
-      value !== "" &&
-      value !== "normal" &&
-      value !== "stretch",
-  );
-}
-
-function readCanvasTextAlign(textAlign: string | undefined): CanvasTextAlign {
-  if (
-    textAlign === "center" ||
-    textAlign === "right" ||
-    textAlign === "start" ||
-    textAlign === "end"
-  ) {
-    return textAlign;
-  }
-
-  return "left";
 }
 
 function readTextX(state: TextCanvasRenderState): number {
@@ -238,12 +175,9 @@ function wrapCanvasText(
   return lines;
 }
 
-function parseCSSPixelValue(value: string | undefined): number | undefined {
-  if (!value || value === "normal") {
-    return undefined;
-  }
+function parseFontSize(font: string): number {
+  const match = font.match(/(\d+(?:\.\d+)?)px/);
+  const parsed = Number.parseFloat(match?.[1] ?? "16");
 
-  const parsed = Number.parseFloat(value);
-
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return Number.isFinite(parsed) ? parsed : 16;
 }

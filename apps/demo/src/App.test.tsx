@@ -94,6 +94,9 @@ describe("demo App", () => {
       "demo.image",
       "demo.video",
       "demo.model",
+      "demo.fidelity.surface",
+      "demo.fidelity.text",
+      "demo.fidelity.image",
     ]);
     expect(
       targetProps.map(({ webgl }) => ({
@@ -110,10 +113,22 @@ describe("demo App", () => {
         key: "demo.model",
         source: { kind: "model", format: "glb", src: "/models/hero.glb" },
       },
+      {
+        key: "demo.fidelity.surface",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.fidelity.text",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.fidelity.image",
+        source: { kind: "image", src: "/demo/fidelity-cover.png" },
+      },
     ]);
     expect(
       targetProps.map(({ as }) => as),
-    ).toEqual(["div", "h2", "img", "video", "div"]);
+    ).toEqual(["div", "h2", "img", "video", "div", "div", "p", "img"]);
   });
 
   test("declares every visible source category through public WebGLTarget props", async () => {
@@ -138,6 +153,24 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.model")).toMatchObject({
       key: "demo.model",
       source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+    });
+  });
+
+  test("declares the Phase 4 fidelity harness through public WebGLTarget props", async () => {
+    await renderApp();
+
+    expect(webglDeclarationFor("demo.fidelity.surface")).toMatchObject({
+      key: "demo.fidelity.surface",
+      source: { kind: "snapshot", mode: "element" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+    });
+    expect(webglDeclarationFor("demo.fidelity.text")).toMatchObject({
+      key: "demo.fidelity.text",
+      source: { kind: "snapshot", mode: "text" },
+    });
+    expect(webglDeclarationFor("demo.fidelity.image")).toMatchObject({
+      key: "demo.fidelity.image",
+      source: { kind: "image", src: "/demo/fidelity-cover.png" },
     });
   });
 

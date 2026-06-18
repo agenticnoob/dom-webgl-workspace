@@ -122,6 +122,43 @@ describe("createImageRenderable", () => {
     });
   });
 
+  test("does not retry a failed image decode on later frame updates", async () => {
+    const source = createImageDescriptor("/assets/broken.png");
+    const descriptor = createTargetDescriptor(
+      source.element,
+      { key: "hero.image" },
+      0,
+    );
+    const resourceManager = createResourceManager();
+    const error = new DOMException(
+      "The source image cannot be decoded.",
+      "EncodingError",
+    );
+    const decode = stubDecode(source.element, async () => Promise.reject(error));
+    const renderable = createImageRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager,
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
+    );
+
+    await expect(renderable.update()).rejects.toThrow(
+      "The source image cannot be decoded.",
+    );
+    renderable.update();
+
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(renderable.status).toBe("error");
+    expect(renderable.fallbackVisible).toBe(true);
+  });
+
   test("does not duplicate DOM image loads for shared image elements", async () => {
     const source = createImageDescriptor("/assets/hero.png");
     const descriptor = createTargetDescriptor(
@@ -223,6 +260,9 @@ function createMeasurement(
     right: left + width,
     bottom: top + height,
     left,
+    viewport: { width: 800, height: 600 },
+    devicePixelRatio: 1,
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }
 

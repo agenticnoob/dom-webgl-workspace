@@ -33,13 +33,26 @@ export function createImageRenderable(
   const resource = options.resourceManager.acquire<HTMLImageElement>(source);
   const state = {
     fallbackVisible: true,
+    resourceFailed: false,
     scene: undefined as SceneRenderableController | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       async update() {
-        const image = await resource.load(async () => loadDomImage(source));
+        if (state.resourceFailed) {
+          return;
+        }
+
+        let image: HTMLImageElement;
+
+        try {
+          image = await resource.load(async () => loadDomImage(source));
+        } catch (error: unknown) {
+          state.resourceFailed = true;
+          throw error;
+        }
+
         state.scene ??= createTexturePlaneSceneRenderableController({
           key: context.descriptor.key,
           sceneAdapter: options.sceneAdapter,
@@ -55,6 +68,10 @@ export function createImageRenderable(
       },
       updateLayout(_context, _lifecycle, measurement) {
         state.scene?.updateLayout(measurement);
+      },
+      invalidateContent() {
+        state.resourceFailed = false;
+        state.scene?.object.invalidateContent?.();
       },
       setVisible(visible) {
         state.scene?.controller.setVisible(visible);

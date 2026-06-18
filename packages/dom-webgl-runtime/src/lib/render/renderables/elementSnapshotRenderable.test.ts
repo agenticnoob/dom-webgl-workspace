@@ -99,6 +99,35 @@ describe("createElementSnapshotRenderable", () => {
 
     expect(renderable.status).toBe("disposed");
   });
+
+  test("does not rebuild the CSS box snapshot for pure position changes", async () => {
+    const element = document.createElement("section");
+    Object.assign(element.style, { backgroundColor: "rgb(240, 248, 255)" });
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.surface" },
+      0,
+    );
+    const getComputedStyle = vi.spyOn(window, "getComputedStyle");
+    const renderable = createElementSnapshotRenderable(
+      {
+        descriptor,
+        source: createSnapshotDescriptor(element),
+        role: "surface",
+        policy: compileRenderPolicy("surface"),
+      },
+      {
+        measureElement: () => createMeasurement(0, 0, 200, 100),
+        sceneAdapter: createSceneAdapter(),
+      },
+    );
+
+    await renderable.update();
+    renderable.updateLayout?.(createMeasurement(0, 0, 200, 100));
+    renderable.updateLayout?.(createMeasurement(40, 80, 200, 100));
+
+    expect(getComputedStyle).toHaveBeenCalledTimes(1);
+  });
 });
 
 function createMeasurement(
@@ -116,6 +145,9 @@ function createMeasurement(
     right: left + width,
     bottom: top + height,
     left,
+    viewport: { width: 800, height: 600 },
+    devicePixelRatio: 1,
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }
 

@@ -11,7 +11,7 @@ Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
-Phase 4 DOM style fidelity and responsive mapping is planned in
+Phase 4 DOM style fidelity and responsive mapping is implemented in
 `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
@@ -28,8 +28,10 @@ Project boundary:
 
 Current demo behavior:
 
-- React demo declares five target categories through public APIs: element
-  snapshot, text snapshot, image, video, and GLB model.
+- React demo declares five base target categories through public APIs: element
+  snapshot, text snapshot, image, video, and GLB model. It also includes a
+  Phase 4 fidelity harness for rounded box paint, multiline text, object-fit
+  media, and narrow viewport layout.
 - The demo declares one scene gate through `WebGLTarget` using the public
   `webgl.scroll` gate declaration shape.
 - Runtime registration, source inference, render role inference, renderable
@@ -60,6 +62,18 @@ Current visual behavior:
 - Text snapshots build their internal canvas from the measured DOM text box and
   computed text color/font/alignment so the WebGL plane does not stretch a
   fixed-size text texture.
+- Element snapshots render a canvas-backed CSS box texture for supported common
+  2D box paint: opacity, solid background color, solid borders, border radius,
+  and one outer box shadow.
+- Text snapshots consume the shared DOM style snapshot for font, color, line
+  height, padding, alignment, and DPR-aware canvas sizing.
+- Image and video renderables apply common `object-fit` / `object-position`
+  crop mapping to their internal texture planes.
+- Renderer resize, DPR, and orthographic camera projection are cached and update
+  on viewport changes without reconfiguring unchanged frames.
+- Runtime invalidation observes target resize, target `style` / `class`
+  mutations, and viewport changes, then routes dirty keys to renderable content
+  invalidation.
 - Target lifecycle state is reported separately from resource load status.
 - `lifecycle.hideWhenReady` hides fallback DOM only after the matching scene
   object is visually ready.
@@ -78,8 +92,8 @@ Current visual behavior:
   a fixed transparent internal stage layer, added renderer performance defaults
   and a DPR cap, batched layout reads, and separated layout, content, resource,
   and lifecycle boundaries before effect or animation work starts.
-- Phase 4 should improve DOM-to-WebGL fidelity with a narrow performance-first
-  slice: cached resize/DPR adaptation, geometry/layout alignment, cached style
+- Phase 4 improves DOM-to-WebGL fidelity with a narrow performance-first slice:
+  cached resize/DPR adaptation, geometry/layout alignment, shared style
   snapshots behind dirty boundaries, canvas-backed CSS box snapshots for common
   2D styles, object-fit mapping, and a responsive demo harness.
 

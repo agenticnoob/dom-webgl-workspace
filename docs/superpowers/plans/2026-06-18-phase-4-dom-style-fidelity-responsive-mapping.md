@@ -1,6 +1,6 @@
 # Phase 4 DOM Style Fidelity And Responsive Mapping Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Make DOM-authored WebGL targets closely follow their DOM style, CSS-pixel position, resize behavior, and mobile layout without adding demo-specific runtime branches.
 
@@ -121,7 +121,7 @@ Deferred:
 - Create: `packages/dom-webgl-runtime/src/lib/dom/styleSnapshot.ts`
 - Create: `packages/dom-webgl-runtime/src/lib/dom/styleSnapshot.test.ts`
 
-- [ ] **Step 1: Write style snapshot tests**
+- [x] **Step 1: Write style snapshot tests**
 
 Add tests that lock the supported style surface and a stable signature.
 
@@ -183,7 +183,7 @@ describe("readDOMStyleSnapshot", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run:
 
@@ -193,7 +193,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/dom/styleSnapshot.test.ts
 
 Expected: FAIL because `styleSnapshot.ts` does not exist.
 
-- [ ] **Step 3: Implement the style snapshot module**
+- [x] **Step 3: Implement the style snapshot module**
 
 Create `styleSnapshot.ts` with internal types and readers.
 
@@ -248,7 +248,7 @@ export type DOMStyleSnapshot = {
 
 Use `element.ownerDocument.defaultView?.getComputedStyle(element)` and numeric helpers that return `0` for unsupported pixel values. Keep this module internal; do not export it from the public package entrypoint.
 
-- [ ] **Step 4: Verify style snapshot tests pass**
+- [x] **Step 4: Verify style snapshot tests pass**
 
 Run:
 
@@ -267,7 +267,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/domProjection.test.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
 
-- [ ] **Step 1: Write failing layout snapshot tests**
+- [x] **Step 1: Write failing layout snapshot tests**
 
 Add coverage that one layout pass returns rect, viewport, DPR, and a geometry-only signature.
 
@@ -310,7 +310,7 @@ test("measures active targets into layout snapshots with style and DPR signature
 });
 ```
 
-- [ ] **Step 2: Write failing projection tests**
+- [x] **Step 2: Write failing projection tests**
 
 Extend `domProjection.test.ts` with mobile-sized viewport and fractional coordinates.
 
@@ -330,7 +330,7 @@ test("projects fractional mobile CSS pixels without early rounding", () => {
 });
 ```
 
-- [ ] **Step 3: Run the tests and verify they fail**
+- [x] **Step 3: Run the tests and verify they fail**
 
 Run:
 
@@ -340,7 +340,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/layoutPass.test.ts
 
 Expected: FAIL for the new layout snapshot fields.
 
-- [ ] **Step 4: Implement `ElementLayoutSnapshot`**
+- [x] **Step 4: Implement `ElementLayoutSnapshot`**
 
 In `layoutPass.ts`, keep `ElementMeasurement` for compatibility but add a geometry-focused snapshot type.
 
@@ -359,11 +359,11 @@ export type ElementRasterSnapshot = {
 
 Update `createLayoutPass` to accept optional `getViewportSize` and `getDevicePixelRatio`, cap DPR with the same policy as the renderer host, and set `layoutSignature` from rect, viewport, and capped DPR only. Style reads should not happen in the hot per-frame layout pass.
 
-- [ ] **Step 5: Update renderable layout typing**
+- [x] **Step 5: Update renderable layout typing**
 
 Change `Renderable.updateLayout` and `RenderableHooks.updateLayout` from `ElementMeasurement` to `ElementLayoutSnapshot`. Existing renderables can keep reading `width`, `height`, `top`, and `left` because the new type extends the old measurement shape.
 
-- [ ] **Step 6: Verify layout and projection tests pass**
+- [x] **Step 6: Verify layout and projection tests pass**
 
 Run:
 
@@ -381,7 +381,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/runtime.test.ts`
 
-- [ ] **Step 1: Write failing renderer host resize tests**
+- [x] **Step 1: Write failing renderer host resize tests**
 
 Add a test that calls `host.resizeIfNeeded()` after viewport values change.
 
@@ -420,7 +420,7 @@ test("resizes renderer camera and DPR when the viewport changes", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run:
 
@@ -430,7 +430,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test
 
 Expected: FAIL because `host.resizeIfNeeded` does not exist.
 
-- [ ] **Step 3: Add cached resize surface to `ThreeRendererHost`**
+- [x] **Step 3: Add cached resize surface to `ThreeRendererHost`**
 
 Extend the host type:
 
@@ -449,11 +449,11 @@ export type ThreeRendererHost = {
 
 Implement `resizeIfNeeded()` by caching the last viewport width, height, and capped DPR, then reusing the existing CSS-pixel viewport configuration only when one of those values changed.
 
-- [ ] **Step 4: Wire runtime to resize before layout**
+- [x] **Step 4: Wire runtime to resize before layout**
 
 In `runtime.ts`, call `rendererHost.resizeIfNeeded()` before the layout pass whenever the runtime syncs a frame. Pass `rendererHost.getViewportSize` into `createLayoutPass` and renderable factory context so projection uses the same viewport as the camera.
 
-- [ ] **Step 5: Verify resize tests pass**
+- [x] **Step 5: Verify resize tests pass**
 
 Run:
 
@@ -471,7 +471,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
-- [ ] **Step 1: Write failing observer tests**
+- [x] **Step 1: Write failing observer tests**
 
 Test the observer contract with injected observer constructors instead of relying on browser globals.
 
@@ -508,7 +508,7 @@ function createObserverStub(callback: () => void) {
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run:
 
@@ -518,7 +518,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/dom/domInvalidation.test.ts
 
 Expected: FAIL because the controller does not exist.
 
-- [ ] **Step 3: Implement `createDOMInvalidationController`**
+- [x] **Step 3: Implement `createDOMInvalidationController`**
 
 Create an internal controller with this surface:
 
@@ -534,11 +534,11 @@ export type DOMInvalidationController = {
 
 Use `ResizeObserver` for target size, `MutationObserver` only for `style` and `class` attribute changes on the target element, and `window` plus `visualViewport` listeners for viewport changes when available. Do not scan arbitrary descendant subtree mutations in Phase 4. If observers are unavailable, the geometry signature fallback from Task 2 still detects layout changes during `sync()`.
 
-- [ ] **Step 4: Wire runtime registration and disposal**
+- [x] **Step 4: Wire runtime registration and disposal**
 
 When `registerTarget` succeeds, observe the target. When `unregisterTarget` or runtime `dispose()` runs, unobserve and dispose observer resources. Before each frame sync, consume dirty keys, refresh cached style snapshots for matching targets, and call `renderable.invalidateContent?.()` only when `rasterSignature` changed.
 
-- [ ] **Step 5: Verify observer and runtime tests pass**
+- [x] **Step 5: Verify observer and runtime tests pass**
 
 Run:
 
@@ -557,7 +557,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/elementSnapshotRenderable.test.ts`
 
-- [ ] **Step 1: Write failing CSS box canvas tests**
+- [x] **Step 1: Write failing CSS box canvas tests**
 
 Cover canvas size, capped DPR scaling, background, borders, radius path, and one outer shadow through a context stub.
 
@@ -667,7 +667,7 @@ function createStyleSnapshot(
 }
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run:
 
@@ -677,7 +677,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/cssBoxCa
 
 Expected: FAIL because `cssBoxCanvas.ts` does not exist.
 
-- [ ] **Step 3: Implement CSS box canvas drawing**
+- [x] **Step 3: Implement CSS box canvas drawing**
 
 Create:
 
@@ -715,11 +715,11 @@ export function drawCSSBoxToCanvas(
 
 Keep unsupported CSS such as gradients and filters out of the rendering path for Phase 4; report them through debug notes in a later task rather than silently pretending they are supported.
 
-- [ ] **Step 4: Replace element snapshot color plane with canvas texture plane**
+- [x] **Step 4: Replace element snapshot color plane with canvas texture plane**
 
 In `sceneRenderableObject.ts`, add a reusable canvas texture controller similar to the text controller. In `elementSnapshotRenderable.ts`, rebuild the canvas only when the incoming raster signature differs from the previous raster signature; pure position changes should update only scene layout.
 
-- [ ] **Step 5: Verify element snapshot tests pass**
+- [x] **Step 5: Verify element snapshot tests pass**
 
 Run:
 
@@ -737,7 +737,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.test.ts`
 
-- [ ] **Step 1: Write failing shared-style text tests**
+- [x] **Step 1: Write failing shared-style text tests**
 
 Update tests so `readTextCanvasRenderState` can consume the cached text style snapshot plus the current capped DPR.
 
@@ -773,7 +773,7 @@ test("builds text render state from shared DOM style snapshot", () => {
 });
 ```
 
-- [ ] **Step 2: Run the text tests and verify they fail**
+- [x] **Step 2: Run the text tests and verify they fail**
 
 Run:
 
@@ -783,7 +783,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/textCanv
 
 Expected: FAIL until `readTextCanvasRenderState` accepts the new snapshot input shape.
 
-- [ ] **Step 3: Implement shared style consumption**
+- [x] **Step 3: Implement shared style consumption**
 
 Change text render-state input to:
 
@@ -798,11 +798,11 @@ export type TextCanvasRenderInput = {
 
 Keep wrapping and alignment behavior, but read font, color, line height, padding, and text alignment from `input.style.text`.
 
-- [ ] **Step 4: Rebuild text texture by layout/style/content signature**
+- [x] **Step 4: Rebuild text texture by layout/style/content signature**
 
 In `textSnapshotRenderable.ts`, create the render signature from text content plus the cached `rasterSignature`. A pure position change should update layout only; a style/size/DPR/content change should redraw the text canvas.
 
-- [ ] **Step 5: Verify text tests pass**
+- [x] **Step 5: Verify text tests pass**
 
 Run:
 
@@ -822,7 +822,7 @@ Expected: PASS.
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/videoRenderable.test.ts`
 
-- [ ] **Step 1: Write failing object-fit tests**
+- [x] **Step 1: Write failing object-fit tests**
 
 ```ts
 test("computes cover crop for wider media inside a portrait DOM box", () => {
@@ -842,7 +842,7 @@ test("computes cover crop for wider media inside a portrait DOM box", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run:
 
@@ -852,7 +852,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/objectFi
 
 Expected: FAIL because the helper does not exist.
 
-- [ ] **Step 3: Implement object-fit helper**
+- [x] **Step 3: Implement object-fit helper**
 
 Create:
 
@@ -874,11 +874,11 @@ export type TextureTransform = {
 
 For `cover`, crop the larger axis. For `contain`, preserve all media and accept empty-space behavior by plane scaling only if needed. For `fill`, use full repeat and zero offset.
 
-- [ ] **Step 4: Apply mapping to image and video textures**
+- [x] **Step 4: Apply mapping to image and video textures**
 
 Read cached media style snapshot values for `objectFit` and `objectPosition` during layout updates. Apply repeat/offset values to the Three texture when the source natural dimensions or raster signature changes.
 
-- [ ] **Step 5: Verify media tests pass**
+- [x] **Step 5: Verify media tests pass**
 
 Run:
 
@@ -900,7 +900,7 @@ Expected: PASS.
 - Modify: `docs/00-goal.md`
 - Modify: `docs/EXECUTION_STATE.md`
 
-- [ ] **Step 1: Write failing runtime integration test**
+- [x] **Step 1: Write failing runtime integration test**
 
 Add a runtime pipeline test that proves style changes refresh raster state while layout updates still run on every sync.
 
@@ -943,7 +943,7 @@ test("updates renderable layout after viewport resize and raster state changes",
 });
 ```
 
-- [ ] **Step 2: Run the integration test and verify it fails**
+- [x] **Step 2: Run the integration test and verify it fails**
 
 Run:
 
@@ -953,7 +953,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.te
 
 Expected: FAIL until runtime passes layout snapshots through the full renderable path and separates layout from raster invalidation.
 
-- [ ] **Step 3: Implement runtime integration**
+- [x] **Step 3: Implement runtime integration**
 
 Use one flow inside `syncFrame()`:
 
@@ -970,7 +970,7 @@ rendererHost.resizeIfNeeded()
 
 Do not add branches for demo keys, demo paths, demo class names, or demo DOM structure.
 
-- [ ] **Step 4: Add responsive demo harness**
+- [x] **Step 4: Add responsive demo harness**
 
 Extend the demo with public API targets that intentionally stress fidelity:
 
@@ -995,7 +995,7 @@ Add at least:
 - one image/video target with `object-fit: cover`
 - one mobile-only layout change under `@media (max-width: 700px)`
 
-- [ ] **Step 5: Verify demo imports and tests**
+- [x] **Step 5: Verify demo imports and tests**
 
 Run:
 
@@ -1006,7 +1006,7 @@ npm run check:imports
 
 Expected: PASS and no internal runtime imports in the demo.
 
-- [ ] **Step 6: Update docs**
+- [x] **Step 6: Update docs**
 
 Update:
 
@@ -1014,7 +1014,7 @@ Update:
 - `docs/00-goal.md`: DOM fidelity and responsive mapping contract.
 - `docs/EXECUTION_STATE.md`: Phase 4 current task and known deferred fidelity gaps.
 
-- [ ] **Step 7: Run full verification**
+- [x] **Step 7: Run full verification**
 
 Run:
 

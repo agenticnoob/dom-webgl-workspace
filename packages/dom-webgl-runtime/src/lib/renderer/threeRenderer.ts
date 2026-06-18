@@ -1,7 +1,9 @@
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
+import { capDevicePixelRatio } from "./layoutPass";
 import type { WebGLSceneAdapter, WebGLSceneObject } from "./sceneObject";
+import type { DOMViewportSize } from "./domProjection";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
@@ -33,6 +35,8 @@ export type ThreeRendererHost = {
   readonly scene: object;
   readonly camera: object;
   readonly sceneAdapter: WebGLSceneAdapter;
+  getViewportSize(): DOMViewportSize;
+  resizeIfNeeded(): void;
   dispose(): void;
 };
 
@@ -45,10 +49,14 @@ export function createThreeRendererHost(
     canvas,
   );
   let disposed = false;
+  let viewport = configureCSSPixelViewport(
+    container,
+    objects.renderer,
+    objects.camera,
+  );
 
   configureCanvasStage(container, canvas);
   container.appendChild(canvas);
-  configureCSSPixelViewport(container, objects.renderer, objects.camera);
 
   return {
     canvas,
@@ -58,6 +66,23 @@ export function createThreeRendererHost(
     sceneAdapter:
       objects.sceneAdapter ??
       createThreeSceneAdapter(objects.scene, objects.camera, objects.renderer),
+    getViewportSize(): DOMViewportSize {
+      return { width: viewport.width, height: viewport.height };
+    },
+    resizeIfNeeded(): void {
+      const nextViewport = readCSSPixelViewport(container);
+
+      if (
+        viewport.width === nextViewport.width &&
+        viewport.height === nextViewport.height &&
+        viewport.devicePixelRatio === nextViewport.devicePixelRatio
+      ) {
+        return;
+      }
+
+      applyCSSPixelViewport(objects.renderer, objects.camera, nextViewport);
+      viewport = nextViewport;
+    },
     dispose(): void {
       if (disposed) {
         return;
@@ -108,14 +133,37 @@ function configureCSSPixelViewport(
   container: HTMLElement,
   renderer: ThreeRendererAdapter,
   camera: object,
-): void {
-  const width = window.innerWidth || container.clientWidth || 800;
-  const height = window.innerHeight || container.clientHeight || 600;
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+): DOMViewportState {
+  const viewport = readCSSPixelViewport(container);
 
-  renderer.setPixelRatio?.(pixelRatio);
-  renderer.setSize?.(width, height, false);
-  configureOrthographicCamera(camera, width, height);
+  applyCSSPixelViewport(renderer, camera, viewport);
+
+  return viewport;
+}
+
+type DOMViewportState = DOMViewportSize & {
+  devicePixelRatio: number;
+};
+
+function readCSSPixelViewport(container: HTMLElement): DOMViewportState {
+  const visualViewport = window.visualViewport;
+
+  return {
+    width: visualViewport?.width || window.innerWidth || container.clientWidth || 800,
+    height:
+      visualViewport?.height || window.innerHeight || container.clientHeight || 600,
+    devicePixelRatio: capDevicePixelRatio(window.devicePixelRatio || 1),
+  };
+}
+
+function applyCSSPixelViewport(
+  renderer: ThreeRendererAdapter,
+  camera: object,
+  viewport: DOMViewportState,
+): void {
+  renderer.setPixelRatio?.(viewport.devicePixelRatio);
+  renderer.setSize?.(viewport.width, viewport.height, false);
+  configureOrthographicCamera(camera, viewport.width, viewport.height);
 }
 
 function configureCanvasStage(

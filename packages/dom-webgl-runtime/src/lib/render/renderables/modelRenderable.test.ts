@@ -311,6 +311,9 @@ function createMeasurement(
     right: left + width,
     bottom: top + height,
     left,
+    viewport: { width: 800, height: 600 },
+    devicePixelRatio: 1,
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }
 

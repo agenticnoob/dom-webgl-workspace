@@ -23,4 +23,44 @@ describe("layout pass", () => {
     expect(measurements.get("second")).toMatchObject({ width: 200, height: 80 });
     expect(measurements.has("inactive")).toBe(false);
   });
+
+  test("measures active targets into layout snapshots with viewport and DPR signatures", () => {
+    const element = document.createElement("section");
+    Object.assign(element.style, {
+      backgroundColor: "rgb(10, 20, 30)",
+      opacity: "0.8",
+    });
+
+    const layoutPass = createLayoutPass({
+      measureElement: () =>
+        ({
+          x: 12.5,
+          y: 20.25,
+          left: 12.5,
+          top: 20.25,
+          right: 112.5,
+          bottom: 70.25,
+          width: 100,
+          height: 50,
+        }) as DOMRect,
+      getViewportSize: () => ({ width: 390, height: 844 }),
+      getDevicePixelRatio: () => 2,
+    });
+
+    const snapshots = layoutPass.measure([
+      { key: "card", element, active: true },
+    ]);
+    const snapshot = snapshots.get("card");
+
+    expect(snapshot).toMatchObject({
+      left: 12.5,
+      top: 20.25,
+      width: 100,
+      height: 50,
+      viewport: { width: 390, height: 844 },
+      devicePixelRatio: 1.5,
+    });
+    expect(snapshot?.layoutSignature).toContain("390");
+    expect(snapshot?.layoutSignature).not.toContain("rgb(10, 20, 30)");
+  });
 });

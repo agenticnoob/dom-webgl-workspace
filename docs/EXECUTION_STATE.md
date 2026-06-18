@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 DOM style fidelity and responsive mapping is now planned as a narrow performance-first slice, with focus on cached resize/DPR adaptation, CSS-pixel projection, cached style snapshots behind dirty boundaries, common CSS box/text/media fidelity, and a public-API-only demo harness.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 DOM style fidelity and responsive mapping is implemented as a narrow performance-first slice: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target size/style/class and viewport changes, element snapshots use canvas-backed CSS box paint, text snapshots consume shared style snapshots, media renderables apply object-fit mapping, and the demo includes a public-API-only responsive fidelity harness.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -10,14 +10,14 @@ Phase 4 DOM style fidelity and responsive mapping plan file: `docs/superpowers/p
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Codex Web Reference Learnings Documentation.
+Phase 4 DOM Style Fidelity And Responsive Mapping.
 
 ## Latest Documentation Note
-Captured the reusable `codex-web` architecture lessons in
-`docs/CODEX_WEB_REFERENCE_LEARNINGS.md`: package boundaries, DOM contract,
-source descriptor shape, snapshot adapter direction, default renderable factory
-shape, fallback visibility invariants, boundary tests, and the parts that should
-not be copied into this open-source runtime.
+Phase 4 documentation now reflects delivered DOM fidelity support: shared
+layout/style snapshots, cached renderer resize, target-scoped DOM invalidation,
+canvas-backed CSS box snapshots, shared text style snapshots, object-fit media
+mapping, and responsive demo coverage. Unsupported CSS remains explicitly
+deferred rather than claimed.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -94,7 +94,24 @@ not be copied into this open-source runtime.
 - Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 4 DOM style fidelity and responsive mapping is planned. Next implementation should start from `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`, keep resize and style invalidation cached, avoid rebuilding snapshots on pure position changes, and should not add effect registry, animation layer, third-party scroll adapter, picking path, multiple-canvas path, or public Three.js render flags.
+Phase 4 DOM style fidelity and responsive mapping is implemented and verified in this branch.
+
+## Phase 4 DOM Style Fidelity And Responsive Mapping Checklist
+- Layout snapshots include CSS rect, viewport size, capped DPR, and layout signatures.
+- DOM projection preserves fractional CSS-pixel coordinates.
+- Renderer host caches viewport size, DPR, and orthographic projection updates.
+- DOM invalidation is target-scoped to resize, `style` / `class` mutation, and viewport changes.
+- Element snapshots render supported CSS box paint through canvas-backed textures.
+- Text snapshots consume shared DOM style snapshots for font, color, line height, padding, alignment, and DPR.
+- Image and video renderables apply common `object-fit` and `object-position` texture crop mapping.
+- Demo fidelity targets use only public `WebGLTarget` declarations.
+- Deferred: full DOM subtree rasterization, pseudo-elements, gradients, filters, backdrop filters, masks, clip paths, blend modes, multiple shadows, matrix-level transform reproduction, effect registry, animation layer, third-party scroll adapters, raycast picking, multiple canvases, and public Three.js render flags.
+
+## Phase 4 Completed Task Record
+- Completed work: Added internal DOM style snapshots, layout snapshots with viewport/DPR signatures, cached renderer resize, target-scoped DOM invalidation, CSS box canvas rendering, shared text style consumption, media object-fit mapping, runtime dirty-key invalidation, and a responsive demo fidelity harness.
+- Files changed: runtime DOM/renderer/renderable internals, renderable tests, runtime pipeline tests, demo app/CSS/tests, README, goal docs, execution state, and the Phase 4 plan checklist.
+- Verification: `npm run test -- --run` passed with 51 test files / 237 tests; `npm run typecheck` passed; `npm run build` passed with the existing non-blocking Vite chunk-size warning; `npm run check:imports` passed with `Demo import boundary OK`; `git diff --check` passed.
+- Boundary notes: No demo keys, demo asset paths, demo DOM structure, effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, or public Three.js render flags were introduced into runtime/package implementation.
 
 ## Phase 3.5 Runtime Performance And Stage Checklist
 - Canvas is a fixed transparent internal viewport stage layer, not document-flow content.
@@ -411,17 +428,17 @@ Phase 4 DOM style fidelity and responsive mapping is planned. Next implementatio
 - `npm run check && npm run build && npm run check:imports && git diff --check` (green final post-review verification: typecheck passed, 41 Vitest files / 202 tests passed, build passed with the existing non-blocking Vite chunk-size warning, demo import boundary passed, diff check passed)
 
 ## Last Result
-Phase 3.5 runtime performance and stage correction is implemented and verified. User-facing docs now describe delivered visible renderables, fallback visibility, renderer-owned loop behavior, fixed transparent viewport stage canvas placement, batched layout reads, lifecycle/resource boundaries, public boundaries, and deferred effect/adapters/picking scope. The existing non-blocking Vite production build chunk-size warning remains.
+Phase 4 DOM style fidelity and responsive mapping is implemented and verified in this branch. User-facing docs now describe delivered DOM fidelity support, responsive demo coverage, public boundary constraints, and deferred CSS/effect scope. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
-- `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`
-- Runtime renderer, React runtime wrapper, renderables, resource helpers, public/debug type tests, and demo tests/CSS touched by Phase 3.5.
+- `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`
+- Runtime DOM, renderer, renderables, runtime pipeline tests, demo app/tests/CSS, and Phase 4 fidelity helpers.
 
 ## Known Issues
-No blocking Phase 3.5 issues remain after verification. The existing non-blocking Vite production build chunk-size warning remains.
+No blocking Phase 4 issue remains after verification. The existing non-blocking Vite production build chunk-size warning remains.
 
 ## Important Constraints
 - Phase 2 may implement scene-gated scroll.
@@ -446,4 +463,4 @@ No blocking Phase 3.5 issues remain after verification. The existing non-blockin
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Phase 3.5 is complete and verified. The next step may plan effect or animation work from a new plan, while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, and no third-party scroll adapter unless explicitly planned.
+The next step may plan effect or animation work from a new plan while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, and no third-party scroll adapter unless explicitly planned.

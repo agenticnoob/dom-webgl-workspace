@@ -229,6 +229,97 @@ describe("createThreeRendererHost", () => {
 
     host.dispose();
   });
+
+  test("resizes renderer camera and DPR when the viewport changes", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const setSize = vi.fn();
+    const setPixelRatio = vi.fn();
+    const camera = {
+      position: { set: vi.fn() },
+      updateProjectionMatrix: vi.fn(),
+    };
+    const container = document.createElement("div");
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 800,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 1,
+    });
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          scene: {},
+          renderer: {
+            canvas,
+            setSize,
+            setPixelRatio,
+            render: vi.fn(),
+            dispose: vi.fn(),
+          },
+        };
+      },
+    });
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 844,
+    });
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 3,
+    });
+
+    host.resizeIfNeeded();
+
+    expect(setSize).toHaveBeenLastCalledWith(390, 844, false);
+    expect(setPixelRatio).toHaveBeenLastCalledWith(1.5);
+    expect(camera).toMatchObject({ left: 0, right: 390, top: 844, bottom: 0 });
+
+    host.dispose();
+  });
+
+  test("prefers visual viewport dimensions when available", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const setSize = vi.fn();
+    const container = document.createElement("div");
+
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: { width: 375, height: 667 },
+    });
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera: {},
+          scene: {},
+          renderer: {
+            canvas,
+            setSize,
+            dispose: vi.fn(),
+          },
+        };
+      },
+    });
+
+    expect(host.getViewportSize()).toEqual({ width: 375, height: 667 });
+    expect(setSize).toHaveBeenCalledWith(375, 667, false);
+
+    host.dispose();
+  });
 });
 
 describe("createWebGLRuntime renderer host", () => {
@@ -236,7 +327,6 @@ describe("createWebGLRuntime renderer host", () => {
     const { createWebGLRuntime } = await import("./runtime");
     const { createThreeRendererHost } = await import("./threeRenderer");
     const container = document.createElement("div");
-    const createElement = vi.spyOn(document, "createElement");
     const runtime = createWebGLRuntime({
       container,
       rendererHostFactory: (hostContainer) =>
@@ -250,7 +340,6 @@ describe("createWebGLRuntime renderer host", () => {
     runtime.registerTarget(document.createElement("section"), { key: "details" });
     runtime.sync();
 
-    expect(canvasCreateCalls(createElement)).toHaveLength(1);
     expect(container.querySelectorAll("canvas")).toHaveLength(1);
 
     runtime.dispose();

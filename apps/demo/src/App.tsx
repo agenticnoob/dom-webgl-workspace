@@ -91,6 +91,44 @@ export default function App() {
             </WebGLTarget>
           </div>
 
+          <section className="demo-fidelity" aria-label="DOM fidelity targets">
+            <WebGLTarget
+              className="demo-fidelity-card demo-fidelity-card-surface"
+              webgl={{
+                key: "demo.fidelity.surface",
+                source: { kind: "snapshot", mode: "element" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+              }}
+            >
+              <p className="demo-label">Fidelity surface</p>
+              <strong>Rounded, bordered, shadowed CSS box</strong>
+              <span>Opacity, radius, border, and one outer shadow.</span>
+            </WebGLTarget>
+
+            <WebGLTarget
+              as="p"
+              className="demo-fidelity-card demo-fidelity-card-text"
+              webgl={{
+                key: "demo.fidelity.text",
+                source: { kind: "snapshot", mode: "text" },
+              }}
+            >
+              Multi-line text snapshot with centered alignment and responsive line
+              wrapping.
+            </WebGLTarget>
+
+            <WebGLTarget
+              as="img"
+              className="demo-fidelity-card demo-fidelity-card-media"
+              alt="Responsive object-fit cover target"
+              src="/demo/fidelity-cover.png"
+              webgl={{
+                key: "demo.fidelity.image",
+                source: { kind: "image", src: "/demo/fidelity-cover.png" },
+              }}
+            />
+          </section>
+
           <DebugPanel state={debugState} />
         </section>
       </WebGLRuntime>

@@ -50,6 +50,9 @@ export function createElementSnapshotRenderable(
       state.visible = nextVisible;
       state.scene?.controller.setVisible(nextVisible);
     },
+    invalidateContent() {
+      state.scene?.object.invalidateContent?.();
+    },
     sceneObjectController() {
       return state.scene?.controller;
     },

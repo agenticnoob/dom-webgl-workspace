@@ -59,6 +59,7 @@ export function createTextSnapshotRenderable(
       },
       invalidateContent() {
         state.contentDirty = true;
+        state.scene?.object.invalidateContent?.();
       },
       setVisible(visible) {
         state.scene?.controller.setVisible(visible);

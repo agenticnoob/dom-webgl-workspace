@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
 import {
   drawTextToCanvas,
   readTextCanvasRenderState,
@@ -19,9 +20,12 @@ describe("text canvas layout", () => {
       textAlign: "center",
     });
 
+    const style = readDOMStyleSnapshot(element);
     const state = readTextCanvasRenderState(element, element.textContent, {
       width: 240,
       height: 132,
+      style,
+      devicePixelRatio: 2,
     });
 
     expect(state).toMatchObject({
@@ -34,6 +38,7 @@ describe("text canvas layout", () => {
       paddingBottom: 12,
       paddingLeft: 18,
       textAlign: "center",
+      devicePixelRatio: 2,
     });
     expect(state.font).toContain("36px");
   });
@@ -44,6 +49,7 @@ describe("text canvas layout", () => {
     drawTextToCanvas(context, "Title", {
       width: 240,
       height: 180,
+      devicePixelRatio: 1,
       font: "700 36px Arial",
       color: "rgb(29, 33, 28)",
       lineHeight: 40,
@@ -67,6 +73,7 @@ describe("text canvas layout", () => {
     drawTextToCanvas(context, "Alpha Beta Gamma", {
       width: 100,
       height: 120,
+      devicePixelRatio: 1,
       font: "16px sans-serif",
       color: "#000000",
       lineHeight: 20,

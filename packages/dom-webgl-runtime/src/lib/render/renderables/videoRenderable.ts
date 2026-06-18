@@ -61,6 +61,9 @@ export function createVideoRenderable(
       updateLayout(_context, _lifecycle, measurement) {
         state.scene?.updateLayout(measurement);
       },
+      invalidateContent() {
+        state.scene?.object.invalidateContent?.();
+      },
       setVisible(visible) {
         if (!visible) {
           source.element.pause();
