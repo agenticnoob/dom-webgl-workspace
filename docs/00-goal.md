@@ -530,6 +530,9 @@ Boundary rules:
 - `apps/demo/*` may import from `@project/dom-webgl-runtime`.
 - `apps/demo/*` must not import from `@project/dom-webgl-runtime/src/lib/*`.
 - `packages/dom-webgl-runtime/src/lib/*` must not import app/demo code.
+- Runtime/package implementation must not hardcode demo-only keys, asset paths,
+  DOM structure, layout, or copy. Demo needs must be expressed as reusable
+  declarations, public API, or generic internal pipeline behavior.
 - Public exports should be intentionally small and stable.
 - Internal modules can change freely as long as public API tests pass.
 

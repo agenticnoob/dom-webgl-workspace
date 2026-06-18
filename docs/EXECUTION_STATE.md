@@ -435,6 +435,8 @@ No blocking Phase 3.5 issues remain after verification. The existing non-blockin
 - Do not add class-based compatibility layer.
 - Do not expose Three.js renderOrder, transparent, or depthWrite in the public API.
 - Public package imports must be SSR-safe.
+- Runtime/package implementation must stay reusable for an open-source package
+  and must not hardcode demo-only keys, assets, DOM structure, layout, or copy.
 - apps/demo must import only public package APIs:
   - @project/dom-webgl-runtime
   - @project/dom-webgl-runtime/react

@@ -14,6 +14,16 @@ Phase 3.5 runtime performance and stage correction is implemented in
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
+Project boundary:
+
+- This workspace implements a reusable open-source DOM WebGL runtime.
+- `apps/demo` is a public API consumer and validation surface, not a privileged
+  runtime input.
+- Runtime/package implementation code must not hardcode demo target keys, demo
+  asset paths, demo DOM structure, demo layout, or demo copy.
+- `packages/dom-webgl-runtime/src/open-source-boundary.test.ts` guards runtime
+  source against demo-only literals.
+
 Current demo behavior:
 
 - React demo declares five target categories through public APIs: element
@@ -135,6 +145,10 @@ import {
 ```
 
 `apps/demo` must not import from `packages/dom-webgl-runtime/src/*`.
+
+Runtime source must not import demo code or branch on demo-only keys/assets.
+Demo-specific content belongs under `apps/demo` and should reach the package only
+through public declarations.
 
 ## Lifecycle And Fallback Visibility
 
