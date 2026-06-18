@@ -4,15 +4,25 @@
     radial-gradient(circle at top left, rgba(215, 233, 196, 0.7), transparent 28%),
     linear-gradient(180deg, #f4f0e8 0%, #edf1ea 45%, #dde6dd 100%);
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-width: 0;
 }
 
 .demo-shell {
   min-height: 100vh;
-  padding: 32px;
+  padding: clamp(20px, 4vw, 32px);
+  overflow-x: clip;
 }
 
 .demo-runtime {
@@ -24,13 +34,15 @@ body {
 
 .demo-scene {
   display: grid;
-  gap: 28px;
+  gap: 32px;
+  min-width: 0;
 }
 
 .demo-header {
   max-width: 760px;
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .demo-kicker {
@@ -46,6 +58,8 @@ body {
   margin: 0;
   font-size: clamp(2.5rem, 5vw, 4.5rem);
   line-height: 0.96;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .demo-summary {
@@ -58,21 +72,35 @@ body {
 
 .demo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  grid-auto-rows: 180px;
   gap: 18px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.demo-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  grid-auto-rows: 232px;
+  gap: 18px;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .debug-panel {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 12px;
+  min-width: 0;
 }
 
 .debug-panel__metric {
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(44, 55, 42, 0.12);
   background: rgba(255, 255, 255, 0.54);
+  min-width: 0;
 }
 
 .debug-panel__label {
@@ -86,13 +114,15 @@ body {
 }
 
 .demo-card {
-  min-height: 180px;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
   padding: 18px;
   border: 1px solid rgba(44, 55, 42, 0.16);
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 20px 60px rgba(57, 69, 56, 0.08);
-  backdrop-filter: blur(14px);
+  overflow: hidden;
 }
 
 .demo-card-surface,
@@ -107,10 +137,15 @@ body {
   display: grid;
   align-content: center;
   font-size: clamp(1.8rem, 3vw, 2.5rem);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .demo-card-media {
+  display: block;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   object-fit: cover;
   background:
     linear-gradient(135deg, rgba(71, 114, 79, 0.24), rgba(255, 255, 255, 0.9)),
@@ -136,12 +171,78 @@ body {
   line-height: 1.5;
 }
 
+.demo-layout-card {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 22px;
+  border: 2px solid rgb(52, 67, 48);
+  border-radius: 22px 18px 14px 10px;
+  background: rgb(246, 249, 240);
+  box-shadow: 0 18px 38px rgba(34, 47, 31, 0.18);
+  opacity: 0.94;
+  overflow: hidden;
+}
+
+.demo-layout-card-surface {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+}
+
+.demo-layout-card-text {
+  display: grid;
+  align-content: center;
+  color: rgb(29, 33, 28);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.22;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.demo-layout-card-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: 50% 50%;
+  background: #dbe5d8;
+}
+
 @media (max-width: 700px) {
   .demo-shell {
     padding: 20px;
   }
 
-  .demo-grid {
+  .demo-scene {
+    gap: 24px;
+  }
+
+  .demo-grid,
+  .demo-layout {
     grid-template-columns: 1fr;
+  }
+
+  .demo-layout {
+    grid-auto-rows: auto;
+  }
+
+  .demo-scene h1 {
+    font-size: clamp(2.1rem, 12vw, 3.4rem);
+  }
+
+  .demo-layout-card {
+    height: auto;
+    min-height: 180px;
+    border-radius: 16px;
+  }
+
+  .demo-layout-card-media {
+    height: 180px;
   }
 }

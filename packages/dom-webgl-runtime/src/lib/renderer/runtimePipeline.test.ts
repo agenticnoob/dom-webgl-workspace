@@ -35,6 +35,12 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
   scrollState?: ScrollStateController;
   pointerController?: PointerController;
   clock?: () => number;
+  invalidationController?: {
+    observeTarget(target: { key: string; element: HTMLElement }): void;
+    unobserveTarget(key: string): void;
+    consumeDirtyKeys(): Set<string>;
+    dispose(): void;
+  };
 };
 
 type RuntimeWithPipelineSurface = WebGLRuntime & {
@@ -515,6 +521,62 @@ describe("runtime pipeline sync", () => {
 
     runtime.dispose();
   });
+
+  test("updates renderable layout every sync and invalidates dirty raster state", async () => {
+    const element = document.createElement("section");
+    const layouts: unknown[] = [];
+    const invalidateContent = vi.fn();
+    let syncCount = 0;
+    const runtime = await createPipelineRuntime({
+      measureElement: () =>
+        ({
+          x: 0,
+          y: 0,
+          left: 24,
+          top: 40,
+          right: 224,
+          bottom: 160,
+          width: 200,
+          height: 120,
+        }) as DOMRect,
+      invalidationController: {
+        observeTarget: vi.fn(),
+        unobserveTarget: vi.fn(),
+        consumeDirtyKeys() {
+          syncCount += 1;
+          return syncCount === 2 ? new Set(["responsive.box"]) : new Set();
+        },
+        dispose: vi.fn(),
+      },
+      onRenderableCreated(renderable) {
+        const originalUpdateLayout = renderable.updateLayout?.bind(renderable);
+
+        renderable.invalidateContent = invalidateContent;
+        renderable.updateLayout = (snapshot) => {
+          layouts.push(snapshot);
+          originalUpdateLayout?.(snapshot);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, { key: "responsive.box" });
+
+    await runtime.sync();
+    Object.assign(element.style, { backgroundColor: "rgb(40, 50, 60)" });
+    await runtime.sync();
+
+    expect(layouts).toHaveLength(2);
+    expect(invalidateContent).toHaveBeenCalledTimes(1);
+    expect(layouts[0]).toMatchObject({
+      left: 24,
+      top: 40,
+      width: 200,
+      height: 120,
+      viewport: { width: 800, height: 600 },
+    });
+
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -550,6 +612,12 @@ function createRendererHostStub(
     },
     scene: {},
     sceneAdapter,
+    getViewportSize() {
+      return { width: 800, height: 600 };
+    },
+    resizeIfNeeded() {
+      return;
+    },
     dispose() {
       canvas.remove();
     },

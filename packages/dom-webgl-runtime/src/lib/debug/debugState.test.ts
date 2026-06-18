@@ -413,6 +413,12 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
         return;
       },
     },
+    getViewportSize() {
+      return { width: 800, height: 600 };
+    },
+    resizeIfNeeded() {
+      return;
+    },
     dispose() {
       canvas.remove();
     },

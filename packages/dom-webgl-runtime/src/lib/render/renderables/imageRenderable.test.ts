@@ -14,6 +14,11 @@ describe("createImageRenderable", () => {
 
   test("creates a media renderable and loads the existing DOM image resource", async () => {
     const source = createImageDescriptor("/assets/hero.png");
+    Object.assign(source.element.style, {
+      backgroundColor: "rgb(240, 248, 255)",
+      border: "2px solid rgb(12, 34, 56)",
+      borderRadius: "18px",
+    });
     const descriptor = createTargetDescriptor(
       source.element,
       { key: "hero.image" },
@@ -59,14 +64,19 @@ describe("createImageRenderable", () => {
       lastLayout: { x: 120, y: 510, width: 200, height: 100 },
     });
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
-      isMesh: true,
-      geometry: { type: "PlaneGeometry" },
-      material: {
-        map: {
-          isTexture: true,
-          source: { data: source.element },
+      isGroup: true,
+      children: [
+        {
+          isMesh: true,
+          geometry: { type: "PlaneGeometry" },
+          material: {
+            map: {
+              isTexture: true,
+              source: { data: source.element },
+            },
+          },
         },
-      },
+      ],
     });
     expect(resourceManager.inspect("image:element-1:/assets/hero.png")).toMatchObject({
       kind: "image",
@@ -120,6 +130,43 @@ describe("createImageRenderable", () => {
       status: "error",
       error,
     });
+  });
+
+  test("does not retry a failed image decode on later frame updates", async () => {
+    const source = createImageDescriptor("/assets/broken.png");
+    const descriptor = createTargetDescriptor(
+      source.element,
+      { key: "hero.image" },
+      0,
+    );
+    const resourceManager = createResourceManager();
+    const error = new DOMException(
+      "The source image cannot be decoded.",
+      "EncodingError",
+    );
+    const decode = stubDecode(source.element, async () => Promise.reject(error));
+    const renderable = createImageRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager,
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
+    );
+
+    await expect(renderable.update()).rejects.toThrow(
+      "The source image cannot be decoded.",
+    );
+    renderable.update();
+
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(renderable.status).toBe("error");
+    expect(renderable.fallbackVisible).toBe(true);
   });
 
   test("does not duplicate DOM image loads for shared image elements", async () => {
@@ -223,6 +270,9 @@ function createMeasurement(
     right: left + width,
     bottom: top + height,
     left,
+    viewport: { width: 800, height: 600 },
+    devicePixelRatio: 1,
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }
 

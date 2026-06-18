@@ -11,8 +11,11 @@ Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
-Phase 4 DOM style fidelity and responsive mapping is planned in
-`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
+Phase 4 has been narrowed to DOM layout/content mapping and responsive
+projection in
+`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`;
+the forward architecture is now DOM layout/content driven WebGL effects, not
+general CSS-to-WebGL fidelity.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -28,10 +31,13 @@ Project boundary:
 
 Current demo behavior:
 
-- React demo declares five target categories through public APIs: element
-  snapshot, text snapshot, image, video, and GLB model.
-- The demo declares one scene gate through `WebGLTarget` using the public
-  `webgl.scroll` gate declaration shape.
+- React demo declares five base target categories through public APIs: element
+  snapshot, text snapshot, image, video, and GLB model. It also includes a
+  layout/content harness for transparent anchors, multiline text, object-fit
+  media, and narrow viewport layout.
+- The default demo does not enable scene gates, so normal page scrolling cannot
+  be trapped by a demo gate lock. Scene-gate declarations remain covered by
+  dedicated runtime, React adapter, and public type tests.
 - Runtime registration, source inference, render role inference, renderable
   creation, resource lifecycle, debug state, page scroll state, scene gate state,
   scroll lock, and pointer state are wired.
@@ -49,25 +55,62 @@ Current visual behavior:
 
 - DOM-authored targets compile into source descriptors, render roles, internal
   render policy ordering, and runtime-owned scene objects.
+- DOM is the source for layout, content, accessibility, and interaction state.
+  WebGL effects/materials are the source for final visual styling. The runtime
+  should not try to clone all browser CSS into WebGL.
+- Runtime CSS reads should stay limited to fields needed for layout/content
+  mapping: rects, content boxes, padding when it affects placement, text metrics,
+  media object-fit/object-position, visibility, and lifecycle state.
+- Backgrounds, borders, radii, shadows, gradients, filters, decorative opacity,
+  and other visual styling should be expressed by future effect/material
+  declarations instead of treated as DOM visual truth.
+- Unregistered DOM remains ordinary page DOM: it stays visible, keeps native
+  interaction, and is not blocked by the transparent WebGL stage.
 - DOM rects are measured in a batched runtime layout pass and projected into
   scene layout before renderables receive layout updates.
 - The internal canvas is a fixed viewport WebGL stage layer, not document-flow
   content below the DOM scene or a layer constrained by the demo content width.
+- The runtime inserts the fixed canvas as the first child of its container and
+  leaves author DOM after it, so `hideWhenReady: false` and undeclared DOM can
+  remain visually native without an extra global DOM layer.
+- The canvas is explicitly stacked below author DOM (`z-index: 0` for the
+  canvas, `z-index: 1` for direct DOM children) while remaining
+  `pointer-events: none`, so native DOM can stay visually and interactively on
+  top when it is not taken over by WebGL.
+- Renderer viewport and orthographic camera sizing use the fixed canvas's actual
+  rendered CSS box, so scrollbar gutters do not put DOM rects and WebGL
+  projection in different coordinate spaces.
 - Renderer defaults keep the stage transparent over the page background and cap
   device pixel ratio.
-- Snapshot content rebuilds are dirty-boundary driven; frame updates apply
-  layout without redrawing text content.
+- Snapshot content rebuilds are driven by layout, size, DPR, content, and
+  resource boundaries. Computed-style capture is limited to placement-critical
+  layout/content fields, not DOM visual paint cloning.
 - Text snapshots build their internal canvas from the measured DOM text box and
-  computed text color/font/alignment so the WebGL plane does not stretch a
-  fixed-size text texture.
+  computed font, line height, padding, alignment, and DPR so the WebGL plane
+  does not stretch a fixed-size text texture. DOM text color is not treated as
+  WebGL material truth.
+- Element snapshots are transparent DOM anchors for future effects/materials;
+  they do not render CSS backgrounds, borders, radii, shadows, opacity, or
+  transforms.
+- Text snapshots consume only the style information required to place and render
+  text content, such as font, line height, padding, alignment, and DPR.
+- Image and video renderables place their media texture planes inside the CSS
+  content box before applying common `object-fit` / `object-position` mapping;
+  they do not keep a CSS-painted backing plane.
+- Renderer resize, DPR, and orthographic camera projection are cached and update
+  on viewport changes without reconfiguring unchanged frames.
+- Runtime invalidation observes target resize and viewport changes, then routes
+  dirty keys to renderable content invalidation where needed.
 - Target lifecycle state is reported separately from resource load status.
-- `lifecycle.hideWhenReady` hides fallback DOM only after the matching scene
-  object is visually ready.
+- Mapped targets default to WebGL visual replacement: after the matching scene
+  object is visually ready, the target's fallback paint is hidden with
+  `hideMode: "self"` unless lifecycle options opt out or request subtree hiding.
 - Loading and error renderables keep fallback DOM visible.
 - Unregistering a target or disposing the runtime restores fallback visibility.
 - `hideMode: "subtree"` hides the target and descendants after readiness.
 - `hideMode: "self"` hides only the target's own fallback paint while preserving
-  child DOM visibility.
+  child DOM visibility; nested managed WebGL targets keep their own fallback
+  visibility state.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
 - Effect registry, animation/effect layers, WebGL raycast picking, Lenis, GSAP,
@@ -78,10 +121,12 @@ Current visual behavior:
   a fixed transparent internal stage layer, added renderer performance defaults
   and a DPR cap, batched layout reads, and separated layout, content, resource,
   and lifecycle boundaries before effect or animation work starts.
-- Phase 4 should improve DOM-to-WebGL fidelity with a narrow performance-first
-  slice: cached resize/DPR adaptation, geometry/layout alignment, cached style
-  snapshots behind dirty boundaries, canvas-backed CSS box snapshots for common
-  2D styles, object-fit mapping, and a responsive demo harness.
+- Phase 4 now keeps the foundation focused on cached resize/DPR adaptation,
+  geometry/layout alignment, placement-only style snapshots, transparent DOM
+  anchors, media content-box object-fit mapping, and a responsive demo harness.
+  Do not expand this into full CSS fidelity; the next architecture step is an
+  effect/material layer consuming DOM layout, content, scroll, pointer, and
+  lifecycle state.
 
 ## Setup
 
@@ -125,6 +170,7 @@ Demo assets must exist at:
 
 ```txt
 apps/demo/public/demo/image.png
+apps/demo/public/demo/layout-cover.png
 apps/demo/public/demo/video.mp4
 apps/demo/public/models/hero.glb
 ```
@@ -133,9 +179,18 @@ The demo references them as:
 
 ```txt
 /demo/image.png
+/demo/layout-cover.png
 /demo/video.mp4
 /models/hero.glb
 ```
+
+The GLB demo target hides its DOM fallback subtree after the model is ready. Runtime
+model layout contains the loaded model bounds inside the target DOM rect with a
+uniform XYZ scale so model depth is not flattened or stretched independently.
+The default runtime scene includes a low-cost ambient plus directional light rig
+so GLB/PBR materials are not rendered unlit by default.
+The demo also reserves a stable scrollbar gutter so DOM anchor rects do not
+reflow horizontally while the runtime tracks page scroll.
 
 ## Public API Imports
 
@@ -158,7 +213,7 @@ through public declarations.
 
 ## Lifecycle And Fallback Visibility
 
-Targets may request fallback hiding through the public lifecycle declaration:
+Targets may tune fallback hiding through the public lifecycle declaration:
 
 ```ts
 type WebGLLifecycleDeclaration = {
@@ -169,13 +224,19 @@ type WebGLLifecycleDeclaration = {
 
 Behavior:
 
-- Omitted `hideWhenReady` leaves the DOM fallback visible.
-- `hideWhenReady: true` hides fallback only after the WebGL scene object is
-  ready and attached.
+- Registered WebGL targets default to `hideWhenReady: true` and
+  `hideMode: "self"`.
+- `hideWhenReady: false` opts out and leaves the DOM fallback visible.
+- Visible fallback DOM remains in the author DOM after the canvas stage; this
+  option is for native DOM visual/interaction ownership.
+- Fallback hiding only happens after the WebGL scene object is ready and
+  attached.
 - Pending or failed image, video, model, element snapshot, and text snapshot
   renderables keep fallback DOM visible.
 - `hideMode: "subtree"` hides the target subtree.
-- `hideMode: "self"` preserves child DOM visibility for container targets.
+- `hideMode: "self"` preserves ordinary child DOM visibility for container
+  targets without overriding nested WebGL targets that already own fallback
+  visibility.
 - Runtime disposal and target unregister restore previous fallback visibility.
 
 ## Scene Gates

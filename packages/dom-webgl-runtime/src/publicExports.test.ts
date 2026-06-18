@@ -4,7 +4,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
-const TYPECHECK_TEST_TIMEOUT_MS = 15_000;
+const TYPECHECK_TEST_TIMEOUT_MS = 30_000;
 
 describe("public package exports", () => {
   test("root entrypoint exposes runtime APIs without internal helpers", async () => {

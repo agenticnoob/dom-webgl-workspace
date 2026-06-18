@@ -30,6 +30,20 @@ describe("projectDOMRectToSceneLayout", () => {
       height: 0,
     });
   });
+
+  test("projects fractional mobile CSS pixels without early rounding", () => {
+    expect(
+      projectDOMRectToSceneLayout(
+        createDOMRect({ left: 16.5, top: 24.25, width: 327.75, height: 180.5 }),
+        { width: 390, height: 844 },
+      ),
+    ).toEqual({
+      x: 180.375,
+      y: 729.5,
+      width: 327.75,
+      height: 180.5,
+    });
+  });
 });
 
 function createDOMRect({

@@ -1,4 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
+import { BoxGeometry } from "three/src/geometries/BoxGeometry.js";
+import { Mesh } from "three/src/objects/Mesh.js";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
@@ -113,6 +115,39 @@ describe("createModelRenderable", () => {
     expect((sceneAdapter.objects[0]?.object3D as TestModelObject).name).toBe(
       "direct-model.clone",
     );
+  });
+
+  test("contains model bounds inside the anchor without stretching depth", async () => {
+    const source = createModelDescriptor("/models/bounds.glb");
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model" },
+      0,
+    );
+    const model = new Mesh(new BoxGeometry(2, 4, 6));
+    const sceneAdapter = createSceneAdapter();
+    const renderable = createModelRenderable(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        loadModel: async () => model,
+        sceneAdapter,
+        measureElement: () => createMeasurement(10, 30, 240, 160),
+      },
+    );
+
+    await renderable.update();
+    renderable.updateLayout?.(createMeasurement(10, 30, 240, 160));
+
+    const attachedModel = sceneAdapter.objects[0]?.object3D as Mesh;
+
+    expect(attachedModel.scale.toArray()).toEqual([40, 40, 40]);
+    expect(attachedModel.position.toArray()).toEqual([130, 490, 0]);
   });
 
   test("creates independent scene instances for shared GLB resources", async () => {
@@ -311,6 +346,9 @@ function createMeasurement(
     right: left + width,
     bottom: top + height,
     left,
+    viewport: { width: 800, height: 600 },
+    devicePixelRatio: 1,
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }
 

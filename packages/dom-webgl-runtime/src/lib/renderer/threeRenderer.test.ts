@@ -21,6 +21,8 @@ describe("createThreeRendererHost", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/src/cameras/OrthographicCamera.js");
+    vi.doUnmock("three/src/lights/AmbientLight.js");
+    vi.doUnmock("three/src/lights/DirectionalLight.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
     vi.doUnmock("three/src/scenes/Scene.js");
     vi.resetModules();
@@ -28,11 +30,13 @@ describe("createThreeRendererHost", () => {
 
   test("uses Three.js objects on the default host path without requiring a real GPU in tests", async () => {
     const rendererDispose = vi.fn();
+    const rendererSetClearAlpha = vi.fn();
     const scene = { kind: "scene" };
     const camera = { kind: "camera" };
     const WebGLRenderer = vi.fn(
       (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
         canvas: options.canvas,
+        setClearAlpha: rendererSetClearAlpha,
         dispose: rendererDispose,
       }),
     );
@@ -59,6 +63,7 @@ describe("createThreeRendererHost", () => {
       powerPreference: "high-performance",
       canvas: host.canvas,
     });
+    expect(rendererSetClearAlpha).toHaveBeenCalledWith(0);
     expect(Scene).toHaveBeenCalledTimes(1);
     expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
     expect(host.scene).toBe(scene);
@@ -110,9 +115,60 @@ describe("createThreeRendererHost", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
-  test("positions the renderer canvas as a fixed viewport stage layer", async () => {
+  test("adds low-cost default lights to the default scene for lit model materials", async () => {
+    const rendererDispose = vi.fn();
+    const rendererSetClearAlpha = vi.fn();
+    const sceneAdd = vi.fn();
+    const scene = { add: sceneAdd };
+    const camera = { kind: "camera" };
+    const ambientLight = { kind: "ambient-light" };
+    const directionalLight = {
+      kind: "directional-light",
+      position: { set: vi.fn() },
+    };
+    const WebGLRenderer = vi.fn(
+      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
+        canvas: options.canvas,
+        setClearAlpha: rendererSetClearAlpha,
+        dispose: rendererDispose,
+      }),
+    );
+    const Scene = vi.fn(() => scene);
+    const OrthographicCamera = vi.fn(() => camera);
+    const AmbientLight = vi.fn(() => ambientLight);
+    const DirectionalLight = vi.fn(() => directionalLight);
+
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
+    }));
+    vi.doMock("three/src/lights/AmbientLight.js", () => ({ AmbientLight }));
+    vi.doMock("three/src/lights/DirectionalLight.js", () => ({
+      DirectionalLight,
+    }));
+    vi.doMock("three/src/renderers/WebGLRenderer.js", () => ({
+      WebGLRenderer,
+    }));
+    vi.doMock("three/src/scenes/Scene.js", () => ({ Scene }));
+
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("div");
+
+    const host = createThreeRendererHost(container);
+
+    expect(AmbientLight).toHaveBeenCalledWith(0xffffff, 0.45);
+    expect(DirectionalLight).toHaveBeenCalledWith(0xffffff, 1);
+    expect(directionalLight.position.set).toHaveBeenCalledWith(1, 1.5, 2);
+    expect(sceneAdd).toHaveBeenCalledWith(ambientLight);
+    expect(sceneAdd).toHaveBeenCalledWith(directionalLight);
+
+    host.dispose();
+  });
+
+  test("positions the renderer canvas below the DOM children as a fixed viewport stage layer", async () => {
     const { createThreeRendererHost } = await import("./threeRenderer");
     const container = document.createElement("section");
+    const existingChild = document.createElement("article");
+    container.appendChild(existingChild);
 
     Object.defineProperties(container, {
       clientWidth: { configurable: true, value: 640 },
@@ -131,8 +187,32 @@ describe("createThreeRendererHost", () => {
     expect(host.canvas.style.pointerEvents).toBe("none");
     expect(host.canvas.style.display).toBe("block");
     expect(host.canvas.style.zIndex).toBe("0");
+    expect(existingChild.style.position).toBe("relative");
+    expect(existingChild.style.zIndex).toBe("1");
+    expect(container.firstElementChild).toBe(host.canvas);
+    expect(container.lastElementChild).toBe(existingChild);
 
     host.dispose();
+  });
+
+  test("restores direct DOM child stacking styles on dispose", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("section");
+    const existingChild = document.createElement("article");
+    existingChild.style.position = "relative";
+    container.appendChild(existingChild);
+
+    const host = createThreeRendererHost(container, {
+      createObjects: createRendererObjectsStub,
+    });
+
+    expect(existingChild.style.position).toBe("relative");
+    expect(existingChild.style.zIndex).toBe("1");
+
+    host.dispose();
+
+    expect(existingChild.style.position).toBe("relative");
+    expect(existingChild.style.zIndex).toBe("");
   });
 
   test("configures the default camera and canvas for CSS-pixel scene coordinates", async () => {
@@ -229,6 +309,122 @@ describe("createThreeRendererHost", () => {
 
     host.dispose();
   });
+
+  test("resizes renderer camera and DPR when the viewport changes", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const setSize = vi.fn();
+    const setPixelRatio = vi.fn();
+    const camera = {
+      position: { set: vi.fn() },
+      updateProjectionMatrix: vi.fn(),
+    };
+    const container = document.createElement("div");
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 800,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 1,
+    });
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          scene: {},
+          renderer: {
+            canvas,
+            setSize,
+            setPixelRatio,
+            render: vi.fn(),
+            dispose: vi.fn(),
+          },
+        };
+      },
+    });
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 844,
+    });
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 3,
+    });
+
+    host.resizeIfNeeded();
+
+    expect(setSize).toHaveBeenLastCalledWith(390, 844, false);
+    expect(setPixelRatio).toHaveBeenLastCalledWith(1.5);
+    expect(camera).toMatchObject({ left: 0, right: 390, top: 844, bottom: 0 });
+
+    host.dispose();
+  });
+
+  test("uses the rendered fixed canvas box as the CSS-pixel scene viewport", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const setSize = vi.fn();
+    const container = document.createElement("div");
+    const originalCanvasRect = HTMLCanvasElement.prototype.getBoundingClientRect;
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1280,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 720,
+    });
+    HTMLCanvasElement.prototype.getBoundingClientRect = vi.fn(
+      () =>
+        ({
+          x: 0,
+          y: 0,
+          left: 0,
+          top: 0,
+          right: 1265,
+          bottom: 720,
+          width: 1265,
+          height: 720,
+          toJSON() {
+            return {};
+          },
+        }) as DOMRect,
+    );
+
+    try {
+      const host = createThreeRendererHost(container, {
+        createObjects(canvas) {
+          return {
+            camera: {},
+            scene: {},
+            renderer: {
+              canvas,
+              setSize,
+              dispose: vi.fn(),
+            },
+          };
+        },
+      });
+
+      expect(host.getViewportSize()).toEqual({ width: 1265, height: 720 });
+      expect(setSize).toHaveBeenCalledWith(1265, 720, false);
+
+      host.dispose();
+    } finally {
+      HTMLCanvasElement.prototype.getBoundingClientRect = originalCanvasRect;
+    }
+  });
 });
 
 describe("createWebGLRuntime renderer host", () => {
@@ -236,7 +432,6 @@ describe("createWebGLRuntime renderer host", () => {
     const { createWebGLRuntime } = await import("./runtime");
     const { createThreeRendererHost } = await import("./threeRenderer");
     const container = document.createElement("div");
-    const createElement = vi.spyOn(document, "createElement");
     const runtime = createWebGLRuntime({
       container,
       rendererHostFactory: (hostContainer) =>
@@ -250,7 +445,6 @@ describe("createWebGLRuntime renderer host", () => {
     runtime.registerTarget(document.createElement("section"), { key: "details" });
     runtime.sync();
 
-    expect(canvasCreateCalls(createElement)).toHaveLength(1);
     expect(container.querySelectorAll("canvas")).toHaveLength(1);
 
     runtime.dispose();

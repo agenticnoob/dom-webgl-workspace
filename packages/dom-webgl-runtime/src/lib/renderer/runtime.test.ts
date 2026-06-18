@@ -206,6 +206,91 @@ describe("createWebGLRuntime", () => {
     expect(element.style.visibility).toBe("");
   });
 
+  test("hides mapped fallback paint by default after visual readiness", async () => {
+    let visuallyReady = false;
+    const runtime = await createRuntimeForCleanupTest({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: visuallyReady,
+          }),
+        });
+      },
+    });
+    const element = document.createElement("section");
+    const child = document.createElement("button");
+    element.appendChild(child);
+
+    runtime.registerTarget(element, {
+      key: "hero.default-fallback",
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("");
+    expect(child.style.visibility).toBe("");
+
+    visuallyReady = true;
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+    expect(child.style.visibility).toBe("visible");
+
+    runtime.dispose();
+    expect(element.style.visibility).toBe("");
+    expect(child.style.visibility).toBe("");
+  });
+
+  test("keeps mapped fallback visible when hideWhenReady is explicitly false", async () => {
+    const runtime = await createRuntimeForCleanupTest({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+          }),
+        });
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "hero.fallback-visible",
+      lifecycle: { hideWhenReady: false },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("");
+
+    runtime.dispose();
+  });
+
+  test("allows mapped targets to opt into subtree fallback hiding", async () => {
+    const runtime = await createRuntimeForCleanupTest({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+          }),
+        });
+      },
+    });
+    const element = document.createElement("section");
+    const child = document.createElement("button");
+    element.appendChild(child);
+
+    runtime.registerTarget(element, {
+      key: "hero.subtree-fallback",
+      lifecycle: { hideMode: "subtree" },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+    expect(child.style.visibility).toBe("hidden");
+
+    runtime.dispose();
+  });
+
   test("restores fallback DOM on unregister and renderable errors keep DOM visible", async () => {
     let shouldThrow = false;
     const runtime = await createRuntimeForCleanupTest({
@@ -364,6 +449,12 @@ function createRendererHostStub(
     },
     scene: {},
     sceneAdapter,
+    getViewportSize() {
+      return { width: 800, height: 600 };
+    },
+    resizeIfNeeded() {
+      return;
+    },
     dispose() {
       canvas.remove();
     },

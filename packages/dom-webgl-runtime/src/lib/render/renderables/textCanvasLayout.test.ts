@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
 import {
   drawTextToCanvas,
   readTextCanvasRenderState,
@@ -19,22 +20,28 @@ describe("text canvas layout", () => {
       textAlign: "center",
     });
 
+    const style = readDOMStyleSnapshot(element);
     const state = readTextCanvasRenderState(element, element.textContent, {
       width: 240,
       height: 132,
+      style,
+      devicePixelRatio: 2,
     });
 
     expect(state).toMatchObject({
       width: 240,
       height: 132,
-      color: "rgb(29, 33, 28)",
       lineHeight: 44,
       paddingTop: 12,
       paddingRight: 18,
       paddingBottom: 12,
       paddingLeft: 18,
       textAlign: "center",
+      devicePixelRatio: 2,
     });
+    expect(state.style.text).not.toHaveProperty("color");
+    expect(state.style.box).not.toHaveProperty("backgroundColor");
+    expect(state).not.toHaveProperty("color");
     expect(state.font).toContain("36px");
   });
 
@@ -44,8 +51,8 @@ describe("text canvas layout", () => {
     drawTextToCanvas(context, "Title", {
       width: 240,
       height: 180,
+      devicePixelRatio: 1,
       font: "700 36px Arial",
-      color: "rgb(29, 33, 28)",
       lineHeight: 40,
       blockAlignment: "center",
       textAlign: "right",
@@ -53,10 +60,11 @@ describe("text canvas layout", () => {
       paddingRight: 30,
       paddingBottom: 20,
       paddingLeft: 20,
+      style: createTextStyleSnapshot(),
     });
 
     expect(context.font).toBe("700 36px Arial");
-    expect(context.fillStyle).toBe("rgb(29, 33, 28)");
+    expect(context.fillStyle).toBe("#000000");
     expect(context.textAlign).toBe("right");
     expect(context.fillText).toHaveBeenCalledWith("Title", 210, 70);
   });
@@ -67,8 +75,8 @@ describe("text canvas layout", () => {
     drawTextToCanvas(context, "Alpha Beta Gamma", {
       width: 100,
       height: 120,
+      devicePixelRatio: 1,
       font: "16px sans-serif",
-      color: "#000000",
       lineHeight: 20,
       blockAlignment: "start",
       textAlign: "left",
@@ -76,6 +84,7 @@ describe("text canvas layout", () => {
       paddingRight: 10,
       paddingBottom: 10,
       paddingLeft: 10,
+      style: createTextStyleSnapshot(),
     });
 
     expect(context.fillText).toHaveBeenCalledWith("Alpha", 10, 10);
@@ -114,4 +123,8 @@ function createCanvasContextStub(
     textAlign: CanvasTextAlign;
     textBaseline: CanvasTextBaseline;
   };
+}
+
+function createTextStyleSnapshot() {
+  return readDOMStyleSnapshot(document.createElement("p"));
 }

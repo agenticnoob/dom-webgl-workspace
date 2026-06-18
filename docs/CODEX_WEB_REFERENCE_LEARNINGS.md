@@ -40,8 +40,8 @@ For this repo, keep the same separation:
 - Future `effects` consume runtime-owned source descriptors and renderables.
   Effects must not scan DOM independently or create a separate resource
   pipeline.
-- Demo apps only declare targets and validate behavior. They must not fix
-  runtime fidelity by hard-coding DOM structure, CSS overrides, or Three.js
+- Demo apps only declare targets and validate behavior. They must not hide
+  runtime behavior gaps by hard-coding DOM structure, CSS overrides, or Three.js
   render internals.
 
 This boundary directly supports an open-source package because non-React users,
@@ -97,27 +97,20 @@ type DomSnapshot = {
 };
 
 type DomSnapshotAdapter = {
-  capture(
-    element: HTMLElement,
-    options: {
-      pixelRatio: number;
-      backgroundColor?: string;
-      signal?: AbortSignal;
-    }
-  ): Promise<DomSnapshot>;
+  capture(element: HTMLElement, options: { pixelRatio: number; signal?: AbortSignal }): Promise<DomSnapshot>;
 };
 ```
 
-The runtime should consume `DomSnapshotAdapter`, build a `CanvasTexture`, and
-own layout/visibility/resource disposal. The adapter owns DOM-to-canvas capture
-fidelity.
+This adapter route is historical reference material, not the current default
+direction. The active runtime now consumes DOM layout/content state and leaves
+final visuals to explicit effects/materials.
 
-## html-to-canvas Direction
+## Retired html-to-canvas Direction
 
 Do not keep expanding handwritten CSS mapping as the main implementation. It
 will become a hard-coded demo renderer and will not match real DOM/CSS.
 
-The package-ready direction is:
+The older adapter idea was:
 
 ```txt
 DOM element
@@ -140,11 +133,12 @@ clone DOM subtree
 ```
 
 Third-party implementations such as html-to-image, modern-screenshot, or
-dom-to-image-more can be wrapped behind the same adapter contract. They should
-not become assumptions throughout core runtime code.
+dom-to-image-more could be wrapped behind an adapter contract if a future user
+explicitly needs DOM rasterization. They should not become assumptions
+throughout core runtime code.
 
-Keep the current text canvas path only as a basic fallback or optimized text
-adapter. It should not be the primary CSS fidelity story for element snapshots.
+Keep the current text canvas path focused on text content placement and sizing.
+It should not become a CSS fidelity story for element snapshots.
 
 ## Default Renderable Factory Lesson
 
@@ -177,8 +171,8 @@ The useful behavior from `codex-web` is readiness-gated fallback visibility:
 - DOM fallback hides only after the matching WebGL scene object is ready.
 - Runtime disposal or target unregister restores fallback visibility.
 
-This repo already follows that direction. Future snapshot adapter work must keep
-that invariant: failed or pending DOM snapshot capture must not hide the
+This repo already follows that direction. Any future optional snapshot adapter
+extension must keep that invariant: failed or pending capture must not hide the
 semantic DOM fallback.
 
 ## Debug And Boundary Tests
@@ -207,7 +201,7 @@ Do not borrow these as future API precedent:
 - Archived effects.
 - Direct Lenis, GSAP, or ScrollTrigger ownership inside core.
 - Snapshot text drawing as the full html-to-canvas solution.
-- Demo-level CSS or DOM rewrites to hide runtime fidelity gaps.
+- Demo-level CSS or DOM rewrites to hide runtime behavior gaps.
 - Public exposure of Three.js `renderOrder`, `transparent`, `depthWrite`, or
   canvas placement flags.
 
@@ -215,15 +209,12 @@ Do not borrow these as future API precedent:
 
 Recommended follow-up sequence:
 
-1. Add a `DomSnapshotAdapter` interface in core.
-2. Route `element` and `text` snapshot renderables through the adapter.
-3. Keep the existing text canvas implementation as a default fallback adapter
-   for text-only snapshots.
-4. Add a `foreignObject` snapshot adapter behind the same interface.
-5. Add tests for adapter injection, dirty invalidation, fallback visibility, and
-   failed capture behavior.
-6. Document optional third-party adapter packages without hard-binding them to
-   the core runtime.
+1. Keep DOM reads limited to layout, content, source, lifecycle, scroll, pointer,
+   visibility, and placement-critical style data.
+2. Route visual styling through explicit effects/materials.
+3. Keep text canvas behavior focused on content raster sizing, not CSS cloning.
+4. Document optional third-party snapshot adapters only as future extension
+   points, not as core runtime assumptions.
 
 The high-level rule: demo pages declare DOM targets; package runtime owns the
-pipeline; adapters own capture fidelity.
+pipeline; effects/materials own final visuals.

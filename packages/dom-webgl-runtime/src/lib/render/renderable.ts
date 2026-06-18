@@ -1,5 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
-import type { ElementMeasurement } from "../renderer/layoutPass";
+import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLRenderRole } from "../types";
@@ -23,7 +23,7 @@ export type Renderable = {
   readonly sceneObjectController?: WebGLSceneObjectController;
   readonly hasSceneObject: boolean;
   update(input?: WebGLFrameInput): void | Promise<void>;
-  updateLayout?(measurement: ElementMeasurement): void;
+  updateLayout?(measurement: ElementLayoutSnapshot): void;
   invalidateContent?(): void;
   setVisible(visible: boolean): void;
   dispose(): void;
@@ -46,7 +46,7 @@ type RenderableHooks = {
   updateLayout?(
     context: RenderableContext,
     lifecycle: RenderableLifecycleController,
-    measurement: ElementMeasurement,
+    measurement: ElementLayoutSnapshot,
   ): void;
   invalidateContent?(
     context: RenderableContext,

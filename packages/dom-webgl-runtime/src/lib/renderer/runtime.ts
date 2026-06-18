@@ -17,9 +17,10 @@ import {
   createTargetRegistry,
   type TargetRegistry,
 } from "../dom/registry";
+import { createDOMInvalidationController } from "../dom/domInvalidation";
+import type { DOMInvalidationController } from "../dom/domInvalidation";
 import {
   createFallbackVisibilityController,
-  type FallbackHideMode,
   type FallbackVisibilityController,
 } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
@@ -50,8 +51,7 @@ import { compileRenderPolicy } from "../render/renderPolicy";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
-import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
-import { createLayoutPass, type ElementMeasurement } from "./layoutPass";
+import { createLayoutPass, type ElementLayoutSnapshot } from "./layoutPass";
 import {
   createThreeRendererHost,
   type ThreeRendererHost,
@@ -75,6 +75,7 @@ type RuntimeInternalOptions = WebGLRuntimeOptions & {
   scrollState?: RuntimeScrollController;
   pointerController?: PointerController;
   clock?: FrameClock;
+  invalidationController?: DOMInvalidationController;
 };
 
 type RuntimeScrollController = ScrollStateController &
@@ -130,7 +131,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   );
   const layoutPass = createLayoutPass({
     measureElement: internalOptions.measureElement ?? measureElement,
+    getViewportSize: () => rendererHost.getViewportSize(),
+    getDevicePixelRatio: () => window.devicePixelRatio || 1,
   });
+  const invalidationController =
+    internalOptions.invalidationController ?? createDOMInvalidationController();
   const renderables = new Set<DisposableRenderable>(
     internalOptions.renderables ?? [],
   );
@@ -144,7 +149,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     resourceManager,
     sceneAdapter: rendererHost.sceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
-    getViewportSize: readViewportSize,
+    getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
   };
@@ -194,6 +199,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const descriptor = registry.register(element, declaration, nextScanOrder);
       nextScanOrder += 1;
       registerGateTarget(scrollState, descriptor);
+      invalidationController.observeTarget({
+        key: descriptor.key,
+        element: descriptor.element,
+      });
       emitDebugState();
 
       return;
@@ -203,6 +212,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const descriptor = registry.get(targetKey);
 
       registry.unregister(targetKey);
+      invalidationController.unobserveTarget(targetKey);
       unregisterGateTarget(scrollState, descriptor);
       restoreFallbackVisibility(fallbackControllersByTargetKey, targetKey);
       fallbackControllersByTargetKey.delete(targetKey);
@@ -257,6 +267,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           "visibilitychange",
           handleVisibilityChange,
         );
+        invalidationController.dispose();
         releaseActiveGate(scrollState);
         scrollState.dispose?.();
         pointerController.dispose();
@@ -314,7 +325,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.update();
 
-    let layoutMeasurements: Map<string, ElementMeasurement>;
+    rendererHost.resizeIfNeeded();
+    const dirtyKeys = invalidationController.consumeDirtyKeys();
+
+    let layoutMeasurements: Map<string, ElementLayoutSnapshot>;
 
     try {
       layoutMeasurements = layoutPass.measure(
@@ -383,11 +397,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           createFallbackVisibilityController(
             descriptor.element,
             descriptor.declaration.lifecycle ?? {},
-            { defaultHideMode: readDefaultFallbackHideMode(pipeline.source) },
+            { defaultHideWhenReady: true, defaultHideMode: "self" },
           ),
         );
         renderables.add(renderable);
         internalOptions.onRenderableCreated?.(renderable);
+      }
+
+      if (dirtyKeys.has(descriptor.key)) {
+        renderable.invalidateContent?.();
       }
 
       let result: void | Promise<void>;
@@ -513,7 +531,6 @@ function createPipelineRenderable(
 ): {
   renderable: Renderable;
   debugRecord: TargetDebugRecord;
-  source: WebGLSourceDescriptor;
 } {
   const source = inferSourceDescriptor(descriptor);
   const role = inferRenderRole(source, descriptor.declaration);
@@ -530,7 +547,6 @@ function createPipelineRenderable(
   return {
     renderable: attachDebugBookkeeping(renderable, debugRecord),
     debugRecord,
-    source,
   };
 }
 
@@ -703,16 +719,6 @@ function readRenderableLifecycleState(renderable: Renderable): WebGLLifecycleSta
     case "idle":
       return "mounted";
   }
-}
-
-function readDefaultFallbackHideMode(
-  source: WebGLSourceDescriptor,
-): FallbackHideMode {
-  if (source.kind === "snapshot" && source.mode === "element") {
-    return "self";
-  }
-
-  return "subtree";
 }
 
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {
