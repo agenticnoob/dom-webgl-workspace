@@ -7,7 +7,7 @@ Date: 2026-06-16
 The product goal below includes future effect-oriented behavior. Phase 1 is
 complete through Task 37. Phase 2 scene-gated scroll is complete through Task
 56, including public gate declarations, scroll lock, `sceneProgress`, explicit
-reverse gate behavior, demo gate declaration, debug state display,
+reverse gate behavior, debug state display,
 SSR/import-boundary regressions, full verification, and final documentation
 alignment. Phase 3 visible renderables are complete through Task 72: DOM-authored
 element snapshots, text snapshots, images, videos, and GLB models now become
@@ -47,7 +47,21 @@ DOM element
   -> single renderer
 ```
 
-The authoring model is DOM. WebGL is the compiled visual runtime.
+The authoring model is DOM. WebGL is the compiled visual runtime. Only declared
+targets enter WebGL; ordinary undeclared DOM remains visible, native, and
+interactive.
+
+Declared targets default to WebGL visual replacement: once the WebGL scene
+object is visually ready, the target's own fallback paint is hidden with
+`hideMode: "self"`. Authors opt out with `hideWhenReady: false` or explicitly
+request subtree replacement with `hideMode: "subtree"`.
+
+The runtime inserts the fixed WebGL canvas before author DOM in its container.
+That canvas-first structure lets undeclared DOM and `hideWhenReady: false`
+targets remain visually native without a global wrapper layer, while the canvas
+stays pointer-transparent. The canvas is explicitly stacked below direct author
+DOM children (`z-index: 0` canvas, `z-index: 1` DOM children), because DOM order
+alone does not put a fixed-position canvas below normal-flow DOM.
 
 Page authors should think about:
 
@@ -101,8 +115,7 @@ React usage:
     source: { kind: "model", format: "glb", src: "/models/hero.glb" },
     renderRole: "model",
     scroll: { type: "gate", start: "top top", duration: 1 },
-    pointer: { move: true, click: true, drag: true },
-    lifecycle: { hideWhenReady: true }
+    pointer: { move: true, click: true, drag: true }
   }}
 />
 ```
@@ -288,7 +301,9 @@ Delivered Phase 3 behavior:
   text canvas.
 - Image targets create visible runtime-owned image scene planes.
 - Video targets create visible runtime-owned video scene planes.
-- GLB model targets create visible runtime-owned model scene objects.
+- GLB model targets create visible runtime-owned model scene objects. Model
+  layout reads the loaded `Object3D` bounds once and contains those bounds inside
+  the DOM anchor rect with a uniform XYZ scale.
 - DOM rects are projected into scene coordinates internally.
 - Ordering comes from `renderRole` through internal render policy, not public
   Three.js flags.
@@ -296,6 +311,13 @@ Delivered Phase 3 behavior:
   loop.
 - The runtime owns a renderer-driven loop through the renderer host and renders
   visible scene changes through the single scene adapter.
+- The fixed viewport canvas and orthographic camera use the canvas's actual
+  rendered CSS box as their shared CSS-pixel coordinate space, so scrollbar
+  gutters and fixed-stage sizing do not drift away from
+  `getBoundingClientRect()` anchors.
+- The default demo keeps ordinary page scroll and does not enable a scene gate;
+  gate behavior is covered by dedicated runtime, React adapter, and public type
+  tests.
 - Layout reads are batched before renderables receive layout updates.
 - Async resource completion requests a render after the visual scene object is
   ready.
@@ -328,9 +350,9 @@ Implemented first-version fidelity rules:
 
 - One runtime layout pass should read rect, viewport size, capped DPR, and
   geometry signatures for active targets.
-- Computed style snapshots should be cached and refreshed only on explicit dirty
-  boundaries such as target resize, target class/style mutation, content
-  invalidation, and viewport/DPR changes.
+- Computed style snapshots should be captured from the DOM at initial
+  renderable creation. Later DOM CSS changes are intentionally not tracked in
+  this phase; layout, size, DPR, content, and resource boundaries remain active.
 - Position and size projection should preserve CSS-pixel fractional values until
   the final scene object update.
 - Renderer size, DPR, and orthographic camera projection should update on
@@ -338,11 +360,12 @@ Implemented first-version fidelity rules:
   but should not reconfigure every frame if nothing changed.
 - Element snapshots should render supported CSS box paint through a canvas-backed
   texture instead of only a solid color plane.
-- Text snapshots should consume the shared style snapshot for font, color, line
-  height, padding, alignment, and DPR-aware canvas sizing.
-- Image and video renderables should respect common `object-fit` and
-  `object-position` behavior.
-- Snapshot rebuilds should happen after content, style, size, capped DPR, or
+- Text snapshots should consume the initial style snapshot for CSS box paint,
+  font, color, line height, padding, alignment, and DPR-aware canvas sizing.
+- Image and video renderables should keep an initial border-box CSS backing
+  plane, place the media texture plane in the CSS content box, and respect
+  common `object-fit` / `object-position` behavior within that content box.
+- Snapshot rebuilds should happen after content, size, capped DPR, or
   explicit invalidation changes, not every frame, and pure position changes
   should not trigger texture rebuilds.
 - Unsupported CSS features should be documented or reported through debug
@@ -716,10 +739,15 @@ Delivered fallback visibility behavior:
 
 - Loading renderables keep the DOM fallback visible.
 - Failed renderables keep the DOM fallback visible.
-- `hideWhenReady: true` hides fallback only after visual scene object readiness.
-- `hideMode: "subtree"` hides the target and descendants after readiness.
+- Declared WebGL targets default to `hideWhenReady: true` and
+  `hideMode: "self"`.
+- `hideWhenReady: false` keeps the DOM fallback visible.
+- Fallback hiding only happens after visual scene object readiness.
+- `hideMode: "subtree"` explicitly hides the target and descendants after
+  readiness.
 - `hideMode: "self"` hides only the target element's own fallback paint and
-  preserves child DOM visibility.
+  preserves ordinary child DOM visibility without overriding nested WebGL
+  targets that already own fallback visibility.
 - Target unregister and runtime disposal restore fallback visibility.
 
 ## DOM To WebGL Performance Contract
@@ -847,6 +875,7 @@ type WebGLLifecycleDeclaration = {
   activation?: "viewport" | "manual";
   unload?: "never" | "offscreen" | "dispose";
   hideWhenReady?: boolean;
+  hideMode?: "subtree" | "self";
 };
 ```
 
@@ -857,7 +886,8 @@ const defaultLifecycle = {
   preload: "viewport",
   activation: "viewport",
   unload: "offscreen",
-  hideWhenReady: false
+  hideWhenReady: true,
+  hideMode: "self"
 } satisfies WebGLLifecycleDeclaration;
 ```
 
@@ -940,13 +970,18 @@ GLB loading:
 - If a custom app resolver has already loaded or cached the GLB, reuse that result instead of fetching the URL again.
 - Parse with a single loader path.
 - Cache parsed source results when safe, but clone scene instances per renderable if mutation would otherwise leak between targets.
+- Use model bounds to fit each scene instance into its DOM anchor with uniform
+  scaling; do not map model root scale directly to DOM width/height/depth.
 - Dispose geometries, materials, textures, skeleton-related resources, and scene references on unload.
 - Report parse, fetch, and asset resolution failures separately when possible.
 
 Snapshot loading:
 
 - Snapshot creation is a resource build step, not a frame update step.
-- Snapshot invalidation should be explicit or driven by observed content/size/style changes.
+- Snapshot invalidation should be explicit or driven by observed content, size,
+  DPR, or resource changes. Computed CSS is captured initially; later
+  `style`/`class` mutation tracking is intentionally out of scope for this
+  phase.
 - Snapshot canvas and texture must be disposed on rebuild and unload.
 
 ## Hit Testing Scope

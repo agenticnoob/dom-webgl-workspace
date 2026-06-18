@@ -2,6 +2,7 @@ import {
   readDOMStyleSnapshot,
   type DOMStyleSnapshot,
 } from "../../dom/styleSnapshot";
+import { drawCSSBoxToCanvas } from "./cssBoxCanvas";
 
 export type TextCanvasMeasurement = {
   width: number;
@@ -26,6 +27,7 @@ export type TextCanvasRenderState = {
   paddingRight: number;
   paddingBottom: number;
   paddingLeft: number;
+  style: DOMStyleSnapshot;
 };
 
 type TextBlockAlignment = "start" | "center" | "end";
@@ -65,7 +67,27 @@ export function readTextCanvasRenderState(
     paddingRight: style.text.paddingRight,
     paddingBottom: style.text.paddingBottom,
     paddingLeft: style.text.paddingLeft,
+    style,
   };
+}
+
+export function drawTextSnapshotToCanvas(
+  canvas: HTMLCanvasElement,
+  context: CanvasRenderingContext2D,
+  textContent: string,
+  state: TextCanvasRenderState,
+): void {
+  const dpr = Math.min(Math.max(1, state.devicePixelRatio), 1.5);
+
+  drawCSSBoxToCanvas(canvas, context, {
+    width: state.width,
+    height: state.height,
+    devicePixelRatio: state.devicePixelRatio,
+    style: state.style,
+  });
+  context.setTransform?.(1, 0, 0, 1, 0, 0);
+  context.scale?.(dpr, dpr);
+  drawTextToCanvas(context, textContent, state);
 }
 
 export function createTextCanvasRenderSignature(
@@ -80,7 +102,6 @@ export function drawTextToCanvas(
   textContent: string,
   state: TextCanvasRenderState,
 ): void {
-  context.clearRect(0, 0, state.width, state.height);
   context.fillStyle = state.color;
   context.font = state.font;
   context.textAlign = state.textAlign;

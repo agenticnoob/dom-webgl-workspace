@@ -39,6 +39,11 @@ describe("text canvas layout", () => {
       paddingLeft: 18,
       textAlign: "center",
       devicePixelRatio: 2,
+      style: {
+        box: {
+          backgroundColor: "rgba(0, 0, 0, 0)",
+        },
+      },
     });
     expect(state.font).toContain("36px");
   });
@@ -59,6 +64,7 @@ describe("text canvas layout", () => {
       paddingRight: 30,
       paddingBottom: 20,
       paddingLeft: 20,
+      style: createTextStyleSnapshot(),
     });
 
     expect(context.font).toBe("700 36px Arial");
@@ -83,6 +89,7 @@ describe("text canvas layout", () => {
       paddingRight: 10,
       paddingBottom: 10,
       paddingLeft: 10,
+      style: createTextStyleSnapshot(),
     });
 
     expect(context.fillText).toHaveBeenCalledWith("Alpha", 10, 10);
@@ -121,4 +128,8 @@ function createCanvasContextStub(
     textAlign: CanvasTextAlign;
     textBaseline: CanvasTextBaseline;
   };
+}
+
+function createTextStyleSnapshot() {
+  return readDOMStyleSnapshot(document.createElement("p"));
 }

@@ -1,3 +1,5 @@
+import { readFallbackStyleSnapshot } from "./fallbackVisibility";
+
 export type DOMBoxStyleSnapshot = {
   opacity: number;
   visibility: string;
@@ -15,6 +17,10 @@ export type DOMBoxStyleSnapshot = {
   borderTopRightRadius: number;
   borderBottomRightRadius: number;
   borderBottomLeftRadius: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
   boxShadow: string;
   overflow: string;
   transform: string;
@@ -48,11 +54,16 @@ export type DOMStyleSnapshot = {
 export function readDOMStyleSnapshot(element: HTMLElement): DOMStyleSnapshot {
   const computedStyle =
     element.ownerDocument.defaultView?.getComputedStyle(element);
+  const fallbackStyle = readFallbackStyleSnapshot(element);
   const fontSize = readCSSPixelValue(computedStyle?.fontSize) || 16;
   const borderRadii = readBoxRadii(computedStyle);
+  const paddingTop = readCSSPixelValue(computedStyle?.paddingTop);
+  const paddingRight = readCSSPixelValue(computedStyle?.paddingRight);
+  const paddingBottom = readCSSPixelValue(computedStyle?.paddingBottom);
+  const paddingLeft = readCSSPixelValue(computedStyle?.paddingLeft);
   const box: DOMBoxStyleSnapshot = {
     opacity: readOpacity(computedStyle?.opacity),
-    visibility: computedStyle?.visibility || "visible",
+    visibility: fallbackStyle?.visibility || computedStyle?.visibility || "visible",
     display: computedStyle?.display || "block",
     backgroundColor: computedStyle?.backgroundColor || "rgba(0, 0, 0, 0)",
     borderTopWidth: readCSSPixelValue(computedStyle?.borderTopWidth),
@@ -67,6 +78,10 @@ export function readDOMStyleSnapshot(element: HTMLElement): DOMStyleSnapshot {
     borderTopRightRadius: borderRadii.topRight,
     borderBottomRightRadius: borderRadii.bottomRight,
     borderBottomLeftRadius: borderRadii.bottomLeft,
+    paddingTop,
+    paddingRight,
+    paddingBottom,
+    paddingLeft,
     boxShadow: computedStyle?.boxShadow || "none",
     overflow: computedStyle?.overflow || "visible",
     transform: computedStyle?.transform || "none",
@@ -79,10 +94,10 @@ export function readDOMStyleSnapshot(element: HTMLElement): DOMStyleSnapshot {
       readCSSPixelValue(computedStyle?.lineHeight) || Math.ceil(fontSize * 1.2),
     blockAlignment: readBlockAlignment(computedStyle),
     textAlign: readCanvasTextAlign(computedStyle?.textAlign),
-    paddingTop: readCSSPixelValue(computedStyle?.paddingTop),
-    paddingRight: readCSSPixelValue(computedStyle?.paddingRight),
-    paddingBottom: readCSSPixelValue(computedStyle?.paddingBottom),
-    paddingLeft: readCSSPixelValue(computedStyle?.paddingLeft),
+    paddingTop,
+    paddingRight,
+    paddingBottom,
+    paddingLeft,
   };
   const media: DOMMediaStyleSnapshot = {
     objectFit: readObjectFit(computedStyle?.objectFit),

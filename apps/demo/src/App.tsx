@@ -12,7 +12,11 @@ export default function App() {
   return (
     <main className="demo-shell">
       <WebGLRuntime className="demo-runtime" onDebugStateChange={setDebugState}>
-        <section className="demo-scene" aria-label="DOM WebGL demo scene">
+        <WebGLTarget as="section" className="demo-scene" aria-label="DOM WebGL demo scene"
+          webgl={{
+            key: "demo.section",
+            source: { kind: "snapshot", mode: "element" },
+          }}>
           <header className="demo-header">
             <p className="demo-kicker">Phase 3 Demo</p>
             <h1>One runtime, five source categories, no internal imports.</h1>
@@ -28,13 +32,7 @@ export default function App() {
               webgl={{
                 key: "demo.surface",
                 source: { kind: "snapshot", mode: "element" },
-                scroll: {
-                  type: "gate",
-                  start: "top top",
-                  duration: 1,
-                  release: "both-directions-complete",
-                },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                // lifecycle: { hideWhenReady: false },
               }}
             >
               <p className="demo-label">Element snapshot</p>
@@ -48,6 +46,7 @@ export default function App() {
               webgl={{
                 key: "demo.text",
                 source: { kind: "snapshot", mode: "text" },
+                // lifecycle: { hideWhenReady: false },
               }}
             >
               Text snapshot target
@@ -61,6 +60,7 @@ export default function App() {
               webgl={{
                 key: "demo.image",
                 source: { kind: "image", src: "/demo/image.png" },
+                // lifecycle: { hideWhenReady: false },
               }}
             />
 
@@ -75,6 +75,7 @@ export default function App() {
               webgl={{
                 key: "demo.video",
                 source: { kind: "video", src: "/demo/video.mp4" },
+                // lifecycle: { hideWhenReady: false },
               }}
             />
 
@@ -83,6 +84,7 @@ export default function App() {
               webgl={{
                 key: "demo.model",
                 source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+                lifecycle: { hideWhenReady: true, hideMode: "subtree" },
               }}
             >
               <p className="demo-label">GLB model</p>
@@ -97,7 +99,6 @@ export default function App() {
               webgl={{
                 key: "demo.fidelity.surface",
                 source: { kind: "snapshot", mode: "element" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
               }}
             >
               <p className="demo-label">Fidelity surface</p>
@@ -130,7 +131,7 @@ export default function App() {
           </section>
 
           <DebugPanel state={debugState} />
-        </section>
+        </WebGLTarget>
       </WebGLRuntime>
     </main>
   );

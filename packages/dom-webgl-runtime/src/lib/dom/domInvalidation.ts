@@ -4,12 +4,6 @@ export type DOMResizeInvalidationObserver = {
   disconnect(): void;
 };
 
-export type DOMMutationInvalidationObserver = {
-  observe(target: Element, options?: MutationObserverInit): void;
-  unobserve?(target: Element): void;
-  disconnect(): void;
-};
-
 export type DOMInvalidationController = {
   observeTarget(target: { key: string; element: HTMLElement }): void;
   unobserveTarget(key: string): void;
@@ -23,9 +17,6 @@ export type DOMInvalidationControllerOptions = {
   createResizeObserver?(
     callback: ResizeObserverCallback,
   ): DOMResizeInvalidationObserver;
-  createMutationObserver?(
-    callback: MutationCallback,
-  ): DOMMutationInvalidationObserver;
   windowTarget?: {
     addEventListener?(
       type: string,
@@ -55,7 +46,6 @@ export function createDOMInvalidationController(
   const keysByElement = new Map<Element, string>();
   const dirtyKeys = new Set<string>();
   const resizeObserver = createResizeObserver(options);
-  const mutationObserver = createMutationObserver(options);
   const windowTarget = options.windowTarget ?? globalThis.window;
   const handleViewportChanged = () => {
     for (const key of targets.keys()) {
@@ -79,10 +69,6 @@ export function createDOMInvalidationController(
       targets.set(target.key, target.element);
       keysByElement.set(target.element, target.key);
       resizeObserver?.observe(target.element);
-      mutationObserver?.observe(target.element, {
-        attributes: true,
-        attributeFilter: ["style", "class"],
-      });
     },
     unobserveTarget(key): void {
       const element = targets.get(key);
@@ -92,7 +78,6 @@ export function createDOMInvalidationController(
       }
 
       resizeObserver?.unobserve?.(element);
-      mutationObserver?.unobserve?.(element);
       targets.delete(key);
       keysByElement.delete(element);
       dirtyKeys.delete(key);
@@ -112,7 +97,6 @@ export function createDOMInvalidationController(
       keysByElement.clear();
       dirtyKeys.clear();
       resizeObserver?.disconnect();
-      mutationObserver?.disconnect();
       windowTarget?.removeEventListener?.("resize", handleViewportChanged);
       windowTarget?.removeEventListener?.(
         "orientationchange",
@@ -153,25 +137,6 @@ export function createDOMInvalidationController(
     }
   }
 
-  function markMutationDirty(records: MutationRecord[]): void {
-    if (records.length === 0) {
-      markAllDirty();
-      return;
-    }
-
-    for (const record of records) {
-      if (!(record.target instanceof Element)) {
-        continue;
-      }
-
-      const key = keysByElement.get(record.target);
-
-      if (key) {
-        markDirty(key);
-      }
-    }
-  }
-
   function markAllDirty(): void {
     for (const key of targets.keys()) {
       markDirty(key);
@@ -192,17 +157,4 @@ export function createDOMInvalidationController(
     return undefined;
   }
 
-  function createMutationObserver(
-    observerOptions: DOMInvalidationControllerOptions,
-  ): DOMMutationInvalidationObserver | undefined {
-    if (observerOptions.createMutationObserver) {
-      return observerOptions.createMutationObserver(markMutationDirty);
-    }
-
-    if (typeof globalThis.MutationObserver === "function") {
-      return new globalThis.MutationObserver(markMutationDirty);
-    }
-
-    return undefined;
-  }
 }

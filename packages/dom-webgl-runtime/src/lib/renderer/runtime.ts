@@ -21,7 +21,6 @@ import { createDOMInvalidationController } from "../dom/domInvalidation";
 import type { DOMInvalidationController } from "../dom/domInvalidation";
 import {
   createFallbackVisibilityController,
-  type FallbackHideMode,
   type FallbackVisibilityController,
 } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
@@ -52,7 +51,6 @@ import { compileRenderPolicy } from "../render/renderPolicy";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
-import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import { createLayoutPass, type ElementLayoutSnapshot } from "./layoutPass";
 import {
   createThreeRendererHost,
@@ -399,7 +397,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           createFallbackVisibilityController(
             descriptor.element,
             descriptor.declaration.lifecycle ?? {},
-            { defaultHideMode: readDefaultFallbackHideMode(pipeline.source) },
+            { defaultHideWhenReady: true, defaultHideMode: "self" },
           ),
         );
         renderables.add(renderable);
@@ -533,7 +531,6 @@ function createPipelineRenderable(
 ): {
   renderable: Renderable;
   debugRecord: TargetDebugRecord;
-  source: WebGLSourceDescriptor;
 } {
   const source = inferSourceDescriptor(descriptor);
   const role = inferRenderRole(source, descriptor.declaration);
@@ -550,7 +547,6 @@ function createPipelineRenderable(
   return {
     renderable: attachDebugBookkeeping(renderable, debugRecord),
     debugRecord,
-    source,
   };
 }
 
@@ -723,16 +719,6 @@ function readRenderableLifecycleState(renderable: Renderable): WebGLLifecycleSta
     case "idle":
       return "mounted";
   }
-}
-
-function readDefaultFallbackHideMode(
-  source: WebGLSourceDescriptor,
-): FallbackHideMode {
-  if (source.kind === "snapshot" && source.mode === "element") {
-    return "self";
-  }
-
-  return "subtree";
 }
 
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {

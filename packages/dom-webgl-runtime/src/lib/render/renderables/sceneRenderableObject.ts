@@ -1,6 +1,7 @@
 import {
   projectDOMRectToSceneLayout,
   type DOMViewportSize,
+  type ProjectedDOMRect,
 } from "../../renderer/domProjection";
 import {
   createSceneObjectController,
@@ -12,6 +13,10 @@ import {
 import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Mesh } from "three/src/objects/Mesh.js";
+import { Group } from "three/src/objects/Group.js";
+import { Box3 } from "three/src/math/Box3.js";
+import { Vector3 } from "three/src/math/Vector3.js";
+import type { Object3D } from "three/src/core/Object3D.js";
 import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
@@ -28,7 +33,7 @@ import {
 } from "./objectFit";
 import {
   createTextCanvasRenderSignature,
-  drawTextToCanvas,
+  drawTextSnapshotToCanvas,
   readTextCanvasRenderState,
   type TextCanvasRenderState,
 } from "./textCanvasLayout";
@@ -67,6 +72,7 @@ export type SceneRenderableControllerOptions = {
   textureSource?: unknown;
   disposeObject3D?: boolean;
   disposeResources?(): void;
+  layoutObject3D?(object3D: unknown, layout: ProjectedDOMRect): void;
 };
 
 export type SceneRenderableController = {
@@ -98,6 +104,11 @@ export function createSceneRenderableController(
     },
     updateLayout(layout) {
       object.lastLayout = layout;
+      if (options.layoutObject3D) {
+        options.layoutObject3D(options.object3D, layout);
+        return;
+      }
+
       updateObject3DLayout(options.object3D, layout);
     },
     dispose() {
@@ -148,6 +159,7 @@ export function createElementPlaneSceneRenderableController(
     transparent: true,
   });
   const mesh = new Mesh(geometry, material);
+  const initialStyle = readDOMStyleSnapshot(options.element);
   let lastLayout: ElementLayoutSnapshot | undefined;
   let lastRenderSignature = "";
   let lastRasterGeometrySignature = "";
@@ -178,12 +190,11 @@ export function createElementPlaneSceneRenderableController(
       return;
     }
 
-    const style = readDOMStyleSnapshot(options.element);
     const state = {
       width: layout.width,
       height: layout.height,
       devicePixelRatio: layout.devicePixelRatio,
-      style,
+      style: initialStyle,
     };
     const signature = createCSSBoxCanvasSignature(state);
 
@@ -194,7 +205,11 @@ export function createElementPlaneSceneRenderableController(
     lastRenderSignature = signature;
     lastRasterGeometrySignature = rasterGeometrySignature;
     updateCSSBoxCanvas(canvas, texture, state);
-    applyBoxStyleToMaterialAndObject(material, mesh, style);
+    applyBoxStyleToMaterialAndObject(material, mesh, initialStyle);
+    setObject3DVisible(
+      mesh,
+      isBoxStyleRenderable(initialStyle) && hasVisibleOwnBoxPaint(initialStyle.box),
+    );
   };
 
   controller.object.updateTextLayout = (measurement) => {
@@ -209,6 +224,21 @@ export function createElementPlaneSceneRenderableController(
   return controller;
 }
 
+export function createModelSceneRenderableController(
+  options: Omit<SceneRenderableControllerOptions, "layoutObject3D"> & {
+    object3D: unknown;
+  },
+): SceneRenderableController {
+  const fit = readModelObjectFit(options.object3D);
+
+  return createSceneRenderableController({
+    ...options,
+    layoutObject3D(object3D, layout) {
+      updateModelObject3DLayout(object3D, layout, fit);
+    },
+  });
+}
+
 export function createTextPlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
 ): SceneRenderableController {
@@ -221,6 +251,7 @@ export function createTextPlaneSceneRenderableController(
   });
   const mesh = new Mesh(geometry, material);
   let textContent = options.textContent ?? "";
+  const initialStyle = readDOMStyleSnapshot(options.element);
   let lastMeasurement: ElementLayoutSnapshot | undefined;
   let lastRenderSignature = "";
   let lastRasterGeometrySignature = "";
@@ -249,7 +280,6 @@ export function createTextPlaneSceneRenderableController(
       return;
     }
 
-    const style = readDOMStyleSnapshot(options.element);
     const state = readTextCanvasRenderState(
       options.element,
       textContent,
@@ -257,7 +287,7 @@ export function createTextPlaneSceneRenderableController(
         width: measurement.width,
         height: measurement.height,
         devicePixelRatio: measurement.devicePixelRatio ?? 1,
-        style,
+        style: initialStyle,
       },
     );
     const signature = createTextCanvasRenderSignature(textContent, state);
@@ -269,7 +299,7 @@ export function createTextPlaneSceneRenderableController(
     lastRenderSignature = signature;
     lastRasterGeometrySignature = rasterGeometrySignature;
     updateTextCanvas(canvas, texture, textContent, state);
-    applyBoxStyleToMaterialAndObject(material, mesh, style);
+    applyBoxStyleToMaterialAndObject(material, mesh, initialStyle);
   };
 
   controller.object.updateTextContent = (nextTextContent) => {
@@ -283,7 +313,7 @@ export function createTextPlaneSceneRenderableController(
         width: lastMeasurement?.width ?? 1,
         height: lastMeasurement?.height ?? 1,
         devicePixelRatio: lastMeasurement?.devicePixelRatio ?? 1,
-        style: readDOMStyleSnapshot(options.element),
+        style: initialStyle,
       }),
     );
   };
@@ -309,28 +339,83 @@ export function createTexturePlaneSceneRenderableController(
     textureSource: HTMLImageElement | HTMLVideoElement;
   },
 ): SceneRenderableController {
+  const boxCanvas = options.element.ownerDocument.createElement("canvas");
+  const boxTexture = new CanvasTexture(boxCanvas);
+  const boxGeometry = new PlaneGeometry(1, 1);
+  const boxMaterial = new MeshBasicMaterial({
+    map: boxTexture,
+    transparent: true,
+  });
+  const boxMesh = new Mesh(boxGeometry, boxMaterial);
   const texture =
     options.textureKind === "video"
       ? new VideoTexture(options.textureSource as HTMLVideoElement)
       : new Texture(options.textureSource);
-  const geometry = new PlaneGeometry(1, 1);
+  const mediaGeometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
     map: texture,
     transparent: true,
   });
-  const mesh = new Mesh(geometry, material);
+  const mediaMesh = new Mesh(mediaGeometry, material);
+  const group = new Group();
+  const initialStyle = readDOMStyleSnapshot(options.element);
+  let lastLayout: ElementLayoutSnapshot | undefined;
+  let lastBoxRenderSignature = "";
+  let lastBoxGeometrySignature = "";
   let lastTextureTransformSignature = "";
 
+  group.add(boxMesh);
+  group.add(mediaMesh);
   texture.needsUpdate = true;
   const controller = createSceneRenderableController({
     ...options,
-    object3D: mesh,
+    object3D: group,
     disposeResources() {
+      boxTexture.dispose();
+      boxGeometry.dispose();
+      boxMaterial.dispose();
       texture.dispose();
-      geometry.dispose();
+      mediaGeometry.dispose();
       material.dispose();
     },
+    layoutObject3D(object3D, layout) {
+      updateMediaGroupLayout(object3D, layout);
+    },
   });
+
+  const renderCSSBox = (layout = lastLayout, force = false) => {
+    if (!layout) {
+      return;
+    }
+
+    const boxGeometrySignature = createRasterGeometrySignature(layout);
+
+    if (
+      !force &&
+      lastBoxRenderSignature &&
+      boxGeometrySignature === lastBoxGeometrySignature
+    ) {
+      return;
+    }
+
+    const state = {
+      width: layout.width,
+      height: layout.height,
+      devicePixelRatio: layout.devicePixelRatio,
+      style: initialStyle,
+    };
+    const signature = createCSSBoxCanvasSignature(state);
+
+    if (!force && signature === lastBoxRenderSignature) {
+      return;
+    }
+
+    lastBoxRenderSignature = signature;
+    lastBoxGeometrySignature = boxGeometrySignature;
+    updateCSSBoxCanvas(boxCanvas, boxTexture, state);
+    applyBoxStyleToMaterialAndObject(boxMaterial, group, initialStyle);
+    setObject3DVisible(group, isBoxStyleRenderable(initialStyle));
+  };
 
   const updateTextureTransform = (
     measurement: ElementMeasurement,
@@ -348,35 +433,35 @@ export function createTexturePlaneSceneRenderableController(
       return;
     }
 
-    const style = readDOMStyleSnapshot(options.element);
-    const box = { width: measurement.width, height: measurement.height };
+    const mediaBox = computeMediaContentArea(measurement, initialStyle);
+    const box = { width: mediaBox.width, height: mediaBox.height };
     const transform = computeObjectFitTextureTransform({
-      fit: style.media.objectFit,
-      position: style.media.objectPosition,
+      fit: initialStyle.media.objectFit,
+      position: initialStyle.media.objectPosition,
       box,
       media: mediaSize,
     });
     const contentBox = computeObjectFitContentBox({
-      fit: style.media.objectFit,
-      position: style.media.objectPosition,
+      fit: initialStyle.media.objectFit,
+      position: initialStyle.media.objectPosition,
       box,
       media: mediaSize,
     });
 
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
-    applyObjectFitContentBox(
-      mesh,
-      measurement as ElementLayoutSnapshot,
-      contentBox,
-    );
-    applyBoxStyleToMaterialAndObject(material, mesh, style);
+    applyMediaContentBox(mediaMesh, mediaBox, contentBox);
+    applyBoxStyleToMaterialAndObject(material, mediaMesh, initialStyle);
   };
   controller.object.updateTextLayout = (measurement) => {
+    lastLayout = measurement as ElementLayoutSnapshot;
+    renderCSSBox(lastLayout);
     updateTextureTransform(measurement);
   };
   controller.object.invalidateContent = () => {
     lastTextureTransformSignature = "";
+    lastBoxRenderSignature = "";
+    renderCSSBox(lastLayout, true);
   };
 
   return controller;
@@ -415,6 +500,78 @@ function applyTextureTransform(
   setTextureVector(texture.repeat, transform.repeatX, transform.repeatY);
   setTextureVector(texture.offset, transform.offsetX, transform.offsetY);
   texture.needsUpdate = true;
+}
+
+function updateMediaGroupLayout(
+  object3D: unknown,
+  layout: ProjectedDOMRect,
+): void {
+  if (!object3D || typeof object3D !== "object") {
+    return;
+  }
+
+  setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
+  setVector3((object3D as { scale?: unknown }).scale, 1, 1, 1);
+
+  const children = (object3D as { children?: unknown }).children;
+  const boxMesh = Array.isArray(children) ? children[0] : undefined;
+
+  setVector3((boxMesh as { position?: unknown } | undefined)?.position, 0, 0, 0);
+  setVector3(
+    (boxMesh as { scale?: unknown } | undefined)?.scale,
+    layout.width,
+    layout.height,
+    1,
+  );
+}
+
+function computeMediaContentArea(
+  measurement: ElementMeasurement,
+  style: ReturnType<typeof readDOMStyleSnapshot>,
+): {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+} {
+  const leftInset = style.box.borderLeftWidth + style.box.paddingLeft;
+  const rightInset = style.box.borderRightWidth + style.box.paddingRight;
+  const topInset = style.box.borderTopWidth + style.box.paddingTop;
+  const bottomInset = style.box.borderBottomWidth + style.box.paddingBottom;
+  const width = Math.max(1, measurement.width - leftInset - rightInset);
+  const height = Math.max(1, measurement.height - topInset - bottomInset);
+
+  return {
+    width,
+    height,
+    x: -measurement.width / 2 + leftInset + width / 2,
+    y: measurement.height / 2 - topInset - height / 2,
+  };
+}
+
+function applyMediaContentBox(
+  object3D: unknown,
+  mediaBox: ReturnType<typeof computeMediaContentArea>,
+  contentBox: ReturnType<typeof computeObjectFitContentBox>,
+): void {
+  const x =
+    mediaBox.x -
+    mediaBox.width / 2 +
+    contentBox.offsetX +
+    contentBox.width / 2;
+  const y =
+    mediaBox.y +
+    mediaBox.height / 2 -
+    contentBox.offsetY -
+    contentBox.height / 2;
+
+  setVector3((object3D as { position?: unknown }).position, x, y, 1);
+  setVector3(
+    (object3D as { scale?: unknown }).scale,
+    contentBox.width,
+    contentBox.height,
+    1,
+  );
 }
 
 function applyObjectFitContentBox(
@@ -472,6 +629,85 @@ function updateObject3DLayout(
     layout.width,
     layout.height,
     1,
+  );
+}
+
+type ModelObjectFit = {
+  center: Vector3;
+  width: number;
+  height: number;
+  depth: number;
+};
+
+function readModelObjectFit(object3D: unknown): ModelObjectFit | undefined {
+  if (!isObject3D(object3D)) {
+    return undefined;
+  }
+
+  const bounds = new Box3().setFromObject(object3D);
+
+  if (
+    !Number.isFinite(bounds.min.x) ||
+    !Number.isFinite(bounds.min.y) ||
+    !Number.isFinite(bounds.min.z) ||
+    !Number.isFinite(bounds.max.x) ||
+    !Number.isFinite(bounds.max.y) ||
+    !Number.isFinite(bounds.max.z) ||
+    bounds.isEmpty()
+  ) {
+    return undefined;
+  }
+
+  const size = new Vector3();
+  const center = new Vector3();
+
+  bounds.getSize(size);
+  bounds.getCenter(center);
+
+  return {
+    center,
+    width: size.x,
+    height: size.y,
+    depth: size.z,
+  };
+}
+
+function updateModelObject3DLayout(
+  object3D: unknown,
+  layout: ProjectedDOMRect,
+  fit: ModelObjectFit | undefined,
+): void {
+  if (!fit || fit.width <= 0 || fit.height <= 0) {
+    updateObject3DLayout(object3D, layout);
+    return;
+  }
+
+  const scale = Math.min(layout.width / fit.width, layout.height / fit.height);
+
+  if (!Number.isFinite(scale) || scale <= 0) {
+    updateObject3DLayout(object3D, layout);
+    return;
+  }
+
+  setVector3(
+    (object3D as { position?: unknown }).position,
+    normalizeSignedZero(layout.x - fit.center.x * scale),
+    normalizeSignedZero(layout.y - fit.center.y * scale),
+    normalizeSignedZero(-fit.center.z * scale),
+  );
+  setVector3((object3D as { scale?: unknown }).scale, scale, scale, scale);
+}
+
+function normalizeSignedZero(value: number): number {
+  return Object.is(value, -0) ? 0 : value;
+}
+
+function isObject3D(object3D: unknown): object3D is Object3D {
+  return (
+    !!object3D &&
+    typeof object3D === "object" &&
+    "isObject3D" in object3D &&
+    (object3D as { isObject3D?: unknown }).isObject3D === true
   );
 }
 
@@ -535,7 +771,7 @@ function updateTextCanvas(
 
     context.setTransform?.(1, 0, 0, 1, 0, 0);
     context.scale?.(dpr, dpr);
-    drawTextToCanvas(context, textContent, state);
+    drawTextSnapshotToCanvas(canvas, context, textContent, state);
     texture.needsUpdate = true;
   } catch {
     texture.needsUpdate = true;
@@ -579,4 +815,61 @@ function applyBoxStyleToMaterialAndObject(
       style.box.visibility !== "hidden" &&
       style.box.opacity > 0,
   );
+}
+
+function isBoxStyleRenderable(style: {
+  box: { opacity: number; display: string; visibility: string };
+}): boolean {
+  return (
+    style.box.display !== "none" &&
+    style.box.visibility !== "hidden" &&
+    style.box.opacity > 0
+  );
+}
+
+function hasVisibleOwnBoxPaint(style: {
+  backgroundColor: string;
+  borderTopWidth: number;
+  borderRightWidth: number;
+  borderBottomWidth: number;
+  borderLeftWidth: number;
+  borderTopColor: string;
+  borderRightColor: string;
+  borderBottomColor: string;
+  borderLeftColor: string;
+  boxShadow: string;
+}): boolean {
+  return (
+    isVisibleCSSColor(style.backgroundColor) ||
+    (style.borderTopWidth > 0 && isVisibleCSSColor(style.borderTopColor)) ||
+    (style.borderRightWidth > 0 && isVisibleCSSColor(style.borderRightColor)) ||
+    (style.borderBottomWidth > 0 && isVisibleCSSColor(style.borderBottomColor)) ||
+    (style.borderLeftWidth > 0 && isVisibleCSSColor(style.borderLeftColor)) ||
+    hasVisibleBoxShadow(style.boxShadow)
+  );
+}
+
+function hasVisibleBoxShadow(value: string): boolean {
+  return value !== "" && value !== "none" && isVisibleCSSColor(value);
+}
+
+function isVisibleCSSColor(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+
+  if (
+    normalized === "" ||
+    normalized === "transparent" ||
+    normalized === "rgba(0, 0, 0, 0)" ||
+    normalized === "rgba(0,0,0,0)"
+  ) {
+    return false;
+  }
+
+  const alphaMatch = normalized.match(/rgba\([^)]*,\s*(\d*\.?\d+)\s*\)/);
+
+  if (alphaMatch) {
+    return Number.parseFloat(alphaMatch[1] ?? "1") > 0;
+  }
+
+  return true;
 }

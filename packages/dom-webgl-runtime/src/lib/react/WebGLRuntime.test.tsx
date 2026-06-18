@@ -147,6 +147,24 @@ describe("WebGLRuntime", () => {
     expect(providedRuntime).toBe(runtimeMocks.createWebGLRuntime.mock.results[0].value);
   });
 
+  test("renders children without adding a global DOM layer wrapper", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntime,
+          null,
+          createElement("button", { "data-visible-dom": true }, "native"),
+        ),
+      );
+    });
+
+    expect(host.querySelector("[data-webgl-dom-layer]")).toBeNull();
+    expect(host.querySelector("[data-visible-dom]")?.textContent).toBe("native");
+  });
+
   test("does not own a React requestAnimationFrame sync loop", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { createFallbackVisibilityController } from "./fallbackVisibility";
 import { readDOMStyleSnapshot } from "./styleSnapshot";
 
 describe("readDOMStyleSnapshot", () => {
@@ -40,6 +41,10 @@ describe("readDOMStyleSnapshot", () => {
       borderTopRightRadius: 12,
       borderBottomRightRadius: 10,
       borderBottomLeftRadius: 8,
+      paddingTop: 10,
+      paddingRight: 14,
+      paddingBottom: 10,
+      paddingLeft: 14,
       boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.2)",
     });
     expect(snapshot.text).toMatchObject({
@@ -56,5 +61,32 @@ describe("readDOMStyleSnapshot", () => {
       objectPosition: "25% 75%",
     });
     expect(snapshot.rasterSignature).toContain("rgb(240, 248, 255)");
+  });
+
+  test("reads author visibility after runtime fallback hiding", () => {
+    const element = document.createElement("section");
+    const fallback = createFallbackVisibilityController(element, {
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+
+    fallback.hide();
+
+    expect(element.style.visibility).toBe("hidden");
+    expect(readDOMStyleSnapshot(element).box.visibility).toBe("visible");
+  });
+
+  test("preserves author-hidden visibility during runtime fallback hiding", () => {
+    const element = document.createElement("section");
+    const fallback = createFallbackVisibilityController(element, {
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+
+    element.style.visibility = "collapse";
+    fallback.hide();
+
+    expect(element.style.visibility).toBe("hidden");
+    expect(readDOMStyleSnapshot(element).box.visibility).toBe("collapse");
   });
 });

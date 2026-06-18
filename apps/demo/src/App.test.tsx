@@ -38,7 +38,8 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
       | { hideWhenReady?: boolean; hideMode?: "subtree" | "self" }
       | undefined;
     const fallbackHidden =
-      lifecycle?.hideWhenReady === true && lifecycle.hideMode === "self";
+      lifecycle?.hideWhenReady !== false &&
+      (lifecycle?.hideMode ?? "self") === "self";
     const renderedChildren = fallbackHidden
       ? cloneChildrenWithVisibleFallback(children)
       : children;
@@ -89,6 +90,7 @@ describe("demo App", () => {
     expect(host.querySelector(".demo-scene")).not.toBeNull();
 
     expect(targetProps.map(({ webgl }) => (webgl as { key: string }).key)).toEqual([
+      "demo.section",
       "demo.surface",
       "demo.text",
       "demo.image",
@@ -105,6 +107,10 @@ describe("demo App", () => {
           .source,
       })),
     ).toEqual([
+      {
+        key: "demo.section",
+        source: { kind: "snapshot", mode: "element" },
+      },
       { key: "demo.surface", source: { kind: "snapshot", mode: "element" } },
       { key: "demo.text", source: { kind: "snapshot", mode: "text" } },
       { key: "demo.image", source: { kind: "image", src: "/demo/image.png" } },
@@ -128,7 +134,7 @@ describe("demo App", () => {
     ]);
     expect(
       targetProps.map(({ as }) => as),
-    ).toEqual(["div", "h2", "img", "video", "div", "div", "p", "img"]);
+    ).toEqual(["section", "div", "h2", "img", "video", "div", "div", "p", "img"]);
   });
 
   test("declares every visible source category through public WebGLTarget props", async () => {
@@ -153,6 +159,7 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.model")).toMatchObject({
       key: "demo.model",
       source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
     });
   });
 
@@ -162,7 +169,6 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.fidelity.surface")).toMatchObject({
       key: "demo.fidelity.surface",
       source: { kind: "snapshot", mode: "element" },
-      lifecycle: { hideWhenReady: true, hideMode: "self" },
     });
     expect(webglDeclarationFor("demo.fidelity.text")).toMatchObject({
       key: "demo.fidelity.text",
@@ -174,17 +180,29 @@ describe("demo App", () => {
     });
   });
 
-  test("declares child-preserving fallback hiding on a container target", async () => {
+  test("uses mapped-target default self fallback hiding on container targets", async () => {
     await renderApp();
 
-    expect(webglDeclarationFor("demo.surface")).toMatchObject({
-      lifecycle: { hideWhenReady: true, hideMode: "self" },
-    });
+    expect(webglDeclarationFor("demo.section")).not.toHaveProperty("lifecycle");
+    expect(webglDeclarationFor("demo.fidelity.surface")).not.toHaveProperty(
+      "lifecycle",
+    );
+  });
+
+  test("uses mapped-target default self fallback hiding on leaf demo targets", async () => {
+    const host = await renderApp();
+    const surface = host.querySelector<HTMLElement>(".demo-card-surface");
+    const child = surface?.querySelector<HTMLElement>("strong");
+
+    expect(webglDeclarationFor("demo.surface")).not.toHaveProperty("lifecycle");
+    expect(surface?.dataset.fallbackHidden).toBe("self");
+    expect(surface?.style.visibility).toBe("hidden");
+    expect(child?.style.visibility).toBe("visible");
   });
 
   test("keeps child DOM visible when the parent fallback paint is hidden", async () => {
     const host = await renderApp();
-    const surface = host.querySelector<HTMLElement>(".demo-card-surface");
+    const surface = host.querySelector<HTMLElement>(".demo-fidelity-card-surface");
     const child = surface?.querySelector<HTMLElement>("strong");
 
     expect(surface?.dataset.fallbackHidden).toBe("self");
@@ -192,20 +210,14 @@ describe("demo App", () => {
     expect(child?.style.visibility).toBe("visible");
   });
 
-  test("declares a scene gate target through the public WebGLTarget API", async () => {
+  test("does not enable scene gate locking in the default scroll demo", async () => {
     await renderApp();
 
     expect(
-      targetProps.some(({ webgl }) => {
+      targetProps.every(({ webgl }) => {
         const scroll = (webgl as { scroll?: Record<string, unknown> }).scroll;
 
-        return (
-          scroll?.type === "gate" &&
-          scroll.start === "top top" &&
-          typeof scroll.duration === "number" &&
-          scroll.duration > 0 &&
-          typeof scroll.release === "string"
-        );
+        return scroll?.type !== "gate";
       }),
     ).toBe(true);
   });

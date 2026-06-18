@@ -3,16 +3,13 @@ import { describe, expect, test, vi } from "vitest";
 import { createDOMInvalidationController } from "./domInvalidation";
 
 describe("createDOMInvalidationController", () => {
-  test("notifies dirty targets for size content style and viewport changes", () => {
+  test("notifies dirty targets for size and viewport changes", () => {
     const dirtyKeys: string[] = [];
     const target = document.createElement("section");
     const controller = createDOMInvalidationController({
       onDirtyTarget: (key) => dirtyKeys.push(key),
       createResizeObserver(callback) {
         return createObserverStub(() => callback([], {} as ResizeObserver));
-      },
-      createMutationObserver(callback) {
-        return createObserverStub(() => callback([], {} as MutationObserver));
       },
       windowTarget: window,
     });
@@ -28,9 +25,8 @@ describe("createDOMInvalidationController", () => {
     controller.dispose();
   });
 
-  test("observes only target attribute changes and cleans up listeners", () => {
+  test("observes target resize and cleans up listeners without tracking style mutations", () => {
     const resizeObserve = vi.fn();
-    const mutationObserve = vi.fn();
     const disconnect = vi.fn();
     const addEventListener = vi.fn();
     const removeEventListener = vi.fn();
@@ -39,13 +35,6 @@ describe("createDOMInvalidationController", () => {
       createResizeObserver() {
         return {
           observe: resizeObserve,
-          unobserve: vi.fn(),
-          disconnect,
-        };
-      },
-      createMutationObserver() {
-        return {
-          observe: mutationObserve,
           unobserve: vi.fn(),
           disconnect,
         };
@@ -60,10 +49,6 @@ describe("createDOMInvalidationController", () => {
     controller.dispose();
 
     expect(resizeObserve).toHaveBeenCalledWith(target);
-    expect(mutationObserve).toHaveBeenCalledWith(target, {
-      attributes: true,
-      attributeFilter: ["style", "class"],
-    });
     expect(addEventListener).toHaveBeenCalledWith("resize", expect.any(Function));
     expect(removeEventListener).toHaveBeenCalledWith(
       "resize",

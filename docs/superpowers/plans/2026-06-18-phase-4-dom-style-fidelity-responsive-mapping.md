@@ -4,7 +4,21 @@
 
 **Goal:** Make DOM-authored WebGL targets closely follow their DOM style, CSS-pixel position, resize behavior, and mobile layout without adding demo-specific runtime branches.
 
-**Architecture:** Keep DOM as the source of truth and keep `apps/demo` as a public API consumer. The runtime should produce one batched `ElementLayoutSnapshot` per active target for geometry and viewport state, while style-derived snapshot state is cached behind explicit dirty boundaries. Renderables consume layout snapshots every active frame for CSS-pixel scene alignment, but rebuild textures only when width, height, capped DPR, content, media source, or cached style signatures change.
+**Follow-up correction:** Nested/container demo usage exposed two display gaps
+after the first Phase 4 pass. Renderer projection now follows the fixed
+canvas's actual rendered CSS box instead of raw `window.innerWidth`, and parent
+`hideMode: "self"` fallback controllers no longer overwrite nested WebGL
+targets that already own fallback visibility. Transparent layout-only element
+snapshots also remain invisible instead of painting a visible plane. A later
+display correction captures initial CSS box style for text/image/video targets
+and removes `style` / `class` mutation tracking after initial load. Phase 4.1
+then makes mapped targets default to `hideWhenReady: true` with
+`hideMode: "self"`, keeping undeclared DOM native and interactive. The fixed
+canvas is stacked below direct author DOM children with explicit z-indexes, and
+image/video media texture planes are placed in the CSS content box while the CSS
+backing plane remains aligned to the border box.
+
+**Architecture:** Keep DOM as the source of truth and keep `apps/demo` as a public API consumer. The runtime should produce one batched `ElementLayoutSnapshot` per active target for geometry and viewport state, while style-derived snapshot state is captured once when a renderable/controller is created. Renderables consume layout snapshots every active frame for CSS-pixel scene alignment, but later DOM CSS changes are intentionally not tracked in this phase.
 
 **Tech Stack:** TypeScript, React, Three.js, Vitest, jsdom, Vite demo app.
 
@@ -23,7 +37,7 @@
 
 Use a staged native fidelity layer.
 
-1. **Recommended: native style/layout snapshot layer.** Read geometry every active layout pass, refresh supported computed CSS only on dirty boundaries, and render common box/text/media style through internal canvas/texture helpers. This fits the existing package boundary, is testable in Vitest, and keeps performance under runtime control.
+1. **Recommended: native style/layout snapshot layer.** Read geometry every active layout pass, capture supported computed CSS at initial renderable creation, and render common box/text/media style through internal canvas/texture helpers. This fits the existing package boundary, is testable in Vitest, and keeps performance under runtime control.
 2. **Alternative: direct DOM rasterizer dependency.** A library such as html-to-canvas-style rasterization may produce closer one-off snapshots, but it adds dependency weight, browser edge cases, poorer invalidation control, and likely weaker SSR/import boundaries.
 3. **Alternative: full CSS engine clone.** Hand-rendering all CSS, pseudo-elements, filters, layout modes, and nested DOM is too large for the next phase and should not block useful fidelity gains.
 
@@ -42,9 +56,12 @@ Supported in Phase 4:
   - `borderTop/Right/Bottom/LeftColor`
   - `borderTopLeft/TopRight/BottomRight/BottomLeftRadius`
   - `boxShadow` as a best-effort single outer shadow paint
-  - text font, color, line height, padding, text align, and block alignment
+  - box padding plus text font, color, line height, padding, text align, and block alignment
   - media `objectFit` and `objectPosition`
-- Snapshot texture rebuilds when style, content, size, capped DPR, or explicit invalidation signatures change.
+- Snapshot texture rebuilds when content, size, capped DPR, resource metadata,
+  or explicit invalidation signatures change. Computed CSS is captured at
+  renderable creation; later `style` / `class` mutations are intentionally not
+  tracked in this phase.
 - Mobile demo coverage at a narrow viewport with one-column layout and no runtime hardcoded demo keys or class names.
 
 Deferred:
@@ -77,7 +94,7 @@ Deferred:
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.test.ts`
   - Cover resize-driven renderer size, DPR, and camera projection updates.
 - Create: `packages/dom-webgl-runtime/src/lib/dom/domInvalidation.ts`
-  - Own narrow dirty tracking for target resize, inline style/class mutation, and viewport changes.
+  - Own narrow dirty tracking for target resize and viewport changes.
 - Create: `packages/dom-webgl-runtime/src/lib/dom/domInvalidation.test.ts`
   - Cover dirty target callbacks and cleanup without broad subtree scanning behavior.
 - Create: `packages/dom-webgl-runtime/src/lib/render/renderables/cssBoxCanvas.ts`
@@ -91,7 +108,8 @@ Deferred:
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/textCanvasLayout.ts`
   - Consume shared style snapshot values instead of independently reading overlapping style.
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/textSnapshotRenderable.ts`
-  - Rebuild text textures when text/style/size/DPR signatures change.
+  - Rebuild text textures when text/size/DPR signatures change, using the
+    initial style snapshot.
 - Create: `packages/dom-webgl-runtime/src/lib/render/renderables/objectFit.ts`
   - Compute image/video crop and scale for `object-fit` and `object-position`.
 - Create: `packages/dom-webgl-runtime/src/lib/render/renderables/objectFit.test.ts`
@@ -476,15 +494,12 @@ Expected: PASS.
 Test the observer contract with injected observer constructors instead of relying on browser globals.
 
 ```ts
-test("notifies dirty targets for size content style and viewport changes", () => {
+test("notifies dirty targets for size and viewport changes", () => {
   const dirtyKeys: string[] = [];
   const target = document.createElement("section");
   const controller = createDOMInvalidationController({
     onDirtyTarget: (key) => dirtyKeys.push(key),
     createResizeObserver(callback) {
-      return createObserverStub(callback);
-    },
-    createMutationObserver(callback) {
       return createObserverStub(callback);
     },
     windowTarget: window,
@@ -532,11 +547,11 @@ export type DOMInvalidationController = {
 };
 ```
 
-Use `ResizeObserver` for target size, `MutationObserver` only for `style` and `class` attribute changes on the target element, and `window` plus `visualViewport` listeners for viewport changes when available. Do not scan arbitrary descendant subtree mutations in Phase 4. If observers are unavailable, the geometry signature fallback from Task 2 still detects layout changes during `sync()`.
+Use `ResizeObserver` for target size and `window` plus `visualViewport` listeners for viewport changes when available. Do not track later `style` / `class` mutations and do not scan arbitrary descendant subtree mutations in Phase 4. If observers are unavailable, the geometry signature fallback from Task 2 still detects layout changes during `sync()`.
 
 - [x] **Step 4: Wire runtime registration and disposal**
 
-When `registerTarget` succeeds, observe the target. When `unregisterTarget` or runtime `dispose()` runs, unobserve and dispose observer resources. Before each frame sync, consume dirty keys, refresh cached style snapshots for matching targets, and call `renderable.invalidateContent?.()` only when `rasterSignature` changed.
+When `registerTarget` succeeds, observe the target size. When `unregisterTarget` or runtime `dispose()` runs, unobserve and dispose observer resources. Before each frame sync, consume dirty keys and call `renderable.invalidateContent?.()` only for size/DPR/content/resource boundaries. Computed CSS style is not refreshed after initial renderable creation.
 
 - [x] **Step 5: Verify observer and runtime tests pass**
 
@@ -800,7 +815,7 @@ Keep wrapping and alignment behavior, but read font, color, line height, padding
 
 - [x] **Step 4: Rebuild text texture by layout/style/content signature**
 
-In `textSnapshotRenderable.ts`, create the render signature from text content plus the cached `rasterSignature`. A pure position change should update layout only; a style/size/DPR/content change should redraw the text canvas.
+In `textSnapshotRenderable.ts`, create the render signature from text content plus the initial cached `rasterSignature`. A pure position change should update layout only; text, size, or DPR changes should redraw the text canvas without re-reading later DOM CSS mutations.
 
 - [x] **Step 5: Verify text tests pass**
 
@@ -902,7 +917,10 @@ Expected: PASS.
 
 - [x] **Step 1: Write failing runtime integration test**
 
-Add a runtime pipeline test that proves style changes refresh raster state while layout updates still run on every sync.
+Add a runtime pipeline test that proves target resize and viewport changes
+refresh raster state while layout updates still run on every sync. Later
+`style` / `class` mutations are intentionally not tracked after the initial
+style snapshot.
 
 ```ts
 test("updates renderable layout after viewport resize and raster state changes", async () => {
@@ -961,8 +979,7 @@ Use one flow inside `syncFrame()`:
 rendererHost.resizeIfNeeded()
   -> layoutPass.measure(active target descriptors)
   -> compare layout signatures
-  -> refresh cached style snapshots for dirty targets only
-  -> invalidate content for dirty style/size/DPR/content targets
+  -> invalidate content for dirty size/DPR/content/resource targets
   -> renderable.update(frameInput)
   -> renderable.updateLayout(layoutSnapshot)
   -> sceneAdapter.render()
@@ -980,7 +997,6 @@ Extend the demo with public API targets that intentionally stress fidelity:
   webgl={{
     key: "demo.fidelity.surface",
     source: { kind: "snapshot", mode: "element" },
-    lifecycle: { hideWhenReady: true, hideMode: "self" },
   }}
 >
   <p className="demo-label">Fidelity surface</p>
@@ -1033,10 +1049,12 @@ Expected: all pass. The existing non-blocking Vite chunk-size warning may remain
 Phase 4 is complete when:
 
 - Element snapshots render a canvas-backed CSS box for supported common style properties.
-- Text snapshots use the shared style snapshot and rebuild on text, style, size, or DPR changes.
-- Image and video renderables respect `object-fit` and `object-position` for common responsive layouts.
+- Text snapshots use the initial style snapshot and rebuild on text, size, or DPR changes.
+- Image and video renderables keep border-box CSS backing planes, place media
+  texture planes in CSS content boxes, and respect `object-fit` /
+  `object-position` for common responsive layouts.
 - DOM rect projection remains CSS-pixel aligned on desktop and mobile viewport sizes.
 - Renderer size, DPR, and orthographic camera update after resize/orientation/visual viewport changes without reconfiguring every frame.
-- Runtime invalidation avoids per-frame style snapshot reads and avoids rebuilding snapshots on pure position changes.
+- Runtime invalidation avoids per-frame style snapshot reads, does not track later `style` / `class` mutations, and avoids rebuilding snapshots on pure position changes.
 - Demo remains a public API consumer and exposes a responsive fidelity harness.
 - Documentation clearly lists supported and deferred CSS fidelity features.

@@ -14,6 +14,11 @@ describe("createImageRenderable", () => {
 
   test("creates a media renderable and loads the existing DOM image resource", async () => {
     const source = createImageDescriptor("/assets/hero.png");
+    Object.assign(source.element.style, {
+      backgroundColor: "rgb(240, 248, 255)",
+      border: "2px solid rgb(12, 34, 56)",
+      borderRadius: "18px",
+    });
     const descriptor = createTargetDescriptor(
       source.element,
       { key: "hero.image" },
@@ -59,14 +64,28 @@ describe("createImageRenderable", () => {
       lastLayout: { x: 120, y: 510, width: 200, height: 100 },
     });
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
-      isMesh: true,
-      geometry: { type: "PlaneGeometry" },
-      material: {
-        map: {
-          isTexture: true,
-          source: { data: source.element },
+      isGroup: true,
+      children: [
+        {
+          isMesh: true,
+          geometry: { type: "PlaneGeometry" },
+          material: {
+            map: {
+              isCanvasTexture: true,
+            },
+          },
         },
-      },
+        {
+          isMesh: true,
+          geometry: { type: "PlaneGeometry" },
+          material: {
+            map: {
+              isTexture: true,
+              source: { data: source.element },
+            },
+          },
+        },
+      ],
     });
     expect(resourceManager.inspect("image:element-1:/assets/hero.png")).toMatchObject({
       kind: "image",

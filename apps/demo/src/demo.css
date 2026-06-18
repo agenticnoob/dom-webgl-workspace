@@ -4,6 +4,8 @@
     radial-gradient(circle at top left, rgba(215, 233, 196, 0.7), transparent 28%),
     linear-gradient(180deg, #f4f0e8 0%, #edf1ea 45%, #dde6dd 100%);
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 body {

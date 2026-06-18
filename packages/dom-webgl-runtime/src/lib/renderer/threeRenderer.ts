@@ -10,6 +10,7 @@ export type ThreeRendererAdapter = {
   setAnimationLoop?(callback: ((time: number) => void) | null): void;
   setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
+  setClearAlpha?(alpha: number): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
 };
@@ -49,14 +50,16 @@ export function createThreeRendererHost(
     canvas,
   );
   let disposed = false;
+
+  configureCanvasStage(container, canvas);
+  container.insertBefore(canvas, container.firstChild);
+  const restoreDOMStageLayer = configureDOMStageLayer(container, canvas);
   let viewport = configureCSSPixelViewport(
     container,
+    canvas,
     objects.renderer,
     objects.camera,
   );
-
-  configureCanvasStage(container, canvas);
-  container.appendChild(canvas);
 
   return {
     canvas,
@@ -70,7 +73,7 @@ export function createThreeRendererHost(
       return { width: viewport.width, height: viewport.height };
     },
     resizeIfNeeded(): void {
-      const nextViewport = readCSSPixelViewport(container);
+      const nextViewport = readCSSPixelViewport(container, canvas);
 
       if (
         viewport.width === nextViewport.width &&
@@ -90,6 +93,7 @@ export function createThreeRendererHost(
 
       disposed = true;
       objects.renderer.dispose();
+      restoreDOMStageLayer();
       canvas.remove();
     },
   };
@@ -104,6 +108,7 @@ function createDefaultThreeRendererObjects(
     powerPreference: "high-performance",
     canvas,
   });
+  readRendererSetClearAlpha(renderer)?.(0);
 
   return {
     camera: new OrthographicCamera(0, 800, 600, 0, 0.1, 1000),
@@ -118,6 +123,9 @@ function createDefaultThreeRendererObjects(
       setAnimationLoop(callback) {
         readRendererSetAnimationLoop(renderer)?.(callback);
       },
+      setClearAlpha(alpha) {
+        readRendererSetClearAlpha(renderer)?.(alpha);
+      },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
       },
@@ -131,10 +139,11 @@ function createDefaultThreeRendererObjects(
 
 function configureCSSPixelViewport(
   container: HTMLElement,
+  canvas: HTMLCanvasElement,
   renderer: ThreeRendererAdapter,
   camera: object,
 ): DOMViewportState {
-  const viewport = readCSSPixelViewport(container);
+  const viewport = readCSSPixelViewport(container, canvas);
 
   applyCSSPixelViewport(renderer, camera, viewport);
 
@@ -145,15 +154,35 @@ type DOMViewportState = DOMViewportSize & {
   devicePixelRatio: number;
 };
 
-function readCSSPixelViewport(container: HTMLElement): DOMViewportState {
-  const visualViewport = window.visualViewport;
+function readCSSPixelViewport(
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+): DOMViewportState {
+  const stageRect = canvas.getBoundingClientRect();
+  const width = readFirstPositiveNumber(
+    stageRect.width,
+    document.documentElement.clientWidth,
+    window.innerWidth,
+    container.clientWidth,
+    800,
+  );
+  const height = readFirstPositiveNumber(
+    stageRect.height,
+    document.documentElement.clientHeight,
+    window.innerHeight,
+    container.clientHeight,
+    600,
+  );
 
   return {
-    width: visualViewport?.width || window.innerWidth || container.clientWidth || 800,
-    height:
-      visualViewport?.height || window.innerHeight || container.clientHeight || 600,
+    width,
+    height,
     devicePixelRatio: capDevicePixelRatio(window.devicePixelRatio || 1),
   };
+}
+
+function readFirstPositiveNumber(...values: number[]): number {
+  return values.find((value) => Number.isFinite(value) && value > 0) ?? 1;
 }
 
 function applyCSSPixelViewport(
@@ -183,6 +212,49 @@ function configureCanvasStage(
     display: "block",
     zIndex: "0",
   });
+}
+
+function configureDOMStageLayer(
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+): () => void {
+  const restoreEntries = Array.from(container.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .filter((child) => child !== canvas)
+    .map((child) => {
+      const previousPosition = child.style.position;
+      const previousZIndex = child.style.zIndex;
+      const appliedPosition = !child.style.position;
+      const appliedZIndex = !child.style.zIndex;
+
+      if (appliedPosition) {
+        child.style.position = "relative";
+      }
+
+      if (appliedZIndex) {
+        child.style.zIndex = "1";
+      }
+
+      return {
+        child,
+        previousPosition,
+        previousZIndex,
+        appliedPosition,
+        appliedZIndex,
+      };
+    });
+
+  return () => {
+    for (const entry of restoreEntries) {
+      if (entry.appliedPosition && entry.child.style.position === "relative") {
+        entry.child.style.position = entry.previousPosition;
+      }
+
+      if (entry.appliedZIndex && entry.child.style.zIndex === "1") {
+        entry.child.style.zIndex = entry.previousZIndex;
+      }
+    }
+  };
 }
 
 function configureOrthographicCamera(
@@ -265,6 +337,18 @@ function readRendererRender(
   }
 
   return render.bind(renderer) as (scene: object, camera: object) => void;
+}
+
+function readRendererSetClearAlpha(
+  renderer: object,
+): ((alpha: number) => void) | undefined {
+  const setClearAlpha = (renderer as Record<string, unknown>).setClearAlpha;
+
+  if (typeof setClearAlpha !== "function") {
+    return undefined;
+  }
+
+  return setClearAlpha.bind(renderer) as (alpha: number) => void;
 }
 
 function readRendererSetSize(

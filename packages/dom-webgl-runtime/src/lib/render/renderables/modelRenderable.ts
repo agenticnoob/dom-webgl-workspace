@@ -10,7 +10,7 @@ import {
 } from "../renderable";
 import { toSceneObjectOrdering } from "../renderPolicy";
 import {
-  createSceneRenderableController,
+  createModelSceneRenderableController,
   type SceneRenderableController,
 } from "./sceneRenderableObject";
 
@@ -50,7 +50,7 @@ export function createModelRenderable(
         const model = await resource.load(async () => loadModel(source));
 
         if (!state.scene) {
-          state.scene = createSceneRenderableController({
+          state.scene = createModelSceneRenderableController({
             key: context.descriptor.key,
             sceneAdapter: options.sceneAdapter,
             measureElement: options.measureElement,

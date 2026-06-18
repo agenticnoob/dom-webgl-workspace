@@ -14,6 +14,11 @@ describe("createVideoRenderable", () => {
 
   test("creates a media renderable and adopts the existing DOM video resource", async () => {
     const source = createVideoDescriptor("/assets/hero.mp4");
+    Object.assign(source.element.style, {
+      backgroundColor: "rgb(240, 248, 255)",
+      border: "2px solid rgb(12, 34, 56)",
+      borderRadius: "18px",
+    });
     const descriptor = createTargetDescriptor(
       source.element,
       { key: "hero.video" },
@@ -63,14 +68,28 @@ describe("createVideoRenderable", () => {
       lastLayout: { x: 200, y: 450, width: 320, height: 180 },
     });
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
-      isMesh: true,
-      geometry: { type: "PlaneGeometry" },
-      material: {
-        map: {
-          isVideoTexture: true,
-          source: { data: source.element },
+      isGroup: true,
+      children: [
+        {
+          isMesh: true,
+          geometry: { type: "PlaneGeometry" },
+          material: {
+            map: {
+              isCanvasTexture: true,
+            },
+          },
         },
-      },
+        {
+          isMesh: true,
+          geometry: { type: "PlaneGeometry" },
+          material: {
+            map: {
+              isVideoTexture: true,
+              source: { data: source.element },
+            },
+          },
+        },
+      ],
     });
     expect(resourceManager.inspect("video:element-1:/assets/hero.mp4")).toMatchObject({
       kind: "video",
@@ -89,6 +108,124 @@ describe("createVideoRenderable", () => {
     expect(sceneAdapter.removeObject).toHaveBeenCalledTimes(1);
     expect(sceneAdapter.objects[0]?.disposed).toBe(true);
     expect(resourceManager.inspect("video:element-1:/assets/hero.mp4")).toBeUndefined();
+  });
+
+  test("keeps the video mesh sized to the measured DOM rect for cover media", async () => {
+    const source = createVideoDescriptor("/assets/hero.mp4");
+    source.element.style.objectFit = "cover";
+    Object.defineProperties(source.element, {
+      videoWidth: { configurable: true, value: 720 },
+      videoHeight: { configurable: true, value: 1280 },
+    });
+    const descriptor = createTargetDescriptor(
+      source.element,
+      { key: "hero.video" },
+      0,
+    );
+    const sceneAdapter = createSceneAdapter();
+    const renderable = createVideoRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(40, 60, 320, 180),
+      },
+    );
+
+    const update = renderable.update();
+    source.element.dispatchEvent(new Event("loadeddata"));
+    await update;
+    renderable.updateLayout?.(createMeasurement(40, 60, 320, 180));
+
+    const mediaMesh = readMediaMesh(sceneAdapter.objects[0]?.object3D);
+
+    expect(mediaMesh?.scale).toMatchObject({ x: 320, y: 180, z: 1 });
+    expect(mediaMesh?.position).toMatchObject({ x: 0, y: 0, z: 1 });
+  });
+
+  test("sizes the video mesh to the CSS content box inside padding and border", async () => {
+    const source = createVideoDescriptor("/assets/hero.mp4");
+    Object.assign(source.element.style, {
+      objectFit: "cover",
+      padding: "10px 20px 30px 40px",
+      border: "2px solid rgb(12, 34, 56)",
+    });
+    Object.defineProperties(source.element, {
+      videoWidth: { configurable: true, value: 720 },
+      videoHeight: { configurable: true, value: 1280 },
+    });
+    const descriptor = createTargetDescriptor(
+      source.element,
+      { key: "hero.video" },
+      0,
+    );
+    const sceneAdapter = createSceneAdapter();
+    const renderable = createVideoRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(40, 60, 320, 180),
+      },
+    );
+
+    const update = renderable.update();
+    source.element.dispatchEvent(new Event("loadeddata"));
+    await update;
+    renderable.updateLayout?.(createMeasurement(40, 60, 320, 180));
+
+    const mediaMesh = readMediaMesh(sceneAdapter.objects[0]?.object3D);
+
+    expect(mediaMesh?.scale).toMatchObject({ x: 256, y: 136, z: 1 });
+    expect(mediaMesh?.position).toMatchObject({ x: 10, y: 10, z: 1 });
+  });
+
+  test("sizes contained video content inside the CSS content box", async () => {
+    const source = createVideoDescriptor("/assets/hero.mp4");
+    source.element.style.objectFit = "contain";
+    Object.defineProperties(source.element, {
+      videoWidth: { configurable: true, value: 720 },
+      videoHeight: { configurable: true, value: 1280 },
+    });
+    const descriptor = createTargetDescriptor(
+      source.element,
+      { key: "hero.video" },
+      0,
+    );
+    const sceneAdapter = createSceneAdapter();
+    const renderable = createVideoRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(40, 60, 320, 180),
+      },
+    );
+
+    const update = renderable.update();
+    source.element.dispatchEvent(new Event("loadeddata"));
+    await update;
+    renderable.updateLayout?.(createMeasurement(40, 60, 320, 180));
+
+    const mediaMesh = readMediaMesh(sceneAdapter.objects[0]?.object3D);
+
+    expect(mediaMesh?.scale).toMatchObject({ x: 101.25, y: 180, z: 1 });
+    expect(mediaMesh?.position).toMatchObject({ x: 0, y: 0, z: 1 });
   });
 
   test("pauses video playback when inactive and when disposed", () => {
@@ -303,6 +440,28 @@ function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
     element,
     src,
   };
+}
+
+function readMediaMesh(object3D: unknown): {
+  position: { x: number; y: number; z: number };
+  scale: { x: number; y: number; z: number };
+} | undefined {
+  if (!object3D || typeof object3D !== "object") {
+    return undefined;
+  }
+
+  const children = (object3D as { children?: unknown }).children;
+
+  if (!Array.isArray(children)) {
+    return undefined;
+  }
+
+  return children[1] as
+    | {
+        position: { x: number; y: number; z: number };
+        scale: { x: number; y: number; z: number };
+      }
+    | undefined;
 }
 
 function stubPause(element: HTMLVideoElement) {

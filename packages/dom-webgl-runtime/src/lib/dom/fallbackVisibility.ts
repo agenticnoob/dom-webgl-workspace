@@ -10,6 +10,7 @@ export type FallbackVisibilityController = {
 };
 
 type FallbackVisibilityOptions = {
+  defaultHideWhenReady?: boolean;
   defaultHideMode?: FallbackHideMode;
 };
 
@@ -19,12 +20,21 @@ type ElementSnapshot = {
   style: string | null;
 };
 
+type FallbackStyleSnapshot = {
+  visibility: string;
+};
+
+const fallbackStyleSnapshots = new WeakMap<HTMLElement, FallbackStyleSnapshot>();
+
 export function createFallbackVisibilityController(
   element: HTMLElement,
   lifecycle: WebGLLifecycleDeclaration,
   options: FallbackVisibilityOptions = {},
 ): FallbackVisibilityController {
-  if (!lifecycle.hideWhenReady) {
+  const hideWhenReady =
+    lifecycle.hideWhenReady ?? options.defaultHideWhenReady ?? false;
+
+  if (!hideWhenReady) {
     return {
       hide() {
         return;
@@ -47,9 +57,18 @@ export function createFallbackVisibilityController(
 
       hidden = true;
       snapshots = snapshotElements(element, hideMode);
+      fallbackStyleSnapshots.set(element, {
+        visibility:
+          element.ownerDocument.defaultView?.getComputedStyle(element).visibility ||
+          "visible",
+      });
       element.style.visibility = "hidden";
 
       for (const child of element.querySelectorAll<HTMLElement>("*")) {
+        if (hideMode === "self" && isManagedFallbackElement(child)) {
+          continue;
+        }
+
         child.style.visibility = hideMode === "self" ? "visible" : "hidden";
       }
     },
@@ -59,14 +78,32 @@ export function createFallbackVisibilityController(
       }
 
       for (const snapshot of snapshots) {
+        if (
+          snapshot.element !== element &&
+          isManagedFallbackElement(snapshot.element)
+        ) {
+          continue;
+        }
+
         restoreAttribute(snapshot.element, "class", snapshot.className);
         restoreAttribute(snapshot.element, "style", snapshot.style);
       }
 
       hidden = false;
       snapshots = [];
+      fallbackStyleSnapshots.delete(element);
     },
   };
+}
+
+export function readFallbackStyleSnapshot(
+  element: HTMLElement,
+): FallbackStyleSnapshot | undefined {
+  return fallbackStyleSnapshots.get(element);
+}
+
+function isManagedFallbackElement(element: Element): element is HTMLElement {
+  return element instanceof HTMLElement && fallbackStyleSnapshots.has(element);
 }
 
 function snapshotElements(

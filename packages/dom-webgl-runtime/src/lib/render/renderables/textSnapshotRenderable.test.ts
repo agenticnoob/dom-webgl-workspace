@@ -131,15 +131,7 @@ describe("createTextSnapshotRenderable", () => {
     const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
     const sceneAdapter = createSceneAdapter();
     const fillText = vi.fn();
-    const context = {
-      clearRect: vi.fn(),
-      fillText,
-      measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
-      textBaseline: "",
-      textAlign: "",
-      fillStyle: "",
-      font: "",
-    };
+    const context = createCanvasContextStub({ fillText });
     const createElement = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tagName) => {
       const createdElement = createElement(tagName);
@@ -198,15 +190,7 @@ describe("createTextSnapshotRenderable", () => {
     const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
     const sceneAdapter = createSceneAdapter();
     const fillText = vi.fn();
-    const context = {
-      clearRect: vi.fn(),
-      fillText,
-      measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
-      textBaseline: "",
-      textAlign: "",
-      fillStyle: "",
-      font: "",
-    };
+    const context = createCanvasContextStub({ fillText });
     const createElement = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tagName) => {
       const createdElement = createElement(tagName);
@@ -322,6 +306,33 @@ function createMeasurement(
     viewport: { width: 800, height: 600 },
     devicePixelRatio: 1,
     layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
+  };
+}
+
+function createCanvasContextStub({
+  fillText = vi.fn(),
+}: {
+  fillText?: ReturnType<typeof vi.fn>;
+} = {}) {
+  return {
+    beginPath: vi.fn(),
+    clearRect: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
+    fillText,
+    lineTo: vi.fn(),
+    measureText: vi.fn((text: string) => ({ width: text.length * 18 })),
+    moveTo: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    restore: vi.fn(),
+    save: vi.fn(),
+    scale: vi.fn(),
+    setTransform: vi.fn(),
+    stroke: vi.fn(),
+    textBaseline: "",
+    textAlign: "",
+    fillStyle: "",
+    font: "",
   };
 }
 
