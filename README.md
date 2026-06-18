@@ -11,6 +11,8 @@ Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
 `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
+Phase 4 DOM style fidelity and responsive mapping is planned in
+`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -76,6 +78,10 @@ Current visual behavior:
   a fixed transparent internal stage layer, added renderer performance defaults
   and a DPR cap, batched layout reads, and separated layout, content, resource,
   and lifecycle boundaries before effect or animation work starts.
+- Phase 4 should improve DOM-to-WebGL fidelity with a narrow performance-first
+  slice: cached resize/DPR adaptation, geometry/layout alignment, cached style
+  snapshots behind dirty boundaries, canvas-backed CSS box snapshots for common
+  2D styles, object-fit mapping, and a responsive demo harness.
 
 ## Setup
 

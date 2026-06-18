@@ -18,7 +18,9 @@ transparent internal viewport stage layer, the renderer owns the frame loop,
 layout reads are batched, snapshot content rebuilds follow dirty boundaries,
 target lifecycle state is reported separately from resource status, and
 resource/render-target disposal contracts are covered. Effects remain future
-work.
+work. Phase 4 is planned next to improve DOM style fidelity, CSS-pixel
+alignment, viewport resize behavior, and mobile responsive mapping before any
+effect or animation layer is added.
 
 ## Purpose
 
@@ -296,6 +298,62 @@ Delivered Phase 3 behavior:
 - Layout reads are batched before renderables receive layout updates.
 - Async resource completion requests a render after the visual scene object is
   ready.
+
+## DOM Fidelity And Responsive Mapping Contract
+
+DOM remains the authoring and layout source of truth. WebGL renderables should
+track DOM anchors closely enough that supported 2D targets do not visibly drift
+from their DOM counterparts during normal page scroll, window resize, DPR
+changes, or mobile layout changes.
+
+Phase 4 should introduce a shared layout/style snapshot contract:
+
+```ts
+type DOMStyleSnapshot = {
+  box: DOMBoxStyleSnapshot;
+  text: DOMTextStyleSnapshot;
+  media: DOMMediaStyleSnapshot;
+  rasterSignature: string;
+};
+
+type ElementLayoutSnapshot = ElementMeasurement & {
+  viewport: DOMViewportSize;
+  devicePixelRatio: number;
+  layoutSignature: string;
+};
+```
+
+First-version fidelity rules:
+
+- One runtime layout pass should read rect, viewport size, capped DPR, and
+  geometry signatures for active targets.
+- Computed style snapshots should be cached and refreshed only on explicit dirty
+  boundaries such as target resize, target class/style mutation, content
+  invalidation, and viewport/DPR changes.
+- Position and size projection should preserve CSS-pixel fractional values until
+  the final scene object update.
+- Renderer size, DPR, and orthographic camera projection should update on
+  window resize, visual viewport changes, orientation changes, and manual sync,
+  but should not reconfigure every frame if nothing changed.
+- Element snapshots should render supported CSS box paint through a canvas-backed
+  texture instead of only a solid color plane.
+- Text snapshots should consume the shared style snapshot for font, color, line
+  height, padding, alignment, and DPR-aware canvas sizing.
+- Image and video renderables should respect common `object-fit` and
+  `object-position` behavior.
+- Snapshot rebuilds should happen after content, style, size, capped DPR, or
+  explicit invalidation changes, not every frame, and pure position changes
+  should not trigger texture rebuilds.
+- Unsupported CSS features should be documented or reported through debug
+  metadata instead of silently being presented as supported.
+
+Phase 4 supported CSS should prioritize common 2D page styles: opacity, solid
+background color, borders, border radius, one outer box shadow, text style,
+padding, alignment, and media object fit. Phase 4 only guarantees transformed
+DOM bounding-box alignment, not matrix-level transform reproduction on WebGL
+objects. Full DOM subtree rasterization, pseudo-elements, filters, backdrop
+filters, blend modes, masks, clip paths, complete gradient rendering, and
+multi-shadow fidelity remain future work.
 
 ## Scroll Contract
 

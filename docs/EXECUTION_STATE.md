@@ -1,11 +1,12 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented in this branch: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 DOM style fidelity and responsive mapping is now planned as a narrow performance-first slice, with focus on cached resize/DPR adaptation, CSS-pixel projection, cached style snapshots behind dirty boundaries, common CSS box/text/media fidelity, and a public-API-only demo harness.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
+Phase 4 DOM style fidelity and responsive mapping plan file: `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
@@ -93,7 +94,7 @@ not be copied into this open-source runtime.
 - Task 72: Phase 3 Documentation Alignment.
 
 ## Current Task
-Phase 3.5 runtime performance and stage correction is implemented and verified. The next phase may plan effect or animation work, but no effect registry, animation layer, third-party scroll adapter, picking path, multiple-canvas path, or public Three.js render flags are implemented yet.
+Phase 4 DOM style fidelity and responsive mapping is planned. Next implementation should start from `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`, keep resize and style invalidation cached, avoid rebuilding snapshots on pure position changes, and should not add effect registry, animation layer, third-party scroll adapter, picking path, multiple-canvas path, or public Three.js render flags.
 
 ## Phase 3.5 Runtime Performance And Stage Checklist
 - Canvas is a fixed transparent internal viewport stage layer, not document-flow content.
