@@ -205,36 +205,36 @@ describe("demo App", () => {
 	    );
 	  });
 
-	  test("declares the Phase 5 effect harness through public WebGLTarget props", async () => {
-	    await renderApp();
+		  test("declares the Phase 7 effect harness through public WebGLTarget props", async () => {
+		    await renderApp();
 
-	    expect(webglDeclarationFor("demo.effects.surface")).toMatchObject({
-	      key: "demo.effects.surface",
-	      source: { kind: "snapshot", mode: "element" },
-	      effects: {
-	        material: { kind: "solid", color: 0x111827, opacity: 0.82 },
-	        motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
-	      },
-	    });
-	  });
+		    expect(webglDeclarationFor("demo.effects.surface")).toMatchObject({
+		      key: "demo.effects.surface",
+		      source: { kind: "snapshot", mode: "element" },
+		      effects: [
+		        { kind: "material.solid", color: 0x111827, opacity: 0.82 },
+		        { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 8 },
+		      ],
+		    });
+		  });
 
 	  test("declares the Phase 6 surface material harness through public WebGLTarget props", async () => {
 	    await renderApp();
 
-	    expect(webglDeclarationFor("demo.effects.surface.phase6")).toMatchObject({
-	      key: "demo.effects.surface.phase6",
-	      source: { kind: "snapshot", mode: "element" },
-	      effects: {
-	        material: {
-	          kind: "surface",
-	          color: 0x111827,
-	          opacity: 0.86,
-	          radius: 18,
-	        },
-	        motion: { kind: "pointer-tilt", strength: 0.35, maxDegrees: 6 },
-	      },
-	    });
-	  });
+		    expect(webglDeclarationFor("demo.effects.surface.phase6")).toMatchObject({
+		      key: "demo.effects.surface.phase6",
+		      source: { kind: "snapshot", mode: "element" },
+		      effects: [
+		        {
+		          kind: "surface.basic",
+		          color: 0x111827,
+		          opacity: 0.86,
+		          radius: 18,
+		        },
+		        { kind: "motion.pointerTilt", strength: 0.35, maxDegrees: 6 },
+		      ],
+		    });
+		  });
 
   test("uses mapped-target default self fallback hiding on container targets", async () => {
     await renderApp();
