@@ -141,7 +141,7 @@ Docs:
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectController.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectController.test.ts`
 
-- [ ] **Step 1: Write the failing normalization tests**
+- [x] **Step 1: Write the failing normalization tests**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectNormalization.test.ts`:
 
@@ -177,13 +177,13 @@ describe("normalizeWebGLEffectsDeclaration", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the test fails before extraction**
+- [x] **Step 2: Verify the test fails before extraction**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effectNormalization.test.ts`
 
 Expected: FAIL because `effectNormalization.ts` does not exist.
 
-- [ ] **Step 3: Create the normalization module**
+- [x] **Step 3: Create the normalization module**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectNormalization.ts`:
 
@@ -281,7 +281,7 @@ function clampNumber(
 }
 ```
 
-- [ ] **Step 4: Rewire `effectController.ts`**
+- [x] **Step 4: Rewire `effectController.ts`**
 
 Remove local normalized effect types and normalization helpers from `effectController.ts`. Import them:
 
@@ -293,7 +293,7 @@ import {
 } from "./effectNormalization";
 ```
 
-- [ ] **Step 5: Verify normalization behavior is unchanged**
+- [x] **Step 5: Verify normalization behavior is unchanged**
 
 Run:
 
@@ -304,7 +304,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectNormalization.ts packages/dom-webgl-runtime/src/lib/effects/effectNormalization.test.ts packages/dom-webgl-runtime/src/lib/effects/effectController.ts packages/dom-webgl-runtime/src/lib/effects/effectController.test.ts
@@ -318,7 +318,7 @@ git commit -m "refactor: extract effect normalization"
 - Create: `packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectController.ts`
 
-- [ ] **Step 1: Write compatibility tests**
+- [x] **Step 1: Write compatibility tests**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts`:
 
@@ -374,13 +374,13 @@ function createImageSource(): WebGLSourceDescriptor {
 }
 ```
 
-- [ ] **Step 2: Verify the test fails before extraction**
+- [x] **Step 2: Verify the test fails before extraction**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts`
 
 Expected: FAIL because `effectCompatibility.ts` does not exist.
 
-- [ ] **Step 3: Create compatibility module**
+- [x] **Step 3: Create compatibility module**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.ts`:
 
@@ -421,7 +421,7 @@ function readSourceKind(source: WebGLSourceDescriptor): string {
 }
 ```
 
-- [ ] **Step 4: Rewire `effectController.ts`**
+- [x] **Step 4: Rewire `effectController.ts`**
 
 Replace the local source assertion with:
 
@@ -431,7 +431,7 @@ if (effects.material) {
 }
 ```
 
-- [ ] **Step 5: Verify compatibility behavior is unchanged**
+- [x] **Step 5: Verify compatibility behavior is unchanged**
 
 Run:
 
@@ -442,7 +442,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.ts packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts packages/dom-webgl-runtime/src/lib/effects/effectController.ts
@@ -459,7 +459,7 @@ git commit -m "refactor: extract effect compatibility rules"
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
 
-- [ ] **Step 1: Write pointer motion tests**
+- [x] **Step 1: Write pointer motion tests**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/motions/pointerTilt.test.ts`:
 
@@ -533,13 +533,13 @@ function createFrameInput(
 }
 ```
 
-- [ ] **Step 2: Verify the test fails before extraction**
+- [x] **Step 2: Verify the test fails before extraction**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/motions/pointerTilt.test.ts`
 
 Expected: FAIL because `pointerTilt.ts` does not exist.
 
-- [ ] **Step 3: Create `effectTarget.ts`**
+- [x] **Step 3: Create `effectTarget.ts`**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectTarget.ts`:
 
@@ -556,7 +556,7 @@ export type WebGLEffectTarget = {
 };
 ```
 
-- [ ] **Step 4: Create pointer motion module**
+- [x] **Step 4: Create pointer motion module**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/motions/pointerTilt.ts`:
 
@@ -588,7 +588,7 @@ export function applyPointerTilt(
 }
 ```
 
-- [ ] **Step 5: Rewire imports**
+- [x] **Step 5: Rewire imports**
 
 Update `effectController.ts`:
 
@@ -603,7 +603,7 @@ Update renderable files that import `WebGLEffectTarget` from `effectController.t
 import type { WebGLEffectTarget } from "../../effects/effectTarget";
 ```
 
-- [ ] **Step 6: Verify target and motion extraction**
+- [x] **Step 6: Verify target and motion extraction**
 
 Run:
 
@@ -614,7 +614,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects packages/dom-webgl-runtime/src/lib/render/renderable.ts packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts
@@ -629,7 +629,7 @@ git commit -m "refactor: extract effect target and pointer motion"
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.test.ts`
 
-- [ ] **Step 1: Write adapter tests**
+- [x] **Step 1: Write adapter tests**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.test.ts`:
 
@@ -663,13 +663,13 @@ describe("createElementPlaneEffectTarget", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the test fails before extraction**
+- [x] **Step 2: Verify the test fails before extraction**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.test.ts`
 
 Expected: FAIL because `elementPlaneEffectTarget.ts` does not exist.
 
-- [ ] **Step 3: Create the adapter module**
+- [x] **Step 3: Create the adapter module**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.ts`:
 
@@ -726,7 +726,7 @@ function setObject3DRotation(object3D: unknown, x: number, y: number): void {
 }
 ```
 
-- [ ] **Step 4: Rewire `sceneRenderableObject.ts`**
+- [x] **Step 4: Rewire `sceneRenderableObject.ts`**
 
 Remove local `createElementPlaneEffectTarget`, `createObject3DEffectTarget`, and `setObject3DRotation` helpers from `sceneRenderableObject.ts`.
 
@@ -739,7 +739,7 @@ import {
 } from "./effectTargets/elementPlaneEffectTarget";
 ```
 
-- [ ] **Step 5: Verify scene behavior is unchanged**
+- [x] **Step 5: Verify scene behavior is unchanged**
 
 Run:
 
@@ -750,7 +750,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.ts packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.test.ts packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.test.ts
@@ -766,7 +766,7 @@ git commit -m "refactor: extract element plane effect target"
 - Modify: `docs/EXECUTION_STATE.md`
 - Modify: `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
 
-- [ ] **Step 1: Write pure effect boundary test**
+- [x] **Step 1: Write pure effect boundary test**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effect-boundary.test.ts`:
 
@@ -812,13 +812,13 @@ function listFiles(root: string): string[] {
 }
 ```
 
-- [ ] **Step 2: Run the boundary test**
+- [x] **Step 2: Run the boundary test**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effect-boundary.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 3: Run Phase 6.1 full verification**
+- [x] **Step 3: Run Phase 6.1 full verification**
 
 Run:
 
@@ -838,7 +838,7 @@ Expected:
 - Import boundary PASS with `Demo import boundary OK`.
 - `git diff --check` produces no output.
 
-- [ ] **Step 4: Update docs with Phase 6.1 status**
+- [x] **Step 4: Update docs with Phase 6.1 status**
 
 Add to `docs/EXECUTION_STATE.md`:
 
@@ -848,7 +848,7 @@ Phase 6.1 effect core boundary refactor is implemented: pure effect normalizatio
 
 Update README and `docs/00-goal.md` to say Phase 6.1 is a behavior-preserving modularization step and does not add `surface`.
 
-- [ ] **Step 5: Mark Phase 6.1 tasks complete in this plan**
+- [x] **Step 5: Mark Phase 6.1 tasks complete in this plan**
 
 Check off Task 1 through Task 5 and add:
 
@@ -860,12 +860,18 @@ Check off Task 1 through Task 5 and add:
 - Boundary notes: No public API expansion, custom registry, Three.js public flags, particles, picking, scroll adapter, CSS paint cloning, or demo-specific runtime branch was added.
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md docs/00-goal.md docs/EXECUTION_STATE.md docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md packages/dom-webgl-runtime/src/lib/effects/effect-boundary.test.ts
 git commit -m "docs: record phase 6.1 effect boundary refactor"
 ```
+
+## Phase 6.1 Completed Task Record
+
+- Completed work: Extracted effect normalization, compatibility, target capability types, pointer tilt motion, and element-plane effect target adapter without changing public behavior.
+- Verification: `npm run test -- --run`, `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` passed.
+- Boundary notes: No public API expansion, custom registry, Three.js public flags, particles, picking, scroll adapter, CSS paint cloning, or demo-specific runtime branch was added.
 
 ## Phase 6.2 Tasks
 

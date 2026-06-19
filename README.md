@@ -20,6 +20,10 @@ Phase 5 adds the first public minimum effect/material layer in
 `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`: declared
 targets may opt into the built-in `solid` material and `pointer-tilt` motion
 without exposing Three.js render flags or a custom effect registry.
+Phase 6.1 in
+`docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
+modularizes that effect layer without changing public API or visible behavior;
+it does not add the planned `surface` material yet.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -146,6 +150,10 @@ Current visual behavior:
   effect registration, shader authoring, particles, public Three.js render
   flags, multiple canvases, raycast picking, and third-party scroll adapters
   remain out of scope.
+- Phase 6.1 keeps Phase 5 behavior intact while splitting pure effect
+  normalization, compatibility, target capability types, pointer motion, and
+  Three.js element-plane adapters across explicit internal module boundaries.
+  The `surface` material remains a planned Phase 6.2 addition, not current API.
 
 ## Setup
 

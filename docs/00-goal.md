@@ -28,6 +28,10 @@ Phase 5 adds the first public minimum effect/material layer with built-in
 `solid` material and `pointer-tilt` motion declarations. General custom effect
 registration, shader authoring, particles, picking, third-party scroll adapters,
 multiple canvases, and public Three.js render flags remain future work.
+Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
+visible behavior: pure effect normalization, compatibility, target capability
+types, and pointer motion are separated from Three.js renderable target
+adapters. The planned `surface` material is not part of Phase 6.1.
 
 ## Purpose
 
@@ -1232,6 +1236,16 @@ Delivered Phase 5 behavior:
   error path.
 - Effects do not scan DOM, add pointer listeners, create renderers, own resource
   loaders, expose Three.js flags, or form a custom registry.
+
+Delivered Phase 6.1 behavior:
+
+- Public API and visible Phase 5 behavior are unchanged.
+- Pure effect modules own normalization, source compatibility, target
+  capability types, and pointer motion without importing Three.js, React, demo
+  code, or renderable implementations.
+- Three.js-specific effect target adapters live under renderable adapter
+  modules.
+- `surface` remains a future Phase 6.2 public material variant.
 
 ## Non-Goals For The New Project
 

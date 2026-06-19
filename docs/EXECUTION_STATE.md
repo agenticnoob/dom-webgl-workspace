@@ -1,24 +1,25 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5 adds the first public minimum effect/material layer: `effects.material: { kind: "solid" }` makes explicit element snapshot surfaces WebGL-visible, `effects.motion: { kind: "pointer-tilt" }` consumes shared pointer frame input, and target-scoped effect controllers update from runtime renderables plus layout snapshots. Post-Phase 5 pointer input correction is implemented: the default runtime pointer controller listens at the document level and normalizes coordinates against the fixed viewport canvas, so pointer effects are not clipped by the `WebGLRuntime` container's document-flow box. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5 adds the first public minimum effect/material layer: `effects.material: { kind: "solid" }` makes explicit element snapshot surfaces WebGL-visible, `effects.motion: { kind: "pointer-tilt" }` consumes shared pointer frame input, and target-scoped effect controllers update from runtime renderables plus layout snapshots. Post-Phase 5 pointer input correction is implemented: the default runtime pointer controller listens at the document level and normalizes coordinates against the fixed viewport canvas, so pointer effects are not clipped by the `WebGLRuntime` container's document-flow box. Phase 6.1 effect core boundary refactor is implemented: pure effect normalization, compatibility, target capability types, and pointer motion helpers are separated from Three.js renderable target adapters. Public API and visible Phase 5 behavior remain unchanged. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
 Phase 4 layout/content mapping plan file: `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`.
 Phase 5 effect/material layer plan file: `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`.
+Phase 6 modular surface materials plan file: `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Post-Phase 5 Viewport Pointer Input Correction.
+Phase 6.1 Effect Core Boundary Refactor.
 
 ## Latest Documentation Note
-Runtime pointer input now follows the fixed viewport WebGL stage instead of the
-React `WebGLRuntime` wrapper box. Pointer events are captured at document level,
-while renderables and effects still consume one shared `WebGLFrameInput.pointer`.
-This does not add per-renderable listeners, picking, a custom effect registry,
-or public Three.js render flags.
+Phase 6.1 keeps the Phase 5 public effect API unchanged while moving pure
+effect normalization, compatibility, target capability types, and pointer
+motion into `effects/*`, with Three.js-specific target adapters under
+`render/renderables/effectTargets/*`. It does not add the planned `surface`
+material yet.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -102,9 +103,20 @@ or public Three.js render flags.
 - Task 79: Viewport Pointer Input Correction.
 
 ## Current Task
-Viewport pointer input correction is implemented: authors can keep a
-non-fullscreen `WebGLRuntime` wrapper while pointer-driven effects still receive
-document-level pointer updates normalized to the fixed viewport canvas.
+Phase 6.2 minimal `surface` material is the next implementation gate. Phase 6.1
+is complete and behavior-preserving.
+
+## Phase 6.1 Effect Core Boundary Refactor
+- Completed work: Extracted effect normalization, compatibility, target
+  capability types, pointer tilt motion, and element-plane effect target adapter
+  without changing public behavior.
+- Verification: `npm run test -- --run` passed with 58 test files / 275 tests;
+  `npm run typecheck` passed; `npm run build` passed with the existing
+  non-blocking Vite chunk-size warning; `npm run check:imports` passed with
+  `Demo import boundary OK`; `git diff --check` passed.
+- Boundary notes: No public API expansion, custom registry, Three.js public
+  flags, particles, picking, scroll adapter, CSS paint cloning, or
+  demo-specific runtime branch was added.
 
 ## Phase 5 Public Minimum Effect/Material Checklist
 - `WebGLDeclaration.effects` is part of the public type contract.
