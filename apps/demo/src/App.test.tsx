@@ -100,6 +100,7 @@ describe("demo App", () => {
 	      "demo.layout.text",
 	      "demo.layout.image",
 	      "demo.effects.surface",
+	      "demo.effects.surface.phase6",
 	    ]);
     expect(
       targetProps.map(({ webgl }) => ({
@@ -136,6 +137,10 @@ describe("demo App", () => {
 	        key: "demo.effects.surface",
 	        source: { kind: "snapshot", mode: "element" },
 	      },
+	      {
+	        key: "demo.effects.surface.phase6",
+	        source: { kind: "snapshot", mode: "element" },
+	      },
 	    ]);
 	    expect(
 	      targetProps.map(({ as }) => as),
@@ -150,6 +155,7 @@ describe("demo App", () => {
 	      "p",
 	      "img",
 	      "div",
+	      "section",
 	    ]);
 	  });
 
@@ -208,6 +214,24 @@ describe("demo App", () => {
 	      effects: {
 	        material: { kind: "solid", color: 0x111827, opacity: 0.82 },
 	        motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
+	      },
+	    });
+	  });
+
+	  test("declares the Phase 6 surface material harness through public WebGLTarget props", async () => {
+	    await renderApp();
+
+	    expect(webglDeclarationFor("demo.effects.surface.phase6")).toMatchObject({
+	      key: "demo.effects.surface.phase6",
+	      source: { kind: "snapshot", mode: "element" },
+	      effects: {
+	        material: {
+	          kind: "surface",
+	          color: 0x111827,
+	          opacity: 0.86,
+	          radius: 18,
+	        },
+	        motion: { kind: "pointer-tilt", strength: 0.35, maxDegrees: 6 },
 	      },
 	    });
 	  });

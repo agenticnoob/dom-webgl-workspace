@@ -53,6 +53,35 @@ describe("createWebGLEffectController", () => {
     });
   });
 
+  test("applies surface material with the current layout snapshot", () => {
+    const target = createEffectTarget();
+    const controller = createWebGLEffectController({
+      key: "card.surface",
+      declaration: {
+        material: {
+          kind: "surface",
+          color: 0x111827,
+          opacity: 0.84,
+          radius: 16,
+        },
+      },
+      source: createElementSnapshotSource(),
+      target,
+    });
+    const layout = createLayoutSnapshot();
+
+    controller.update(createFrameInput(), layout);
+
+    expect(target.applySurfaceMaterial).toHaveBeenCalledWith(
+      { kind: "surface", color: 0x111827, opacity: 0.84, radius: 16 },
+      {
+        width: layout.width,
+        height: layout.height,
+        devicePixelRatio: layout.devicePixelRatio,
+      },
+    );
+  });
+
   test("rejects solid material on non-element sources", () => {
     expect(() =>
       createWebGLEffectController({
@@ -124,11 +153,13 @@ describe("createWebGLEffectController", () => {
 
 function createEffectTarget(): WebGLEffectTarget & {
   applySolidMaterial: ReturnType<typeof vi.fn>;
+  applySurfaceMaterial: ReturnType<typeof vi.fn>;
   setRotation: ReturnType<typeof vi.fn>;
   disposeEffects: ReturnType<typeof vi.fn>;
 } {
   return {
     applySolidMaterial: vi.fn(),
+    applySurfaceMaterial: vi.fn(),
     setRotation: vi.fn(),
     disposeEffects: vi.fn(),
   };

@@ -244,6 +244,11 @@ body {
   line-height: 1.5;
 }
 
+.demo-effect-card--phase6 {
+  min-height: 160px;
+  padding: 24px;
+}
+
 @media (max-width: 700px) {
   .demo-shell {
     padding: 20px;

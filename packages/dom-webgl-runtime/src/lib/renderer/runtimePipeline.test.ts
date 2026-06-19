@@ -306,6 +306,51 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("applies declared surface material effects without target errors", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      createCanvasContextStub(),
+    );
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "effect.surface.phase6",
+      source: { kind: "snapshot", mode: "element" },
+      effects: {
+        material: {
+          kind: "surface",
+          color: 0x111827,
+          opacity: 0.84,
+          radius: 16,
+        },
+      },
+    });
+
+    await runtime.sync();
+
+    const mesh = sceneAdapter.objects[0]?.object3D as {
+      visible?: boolean;
+      material?: {
+        map?: unknown;
+        opacity?: number;
+        transparent?: boolean;
+      };
+    };
+
+    expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
+    expect(mesh.visible).toBe(true);
+    expect(mesh.material?.transparent).toBe(true);
+    expect(mesh.material?.opacity).toBe(1);
+    expect(mesh.material?.map).toBeTruthy();
+
+    runtime.dispose();
+  });
+
   test("reports incompatible solid material effects as target errors", async () => {
     const runtime = await createPipelineRuntime();
     const image = document.createElement("img");
@@ -812,6 +857,18 @@ function createLayoutMeasurement(
     bottom: top + height,
     left,
   };
+}
+
+function createCanvasContextStub(): CanvasRenderingContext2D {
+  return {
+    beginPath: vi.fn(),
+    clearRect: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
+    lineTo: vi.fn(),
+    moveTo: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+  } as unknown as CanvasRenderingContext2D;
 }
 
 function countRoles(renderables: Renderable[]): Partial<Record<string, number>> {

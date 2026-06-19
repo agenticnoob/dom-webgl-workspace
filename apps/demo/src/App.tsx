@@ -131,10 +131,10 @@ export default function App() {
 	          </section>
 
 	          <section className="demo-effects" aria-label="WebGL effect and material targets">
-	            <WebGLTarget
-	              className="demo-effect-surface"
-	              webgl={{
-	                key: "demo.effects.surface",
+            <WebGLTarget
+              className="demo-effect-surface"
+              webgl={{
+                key: "demo.effects.surface",
 	                source: { kind: "snapshot", mode: "element" },
 	                effects: {
 	                  material: { kind: "solid", color: 0x111827, opacity: 0.82 },
@@ -143,10 +143,31 @@ export default function App() {
 	              }}
 	            >
 	              <p className="demo-label">Effect material</p>
-	              <strong>Solid WebGL surface</strong>
-	              <span>Pointer state drives a small runtime-owned tilt.</span>
-	            </WebGLTarget>
-	          </section>
+              <strong>Solid WebGL surface</strong>
+              <span>Pointer state drives a small runtime-owned tilt.</span>
+            </WebGLTarget>
+
+            <WebGLTarget
+              as="section"
+              className="demo-effect-card demo-effect-card--phase6"
+              webgl={{
+                key: "demo.effects.surface.phase6",
+                source: { kind: "snapshot", mode: "element" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                effects: {
+                  material: {
+                    kind: "surface",
+                    color: 0x111827,
+                    opacity: 0.86,
+                    radius: 18,
+                  },
+                  motion: { kind: "pointer-tilt", strength: 0.35, maxDegrees: 6 },
+                },
+              }}
+            >
+              <span>Phase 6 surface material</span>
+            </WebGLTarget>
+          </section>
 
 	          <DebugPanel state={debugState} />
 	        </WebGLTarget>

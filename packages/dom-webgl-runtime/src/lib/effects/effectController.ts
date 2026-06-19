@@ -4,6 +4,7 @@ import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
 import { assertMaterialSourceCompatibility } from "./effectCompatibility";
 import type { WebGLEffectTarget } from "./effectTarget";
 import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
+import type { NormalizedWebGLMaterialDeclaration } from "./effectNormalization";
 import { applyPointerTilt } from "./motions/pointerTilt";
 
 export type WebGLEffectController = {
@@ -39,7 +40,7 @@ export function createWebGLEffectController(
     get hasEffects() {
       return !!effects.material || !!effects.motion;
     },
-    update(input): void {
+    update(input, layout): void {
       if (disposed) {
         return;
       }
@@ -47,14 +48,9 @@ export function createWebGLEffectController(
       const target = readEffectTarget(options);
 
       if (effects.material && !materialApplied) {
-        if (!target?.applySolidMaterial) {
+        if (!applyMaterialEffect(target, effects.material, layout)) {
           return;
         }
-
-        target.applySolidMaterial({
-          color: effects.material.color,
-          opacity: effects.material.opacity,
-        });
         materialApplied = true;
       }
 
@@ -77,4 +73,33 @@ function readEffectTarget(
   options: WebGLEffectControllerOptions,
 ): WebGLEffectTarget | undefined {
   return options.getTarget?.() ?? options.target;
+}
+
+function applyMaterialEffect(
+  target: WebGLEffectTarget | undefined,
+  material: NormalizedWebGLMaterialDeclaration,
+  layout: ElementLayoutSnapshot,
+): boolean {
+  if (material.kind === "solid") {
+    if (!target?.applySolidMaterial) {
+      return false;
+    }
+
+    target.applySolidMaterial({
+      color: material.color,
+      opacity: material.opacity,
+    });
+    return true;
+  }
+
+  if (!target?.applySurfaceMaterial) {
+    return false;
+  }
+
+  target.applySurfaceMaterial(material, {
+    width: layout.width,
+    height: layout.height,
+    devicePixelRatio: layout.devicePixelRatio,
+  });
+  return true;
 }
