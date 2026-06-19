@@ -34,6 +34,10 @@ import {
   readTextCanvasRenderState,
   type TextCanvasRenderState,
 } from "./textCanvasLayout";
+import {
+  createElementPlaneEffectTarget,
+  createObject3DEffectTarget,
+} from "./effectTargets/elementPlaneEffectTarget";
 
 type ElementMeasurement = {
   x: number;
@@ -605,60 +609,6 @@ function setObject3DVisible(object3D: unknown, visible: boolean): void {
   }
 
   (object3D as { visible?: boolean }).visible = visible;
-}
-
-function createElementPlaneEffectTarget(
-  mesh: Mesh,
-  material: MeshBasicMaterial,
-): WebGLEffectTarget {
-  return {
-    applySolidMaterial(nextMaterial) {
-      material.color.setHex(nextMaterial.color);
-      material.opacity = nextMaterial.opacity;
-      material.transparent = true;
-      mesh.visible = true;
-    },
-    setRotation(x, y) {
-      setObject3DRotation(mesh, x, y);
-    },
-  };
-}
-
-function createObject3DEffectTarget(
-  object3D: unknown,
-): WebGLEffectTarget | undefined {
-  if (!object3D || typeof object3D !== "object") {
-    return undefined;
-  }
-
-  return {
-    setRotation(x, y) {
-      setObject3DRotation(object3D, x, y);
-    },
-  };
-}
-
-function setObject3DRotation(object3D: unknown, x: number, y: number): void {
-  if (!object3D || typeof object3D !== "object") {
-    return;
-  }
-
-  const rotation = (object3D as { rotation?: unknown }).rotation;
-
-  if (rotation && typeof rotation === "object" && "set" in rotation) {
-    const set = (rotation as { set?: unknown }).set;
-
-    if (typeof set === "function") {
-      const z = (rotation as { z?: number }).z ?? 0;
-
-      set.call(rotation, x, y, z);
-      return;
-    }
-  }
-
-  if (rotation && typeof rotation === "object") {
-    Object.assign(rotation, { x, y });
-  }
 }
 
 function setVector3(vector: unknown, x: number, y: number, z: number): void {
