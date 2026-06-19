@@ -32,10 +32,9 @@ Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
 visible behavior: pure effect normalization, compatibility, target capability
 types, and pointer motion are separated from Three.js renderable target
 adapters. Phase 6.2 adds a minimal built-in `surface` material for
-declaration-owned element snapshot color, opacity, and radius. Phase 7 is
-planned, not yet implemented: it should preserve Phase 6 declarations while
-moving effect execution from fixed material/motion slots toward ordered,
-registry-driven runtime primitives.
+declaration-owned element snapshot color, opacity, and radius. Phase 7
+preserves Phase 6 declarations while moving effect execution from fixed
+material/motion slots to ordered, registry-driven runtime primitives.
 
 ## Purpose
 
@@ -1268,7 +1267,7 @@ Delivered Phase 6.2 behavior:
 - Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
   separately approved Phase 6.3 gate includes them.
 
-Planned Phase 7 behavior:
+Delivered Phase 7 behavior:
 
 - Preserve the current Phase 6 object-form `effects.material` and
   `effects.motion` declarations as compatibility input.
@@ -1277,9 +1276,20 @@ Planned Phase 7 behavior:
 - Move built-in `solid`, `surface`, and `pointer-tilt` behavior behind
   registry-driven runtime plugin primitives with explicit source and target
   capability checks.
+- Expose custom effect registry primitives through the root public entrypoint
+  and allow `createWebGLRuntime({ effectRegistry })` to run registered effects
+  against existing target capabilities.
 - Keep text mutation, shader authoring, particles, picking, multiple canvases,
   third-party scroll adapters, and CSS paint cloning outside Phase 7 unless a
   later plan defines the missing target capabilities first.
+
+Text animation effects such as scrambled text require an explicit text target
+capability. They should not run by mutating native DOM and waiting for snapshot
+refresh, because that couples effect timing to browser paint and snapshot
+cadence. They also should not edit a bitmap snapshot directly unless the target
+exposes that as a supported capability. The intended future path is a
+`snapshot/text` effect target that exposes controlled text-content or
+text-texture updates to registered effects.
 
 ## Non-Goals For The New Project
 

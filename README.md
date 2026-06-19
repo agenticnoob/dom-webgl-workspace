@@ -24,10 +24,10 @@ Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
 adds a minimal built-in `surface` material on top of the modular Phase 6.1
 effect boundaries.
-Phase 7 is planned in
+Phase 7 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
-it will preserve the Phase 6 object-form declarations while moving the internal
-effect execution model toward ordered, registry-driven runtime primitives.
+it preserves the Phase 6 object-form declarations while moving the internal
+effect execution model to ordered, registry-driven runtime primitives.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -46,7 +46,7 @@ Current demo behavior:
 - React demo declares five base target categories through public APIs: element
   snapshot, text snapshot, image, video, and GLB model. It also includes a
   layout/content harness for transparent anchors, multiline text, object-fit
-  media, narrow viewport layout, and a Phase 5 effect/material harness.
+  media, narrow viewport layout, and a Phase 7 effect runtime harness.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -70,9 +70,10 @@ Current visual behavior:
 - DOM is the source for layout, content, accessibility, and interaction state.
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
-- Declared targets can opt into the supported built-in effect/material declarations:
-  `effects.material: { kind: "solid" | "surface" }` and
-  `effects.motion: { kind: "pointer-tilt" }`.
+- Declared targets can opt into the preferred ordered effect declarations:
+  `effects: [{ kind: "material.solid" | "surface.basic" }, { kind:
+  "motion.pointerTilt" }]`. The legacy Phase 6 `{ material, motion }` object
+  form remains supported as compatibility input.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -140,8 +141,9 @@ Current visual behavior:
   visibility state.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
-- Effect registry, animation/effect layers, WebGL raycast picking, Lenis, GSAP,
-  and ScrollTrigger adapters remain intentionally out of scope.
+- Text mutation effects, shader authoring, particles, animation layers, WebGL
+  raycast picking, Lenis, GSAP, and ScrollTrigger adapters remain intentionally
+  out of scope.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
@@ -166,9 +168,29 @@ Current visual behavior:
   opacity, and radius only; border, shadow, gradients, and CSS paint cloning
   remain out of scope unless a separately approved Phase 6.3 gate explicitly
   includes them.
-- Phase 7 is the next planned architecture step: it should replace fixed
-  material/motion runtime slots with effect declarations compiled into
-  registry-driven runtime plugins while keeping Phase 6 declarations compatible.
+- Phase 7 replaces fixed material/motion runtime slots with effect declarations
+  compiled into registry-driven runtime plugins while keeping Phase 6
+  declarations compatible. Custom registries can target existing runtime
+  capabilities through `effectRegistry`.
+
+### Effect model
+
+Effects are WebGL runtime plugins. They receive the target source kind, layout
+snapshot, frame input, pointer and scroll state, and an effect target capability
+surface. They do not scan DOM, mutate arbitrary DOM, create their own renderer,
+or own independent asset loading.
+
+Preferred declaration form:
+
+```ts
+effects: [
+  { kind: "surface.basic", color: 0x111111, opacity: 0.75, radius: 24 },
+  { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 6 },
+]
+```
+
+The legacy `{ material, motion }` object form remains supported for Phase 6
+compatibility.
 
 ## Setup
 
