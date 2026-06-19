@@ -156,25 +156,25 @@ describe("WebGLDeclaration public types", () => {
 	          effects: ["blur"],
 	        } satisfies WebGLDeclaration);
 
-        ({
-          key: "hero.surface",
-          effects: {
-            material: {
-              // @ts-expect-error only built-in material kinds are supported.
-              kind: "gradient",
-            },
-          },
-        } satisfies WebGLDeclaration);
+	        ({
+	          key: "hero.surface",
+	          // @ts-expect-error only built-in legacy material kinds are supported.
+	          effects: {
+	            material: {
+	              kind: "gradient",
+	            },
+	          },
+	        } satisfies WebGLDeclaration);
 
-        ({
-          key: "card.surface",
-          effects: {
-            material: {
-              kind: "surface",
-              // @ts-expect-error surface colors are declaration-owned numeric values.
-              color: "rgb(17, 24, 39)",
-            },
-          },
+	        ({
+	          key: "card.surface",
+	          // @ts-expect-error legacy surface colors are declaration-owned numeric values.
+	          effects: {
+	            material: {
+	              kind: "surface",
+	              color: "rgb(17, 24, 39)",
+	            },
+	          },
         } satisfies WebGLDeclaration);
 
 	        ({
