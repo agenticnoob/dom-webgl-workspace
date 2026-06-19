@@ -169,7 +169,11 @@ export function createElementPlaneSceneRenderableController(
   const controller = createSceneRenderableController({
     ...options,
     object3D: mesh,
-    effectTarget: createElementPlaneEffectTarget(mesh, material),
+    effectTarget: createElementPlaneEffectTarget(
+      mesh,
+      material,
+      options.element.ownerDocument,
+    ),
     disposeResources() {
       geometry.dispose();
       material.dispose();

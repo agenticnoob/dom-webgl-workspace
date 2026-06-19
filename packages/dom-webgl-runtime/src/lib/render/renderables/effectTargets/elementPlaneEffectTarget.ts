@@ -3,11 +3,17 @@ import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 
 import type { WebGLEffectTarget } from "../../../effects/effectTarget";
+import { createSurfaceTextureController } from "./surfaceTexture";
 
 export function createElementPlaneEffectTarget(
   mesh: Mesh,
   material: MeshBasicMaterial,
+  ownerDocument: Document,
 ): WebGLEffectTarget {
+  let surfaceTexture:
+    | ReturnType<typeof createSurfaceTextureController>
+    | undefined;
+
   return {
     applySolidMaterial(nextMaterial) {
       material.color.setHex(nextMaterial.color);
@@ -15,8 +21,25 @@ export function createElementPlaneEffectTarget(
       material.transparent = true;
       mesh.visible = true;
     },
+    applySurfaceMaterial(nextMaterial, layout) {
+      const canvas =
+        surfaceTexture?.texture.image instanceof HTMLCanvasElement
+          ? surfaceTexture.texture.image
+          : ownerDocument.createElement("canvas");
+
+      surfaceTexture ??= createSurfaceTextureController(canvas);
+      material.map = surfaceTexture.update({ material: nextMaterial, layout });
+      material.opacity = 1;
+      material.transparent = true;
+      material.needsUpdate = true;
+      mesh.visible = true;
+    },
     setRotation(x, y) {
       setObject3DRotation(mesh, x, y);
+    },
+    disposeEffects() {
+      surfaceTexture?.dispose();
+      surfaceTexture = undefined;
     },
   };
 }
