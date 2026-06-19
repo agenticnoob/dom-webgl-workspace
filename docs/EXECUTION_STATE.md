@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5 adds the first public minimum effect/material layer: `effects.material: { kind: "solid" }` makes explicit element snapshot surfaces WebGL-visible, `effects.motion: { kind: "pointer-tilt" }` consumes shared pointer frame input, and target-scoped effect controllers update from runtime renderables plus layout snapshots. Post-Phase 5 pointer input correction is implemented: the default runtime pointer controller listens at the document level and normalizes coordinates against the fixed viewport canvas, so pointer effects are not clipped by the `WebGLRuntime` container's document-flow box. Phase 6.1 effect core boundary refactor is implemented: pure effect normalization, compatibility, target capability types, and pointer motion helpers are separated from Three.js renderable target adapters. Phase 6.2 minimal surface material is implemented: `effects.material.kind: "surface"` supports declaration-owned color, opacity, and radius on `snapshot/element` targets through the modular element-plane effect target adapter. Phase 7 effect runtime primitives are implemented: Phase 6 declarations remain compatible, the preferred declaration shape is an ordered effects array, built-in `solid`, `surface`, and `pointer-tilt` behavior now runs through registry-driven plugins, custom registration can target existing runtime capabilities through `effectRegistry`, and React consumers can pass registries through `<WebGLRuntime effectRegistry={registry}>`. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5 adds the first public minimum effect/material layer: `effects.material: { kind: "solid" }` makes explicit element snapshot surfaces WebGL-visible, `effects.motion: { kind: "pointer-tilt" }` consumes shared pointer frame input, and target-scoped effect controllers update from runtime renderables plus layout snapshots. Post-Phase 5 pointer input correction is implemented: the default runtime pointer controller listens at the document level and normalizes coordinates against the fixed viewport canvas, so pointer effects are not clipped by the `WebGLRuntime` container's document-flow box. Phase 6.1 effect core boundary refactor is implemented: pure effect normalization, compatibility, target capability types, and pointer motion helpers are separated from Three.js renderable target adapters. Phase 6.2 minimal surface material is implemented: `effects.material.kind: "surface"` supports declaration-owned color, opacity, and radius on `snapshot/element` targets through the modular element-plane effect target adapter. Phase 7 effect runtime primitives are implemented as the historical registry foundation. Phase 8 custom effect authoring is implemented: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. Official visuals are optional presets from `@project/dom-webgl-runtime/effects`. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -10,19 +10,18 @@ Phase 4 layout/content mapping plan file: `docs/superpowers/plans/2026-06-18-pha
 Phase 5 effect/material layer plan file: `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`.
 Phase 6 modular surface materials plan file: `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`.
 Phase 7 effect runtime primitives plan file: `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`.
+Phase 8 custom effect authoring API plan file: `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
-Phase 7 Effect Runtime Primitives.
+Phase 8 Custom Effect Authoring API.
 
 ## Latest Documentation Note
-Phase 7 reframes effects as registry-driven runtime plugins. Built-in `solid`,
-`surface`, and `pointer-tilt` behavior is preserved, the preferred declaration
-shape becomes an ordered effects array, and custom registration can target
-existing runtime capabilities. The React adapter now forwards `effectRegistry`
-through `<WebGLRuntime />`, so React consumers can use custom registries through
-the public adapter. Text mutation remains a future capability because the
-runtime does not yet expose a stable `snapshot/text` mutation target.
+Phase 8 makes user-authored effects the public model. Core does not register
+default visual effects; consumers pass `defineWebGLEffect(...)` definitions and
+optional official presets through runtime-level `effects`. The internal registry
+remains an implementation detail. Text mutation remains a future capability
+because the runtime does not yet expose a stable `snapshot/text` mutation target.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -105,12 +104,33 @@ runtime does not yet expose a stable `snapshot/text` mutation target.
 - Task 78: Phase 5 Documentation Alignment.
 - Task 79: Viewport Pointer Input Correction.
 - Task 80: Phase 7 Effect Runtime Primitives.
+- Task 81: Phase 8 Custom Effect Authoring API.
 
 ## Current Task
-Phase 7 is complete. Phase 6.3 remains a decision gate only and should not
+Phase 8 is complete. Phase 6.3 remains a decision gate only and should not
 start unless a specific surface detail such as border, shadow, texture quality,
 or cache tuning is explicitly approved. Text mutation effects require a future
 `snapshot/text` target-capability plan.
+
+## Phase 8 Custom Effect Authoring API
+- Completed work: Added `defineWebGLEffect(...)`, public effect context/source/
+  target/resource types, runtime-level `effects`, React `<WebGLRuntime
+  effects={...}>`, definition-based internal registry dispatch, setup/update/
+  dispose lifecycle state, renderable source handles, GLB model source handles,
+  managed effect resources, generic target handles, optional
+  `surfaceBasicEffect` and `pointerTiltEffect` presets, and demo usage through
+  public entrypoints. Post-implementation demo hardening made the demo's runtime
+  effect definition array stable across debug-state re-renders, preventing
+  `<WebGLTarget />` children from registering against a disposed runtime.
+- Verification: `npm run typecheck` passed; `npm test -- --run` passed with 62
+  test files / 299 tests; `npm run build` passed with the existing non-blocking
+  Vite chunk-size warning; `npm run check:imports` passed with `Demo import
+  boundary OK`; `git diff --check` passed.
+- Boundary notes: Core registers no default visual effects; official visuals are
+  optional presets. The Three-backed model source handle lives beside the GLB
+  renderable adapter to preserve the pure effects boundary. No demo-specific
+  runtime branch, public renderer/camera/scene mutation, multiple canvas path,
+  picking path, third-party scroll adapter, or CSS paint cloning was added.
 
 ## Phase 7 Effect Runtime Primitives
 - Completed work: Added ordered effect declarations, a legacy declaration
@@ -119,8 +139,10 @@ or cache tuning is explicitly approved. Text mutation effects require a future
   `effectRegistry` injection, React `<WebGLRuntime effectRegistry={registry}>`
   forwarding, root public registry/plugin exports, and demo array-effect
   declarations.
-- Verification: Focused effect/runtime/demo tests pass during implementation.
-  Final full-suite verification is required before branch completion.
+- Verification: Focused effect/runtime/demo tests passed during implementation.
+  Superseded by Phase 8 final verification: 62 test files / 299 tests passed,
+  typecheck passed, build passed, demo import boundary passed, and
+  `git diff --check` passed.
 - Boundary notes: Text mutation, shader authoring API, particles, picking,
   multiple canvases, public Three.js render flags, third-party scroll adapter,
   CSS paint cloning, and demo-specific runtime branches remain out of scope.
@@ -588,32 +610,61 @@ or cache tuning is explicitly approved. Text mutation effects require a future
 - `npm test -- --run apps/demo/src/App.test.tsx -t "effect harness|visible renderable"` (RED before demo implementation: `demo.effects.surface` missing; GREEN after public-API-only demo effect harness)
 - `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check` (green Phase 5 full verification: 53 Vitest files / 266 tests passed, typecheck passed, build passed with the existing Vite chunk-size warning, demo import boundary passed, diff check passed)
 - `npm run test -- --run`, `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` (green post-Phase 5 pointer correction verification: 53 Vitest files / 267 tests passed, typecheck passed, build passed with the existing Vite chunk-size warning, demo import boundary passed, diff check passed)
+- `npm run typecheck` (green Phase 8 final verification)
+- `npm test -- --run` (green Phase 8 final verification: 62 Vitest files / 299 tests passed)
+- `npm run build` (green Phase 8 final verification: runtime type build passed; demo Vite production build passed with the existing non-blocking chunk-size warning)
+- `npm run check:imports` (green Phase 8 final verification: `Demo import boundary OK`)
+- `git diff --check` (green Phase 8 final verification)
+- `npm test -- --run apps/demo/src/App.test.tsx -t "keeps runtime effect definitions stable"` (RED before fix: inline demo `effects` array changed identity after debug re-render; GREEN after moving demo effects to a module-level constant)
+- `npm test -- --run apps/demo/src/App.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green post-bugfix focused verification: 22 tests passed)
+- `npm test -- --run apps/demo/src/App.test.tsx` (green post-bugfix focused verification: 11 tests passed)
+- `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` (green post-bugfix verification; build passed with the existing non-blocking Vite chunk-size warning)
 
 ## Last Result
-Post-Phase 5 pointer input correction aligns runtime behavior with the pointer
-contract: pointer capture is document-level, while coordinates are normalized to
-the fixed viewport canvas. The existing non-blocking Vite production build
-chunk-size warning remains.
+Phase 8 custom effect authoring has been implemented. User effects now use
+`defineWebGLEffect(...)` and runtime-level `effects`; core registers no default
+visual effects; optional official presets live at
+`@project/dom-webgl-runtime/effects`; and the demo opts into presets through
+public imports. Final verification passed: typecheck, full Vitest, production
+build, demo import boundary, and diff whitespace checks are green. The demo
+runtime-disposal regression was fixed by keeping the preset effect definitions
+stable across debug-state re-renders.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
-- `packages/dom-webgl-runtime/src/lib/input/pointerController.ts`
+- `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`
+- `apps/demo/src/App.tsx`
+- `apps/demo/src/App.test.tsx`
+- `packages/dom-webgl-runtime/package.json`
+- `packages/dom-webgl-runtime/src/index.ts`
+- `packages/dom-webgl-runtime/src/effects.ts`
+- `packages/dom-webgl-runtime/src/lib/effects/*`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
+- `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/*`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
+- `packages/dom-webgl-runtime/src/lib/types.ts`
+- `packages/dom-webgl-runtime/src/publicExports.test.ts`
+- `scripts/assert-demo-public-imports.mjs`
 
 ## Known Issues
-No blocking pointer input issue remains after full verification. The existing non-blocking Vite production build chunk-size warning remains.
+No blocking Phase 8 issue remains after full verification. The existing
+non-blocking Vite production build chunk-size warning remains.
 
 ## Important Constraints
-- Phase 2 may implement scene-gated scroll.
-- Phase 2 may implement scroll lock while a scene gate is active.
-- Phase 2 may expose `sceneProgress` through frame/debug state.
-- Phase 2 may implement explicit reverse gate behavior.
-- Do not implement a custom effect registry.
-- Do not expand beyond the built-in `solid`/`surface` materials and
-  `pointer-tilt` motion without a new plan.
+- Public effect authoring should stay on `defineWebGLEffect(...)` plus
+  runtime-level `effects`; the internal registry is not the primary public
+  authoring model.
+- Core must not auto-register official visual effects. Consumers opt into
+  official presets from `@project/dom-webgl-runtime/effects`.
+- Effects must use managed context, source handles, target handles, and
+  resources. They must not create their own renderer, scan DOM, install global
+  pointer listeners, or own independent source loading.
+- GLB/model helpers that need Three.js internals belong beside renderable
+  adapters, not inside pure effect modules.
 - Do not create multiple WebGL canvases.
 - Do not implement WebGL raycast picking.
 - Do not add Lenis / GSAP ScrollTrigger adapters.
@@ -623,11 +674,14 @@ No blocking pointer input issue remains after full verification. The existing no
 - Runtime/package implementation must stay reusable for an open-source package
   and must not hardcode demo-only keys, assets, DOM structure, layout, or copy.
 - apps/demo must import only public package APIs:
-  - @project/dom-webgl-runtime
-  - @project/dom-webgl-runtime/react
+  `@project/dom-webgl-runtime`, `@project/dom-webgl-runtime/effects`, and
+  `@project/dom-webgl-runtime/react`.
 - Phase 3 visible renderables must keep scene object and render policy details internal.
 - `lifecycle.hideWhenReady` may hide DOM fallback only after the WebGL renderable is visually ready.
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-The next step may plan a broader effect/material capability from a new plan while preserving the current public boundary: no public Three.js render flags, no multiple-canvas path, no picking path, no third-party scroll adapter, no CSS paint cloning, and no custom effect registry unless explicitly planned.
+The next step can either harden Phase 8 presets or plan a narrow text/model
+effect capability. Keep the boundary explicit: no public renderer/camera/scene
+mutation, no multiple-canvas path, no picking path, no third-party scroll
+adapter, no CSS paint cloning, and no demo-specific runtime branch.

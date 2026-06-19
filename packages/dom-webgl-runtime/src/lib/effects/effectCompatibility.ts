@@ -1,12 +1,21 @@
-import type { WebGLEffectPlugin, WebGLEffectSourceKind } from "./effectPlugin";
+import type { WebGLEffectDefinition } from "./effectAuthoring";
+import type { WebGLEffectSourceKind } from "./effectPlugin";
 
 export function assertEffectCompatibility(
   key: string,
   effectKind: string,
-  plugin: WebGLEffectPlugin,
+  definition: WebGLEffectDefinition,
   sourceKind: WebGLEffectSourceKind,
 ): void {
-  if (plugin.appliesTo.includes(sourceKind)) {
+  if (!definition.source) {
+    return;
+  }
+
+  const allowedSources = Array.isArray(definition.source)
+    ? definition.source
+    : [definition.source];
+
+  if (allowedSources.includes(sourceKind)) {
     return;
   }
 

@@ -95,45 +95,45 @@ describe("WebGLRuntime", () => {
     expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
   });
 
-  test("passes the effect registry to the runtime on mount", async () => {
+  test("passes effect definitions to the runtime on mount", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
-    const effectRegistry = createTestEffectRegistry();
+    const effects = createTestEffects();
 
     await act(async () => {
-      root.render(createElement(WebGLRuntime, { effectRegistry }));
+      root.render(createElement(WebGLRuntime, { effects }));
     });
 
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith(
       expect.objectContaining({
-        effectRegistry,
+        effects,
       }),
     );
   });
 
-  test("recreates the runtime when the effect registry changes", async () => {
+  test("recreates the runtime when effect definitions change", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
-    const firstRegistry = createTestEffectRegistry();
-    const secondRegistry = createTestEffectRegistry();
+    const firstEffects = createTestEffects();
+    const secondEffects = createTestEffects("custom.second");
 
     await act(async () => {
-      root.render(createElement(WebGLRuntime, { effectRegistry: firstRegistry }));
+      root.render(createElement(WebGLRuntime, { effects: firstEffects }));
     });
 
     const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
       .value as RuntimeInstance;
 
     await act(async () => {
-      root.render(createElement(WebGLRuntime, { effectRegistry: secondRegistry }));
+      root.render(createElement(WebGLRuntime, { effects: secondEffects }));
     });
 
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
     expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
     expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
       expect.objectContaining({
-        effectRegistry: secondRegistry,
+        effects: secondEffects,
       }),
     );
   });
@@ -312,12 +312,15 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
   };
 }
 
-function createTestEffectRegistry() {
-  return {
-    register: vi.fn(),
-    resolve: vi.fn(),
-    list: vi.fn(() => []),
-  };
+function createTestEffects(kind = "custom.test"): WebGLRuntimeOptions["effects"] {
+  return [
+    {
+      kind,
+      update() {
+        return;
+      },
+    },
+  ];
 }
 
 function createEmptyDebugState() {

@@ -1,37 +1,31 @@
 import { describe, expect, test } from "vitest";
 
+import { defineWebGLEffect } from "./effectAuthoring";
 import { createWebGLEffectRegistry } from "./effectRegistry";
-import type { WebGLEffectPlugin } from "./effectPlugin";
 
-const testPlugin: WebGLEffectPlugin<
-  { kind: "test.effect"; value?: number },
-  { value: number }
-> = {
+const testEffect = defineWebGLEffect({
   kind: "test.effect",
-  appliesTo: ["snapshot/element"],
-  capabilities: ["material.surface"],
-  normalize: (declaration) => ({ value: declaration.value ?? 1 }),
-  create: () => ({ update: () => undefined }),
-};
+  update() {
+    return;
+  },
+});
 
 describe("createWebGLEffectRegistry", () => {
-  test("registers and resolves plugins by kind", () => {
-    const registry = createWebGLEffectRegistry();
-    registry.register(testPlugin);
+  test("registers and resolves effect definitions by kind", () => {
+    const registry = createWebGLEffectRegistry([testEffect]);
 
-    expect(registry.resolve("test.effect")).toBe(testPlugin);
+    expect(registry.resolve("test.effect")).toBe(testEffect);
   });
 
-  test("throws on duplicate plugin kinds", () => {
-    const registry = createWebGLEffectRegistry();
-    registry.register(testPlugin);
-
-    expect(() => registry.register(testPlugin)).toThrow(
-      'WebGL effect plugin "test.effect" is already registered.',
+  test("throws on duplicate effect kinds", () => {
+    expect(() =>
+      createWebGLEffectRegistry([testEffect, testEffect]),
+    ).toThrow(
+      'WebGL effect "test.effect" is already registered.',
     );
   });
 
-  test("returns undefined for unknown plugin kinds", () => {
+  test("returns undefined for unknown effect kinds", () => {
     expect(createWebGLEffectRegistry().resolve("missing.effect")).toBeUndefined();
   });
 });

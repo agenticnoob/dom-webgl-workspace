@@ -70,6 +70,13 @@ export function createTextSnapshotRenderable(
       effectTarget() {
         return state.scene?.object.effectTarget;
       },
+      effectSource() {
+        return {
+          kind: "snapshot/text",
+          element: context.descriptor.element,
+          text: state.textContent,
+        };
+      },
       dispose() {
         state.textContent = "";
         state.scene?.controller.dispose();

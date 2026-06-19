@@ -28,7 +28,10 @@ import {
   createWebGLEffectController,
   type WebGLEffectController,
 } from "../effects/effectController";
-import type { WebGLEffectRegistry } from "../effects/effectRegistry";
+import {
+  createWebGLEffectRegistry,
+  type WebGLEffectRegistry,
+} from "../effects/effectRegistry";
 import {
   createFrameInputSource,
   type FrameClock,
@@ -166,7 +169,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
-    effectRegistry: internalOptions.effectRegistry,
+    effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -587,6 +590,7 @@ function createPipelineRenderable(
     key: descriptor.key,
     declaration: descriptor.declaration.effects,
     source,
+    getSource: () => renderable.effectSource,
     getTarget: () => renderable.effectTarget,
     registry: context.effectRegistry,
   });

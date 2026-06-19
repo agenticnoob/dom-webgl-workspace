@@ -1,15 +1,16 @@
 export { createWebGLRuntime } from "./lib/renderer/runtime";
 export {
-  createWebGLEffectRegistry,
-  type WebGLEffectRegistry,
-} from "./lib/effects/effectRegistry";
-export type {
-  WebGLEffectInstance,
-  WebGLEffectPlugin,
-  WebGLEffectSourceKind,
-  WebGLEffectTargetCapability,
-  WebGLEffectTargetContext,
-} from "./lib/effects/effectPlugin";
+  defineWebGLEffect,
+  type WebGLEffectContext,
+  type WebGLEffectDefinition,
+  type WebGLEffectManagedObjectHandle,
+  type WebGLEffectResourceScope,
+  type WebGLEffectSetupContext,
+  type WebGLEffectSourceHandle,
+  type WebGLEffectTargetHandle,
+  type WebGLEffectUpdateContext,
+  type WebGLModelEffectHandle,
+} from "./lib/effects/effectAuthoring";
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLDeclaration,

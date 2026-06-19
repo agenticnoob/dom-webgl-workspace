@@ -1,37 +1,29 @@
-import type { WebGLEffectPlugin } from "./effectPlugin";
+import type { WebGLEffectDefinition } from "./effectAuthoring";
 
 export type WebGLEffectRegistry = {
-  register(plugin: WebGLEffectPlugin): void;
-  resolve(kind: string): WebGLEffectPlugin | undefined;
-  list(): readonly WebGLEffectPlugin[];
+  resolve(kind: string): WebGLEffectDefinition | undefined;
+  list(): readonly WebGLEffectDefinition[];
 };
 
 export function createWebGLEffectRegistry(
-  plugins: readonly WebGLEffectPlugin[] = [],
+  effects: readonly WebGLEffectDefinition[] = [],
 ): WebGLEffectRegistry {
-  const byKind = new Map<string, WebGLEffectPlugin>();
+  const byKind = new Map<string, WebGLEffectDefinition>();
 
-  const registry: WebGLEffectRegistry = {
-    register(plugin): void {
-      if (byKind.has(plugin.kind)) {
-        throw new Error(
-          `WebGL effect plugin "${plugin.kind}" is already registered.`,
-        );
-      }
+  for (const effect of effects) {
+    if (byKind.has(effect.kind)) {
+      throw new Error(`WebGL effect "${effect.kind}" is already registered.`);
+    }
 
-      byKind.set(plugin.kind, plugin);
-    },
-    resolve(kind): WebGLEffectPlugin | undefined {
+    byKind.set(effect.kind, effect);
+  }
+
+  return {
+    resolve(kind) {
       return byKind.get(kind);
     },
-    list(): readonly WebGLEffectPlugin[] {
+    list() {
       return [...byKind.values()];
     },
   };
-
-  for (const plugin of plugins) {
-    registry.register(plugin);
-  }
-
-  return registry;
 }

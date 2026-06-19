@@ -3,11 +3,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { ScrollControllerGateTarget } from "../input/scrollController";
-import { createWebGLEffectRegistry } from "../effects/effectRegistry";
-import type {
-  WebGLEffectPlugin,
-  WebGLEffectTargetContext,
-} from "../effects/effectPlugin";
+import { defineWebGLEffect } from "../effects/effectAuthoring";
+import { pointerTiltEffect, surfaceBasicEffect } from "../effects/presets";
 import type { Renderable } from "../render/renderable";
 import type { WebGLSceneAdapter } from "./sceneObject";
 import type {
@@ -163,6 +160,51 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("runs model effects after the GLB source handle is ready", async () => {
+    const updateEffect = vi.fn();
+    const runtime = await createPipelineRuntime({
+      loadModel: async () => ({
+        scene: {
+          children: [],
+          clone() {
+            return this;
+          },
+        },
+      }),
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.modelProbe",
+          source: "model/glb",
+          update(ctx) {
+            updateEffect(ctx.source);
+          },
+        }),
+      ],
+    });
+    const anchor = document.createElement("div");
+
+    runtime.registerTarget(anchor, {
+      key: "product",
+      source: { kind: "model", format: "glb", src: "/product.glb" },
+      effects: [{ kind: "custom.modelProbe" }],
+    });
+
+    await runtime.sync();
+
+    expect(updateEffect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "model/glb",
+        src: "/product.glb",
+        model: expect.objectContaining({
+          sampleVertices: expect.any(Function),
+          createPointCloud: expect.any(Function),
+        }),
+      }),
+    );
+
+    runtime.dispose();
+  });
+
   test("unregistering a target disposes the matching renderable once", async () => {
     const disposeCallsByKey = new Map<string, ReturnType<typeof vi.fn>>();
     const runtime = await createPipelineRuntime({
@@ -266,9 +308,23 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("applies declared material and pointer tilt effects after layout", async () => {
+  test("runs user-authored effects from runtime options", async () => {
+    const setup = vi.fn(() => ({ updates: 0 }));
+    const update = vi.fn((ctx, state: { updates: number }) => {
+      state.updates += 1;
+      ctx.target?.setVisible(true);
+      ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+    });
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.visibleTilt",
+          source: "snapshot/element",
+          setup,
+          update,
+        }),
+      ],
       rendererHostFactory: (container) =>
         createRendererHostStub(container, sceneAdapter),
       measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
@@ -281,12 +337,54 @@ describe("runtime pipeline sync", () => {
     const element = document.createElement("section");
 
     runtime.registerTarget(element, {
-      key: "effect.surface",
+      key: "custom.surface",
       source: { kind: "snapshot", mode: "element" },
-      effects: {
-        material: { kind: "solid", color: 0x112233, opacity: 0.42 },
-        motion: { kind: "pointer-tilt", strength: 0.5, maxDegrees: 10 },
+      effects: [{ kind: "custom.visibleTilt" }],
+    });
+
+    await runtime.sync();
+    await runtime.sync();
+
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.mock.calls[0]?.[0]).toMatchObject({
+      key: "custom.surface",
+      sourceKind: "snapshot/element",
+      pointer: { normalizedX: 1 },
+      target: {
+        setVisible: expect.any(Function),
+        setRotation: expect.any(Function),
       },
+    });
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      visible: true,
+    });
+
+    runtime.dispose();
+  });
+
+  test("runs optional preset effects only when passed to the runtime", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      effects: [surfaceBasicEffect, pointerTiltEffect],
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
+      pointerController: createPointerController({
+        isInside: true,
+        normalizedX: 1,
+        normalizedY: -0.5,
+      }),
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "preset.surface",
+      source: { kind: "snapshot", mode: "element" },
+      effects: [
+        { kind: "surfaceBasic", opacity: 0.84 },
+        { kind: "pointerTilt", strength: 0.5, maxDegrees: 10 },
+      ],
     });
 
     await runtime.sync();
@@ -294,150 +392,37 @@ describe("runtime pipeline sync", () => {
     const mesh = sceneAdapter.objects[0]?.object3D as {
       visible?: boolean;
       rotation?: { x?: number; y?: number };
-      material?: {
-        opacity?: number;
-        transparent?: boolean;
-        color?: { getHex(): number };
-      };
-    };
-
-    expect(mesh.visible).toBe(true);
-    expect(mesh.material?.transparent).toBe(true);
-    expect(mesh.material?.opacity).toBe(0.42);
-    expect(mesh.material?.color?.getHex()).toBe(0x112233);
-    expect(mesh.rotation?.x).toBeCloseTo(-0.0436332313);
-    expect(mesh.rotation?.y).toBeCloseTo(0.0872664626);
-
-    runtime.dispose();
-  });
-
-  test("applies declared surface material effects without target errors", async () => {
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-      createCanvasContextStub(),
-    );
-    const sceneAdapter = createObjectRecordingSceneAdapter();
-    const runtime = await createPipelineRuntime({
-      rendererHostFactory: (container) =>
-        createRendererHostStub(container, sceneAdapter),
-      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
-    });
-    const element = document.createElement("section");
-
-    runtime.registerTarget(element, {
-      key: "effect.surface.phase6",
-      source: { kind: "snapshot", mode: "element" },
-      effects: {
-        material: {
-          kind: "surface",
-          color: 0x111827,
-          opacity: 0.84,
-          radius: 16,
-        },
-      },
-    });
-
-    await runtime.sync();
-
-    const mesh = sceneAdapter.objects[0]?.object3D as {
-      visible?: boolean;
-      material?: {
-        map?: unknown;
-        opacity?: number;
-        transparent?: boolean;
-      };
+      material?: { opacity?: number; transparent?: boolean };
     };
 
     expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
     expect(mesh.visible).toBe(true);
     expect(mesh.material?.transparent).toBe(true);
-    expect(mesh.material?.opacity).toBe(1);
-    expect(mesh.material?.map).toBeTruthy();
+    expect(mesh.material?.opacity).toBe(0.84);
+    expect(mesh.rotation?.x).toBeCloseTo(0.0436332313);
+    expect(mesh.rotation?.y).toBeCloseTo(0.0872664626);
 
     runtime.dispose();
   });
 
-  test("reports incompatible solid material effects as target errors", async () => {
+  test("reports target effects that were not passed to the runtime", async () => {
     const runtime = await createPipelineRuntime();
-    const image = document.createElement("img");
 
-    image.setAttribute("src", "/poster.png");
-    runtime.registerTarget(image, {
-      key: "effect.image",
-      source: { kind: "image", src: "/poster.png" },
-      effects: {
-        material: { kind: "solid", color: 0x112233 },
-      },
+    runtime.registerTarget(document.createElement("section"), {
+      key: "missing.effect",
+      effects: [{ kind: "custom.missing" }],
     });
 
     expect(() => runtime.sync()).toThrow(
-      'WebGL effect "material.solid" cannot be used with source "image" on target "effect.image".',
+      'WebGL target "missing.effect" references unknown effect "custom.missing". Register it through createWebGLRuntime({ effects: [...] }).',
     );
     expect(runtime.getDebugState().targets[0]).toMatchObject({
-      key: "effect.image",
+      key: "missing.effect",
       resourceStatus: "error",
       lifecycleState: "error",
       error:
-        'WebGL effect "material.solid" cannot be used with source "image" on target "effect.image".',
+        'WebGL target "missing.effect" references unknown effect "custom.missing". Register it through createWebGLRuntime({ effects: [...] }).',
     });
-
-    runtime.dispose();
-  });
-
-  test("runs custom registered effects through existing target capabilities", async () => {
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-      createCanvasContextStub(),
-    );
-    const updateEffect = vi.fn(
-      (context: WebGLEffectTargetContext, opacity: number) => {
-        context.target?.applySurfaceMaterial?.(
-          { color: 0x123456, opacity, radius: 10 },
-          {
-            width: context.layout.width,
-            height: context.layout.height,
-            devicePixelRatio: context.layout.devicePixelRatio,
-          },
-        );
-      },
-    );
-    const customSurfaceEffect: WebGLEffectPlugin<
-      { kind: "custom.surfacePulse"; opacity?: number },
-      { opacity: number }
-    > = {
-      kind: "custom.surfacePulse",
-      appliesTo: ["snapshot/element"],
-      capabilities: ["material.surface"],
-      normalize: (declaration) => ({ opacity: declaration.opacity ?? 1 }),
-      create: (state) => ({
-        update(context) {
-          updateEffect(context, state.opacity);
-        },
-      }),
-    };
-    const effectRegistry = createWebGLEffectRegistry([customSurfaceEffect]);
-    const runtime = await createPipelineRuntime({
-      effectRegistry,
-      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
-    });
-    const element = document.createElement("section");
-
-    runtime.registerTarget(element, {
-      key: "custom.surface",
-      source: { kind: "snapshot", mode: "element" },
-      effects: [{ kind: "custom.surfacePulse", opacity: 0.4 }],
-    });
-
-    await runtime.sync();
-
-    expect(updateEffect).toHaveBeenCalledOnce();
-    expect(updateEffect.mock.calls[0]?.[0]).toMatchObject({
-      key: "custom.surface",
-      sourceKind: "snapshot/element",
-      layout: { width: 200, height: 120, devicePixelRatio: 1 },
-      target: {
-        applySurfaceMaterial: expect.any(Function),
-      },
-    });
-    expect(updateEffect.mock.calls[0]?.[1]).toBe(0.4);
 
     runtime.dispose();
   });

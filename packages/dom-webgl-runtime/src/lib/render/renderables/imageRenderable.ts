@@ -82,6 +82,13 @@ export function createImageRenderable(
       effectTarget() {
         return state.scene?.object.effectTarget;
       },
+      effectSource() {
+        return {
+          kind: "image",
+          element: source.element,
+          src: source.src,
+        };
+      },
       dispose() {
         state.scene?.controller.dispose();
         resource.dispose();

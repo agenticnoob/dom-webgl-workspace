@@ -1,4 +1,4 @@
-import type { WebGLEffectRegistry } from "./effects/effectRegistry";
+import type { WebGLEffectDefinition } from "./effects/effectAuthoring";
 
 export type WebGLRenderRole =
   | "surface"
@@ -137,7 +137,7 @@ export type WebGLDeclaration = {
 
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
-  effectRegistry?: WebGLEffectRegistry;
+  effects?: readonly WebGLEffectDefinition[];
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 

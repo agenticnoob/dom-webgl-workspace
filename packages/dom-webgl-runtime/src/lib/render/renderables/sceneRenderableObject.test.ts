@@ -57,7 +57,7 @@ describe("element plane scene renderable", () => {
     controller.controller.dispose();
   });
 
-  test("exposes an effect target for explicit solid material and pointer tilt", () => {
+  test("exposes a generic effect target for user-authored effects", () => {
     const element = document.createElement("section");
     const controller = createElementPlaneSceneRenderableController({
       key: "effect.surface",
@@ -76,20 +76,17 @@ describe("element plane scene renderable", () => {
       material?: {
         opacity?: number;
         transparent?: boolean;
-        color?: { getHex(): number };
       };
     };
 
-    controller.object.effectTarget?.applySolidMaterial?.({
-      color: 0x112233,
-      opacity: 0.42,
-    });
-    controller.object.effectTarget?.setRotation?.(0.1, -0.2);
+    controller.object.effectTarget?.setVisible(true);
+    controller.object.effectTarget?.setRotation(0.1, -0.2, 0.3);
+    controller.object.effectTarget?.setScale(1.2, 0.9, 1);
+    controller.object.effectTarget?.setOpacity(0.42);
 
     expect(mesh.visible).toBe(true);
     expect(mesh.material?.transparent).toBe(true);
     expect(mesh.material?.opacity).toBe(0.42);
-    expect(mesh.material?.color?.getHex()).toBe(0x112233);
     expect(mesh.rotation?.x).toBe(0.1);
     expect(mesh.rotation?.y).toBe(-0.2);
 

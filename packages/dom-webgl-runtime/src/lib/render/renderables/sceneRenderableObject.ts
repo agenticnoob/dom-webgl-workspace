@@ -22,6 +22,7 @@ import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
 
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
+import type { WebGLEffectManagedObjectHandle } from "../../effects/effectAuthoring";
 import type { WebGLEffectTarget } from "../../effects/effectTarget";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
 import {
@@ -94,6 +95,7 @@ const defaultViewport = {
 export function createSceneRenderableController(
   options: SceneRenderableControllerOptions,
 ): SceneRenderableController {
+  const addEffectObject3D = createManagedObject3DFactory(options);
   const object: SceneRenderableObject = {
     key: options.key,
     object3D: options.object3D,
@@ -102,7 +104,8 @@ export function createSceneRenderableController(
     textContent: options.textContent,
     textureSource: options.textureSource,
     effectTarget:
-      options.effectTarget ?? createObject3DEffectTarget(options.object3D),
+      options.effectTarget ??
+      createObject3DEffectTarget(options.object3D, addEffectObject3D),
     setVisible(visible) {
       object.visible = visible;
       setObject3DVisible(options.object3D, visible);
@@ -172,7 +175,7 @@ export function createElementPlaneSceneRenderableController(
     effectTarget: createElementPlaneEffectTarget(
       mesh,
       material,
-      options.element.ownerDocument,
+      createManagedObject3DFactory(options),
     ),
     disposeResources() {
       geometry.dispose();
@@ -181,6 +184,62 @@ export function createElementPlaneSceneRenderableController(
   });
 
   return controller;
+}
+
+function createManagedObject3DFactory(
+  options: Pick<SceneRenderableControllerOptions, "key" | "sceneAdapter">,
+): NonNullable<WebGLEffectTarget["addObject3D"]> {
+  let nextManagedObjectId = 0;
+
+  return (object3D, managedOptions = {}): WebGLEffectManagedObjectHandle => {
+    let disposed = false;
+    let attached = true;
+    const sceneObject: SceneRenderableObject = {
+      key: `${options.key}:effect:${nextManagedObjectId}`,
+      object3D,
+      visible: true,
+      disposed: false,
+      setVisible(visible) {
+        sceneObject.visible = visible;
+        setObject3DVisible(object3D, visible);
+      },
+      updateLayout() {
+        return;
+      },
+      dispose() {
+        sceneObject.disposed = true;
+      },
+    };
+
+    nextManagedObjectId += 1;
+    options.sceneAdapter.addObject(sceneObject);
+
+    return {
+      setVisible(visible) {
+        if (!disposed) {
+          sceneObject.setVisible(visible);
+        }
+      },
+      remove() {
+        if (!attached) {
+          return;
+        }
+
+        attached = false;
+        options.sceneAdapter.removeObject(sceneObject);
+      },
+      dispose() {
+        if (disposed) {
+          return;
+        }
+
+        disposed = true;
+        this.remove();
+        managedOptions.dispose?.(object3D);
+        sceneObject.dispose();
+      },
+    };
+  };
 }
 
 export function createModelSceneRenderableController(

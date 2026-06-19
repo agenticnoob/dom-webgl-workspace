@@ -1,6 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { defineWebGLEffect } from "./effectAuthoring";
 import { createWebGLEffectController } from "./effectController";
+import { createWebGLEffectRegistry } from "./effectRegistry";
 import type { WebGLEffectTarget } from "./effectTarget";
 import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
 
@@ -34,117 +36,79 @@ describe("normalizeWebGLEffectsDeclaration", () => {
 });
 
 describe("createWebGLEffectController", () => {
-  test("applies solid material to element snapshot effect targets", () => {
-    const target = createEffectTarget();
-    const controller = createWebGLEffectController({
-      key: "hero.surface",
-      declaration: {
-        material: { kind: "solid", color: 0x111827, opacity: 0.82 },
-      },
-      source: createElementSnapshotSource(),
-      target,
-    });
-
-    controller.update(createFrameInput(), createLayoutSnapshot());
-
-    expect(target.applySolidMaterial).toHaveBeenCalledWith({
-      color: 0x111827,
-      opacity: 0.82,
-    });
-  });
-
-  test("applies surface material with the current layout snapshot", () => {
-    const target = createEffectTarget();
-    const controller = createWebGLEffectController({
-      key: "card.surface",
-      declaration: {
-        material: {
-          kind: "surface",
-          color: 0x111827,
-          opacity: 0.84,
-          radius: 16,
-        },
-      },
-      source: createElementSnapshotSource(),
-      target,
-    });
-    const layout = createLayoutSnapshot();
-
-    controller.update(createFrameInput(), layout);
-
-    expect(target.applySurfaceMaterial).toHaveBeenCalledWith(
-      { color: 0x111827, opacity: 0.84, radius: 16 },
-      {
-        width: layout.width,
-        height: layout.height,
-        devicePixelRatio: layout.devicePixelRatio,
-      },
-    );
-  });
-
-  test("rejects solid material on non-element sources", () => {
+  test("does not register preset effects by default", () => {
     expect(() =>
       createWebGLEffectController({
-        key: "hero.image",
-        declaration: {
-          material: { kind: "solid", color: 0x111827 },
-        },
-        source: createImageSource(),
+        key: "hero",
+        declaration: [{ kind: "surface.basic" }],
+        source: createElementSnapshotSource(),
         target: createEffectTarget(),
       }),
     ).toThrow(
-      'WebGL effect "material.solid" cannot be used with source "image" on target "hero.image".',
+      'WebGL target "hero" references unknown effect "surface.basic". Register it through createWebGLRuntime({ effects: [...] }).',
     );
   });
 
-  test("runs array effect declarations through registered plugins", () => {
+  test("rejects effects registered for a different source kind", () => {
+    expect(() =>
+      createWebGLEffectController({
+        key: "hero.image",
+        declaration: [{ kind: "custom.elementOnly" }],
+        source: createImageSource(),
+        target: createEffectTarget(),
+        registry: createWebGLEffectRegistry([
+          defineWebGLEffect({
+            kind: "custom.elementOnly",
+            source: "snapshot/element",
+            update() {
+              return;
+            },
+          }),
+        ]),
+      }),
+    ).toThrow(
+      'WebGL effect "custom.elementOnly" cannot be used with source "image" on target "hero.image".',
+    );
+  });
+
+  test("runs setup once, update every frame, and dispose once", () => {
+    const setup = vi.fn(() => ({ count: 0 }));
+    const update = vi.fn((_context, state: { count: number }) => {
+      state.count += 1;
+    });
+    const dispose = vi.fn();
     const target = createEffectTarget();
     const controller = createWebGLEffectController({
       key: "hero",
-      declaration: [
-        {
-          kind: "surface.basic",
-          color: 0x111111,
-          opacity: 0.5,
-          radius: 12,
-        },
-      ],
+      declaration: [{ kind: "custom.counter" }],
       source: createElementSnapshotSource(),
+      getSource: () => createElementEffectSource(),
       target,
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.counter",
+          source: "snapshot/element",
+          setup,
+          update,
+          dispose,
+        }),
+      ]),
     });
 
     controller.update(createFrameInput(), createLayoutSnapshot());
+    controller.update(createFrameInput(), createLayoutSnapshot());
+    controller.dispose();
+    controller.dispose();
 
-    expect(target.applySurfaceMaterial).toHaveBeenCalledWith(
-      { color: 0x111111, opacity: 0.5, radius: 12 },
-      { width: 200, height: 100, devicePixelRatio: 1 },
-    );
-  });
-
-  test("keeps legacy effects working through the compiler", () => {
-    const target = createEffectTarget();
-    const controller = createWebGLEffectController({
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(dispose.mock.calls[0]?.[0]).toMatchObject({
       key: "hero",
-      declaration: {
-        motion: { kind: "pointer-tilt", strength: 1, maxDegrees: 8 },
-      },
-      source: createElementSnapshotSource(),
+      sourceKind: "snapshot/element",
+      source: { kind: "snapshot/element" },
       target,
     });
-
-    controller.update(
-      createFrameInput({
-        isInside: true,
-        normalizedX: 1,
-        normalizedY: -1,
-      }),
-      createLayoutSnapshot(),
-    );
-
-    expect(target.setRotation).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-    );
   });
 
   test("reports unknown effect kinds as configuration errors", () => {
@@ -155,52 +119,93 @@ describe("createWebGLEffectController", () => {
         source: createElementSnapshotSource(),
         target: createEffectTarget(),
       }),
-    ).toThrow('WebGL target "hero" references unknown effect "missing.effect".');
+    ).toThrow(
+      'WebGL target "hero" references unknown effect "missing.effect". Register it through createWebGLRuntime({ effects: [...] }).',
+    );
   });
 
-  test("updates pointer tilt from shared frame input and resets outside target", () => {
-    const target = createEffectTarget();
+  test("passes frame, layout, source, target, and resources to user effects", () => {
+    const update = vi.fn();
+    const source = createElementEffectSource();
     const controller = createWebGLEffectController({
-      key: "hero.surface",
-      declaration: {
-        motion: { kind: "pointer-tilt", strength: 0.5, maxDegrees: 10 },
-      },
+      key: "custom.surface",
+      declaration: [{ kind: "custom.visibleTilt" }],
       source: createElementSnapshotSource(),
-      target,
+      getSource: () => source,
+      target: createEffectTarget(),
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.visibleTilt",
+          update(ctx) {
+            ctx.target?.setVisible(true);
+            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+            update(ctx);
+          },
+        }),
+      ]),
+    });
+    const input = createFrameInput({ normalizedX: 0.5 });
+    const layout = createLayoutSnapshot();
+
+    controller.update(input, layout);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "custom.surface",
+        sourceKind: "snapshot/element",
+        input,
+        layout,
+        pointer: input.pointer,
+        scroll: input.scroll,
+        scrollProgress: 0,
+        time: 100,
+        delta: 16,
+        source,
+        resources: expect.objectContaining({
+          addDisposable: expect.any(Function),
+        }),
+      }),
+    );
+  });
+
+  test("skips setup and update until the source handle is ready", () => {
+    const setup = vi.fn();
+    const update = vi.fn();
+    let source = undefined as ReturnType<typeof createModelEffectSource> | undefined;
+    const controller = createWebGLEffectController({
+      key: "async.model",
+      declaration: [{ kind: "custom.model" }],
+      source: {
+        kind: "model",
+        format: "glb",
+        src: "/product.glb",
+        anchor: document.createElement("div"),
+      },
+      getSource: () => source,
+      target: createEffectTarget(),
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.model",
+          source: "model/glb",
+          setup,
+          update,
+        }),
+      ]),
     });
 
-    controller.update(
-      createFrameInput({
-        isInside: true,
-        normalizedX: 1,
-        normalizedY: -0.5,
-      }),
-      createLayoutSnapshot(),
-    );
-    controller.update(
-      createFrameInput({
-        isInside: false,
-        normalizedX: 1,
-        normalizedY: 1,
-      }),
-      createLayoutSnapshot(),
-    );
+    controller.update(createFrameInput(), createLayoutSnapshot());
+    source = createModelEffectSource();
+    controller.update(createFrameInput(), createLayoutSnapshot());
 
-    expect(target.setRotation).toHaveBeenNthCalledWith(
-      1,
-      expect.closeTo(-0.0436332313),
-      expect.closeTo(0.0872664626),
-    );
-    expect(target.setRotation).toHaveBeenNthCalledWith(2, 0, 0);
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
   });
 
   test("disposes the effect target", () => {
     const target = createEffectTarget();
     const controller = createWebGLEffectController({
       key: "hero.surface",
-      declaration: {
-        motion: { kind: "pointer-tilt" },
-      },
+      declaration: undefined,
       source: createElementSnapshotSource(),
       target,
     });
@@ -213,16 +218,45 @@ describe("createWebGLEffectController", () => {
 });
 
 function createEffectTarget(): WebGLEffectTarget & {
-  applySolidMaterial: ReturnType<typeof vi.fn>;
-  applySurfaceMaterial: ReturnType<typeof vi.fn>;
   setRotation: ReturnType<typeof vi.fn>;
+  setVisible: ReturnType<typeof vi.fn>;
+  setScale: ReturnType<typeof vi.fn>;
+  setOpacity: ReturnType<typeof vi.fn>;
   disposeEffects: ReturnType<typeof vi.fn>;
 } {
   return {
-    applySolidMaterial: vi.fn(),
-    applySurfaceMaterial: vi.fn(),
+    setVisible: vi.fn(),
     setRotation: vi.fn(),
+    setScale: vi.fn(),
+    setOpacity: vi.fn(),
     disposeEffects: vi.fn(),
+  };
+}
+
+function createElementEffectSource() {
+  return {
+    kind: "snapshot/element" as const,
+    element: document.createElement("section"),
+  };
+}
+
+function createModelEffectSource() {
+  return {
+    kind: "model/glb" as const,
+    anchor: document.createElement("div"),
+    src: "/product.glb",
+    model: {
+      object3D: {},
+      traverseMeshes() {
+        return;
+      },
+      sampleVertices() {
+        return new Float32Array();
+      },
+      createPointCloud() {
+        return {};
+      },
+    },
   };
 }
 

@@ -1,4 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
+import type { WebGLEffectSourceHandle } from "../effects/effectAuthoring";
 import type { WebGLEffectTarget } from "../effects/effectTarget";
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
@@ -23,6 +24,7 @@ export type Renderable = {
   status: RenderableStatus;
   readonly sceneObjectController?: WebGLSceneObjectController;
   readonly effectTarget?: WebGLEffectTarget;
+  readonly effectSource?: WebGLEffectSourceHandle;
   readonly hasSceneObject: boolean;
   update(input?: WebGLFrameInput): void | Promise<void>;
   updateLayout?(measurement: ElementLayoutSnapshot): void;
@@ -57,6 +59,7 @@ type RenderableHooks = {
   setVisible?(visible: boolean): void;
   sceneObjectController?(): WebGLSceneObjectController | undefined;
   effectTarget?(): WebGLEffectTarget | undefined;
+  effectSource?(): WebGLEffectSourceHandle | undefined;
   dispose?(): void;
 };
 
@@ -119,6 +122,9 @@ export function createRenderable(
     },
     get effectTarget() {
       return hooks.effectTarget?.();
+    },
+    get effectSource() {
+      return hooks.effectSource?.();
     },
     get hasSceneObject() {
       return this.sceneObjectController?.attached === true;

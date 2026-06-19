@@ -11,7 +11,8 @@ describe("public package exports", () => {
     const rootApi = await import("./index");
 
     expect(rootApi.createWebGLRuntime).toEqual(expect.any(Function));
-    expect(rootApi.createWebGLEffectRegistry).toEqual(expect.any(Function));
+    expect(rootApi.defineWebGLEffect).toEqual(expect.any(Function));
+    expect(rootApi).not.toHaveProperty("createWebGLEffectRegistry");
     expect(rootApi).not.toHaveProperty("createTargetRegistry");
   });
 
@@ -21,6 +22,17 @@ describe("public package exports", () => {
     expect(reactApi.WebGLRuntime).toEqual(expect.any(Function));
     expect(reactApi.WebGLTarget).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
+  });
+
+  test("effects subpath exposes optional presets", async () => {
+    const effectsApi = await import("./effects");
+
+    expect(effectsApi.pointerTiltEffect).toEqual(
+      expect.objectContaining({ kind: "pointerTilt" }),
+    );
+    expect(effectsApi.surfaceBasicEffect).toEqual(
+      expect.objectContaining({ kind: "surfaceBasic" }),
+    );
   });
 
   test("React entrypoint type-checks public gate declarations only", () => {
@@ -38,8 +50,9 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-	        import { WebGLRuntime, WebGLTarget } from "${importPath}";
-	        import type { WebGLRuntimeProps, WebGLTargetProps } from "${importPath}";
+		        import { WebGLRuntime, WebGLTarget } from "${importPath}";
+		        import type { WebGLRuntimeProps, WebGLTargetProps } from "${importPath}";
+		        import type { ReactElement } from "react";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
         // @ts-expect-error Scene objects are internal renderer state.
@@ -57,13 +70,24 @@ describe("public package exports", () => {
         // @ts-expect-error Render policy ordering is internal.
         import type { SceneObjectOrdering } from "${importPath}";
 
-	        WebGLRuntime satisfies unknown;
-	        WebGLTarget satisfies unknown;
-	        declare const effectRegistry: WebGLRuntimeProps["effectRegistry"];
-	        const runtimeProps = {
-	          effectRegistry,
-	        } satisfies WebGLRuntimeProps;
-	        runtimeProps.effectRegistry satisfies WebGLRuntimeProps["effectRegistry"];
+		        WebGLRuntime satisfies unknown;
+		        WebGLTarget satisfies unknown;
+		        declare const effects: WebGLRuntimeProps["effects"];
+
+		        const runtimeElement = (
+		          <WebGLRuntime effects={effects}>
+		            <WebGLTarget
+		              webgl={{
+		                key: "react.custom-effect",
+		                effects: [{ kind: "custom.reactEffect" }],
+		              }}
+		            >
+		              <div />
+		            </WebGLTarget>
+		          </WebGLRuntime>
+		        );
+
+		        runtimeElement satisfies ReactElement;
 
 		        const props = {
 	          webgl: {
@@ -140,17 +164,20 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-	        import { createWebGLEffectRegistry, createWebGLRuntime } from "${importPath}";
-		        import type {
-		          WebGLDebugState,
-		          WebGLDeclaration,
-		          WebGLEffectInstance,
-		          WebGLEffectPlugin,
-		          WebGLEffectSourceKind,
-		          WebGLEffectTargetCapability,
-		          WebGLEffectTargetContext,
-		          WebGLEffectsDeclaration,
-		          WebGLFrameInput,
+		        import {
+		          createWebGLRuntime,
+		          defineWebGLEffect,
+		        } from "${importPath}";
+			        import type {
+			          WebGLDebugState,
+			          WebGLDeclaration,
+			          WebGLEffectContext,
+			          WebGLEffectDefinition,
+			          WebGLEffectResourceScope,
+			          WebGLEffectSourceHandle,
+			          WebGLEffectTargetHandle,
+			          WebGLEffectsDeclaration,
+			          WebGLFrameInput,
 	          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
 	          WebGLImageSourceDeclaration,
@@ -194,10 +221,9 @@ describe("public package exports", () => {
 	        // @ts-expect-error Effect targets are internal renderable state.
 	        import type { WebGLEffectTarget } from "${importPath}";
 
-	        createWebGLRuntime satisfies (
-	          options: WebGLRuntimeOptions,
-	        ) => WebGLRuntime;
-	        createWebGLEffectRegistry satisfies unknown;
+		        createWebGLRuntime satisfies (
+		          options: WebGLRuntimeOptions,
+		        ) => WebGLRuntime;
 
         const renderRole = "model" satisfies WebGLRenderRole;
         const snapshotSource = {
@@ -263,34 +289,35 @@ describe("public package exports", () => {
 		          motion,
 		        } satisfies WebGLEffectsDeclaration;
 		        const arrayEffects = [
-		          { kind: "surface.basic", color: 0x111827, opacity: 0.86, radius: 18 },
-		          { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 8 },
+		          { kind: "surfaceBasic", opacity: 0.86 },
+		          { kind: "pointerTilt", strength: 0.6, maxDegrees: 8 },
 		        ] satisfies WebGLEffectsDeclaration;
 		        const customEffects = [
 		          { kind: "custom.surfacePulse", opacity: 0.4 },
 		        ] satisfies WebGLEffectsDeclaration;
 		        arrayEffects satisfies WebGLEffectsDeclaration;
 		        customEffects satisfies WebGLEffectsDeclaration;
-		        const effectSourceKind = "snapshot/element" satisfies WebGLEffectSourceKind;
-		        const effectCapability = "material.surface" satisfies WebGLEffectTargetCapability;
-		        const effectInstance = {
-		          update(_context: WebGLEffectTargetContext) {
-		            return;
-		          },
-		        } satisfies WebGLEffectInstance;
-		        const effectPlugin = {
-		          kind: "custom.surfacePulse",
-		          appliesTo: [effectSourceKind],
-		          capabilities: [effectCapability],
-		          normalize: (declaration: { kind: "custom.surfacePulse"; opacity?: number }) => ({
-		            opacity: declaration.opacity ?? 1,
-		          }),
-		          create: () => effectInstance,
-		        } satisfies WebGLEffectPlugin<
-		          { kind: "custom.surfacePulse"; opacity?: number },
-		          { opacity: number }
-		        >;
-		        const effectRegistry = createWebGLEffectRegistry([effectPlugin]);
+			        const customModelEffect = defineWebGLEffect({
+			          kind: "custom.glbParticles",
+			          source: "model/glb",
+			          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
+			            ctx.source satisfies WebGLEffectSourceHandle;
+			            ctx.target satisfies WebGLEffectTargetHandle | undefined;
+			            ctx.resources satisfies WebGLEffectResourceScope;
+			            return {
+			              density: params.density ?? 0.5,
+			              scrollAtSetup: ctx.scrollProgress,
+			            };
+			          },
+			          update(ctx, state) {
+			            ctx satisfies WebGLEffectContext;
+			            state.density satisfies number;
+			            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+			          },
+			        }) satisfies WebGLEffectDefinition<
+			          { kind: "custom.glbParticles"; density?: number },
+			          { density: number; scrollAtSetup: number }
+			        >;
 
 		        const declaration = {
 	          key: "hero.model",
@@ -313,11 +340,17 @@ describe("public package exports", () => {
 	        declare const runtime: WebGLRuntime;
 	        declare const element: HTMLElement;
 	        const registeredTarget = runtime.registerTarget(element, declaration);
-	        const customRuntime = createWebGLRuntime({
-	          container: element,
-	          effectRegistry,
-	        });
-	        customRuntime.registerTarget(element, arrayEffectDeclaration);
+		        const runtimeOptions = {
+		          container: element,
+		          effects: [customModelEffect],
+		        } satisfies WebGLRuntimeOptions;
+		        const customRuntime = createWebGLRuntime(runtimeOptions);
+		        customRuntime.registerTarget(element, {
+		          key: "product.model",
+		          source: { kind: "model", format: "glb", src: "/product.glb" },
+		          effects: [{ kind: "custom.glbParticles", density: 0.6 }],
+		        });
+		        customRuntime.registerTarget(element, arrayEffectDeclaration);
 	        registeredTarget satisfies void;
         // @ts-expect-error public registration does not expose internal target descriptor state.
         registeredTarget.scanOrder;

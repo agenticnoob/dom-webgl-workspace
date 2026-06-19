@@ -1,14 +1,20 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
-import { builtInWebGLEffectPlugins } from "./builtins";
+import type {
+  WebGLEffectContext,
+  WebGLEffectDefinition,
+  WebGLEffectSourceHandle,
+} from "./effectAuthoring";
+import { createWebGLEffectContext } from "./effectContext";
 import { compileWebGLEffectDeclarations } from "./effectDeclaration";
 import { assertEffectCompatibility } from "./effectCompatibility";
-import type { WebGLEffectInstance, WebGLEffectSourceKind } from "./effectPlugin";
+import type { WebGLEffectSourceKind } from "./effectPlugin";
 import {
   createWebGLEffectRegistry,
   type WebGLEffectRegistry,
 } from "./effectRegistry";
+import { createWebGLEffectResourceScope } from "./effectResources";
 import type { WebGLEffectTarget } from "./effectTarget";
 
 export type WebGLEffectController = {
@@ -22,57 +28,94 @@ export type WebGLEffectControllerOptions = {
   declaration?: WebGLEffectsDeclaration;
   source: WebGLSourceDescriptor;
   target?: WebGLEffectTarget;
+  getSource?(): WebGLEffectSourceHandle | undefined;
   getTarget?(): WebGLEffectTarget | undefined;
   registry?: WebGLEffectRegistry;
+};
+
+type RunningEffect = {
+  definition: WebGLEffectDefinition;
+  params: ReturnType<typeof compileWebGLEffectDeclarations>[number];
+  resources: ReturnType<typeof createWebGLEffectResourceScope>;
+  state: unknown;
+  initialized: boolean;
+  lastContext?: WebGLEffectContext;
 };
 
 export function createWebGLEffectController(
   options: WebGLEffectControllerOptions,
 ): WebGLEffectController {
-  const registry =
-    options.registry ?? createWebGLEffectRegistry(builtInWebGLEffectPlugins);
+  const registry = options.registry ?? createWebGLEffectRegistry();
   const sourceKind = readEffectSourceKind(options.source);
-  const instances = compileWebGLEffectDeclarations(options.declaration).map(
-    (declaration): WebGLEffectInstance => {
-      const plugin = registry.resolve(declaration.kind);
+  const effects = compileWebGLEffectDeclarations(options.declaration).map(
+    (declaration): RunningEffect => {
+      const definition = registry.resolve(declaration.kind);
 
-      if (!plugin) {
+      if (!definition) {
         throw new Error(
-          `WebGL target "${options.key}" references unknown effect "${declaration.kind}".`,
+          `WebGL target "${options.key}" references unknown effect "${declaration.kind}". Register it through createWebGLRuntime({ effects: [...] }).`,
         );
       }
 
       assertEffectCompatibility(
         options.key,
         declaration.kind,
-        plugin,
+        definition,
         sourceKind,
       );
 
-      return plugin.create(plugin.normalize(declaration));
+      return {
+        definition,
+        params: declaration,
+        resources: createWebGLEffectResourceScope(),
+        state: undefined,
+        initialized: false,
+      };
     },
   );
   let disposed = false;
 
   return {
     get hasEffects() {
-      return instances.length > 0;
+      return effects.length > 0;
     },
     update(input, layout): void {
       if (disposed) {
         return;
       }
 
+      const source = readEffectSource(options);
+      if (!source) {
+        return;
+      }
+
       const target = readEffectTarget(options);
 
-      for (const instance of instances) {
-        instance.update({
+      for (const effect of effects) {
+        const context = createWebGLEffectContext({
           key: options.key,
           sourceKind,
           input,
           layout,
+          source,
           target,
+          resources: effect.resources,
         });
+
+        if (!effect.initialized) {
+          effect.state = effect.definition.setup?.(
+            context,
+            effect.params as never,
+          );
+          effect.initialized = true;
+        }
+
+        effect.lastContext = context;
+        effect.definition.update(
+          context,
+          effect.state as never,
+          effect.params as never,
+        );
       }
     },
     dispose(): void {
@@ -81,8 +124,16 @@ export function createWebGLEffectController(
       }
 
       disposed = true;
-      for (const instance of instances) {
-        instance.dispose?.();
+      for (const effect of effects) {
+        if (effect.initialized && effect.lastContext) {
+          effect.definition.dispose?.(
+            effect.lastContext,
+            effect.state as never,
+            effect.params as never,
+          );
+        }
+
+        effect.resources.dispose();
       }
       readEffectTarget(options)?.disposeEffects?.();
     },
@@ -93,6 +144,38 @@ function readEffectTarget(
   options: WebGLEffectControllerOptions,
 ): WebGLEffectTarget | undefined {
   return options.getTarget?.() ?? options.target;
+}
+
+function readEffectSource(
+  options: WebGLEffectControllerOptions,
+): WebGLEffectSourceHandle | undefined {
+  return options.getSource?.() ?? createStaticEffectSource(options.source);
+}
+
+function createStaticEffectSource(
+  source: WebGLSourceDescriptor,
+): WebGLEffectSourceHandle | undefined {
+  if (source.kind === "snapshot") {
+    if (source.mode === "text") {
+      return {
+        kind: "snapshot/text",
+        element: source.element,
+        text: source.element.textContent ?? "",
+      };
+    }
+
+    return { kind: "snapshot/element", element: source.element };
+  }
+
+  if (source.kind === "image") {
+    return { kind: "image", element: source.element, src: source.src };
+  }
+
+  if (source.kind === "video") {
+    return { kind: "video", element: source.element, src: source.src };
+  }
+
+  return undefined;
 }
 
 function readEffectSourceKind(

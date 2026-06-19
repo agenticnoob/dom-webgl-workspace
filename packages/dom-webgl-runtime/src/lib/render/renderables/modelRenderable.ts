@@ -3,6 +3,7 @@ import type { DOMViewportSize } from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
 import {
   createRenderable,
   type Renderable,
@@ -13,6 +14,7 @@ import {
   createModelSceneRenderableController,
   type SceneRenderableController,
 } from "./sceneRenderableObject";
+import { createModelEffectHandle } from "./modelEffectHandle";
 
 export type ModelRenderable = Renderable & {
   readonly fallbackVisible: boolean;
@@ -42,6 +44,7 @@ export function createModelRenderable(
     fallbackVisible: true,
     resourceReady: false,
     scene: undefined as SceneRenderableController | undefined,
+    modelHandle: undefined as WebGLModelEffectHandle | undefined,
   };
   const renderable = createRenderable(
     context,
@@ -50,13 +53,15 @@ export function createModelRenderable(
         const model = await resource.load(async () => loadModel(source));
 
         if (!state.scene) {
+          const object3D = instantiateModelSceneObject(model);
+          state.modelHandle = createModelEffectHandle(object3D);
           state.scene = createModelSceneRenderableController({
             key: context.descriptor.key,
             sceneAdapter: options.sceneAdapter,
             measureElement: options.measureElement,
             getViewportSize: options.getViewportSize,
             element: source.anchor,
-            object3D: instantiateModelSceneObject(model),
+            object3D,
             ordering: toSceneObjectOrdering(context.policy),
             disposeObject3D: true,
           });
@@ -77,6 +82,18 @@ export function createModelRenderable(
       },
       effectTarget() {
         return state.scene?.object.effectTarget;
+      },
+      effectSource() {
+        if (!state.modelHandle) {
+          return undefined;
+        }
+
+        return {
+          kind: "model/glb",
+          anchor: source.anchor,
+          src: source.src,
+          model: state.modelHandle,
+        };
       },
       dispose() {
         state.scene?.controller.dispose();

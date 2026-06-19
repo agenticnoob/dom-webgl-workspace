@@ -17,19 +17,20 @@ projection in
 the forward architecture is now DOM layout/content driven WebGL effects, not
 general CSS-to-WebGL fidelity.
 Phase 5 adds the first public minimum effect/material layer in
-`docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`: declared
-targets may opt into the built-in `solid` material and `pointer-tilt` motion
-without exposing Three.js render flags or a custom effect registry.
+`docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`.
 Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
-adds a minimal built-in `surface` material on top of the modular Phase 6.1
-effect boundaries.
+adds a minimal `surface` material on top of the modular Phase 6.1 effect
+boundaries.
 Phase 7 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
 it preserves the Phase 6 object-form declarations while moving the internal
-effect execution model to ordered, registry-driven runtime primitives. Custom
-registries can be passed through the vanilla runtime constructor or the React
-`<WebGLRuntime effectRegistry={registry}>` adapter.
+effect execution model to ordered, registry-driven runtime primitives.
+Phase 8 is implemented in
+`docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`:
+`defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
+API, core registers no default visual effects, and official visuals are optional
+presets from `@project/dom-webgl-runtime/effects`.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -48,7 +49,7 @@ Current demo behavior:
 - React demo declares five base target categories through public APIs: element
   snapshot, text snapshot, image, video, and GLB model. It also includes a
   layout/content harness for transparent anchors, multiline text, object-fit
-  media, narrow viewport layout, and a Phase 7 effect runtime harness.
+  media, narrow viewport layout, and a Phase 8 effect authoring harness.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -72,10 +73,10 @@ Current visual behavior:
 - DOM is the source for layout, content, accessibility, and interaction state.
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
-- Declared targets can opt into the preferred ordered effect declarations:
-  `effects: [{ kind: "material.solid" | "surface.basic" }, { kind:
-  "motion.pointerTilt" }]`. The legacy Phase 6 `{ material, motion }` object
-  form remains supported as compatibility input.
+- Declared targets can request ordered effect declarations such as
+  `effects: [{ kind: "surfaceBasic" }, { kind: "pointerTilt" }]`. Effects only
+  run when the runtime receives matching definitions through runtime-level
+  `effects`.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -113,15 +114,15 @@ Current visual behavior:
 - Element snapshots are transparent DOM anchors for future effects/materials;
   they do not render CSS backgrounds, borders, radii, shadows, opacity, or
   transforms.
-- Element snapshots with an explicit `solid` material are visibly WebGL-owned
-  surfaces. The default element snapshot path remains a transparent layout
-  anchor.
-- Element snapshots with an explicit `surface` material render a WebGL-owned
-  rounded surface from declaration-owned `color`, `opacity`, and `radius`.
-  Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
-  separately approved Phase 6.3 gate includes them.
-- `pointer-tilt` consumes the shared runtime pointer frame input and writes a
-  small target rotation; it does not add DOM listeners or own pointer state.
+- Element snapshots remain transparent layout anchors unless an application or
+  optional preset effect makes the target visibly WebGL-owned.
+- The optional `surfaceBasicEffect` preset renders a WebGL-owned rounded surface
+  from declaration-owned `color`, `opacity`, and `radius`. Border, shadow,
+  gradients, and CSS paint cloning remain out of scope unless a separately
+  approved plan includes them.
+- The optional `pointerTiltEffect` preset consumes the shared runtime pointer
+  frame input and writes a small target rotation; it does not add DOM listeners
+  or own pointer state.
 - Text snapshots consume only the style information required to place and render
   text content, such as font, line height, padding, alignment, and DPR.
 - Image and video renderables place their media texture planes inside the CSS
@@ -158,46 +159,70 @@ Current visual behavior:
   Do not expand this into full CSS fidelity; the next architecture step is an
   effect/material layer consuming DOM layout, content, scroll, pointer, and
   lifecycle state.
-- Phase 5 starts that effect/material layer with two built-ins only. Custom
-  effect registration, shader authoring, particles, public Three.js render
-  flags, multiple canvases, raycast picking, and third-party scroll adapters
-  remain out of scope.
+- Phase 5 starts that effect/material layer with two official effects only.
+  Shader authoring, particles, public Three.js render flags, multiple canvases,
+  raycast picking, and third-party scroll adapters remain out of scope.
 - Phase 6.1 keeps Phase 5 behavior intact while splitting pure effect
   normalization, compatibility, target capability types, pointer motion, and
   Three.js element-plane adapters across explicit internal module boundaries.
-- Phase 6.2 adds the minimal built-in `surface` material for explicit
+- Phase 6.2 adds the minimal `surface` material for explicit
   WebGL-owned element snapshot surfaces. It supports declaration-owned color,
   opacity, and radius only; border, shadow, gradients, and CSS paint cloning
   remain out of scope unless a separately approved Phase 6.3 gate explicitly
   includes them.
 - Phase 7 replaces fixed material/motion runtime slots with effect declarations
   compiled into registry-driven runtime plugins while keeping Phase 6
-  declarations compatible. Custom registries can target existing runtime
-  capabilities through `effectRegistry`; React consumers pass the same registry
-  through `<WebGLRuntime effectRegistry={registry}>`.
+  declarations compatible.
+- Phase 8 replaces the public registry mental model with
+  `defineWebGLEffect(...)` plus runtime-level `effects`, stops registering
+  default visual effects in core, and moves official visuals to optional presets
+  that use the same API as user effects.
 
 ### Effect model
 
-Effects are WebGL runtime plugins. They receive the target source kind, layout
-snapshot, frame input, pointer and scroll state, and an effect target capability
-surface. They do not scan DOM, mutate arbitrary DOM, create their own renderer,
-or own independent asset loading.
+Effects are user-authored runtime definitions. They receive the target source
+handle, layout snapshot, frame input, pointer and scroll state, target controls,
+and managed resources. They do not scan DOM, mutate arbitrary DOM, create their
+own renderer, or own independent asset loading.
 
 Preferred declaration form:
 
 ```ts
 effects: [
-  { kind: "surface.basic", color: 0x111111, opacity: 0.75, radius: 24 },
-  { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 6 },
+  { kind: "surfaceBasic", color: 0x111111, opacity: 0.75, radius: 24 },
+  { kind: "pointerTilt", strength: 0.6, maxDegrees: 6 },
 ]
 ```
 
-The legacy `{ material, motion }` object form remains supported for Phase 6
-compatibility.
+Matching effect definitions are supplied to the runtime:
 
-Custom effect registries are created with `createWebGLEffectRegistry(...)` and
-can be passed either to `createWebGLRuntime({ effectRegistry })` or the React
-adapter as `<WebGLRuntime effectRegistry={registry}>`.
+```ts
+import { createWebGLRuntime } from "@project/dom-webgl-runtime";
+import {
+  pointerTiltEffect,
+  surfaceBasicEffect,
+} from "@project/dom-webgl-runtime/effects";
+
+createWebGLRuntime({
+  container,
+  effects: [surfaceBasicEffect, pointerTiltEffect],
+});
+```
+
+Application effects use the same API:
+
+```ts
+import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+
+const modelProbeEffect = defineWebGLEffect({
+  kind: "modelProbe",
+  source: "model/glb",
+  update(context) {
+    context.source.model.sampleVertices({ maxPoints: 256 });
+    context.target?.setRotation(0, context.pointer.normalizedX * 0.25, 0);
+  },
+});
+```
 
 ## Setup
 
@@ -270,6 +295,11 @@ Use only public package entrypoints:
 ```ts
 import type { WebGLDeclaration, WebGLDebugState } from "@project/dom-webgl-runtime";
 import {
+  createWebGLRuntime,
+  defineWebGLEffect,
+} from "@project/dom-webgl-runtime";
+import { pointerTiltEffect } from "@project/dom-webgl-runtime/effects";
+import {
   WebGLRuntime,
   WebGLTarget,
   useWebGLRuntime,
@@ -293,15 +323,19 @@ type WebGLLifecycleDeclaration = {
 };
 ```
 
-Targets may opt into the supported built-in effect/material declarations:
+Targets declare effect data; matching effect definitions are provided through
+runtime-level `effects`:
 
 ```ts
-type WebGLEffectsDeclaration = {
-  material?:
-    | { kind: "solid"; color?: number; opacity?: number }
-    | { kind: "surface"; color?: number; opacity?: number; radius?: number };
-  motion?: { kind: "pointer-tilt"; strength?: number; maxDegrees?: number };
-};
+type WebGLEffectsDeclaration = readonly {
+  kind: string;
+  [key: string]: unknown;
+}[];
+
+createWebGLRuntime({
+  container,
+  effects: [surfaceBasicEffect, pointerTiltEffect, modelProbeEffect],
+});
 ```
 
 Behavior:

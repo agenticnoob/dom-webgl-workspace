@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
 describe("runtime package public exports", () => {
-  test("exposes root and React entrypoints", () => {
+  test("exposes root, React, and optional effects entrypoints", () => {
     const packageJsonPath = resolve(
       process.cwd(),
       "packages/dom-webgl-runtime/package.json",
@@ -22,6 +22,10 @@ describe("runtime package public exports", () => {
       "./react": {
         types: "./src/react.ts",
         import: "./src/react.ts",
+      },
+      "./effects": {
+        types: "./src/effects.ts",
+        import: "./src/effects.ts",
       },
     });
   });

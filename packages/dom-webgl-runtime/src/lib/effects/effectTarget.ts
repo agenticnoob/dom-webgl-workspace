@@ -1,20 +1,13 @@
-export type WebGLSolidMaterialTargetState = {
-  color: number;
-  opacity: number;
-};
-
-export type WebGLSurfaceMaterialTargetState = {
-  color: number;
-  opacity: number;
-  radius: number;
-};
+import type { WebGLEffectManagedObjectHandle } from "./effectAuthoring";
 
 export type WebGLEffectTarget = {
-  applySolidMaterial?(material: WebGLSolidMaterialTargetState): void;
-  applySurfaceMaterial?(
-    material: WebGLSurfaceMaterialTargetState,
-    layout: { width: number; height: number; devicePixelRatio: number },
-  ): void;
-  setRotation?(x: number, y: number): void;
+  setVisible(visible: boolean): void;
+  setRotation(x: number, y: number, z?: number): void;
+  setScale(x: number, y?: number, z?: number): void;
+  setOpacity(opacity: number): void;
+  addObject3D?(
+    object3D: unknown,
+    options?: { dispose?: (object3D: unknown) => void },
+  ): WebGLEffectManagedObjectHandle;
   disposeEffects?(): void;
 };

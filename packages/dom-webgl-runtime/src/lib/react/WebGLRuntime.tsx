@@ -21,7 +21,7 @@ export type WebGLRuntimeProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  effectRegistry?: WebGLRuntimeOptions["effectRegistry"];
+  effects?: WebGLRuntimeOptions["effects"];
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
@@ -29,7 +29,7 @@ export function WebGLRuntime({
   children,
   className,
   style,
-  effectRegistry,
+  effects,
   onDebugStateChange,
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -52,7 +52,7 @@ export function WebGLRuntime({
 
     const nextRuntime = createWebGLRuntime({
       container,
-      effectRegistry,
+      effects,
       onDebugStateChange(state) {
         onDebugStateChangeRef.current?.(state);
       },
@@ -63,7 +63,7 @@ export function WebGLRuntime({
     return () => {
       nextRuntime.dispose();
     };
-  }, [effectRegistry]);
+  }, [effects]);
 
   return createElement(
     "div",

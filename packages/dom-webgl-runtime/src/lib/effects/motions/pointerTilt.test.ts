@@ -7,7 +7,7 @@ import type { WebGLFrameInput } from "../../types";
 
 describe("applyPointerTilt", () => {
   test("rotates from shared normalized pointer input", () => {
-    const target = { setRotation: vi.fn() } satisfies WebGLEffectTarget;
+    const target = createEffectTarget();
     const motion: NormalizedWebGLMotionDeclaration = {
       kind: "pointer-tilt",
       strength: 0.5,
@@ -27,7 +27,7 @@ describe("applyPointerTilt", () => {
   });
 
   test("resets when the pointer is outside", () => {
-    const target = { setRotation: vi.fn() } satisfies WebGLEffectTarget;
+    const target = createEffectTarget();
 
     applyPointerTilt(target, createFrameInput({ isInside: false }), {
       kind: "pointer-tilt",
@@ -38,6 +38,15 @@ describe("applyPointerTilt", () => {
     expect(target.setRotation).toHaveBeenCalledWith(0, 0);
   });
 });
+
+function createEffectTarget(): WebGLEffectTarget {
+  return {
+    setVisible: vi.fn(),
+    setRotation: vi.fn(),
+    setScale: vi.fn(),
+    setOpacity: vi.fn(),
+  };
+}
 
 function createFrameInput(
   pointer: Partial<WebGLFrameInput["pointer"]> = {},

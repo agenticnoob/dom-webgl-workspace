@@ -6,76 +6,52 @@ import { Mesh } from "three/src/objects/Mesh.js";
 import { createElementPlaneEffectTarget } from "./elementPlaneEffectTarget";
 
 describe("createElementPlaneEffectTarget", () => {
-  test("applies solid material to an element plane", () => {
+  test("applies generic visibility transform and opacity controls", () => {
     const geometry = new PlaneGeometry(1, 1);
     const material = new MeshBasicMaterial({ transparent: true, opacity: 0 });
     const mesh = new Mesh(geometry, material);
     mesh.visible = false;
 
-    const target = createElementPlaneEffectTarget(
-      mesh,
-      material,
-      createDocumentWithCanvas(),
-    );
+    const target = createElementPlaneEffectTarget(mesh, material);
 
-    target.applySolidMaterial?.({ color: 0x112233, opacity: 0.42 });
+    target.setVisible(true);
+    target.setRotation(0.1, -0.2, 0.3);
+    target.setScale(1.2, 0.9, 1);
+    target.setOpacity(0.42);
 
     expect(mesh.visible).toBe(true);
-    expect(material.transparent).toBe(true);
+    expect(mesh.rotation.x).toBe(0.1);
+    expect(mesh.rotation.y).toBe(-0.2);
+    expect(mesh.rotation.z).toBe(0.3);
+    expect(mesh.scale.x).toBe(1.2);
+    expect(mesh.scale.y).toBe(0.9);
     expect(material.opacity).toBe(0.42);
-    expect(material.color.getHex()).toBe(0x112233);
+    expect(material.transparent).toBe(true);
 
     geometry.dispose();
     material.dispose();
   });
 
-  test("applies minimal surface material through a canvas texture", () => {
+  test("forwards managed object creation to the scene adapter callback", () => {
     const geometry = new PlaneGeometry(1, 1);
     const material = new MeshBasicMaterial();
     const mesh = new Mesh(geometry, material);
-    mesh.visible = false;
-    const target = createElementPlaneEffectTarget(
-      mesh,
-      material,
-      createDocumentWithCanvas(),
-    );
+    const dispose = vi.fn();
+    const managedHandle = {
+      setVisible: vi.fn(),
+      remove: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const addObject3D = vi.fn(() => managedHandle);
+    const target = createElementPlaneEffectTarget(mesh, material, addObject3D);
+    const object3D = {};
 
-    target.applySurfaceMaterial?.(
-      { color: 0x111827, opacity: 0.84, radius: 16 },
-      { width: 240, height: 120, devicePixelRatio: 1 },
-    );
+    const handle = target.addObject3D?.(object3D, { dispose });
 
-    expect(mesh.visible).toBe(true);
-    expect(material.transparent).toBe(true);
-    expect(material.opacity).toBe(1);
-    expect(material.map).toBeTruthy();
+    expect(addObject3D).toHaveBeenCalledWith(object3D, { dispose });
+    expect(handle).toBe(managedHandle);
 
-    target.disposeEffects?.();
     geometry.dispose();
     material.dispose();
   });
 });
-
-function createDocumentWithCanvas(): Document {
-  const canvas = document.createElement("canvas");
-  const context = {
-    beginPath: vi.fn(),
-    clearRect: vi.fn(),
-    closePath: vi.fn(),
-    fill: vi.fn(),
-    lineTo: vi.fn(),
-    moveTo: vi.fn(),
-    quadraticCurveTo: vi.fn(),
-  } as unknown as CanvasRenderingContext2D;
-
-  Object.defineProperty(canvas, "getContext", {
-    value: vi.fn(() => context),
-  });
-
-  return {
-    ...document,
-    createElement: vi.fn((tagName: string) =>
-      tagName === "canvas" ? canvas : document.createElement(tagName),
-    ),
-  } as unknown as Document;
-}

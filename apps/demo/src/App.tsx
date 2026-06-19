@@ -1,17 +1,27 @@
 import * as React from "react";
 import { useState } from "react";
 import type { WebGLDebugState } from "@project/dom-webgl-runtime";
+import {
+  pointerTiltEffect,
+  surfaceBasicEffect,
+} from "@project/dom-webgl-runtime/effects";
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
+
+const demoRuntimeEffects = [surfaceBasicEffect, pointerTiltEffect] as const;
 
 export default function App() {
   const [debugState, setDebugState] = useState<WebGLDebugState>(createInitialDebugState);
 
   return (
     <main className="demo-shell">
-      <WebGLRuntime className="demo-runtime" onDebugStateChange={setDebugState}>
+      <WebGLRuntime
+        className="demo-runtime"
+        effects={demoRuntimeEffects}
+        onDebugStateChange={setDebugState}
+      >
         <WebGLTarget as="section" className="demo-scene" aria-label="DOM WebGL demo scene"
           webgl={{
             key: "demo.section",
@@ -126,23 +136,23 @@ export default function App() {
               webgl={{
                 key: "demo.layout.image",
                 source: { kind: "image", src: "/demo/layout-cover.png" },
-	              }}
-	            />
-	          </section>
+              }}
+            />
+          </section>
 
-	          <section className="demo-effects" aria-label="WebGL effect and material targets">
+          <section className="demo-effects" aria-label="WebGL effect and material targets">
             <WebGLTarget
               className="demo-effect-surface"
               webgl={{
                 key: "demo.effects.surface",
-	                source: { kind: "snapshot", mode: "element" },
-		                effects: [
-		                  { kind: "material.solid", color: 0x111827, opacity: 0.82 },
-		                  { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 8 },
-		                ],
-	              }}
-	            >
-	              <p className="demo-label">Effect material</p>
+                source: { kind: "snapshot", mode: "element" },
+                effects: [
+                  { kind: "surfaceBasic", opacity: 0.82 },
+                  { kind: "pointerTilt", strength: 0.6, maxDegrees: 8 },
+                ],
+              }}
+            >
+              <p className="demo-label">Effect material</p>
               <strong>Solid WebGL surface</strong>
               <span>Pointer state drives a small runtime-owned tilt.</span>
             </WebGLTarget>
@@ -154,22 +164,17 @@ export default function App() {
                 key: "demo.effects.surface.phase6",
                 source: { kind: "snapshot", mode: "element" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
-	                effects: [
-	                  {
-	                    kind: "surface.basic",
-	                    color: 0x111827,
-	                    opacity: 0.86,
-	                    radius: 18,
-	                  },
-	                  { kind: "motion.pointerTilt", strength: 0.35, maxDegrees: 6 },
-	                ],
+                effects: [
+                  { kind: "surfaceBasic", opacity: 0.86 },
+                  { kind: "pointerTilt", strength: 1, maxDegrees: 15 },
+                ],
               }}
             >
               <span>Phase 6 surface material</span>
             </WebGLTarget>
           </section>
 
-	          <DebugPanel state={debugState} />
+          <DebugPanel state={debugState} />
 	        </WebGLTarget>
       </WebGLRuntime>
     </main>

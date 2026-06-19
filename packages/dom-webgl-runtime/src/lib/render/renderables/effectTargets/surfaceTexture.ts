@@ -1,6 +1,10 @@
 import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 
-import type { WebGLSurfaceMaterialTargetState } from "../../../effects/effectTarget";
+export type WebGLSurfaceMaterialTargetState = {
+  color: number;
+  opacity: number;
+  radius: number;
+};
 
 export type SurfaceTextureInput = {
   material: WebGLSurfaceMaterialTargetState;

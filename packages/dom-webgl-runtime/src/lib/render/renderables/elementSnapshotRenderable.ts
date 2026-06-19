@@ -59,6 +59,9 @@ export function createElementSnapshotRenderable(
     effectTarget() {
       return state.scene?.object.effectTarget;
     },
+    effectSource() {
+      return { kind: "snapshot/element", element: context.descriptor.element };
+    },
     dispose() {
       state.visible = false;
       state.measurement = undefined;

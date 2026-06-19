@@ -1,55 +1,75 @@
 import { describe, expect, test } from "vitest";
 
-import { solidMaterialEffect } from "./builtins/solidMaterialEffect";
-import { surfaceBasicEffect } from "./builtins/surfaceBasicEffect";
+import { defineWebGLEffect } from "./effectAuthoring";
 import { assertEffectCompatibility } from "./effectCompatibility";
 
+const elementOnlyEffect = defineWebGLEffect({
+  kind: "custom.elementOnly",
+  source: "snapshot/element",
+  update() {
+    return;
+  },
+});
+
+const mediaEffect = defineWebGLEffect({
+  kind: "custom.media",
+  source: ["image", "video"],
+  update() {
+    return;
+  },
+});
+
 describe("assertEffectCompatibility", () => {
-  test("allows solid material on element snapshots", () => {
+  test("allows effects on matching source kinds", () => {
     expect(() =>
       assertEffectCompatibility(
         "card.surface",
-        "material.solid",
-        solidMaterialEffect,
+        "custom.elementOnly",
+        elementOnlyEffect,
         "snapshot/element",
       ),
     ).not.toThrow();
   });
 
-  test("rejects solid material on image sources", () => {
+  test("rejects effects on non-matching source kinds", () => {
     expect(() =>
       assertEffectCompatibility(
         "card.image",
-        "material.solid",
-        solidMaterialEffect,
+        "custom.elementOnly",
+        elementOnlyEffect,
         "image",
       ),
     ).toThrow(
-      'WebGL effect "material.solid" cannot be used with source "image" on target "card.image".',
+      'WebGL effect "custom.elementOnly" cannot be used with source "image" on target "card.image".',
     );
   });
 
-  test("allows surface material on element snapshots", () => {
+  test("allows effects on any listed source kind", () => {
     expect(() =>
       assertEffectCompatibility(
-        "card.surface",
-        "surface.basic",
-        surfaceBasicEffect,
-        "snapshot/element",
+        "card.image",
+        "custom.media",
+        mediaEffect,
+        "image",
       ),
     ).not.toThrow();
   });
 
-  test("rejects surface material on image sources", () => {
+  test("treats omitted source filters as all-source effects", () => {
+    const globalEffect = defineWebGLEffect({
+      kind: "custom.global",
+      update() {
+        return;
+      },
+    });
+
     expect(() =>
       assertEffectCompatibility(
-        "card.image",
-        "surface.basic",
-        surfaceBasicEffect,
-        "image",
+        "card.model",
+        "custom.global",
+        globalEffect,
+        "model/glb",
       ),
-    ).toThrow(
-      'WebGL effect "surface.basic" cannot be used with source "image" on target "card.image".',
-    );
+    ).not.toThrow();
   });
 });

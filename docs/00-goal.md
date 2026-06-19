@@ -24,17 +24,20 @@ text placement/raster sizing, media content-box object-fit mapping, and a
 public-API-only responsive demo harness are in place. The forward direction is
 not to expand CSS fidelity. DOM supplies layout, content, accessibility, and
 interaction state; WebGL effects/materials should own final visual styling.
-Phase 5 adds the first public minimum effect/material layer with built-in
-`solid` material and `pointer-tilt` motion declarations. General custom effect
-registration, shader authoring, particles, picking, third-party scroll adapters,
-multiple canvases, and public Three.js render flags remain future work.
+Phase 5 adds the first public minimum effect/material layer with official
+`solid` material and `pointer-tilt` motion declarations. Shader authoring,
+particles, picking, third-party scroll adapters, multiple canvases, and public
+Three.js render flags remain future work.
 Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
 visible behavior: pure effect normalization, compatibility, target capability
 types, and pointer motion are separated from Three.js renderable target
-adapters. Phase 6.2 adds a minimal built-in `surface` material for
+adapters. Phase 6.2 adds a minimal `surface` material for
 declaration-owned element snapshot color, opacity, and radius. Phase 7
 preserves Phase 6 declarations while moving effect execution from fixed
-material/motion slots to ordered, registry-driven runtime primitives.
+material/motion slots to ordered, registry-driven runtime primitives. Phase 8
+adds the public authoring API: `defineWebGLEffect(...)`, runtime-level
+`effects`, source handles, generic target handles, managed effect resources,
+and optional official presets from `@project/dom-webgl-runtime/effects`.
 
 ## Purpose
 
@@ -1285,6 +1288,19 @@ Delivered Phase 7 behavior:
 - Keep text mutation, shader authoring, particles, picking, multiple canvases,
   third-party scroll adapters, and CSS paint cloning outside Phase 7 unless a
   later plan defines the missing target capabilities first.
+
+Delivered Phase 8 behavior:
+
+- Replace public `effectRegistry` authoring with `defineWebGLEffect(...)` and
+  runtime-level `effects`.
+- Core runtime registers no default visual effects. Official effects are
+  optional presets from `@project/dom-webgl-runtime/effects` and use the same
+  public authoring API as user effects.
+- Effect context exposes layout, frame input, pointer, scroll, time, source
+  handles, target handles, and managed resources.
+- GLB effects receive a model source handle after the model source is loaded;
+  effects do not load GLB assets themselves.
+- Raw renderer, camera, and scene mutation remain outside the default API.
 
 Text animation effects such as scrambled text require an explicit text target
 capability. They should not run by mutating native DOM and waiting for snapshot
