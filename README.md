@@ -20,10 +20,10 @@ Phase 5 adds the first public minimum effect/material layer in
 `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`: declared
 targets may opt into the built-in `solid` material and `pointer-tilt` motion
 without exposing Three.js render flags or a custom effect registry.
-Phase 6.1 in
+Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
-modularizes that effect layer without changing public API or visible behavior;
-it does not add the planned `surface` material yet.
+adds a minimal built-in `surface` material on top of the modular Phase 6.1
+effect boundaries.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -66,8 +66,8 @@ Current visual behavior:
 - DOM is the source for layout, content, accessibility, and interaction state.
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
-- Declared targets can opt into the first built-in effect/material declarations:
-  `effects.material: { kind: "solid" }` and
+- Declared targets can opt into the supported built-in effect/material declarations:
+  `effects.material: { kind: "solid" | "surface" }` and
   `effects.motion: { kind: "pointer-tilt" }`.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
@@ -109,6 +109,10 @@ Current visual behavior:
 - Element snapshots with an explicit `solid` material are visibly WebGL-owned
   surfaces. The default element snapshot path remains a transparent layout
   anchor.
+- Element snapshots with an explicit `surface` material render a WebGL-owned
+  rounded surface from declaration-owned `color`, `opacity`, and `radius`.
+  Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
+  separately approved Phase 6.3 gate includes them.
 - `pointer-tilt` consumes the shared runtime pointer frame input and writes a
   small target rotation; it does not add DOM listeners or own pointer state.
 - Text snapshots consume only the style information required to place and render
@@ -153,7 +157,11 @@ Current visual behavior:
 - Phase 6.1 keeps Phase 5 behavior intact while splitting pure effect
   normalization, compatibility, target capability types, pointer motion, and
   Three.js element-plane adapters across explicit internal module boundaries.
-  The `surface` material remains a planned Phase 6.2 addition, not current API.
+- Phase 6.2 adds the minimal built-in `surface` material for explicit
+  WebGL-owned element snapshot surfaces. It supports declaration-owned color,
+  opacity, and radius only; border, shadow, gradients, and CSS paint cloning
+  remain out of scope unless a separately approved Phase 6.3 gate explicitly
+  includes them.
 
 ## Setup
 
@@ -249,11 +257,13 @@ type WebGLLifecycleDeclaration = {
 };
 ```
 
-Targets may opt into the first built-in effect/material declarations:
+Targets may opt into the supported built-in effect/material declarations:
 
 ```ts
 type WebGLEffectsDeclaration = {
-  material?: { kind: "solid"; color?: number; opacity?: number };
+  material?:
+    | { kind: "solid"; color?: number; opacity?: number }
+    | { kind: "surface"; color?: number; opacity?: number; radius?: number };
   motion?: { kind: "pointer-tilt"; strength?: number; maxDegrees?: number };
 };
 ```

@@ -882,7 +882,7 @@ git commit -m "docs: record phase 6.1 effect boundary refactor"
 - Modify: `packages/dom-webgl-runtime/src/lib/types.test.ts`
 - Modify: `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
-- [ ] **Step 1: Write public type tests**
+- [x] **Step 1: Write public type tests**
 
 Add to `packages/dom-webgl-runtime/src/lib/types.test.ts`:
 
@@ -920,13 +920,13 @@ test("rejects CSS strings for surface material values", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the type test fails before implementation**
+- [x] **Step 2: Verify the type test fails before implementation**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts`
 
 Expected: FAIL because `WebGLMaterialDeclaration` only accepts `solid`.
 
-- [ ] **Step 3: Update public material types**
+- [x] **Step 3: Update public material types**
 
 In `packages/dom-webgl-runtime/src/lib/types.ts`, replace the current material type with:
 
@@ -951,7 +951,7 @@ export type WebGLMaterialDeclaration =
 
 Ensure `WebGLSurfaceMaterialDeclaration` is exported from the root public entrypoint if the public export tests require explicit type exports.
 
-- [ ] **Step 4: Verify public contract**
+- [x] **Step 4: Verify public contract**
 
 Run:
 
@@ -962,7 +962,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/types.ts packages/dom-webgl-runtime/src/lib/types.test.ts packages/dom-webgl-runtime/src/publicExports.test.ts
@@ -977,7 +977,7 @@ git commit -m "feat: add minimal surface material type"
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts`
 
-- [ ] **Step 1: Add normalization tests**
+- [x] **Step 1: Add normalization tests**
 
 Add to `effectNormalization.test.ts`:
 
@@ -1003,7 +1003,7 @@ test("defaults and clamps minimal surface material values", () => {
 });
 ```
 
-- [ ] **Step 2: Add compatibility tests**
+- [x] **Step 2: Add compatibility tests**
 
 Add to `effectCompatibility.test.ts`:
 
@@ -1031,7 +1031,7 @@ test("rejects surface material on image sources", () => {
 });
 ```
 
-- [ ] **Step 3: Verify tests fail before implementation**
+- [x] **Step 3: Verify tests fail before implementation**
 
 Run:
 
@@ -1041,7 +1041,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effectNormalization
 
 Expected: FAIL because normalization only handles `solid`.
 
-- [ ] **Step 4: Update normalized material union**
+- [x] **Step 4: Update normalized material union**
 
 In `effectNormalization.ts`, change `NormalizedWebGLMaterialDeclaration` to:
 
@@ -1086,7 +1086,7 @@ function normalizeMaterialDeclaration(
 }
 ```
 
-- [ ] **Step 5: Verify normalization and compatibility**
+- [x] **Step 5: Verify normalization and compatibility**
 
 Run:
 
@@ -1097,7 +1097,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectNormalization.ts packages/dom-webgl-runtime/src/lib/effects/effectNormalization.test.ts packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.ts packages/dom-webgl-runtime/src/lib/effects/effectCompatibility.test.ts
@@ -1113,7 +1113,7 @@ git commit -m "feat: normalize minimal surface material"
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.test.ts`
 
-- [ ] **Step 1: Add surface target capability type**
+- [x] **Step 1: Add surface target capability type**
 
 Update `effectTarget.ts`:
 
@@ -1135,7 +1135,7 @@ export type WebGLEffectTarget = {
 };
 ```
 
-- [ ] **Step 2: Write surface texture tests**
+- [x] **Step 2: Write surface texture tests**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/surfaceTexture.test.ts`:
 
@@ -1175,13 +1175,13 @@ describe("createSurfaceTextureController", () => {
 });
 ```
 
-- [ ] **Step 3: Verify surface texture test fails before implementation**
+- [x] **Step 3: Verify surface texture test fails before implementation**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/surfaceTexture.test.ts`
 
 Expected: FAIL because `surfaceTexture.ts` does not exist.
 
-- [ ] **Step 4: Implement minimal rounded surface texture**
+- [x] **Step 4: Implement minimal rounded surface texture**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/surfaceTexture.ts`:
 
@@ -1273,7 +1273,7 @@ function drawSurface(
 }
 ```
 
-- [ ] **Step 5: Add element plane surface target test**
+- [x] **Step 5: Add element plane surface target test**
 
 Add to `elementPlaneEffectTarget.test.ts`:
 
@@ -1301,7 +1301,7 @@ test("applies minimal surface material through a canvas texture", () => {
 });
 ```
 
-- [ ] **Step 6: Update element plane effect target**
+- [x] **Step 6: Update element plane effect target**
 
 Update `createElementPlaneEffectTarget()` signature:
 
@@ -1353,7 +1353,7 @@ effectTarget: createElementPlaneEffectTarget(
 ),
 ```
 
-- [ ] **Step 7: Verify surface target rendering**
+- [x] **Step 7: Verify surface target rendering**
 
 Run:
 
@@ -1364,7 +1364,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectTarget.ts packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts
@@ -1381,7 +1381,7 @@ git commit -m "feat: add minimal surface material target"
 - Modify: `apps/demo/src/App.test.tsx`
 - Modify: `apps/demo/src/demo.css`
 
-- [ ] **Step 1: Add controller surface test**
+- [x] **Step 1: Add controller surface test**
 
 Add to `effectController.test.ts`:
 
@@ -1413,13 +1413,13 @@ test("applies surface material with the current layout snapshot", () => {
 
 Update the local target helper to include `applySurfaceMaterial: vi.fn()`.
 
-- [ ] **Step 2: Verify controller test fails before wiring**
+- [x] **Step 2: Verify controller test fails before wiring**
 
 Run: `npm test -- --run packages/dom-webgl-runtime/src/lib/effects/effectController.test.ts -t "surface material"`
 
 Expected: FAIL because controller does not call `applySurfaceMaterial`.
 
-- [ ] **Step 3: Dispatch material by kind**
+- [x] **Step 3: Dispatch material by kind**
 
 In `effectController.ts`, replace solid-only material application with:
 
@@ -1453,7 +1453,7 @@ function applyMaterialEffect(
 }
 ```
 
-- [ ] **Step 4: Add runtime pipeline regression**
+- [x] **Step 4: Add runtime pipeline regression**
 
 Add a runtime pipeline test using this declaration:
 
@@ -1477,7 +1477,7 @@ expect(createdRenderable.getSceneObject?.()?.visible).toBe(true);
 
 Use the existing `runtimePipeline.test.ts` helper pattern for Phase 5 effects.
 
-- [ ] **Step 5: Add demo public API harness test**
+- [x] **Step 5: Add demo public API harness test**
 
 Add to `apps/demo/src/App.test.tsx`:
 
@@ -1501,7 +1501,7 @@ test("declares the Phase 6 surface material harness through public WebGLTarget p
 });
 ```
 
-- [ ] **Step 6: Add demo target through public `WebGLTarget`**
+- [x] **Step 6: Add demo target through public `WebGLTarget`**
 
 In `apps/demo/src/App.tsx`, add one target near the existing Phase 5 effect harness:
 
@@ -1537,7 +1537,7 @@ Add layout-only CSS:
 }
 ```
 
-- [ ] **Step 7: Verify controller, runtime, and demo**
+- [x] **Step 7: Verify controller, runtime, and demo**
 
 Run:
 
@@ -1553,7 +1553,7 @@ Expected:
 - `Demo import boundary OK`.
 - TypeScript PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectController.ts packages/dom-webgl-runtime/src/lib/effects/effectController.test.ts packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts apps/demo/src/App.tsx apps/demo/src/App.test.tsx apps/demo/src/demo.css
@@ -1568,7 +1568,7 @@ git commit -m "feat: wire minimal surface material"
 - Modify: `docs/EXECUTION_STATE.md`
 - Modify: `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
 
-- [ ] **Step 1: Update public docs**
+- [x] **Step 1: Update public docs**
 
 Update README effect example:
 
@@ -1587,7 +1587,7 @@ Add status text:
 Phase 6.2 adds a minimal built-in `surface` material for explicit WebGL-owned element snapshot surfaces. It supports declaration-owned color, opacity, and radius only; border, shadow, gradients, and CSS paint cloning remain out of scope unless a separately approved Phase 6.3 gate explicitly includes them.
 ```
 
-- [ ] **Step 2: Update execution state**
+- [x] **Step 2: Update execution state**
 
 Add to `docs/EXECUTION_STATE.md`:
 
@@ -1595,7 +1595,7 @@ Add to `docs/EXECUTION_STATE.md`:
 Phase 6.2 minimal surface material is implemented: `effects.material.kind: "surface"` supports declaration-owned color, opacity, and radius on `snapshot/element` targets through the modular element-plane effect target adapter.
 ```
 
-- [ ] **Step 3: Mark Phase 6.2 complete in this plan**
+- [x] **Step 3: Mark Phase 6.2 complete in this plan**
 
 Check off Task 6 through Task 10 and add:
 
@@ -1607,7 +1607,7 @@ Check off Task 6 through Task 10 and add:
 - Boundary notes: No custom registry, shader authoring API, particles, picking, multiple canvases, public Three.js render flags, third-party scroll adapter, CSS paint cloning, or demo-specific runtime branch was added.
 ```
 
-- [ ] **Step 4: Run full verification**
+- [x] **Step 4: Run full verification**
 
 Run:
 
@@ -1627,12 +1627,18 @@ Expected:
 - Import boundary PASS with `Demo import boundary OK`.
 - `git diff --check` produces no output.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md docs/00-goal.md docs/EXECUTION_STATE.md docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md
 git commit -m "docs: align phase 6.2 minimal surface material"
 ```
+
+## Phase 6.2 Completed Task Record
+
+- Completed work: Added public minimal `surface` material declarations, normalization, compatibility checks, controller dispatch, element-plane surface texture rendering, demo harness, and documentation alignment.
+- Verification: `npm run test -- --run` passed with 59 test files / 284 tests; `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` passed. Build still emits the existing non-blocking Vite chunk-size warning.
+- Boundary notes: No custom registry, shader authoring API, particles, picking, multiple canvases, public Three.js render flags, third-party scroll adapter, CSS paint cloning, or demo-specific runtime branch was added.
 
 ## Phase 6.3 Decision Gate
 

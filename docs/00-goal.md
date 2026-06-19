@@ -31,7 +31,8 @@ multiple canvases, and public Three.js render flags remain future work.
 Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
 visible behavior: pure effect normalization, compatibility, target capability
 types, and pointer motion are separated from Three.js renderable target
-adapters. The planned `surface` material is not part of Phase 6.1.
+adapters. Phase 6.2 adds a minimal built-in `surface` material for
+declaration-owned element snapshot color, opacity, and radius.
 
 ## Purpose
 
@@ -143,11 +144,18 @@ type WebGLEffectsDeclaration = {
   motion?: WebGLMotionDeclaration;
 };
 
-type WebGLMaterialDeclaration = {
-  kind: "solid";
-  color?: number;
-  opacity?: number;
-};
+type WebGLMaterialDeclaration =
+  | {
+      kind: "solid";
+      color?: number;
+      opacity?: number;
+    }
+  | {
+      kind: "surface";
+      color?: number;
+      opacity?: number;
+      radius?: number;
+    };
 
 type WebGLMotionDeclaration = {
   kind: "pointer-tilt";
@@ -1245,7 +1253,17 @@ Delivered Phase 6.1 behavior:
   code, or renderable implementations.
 - Three.js-specific effect target adapters live under renderable adapter
   modules.
-- `surface` remains a future Phase 6.2 public material variant.
+
+Delivered Phase 6.2 behavior:
+
+- Public declarations support `effects.material: { kind: "surface" }` for
+  explicit WebGL-owned rounded element snapshot surfaces.
+- `surface` supports declaration-owned numeric `color`, `opacity`, and `radius`
+  only.
+- `surface` applies only to `snapshot/element` targets through the modular
+  element-plane effect target adapter.
+- Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
+  separately approved Phase 6.3 gate includes them.
 
 ## Non-Goals For The New Project
 
