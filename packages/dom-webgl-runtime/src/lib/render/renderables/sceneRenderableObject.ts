@@ -22,7 +22,7 @@ import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
 
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
-import type { WebGLEffectTarget } from "../../effects/effectController";
+import type { WebGLEffectTarget } from "../../effects/effectTarget";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
 import {
   computeObjectFitContentBox,

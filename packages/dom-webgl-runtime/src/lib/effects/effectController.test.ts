@@ -1,9 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  createWebGLEffectController,
-  type WebGLEffectTarget,
-} from "./effectController";
+import { createWebGLEffectController } from "./effectController";
+import type { WebGLEffectTarget } from "./effectTarget";
 import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
 
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";

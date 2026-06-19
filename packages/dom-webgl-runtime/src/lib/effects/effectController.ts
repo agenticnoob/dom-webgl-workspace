@@ -2,14 +2,9 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
 import { assertMaterialSourceCompatibility } from "./effectCompatibility";
+import type { WebGLEffectTarget } from "./effectTarget";
 import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
-import type { NormalizedWebGLMotionDeclaration } from "./effectNormalization";
-
-export type WebGLEffectTarget = {
-  applySolidMaterial?(material: { color: number; opacity: number }): void;
-  setRotation?(x: number, y: number): void;
-  disposeEffects?(): void;
-};
+import { applyPointerTilt } from "./motions/pointerTilt";
 
 export type WebGLEffectController = {
   readonly hasEffects: boolean;
@@ -82,30 +77,4 @@ function readEffectTarget(
   options: WebGLEffectControllerOptions,
 ): WebGLEffectTarget | undefined {
   return options.getTarget?.() ?? options.target;
-}
-
-function applyPointerTilt(
-  target: WebGLEffectTarget | undefined,
-  input: WebGLFrameInput,
-  motion: NormalizedWebGLMotionDeclaration,
-): void {
-  if (!target?.setRotation) {
-    return;
-  }
-
-  if (!input.pointer.isInside) {
-    target.setRotation(0, 0);
-    return;
-  }
-
-  const maxRadians = degreesToRadians(motion.maxDegrees * motion.strength);
-
-  target.setRotation(
-    input.pointer.normalizedY * maxRadians,
-    input.pointer.normalizedX * maxRadians,
-  );
-}
-
-function degreesToRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
 }

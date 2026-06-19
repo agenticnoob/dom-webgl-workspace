@@ -1,5 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
-import type { WebGLEffectTarget } from "../effects/effectController";
+import type { WebGLEffectTarget } from "../effects/effectTarget";
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
