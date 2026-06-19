@@ -81,10 +81,47 @@ export type WebGLMotionDeclaration = {
   maxDegrees?: number;
 };
 
-export type WebGLEffectsDeclaration = {
+export type WebGLSurfaceBasicEffectDeclaration = {
+  kind: "surface.basic";
+  color?: number;
+  opacity?: number;
+  radius?: number;
+};
+
+export type WebGLSolidMaterialEffectDeclaration = {
+  kind: "material.solid";
+  color?: number;
+  opacity?: number;
+};
+
+export type WebGLPointerTiltEffectDeclaration = {
+  kind: "motion.pointerTilt";
+  strength?: number;
+  maxDegrees?: number;
+};
+
+export type WebGLBuiltInEffectDeclaration =
+  | WebGLSurfaceBasicEffectDeclaration
+  | WebGLSolidMaterialEffectDeclaration
+  | WebGLPointerTiltEffectDeclaration;
+
+export type WebGLCustomEffectDeclaration = {
+  kind: string;
+  [property: string]: unknown;
+};
+
+export type WebGLEffectDeclaration =
+  | WebGLBuiltInEffectDeclaration
+  | WebGLCustomEffectDeclaration;
+
+export type WebGLLegacyEffectsDeclaration = {
   material?: WebGLMaterialDeclaration;
   motion?: WebGLMotionDeclaration;
 };
+
+export type WebGLEffectsDeclaration =
+  | readonly WebGLEffectDeclaration[]
+  | WebGLLegacyEffectsDeclaration;
 
 export type WebGLDeclaration = {
   key: string;
