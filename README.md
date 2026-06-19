@@ -84,6 +84,9 @@ Current visual behavior:
   canvas, `z-index: 1` for direct DOM children) while remaining
   `pointer-events: none`, so native DOM can stay visually and interactively on
   top when it is not taken over by WebGL.
+- Runtime pointer input is captured from the document and normalized against the
+  fixed viewport canvas, so shared pointer effects are not limited by the
+  `WebGLRuntime` container's document-flow box.
 - Renderer viewport and orthographic camera sizing use the fixed canvas's actual
   rendered CSS box, so scrollbar gutters do not put DOM rects and WebGL
   projection in different coordinate spaces.

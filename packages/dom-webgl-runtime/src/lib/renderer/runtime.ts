@@ -127,7 +127,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     });
   const ownerDocument = options.container.ownerDocument;
   const pointerController =
-    internalOptions.pointerController ?? createPointerController(options.container);
+    internalOptions.pointerController ??
+    createPointerController({
+      coordinateElement: rendererHost.canvas,
+      eventTarget: ownerDocument,
+    });
   const frameInputSource = createFrameInputSource(
     scrollState,
     pointerController,

@@ -5,14 +5,32 @@ export type PointerController = {
   dispose(): void;
 };
 
+export type PointerControllerEventTarget = Pick<
+  EventTarget,
+  "addEventListener" | "removeEventListener"
+>;
+
+export type PointerControllerOptions = {
+  coordinateElement: HTMLElement;
+  eventTarget?: PointerControllerEventTarget;
+};
+
 export function createPointerController(
-  targetElement: HTMLElement,
+  input: HTMLElement | PointerControllerOptions,
 ): PointerController {
+  const coordinateElement = isPointerControllerOptions(input)
+    ? input.coordinateElement
+    : input;
+  const eventTarget = isPointerControllerOptions(input)
+    ? input.eventTarget
+    : undefined;
+  const pointerEventTarget = eventTarget ?? coordinateElement;
   let state = createInitialPointerState();
   let disposed = false;
 
-  const handlePointerMove = (event: PointerEvent) => {
-    state = updatePointerPosition(state, targetElement, event);
+  const handlePointerMove = (event: Event) => {
+    const pointerEvent = event as PointerEvent;
+    state = updatePointerPosition(state, coordinateElement, pointerEvent);
 
     if (state.isDown) {
       const dragDeltaX = state.x - state.dragStartX;
@@ -27,13 +45,18 @@ export function createPointerController(
     }
   };
 
-  const handlePointerDown = (event: PointerEvent) => {
-    const nextState = updatePointerPosition(state, targetElement, event);
+  const handlePointerDown = (event: Event) => {
+    const pointerEvent = event as PointerEvent;
+    const nextState = updatePointerPosition(
+      state,
+      coordinateElement,
+      pointerEvent,
+    );
 
     state = {
       ...nextState,
       isDown: true,
-      downTime: event.timeStamp,
+      downTime: pointerEvent.timeStamp,
       pressDuration: 0,
       isDragging: false,
       dragStartX: nextState.x,
@@ -43,22 +66,27 @@ export function createPointerController(
     };
   };
 
-  const handlePointerUp = (event: PointerEvent) => {
-    const nextState = updatePointerPosition(state, targetElement, event);
+  const handlePointerUp = (event: Event) => {
+    const pointerEvent = event as PointerEvent;
+    const nextState = updatePointerPosition(
+      state,
+      coordinateElement,
+      pointerEvent,
+    );
 
     state = {
       ...nextState,
       isDown: false,
       isDragging: false,
-      pressDuration: Math.max(0, event.timeStamp - state.downTime),
-      lastClickTime: event.timeStamp,
+      pressDuration: Math.max(0, pointerEvent.timeStamp - state.downTime),
+      lastClickTime: pointerEvent.timeStamp,
       clickCount: state.clickCount + 1,
     };
   };
 
-  targetElement.addEventListener("pointermove", handlePointerMove);
-  targetElement.addEventListener("pointerdown", handlePointerDown);
-  targetElement.addEventListener("pointerup", handlePointerUp);
+  pointerEventTarget.addEventListener("pointermove", handlePointerMove);
+  pointerEventTarget.addEventListener("pointerdown", handlePointerDown);
+  pointerEventTarget.addEventListener("pointerup", handlePointerUp);
 
   return {
     getState(): WebGLPointerState {
@@ -69,12 +97,18 @@ export function createPointerController(
         return;
       }
 
-      targetElement.removeEventListener("pointermove", handlePointerMove);
-      targetElement.removeEventListener("pointerdown", handlePointerDown);
-      targetElement.removeEventListener("pointerup", handlePointerUp);
+      pointerEventTarget.removeEventListener("pointermove", handlePointerMove);
+      pointerEventTarget.removeEventListener("pointerdown", handlePointerDown);
+      pointerEventTarget.removeEventListener("pointerup", handlePointerUp);
       disposed = true;
     },
   };
+}
+
+function isPointerControllerOptions(
+  input: HTMLElement | PointerControllerOptions,
+): input is PointerControllerOptions {
+  return "coordinateElement" in input;
 }
 
 function createInitialPointerState(): WebGLPointerState {

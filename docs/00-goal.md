@@ -525,6 +525,8 @@ type WebGLPointerState = {
 Pointer ownership rules:
 
 - The runtime owns global pointer listeners.
+- Runtime pointer coordinates are normalized against the fixed viewport WebGL
+  stage, not the `WebGLRuntime` container's document-flow box.
 - Renderables do not attach their own window-level listeners.
 - Hit testing may use DOM anchors, WebGL raycasting, or both, but the result enters one interaction state model.
 - Pointer state is available to scene animation and future effects through the frame input.

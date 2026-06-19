@@ -235,6 +235,32 @@ describe("runtime pipeline sync", () => {
     expect(pointerController.dispose).toHaveBeenCalledTimes(1);
   });
 
+  test("captures pointer input from the document viewport instead of the runtime container box", async () => {
+    const runtime = await createPipelineRuntime();
+
+    document.dispatchEvent(
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        clientX: 700,
+        clientY: 500,
+      }),
+    );
+
+    await runtime.sync();
+
+    const pointer = runtime.getDebugState().pointer;
+
+    expect(pointer).toMatchObject({
+      x: 700,
+      y: 500,
+      isInside: true,
+    });
+    expect(pointer.normalizedX).toBeCloseTo(0.75);
+    expect(pointer.normalizedY).toBeCloseTo(-0.666666);
+
+    runtime.dispose();
+  });
+
   test("applies declared material and pointer tilt effects after layout", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -669,6 +695,22 @@ function createRendererHostStub(
   sceneAdapter: WebGLSceneAdapter = createRecordingSceneAdapter(),
 ): ThreeRendererHost {
   const canvas = container.ownerDocument.createElement("canvas");
+
+  Object.defineProperty(canvas, "getBoundingClientRect", {
+    configurable: true,
+    value: () =>
+      ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 600,
+        width: 800,
+        height: 600,
+        toJSON: () => undefined,
+      }) as DOMRect,
+  });
 
   return {
     canvas,
