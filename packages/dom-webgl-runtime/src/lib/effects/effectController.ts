@@ -1,6 +1,7 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
+import { assertMaterialSourceCompatibility } from "./effectCompatibility";
 import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
 import type { NormalizedWebGLMotionDeclaration } from "./effectNormalization";
 
@@ -32,7 +33,11 @@ export function createWebGLEffectController(
   let materialApplied = false;
 
   if (effects.material) {
-    assertSolidMaterialSource(options.key, options.source);
+    assertMaterialSourceCompatibility(
+      options.key,
+      effects.material,
+      options.source,
+    );
   }
 
   return {
@@ -99,33 +104,6 @@ function applyPointerTilt(
     input.pointer.normalizedY * maxRadians,
     input.pointer.normalizedX * maxRadians,
   );
-}
-
-function assertSolidMaterialSource(
-  key: string,
-  source: WebGLSourceDescriptor,
-): void {
-  if (source.kind === "snapshot" && source.mode === "element") {
-    return;
-  }
-
-  throw new Error(
-    `WebGL target "${key}" uses solid material on unsupported source "${readSourceKind(
-      source,
-    )}". Solid material effects support only snapshot/element targets.`,
-  );
-}
-
-function readSourceKind(source: WebGLSourceDescriptor): string {
-  if (source.kind === "snapshot") {
-    return `snapshot/${source.mode}`;
-  }
-
-  if (source.kind === "model") {
-    return `model/${source.format}`;
-  }
-
-  return source.kind;
 }
 
 function degreesToRadians(degrees: number): number {
