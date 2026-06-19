@@ -26,6 +26,28 @@ describe("assertMaterialSourceCompatibility", () => {
       'WebGL target "card.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
     );
   });
+
+  test("allows surface material on element snapshots", () => {
+    expect(() =>
+      assertMaterialSourceCompatibility(
+        "card.surface",
+        { kind: "surface", color: 0xffffff, opacity: 1, radius: 12 },
+        createElementSnapshotSource(),
+      ),
+    ).not.toThrow();
+  });
+
+  test("rejects surface material on image sources", () => {
+    expect(() =>
+      assertMaterialSourceCompatibility(
+        "card.image",
+        { kind: "surface", color: 0xffffff, opacity: 1, radius: 12 },
+        createImageSource(),
+      ),
+    ).toThrow(
+      'WebGL target "card.image" uses surface material on unsupported source "image". Surface material effects support only snapshot/element targets.',
+    );
+  });
 });
 
 function createSolidMaterial(): NormalizedWebGLMaterialDeclaration {

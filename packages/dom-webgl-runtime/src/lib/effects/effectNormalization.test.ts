@@ -26,4 +26,24 @@ describe("normalizeWebGLEffectsDeclaration", () => {
       motion: { kind: "pointer-tilt", strength: 0, maxDegrees: 30 },
     });
   });
+
+  test("defaults and clamps minimal surface material values", () => {
+    expect(
+      normalizeWebGLEffectsDeclaration({
+        material: {
+          kind: "surface",
+          color: 0x1ffffff,
+          opacity: 2,
+          radius: -4,
+        },
+      }),
+    ).toEqual({
+      material: {
+        kind: "surface",
+        color: 0xffffff,
+        opacity: 1,
+        radius: 0,
+      },
+    });
+  });
 });
