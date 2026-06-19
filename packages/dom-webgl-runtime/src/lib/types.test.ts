@@ -62,11 +62,17 @@ describe("WebGLDeclaration public types", () => {
 	          hideWhenReady: true,
 	          hideMode: "subtree",
 	        } satisfies WebGLLifecycleDeclaration;
-	        const material = {
-	          kind: "solid",
-	          color: 0x111827,
-	          opacity: 0.82,
-	        } satisfies WebGLMaterialDeclaration;
+        const material = {
+          kind: "solid",
+          color: 0x111827,
+          opacity: 0.82,
+        } satisfies WebGLMaterialDeclaration;
+        const surfaceMaterial = {
+          kind: "surface",
+          color: 0x111827,
+          opacity: 0.86,
+          radius: 18,
+        } satisfies WebGLMaterialDeclaration;
 	        const motion = {
 	          kind: "pointer-tilt",
 	          strength: 0.6,
@@ -91,9 +97,17 @@ describe("WebGLDeclaration public types", () => {
           key: "hero.scene",
           scroll: gateScroll,
         } satisfies WebGLDeclaration;
+        const surfaceDeclaration = {
+          key: "card.surface",
+          source: { kind: "snapshot", mode: "element" },
+          effects: {
+            material: surfaceMaterial,
+          },
+        } satisfies WebGLDeclaration;
 
         declaration.key satisfies string;
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
+        surfaceDeclaration.effects?.material?.kind satisfies "surface";
         subtreeLifecycle satisfies WebGLLifecycleDeclaration;
         lifecycleState satisfies
           | "declared"
@@ -142,15 +156,26 @@ describe("WebGLDeclaration public types", () => {
 	          effects: ["blur"],
 	        } satisfies WebGLDeclaration);
 
-	        ({
-	          key: "hero.surface",
-	          effects: {
-	            material: {
-	              // @ts-expect-error only the built-in solid material is supported.
-	              kind: "gradient",
-	            },
-	          },
-	        } satisfies WebGLDeclaration);
+        ({
+          key: "hero.surface",
+          effects: {
+            material: {
+              // @ts-expect-error only built-in material kinds are supported.
+              kind: "gradient",
+            },
+          },
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "card.surface",
+          effects: {
+            material: {
+              kind: "surface",
+              // @ts-expect-error surface colors are declaration-owned numeric values.
+              color: "rgb(17, 24, 39)",
+            },
+          },
+        } satisfies WebGLDeclaration);
 
 	        ({
 	          key: "hero.surface",

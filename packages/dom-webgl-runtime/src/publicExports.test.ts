@@ -154,7 +154,9 @@ describe("public package exports", () => {
           WebGLRuntimeOptions,
           WebGLScrollBehavior,
           WebGLSnapshotSourceDeclaration,
+          WebGLSolidMaterialDeclaration,
           WebGLSourceDeclaration,
+          WebGLSurfaceMaterialDeclaration,
           WebGLVideoSourceDeclaration,
         } from "${importPath}";
 
@@ -226,11 +228,19 @@ describe("public package exports", () => {
 	          hideWhenReady: true,
 	          hideMode: "subtree",
 	        } satisfies WebGLLifecycleDeclaration;
-	        const material = {
-	          kind: "solid",
-	          color: 0x111827,
-	          opacity: 0.82,
-	        } satisfies WebGLMaterialDeclaration;
+        const material = {
+          kind: "solid",
+          color: 0x111827,
+          opacity: 0.82,
+        } satisfies WebGLMaterialDeclaration;
+        const solidMaterial = material satisfies WebGLSolidMaterialDeclaration;
+        const surfaceMaterial = {
+          kind: "surface",
+          color: 0x111827,
+          opacity: 0.86,
+          radius: 18,
+        } satisfies WebGLSurfaceMaterialDeclaration;
+        surfaceMaterial satisfies WebGLMaterialDeclaration;
 	        const motion = {
 	          kind: "pointer-tilt",
 	          strength: 0.6,

@@ -58,11 +58,22 @@ export type WebGLLifecycleDeclaration = {
   hideMode?: "subtree" | "self";
 };
 
-export type WebGLMaterialDeclaration = {
+export type WebGLSolidMaterialDeclaration = {
   kind: "solid";
   color?: number;
   opacity?: number;
 };
+
+export type WebGLSurfaceMaterialDeclaration = {
+  kind: "surface";
+  color?: number;
+  opacity?: number;
+  radius?: number;
+};
+
+export type WebGLMaterialDeclaration =
+  | WebGLSolidMaterialDeclaration
+  | WebGLSurfaceMaterialDeclaration;
 
 export type WebGLMotionDeclaration = {
   kind: "pointer-tilt";

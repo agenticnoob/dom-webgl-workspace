@@ -19,6 +19,8 @@ export type {
   WebGLRuntimeOptions,
   WebGLScrollBehavior,
   WebGLSnapshotSourceDeclaration,
+  WebGLSolidMaterialDeclaration,
   WebGLSourceDeclaration,
+  WebGLSurfaceMaterialDeclaration,
   WebGLVideoSourceDeclaration,
 } from "./lib/types";
