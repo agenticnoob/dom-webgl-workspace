@@ -1,11 +1,15 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
-import { assertMaterialSourceCompatibility } from "./effectCompatibility";
+import { builtInWebGLEffectPlugins } from "./builtins";
+import { compileWebGLEffectDeclarations } from "./effectDeclaration";
+import { assertEffectCompatibility } from "./effectCompatibility";
+import type { WebGLEffectInstance, WebGLEffectSourceKind } from "./effectPlugin";
+import {
+  createWebGLEffectRegistry,
+  type WebGLEffectRegistry,
+} from "./effectRegistry";
 import type { WebGLEffectTarget } from "./effectTarget";
-import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
-import type { NormalizedWebGLMaterialDeclaration } from "./effectNormalization";
-import { applyPointerTilt } from "./motions/pointerTilt";
 
 export type WebGLEffectController = {
   readonly hasEffects: boolean;
@@ -19,26 +23,40 @@ export type WebGLEffectControllerOptions = {
   source: WebGLSourceDescriptor;
   target?: WebGLEffectTarget;
   getTarget?(): WebGLEffectTarget | undefined;
+  registry?: WebGLEffectRegistry;
 };
 
 export function createWebGLEffectController(
   options: WebGLEffectControllerOptions,
 ): WebGLEffectController {
-  const effects = normalizeWebGLEffectsDeclaration(options.declaration);
-  let disposed = false;
-  let materialApplied = false;
+  const registry =
+    options.registry ?? createWebGLEffectRegistry(builtInWebGLEffectPlugins);
+  const sourceKind = readEffectSourceKind(options.source);
+  const instances = compileWebGLEffectDeclarations(options.declaration).map(
+    (declaration): WebGLEffectInstance => {
+      const plugin = registry.resolve(declaration.kind);
 
-  if (effects.material) {
-    assertMaterialSourceCompatibility(
-      options.key,
-      effects.material,
-      options.source,
-    );
-  }
+      if (!plugin) {
+        throw new Error(
+          `WebGL target "${options.key}" references unknown effect "${declaration.kind}".`,
+        );
+      }
+
+      assertEffectCompatibility(
+        options.key,
+        declaration.kind,
+        plugin,
+        sourceKind,
+      );
+
+      return plugin.create(plugin.normalize(declaration));
+    },
+  );
+  let disposed = false;
 
   return {
     get hasEffects() {
-      return !!effects.material || !!effects.motion;
+      return instances.length > 0;
     },
     update(input, layout): void {
       if (disposed) {
@@ -47,15 +65,14 @@ export function createWebGLEffectController(
 
       const target = readEffectTarget(options);
 
-      if (effects.material && !materialApplied) {
-        if (!applyMaterialEffect(target, effects.material, layout)) {
-          return;
-        }
-        materialApplied = true;
-      }
-
-      if (effects.motion) {
-        applyPointerTilt(target, input, effects.motion);
+      for (const instance of instances) {
+        instance.update({
+          key: options.key,
+          sourceKind,
+          input,
+          layout,
+          target,
+        });
       }
     },
     dispose(): void {
@@ -64,6 +81,9 @@ export function createWebGLEffectController(
       }
 
       disposed = true;
+      for (const instance of instances) {
+        instance.dispose?.();
+      }
       readEffectTarget(options)?.disposeEffects?.();
     },
   };
@@ -75,31 +95,16 @@ function readEffectTarget(
   return options.getTarget?.() ?? options.target;
 }
 
-function applyMaterialEffect(
-  target: WebGLEffectTarget | undefined,
-  material: NormalizedWebGLMaterialDeclaration,
-  layout: ElementLayoutSnapshot,
-): boolean {
-  if (material.kind === "solid") {
-    if (!target?.applySolidMaterial) {
-      return false;
-    }
-
-    target.applySolidMaterial({
-      color: material.color,
-      opacity: material.opacity,
-    });
-    return true;
+function readEffectSourceKind(
+  source: WebGLSourceDescriptor,
+): WebGLEffectSourceKind {
+  if (source.kind === "snapshot") {
+    return source.mode === "text" ? "snapshot/text" : "snapshot/element";
   }
 
-  if (!target?.applySurfaceMaterial) {
-    return false;
+  if (source.kind === "model") {
+    return "model/glb";
   }
 
-  target.applySurfaceMaterial(material, {
-    width: layout.width,
-    height: layout.height,
-    devicePixelRatio: layout.devicePixelRatio,
-  });
-  return true;
+  return source.kind;
 }

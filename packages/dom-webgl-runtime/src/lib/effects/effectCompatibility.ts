@@ -1,34 +1,16 @@
-import type { NormalizedWebGLMaterialDeclaration } from "./effectNormalization";
-import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
+import type { WebGLEffectPlugin, WebGLEffectSourceKind } from "./effectPlugin";
 
-export function assertMaterialSourceCompatibility(
+export function assertEffectCompatibility(
   key: string,
-  material: NormalizedWebGLMaterialDeclaration,
-  source: WebGLSourceDescriptor,
+  effectKind: string,
+  plugin: WebGLEffectPlugin,
+  sourceKind: WebGLEffectSourceKind,
 ): void {
-  if (source.kind === "snapshot" && source.mode === "element") {
+  if (plugin.appliesTo.includes(sourceKind)) {
     return;
   }
 
   throw new Error(
-    `WebGL target "${key}" uses ${material.kind} material on unsupported source "${readSourceKind(
-      source,
-    )}". ${readMaterialLabel(material.kind)} material effects support only snapshot/element targets.`,
+    `WebGL effect "${effectKind}" cannot be used with source "${sourceKind}" on target "${key}".`,
   );
-}
-
-function readMaterialLabel(kind: NormalizedWebGLMaterialDeclaration["kind"]) {
-  return kind === "solid" ? "Solid" : "Surface";
-}
-
-function readSourceKind(source: WebGLSourceDescriptor): string {
-  if (source.kind === "snapshot") {
-    return `snapshot/${source.mode}`;
-  }
-
-  if (source.kind === "model") {
-    return `model/${source.format}`;
-  }
-
-  return source.kind;
 }

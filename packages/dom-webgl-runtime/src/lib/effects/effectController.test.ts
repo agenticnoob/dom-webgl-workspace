@@ -73,7 +73,7 @@ describe("createWebGLEffectController", () => {
     controller.update(createFrameInput(), layout);
 
     expect(target.applySurfaceMaterial).toHaveBeenCalledWith(
-      { kind: "surface", color: 0x111827, opacity: 0.84, radius: 16 },
+      { color: 0x111827, opacity: 0.84, radius: 16 },
       {
         width: layout.width,
         height: layout.height,
@@ -93,8 +93,69 @@ describe("createWebGLEffectController", () => {
         target: createEffectTarget(),
       }),
     ).toThrow(
-      'WebGL target "hero.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
+      'WebGL effect "material.solid" cannot be used with source "image" on target "hero.image".',
     );
+  });
+
+  test("runs array effect declarations through registered plugins", () => {
+    const target = createEffectTarget();
+    const controller = createWebGLEffectController({
+      key: "hero",
+      declaration: [
+        {
+          kind: "surface.basic",
+          color: 0x111111,
+          opacity: 0.5,
+          radius: 12,
+        },
+      ],
+      source: createElementSnapshotSource(),
+      target,
+    });
+
+    controller.update(createFrameInput(), createLayoutSnapshot());
+
+    expect(target.applySurfaceMaterial).toHaveBeenCalledWith(
+      { color: 0x111111, opacity: 0.5, radius: 12 },
+      { width: 200, height: 100, devicePixelRatio: 1 },
+    );
+  });
+
+  test("keeps legacy effects working through the compiler", () => {
+    const target = createEffectTarget();
+    const controller = createWebGLEffectController({
+      key: "hero",
+      declaration: {
+        motion: { kind: "pointer-tilt", strength: 1, maxDegrees: 8 },
+      },
+      source: createElementSnapshotSource(),
+      target,
+    });
+
+    controller.update(
+      createFrameInput({
+        isInside: true,
+        normalizedX: 1,
+        normalizedY: -1,
+      }),
+      createLayoutSnapshot(),
+    );
+
+    expect(target.setRotation).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  test("reports unknown effect kinds as configuration errors", () => {
+    expect(() =>
+      createWebGLEffectController({
+        key: "hero",
+        declaration: [{ kind: "missing.effect" }],
+        source: createElementSnapshotSource(),
+        target: createEffectTarget(),
+      }),
+    ).toThrow('WebGL target "hero" references unknown effect "missing.effect".');
   });
 
   test("updates pointer tilt from shared frame input and resets outside target", () => {
