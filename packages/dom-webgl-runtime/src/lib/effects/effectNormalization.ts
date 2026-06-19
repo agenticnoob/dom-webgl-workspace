@@ -1,5 +1,6 @@
 import type {
   WebGLEffectsDeclaration,
+  WebGLLegacyEffectsDeclaration,
   WebGLMaterialDeclaration,
   WebGLMotionDeclaration,
 } from "../types";
@@ -44,6 +45,10 @@ export function normalizeWebGLEffectsDeclaration(
     return {};
   }
 
+  if (!isLegacyEffectsDeclaration(declaration)) {
+    return {};
+  }
+
   const effects: NormalizedWebGLEffectsDeclaration = {};
 
   if (declaration.material) {
@@ -55,6 +60,12 @@ export function normalizeWebGLEffectsDeclaration(
   }
 
   return effects;
+}
+
+function isLegacyEffectsDeclaration(
+  declaration: WebGLEffectsDeclaration,
+): declaration is WebGLLegacyEffectsDeclaration {
+  return !Array.isArray(declaration);
 }
 
 function normalizeMaterialDeclaration(

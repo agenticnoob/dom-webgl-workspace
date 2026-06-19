@@ -28,6 +28,7 @@ import {
   createWebGLEffectController,
   type WebGLEffectController,
 } from "../effects/effectController";
+import type { WebGLEffectRegistry } from "../effects/effectRegistry";
 import {
   createFrameInputSource,
   type FrameClock,
@@ -95,6 +96,10 @@ type RuntimeScrollController = ScrollStateController &
 
 type TargetDebugRecord = Omit<DebugTargetState, "key">;
 
+type PipelineRenderableContext = RenderableFactoryContext & {
+  effectRegistry?: WebGLEffectRegistry;
+};
+
 type SyncFrameResult = {
   didSynchronousUpdate: boolean;
   pendingUpdate?: Promise<void>;
@@ -154,13 +159,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     string,
     FallbackVisibilityController
   >();
-  const renderableFactoryContext: RenderableFactoryContext = {
+  const renderableFactoryContext: PipelineRenderableContext = {
     resourceManager,
     sceneAdapter: rendererHost.sceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
     getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
+    effectRegistry: internalOptions.effectRegistry,
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -560,7 +566,7 @@ function readDebugScrollState(
 
 function createPipelineRenderable(
   descriptor: TargetDescriptor,
-  context: RenderableFactoryContext,
+  context: PipelineRenderableContext,
 ): {
   renderable: Renderable;
   effectController: WebGLEffectController;
@@ -582,6 +588,7 @@ function createPipelineRenderable(
     declaration: descriptor.declaration.effects,
     source,
     getTarget: () => renderable.effectTarget,
+    registry: context.effectRegistry,
   });
 
   return {

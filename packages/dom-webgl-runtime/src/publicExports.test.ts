@@ -11,6 +11,7 @@ describe("public package exports", () => {
     const rootApi = await import("./index");
 
     expect(rootApi.createWebGLRuntime).toEqual(expect.any(Function));
+    expect(rootApi.createWebGLEffectRegistry).toEqual(expect.any(Function));
     expect(rootApi).not.toHaveProperty("createTargetRegistry");
   });
 
@@ -134,12 +135,17 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-        import { createWebGLRuntime } from "${importPath}";
-	        import type {
-	          WebGLDebugState,
-	          WebGLDeclaration,
-	          WebGLEffectsDeclaration,
-	          WebGLFrameInput,
+	        import { createWebGLEffectRegistry, createWebGLRuntime } from "${importPath}";
+		        import type {
+		          WebGLDebugState,
+		          WebGLDeclaration,
+		          WebGLEffectInstance,
+		          WebGLEffectPlugin,
+		          WebGLEffectSourceKind,
+		          WebGLEffectTargetCapability,
+		          WebGLEffectTargetContext,
+		          WebGLEffectsDeclaration,
+		          WebGLFrameInput,
 	          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
 	          WebGLImageSourceDeclaration,
@@ -183,9 +189,10 @@ describe("public package exports", () => {
 	        // @ts-expect-error Effect targets are internal renderable state.
 	        import type { WebGLEffectTarget } from "${importPath}";
 
-        createWebGLRuntime satisfies (
-          options: WebGLRuntimeOptions,
-        ) => WebGLRuntime;
+	        createWebGLRuntime satisfies (
+	          options: WebGLRuntimeOptions,
+	        ) => WebGLRuntime;
+	        createWebGLEffectRegistry satisfies unknown;
 
         const renderRole = "model" satisfies WebGLRenderRole;
         const snapshotSource = {
@@ -246,29 +253,67 @@ describe("public package exports", () => {
 	          strength: 0.6,
 	          maxDegrees: 8,
 	        } satisfies WebGLMotionDeclaration;
-	        const effects = {
-	          material,
-	          motion,
-	        } satisfies WebGLEffectsDeclaration;
+		        const effects = {
+		          material,
+		          motion,
+		        } satisfies WebGLEffectsDeclaration;
+		        const arrayEffects = [
+		          { kind: "surface.basic", color: 0x111827, opacity: 0.86, radius: 18 },
+		          { kind: "motion.pointerTilt", strength: 0.6, maxDegrees: 8 },
+		        ] satisfies WebGLEffectsDeclaration;
+		        const customEffects = [
+		          { kind: "custom.surfacePulse", opacity: 0.4 },
+		        ] satisfies WebGLEffectsDeclaration;
+		        arrayEffects satisfies WebGLEffectsDeclaration;
+		        customEffects satisfies WebGLEffectsDeclaration;
+		        const effectSourceKind = "snapshot/element" satisfies WebGLEffectSourceKind;
+		        const effectCapability = "material.surface" satisfies WebGLEffectTargetCapability;
+		        const effectInstance = {
+		          update(_context: WebGLEffectTargetContext) {
+		            return;
+		          },
+		        } satisfies WebGLEffectInstance;
+		        const effectPlugin = {
+		          kind: "custom.surfacePulse",
+		          appliesTo: [effectSourceKind],
+		          capabilities: [effectCapability],
+		          normalize: (declaration: { kind: "custom.surfacePulse"; opacity?: number }) => ({
+		            opacity: declaration.opacity ?? 1,
+		          }),
+		          create: () => effectInstance,
+		        } satisfies WebGLEffectPlugin<
+		          { kind: "custom.surfacePulse"; opacity?: number },
+		          { opacity: number }
+		        >;
+		        const effectRegistry = createWebGLEffectRegistry([effectPlugin]);
 
-	        const declaration = {
+		        const declaration = {
 	          key: "hero.model",
 	          source: modelSource,
 	          renderRole,
 	          scroll: pageScroll,
 	          pointer: pointerDeclaration,
-	          lifecycle,
-	          effects,
-	        } satisfies WebGLDeclaration;
-        const gateDeclaration = {
+		          lifecycle,
+		          effects,
+		        } satisfies WebGLDeclaration;
+		        const arrayEffectDeclaration = {
+		          key: "hero.array-effects",
+		          effects: arrayEffects,
+		        } satisfies WebGLDeclaration;
+	        const gateDeclaration = {
           key: "hero.scene",
           scroll: gateScroll,
         } satisfies WebGLDeclaration;
 
-        declare const runtime: WebGLRuntime;
-        declare const element: HTMLElement;
-        const registeredTarget = runtime.registerTarget(element, declaration);
-        registeredTarget satisfies void;
+	        declare const runtime: WebGLRuntime;
+	        declare const element: HTMLElement;
+	        const registeredTarget = runtime.registerTarget(element, declaration);
+	        const customRuntime = createWebGLRuntime({
+	          container: element,
+	          effectRegistry,
+	        });
+	        customRuntime.registerTarget(element, arrayEffectDeclaration);
+	        registeredTarget satisfies void;
         // @ts-expect-error public registration does not expose internal target descriptor state.
         registeredTarget.scanOrder;
         // @ts-expect-error public registration does not expose internal target descriptor DOM references.

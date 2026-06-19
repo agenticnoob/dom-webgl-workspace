@@ -11,11 +11,17 @@ export function compileWebGLEffectDeclarations(
     return [];
   }
 
-  if (Array.isArray(declaration)) {
+  if (isEffectDeclarationArray(declaration)) {
     return [...declaration];
   }
 
   return compileLegacyEffectsDeclaration(declaration);
+}
+
+function isEffectDeclarationArray(
+  declaration: WebGLEffectsDeclaration,
+): declaration is readonly WebGLEffectDeclaration[] {
+  return Array.isArray(declaration);
 }
 
 function compileLegacyEffectsDeclaration(

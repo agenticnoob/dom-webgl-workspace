@@ -3,6 +3,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { ScrollControllerGateTarget } from "../input/scrollController";
+import { createWebGLEffectRegistry } from "../effects/effectRegistry";
+import type {
+  WebGLEffectPlugin,
+  WebGLEffectTargetContext,
+} from "../effects/effectPlugin";
 import type { Renderable } from "../render/renderable";
 import type { WebGLSceneAdapter } from "./sceneObject";
 import type {
@@ -365,15 +370,74 @@ describe("runtime pipeline sync", () => {
     });
 
     expect(() => runtime.sync()).toThrow(
-      'WebGL target "effect.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
+      'WebGL effect "material.solid" cannot be used with source "image" on target "effect.image".',
     );
     expect(runtime.getDebugState().targets[0]).toMatchObject({
       key: "effect.image",
       resourceStatus: "error",
       lifecycleState: "error",
       error:
-        'WebGL target "effect.image" uses solid material on unsupported source "image". Solid material effects support only snapshot/element targets.',
+        'WebGL effect "material.solid" cannot be used with source "image" on target "effect.image".',
     });
+
+    runtime.dispose();
+  });
+
+  test("runs custom registered effects through existing target capabilities", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      createCanvasContextStub(),
+    );
+    const updateEffect = vi.fn(
+      (context: WebGLEffectTargetContext, opacity: number) => {
+        context.target?.applySurfaceMaterial?.(
+          { color: 0x123456, opacity, radius: 10 },
+          {
+            width: context.layout.width,
+            height: context.layout.height,
+            devicePixelRatio: context.layout.devicePixelRatio,
+          },
+        );
+      },
+    );
+    const customSurfaceEffect: WebGLEffectPlugin<
+      { kind: "custom.surfacePulse"; opacity?: number },
+      { opacity: number }
+    > = {
+      kind: "custom.surfacePulse",
+      appliesTo: ["snapshot/element"],
+      capabilities: ["material.surface"],
+      normalize: (declaration) => ({ opacity: declaration.opacity ?? 1 }),
+      create: (state) => ({
+        update(context) {
+          updateEffect(context, state.opacity);
+        },
+      }),
+    };
+    const effectRegistry = createWebGLEffectRegistry([customSurfaceEffect]);
+    const runtime = await createPipelineRuntime({
+      effectRegistry,
+      measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "custom.surface",
+      source: { kind: "snapshot", mode: "element" },
+      effects: [{ kind: "custom.surfacePulse", opacity: 0.4 }],
+    });
+
+    await runtime.sync();
+
+    expect(updateEffect).toHaveBeenCalledOnce();
+    expect(updateEffect.mock.calls[0]?.[0]).toMatchObject({
+      key: "custom.surface",
+      sourceKind: "snapshot/element",
+      layout: { width: 200, height: 120, devicePixelRatio: 1 },
+      target: {
+        applySurfaceMaterial: expect.any(Function),
+      },
+    });
+    expect(updateEffect.mock.calls[0]?.[1]).toBe(0.4);
 
     runtime.dispose();
   });
