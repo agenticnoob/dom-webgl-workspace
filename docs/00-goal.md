@@ -1279,6 +1279,9 @@ Delivered Phase 7 behavior:
 - Expose custom effect registry primitives through the root public entrypoint
   and allow `createWebGLRuntime({ effectRegistry })` to run registered effects
   against existing target capabilities.
+- Forward `effectRegistry` through the public React `<WebGLRuntime />` adapter
+  so React consumers can use custom effect registries without dropping to the
+  vanilla runtime constructor.
 - Keep text mutation, shader authoring, particles, picking, multiple canvases,
   third-party scroll adapters, and CSS paint cloning outside Phase 7 unless a
   later plan defines the missing target capabilities first.

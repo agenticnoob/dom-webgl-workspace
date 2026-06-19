@@ -95,6 +95,49 @@ describe("WebGLRuntime", () => {
     expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
   });
 
+  test("passes the effect registry to the runtime on mount", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const effectRegistry = createTestEffectRegistry();
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { effectRegistry }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        effectRegistry,
+      }),
+    );
+  });
+
+  test("recreates the runtime when the effect registry changes", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const firstRegistry = createTestEffectRegistry();
+    const secondRegistry = createTestEffectRegistry();
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { effectRegistry: firstRegistry }));
+    });
+
+    const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { effectRegistry: secondRegistry }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
+    expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        effectRegistry: secondRegistry,
+      }),
+    );
+  });
+
   test("does not recreate the runtime when debug callbacks update parent state", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
@@ -266,6 +309,14 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
       };
     },
     dispose: vi.fn(),
+  };
+}
+
+function createTestEffectRegistry() {
+  return {
+    register: vi.fn(),
+    resolve: vi.fn(),
+    list: vi.fn(() => []),
   };
 }
 

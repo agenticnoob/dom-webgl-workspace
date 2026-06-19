@@ -38,8 +38,8 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-        import { WebGLRuntime, WebGLTarget } from "${importPath}";
-        import type { WebGLTargetProps } from "${importPath}";
+	        import { WebGLRuntime, WebGLTarget } from "${importPath}";
+	        import type { WebGLRuntimeProps, WebGLTargetProps } from "${importPath}";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
         // @ts-expect-error Scene objects are internal renderer state.
@@ -57,10 +57,15 @@ describe("public package exports", () => {
         // @ts-expect-error Render policy ordering is internal.
         import type { SceneObjectOrdering } from "${importPath}";
 
-        WebGLRuntime satisfies unknown;
-        WebGLTarget satisfies unknown;
+	        WebGLRuntime satisfies unknown;
+	        WebGLTarget satisfies unknown;
+	        declare const effectRegistry: WebGLRuntimeProps["effectRegistry"];
+	        const runtimeProps = {
+	          effectRegistry,
+	        } satisfies WebGLRuntimeProps;
+	        runtimeProps.effectRegistry satisfies WebGLRuntimeProps["effectRegistry"];
 
-	        const props = {
+		        const props = {
 	          webgl: {
 	            key: "hero.gate",
 	            scroll: {

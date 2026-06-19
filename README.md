@@ -27,7 +27,9 @@ effect boundaries.
 Phase 7 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
 it preserves the Phase 6 object-form declarations while moving the internal
-effect execution model to ordered, registry-driven runtime primitives.
+effect execution model to ordered, registry-driven runtime primitives. Custom
+registries can be passed through the vanilla runtime constructor or the React
+`<WebGLRuntime effectRegistry={registry}>` adapter.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -171,7 +173,8 @@ Current visual behavior:
 - Phase 7 replaces fixed material/motion runtime slots with effect declarations
   compiled into registry-driven runtime plugins while keeping Phase 6
   declarations compatible. Custom registries can target existing runtime
-  capabilities through `effectRegistry`.
+  capabilities through `effectRegistry`; React consumers pass the same registry
+  through `<WebGLRuntime effectRegistry={registry}>`.
 
 ### Effect model
 
@@ -191,6 +194,10 @@ effects: [
 
 The legacy `{ material, motion }` object form remains supported for Phase 6
 compatibility.
+
+Custom effect registries are created with `createWebGLEffectRegistry(...)` and
+can be passed either to `createWebGLRuntime({ effectRegistry })` or the React
+adapter as `<WebGLRuntime effectRegistry={registry}>`.
 
 ## Setup
 
