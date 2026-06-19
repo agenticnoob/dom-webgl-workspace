@@ -2,9 +2,9 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   createWebGLEffectController,
-  normalizeWebGLEffectsDeclaration,
   type WebGLEffectTarget,
 } from "./effectController";
+import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
 
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput } from "../types";
