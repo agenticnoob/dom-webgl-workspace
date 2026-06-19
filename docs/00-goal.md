@@ -32,7 +32,10 @@ Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
 visible behavior: pure effect normalization, compatibility, target capability
 types, and pointer motion are separated from Three.js renderable target
 adapters. Phase 6.2 adds a minimal built-in `surface` material for
-declaration-owned element snapshot color, opacity, and radius.
+declaration-owned element snapshot color, opacity, and radius. Phase 7 is
+planned, not yet implemented: it should preserve Phase 6 declarations while
+moving effect execution from fixed material/motion slots toward ordered,
+registry-driven runtime primitives.
 
 ## Purpose
 
@@ -1265,11 +1268,26 @@ Delivered Phase 6.2 behavior:
 - Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
   separately approved Phase 6.3 gate includes them.
 
+Planned Phase 7 behavior:
+
+- Preserve the current Phase 6 object-form `effects.material` and
+  `effects.motion` declarations as compatibility input.
+- Add an ordered effect declaration model that compiles both legacy object-form
+  declarations and new effect entries into the same internal execution path.
+- Move built-in `solid`, `surface`, and `pointer-tilt` behavior behind
+  registry-driven runtime plugin primitives with explicit source and target
+  capability checks.
+- Keep text mutation, shader authoring, particles, picking, multiple canvases,
+  third-party scroll adapters, and CSS paint cloning outside Phase 7 unless a
+  later plan defines the missing target capabilities first.
+
 ## Non-Goals For The New Project
 
 - Do not create multiple WebGL canvases to solve ordering.
 - Do not expose Three.js ordering flags as the main page API.
-- Do not start with a general-purpose effect registry.
+- Do not start the project with a general-purpose effect registry. Later
+  registry work must come from an explicit effect-runtime plan with source and
+  target capability boundaries.
 - Do not port archived effect implementations first.
 - Do not use class-based effect compatibility layers.
 - Do not let every renderable or effect own its own pointer listeners.

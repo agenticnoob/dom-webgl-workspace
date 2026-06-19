@@ -24,6 +24,10 @@ Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
 adds a minimal built-in `surface` material on top of the modular Phase 6.1
 effect boundaries.
+Phase 7 is planned in
+`docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
+it will preserve the Phase 6 object-form declarations while moving the internal
+effect execution model toward ordered, registry-driven runtime primitives.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -162,6 +166,9 @@ Current visual behavior:
   opacity, and radius only; border, shadow, gradients, and CSS paint cloning
   remain out of scope unless a separately approved Phase 6.3 gate explicitly
   includes them.
+- Phase 7 is the next planned architecture step: it should replace fixed
+  material/motion runtime slots with effect declarations compiled into
+  registry-driven runtime plugins while keeping Phase 6 declarations compatible.
 
 ## Setup
 
