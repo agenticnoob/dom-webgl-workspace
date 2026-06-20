@@ -110,6 +110,16 @@ describe("demo App", () => {
       "demo.layout.image",
       "demo.effects.surface",
       "demo.effects.surface.phase6",
+      "demo.scroll.marker.01",
+      "demo.scroll.marker.02",
+      "demo.scroll.marker.02.copy",
+      "demo.scroll.marker.03",
+      "demo.scroll.marker.04",
+      "demo.scroll.marker.05",
+      "demo.scroll.marker.06",
+      "demo.scroll.marker.06.copy",
+      "demo.scroll.marker.07",
+      "demo.scroll.marker.08",
     ]);
     expect(
       targetProps.map(({ webgl }) => ({
@@ -150,6 +160,46 @@ describe("demo App", () => {
         key: "demo.effects.surface.phase6",
         source: { kind: "snapshot", mode: "element" },
       },
+      {
+        key: "demo.scroll.marker.01",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.02",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.02.copy",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.scroll.marker.03",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.04",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.05",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.06",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.06.copy",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.scroll.marker.07",
+        source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.08",
+        source: { kind: "snapshot", mode: "element" },
+      },
     ]);
     expect(targetProps.map(({ as }) => as)).toEqual([
       "section",
@@ -163,6 +213,16 @@ describe("demo App", () => {
       "img",
       "div",
       "section",
+      "div",
+      "div",
+      "p",
+      "div",
+      "div",
+      "div",
+      "div",
+      "p",
+      "div",
+      "div",
     ]);
   });
 
@@ -276,6 +336,71 @@ describe("demo App", () => {
         { kind: "demo.pointerTilt", strength: 1, maxDegrees: 15 },
       ],
     });
+  });
+
+  test("declares extra scroll-event markers through public WebGLTarget props", async () => {
+    const host = await renderApp();
+    const scrollTargets = targetProps.filter(({ webgl }) =>
+      (webgl as { key: string }).key.startsWith("demo.scroll.marker."),
+    );
+    const targetKeys = targetProps.map(({ webgl }) => (webgl as { key: string }).key);
+
+    expect(host.querySelector('[aria-label="Scroll event effect targets"]')).not.toBeNull();
+    expect(scrollTargets).toHaveLength(10);
+    expect(new Set(targetKeys).size).toBe(targetKeys.length);
+    expect(webglDeclarationFor("demo.scroll.marker.01")).toMatchObject({
+      key: "demo.scroll.marker.01",
+      source: { kind: "snapshot", mode: "element" },
+      effects: [
+        { kind: "demo.surface", opacity: 0.58 },
+        { kind: "demo.pointerTilt", strength: 0.25, maxDegrees: 4 },
+      ],
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.02")).toMatchObject({
+      key: "demo.scroll.marker.02",
+      source: { kind: "snapshot", mode: "element" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [{ kind: "demo.surface", opacity: 0.64 }],
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.02.copy")).toMatchObject({
+      key: "demo.scroll.marker.02.copy",
+      source: { kind: "snapshot", mode: "text" },
+    });
+    expect(targetProps.find(({ webgl }) =>
+      (webgl as { key: string }).key === "demo.scroll.marker.02.copy",
+    )?.as).toBe("p");
+    expect(webglDeclarationFor("demo.scroll.marker.06")).toMatchObject({
+      key: "demo.scroll.marker.06",
+      source: { kind: "snapshot", mode: "element" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [{ kind: "demo.surface", opacity: 0.64 }],
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.06.copy")).toMatchObject({
+      key: "demo.scroll.marker.06.copy",
+      source: { kind: "snapshot", mode: "text" },
+    });
+    expect(targetProps.find(({ webgl }) =>
+      (webgl as { key: string }).key === "demo.scroll.marker.06.copy",
+    )?.as).toBe("p");
+    expect(webglDeclarationFor("demo.scroll.marker.08")).toMatchObject({
+      key: "demo.scroll.marker.08",
+      source: { kind: "snapshot", mode: "element" },
+      effects: [
+        { kind: "demo.surface", opacity: 0.7 },
+        { kind: "demo.pointerTilt", strength: 0.35, maxDegrees: 5 },
+      ],
+    });
+  });
+
+  test("renders bilingual demo copy for scroll effect testing", async () => {
+    const host = await renderApp();
+
+    expect(host.textContent).toContain("Scroll event harness");
+    expect(host.textContent).toContain("滚动事件测试区");
+    expect(host.textContent).toContain("One runtime");
+    expect(host.textContent).toContain("一个 runtime");
+    expect(host.textContent).toContain("Bottom threshold");
+    expect(host.textContent).toContain("底部阈值");
   });
 
   test("uses mapped-target default self fallback hiding on container targets", async () => {

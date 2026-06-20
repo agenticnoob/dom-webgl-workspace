@@ -19,6 +19,9 @@ export type TextCanvasRenderState = {
   devicePixelRatio: number;
   font: string;
   lineHeight: number;
+  letterSpacing: number;
+  wordSpacing: number;
+  whiteSpace: DOMStyleSnapshot["text"]["whiteSpace"];
   blockAlignment: TextBlockAlignment;
   textAlign: CanvasTextAlign;
   paddingTop: number;
@@ -58,6 +61,9 @@ export function readTextCanvasRenderState(
     devicePixelRatio: input?.devicePixelRatio ?? 1,
     font: style.text.font,
     lineHeight: style.text.lineHeight,
+    letterSpacing: style.text.letterSpacing,
+    wordSpacing: style.text.wordSpacing,
+    whiteSpace: style.text.whiteSpace,
     blockAlignment: style.text.blockAlignment,
     textAlign: style.text.textAlign,
     paddingTop: style.text.paddingTop,
@@ -105,7 +111,7 @@ export function drawTextToCanvas(
     1,
     state.width - state.paddingLeft - state.paddingRight,
   );
-  const lines = wrapCanvasText(context, textContent, maxLineWidth);
+  const lines = wrapCanvasText(context, textContent, state, maxLineWidth);
   const x = readTextX(state);
   let y = readTextStartY(state, lines.length);
   const maxY = Math.max(state.paddingTop, state.height - state.paddingBottom);
@@ -115,7 +121,7 @@ export function drawTextToCanvas(
       break;
     }
 
-    context.fillText(line, x, y);
+    drawTextLine(context, line, x, y, state);
     y += state.lineHeight;
   }
 }
@@ -157,26 +163,35 @@ function readTextStartY(
 function wrapCanvasText(
   context: CanvasRenderingContext2D,
   textContent: string,
+  state: TextCanvasRenderState,
   maxLineWidth: number,
 ): string[] {
+  if (state.whiteSpace === "pre" || state.whiteSpace === "nowrap") {
+    return normalizeTextParagraphs(textContent, state.whiteSpace);
+  }
+
   const lines: string[] = [];
 
-  for (const paragraph of textContent.split(/\r?\n/)) {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-
-    if (words.length === 0) {
-      lines.push("");
-      continue;
-    }
-
+  for (const paragraph of normalizeTextParagraphs(textContent, state.whiteSpace)) {
+    const tokens = tokenizeTextForWrapping(paragraph);
     let line = "";
 
-    for (const word of words) {
-      const nextLine = line ? `${line} ${word}` : word;
+    for (const token of tokens) {
+      if (token === " " && !line) {
+        continue;
+      }
 
-      if (line && context.measureText(nextLine).width > maxLineWidth) {
-        lines.push(line);
-        line = word;
+      const nextLine = line ? `${line}${token}` : token;
+
+      if (line && measureTextLine(context, nextLine, state) > maxLineWidth) {
+        lines.push(line.trimEnd());
+        line = token === " " ? "" : token;
+
+        if (measureTextLine(context, line, state) > maxLineWidth) {
+          const broken = breakLongToken(context, line, state, maxLineWidth);
+          lines.push(...broken.completed);
+          line = broken.remainder;
+        }
       } else {
         line = nextLine;
       }
@@ -188,6 +203,113 @@ function wrapCanvasText(
   }
 
   return lines;
+}
+
+function normalizeTextParagraphs(
+  textContent: string,
+  whiteSpace: TextCanvasRenderState["whiteSpace"],
+): string[] {
+  if (whiteSpace === "pre" || whiteSpace === "pre-wrap") {
+    return textContent.split(/\r?\n/);
+  }
+
+  const collapsed = textContent.replace(/[ \t\f\v]+/g, " ").trim();
+
+  if (whiteSpace === "pre-line") {
+    return collapsed.split(/\r?\n/);
+  }
+
+  return [collapsed.replace(/\r?\n/g, " ")];
+}
+
+function tokenizeTextForWrapping(paragraph: string): string[] {
+  return (
+    paragraph.match(
+      /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|\s+/gu,
+    ) ?? []
+  );
+}
+
+function breakLongToken(
+  context: CanvasRenderingContext2D,
+  token: string,
+  state: TextCanvasRenderState,
+  maxLineWidth: number,
+): { completed: string[]; remainder: string } {
+  const completed: string[] = [];
+  let line = "";
+
+  for (const part of Array.from(token)) {
+    const nextLine = `${line}${part}`;
+
+    if (line && measureTextLine(context, nextLine, state) > maxLineWidth) {
+      completed.push(line);
+      line = part;
+    } else {
+      line = nextLine;
+    }
+  }
+
+  return { completed, remainder: line };
+}
+
+function drawTextLine(
+  context: CanvasRenderingContext2D,
+  line: string,
+  x: number,
+  y: number,
+  state: TextCanvasRenderState,
+): void {
+  if (state.letterSpacing === 0 && state.wordSpacing === 0) {
+    context.fillText(line, x, y);
+    return;
+  }
+
+  let cursorX = readTextLineStartX(context, line, x, state);
+
+  for (const part of Array.from(line)) {
+    context.fillText(part, cursorX, y);
+    cursorX += context.measureText(part).width + readTextSpacing(part, state);
+  }
+}
+
+function readTextLineStartX(
+  context: CanvasRenderingContext2D,
+  line: string,
+  x: number,
+  state: TextCanvasRenderState,
+): number {
+  if (state.textAlign === "center") {
+    return x - measureTextLine(context, line, state) / 2;
+  }
+
+  if (state.textAlign === "right" || state.textAlign === "end") {
+    return x - measureTextLine(context, line, state);
+  }
+
+  return x;
+}
+
+function measureTextLine(
+  context: CanvasRenderingContext2D,
+  line: string,
+  state: TextCanvasRenderState,
+): number {
+  const characters = Array.from(line);
+  const baseWidth = context.measureText(line).width;
+  const letterSpacing = Math.max(0, characters.length - 1) * state.letterSpacing;
+  const wordSpacing =
+    characters.filter((character) => character === " ").length *
+    state.wordSpacing;
+
+  return baseWidth + letterSpacing + wordSpacing;
+}
+
+function readTextSpacing(
+  character: string,
+  state: TextCanvasRenderState,
+): number {
+  return state.letterSpacing + (character === " " ? state.wordSpacing : 0);
 }
 
 function parseFontSize(font: string): number {

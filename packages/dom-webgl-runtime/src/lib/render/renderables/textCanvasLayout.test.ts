@@ -17,7 +17,10 @@ describe("text canvas layout", () => {
       fontWeight: "700",
       lineHeight: "44px",
       padding: "12px 18px",
+      letterSpacing: "1px",
       textAlign: "center",
+      whiteSpace: "pre-wrap",
+      wordSpacing: "4px",
     });
 
     const style = readDOMStyleSnapshot(element);
@@ -36,7 +39,10 @@ describe("text canvas layout", () => {
       paddingRight: 18,
       paddingBottom: 12,
       paddingLeft: 18,
+      letterSpacing: 1,
       textAlign: "center",
+      whiteSpace: "pre-wrap",
+      wordSpacing: 4,
       devicePixelRatio: 2,
     });
     expect(state.style.text).not.toHaveProperty("color");
@@ -54,6 +60,9 @@ describe("text canvas layout", () => {
       devicePixelRatio: 1,
       font: "700 36px Arial",
       lineHeight: 40,
+      letterSpacing: 0,
+      wordSpacing: 0,
+      whiteSpace: "normal",
       blockAlignment: "center",
       textAlign: "right",
       paddingTop: 20,
@@ -78,6 +87,9 @@ describe("text canvas layout", () => {
       devicePixelRatio: 1,
       font: "16px sans-serif",
       lineHeight: 20,
+      letterSpacing: 0,
+      wordSpacing: 0,
+      whiteSpace: "normal",
       blockAlignment: "start",
       textAlign: "left",
       paddingTop: 10,
@@ -90,6 +102,31 @@ describe("text canvas layout", () => {
     expect(context.fillText).toHaveBeenCalledWith("Alpha", 10, 10);
     expect(context.fillText).toHaveBeenCalledWith("Beta", 10, 30);
     expect(context.fillText).toHaveBeenCalledWith("Gamma", 10, 50);
+  });
+
+  test("wraps CJK text without whitespace inside the computed content box", () => {
+    const context = createCanvasContextStub({ characterWidth: 10 });
+
+    drawTextToCanvas(context, "中文测试", {
+      width: 20,
+      height: 80,
+      devicePixelRatio: 1,
+      font: "16px sans-serif",
+      lineHeight: 20,
+      blockAlignment: "start",
+      textAlign: "left",
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+      letterSpacing: 0,
+      wordSpacing: 0,
+      whiteSpace: "normal",
+      style: createTextStyleSnapshot(),
+    });
+
+    expect(context.fillText).toHaveBeenCalledWith("中文", 0, 0);
+    expect(context.fillText).toHaveBeenCalledWith("测试", 0, 20);
   });
 });
 

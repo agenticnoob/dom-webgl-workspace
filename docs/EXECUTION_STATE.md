@@ -288,8 +288,9 @@ require a future `snapshot/text` target-capability plan.
 - Transparent layout-only element snapshots remain invisible instead of painting
   black or opaque planes.
 - Text snapshots consume initial DOM style snapshots only for placement-critical
-  font, line height, padding, alignment, and DPR. DOM text color is ignored by
-  the runtime paint path.
+  font, line height, padding, alignment, letter spacing, word spacing,
+  white-space handling, and DPR. DOM text color is ignored by the runtime paint
+  path.
 - Image and video renderables place media texture planes in the CSS content box
   and apply common `object-fit` and `object-position` mapping inside that
   content box. They do not keep CSS-painted backing planes.
@@ -302,6 +303,11 @@ require a future `snapshot/text` target-capability plan.
   visual order and pointer interaction.
 - Parent `hideMode: "self"` containers preserve ordinary child DOM but do not
   override nested WebGL targets that already manage fallback visibility.
+- WebGL-owned text should not be placed behind native semi-transparent DOM
+  surfaces. A WebGL-owned marker or card should use an element snapshot parent
+  with `hideMode: "self"` for the surface and put `snapshot/text` on the actual
+  text-bearing child element so surface and text share the same WebGL ownership
+  layer.
 - Demo layout/content targets use only public `WebGLTarget` declarations.
 - Deferred and no longer preferred as the primary roadmap: full DOM subtree
   rasterization, pseudo-elements, gradients, filters, backdrop filters, masks,
@@ -313,7 +319,7 @@ require a future `snapshot/text` target-capability plan.
   Three.js render flags.
 
 ## Phase 4 Completed Task Record
-- Completed work: Added layout snapshots with viewport/DPR signatures, cached renderer resize, target-scoped resize/viewport invalidation, placement-only DOM style snapshots, transparent element anchors, text placement style consumption, media content-box placement/object-fit mapping, runtime dirty-key invalidation, a responsive demo layout/content harness, and Phase 4.1 mapped-target default fallback takeover semantics.
+- Completed work: Added layout snapshots with viewport/DPR signatures, cached renderer resize, target-scoped resize/viewport invalidation, placement-only DOM style snapshots, transparent element anchors, text placement style consumption including spacing and white-space handling, media content-box placement/object-fit mapping, runtime dirty-key invalidation, a responsive demo layout/content harness, and Phase 4.1 mapped-target default fallback takeover semantics.
 - Files changed: runtime DOM/renderer/renderable internals, renderable tests, runtime pipeline tests, demo app/CSS/tests, README, goal docs, execution state, and the Phase 4 plan checklist.
 - Verification: `npm test -- --run` passed with 53 test files / 253 tests; `npm run typecheck` passed; `npm run build` passed with the existing non-blocking Vite chunk-size warning; `npm run check:imports` passed with `Demo import boundary OK`; `git diff --check` passed.
 - Boundary notes: No demo keys, demo asset paths, demo DOM structure, effect registry, animation/effect layer, Lenis/GSAP/ScrollTrigger adapter, WebGL raycast picking, multiple-canvas path, or public Three.js render flags were introduced into runtime/package implementation.
@@ -326,8 +332,8 @@ require a future `snapshot/text` target-capability plan.
 - Layout reads are batched.
 - Snapshot content rebuilds only on dirty invalidation.
 - Text snapshot canvases are sized from measured DOM text boxes and use
-  computed font, line height, padding, and alignment to avoid stretched
-  fixed-size text textures.
+  computed font, line height, padding, alignment, text spacing, and white-space
+  handling to avoid stretched fixed-size text textures.
 - Lifecycle state separates resource status from target activity.
 - Hidden/inactive targets skip high-cost updates.
 - Resources and render targets dispose deterministically.

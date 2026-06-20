@@ -451,8 +451,9 @@ Forward mapping rules:
 - Element snapshots are transparent DOM anchors for effects/materials. They
   should not clone CSS box paint.
 - Text snapshots should consume only text placement and rasterization inputs:
-  font, line height, padding, alignment, content, and DPR-aware canvas
-  sizing.
+  font, line height, padding, alignment, letter spacing, word spacing,
+  white-space handling, content, and DPR-aware canvas sizing. DOM text color is
+  not WebGL material truth.
 - Image and video renderables should place the media texture plane in the CSS
   content box and respect common `object-fit` / `object-position` behavior
   within that content box. They should not keep a CSS-painted backing plane.
@@ -842,6 +843,11 @@ Delivered fallback visibility behavior:
 - `hideMode: "self"` hides only the target element's own fallback paint and
   preserves ordinary child DOM visibility without overriding nested WebGL
   targets that already own fallback visibility.
+- For WebGL-owned text on a card or marker, the panel surface and text should
+  share WebGL visual ownership. Use an element snapshot parent with
+  `hideMode: "self"` for the surface, then put `snapshot/text` on the actual
+  text-bearing child element so native semi-transparent DOM backgrounds do not
+  cover the WebGL text.
 - Target unregister and runtime disposal restore fallback visibility.
 
 ## DOM To WebGL Performance Contract

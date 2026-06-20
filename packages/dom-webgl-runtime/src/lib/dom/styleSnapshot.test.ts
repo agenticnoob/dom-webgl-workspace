@@ -19,7 +19,10 @@ describe("readDOMStyleSnapshot", () => {
       fontWeight: "700",
       lineHeight: "30px",
       padding: "10px 14px",
+      letterSpacing: "1.5px",
       textAlign: "center",
+      whiteSpace: "pre-wrap",
+      wordSpacing: "3px",
       objectFit: "cover",
       objectPosition: "25% 75%",
     });
@@ -49,7 +52,10 @@ describe("readDOMStyleSnapshot", () => {
       paddingRight: 14,
       paddingBottom: 10,
       paddingLeft: 14,
+      letterSpacing: 1.5,
       textAlign: "center",
+      whiteSpace: "pre-wrap",
+      wordSpacing: 3,
     });
     expect(snapshot.text).not.toHaveProperty("color");
     expect(snapshot.media).toEqual({

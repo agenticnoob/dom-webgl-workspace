@@ -17,6 +17,9 @@ export type DOMBoxStyleSnapshot = {
 export type DOMTextStyleSnapshot = {
   font: string;
   lineHeight: number;
+  letterSpacing: number;
+  wordSpacing: number;
+  whiteSpace: "normal" | "nowrap" | "pre" | "pre-line" | "pre-wrap";
   blockAlignment: "start" | "center" | "end";
   textAlign: CanvasTextAlign;
   paddingTop: number;
@@ -63,6 +66,9 @@ export function readDOMStyleSnapshot(element: HTMLElement): DOMStyleSnapshot {
     font: readCanvasFont(computedStyle),
     lineHeight:
       readCSSPixelValue(computedStyle?.lineHeight) || Math.ceil(fontSize * 1.2),
+    letterSpacing: readCSSPixelValue(computedStyle?.letterSpacing),
+    wordSpacing: readCSSPixelValue(computedStyle?.wordSpacing),
+    whiteSpace: readWhiteSpace(computedStyle?.whiteSpace),
     blockAlignment: readBlockAlignment(computedStyle),
     textAlign: readCanvasTextAlign(computedStyle?.textAlign),
     paddingTop,
@@ -162,6 +168,21 @@ function readCanvasTextAlign(textAlign: string | undefined): CanvasTextAlign {
   }
 
   return "left";
+}
+
+function readWhiteSpace(
+  whiteSpace: string | undefined,
+): DOMTextStyleSnapshot["whiteSpace"] {
+  if (
+    whiteSpace === "nowrap" ||
+    whiteSpace === "pre" ||
+    whiteSpace === "pre-line" ||
+    whiteSpace === "pre-wrap"
+  ) {
+    return whiteSpace;
+  }
+
+  return "normal";
 }
 
 function readObjectFit(

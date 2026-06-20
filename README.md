@@ -56,7 +56,9 @@ Current demo behavior:
 - React demo declares five base target categories through public APIs: element
   snapshot, text snapshot, image, video, and GLB model. It also includes a
   layout/content harness for transparent anchors, multiline text, object-fit
-  media, narrow viewport layout, and a Phase 8 effect authoring harness.
+  media, narrow viewport layout, a Phase 8 effect authoring harness, and extra
+  scroll-event marker targets for testing effect behavior across longer page
+  travel.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -125,9 +127,9 @@ Current visual behavior:
   resource boundaries. Computed-style capture is limited to placement-critical
   layout/content fields, not DOM visual paint cloning.
 - Text snapshots build their internal canvas from the measured DOM text box and
-  computed font, line height, padding, alignment, and DPR so the WebGL plane
-  does not stretch a fixed-size text texture. DOM text color is not treated as
-  WebGL material truth.
+  computed font, line height, padding, alignment, letter spacing, word spacing,
+  white-space handling, and DPR so the WebGL plane does not stretch a fixed-size
+  text texture. DOM text color is not treated as WebGL material truth.
 - Element snapshots are transparent DOM anchors for future effects/materials;
   they do not render CSS backgrounds, borders, radii, shadows, opacity, or
   transforms.
@@ -137,7 +139,8 @@ Current visual behavior:
   declaration-owned opacity, and `demoPointerTiltEffect` consumes shared runtime
   pointer frame input. They are examples in `apps/demo`, not package exports.
 - Text snapshots consume only the style information required to place and render
-  text content, such as font, line height, padding, alignment, and DPR.
+  text content, such as font, line height, padding, alignment, text spacing,
+  white-space handling, and DPR.
 - Image and video renderables place their media texture planes inside the CSS
   content box before applying common `object-fit` / `object-position` mapping;
   they do not keep a CSS-painted backing plane.
@@ -155,6 +158,11 @@ Current visual behavior:
 - `hideMode: "self"` hides only the target's own fallback paint while preserving
   child DOM visibility; nested managed WebGL targets keep their own fallback
   visibility state.
+- WebGL-owned text should not sit behind a native semi-transparent DOM panel.
+  For a WebGL-owned card or marker, make the parent an element snapshot surface
+  target with `hideMode: "self"` and put `snapshot/text` on the actual
+  text-bearing child element so the surface and text render in the same WebGL
+  canvas ownership layer.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
 - Text mutation effects, shader authoring APIs, core-provided particle systems,

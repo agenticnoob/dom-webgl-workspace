@@ -147,6 +147,55 @@ Lifecycle rules:
 - `hideMode: "subtree"` hides the target subtree after WebGL readiness.
 - Failed or pending renderables keep fallback DOM visible.
 
+## WebGL-Owned Text And Surface
+
+Use one visual ownership layer for a card, panel, or marker. If a text target is
+rendered by WebGL but its DOM parent keeps a semi-transparent background above
+the runtime canvas, the WebGL text will be seen through that DOM background and
+can look faded.
+
+Preferred pattern for a WebGL-owned panel:
+
+```tsx
+<WebGLTarget
+  className="marker"
+  webgl={{
+    key: "marker.surface",
+    source: { kind: "snapshot", mode: "element" },
+    lifecycle: { hideWhenReady: true, hideMode: "self" },
+    effects: [{ kind: "app.surface", opacity: 0.72 }],
+  }}
+>
+  <strong>Native heading can stay DOM-visible</strong>
+  <WebGLTarget
+    as="p"
+    className="marker-copy"
+    webgl={{
+      key: "marker.copy",
+      source: { kind: "snapshot", mode: "text" },
+    }}
+  >
+    Text that should be rendered in the same WebGL canvas as the surface.
+  </WebGLTarget>
+</WebGLTarget>
+```
+
+Rules:
+
+- Put `snapshot/text` on the actual text-bearing element, such as `p`, `span`,
+  `h1`, or `h2`; do not put it on a complex container just because the container
+  contains text somewhere inside.
+- If text and its panel background should both be WebGL-owned, make the parent
+  an element snapshot surface target and use `hideMode: "self"` so its DOM
+  background does not cover the WebGL text.
+- If the DOM parent background, gradients, opacity, or filters must remain
+  visible above the runtime canvas, keep that text as native DOM or make the
+  entire visual treatment WebGL-owned.
+- Do not rely on core text snapshots to inherit DOM `color`, background,
+  opacity, shadow, or other visual styling. Text color and opacity should be
+  explicit effect/material data when the application needs WebGL-owned text
+  styling.
+
 ## Custom Effect Contract
 
 Define effects with `defineWebGLEffect(...)`:
