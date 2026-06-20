@@ -39,7 +39,7 @@ export type WebGLModelEffectHandle = {
   sampleVertices(options?: { maxPoints?: number }): Float32Array;
   createPointCloud(options: {
     density?: number;
-    color?: number;
+    color?: number | string;
     size?: number;
   }): unknown;
 };

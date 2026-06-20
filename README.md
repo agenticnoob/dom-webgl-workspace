@@ -36,6 +36,8 @@ Phase 8 is implemented in
 `defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
 API. Core registers no default visual effects, the package exports no concrete
 effect implementations, and demo/example effects are consumer-owned code.
+Agent-facing package usage rules live in `docs/agent/package-usage.md`; agents
+should read that file before integrating the package or authoring custom effects.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -79,9 +81,19 @@ Current visual behavior:
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
 - Declared targets can request ordered effect declarations such as
-  `effects: [{ kind: "demo.surface" }, { kind: "demo.pointerTilt" }]`. Effects only
-  run when the runtime receives matching definitions through runtime-level
-  `effects`.
+  `effects: [{ kind: "demo.surface" }, { kind: "demo.pointerTilt" }]` or a
+  demo-local GLB stack such as `{ kind: "demo.glbRotate" }` plus
+  `{ kind: "demo.glbVertexParticles" }`.
+  Effects only run when the runtime receives matching definitions through
+  runtime-level `effects`.
+- The demo-local GLB vertex particle effect hides the original GLB meshes after
+  sampling their vertices, renders only the point cloud, and uses pointer motion
+  to scatter particles only after the pointer hits a particle-sized local radius,
+  then springs them back to their source vertices. Pointer hits are mapped through
+  the current model target layout, so scrolling or a non-centered model rect does
+  not shift interaction toward the viewport center. The hit projection and
+  horizontal scatter impulse also account for the model's current y-axis
+  rotation, so interaction follows the visible rotating particle model.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -145,9 +157,9 @@ Current visual behavior:
   visibility state.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
-- Text mutation effects, shader authoring, particles, animation layers, WebGL
-  raycast picking, Lenis, GSAP, and ScrollTrigger adapters remain intentionally
-  out of scope.
+- Text mutation effects, shader authoring APIs, core-provided particle systems,
+  animation layers, WebGL raycast picking, Lenis, GSAP, and ScrollTrigger
+  adapters remain intentionally out of scope.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
@@ -163,8 +175,9 @@ Current visual behavior:
 - Phase 5 historically started that effect/material layer with two built-in
   declarations. Phase 8 boundary cleanup supersedes package-owned concrete
   effects: applications now provide their own effect implementations.
-  Shader authoring, particles, public Three.js render flags, multiple canvases,
-  raycast picking, and third-party scroll adapters remain out of scope.
+  Shader authoring APIs, core-provided particle systems, public Three.js render
+  flags, multiple canvases, raycast picking, and third-party scroll adapters
+  remain out of scope.
 - Phase 6.1/6.2 are now historical implementation phases. Their legacy
   `effects.material` / `effects.motion` declaration shapes still type-check and
   compile into effect entries, but the package no longer provides matching
@@ -239,6 +252,45 @@ const modelProbeEffect = defineWebGLEffect({
     context.target?.setRotation(0, context.pointer.normalizedX * 0.25, 0);
   },
 });
+
+const modelRotateEffect = defineWebGLEffect({
+  kind: "modelRotate",
+  source: "model/glb",
+  update(context) {
+    const rotation = (context.source.model.object3D as {
+      rotation?: { x?: number; y?: number; z?: number };
+    }).rotation;
+
+    if (rotation) {
+      rotation.x = 0;
+      rotation.y = (context.time / 1000) * 0.015;
+      rotation.z = 0;
+    }
+  },
+});
+
+const modelVertexParticlesEffect = defineWebGLEffect({
+  kind: "modelVertexParticles",
+  source: "model/glb",
+  setup(context) {
+    if (context.source.kind !== "model/glb") {
+      return;
+    }
+
+    const points = context.source.model.createPointCloud({
+      density: 2.5,
+      color: "rgb(255, 0, 0)",
+      size: 0.026,
+    });
+    const add = (context.source.model.object3D as {
+      add?: (child: unknown) => void;
+    }).add;
+
+    add?.call(context.source.model.object3D, points);
+
+    return { points };
+  },
+});
 ```
 
 ## Setup
@@ -297,11 +349,15 @@ The demo references them as:
 /models/hero.glb
 ```
 
-The GLB demo target hides its DOM fallback subtree after the model is ready. Runtime
-model layout contains the loaded model bounds inside the target DOM rect with a
-uniform XYZ scale so model depth is not flattened or stretched independently.
-The default runtime scene includes a low-cost ambient plus directional light rig
-so GLB/PBR materials are not rendered unlit by default.
+The GLB demo target hides its DOM fallback subtree after the model is ready.
+Runtime model layout contains the loaded model bounds inside the target DOM rect
+with a uniform XYZ scale so model depth is not flattened or stretched
+independently. The local demo effect then hides the original GLB meshes and
+renders the model as vertex particles. Pointer movement scatters particles near
+the cursor only when the pointer is over a particle hit radius, using the mouse
+movement direction, damping, and spring return to pull them back to the sampled
+vertices. The default runtime scene includes a low-cost ambient plus directional
+light rig so GLB/PBR materials are not rendered unlit by default.
 The demo also reserves a stable scrollbar gutter so DOM anchor rects do not
 reflow horizontally while the runtime tracks page scroll.
 
@@ -350,7 +406,13 @@ type WebGLEffectsDeclaration = readonly {
 
 createWebGLRuntime({
   container,
-  effects: [appSurfaceEffect, appPointerTiltEffect, modelProbeEffect],
+  effects: [
+    appSurfaceEffect,
+    appPointerTiltEffect,
+    modelProbeEffect,
+    modelRotateEffect,
+    modelVertexParticlesEffect,
+  ],
 });
 ```
 

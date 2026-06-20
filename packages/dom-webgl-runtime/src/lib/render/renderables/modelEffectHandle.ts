@@ -1,5 +1,7 @@
 import { BufferAttribute } from "three/src/core/BufferAttribute.js";
 import { BufferGeometry } from "three/src/core/BufferGeometry.js";
+import { Matrix4 } from "three/src/math/Matrix4.js";
+import { Vector3 } from "three/src/math/Vector3.js";
 import { PointsMaterial } from "three/src/materials/PointsMaterial.js";
 import { Points } from "three/src/objects/Points.js";
 
@@ -61,27 +63,42 @@ function isMeshLike(object: unknown): boolean {
 
 function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array {
   const vertices: number[] = [];
+  const rootInverse = readRootInverseMatrix(object3D);
+  const vertex = new Vector3();
 
   traverseObject(object3D, (candidate) => {
-    const position = (candidate as {
+    const mesh = candidate as {
       geometry?: {
         attributes?: {
           position?: { array?: ArrayLike<number>; count?: number };
         };
       };
-    }).geometry?.attributes?.position;
+      matrixWorld?: Matrix4;
+      updateWorldMatrix?: (updateParents: boolean, updateChildren: boolean) => void;
+    };
+    const position = mesh.geometry?.attributes?.position;
 
     if (!position?.array || !position.count) {
       return;
     }
 
+    mesh.updateWorldMatrix?.(true, false);
     const stride = Math.max(1, Math.ceil(position.count / Math.max(1, maxPoints)));
     for (let index = 0; index < position.count; index += stride) {
       const offset = index * 3;
+      vertex
+        .set(
+          Number(position.array[offset] ?? 0),
+          Number(position.array[offset + 1] ?? 0),
+          Number(position.array[offset + 2] ?? 0),
+        )
+        .applyMatrix4(mesh.matrixWorld ?? identityMatrix)
+        .applyMatrix4(rootInverse);
+
       vertices.push(
-        Number(position.array[offset] ?? 0),
-        Number(position.array[offset + 1] ?? 0),
-        Number(position.array[offset + 2] ?? 0),
+        vertex.x,
+        vertex.y,
+        vertex.z,
       );
       if (vertices.length / 3 >= maxPoints) {
         return;
@@ -90,4 +107,21 @@ function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array
   });
 
   return new Float32Array(vertices);
+}
+
+const identityMatrix = new Matrix4();
+
+function readRootInverseMatrix(object3D: unknown): Matrix4 {
+  const root = object3D as {
+    matrixWorld?: Matrix4;
+    updateWorldMatrix?: (updateParents: boolean, updateChildren: boolean) => void;
+  };
+
+  root.updateWorldMatrix?.(true, true);
+
+  if (!root.matrixWorld) {
+    return identityMatrix.clone();
+  }
+
+  return root.matrixWorld.clone().invert();
 }

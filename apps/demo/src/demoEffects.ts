@@ -35,6 +35,161 @@ export const demoPointerTiltEffect = defineWebGLEffect<{
   },
 });
 
+type DemoGLBRotateParams = {
+  kind: "demo.glbRotate";
+  rotationSpeed?: number;
+};
+
+type DemoGLBVertexParticlesParams = {
+  kind: "demo.glbVertexParticles";
+  color?: number | string;
+  density?: number;
+  size?: number;
+  scatterRadius?: number;
+  hitRadius?: number;
+  scatterStrength?: number;
+  returnStrength?: number;
+  damping?: number;
+};
+
+type RotatableObject3D = {
+  rotation?: { x?: number; y?: number; z?: number };
+};
+
+type MutablePointCloud = {
+  geometry?: {
+    attributes?: {
+      position?: {
+        array?: Float32Array;
+        needsUpdate?: boolean;
+      };
+    };
+    dispose?: () => void;
+  };
+  material?: {
+    depthTest?: boolean;
+    depthWrite?: boolean;
+    dispose?: () => void;
+    opacity?: number;
+    transparent?: boolean;
+  };
+  parent?: { remove?: (child: unknown) => void };
+  renderOrder?: number;
+  scale?: { setScalar?: (scale: number) => void };
+};
+
+type Object3DLike = {
+  add?: (child: unknown) => void;
+};
+
+type MeshLike = {
+  visible?: boolean;
+};
+
+type Bounds = {
+  centerX: number;
+  centerY: number;
+  extentX: number;
+  extentY: number;
+};
+
+type RotationProjection = {
+  cosY: number;
+  sinY: number;
+  bounds: Bounds;
+};
+
+type HiddenMesh = {
+  mesh: MeshLike;
+  visible: boolean | undefined;
+};
+
+type VertexParticlesState = {
+  pointCloud: MutablePointCloud;
+  basePositions: Float32Array;
+  velocities: Float32Array;
+  bounds: Bounds;
+  hiddenMeshes: HiddenMesh[];
+  lastPointerX: number;
+  lastPointerY: number;
+  hasPointer: boolean;
+};
+
+export const demoGLBRotateEffect = defineWebGLEffect<DemoGLBRotateParams>({
+  kind: "demo.glbRotate",
+  source: "model/glb",
+  update(ctx, _state, params) {
+    if (ctx.source.kind !== "model/glb") {
+      return;
+    }
+
+    const rotationSpeed = clampNumber(params.rotationSpeed, -2, 2, 0.015);
+
+    setObjectRotation(
+      ctx.source.model.object3D,
+      0,
+      (ctx.time / 1000) * rotationSpeed,
+      0,
+    );
+  },
+});
+
+export const demoGLBVertexParticlesEffect = defineWebGLEffect<
+  DemoGLBVertexParticlesParams,
+  VertexParticlesState | undefined
+>({
+  kind: "demo.glbVertexParticles",
+  source: "model/glb",
+  setup(ctx, params) {
+    if (ctx.source.kind !== "model/glb") {
+      return undefined;
+    }
+
+    const pointCloud = ctx.source.model.createPointCloud({
+      color: params.color ?? "rgb(255, 0, 0)",
+      density: clampNumber(params.density, 0.1, 4, 2.5),
+      size: clampNumber(params.size, 0.006, 0.12, 0.026),
+    }) as MutablePointCloud;
+    const positions = readPointCloudPositions(pointCloud);
+
+    if (!positions) {
+      return undefined;
+    }
+
+    const hiddenMeshes = hideModelMeshes(ctx.source.model);
+    configurePointCloudOverlay(pointCloud);
+    addChildObject3D(ctx.source.model.object3D, pointCloud);
+    ctx.resources.addDisposable(() => {
+      restoreModelMeshes(hiddenMeshes);
+      disposePointCloud(pointCloud);
+    });
+
+    return {
+      pointCloud,
+      basePositions: new Float32Array(positions),
+      velocities: new Float32Array(positions.length),
+      bounds: measurePositionBounds(positions),
+      hiddenMeshes,
+      lastPointerX: 0,
+      lastPointerY: 0,
+      hasPointer: false,
+    };
+  },
+  update(ctx, state, params) {
+    if (!state) {
+      return;
+    }
+
+    const positions = readPointCloudPositions(state.pointCloud);
+    if (!positions) {
+      return;
+    }
+
+    updateScatteredParticles(ctx, state, params, positions);
+    state.pointCloud.geometry!.attributes!.position!.needsUpdate = true;
+  },
+});
+
 function clampNumber(
   value: number | undefined,
   min: number,
@@ -46,4 +201,298 @@ function clampNumber(
   }
 
   return Math.min(max, Math.max(min, value));
+}
+
+function setObjectRotation(
+  object: unknown,
+  x: number,
+  y: number,
+  z: number,
+): void {
+  if (!object || typeof object !== "object") {
+    return;
+  }
+
+  const rotation = (object as RotatableObject3D).rotation;
+
+  if (!rotation) {
+    return;
+  }
+
+  rotation.x = x;
+  rotation.y = y;
+  rotation.z = z;
+}
+
+function addChildObject3D(parent: unknown, child: unknown): void {
+  if (!parent || typeof parent !== "object") {
+    return;
+  }
+
+  const add = (parent as Object3DLike).add;
+  if (typeof add === "function") {
+    add.call(parent, child);
+  }
+}
+
+function hideModelMeshes(model: {
+  traverseMeshes(visitor: (mesh: unknown) => void): void;
+}): HiddenMesh[] {
+  const hiddenMeshes: HiddenMesh[] = [];
+
+  model.traverseMeshes((mesh) => {
+    if (!mesh || typeof mesh !== "object" || !("visible" in mesh)) {
+      return;
+    }
+
+    const mutableMesh = mesh as MeshLike;
+    hiddenMeshes.push({ mesh: mutableMesh, visible: mutableMesh.visible });
+    mutableMesh.visible = false;
+  });
+
+  return hiddenMeshes;
+}
+
+function restoreModelMeshes(hiddenMeshes: readonly HiddenMesh[]): void {
+  for (const hiddenMesh of hiddenMeshes) {
+    hiddenMesh.mesh.visible = hiddenMesh.visible;
+  }
+}
+
+function readPointCloudPositions(pointCloud: MutablePointCloud): Float32Array | undefined {
+  return pointCloud.geometry?.attributes?.position?.array;
+}
+
+function updateScatteredParticles(
+  ctx: Parameters<typeof demoGLBVertexParticlesEffect.update>[0],
+  state: VertexParticlesState,
+  params: DemoGLBVertexParticlesParams,
+  positions: Float32Array,
+): void {
+  const radius = clampNumber(params.scatterRadius, 0.05, 1.5, 0.38);
+  const hitRadius = clampNumber(params.hitRadius, 0.01, 0.5, 0.09);
+  const scatterStrength = clampNumber(params.scatterStrength, 0, 4, 1.4);
+  const returnStrength = clampNumber(params.returnStrength, 0.001, 0.5, 0.08);
+  const damping = clampNumber(params.damping, 0.5, 0.995, 0.88);
+  const deltaScale = clampNumber(ctx.delta / 16.67, 0.25, 2.5, 1);
+  const pointer = readLayoutPointer(ctx);
+  const projection = createRotationProjection(state, readObjectRotationY(ctx));
+  const pointerMoveX = state.hasPointer ? pointer.x - state.lastPointerX : 0;
+  const pointerMoveY = state.hasPointer ? pointer.y - state.lastPointerY : 0;
+  const pointerSpeed = Math.hypot(pointerMoveX, pointerMoveY);
+  const hasCollision =
+    pointer.isInside &&
+    pointerSpeed > 0.0005 &&
+    isPointerOverParticle(state, projection, pointer.x, pointer.y, hitRadius);
+  const moveDirectionX = hasCollision ? pointerMoveX / pointerSpeed : 0;
+  const moveDirectionY = hasCollision ? pointerMoveY / pointerSpeed : 0;
+  const dampingFactor = Math.pow(damping, deltaScale);
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const baseX = state.basePositions[index] ?? 0;
+    const baseY = state.basePositions[index + 1] ?? 0;
+    const baseZ = state.basePositions[index + 2] ?? 0;
+    let velocityX = state.velocities[index] ?? 0;
+    let velocityY = state.velocities[index + 1] ?? 0;
+    let velocityZ = state.velocities[index + 2] ?? 0;
+
+    if (hasCollision) {
+      const projectedX = projectRotatedX(baseX, baseZ, projection);
+      const normalizedX =
+        (projectedX - projection.bounds.centerX) / projection.bounds.extentX;
+      const normalizedY =
+        (baseY - projection.bounds.centerY) / projection.bounds.extentY;
+      const deltaX = normalizedX - pointer.x;
+      const deltaY = normalizedY - pointer.y;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      if (distance < radius) {
+        const awayX = distance > 0.0001 ? deltaX / distance : -moveDirectionY;
+        const awayY = distance > 0.0001 ? deltaY / distance : moveDirectionX;
+        const influence = (1 - distance / radius) ** 2;
+        const impulse = influence * pointerSpeed * scatterStrength;
+
+        const screenImpulseX =
+          (moveDirectionX * 0.75 + awayX * 0.25) *
+          impulse *
+          projection.bounds.extentX;
+        velocityY +=
+          (moveDirectionY * 0.75 + awayY * 0.25) *
+          impulse *
+          projection.bounds.extentY;
+        velocityX += screenImpulseX * projection.cosY;
+        velocityZ += screenImpulseX * projection.sinY;
+        velocityZ += influence * pointerSpeed * scatterStrength * 0.02;
+      }
+    }
+
+    velocityX += (baseX - positions[index]) * returnStrength * deltaScale;
+    velocityY += (baseY - positions[index + 1]) * returnStrength * deltaScale;
+    velocityZ += (baseZ - positions[index + 2]) * returnStrength * deltaScale;
+
+    velocityX *= dampingFactor;
+    velocityY *= dampingFactor;
+    velocityZ *= dampingFactor;
+
+    positions[index] += velocityX * deltaScale;
+    positions[index + 1] += velocityY * deltaScale;
+    positions[index + 2] += velocityZ * deltaScale;
+    state.velocities[index] = velocityX;
+    state.velocities[index + 1] = velocityY;
+    state.velocities[index + 2] = velocityZ;
+  }
+
+  state.lastPointerX = pointer.x;
+  state.lastPointerY = pointer.y;
+  state.hasPointer = pointer.isInside;
+}
+
+function readLayoutPointer(
+  ctx: Parameters<typeof demoGLBVertexParticlesEffect.update>[0],
+): { x: number; y: number; isInside: boolean } {
+  const viewportX = ((ctx.pointer.normalizedX + 1) / 2) * ctx.layout.viewport.width;
+  const viewportY = ((1 - ctx.pointer.normalizedY) / 2) * ctx.layout.viewport.height;
+  const localX = ((viewportX - ctx.layout.left) / Math.max(1, ctx.layout.width)) * 2 - 1;
+  const localY =
+    -(((viewportY - ctx.layout.top) / Math.max(1, ctx.layout.height)) * 2 - 1);
+
+  return {
+    x: localX,
+    y: localY,
+    isInside:
+      ctx.pointer.isInside &&
+      viewportX >= ctx.layout.left &&
+      viewportX <= ctx.layout.right &&
+      viewportY >= ctx.layout.top &&
+      viewportY <= ctx.layout.bottom,
+  };
+}
+
+function isPointerOverParticle(
+  state: VertexParticlesState,
+  projection: RotationProjection,
+  pointerX: number,
+  pointerY: number,
+  hitRadius: number,
+): boolean {
+  for (let index = 0; index < state.basePositions.length; index += 3) {
+    const projectedX = projectRotatedX(
+      state.basePositions[index] ?? 0,
+      state.basePositions[index + 2] ?? 0,
+      projection,
+    );
+    const normalizedX =
+      (projectedX - projection.bounds.centerX) / projection.bounds.extentX;
+    const normalizedY =
+      ((state.basePositions[index + 1] ?? 0) - projection.bounds.centerY) /
+      projection.bounds.extentY;
+
+    if (Math.hypot(normalizedX - pointerX, normalizedY - pointerY) <= hitRadius) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function createRotationProjection(
+  state: VertexParticlesState,
+  rotationY: number,
+): RotationProjection {
+  const cosY = Math.cos(rotationY);
+  const sinY = Math.sin(rotationY);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (let index = 0; index < state.basePositions.length; index += 3) {
+    const projectedX = projectRotatedX(
+      state.basePositions[index] ?? 0,
+      state.basePositions[index + 2] ?? 0,
+      { cosY, sinY },
+    );
+    const y = state.basePositions[index + 1] ?? 0;
+    minX = Math.min(minX, projectedX);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, projectedX);
+    maxY = Math.max(maxY, y);
+  }
+
+  return {
+    cosY,
+    sinY,
+    bounds: createBoundsFromExtents(minX, minY, maxX, maxY),
+  };
+}
+
+function projectRotatedX(
+  x: number,
+  z: number,
+  projection: Pick<RotationProjection, "cosY" | "sinY">,
+): number {
+  return x * projection.cosY + z * projection.sinY;
+}
+
+function readObjectRotationY(
+  ctx: Parameters<typeof demoGLBVertexParticlesEffect.update>[0],
+): number {
+  if (ctx.source.kind !== "model/glb") {
+    return 0;
+  }
+
+  const rotationY = (ctx.source.model.object3D as RotatableObject3D).rotation?.y;
+  return Number.isFinite(rotationY) ? rotationY ?? 0 : 0;
+}
+
+function measurePositionBounds(positions: Float32Array): Bounds {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (let index = 0; index < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index] ?? 0);
+    minY = Math.min(minY, positions[index + 1] ?? 0);
+    maxX = Math.max(maxX, positions[index] ?? 0);
+    maxY = Math.max(maxY, positions[index + 1] ?? 0);
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+    return createBoundsFromExtents(-1, -1, 1, 1);
+  }
+
+  return createBoundsFromExtents(minX, minY, maxX, maxY);
+}
+
+function createBoundsFromExtents(
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+): Bounds {
+  return {
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+    extentX: Math.max((maxX - minX) / 2, 0.0001),
+    extentY: Math.max((maxY - minY) / 2, 0.0001),
+  };
+}
+
+function configurePointCloudOverlay(pointCloud: MutablePointCloud): void {
+  if (pointCloud.material) {
+    pointCloud.material.depthTest = false;
+    pointCloud.material.depthWrite = false;
+    pointCloud.material.transparent = true;
+    pointCloud.material.opacity = 0.95;
+  }
+
+  pointCloud.renderOrder = 10;
+  pointCloud.scale?.setScalar?.(1.015);
+}
+
+function disposePointCloud(pointCloud: MutablePointCloud): void {
+  pointCloud.parent?.remove?.(pointCloud);
+  pointCloud.geometry?.dispose?.();
+  pointCloud.material?.dispose?.();
 }

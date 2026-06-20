@@ -11,6 +11,7 @@ Phase 5 effect/material layer plan file: `docs/superpowers/plans/2026-06-19-phas
 Phase 6 modular surface materials plan file: `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`.
 Phase 7 effect runtime primitives plan file: `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`.
 Phase 8 custom effect authoring API plan file: `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`.
+Agent-facing package usage contract: `docs/agent/package-usage.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 ## Last Completed Task
@@ -21,8 +22,10 @@ Phase 8 makes user-authored effects the public model. Core does not register
 default visual effects; consumers pass `defineWebGLEffect(...)` definitions
 through runtime-level `effects`. The package exports no concrete effect
 implementations or effect preset subpath. The internal registry remains an
-implementation detail. Text mutation remains a future capability because the
-runtime does not yet expose a stable `snapshot/text` mutation target.
+implementation detail. `docs/agent/package-usage.md` is the agent-first entry
+for downstream package integration and custom effect authoring. Text mutation
+remains a future capability because the runtime does not yet expose a stable
+`snapshot/text` mutation target.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -131,6 +134,18 @@ require a future `snapshot/text` target-capability plan.
   runtime-level `effects`, context/source/target/resource types, and lifecycle
   dispatch. It does not export concrete effect implementations or an official
   effect preset subpath.
+- Demo update: The GLB demo target currently consumes a local
+  `demo.glbRotate` plus `demo.glbVertexParticles` from
+  `apps/demo/src/demoEffects.ts`. The rotate effect rotates the model object on
+  the y axis using seconds-based timing, so the demo avoids a flat screen-plane
+  spin. The vertex particle effect samples the GLB vertices, hides the original
+  source meshes, renders only the attached point cloud, and uses pointer movement
+  to scatter particles only after the pointer hits a particle-sized local radius,
+  then damps and springs them back to their source vertices. Core still does not
+  ship a concrete particle system. The public GLB `createPointCloud(...)` helper
+  now samples mesh vertices in the model root coordinate space, so child mesh
+  transforms are preserved, and accepts numeric Three.js color values plus CSS
+  color strings such as `rgb(125, 211, 252)`.
 
 ## Phase 8 Custom Effect Authoring API
 - Completed work: Added `defineWebGLEffect(...)`, public effect context/source/
@@ -201,10 +216,11 @@ require a future `snapshot/text` target-capability plan.
 - Effect targets remain internal renderable/scene object state and are not
   exported from root or React public entrypoints.
 - Demo effect usage now goes through local consumer-owned definitions in
-  `apps/demo/src/demoEffects.ts`.
-- Still out of scope: shader authoring API, particles, third-party scroll
-  adapters, WebGL raycast picking, multiple canvases, public Three.js render
-  flags, and CSS-to-WebGL fidelity expansion.
+  `apps/demo/src/demoEffects.ts`, including the GLB original-model rotation and
+  pointer-scattered vertex-particle model replacement on `demo.model`.
+- Still out of scope: shader authoring API, core-provided particle systems,
+  third-party scroll adapters, WebGL raycast picking, multiple canvases, public
+  Three.js render flags, and CSS-to-WebGL fidelity expansion.
 
 ## Phase 5 Completed Task Record
 - Historical completed work: Added public effect/material declaration types, an

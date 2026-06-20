@@ -5,9 +5,19 @@ import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
-import { demoPointerTiltEffect, demoSurfaceEffect } from "./demoEffects";
+import {
+  demoGLBVertexParticlesEffect,
+  demoGLBRotateEffect,
+  demoPointerTiltEffect,
+  demoSurfaceEffect,
+} from "./demoEffects";
 
-const demoRuntimeEffects = [demoSurfaceEffect, demoPointerTiltEffect] as const;
+const demoRuntimeEffects = [
+  demoSurfaceEffect,
+  demoPointerTiltEffect,
+  demoGLBRotateEffect,
+  demoGLBVertexParticlesEffect,
+] as const;
 
 export default function App() {
   const [debugState, setDebugState] = useState<WebGLDebugState>(createInitialDebugState);
@@ -92,6 +102,23 @@ export default function App() {
                 key: "demo.model",
                 source: { kind: "model", format: "glb", src: "/models/hero.glb" },
                 lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                effects: [
+                  {
+                    kind: "demo.glbRotate",
+                    rotationSpeed: 0.5,
+                  },
+                  {
+                    kind: "demo.glbVertexParticles",
+                    color: "rgb(255, 0, 0)",
+                    density: 2.5,
+                    size: 0.026,
+                    scatterRadius: 0.42,
+                    hitRadius: 0.075,
+                    scatterStrength: 1.8,
+                    returnStrength: 0.075,
+                    damping: 0.9,
+                  },
+                ],
               }}
             >
               <p className="demo-label">GLB model</p>

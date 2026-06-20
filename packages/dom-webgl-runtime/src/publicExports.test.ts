@@ -306,6 +306,13 @@ describe("public package exports", () => {
 			            ctx.source satisfies WebGLEffectSourceHandle;
 			            ctx.target satisfies WebGLEffectTargetHandle | undefined;
 			            ctx.resources satisfies WebGLEffectResourceScope;
+			            if (ctx.source.kind === "model/glb") {
+			              ctx.source.model.createPointCloud({
+			                density: params.density,
+			                color: "rgb(125, 211, 252)",
+			                size: 0.026,
+			              });
+			            }
 			            return {
 			              density: params.density ?? 0.5,
 			              scrollAtSetup: ctx.scrollProgress,

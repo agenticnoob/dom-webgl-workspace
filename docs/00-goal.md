@@ -31,7 +31,8 @@ the package effect boundary cleanup supersede that concrete-effect model:
 `defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
 target handles, and managed effect resources are the public authoring API, while
 all concrete effect implementations live in application, demo, or documentation
-example code.
+example code. Agent-facing downstream package usage rules live in
+`docs/agent/package-usage.md`.
 
 ## Purpose
 
@@ -93,17 +94,16 @@ stays pointer-transparent. The canvas is explicitly stacked below direct author
 DOM children (`z-index: 0` canvas, `z-index: 1` DOM children), because DOM order
 alone does not put a fixed-position canvas below normal-flow DOM.
 
-Page authors should think about:
+Package consumers should think about:
 
 - Which DOM element enters WebGL.
 - What source that element represents.
 - Where it sits in the DOM tree and source order.
 - Whether it follows page scroll or participates in a gated scene.
 - Whether pointer input should affect it.
-- Which effect or material should own its WebGL visual treatment once the
-  effect layer exists.
+- Which runtime-registered custom effect should own its WebGL visual treatment.
 
-Page authors should not think about:
+Package consumers should not think about:
 
 - Three.js `renderOrder`.
 - Three.js `transparent`.
@@ -138,7 +138,16 @@ type WebGLLifecycleDeclaration = {
   hideMode?: "subtree" | "self";
 };
 
-type WebGLEffectsDeclaration = {
+type WebGLCustomEffectDeclaration = {
+  kind: string;
+  [property: string]: unknown;
+};
+
+type WebGLEffectsDeclaration =
+  | readonly WebGLCustomEffectDeclaration[]
+  | WebGLLegacyEffectsDeclaration;
+
+type WebGLLegacyEffectsDeclaration = {
   material?: WebGLMaterialDeclaration;
   motion?: WebGLMotionDeclaration;
 };
@@ -162,6 +171,20 @@ type WebGLMotionDeclaration = {
   maxDegrees?: number;
 };
 ```
+
+Current package usage should prefer ordered effect declarations:
+
+```ts
+effects: [
+  { kind: "app.surface", opacity: 0.82 },
+  { kind: "app.pointerTilt", strength: 0.6 },
+]
+```
+
+Matching executable definitions are registered once through runtime-level
+`effects` with `defineWebGLEffect(...)`. The legacy object form remains
+compatibility input, but the package does not provide matching concrete visual
+effects by default.
 
 React usage:
 
@@ -200,7 +223,8 @@ Allowed declarations:
 - Scroll behavior.
 - Pointer behavior.
 - Lifecycle and fallback behavior.
-- Built-in effect/material declarations.
+- Ordered effect data declarations.
+- Legacy effect/material declarations as compatibility input.
 
 Disallowed declarations:
 
