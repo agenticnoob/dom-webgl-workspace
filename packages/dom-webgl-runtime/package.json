@@ -11,10 +11,6 @@
     "./react": {
       "types": "./src/react.ts",
       "import": "./src/react.ts"
-    },
-    "./effects": {
-      "types": "./src/effects.ts",
-      "import": "./src/effects.ts"
     }
   },
   "scripts": {

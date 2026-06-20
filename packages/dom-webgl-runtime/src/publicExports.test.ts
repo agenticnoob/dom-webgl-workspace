@@ -12,6 +12,8 @@ describe("public package exports", () => {
 
     expect(rootApi.createWebGLRuntime).toEqual(expect.any(Function));
     expect(rootApi.defineWebGLEffect).toEqual(expect.any(Function));
+    expect(rootApi).not.toHaveProperty("pointerTiltEffect");
+    expect(rootApi).not.toHaveProperty("surfaceBasicEffect");
     expect(rootApi).not.toHaveProperty("createWebGLEffectRegistry");
     expect(rootApi).not.toHaveProperty("createTargetRegistry");
   });
@@ -24,15 +26,15 @@ describe("public package exports", () => {
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
-  test("effects subpath exposes optional presets", async () => {
-    const effectsApi = await import("./effects");
+  test("package metadata does not expose concrete effect presets", () => {
+    const packageJson = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), "packages/dom-webgl-runtime/package.json"),
+        "utf8",
+      ),
+    ) as { exports: Record<string, unknown> };
 
-    expect(effectsApi.pointerTiltEffect).toEqual(
-      expect.objectContaining({ kind: "pointerTilt" }),
-    );
-    expect(effectsApi.surfaceBasicEffect).toEqual(
-      expect.objectContaining({ kind: "surfaceBasic" }),
-    );
+    expect(packageJson.exports).not.toHaveProperty("./effects");
   });
 
   test("React entrypoint type-checks public gate declarations only", () => {
@@ -289,8 +291,8 @@ describe("public package exports", () => {
 		          motion,
 		        } satisfies WebGLEffectsDeclaration;
 		        const arrayEffects = [
-		          { kind: "surfaceBasic", opacity: 0.86 },
-		          { kind: "pointerTilt", strength: 0.6, maxDegrees: 8 },
+		          { kind: "app.surface", opacity: 0.86 },
+		          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
 		        ] satisfies WebGLEffectsDeclaration;
 		        const customEffects = [
 		          { kind: "custom.surfacePulse", opacity: 0.4 },

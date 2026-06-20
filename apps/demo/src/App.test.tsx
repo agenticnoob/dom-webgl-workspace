@@ -219,8 +219,8 @@ describe("demo App", () => {
 
     expect(runtimeProps[0]).toMatchObject({
       effects: expect.arrayContaining([
-        expect.objectContaining({ kind: "surfaceBasic" }),
-        expect.objectContaining({ kind: "pointerTilt" }),
+        expect.objectContaining({ kind: "demo.surface" }),
+        expect.objectContaining({ kind: "demo.pointerTilt" }),
       ]),
     });
 
@@ -228,8 +228,8 @@ describe("demo App", () => {
       key: "demo.effects.surface",
       source: { kind: "snapshot", mode: "element" },
       effects: [
-        { kind: "surfaceBasic", opacity: 0.82 },
-        { kind: "pointerTilt", strength: 0.6, maxDegrees: 8 },
+        { kind: "demo.surface", opacity: 0.82 },
+        { kind: "demo.pointerTilt", strength: 0.6, maxDegrees: 8 },
       ],
     });
   });
@@ -246,15 +246,15 @@ describe("demo App", () => {
     expect(runtimeProps[1]?.effects).toBe(initialEffects);
   });
 
-  test("declares the optional surface preset harness through public WebGLTarget props", async () => {
+  test("declares a demo-owned surface effect harness through public WebGLTarget props", async () => {
     await renderApp();
 
     expect(webglDeclarationFor("demo.effects.surface.phase6")).toMatchObject({
       key: "demo.effects.surface.phase6",
       source: { kind: "snapshot", mode: "element" },
       effects: [
-        { kind: "surfaceBasic", opacity: 0.86 },
-        { kind: "pointerTilt", strength: 1, maxDegrees: 15 },
+        { kind: "demo.surface", opacity: 0.86 },
+        { kind: "demo.pointerTilt", strength: 1, maxDegrees: 15 },
       ],
     });
   });

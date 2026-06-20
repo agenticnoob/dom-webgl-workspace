@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Historical status:** This plan is superseded by Phase 8 custom effect
+> authoring and the 2026-06-20 package effect boundary cleanup. Do not recreate
+> package built-in effect plugins, do not expose `effectRegistry` as the primary
+> public authoring model, and do not add an `@project/dom-webgl-runtime/effects`
+> subpath from this plan. Current package truth is: `defineWebGLEffect(...)` plus
+> runtime-level `effects` are public; concrete effects belong in consumer/demo
+> code. Treat unchecked implementation steps below as historical unless they are
+> explicitly re-planned under the current package boundary.
+
 **Goal:** Replace the fixed `material`/`motion` effect slots with a capability-driven effect runtime that can host built-in and future user-registered effects without coupling the core runtime to individual effect kinds.
 
 **Architecture:** Keep DOM as the authoring source for layout, content, accessibility, and input, while effects become small WebGL runtime plugins that consume explicit source/capability context. Runtime owns registration, layout snapshots, frame input, and lifecycle; effect plugins own normalization, compatibility, target updates, and disposal. Existing Phase 6 declarations remain supported through a compatibility compiler, but the internal execution path becomes `declaration -> normalized effect entries -> registry plugins -> target capabilities`.
@@ -10,13 +19,17 @@
 
 ---
 
-## Current Truth
+## Pre-Phase-7 Truth
 
-- Current public API is `effects.material?: { kind: "solid" | "surface" }` plus `effects.motion?: { kind: "pointer-tilt" }`.
-- Current `effectController.ts` normalizes effects, checks material/source compatibility, dispatches material target updates, and calls pointer motion.
-- Current `effectTarget.ts` is method-shaped: `applySolidMaterial`, `applySurfaceMaterial`, `setRotation`, `disposeEffects`.
-- Phase 6.2 intentionally stopped at a minimal `surface` with `color`, `opacity`, and `radius`; border, shadow, gradients, shader authoring, particles, picking, CSS paint cloning, and custom effect registry are not implemented.
+- The public API was `effects.material?: { kind: "solid" | "surface" }` plus `effects.motion?: { kind: "pointer-tilt" }`.
+- `effectController.ts` normalized effects, checked material/source compatibility, dispatched material target updates, and called pointer motion.
+- `effectTarget.ts` was method-shaped: `applySolidMaterial`, `applySurfaceMaterial`, `setRotation`, `disposeEffects`.
+- Phase 6.2 intentionally stopped at a minimal `surface` with `color`, `opacity`, and `radius`; border, shadow, gradients, shader authoring, particles, picking, CSS paint cloning, and custom effect registry were not implemented.
 - The product goal says effects consume target descriptors, layout/content snapshots, renderables, frame input, pointer/scroll state, and explicit source/render-role compatibility. Effects must not scan DOM, create separate renderers, or own independent asset pipelines.
+
+Current package truth after Phase 8 and the 2026-06-20 cleanup: legacy
+declarations remain compatibility input, but no concrete package effects are
+exported or auto-registered.
 
 ## Design Decision
 

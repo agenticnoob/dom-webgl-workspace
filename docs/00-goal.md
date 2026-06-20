@@ -24,20 +24,14 @@ text placement/raster sizing, media content-box object-fit mapping, and a
 public-API-only responsive demo harness are in place. The forward direction is
 not to expand CSS fidelity. DOM supplies layout, content, accessibility, and
 interaction state; WebGL effects/materials should own final visual styling.
-Phase 5 adds the first public minimum effect/material layer with official
-`solid` material and `pointer-tilt` motion declarations. Shader authoring,
-particles, picking, third-party scroll adapters, multiple canvases, and public
-Three.js render flags remain future work.
-Phase 6.1 modularizes the Phase 5 effect layer without changing public API or
-visible behavior: pure effect normalization, compatibility, target capability
-types, and pointer motion are separated from Three.js renderable target
-adapters. Phase 6.2 adds a minimal `surface` material for
-declaration-owned element snapshot color, opacity, and radius. Phase 7
-preserves Phase 6 declarations while moving effect execution from fixed
-material/motion slots to ordered, registry-driven runtime primitives. Phase 8
-adds the public authoring API: `defineWebGLEffect(...)`, runtime-level
-`effects`, source handles, generic target handles, managed effect resources,
-and optional official presets from `@project/dom-webgl-runtime/effects`.
+Phase 5/6 historically added legacy `effects.material` and `effects.motion`
+declaration shapes plus concrete package-owned effect implementations. Phase 7
+historically moved those declarations through registry primitives. Phase 8 and
+the package effect boundary cleanup supersede that concrete-effect model:
+`defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
+target handles, and managed effect resources are the public authoring API, while
+all concrete effect implementations live in application, demo, or documentation
+example code.
 
 ## Purpose
 
@@ -1236,66 +1230,34 @@ Effect rules:
   gradients, transitions, deformations, particles, and shader-driven appearance.
 - Effects must not depend on arbitrary browser CSS paint matching.
 
-Delivered Phase 5 behavior:
+Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
 
-- Public declarations support `effects.material: { kind: "solid" }` for
-  explicit WebGL-owned element snapshot surfaces.
-- Public declarations support `effects.motion: { kind: "pointer-tilt" }` for
-  small pointer-driven target rotation from shared frame input.
-- Effect controllers are target-scoped and consume renderables, layout snapshots,
-  and `WebGLFrameInput`.
-- `solid` material applies only to `snapshot/element` targets. Other sources
-  report a target error and keep fallback behavior through the existing runtime
-  error path.
-- Effects do not scan DOM, add pointer listeners, create renderers, own resource
-  loaders, expose Three.js flags, or form a custom registry.
-
-Delivered Phase 6.1 behavior:
-
-- Public API and visible Phase 5 behavior are unchanged.
-- Pure effect modules own normalization, source compatibility, target
-  capability types, and pointer motion without importing Three.js, React, demo
-  code, or renderable implementations.
-- Three.js-specific effect target adapters live under renderable adapter
-  modules.
-
-Delivered Phase 6.2 behavior:
-
-- Public declarations support `effects.material: { kind: "surface" }` for
-  explicit WebGL-owned rounded element snapshot surfaces.
-- `surface` supports declaration-owned numeric `color`, `opacity`, and `radius`
-  only.
-- `surface` applies only to `snapshot/element` targets through the modular
-  element-plane effect target adapter.
-- Border, shadow, gradients, and CSS paint cloning remain out of scope unless a
-  separately approved Phase 6.3 gate includes them.
-
-Delivered Phase 7 behavior:
-
-- Preserve the current Phase 6 object-form `effects.material` and
-  `effects.motion` declarations as compatibility input.
-- Add an ordered effect declaration model that compiles both legacy object-form
-  declarations and new effect entries into the same internal execution path.
-- Move built-in `solid`, `surface`, and `pointer-tilt` behavior behind
-  registry-driven runtime plugin primitives with explicit source and target
-  capability checks.
-- Expose custom effect registry primitives through the root public entrypoint
-  and allow `createWebGLRuntime({ effectRegistry })` to run registered effects
-  against existing target capabilities.
-- Forward `effectRegistry` through the public React `<WebGLRuntime />` adapter
-  so React consumers can use custom effect registries without dropping to the
-  vanilla runtime constructor.
-- Keep text mutation, shader authoring, particles, picking, multiple canvases,
-  third-party scroll adapters, and CSS paint cloning outside Phase 7 unless a
-  later plan defines the missing target capabilities first.
+- Legacy object-form declarations such as `effects.material: { kind: "solid" }`,
+  `effects.material: { kind: "surface" }`, and
+  `effects.motion: { kind: "pointer-tilt" }` remain public type compatibility
+  input.
+- The legacy declaration compiler still maps those object forms into ordered
+  effect entries such as `material.solid`, `surface.basic`, and
+  `motion.pointerTilt`.
+- The package no longer registers or exports concrete definitions for those
+  kinds. A target using those declarations needs matching user-provided
+  `defineWebGLEffect(...)` definitions through runtime-level `effects`, or it
+  reports an unknown effect configuration error.
+- The internal registry remains dispatch machinery. `effectRegistry` is not the
+  public authoring API, and the root/React public entrypoints do not expose
+  registry construction as the preferred consumer path.
+- Text mutation, shader authoring, particles, picking, multiple canvases,
+  third-party scroll adapters, and CSS paint cloning remain outside scope unless
+  a later plan defines the missing target capabilities first.
 
 Delivered Phase 8 behavior:
 
 - Replace public `effectRegistry` authoring with `defineWebGLEffect(...)` and
   runtime-level `effects`.
-- Core runtime registers no default visual effects. Official effects are
-  optional presets from `@project/dom-webgl-runtime/effects` and use the same
-  public authoring API as user effects.
+- Core runtime registers no default visual effects and the package exports no
+  concrete effects or official presets.
+- Demo and documentation examples may define local effects with the public
+  authoring API, but those examples are consumer-owned code.
 - Effect context exposes layout, frame input, pointer, scroll, time, source
   handles, target handles, and managed resources.
 - GLB effects receive a model source handle after the model source is loaded;

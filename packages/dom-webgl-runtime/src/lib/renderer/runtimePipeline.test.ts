@@ -4,7 +4,6 @@ import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { ScrollControllerGateTarget } from "../input/scrollController";
 import { defineWebGLEffect } from "../effects/effectAuthoring";
-import { pointerTiltEffect, surfaceBasicEffect } from "../effects/presets";
 import type { Renderable } from "../render/renderable";
 import type { WebGLSceneAdapter } from "./sceneObject";
 import type {
@@ -49,6 +48,36 @@ type RuntimeWithPipelineSurface = WebGLRuntime & {
   unregisterTarget(key: string): void;
   sync(): void | Promise<void>;
 };
+
+const testSurfaceEffect = defineWebGLEffect<{
+  kind: "test.surface";
+  opacity?: number;
+}>({
+  kind: "test.surface",
+  source: "snapshot/element",
+  update(ctx, _state, params) {
+    ctx.target?.setVisible(true);
+    ctx.target?.setOpacity(params.opacity ?? 1);
+  },
+});
+
+const testPointerTiltEffect = defineWebGLEffect<{
+  kind: "test.pointerTilt";
+  strength?: number;
+  maxDegrees?: number;
+}>({
+  kind: "test.pointerTilt",
+  update(ctx, _state, params) {
+    const strength = params.strength ?? 1;
+    const maxDegrees = params.maxDegrees ?? 8;
+    const radians = (maxDegrees * Math.PI) / 180;
+
+    ctx.target?.setRotation(
+      -ctx.pointer.normalizedY * radians * strength,
+      ctx.pointer.normalizedX * radians * strength,
+    );
+  },
+});
 
 describe("runtime pipeline sync", () => {
   afterEach(() => {
@@ -363,10 +392,10 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("runs optional preset effects only when passed to the runtime", async () => {
+  test("runs consumer-authored effects only when passed to the runtime", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
-      effects: [surfaceBasicEffect, pointerTiltEffect],
+      effects: [testSurfaceEffect, testPointerTiltEffect],
       rendererHostFactory: (container) =>
         createRendererHostStub(container, sceneAdapter),
       measureElement: () => createLayoutMeasurement(12, 24, 200, 120),
@@ -379,11 +408,11 @@ describe("runtime pipeline sync", () => {
     const element = document.createElement("section");
 
     runtime.registerTarget(element, {
-      key: "preset.surface",
+      key: "consumer.surface",
       source: { kind: "snapshot", mode: "element" },
       effects: [
-        { kind: "surfaceBasic", opacity: 0.84 },
-        { kind: "pointerTilt", strength: 0.5, maxDegrees: 10 },
+        { kind: "test.surface", opacity: 0.84 },
+        { kind: "test.pointerTilt", strength: 0.5, maxDegrees: 10 },
       ],
     });
 

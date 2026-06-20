@@ -16,21 +16,26 @@ projection in
 `docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`;
 the forward architecture is now DOM layout/content driven WebGL effects, not
 general CSS-to-WebGL fidelity.
-Phase 5 adds the first public minimum effect/material layer in
-`docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`.
+Phase 5 historically added the first public minimum effect/material declaration
+shapes in `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`;
+those concrete package-owned effects are superseded by the Phase 8 package
+boundary cleanup.
 Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
-adds a minimal `surface` material on top of the modular Phase 6.1 effect
-boundaries.
+historically added a minimal `surface` material declaration on top of the
+modular Phase 6.1 effect boundaries; it is now legacy compatibility input, not
+a package-provided concrete visual effect.
 Phase 7 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
-it preserves the Phase 6 object-form declarations while moving the internal
-effect execution model to ordered, registry-driven runtime primitives.
+it preserves the Phase 6 object-form declarations as compatibility input while
+moving internal effect dispatch to registry primitives. Its built-in plugin and
+public registry authoring model is superseded by Phase 8 and the package
+boundary cleanup.
 Phase 8 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`:
 `defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
-API, core registers no default visual effects, and official visuals are optional
-presets from `@project/dom-webgl-runtime/effects`.
+API. Core registers no default visual effects, the package exports no concrete
+effect implementations, and demo/example effects are consumer-owned code.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -74,7 +79,7 @@ Current visual behavior:
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
 - Declared targets can request ordered effect declarations such as
-  `effects: [{ kind: "surfaceBasic" }, { kind: "pointerTilt" }]`. Effects only
+  `effects: [{ kind: "demo.surface" }, { kind: "demo.pointerTilt" }]`. Effects only
   run when the runtime receives matching definitions through runtime-level
   `effects`.
 - Runtime CSS reads should stay limited to fields needed for layout/content
@@ -115,14 +120,10 @@ Current visual behavior:
   they do not render CSS backgrounds, borders, radii, shadows, opacity, or
   transforms.
 - Element snapshots remain transparent layout anchors unless an application or
-  optional preset effect makes the target visibly WebGL-owned.
-- The optional `surfaceBasicEffect` preset renders a WebGL-owned rounded surface
-  from declaration-owned `color`, `opacity`, and `radius`. Border, shadow,
-  gradients, and CSS paint cloning remain out of scope unless a separately
-  approved plan includes them.
-- The optional `pointerTiltEffect` preset consumes the shared runtime pointer
-  frame input and writes a small target rotation; it does not add DOM listeners
-  or own pointer state.
+  consumer-owned effect makes the target visibly WebGL-owned.
+- The demo's local `demoSurfaceEffect` renders a WebGL-owned surface from
+  declaration-owned opacity, and `demoPointerTiltEffect` consumes shared runtime
+  pointer frame input. They are examples in `apps/demo`, not package exports.
 - Text snapshots consume only the style information required to place and render
   text content, such as font, line height, padding, alignment, and DPR.
 - Image and video renderables place their media texture planes inside the CSS
@@ -159,24 +160,22 @@ Current visual behavior:
   Do not expand this into full CSS fidelity; the next architecture step is an
   effect/material layer consuming DOM layout, content, scroll, pointer, and
   lifecycle state.
-- Phase 5 starts that effect/material layer with two official effects only.
+- Phase 5 historically started that effect/material layer with two built-in
+  declarations. Phase 8 boundary cleanup supersedes package-owned concrete
+  effects: applications now provide their own effect implementations.
   Shader authoring, particles, public Three.js render flags, multiple canvases,
   raycast picking, and third-party scroll adapters remain out of scope.
-- Phase 6.1 keeps Phase 5 behavior intact while splitting pure effect
-  normalization, compatibility, target capability types, pointer motion, and
-  Three.js element-plane adapters across explicit internal module boundaries.
-- Phase 6.2 adds the minimal `surface` material for explicit
-  WebGL-owned element snapshot surfaces. It supports declaration-owned color,
-  opacity, and radius only; border, shadow, gradients, and CSS paint cloning
-  remain out of scope unless a separately approved Phase 6.3 gate explicitly
-  includes them.
-- Phase 7 replaces fixed material/motion runtime slots with effect declarations
-  compiled into registry-driven runtime plugins while keeping Phase 6
-  declarations compatible.
+- Phase 6.1/6.2 are now historical implementation phases. Their legacy
+  `effects.material` / `effects.motion` declaration shapes still type-check and
+  compile into effect entries, but the package no longer provides matching
+  concrete effect definitions by default.
+- Phase 7's registry primitives remain internal dispatch machinery. Public
+  authoring no longer uses `effectRegistry`, and package built-in plugins are
+  not registered or exported.
 - Phase 8 replaces the public registry mental model with
   `defineWebGLEffect(...)` plus runtime-level `effects`, stops registering
-  default visual effects in core, and moves official visuals to optional presets
-  that use the same API as user effects.
+  default visual effects in core, and keeps concrete effect implementations out
+  of the package.
 
 ### Effect model
 
@@ -189,23 +188,41 @@ Preferred declaration form:
 
 ```ts
 effects: [
-  { kind: "surfaceBasic", color: 0x111111, opacity: 0.75, radius: 24 },
-  { kind: "pointerTilt", strength: 0.6, maxDegrees: 6 },
+  { kind: "app.surface", opacity: 0.75 },
+  { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 6 },
 ]
 ```
 
 Matching effect definitions are supplied to the runtime:
 
 ```ts
-import { createWebGLRuntime } from "@project/dom-webgl-runtime";
-import {
-  pointerTiltEffect,
-  surfaceBasicEffect,
-} from "@project/dom-webgl-runtime/effects";
+import { createWebGLRuntime, defineWebGLEffect } from "@project/dom-webgl-runtime";
+
+const appSurfaceEffect = defineWebGLEffect({
+  kind: "app.surface",
+  source: "snapshot/element",
+  update(context, _state, params) {
+    context.target?.setVisible(true);
+    context.target?.setOpacity(params.opacity ?? 1);
+  },
+});
+
+const appPointerTiltEffect = defineWebGLEffect({
+  kind: "app.pointerTilt",
+  update(context, _state, params) {
+    const maxDegrees = params.maxDegrees ?? 6;
+    const radians = (maxDegrees * Math.PI) / 180;
+
+    context.target?.setRotation(
+      -context.pointer.normalizedY * radians,
+      context.pointer.normalizedX * radians * (params.strength ?? 1),
+    );
+  },
+});
 
 createWebGLRuntime({
   container,
-  effects: [surfaceBasicEffect, pointerTiltEffect],
+  effects: [appSurfaceEffect, appPointerTiltEffect],
 });
 ```
 
@@ -298,7 +315,6 @@ import {
   createWebGLRuntime,
   defineWebGLEffect,
 } from "@project/dom-webgl-runtime";
-import { pointerTiltEffect } from "@project/dom-webgl-runtime/effects";
 import {
   WebGLRuntime,
   WebGLTarget,
@@ -334,7 +350,7 @@ type WebGLEffectsDeclaration = readonly {
 
 createWebGLRuntime({
   container,
-  effects: [surfaceBasicEffect, pointerTiltEffect, modelProbeEffect],
+  effects: [appSurfaceEffect, appPointerTiltEffect, modelProbeEffect],
 });
 ```
 

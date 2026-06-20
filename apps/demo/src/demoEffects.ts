@@ -1,11 +1,23 @@
-import { defineWebGLEffect } from "../effectAuthoring";
+import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 
-export const pointerTiltEffect = defineWebGLEffect<{
-  kind: "pointerTilt";
+export const demoSurfaceEffect = defineWebGLEffect<{
+  kind: "demo.surface";
+  opacity?: number;
+}>({
+  kind: "demo.surface",
+  source: "snapshot/element",
+  update(ctx, _state, params) {
+    ctx.target?.setVisible(true);
+    ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
+  },
+});
+
+export const demoPointerTiltEffect = defineWebGLEffect<{
+  kind: "demo.pointerTilt";
   strength?: number;
   maxDegrees?: number;
 }>({
-  kind: "pointerTilt",
+  kind: "demo.pointerTilt",
   update(ctx, _state, params) {
     if (!ctx.pointer.isInside) {
       ctx.target?.setRotation(0, 0);

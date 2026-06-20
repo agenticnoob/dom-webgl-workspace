@@ -8,7 +8,6 @@ const IMPORT_PATTERN =
 
 const ALLOWED_PUBLIC_IMPORTS = new Set([
   "@project/dom-webgl-runtime",
-  "@project/dom-webgl-runtime/effects",
   "@project/dom-webgl-runtime/react",
 ]);
 

@@ -1,16 +1,13 @@
 import * as React from "react";
 import { useState } from "react";
 import type { WebGLDebugState } from "@project/dom-webgl-runtime";
-import {
-  pointerTiltEffect,
-  surfaceBasicEffect,
-} from "@project/dom-webgl-runtime/effects";
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
+import { demoPointerTiltEffect, demoSurfaceEffect } from "./demoEffects";
 
-const demoRuntimeEffects = [surfaceBasicEffect, pointerTiltEffect] as const;
+const demoRuntimeEffects = [demoSurfaceEffect, demoPointerTiltEffect] as const;
 
 export default function App() {
   const [debugState, setDebugState] = useState<WebGLDebugState>(createInitialDebugState);
@@ -147,8 +144,8 @@ export default function App() {
                 key: "demo.effects.surface",
                 source: { kind: "snapshot", mode: "element" },
                 effects: [
-                  { kind: "surfaceBasic", opacity: 0.82 },
-                  { kind: "pointerTilt", strength: 0.6, maxDegrees: 8 },
+                  { kind: "demo.surface", opacity: 0.82 },
+                  { kind: "demo.pointerTilt", strength: 0.6, maxDegrees: 8 },
                 ],
               }}
             >
@@ -165,8 +162,8 @@ export default function App() {
                 source: { kind: "snapshot", mode: "element" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
                 effects: [
-                  { kind: "surfaceBasic", opacity: 0.86 },
-                  { kind: "pointerTilt", strength: 1, maxDegrees: 15 },
+                  { kind: "demo.surface", opacity: 0.86 },
+                  { kind: "demo.pointerTilt", strength: 1, maxDegrees: 15 },
                 ],
               }}
             >

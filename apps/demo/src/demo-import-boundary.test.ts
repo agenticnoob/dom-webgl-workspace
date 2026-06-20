@@ -108,6 +108,28 @@ describe("demo import boundary", () => {
     ]);
   });
 
+  test("rejects removed effect preset subpath imports", async () => {
+    const demoSourceDir = await createTempDemoSource();
+
+    await writeFile(
+      path.join(demoSourceDir, "bad-effects.ts"),
+      'import { pointerTiltEffect } from "@project/dom-webgl-runtime/effects";\n',
+    );
+
+    const findDemoImportViolations = await loadFindDemoImportViolations();
+    const violations = await findDemoImportViolations({
+      demoSourceDir,
+      workspaceRoot: path.dirname(path.dirname(path.dirname(demoSourceDir))),
+    });
+
+    expect(violations).toEqual([
+      expect.objectContaining({
+        specifier: "@project/dom-webgl-runtime/effects",
+        reason: "non-public runtime alias import",
+      }),
+    ]);
+  });
+
   test("ignores colocated test files when scanning demo runtime imports", async () => {
     const demoSourceDir = await createTempDemoSource();
 

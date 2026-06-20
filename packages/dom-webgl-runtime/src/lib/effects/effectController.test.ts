@@ -4,36 +4,9 @@ import { defineWebGLEffect } from "./effectAuthoring";
 import { createWebGLEffectController } from "./effectController";
 import { createWebGLEffectRegistry } from "./effectRegistry";
 import type { WebGLEffectTarget } from "./effectTarget";
-import { normalizeWebGLEffectsDeclaration } from "./effectNormalization";
 
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput } from "../types";
-
-describe("normalizeWebGLEffectsDeclaration", () => {
-  test("defaults solid material and pointer tilt values", () => {
-    expect(
-      normalizeWebGLEffectsDeclaration({
-        material: { kind: "solid" },
-        motion: { kind: "pointer-tilt" },
-      }),
-    ).toEqual({
-      material: { kind: "solid", color: 0xffffff, opacity: 1 },
-      motion: { kind: "pointer-tilt", strength: 1, maxDegrees: 8 },
-    });
-  });
-
-  test("clamps numeric effect values", () => {
-    expect(
-      normalizeWebGLEffectsDeclaration({
-        material: { kind: "solid", color: 0x1ffffff, opacity: 2 },
-        motion: { kind: "pointer-tilt", strength: -1, maxDegrees: 90 },
-      }),
-    ).toEqual({
-      material: { kind: "solid", color: 0xffffff, opacity: 1 },
-      motion: { kind: "pointer-tilt", strength: 0, maxDegrees: 30 },
-    });
-  });
-});
 
 describe("createWebGLEffectController", () => {
   test("does not register preset effects by default", () => {

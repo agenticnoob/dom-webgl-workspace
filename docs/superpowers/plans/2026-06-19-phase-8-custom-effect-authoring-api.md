@@ -2,7 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make user-authored effects the single effect model: core registers no default effects, runtime supplies managed context, and official effects become optional presets implemented with the same public API.
+> **Historical status:** This plan's authoring API is implemented, but all
+> package preset/export instructions are superseded by
+> `2026-06-20-package-effect-boundary-cleanup.md`. Do not copy the historical
+> `@project/dom-webgl-runtime/effects` references below into current code.
+
+**Goal:** Make user-authored effects the single effect model: core registers no default effects, runtime supplies managed context, and concrete effects are authored by consumers or examples outside the package.
 
 **Architecture:** Runtime continues to own DOM layout, source loading, frame input, scene attachment, resource lifetime, and disposal. Effect authors write small `setup` / `update` / `dispose` functions against a managed context containing layout, pointer, scroll, time, source handles, target handles, and effect-owned resources. Phase 7 registry dispatch remains useful internally, but the public mental model shifts from "register plugins against existing capabilities" to "define effects and pass them to the runtime."
 
@@ -14,24 +19,28 @@
 
 Implemented in the Phase 8 branch. The public authoring model is
 `defineWebGLEffect(...)` plus runtime-level `effects`; core does not register
-default visual effects; official `surfaceBasicEffect` and `pointerTiltEffect`
-presets are exported from `@project/dom-webgl-runtime/effects`; and the demo
-opts into those presets through public package entrypoints with a stable
-runtime-level effect definition array so debug-state re-renders do not recreate
-the runtime.
+default visual effects. Superseded by the 2026-06-20 package effect boundary
+cleanup: concrete `surfaceBasicEffect` and `pointerTiltEffect` presets are no
+longer exported from the package, and the demo owns its example effects locally
+while still using public package entrypoints with a stable runtime-level effect
+definition array so debug-state re-renders do not recreate the runtime.
 
 The implementation keeps Three-backed GLB source helpers beside the GLB
 renderable adapter rather than inside the pure effects module, preserving the
 effect boundary while still exposing managed `model/glb` source handles to
 effect authors.
 
-## Current Truth
+## Pre-Phase-8 Truth
 
-- Phase 7 exposes `createWebGLEffectRegistry(...)`, `WebGLEffectPlugin`, and `<WebGLRuntime effectRegistry={registry}>`.
-- Built-in `material.solid`, `surface.basic`, and `motion.pointerTilt` are registered by default inside `createWebGLEffectController(...)`.
+- Phase 7 exposed `createWebGLEffectRegistry(...)`, `WebGLEffectPlugin`, and `<WebGLRuntime effectRegistry={registry}>`.
+- Phase 7 registered `material.solid`, `surface.basic`, and `motion.pointerTilt` by default inside `createWebGLEffectController(...)`.
 - User-defined effects can run only through the currently exposed target capability methods: `applySolidMaterial`, `applySurfaceMaterial`, and `setRotation`.
 - `model/glb` renderables already load a runtime-owned object, attach it through `createModelSceneRenderableController(...)`, and expose only the existing `setRotation` effect target.
 - This is not enough for the intended user model where authors can write their own GLB particles, shader-ish transforms, or source-aware visual behavior from runtime-managed input and resources.
+
+Current package truth after the 2026-06-20 boundary cleanup: registry dispatch
+is internal plumbing, concrete defaults are not registered by core, and users
+provide any concrete effect definitions through runtime-level `effects`.
 
 ## Design Decision
 
@@ -74,18 +83,17 @@ runtime.registerTarget(element, {
 });
 ```
 
-Official effects may still exist, but only as optional presets:
+Superseded decision, retained only as historical context and not executable
+guidance: this plan originally allowed official effects as optional package
+presets through an `@project/dom-webgl-runtime/effects` subpath. That subpath
+is intentionally absent.
 
-```ts
-import { pointerTiltEffect, surfaceBasicEffect } from "@project/dom-webgl-runtime/effects";
+Historical note: those package presets were removed. Core must not auto-register
+them and the package must not export them.
 
-createWebGLRuntime({
-  container,
-  effects: [surfaceBasicEffect, pointerTiltEffect],
-});
-```
-
-Those presets must use the same `defineWebGLEffect(...)` API as user code. Core must not auto-register them.
+Current boundary after `2026-06-20-package-effect-boundary-cleanup`: package
+exports no official presets or concrete effect subpath. Demo/docs examples may
+define local effects with `defineWebGLEffect(...)`.
 
 ## Non-Goals
 
@@ -275,14 +283,12 @@ Source and target handles:
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderableObject.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/elementPlaneEffectTarget.ts`
 
-Optional presets:
+Superseded optional presets section:
 
-- Create: `packages/dom-webgl-runtime/src/effects.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/surfaceBasicEffect.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/pointerTiltEffect.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/index.ts`
-- Move/replace: `packages/dom-webgl-runtime/src/lib/effects/builtins/*`
-- Modify: `packages/dom-webgl-runtime/package.json`
+- Do not create or keep `packages/dom-webgl-runtime/src/effects.ts`.
+- Do not create or keep `packages/dom-webgl-runtime/src/lib/effects/presets/*`.
+- Do not expose `./effects` from `packages/dom-webgl-runtime/package.json`.
+- Demo/example effects belong in consumer code such as `apps/demo/src/demoEffects.ts`.
 
 Demo, tests, docs:
 
@@ -1223,7 +1229,7 @@ export type WebGLEffectTarget = {
 };
 ```
 
-Remove `applySolidMaterial` and `applySurfaceMaterial` from the core target handle. Surface and solid visuals move to optional presets that use `setOpacity`, managed textures, or future target APIs.
+Remove `applySolidMaterial` and `applySurfaceMaterial` from the core target handle. Surface and solid visuals move to consumer-owned effects that use `setOpacity`, managed textures, or future target APIs.
 
 - [ ] **Step 2: Implement transform helpers**
 
@@ -1285,109 +1291,44 @@ npm test -- packages/dom-webgl-runtime/src/lib/render/renderables/sceneRenderabl
 
 Expected: PASS.
 
-## Task 7: Move Current Effects to Optional Presets
+## Task 7: Superseded Optional Preset Work
 
 **Files:**
-- Create: `packages/dom-webgl-runtime/src/effects.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/pointerTiltEffect.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/surfaceBasicEffect.ts`
-- Create: `packages/dom-webgl-runtime/src/lib/effects/presets/index.ts`
-- Modify: `packages/dom-webgl-runtime/package.json`
+- Superseded: do not create package preset files or a package `./effects`
+  subpath. Concrete examples should live in consumer/demo code.
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/builtins/index.ts`
 
-- [ ] **Step 1: Add optional preset subpath**
+- [x] **Step 1: Superseded - do not add an optional preset subpath**
 
-Modify `packages/dom-webgl-runtime/package.json`:
+Do not modify `packages/dom-webgl-runtime/package.json` to add a package
+`./effects` export.
 
-```json
-"./effects": {
-  "types": "./src/effects.ts",
-  "import": "./src/effects.ts"
-}
-```
+- [x] **Step 2: Superseded - do not create a pointer tilt package preset**
 
-- [ ] **Step 2: Create pointer tilt preset**
+The historical package-preset sketch for a pointer-tilt effect is superseded
+and must not be implemented in the package.
 
-Create `packages/dom-webgl-runtime/src/lib/effects/presets/pointerTiltEffect.ts`:
+- [x] **Step 3: Superseded - do not create a package visibility/opacity preset**
 
-```ts
-import { defineWebGLEffect } from "../effectAuthoring";
+The historical package-preset sketch for a surface visibility/opacity effect is
+superseded and must not be implemented in the package.
 
-export const pointerTiltEffect = defineWebGLEffect<{
-  kind: "pointerTilt";
-  strength?: number;
-  maxDegrees?: number;
-}>({
-  kind: "pointerTilt",
-  update(ctx, _state, params) {
-    if (!ctx.pointer.isInside) {
-      ctx.target?.setRotation(0, 0);
-      return;
-    }
+Consumer examples may implement similar behavior locally with
+`defineWebGLEffect(...)`.
 
-    const strength = Math.max(0, Math.min(params.strength ?? 1, 2));
-    const maxDegrees = Math.max(0, Math.min(params.maxDegrees ?? 8, 30));
-    const radians = (maxDegrees * Math.PI) / 180;
+- [x] **Step 4: Superseded - do not export package presets**
 
-    ctx.target?.setRotation(
-      -ctx.pointer.normalizedY * radians * strength,
-      ctx.pointer.normalizedX * radians * strength,
-    );
-  },
-});
-```
+Do not create `packages/dom-webgl-runtime/src/lib/effects/presets/index.ts`.
+Do not create `packages/dom-webgl-runtime/src/effects.ts`.
 
-- [ ] **Step 3: Create minimal visibility/opacity preset**
-
-Create `packages/dom-webgl-runtime/src/lib/effects/presets/surfaceBasicEffect.ts`:
-
-```ts
-import { defineWebGLEffect } from "../effectAuthoring";
-
-export const surfaceBasicEffect = defineWebGLEffect<{
-  kind: "surfaceBasic";
-  opacity?: number;
-}>({
-  kind: "surfaceBasic",
-  source: "snapshot/element",
-  update(ctx, _state, params) {
-    ctx.target?.setVisible(true);
-    ctx.target?.setOpacity(params.opacity ?? 1);
-  },
-});
-```
-
-This intentionally does not preserve full Phase 7 rounded surface texture behavior unless Task 6 adds a generic managed texture target. Keep the preset small; the product goal is authoring API simplicity, not reproducing every built-in visual as core behavior.
-
-- [ ] **Step 4: Export presets**
-
-Create `packages/dom-webgl-runtime/src/lib/effects/presets/index.ts`:
-
-```ts
-export { pointerTiltEffect } from "./pointerTiltEffect";
-export { surfaceBasicEffect } from "./surfaceBasicEffect";
-```
-
-Create `packages/dom-webgl-runtime/src/effects.ts`:
-
-```ts
-export { pointerTiltEffect, surfaceBasicEffect } from "./lib/effects/presets";
-```
-
-- [ ] **Step 5: Remove default built-in aggregation**
+- [x] **Step 5: Remove default built-in aggregation**
 
 Replace `packages/dom-webgl-runtime/src/lib/effects/builtins/index.ts` with either an empty compatibility export or delete it after updating imports. There must be no code path where `createWebGLRuntime(...)` registers presets automatically.
 
-- [ ] **Step 6: Verify presets are optional**
+- [x] **Step 6: Superseded - verify package presets are absent**
 
-Add a public export test for the subpath:
-
-```ts
-const effectsModule = await import("@project/dom-webgl-runtime/effects");
-expect(effectsModule.pointerTiltEffect).toEqual(expect.objectContaining({
-  kind: "pointerTilt",
-}));
-```
+Do not add a public export test that imports the historical package effect
+subpath.
 
 Run:
 
@@ -1395,7 +1336,9 @@ Run:
 npm test -- packages/dom-webgl-runtime/src/publicExports.test.ts
 ```
 
-Expected: PASS after package export fixture support is updated.
+Current expected behavior after package boundary cleanup: the public export
+contract proves `packages/dom-webgl-runtime/package.json` does not expose
+`./effects`.
 
 ## Task 8: Update Demo to the Single Authoring Model
 
@@ -1403,12 +1346,12 @@ Expected: PASS after package export fixture support is updated.
 - Modify: `apps/demo/src/App.tsx`
 - Modify: `apps/demo/src/App.test.tsx`
 
-- [ ] **Step 1: Pass optional presets into the demo runtime**
+- [x] **Step 1: Pass demo-owned effects into the demo runtime**
 
-In `apps/demo/src/App.tsx`, import presets:
+In `apps/demo/src/App.tsx`, import local consumer-owned examples:
 
 ```ts
-import { pointerTiltEffect, surfaceBasicEffect } from "@project/dom-webgl-runtime/effects";
+import { demoPointerTiltEffect, demoSurfaceEffect } from "./demoEffects";
 ```
 
 Pass them into the runtime:
@@ -1416,12 +1359,12 @@ Pass them into the runtime:
 ```tsx
 <WebGLRuntime
   className="demo-runtime"
-  effects={[surfaceBasicEffect, pointerTiltEffect]}
+  effects={[demoSurfaceEffect, demoPointerTiltEffect]}
   onDebugStateChange={setDebugState}
 >
 ```
 
-- [ ] **Step 2: Replace legacy target declarations**
+- [x] **Step 2: Replace target declarations with demo-owned effect kinds**
 
 Replace legacy object-form effects:
 
@@ -1436,27 +1379,27 @@ with single-model array declarations:
 
 ```ts
 effects: [
-  { kind: "surfaceBasic", opacity: 0.84 },
-  { kind: "pointerTilt", strength: 0.5, maxDegrees: 10 },
+  { kind: "demo.surface", opacity: 0.84 },
+  { kind: "demo.pointerTilt", strength: 0.5, maxDegrees: 10 },
 ]
 ```
 
-- [ ] **Step 3: Update demo tests**
+- [x] **Step 3: Update demo tests**
 
 In `apps/demo/src/App.test.tsx`, update expectations to assert:
 
 ```ts
 expect(webglRuntimeProps()).toMatchObject({
   effects: expect.arrayContaining([
-    expect.objectContaining({ kind: "surfaceBasic" }),
-    expect.objectContaining({ kind: "pointerTilt" }),
+    expect.objectContaining({ kind: "demo.surface" }),
+    expect.objectContaining({ kind: "demo.pointerTilt" }),
   ]),
 });
 
 expect(webglDeclarationFor("demo.effects.surface")).toMatchObject({
   effects: [
-    { kind: "surfaceBasic", opacity: 0.84 },
-    { kind: "pointerTilt", strength: 0.5, maxDegrees: 10 },
+    { kind: "demo.surface", opacity: 0.84 },
+    { kind: "demo.pointerTilt", strength: 0.5, maxDegrees: 10 },
   ],
 });
 ```
@@ -1582,8 +1525,8 @@ with:
 Phase 8 makes user-authored effects the single effect model. Core does not
 auto-register default visual effects; consumers pass effect definitions to the
 runtime with `createWebGLRuntime({ effects })` or `<WebGLRuntime effects={...}>`.
-Official presets, when used, are optional effects implemented with the same
-`defineWebGLEffect(...)` API as application effects.
+The package exports no concrete effect implementations; demo and documentation
+examples define their own effects with `defineWebGLEffect(...)`.
 ```
 
 - [ ] **Step 2: Update goal truth**
@@ -1595,8 +1538,9 @@ Planned Phase 8 behavior:
 
 - Replace public `effectRegistry` authoring with `defineWebGLEffect(...)` and
   runtime-level `effects`.
-- Core runtime registers no default effects. Official effects are optional
-  presets and use the same public authoring API as user effects.
+- Core runtime registers no default effects and exports no official presets.
+- Demo and documentation examples define local effects with the same public
+  authoring API as application code.
 - Effect context exposes layout, frame input, pointer, scroll, time, source
   handles, target handles, and managed resources.
 - GLB effects receive a model source handle after the model source is loaded;
@@ -1611,8 +1555,8 @@ In `docs/EXECUTION_STATE.md`, add:
 ```md
 Phase 8 custom effect authoring is planned but not implemented. The plan
 intentionally removes default core effect registration as the public model,
-moves official visuals to optional presets, and makes `defineWebGLEffect(...)`
-the main author-facing API.
+keeps concrete visuals out of the package, and makes `defineWebGLEffect(...)`
+the main author-facing API for consumer-owned effects.
 ```
 
 - [ ] **Step 4: Search for stale claims**
@@ -1669,7 +1613,7 @@ git commit -m "feat: add custom effect authoring api"
 
 ## Self-Review Notes
 
-- Spec coverage: Covers the user concern that custom effects should not be second-class wrappers around built-in capabilities. The plan makes `defineWebGLEffect(...)` the single public model and moves official visuals to optional presets.
+- Spec coverage: Covers the user concern that custom effects should not be second-class wrappers around built-in capabilities. The plan makes `defineWebGLEffect(...)` the single public model and keeps concrete visuals in consumer-owned examples rather than package exports.
 - Scope check: The plan is a single implementation phase. It enables GLB-aware effects through source handles and managed resources, but it does not require shipping a polished GLB particle preset in the same phase.
 - Type consistency: Runtime option name is `effects`; target declaration property remains `effects`; effect implementations are `WebGLEffectDefinition`.
 - Boundary check: The default API does not expose `renderer`, `camera`, or scene mutation. Model object access is exposed as `unknown` plus managed helper methods to avoid making raw Three.js object mutation the default contract.
