@@ -1,11 +1,7 @@
-import type { WebGLFrameInput } from "../types";
+import type { WebGLFrameInput, WebGLScrollMetrics } from "../types";
 import type { ScrollStateController } from "./frameInput";
 
-export type PageScrollMetrics = {
-  scrollY: number;
-  scrollHeight: number;
-  viewportHeight: number;
-};
+export type PageScrollMetrics = WebGLScrollMetrics;
 
 export type PageScrollStateController = ScrollStateController;
 

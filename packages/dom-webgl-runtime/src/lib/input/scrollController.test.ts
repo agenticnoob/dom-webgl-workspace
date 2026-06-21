@@ -5,6 +5,7 @@ import {
   type ScrollStateController,
 } from "./frameInput";
 import type { PointerController } from "./pointerController";
+import type { WebGLScrollAdapter, WebGLScrollDeltaRouter } from "../types";
 import { createScrollController, type ScrollLockPort } from "./scrollController";
 
 describe("createScrollController", () => {
@@ -225,6 +226,98 @@ describe("createScrollController", () => {
       direction: 0,
       velocity: 0,
     });
+  });
+
+  test("can read page metrics from a public scroll adapter", () => {
+    const metrics = {
+      scrollY: 120,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const scrollController = createScrollController({
+      scrollAdapter: {
+        readMetrics: () => metrics,
+      },
+      scrollLock: createScrollLockStub(),
+    });
+
+    metrics.scrollY = 240;
+
+    expect(scrollController.update()).toEqual({
+      mode: "page",
+      pageProgress: 0.24,
+      direction: 1,
+      velocity: 120,
+    });
+  });
+
+  test("routes gate deltas through a public scroll adapter and reports gate state", () => {
+    const metrics = {
+      scrollY: 0,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const rect = {
+      top: 80,
+      height: 200,
+    };
+    const gateStateChanges: unknown[] = [];
+    let routeDelta: WebGLScrollDeltaRouter | undefined;
+    const scrollAdapter: WebGLScrollAdapter = {
+      readMetrics: () => metrics,
+      connectDeltaRouter(router) {
+        routeDelta = router;
+        return () => {
+          routeDelta = undefined;
+        };
+      },
+      onGateStateChange(state) {
+        gateStateChanges.push(state);
+      },
+    };
+    const scrollLock = createScrollLockStub();
+    const scrollController = createScrollController({
+      scrollAdapter,
+      scrollLock,
+    });
+
+    scrollController.registerGateTarget({
+      key: "hero.scene",
+      scroll: {
+        type: "gate",
+        start: "top top",
+        duration: 1,
+      },
+      getRect: () => rect,
+    });
+
+    metrics.scrollY = 80;
+    rect.top = 0;
+    expect(scrollController.update()).toMatchObject({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0,
+    });
+
+    expect(routeDelta?.(250)).toBe(true);
+    expect(scrollController.getState()).toEqual({
+      mode: "gate",
+      activeGateKey: "hero.scene",
+      sceneProgress: 0.25,
+      direction: 1,
+      velocity: 250,
+    });
+    expect(scrollLock.isLocked()).toBe(true);
+    expect(gateStateChanges).toContainEqual({
+      active: true,
+      key: "hero.scene",
+      progress: 0.25,
+    });
+
+    scrollController.dispose();
+
+    expect(routeDelta).toBeUndefined();
+    expect(gateStateChanges.at(-1)).toEqual({ active: false });
   });
 
   test("routes active gate wheel input and prevents page scroll only when consumed", () => {

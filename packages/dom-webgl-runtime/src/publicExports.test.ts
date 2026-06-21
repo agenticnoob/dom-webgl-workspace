@@ -201,7 +201,11 @@ describe("public package exports", () => {
           WebGLResourceStatus,
           WebGLRuntime,
           WebGLRuntimeOptions,
+          WebGLScrollAdapter,
           WebGLScrollBehavior,
+          WebGLScrollDeltaRouter,
+          WebGLScrollGateState,
+          WebGLScrollMetrics,
           WebGLSnapshotSourceDeclaration,
           WebGLSolidMaterialDeclaration,
           WebGLSourceDeclaration,
@@ -235,9 +239,37 @@ describe("public package exports", () => {
 	        // @ts-expect-error Effect targets are internal renderable state.
 	        import type { WebGLEffectTarget } from "${importPath}";
 
-		        createWebGLRuntime satisfies (
-		          options: WebGLRuntimeOptions,
-		        ) => WebGLRuntime;
+        createWebGLRuntime satisfies (
+          options: WebGLRuntimeOptions,
+        ) => WebGLRuntime;
+        const scrollMetrics = {
+          scrollY: 120,
+          scrollHeight: 2000,
+          viewportHeight: 800,
+        } satisfies WebGLScrollMetrics;
+        const routeDelta = ((deltaY: number) => deltaY !== 0) satisfies WebGLScrollDeltaRouter;
+        const scrollAdapter = {
+          kind: "test.scroll",
+          readMetrics: () => scrollMetrics,
+          connectDeltaRouter(router) {
+            routeDelta(1);
+            router(1);
+            return () => {};
+          },
+          subscribe(listener) {
+            listener();
+            return () => {};
+          },
+          onGateStateChange(state) {
+            state satisfies WebGLScrollGateState;
+          },
+          dispose() {},
+        } satisfies WebGLScrollAdapter;
+        const runtimeOptionsWithScrollAdapter = {
+          container: document.createElement("div"),
+          scrollAdapter,
+        } satisfies WebGLRuntimeOptions;
+        runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
 
         const renderRole = "model" satisfies WebGLRenderRole;
         const snapshotSource = {

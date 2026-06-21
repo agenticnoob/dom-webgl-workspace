@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Runtime viewport lifecycle disposal now restores fallback visibility before releasing a ready offscreen renderable, so hidden fallback DOM is not left invisible when WebGL resources are unloaded. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. Unified source capability handles now expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. Public target/model/common renderable handles include `setPosition(...)` scene-space control alongside visibility, rotation, scale, and opacity. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity. Offscreen resource policy is target-scoped. Far-offscreen targets restore native DOM fallback and dispose WebGL resources by default; near-offscreen parking is available through lifecycle offscreen policy for short warm resumes.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Runtime viewport lifecycle disposal now restores fallback visibility before releasing a ready offscreen renderable, so hidden fallback DOM is not left invisible when WebGL resources are unloaded. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. Unified source capability handles now expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. Public target/model/common renderable handles include `setPosition(...)` scene-space control alongside visibility, rotation, scale, and opacity. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity. Offscreen resource policy is target-scoped. Far-offscreen targets restore native DOM fallback and dispose WebGL resources by default; near-offscreen parking is available through lifecycle offscreen policy for short warm resumes. Third-party scroll support now exposes a public adapter protocol in core and optional Lenis/GSAP/ScrollTrigger glue in `@project/dom-webgl-scroll-adapters`, while core keeps native scroll as the default and owns no direct third-party scroll dependency.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -27,14 +27,18 @@ for downstream package integration and custom effect authoring. Source
 capability handles expose stable WebGL output controls for `snapshot/element`,
 `snapshot/text`, `image`, `video`, and `model/glb`; target/model/common
 renderable handles include scene-space `setPosition(...)`. Concrete visual
-effects remain consumer-owned. Demo `ScrollZoomImage` is a consumer-owned
-example that uses native page scroll to zoom a full-bleed image and moves its
-WebGL-targeted gallery through the local `demo.scrollGallery` effect rather
-than CSS transform animation or CSS progress variables. Runtime lifecycle
-disposal restores fallback visibility before unloading ready offscreen
-renderables. Offscreen resource policy is target-scoped: far-offscreen targets
-restore native DOM fallback and dispose resources by default; near-offscreen
-parking enables short warm resumes before fallback restore or disposal.
+effects remain consumer-owned. Third-party scroll integration now uses the
+public `WebGLScrollAdapter` protocol plus the optional
+`@project/dom-webgl-scroll-adapters` package. Core keeps native page/gate scroll
+as the default and does not import Lenis, GSAP, or ScrollTrigger. Demo
+`ScrollZoomImage` is a consumer-owned example that uses native page scroll to
+zoom a full-bleed image and moves its WebGL-targeted gallery through the local
+`demo.scrollGallery` effect rather than CSS transform animation or CSS progress
+variables. Runtime lifecycle disposal restores fallback visibility before
+unloading ready offscreen renderables. Offscreen resource policy is
+target-scoped: far-offscreen targets restore native DOM fallback and dispose
+resources by default; near-offscreen parking enables short warm resumes before
+fallback restore or disposal.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -228,8 +232,9 @@ texture quality, or cache tuning is explicitly approved.
   `apps/demo/src/demoEffects.ts`, including the GLB original-model rotation and
   pointer-scattered vertex-particle model replacement on `demo.model`.
 - Still out of scope: shader authoring API, core-provided particle systems,
-  third-party scroll adapters, WebGL raycast picking, multiple canvases, public
-  Three.js render flags, and CSS-to-WebGL fidelity expansion.
+  core-owned Lenis/GSAP/ScrollTrigger integrations, WebGL raycast picking,
+  multiple canvases, public Three.js render flags, and CSS-to-WebGL fidelity
+  expansion.
 
 ## Phase 5 Completed Task Record
 - Historical completed work: Added public effect/material declaration types, an
@@ -729,7 +734,9 @@ non-blocking Vite production build chunk-size warning remains.
   adapters, not inside pure effect modules.
 - Do not create multiple WebGL canvases.
 - Do not implement WebGL raycast picking.
-- Do not add Lenis / GSAP ScrollTrigger adapters.
+- Do not add Lenis, GSAP, or ScrollTrigger as core runtime dependencies; route
+  third-party scroll integrations through `WebGLScrollAdapter` and the optional
+  scroll adapter package.
 - Do not add class-based compatibility layer.
 - Do not expose Three.js renderOrder, transparent, or depthWrite in the public API.
 - Public package imports must be SSR-safe.
@@ -745,5 +752,5 @@ non-blocking Vite production build chunk-size warning remains.
 Use the source capability handles for consumer-owned effects such as scrambled
 text, text pressure, media distortion, video scrubbing, or GLB particles. Keep
 the boundary explicit: no package effect presets, no public renderer/camera/scene
-mutation, no multiple-canvas path, no picking path, no third-party scroll
-adapter, no CSS paint cloning, and no demo-specific runtime branch.
+mutation, no multiple-canvas path, no picking path, no core-owned third-party
+scroll dependency, no CSS paint cloning, and no demo-specific runtime branch.

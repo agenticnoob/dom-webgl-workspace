@@ -13,6 +13,9 @@ implementation policy.
 - Applications own concrete visual effects.
 - The package owns layout measurement, runtime lifecycle, source handles, target
   handles, frame input, pointer state, scroll state, and managed resources.
+- Native page/gate scroll is the default. Third-party smooth-scroll systems use
+  `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
+  core in `<scroll-adapters-package>`.
 - The package does not provide default visual effects or an official
   `effects` preset subpath.
 
@@ -31,6 +34,7 @@ import {
   type WebGLEffectContext,
   type WebGLEffectDefinition,
   type WebGLRuntimeOptions,
+  type WebGLScrollAdapter,
 } from "<runtime-package>";
 ```
 
@@ -50,6 +54,7 @@ Do not use:
 import ... from "<runtime-package>/effects";
 import ... from "<runtime-package>/src";
 import ... from "packages/dom-webgl-runtime/src";
+import ... from "packages/dom-webgl-scroll-adapters/src";
 ```
 
 ## Runtime Setup
@@ -60,10 +65,11 @@ React:
 import { WebGLRuntime, WebGLTarget } from "<runtime-package>/react";
 
 const runtimeEffects = [appSurfaceEffect, appPointerEffect] as const;
+const scrollAdapter: WebGLScrollAdapter | undefined = undefined;
 
 export function App() {
   return (
-    <WebGLRuntime effects={runtimeEffects}>
+    <WebGLRuntime effects={runtimeEffects} scrollAdapter={scrollAdapter}>
       <WebGLTarget
         webgl={{
           key: "hero.surface",
@@ -86,6 +92,7 @@ import { createWebGLRuntime } from "<runtime-package>";
 const runtime = createWebGLRuntime({
   container,
   effects: [appSurfaceEffect, appPointerEffect],
+  scrollAdapter,
 });
 
 runtime.registerTarget(element, {
@@ -101,11 +108,47 @@ Rules:
 
 - Keep the runtime-level `effects` array reference stable. In React, define it at
   module scope or memoize it.
+- Keep `scrollAdapter` reference stable. In React, define the adapter at module
+  scope, in a stable ref, or in a memoized integration component that owns the
+  third-party instance lifecycle.
 - Every target key must be stable and unique inside one runtime.
 - Target `webgl.effects` contains data only. The executable effect definition is
   registered at runtime level.
 - Do not create nested runtimes unless the application intentionally needs
   independent canvases and lifecycle ownership.
+
+## Scroll Adapter Setup
+
+Use no adapter for normal browser scroll:
+
+```tsx
+<WebGLRuntime effects={runtimeEffects}>{children}</WebGLRuntime>
+```
+
+Use a scroll adapter only when the application already owns a third-party
+scroll system:
+
+```ts
+import { createWebGLRuntime, type WebGLScrollAdapter } from "<runtime-package>";
+
+declare const lenisBackedAdapter: WebGLScrollAdapter;
+
+const runtime = createWebGLRuntime({
+  container,
+  scrollAdapter: lenisBackedAdapter,
+});
+```
+
+Rules:
+
+- Core receives only `WebGLScrollAdapter`; it must not receive a raw Lenis,
+  GSAP, or ScrollTrigger instance.
+- Effects keep reading `ctx.scroll` and `ctx.scrollProgress`; they should not
+  read third-party scroll instances directly.
+- Adapter cleanup owns only listeners, ticker callbacks, and proxy hooks created
+  by the adapter. Destroying a consumer-owned Lenis instance must be explicit.
+- See `docs/agent/scroll-adapters.md` for optional Lenis, GSAP ticker, and
+  ScrollTrigger bridge rules.
 
 ## Target Declaration
 

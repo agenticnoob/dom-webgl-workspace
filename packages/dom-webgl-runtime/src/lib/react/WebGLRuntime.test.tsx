@@ -152,6 +152,23 @@ describe("WebGLRuntime", () => {
     );
   });
 
+  test("passes a scroll adapter to the runtime on mount", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const scrollAdapter = createTestScrollAdapter();
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { scrollAdapter }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scrollAdapter,
+      }),
+    );
+  });
+
   test("recreates the runtime when effect definitions change", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
@@ -174,6 +191,32 @@ describe("WebGLRuntime", () => {
     expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
       expect.objectContaining({
         effects: secondEffects,
+      }),
+    );
+  });
+
+  test("recreates the runtime when the scroll adapter changes", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const firstScrollAdapter = createTestScrollAdapter();
+    const secondScrollAdapter = createTestScrollAdapter(120);
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { scrollAdapter: firstScrollAdapter }));
+    });
+
+    const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { scrollAdapter: secondScrollAdapter }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
+    expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        scrollAdapter: secondScrollAdapter,
       }),
     );
   });
@@ -361,6 +404,20 @@ function createTestEffects(kind = "custom.test"): WebGLRuntimeOptions["effects"]
       },
     },
   ];
+}
+
+function createTestScrollAdapter(
+  scrollY = 0,
+): WebGLRuntimeOptions["scrollAdapter"] {
+  return {
+    readMetrics() {
+      return {
+        scrollY,
+        scrollHeight: 1000,
+        viewportHeight: 500,
+      };
+    },
+  };
 }
 
 function createEmptyDebugState() {

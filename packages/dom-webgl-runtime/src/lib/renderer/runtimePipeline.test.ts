@@ -10,7 +10,7 @@ import type {
   WebGLModelSourceDescriptor,
   WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
-import type { WebGLFrameInput } from "../types";
+import type { WebGLFrameInput, WebGLScrollAdapter } from "../types";
 import type { createWebGLRuntime, WebGLRuntime } from "./runtime";
 import type { ThreeRendererHost } from "./threeRenderer";
 
@@ -333,6 +333,50 @@ describe("runtime pipeline sync", () => {
     });
     expect(pointer.normalizedX).toBeCloseTo(0.75);
     expect(pointer.normalizedY).toBeCloseTo(-0.666666);
+
+    runtime.dispose();
+  });
+
+  test("uses a public scroll adapter as the page scroll source", async () => {
+    const metrics = {
+      scrollY: 100,
+      scrollHeight: 2000,
+      viewportHeight: 1000,
+    };
+    const scrollAdapter: WebGLScrollAdapter = {
+      readMetrics: () => metrics,
+    };
+    const receivedInputs: WebGLFrameInput[] = [];
+    const runtime = await createPipelineRuntime({
+      scrollAdapter,
+      pointerController: createPointerController(),
+      clock: () => 250,
+      onRenderableCreated(renderable) {
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = (input) => {
+          if (!input) {
+            throw new Error("Expected runtime to pass WebGLFrameInput.");
+          }
+
+          receivedInputs.push(input);
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    metrics.scrollY = 250;
+    runtime.registerTarget(document.createElement("section"), { key: "hero" });
+
+    await runtime.sync();
+
+    expect(receivedInputs).toHaveLength(1);
+    expect(receivedInputs[0]?.scroll).toEqual({
+      mode: "page",
+      pageProgress: 0.25,
+      direction: 1,
+      velocity: 150,
+    });
 
     runtime.dispose();
   });

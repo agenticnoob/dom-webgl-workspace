@@ -22,6 +22,7 @@ export type WebGLRuntimeProps = {
   className?: string;
   style?: CSSProperties;
   effects?: WebGLRuntimeOptions["effects"];
+  scrollAdapter?: WebGLRuntimeOptions["scrollAdapter"];
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
@@ -30,6 +31,7 @@ export function WebGLRuntime({
   className,
   style,
   effects,
+  scrollAdapter,
   onDebugStateChange,
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -61,6 +63,7 @@ export function WebGLRuntime({
       nextRuntime = createWebGLRuntime({
         container,
         effects,
+        scrollAdapter,
         onDebugStateChange(state) {
           onDebugStateChangeRef.current?.(state);
         },
@@ -78,7 +81,7 @@ export function WebGLRuntime({
     return () => {
       nextRuntime.dispose();
     };
-  }, [effects]);
+  }, [effects, scrollAdapter]);
 
   return createElement(
     "div",

@@ -11,6 +11,7 @@ import type {
   WebGLResourceStatus,
   WebGLRuntime,
   WebGLRuntimeOptions,
+  WebGLScrollMetrics,
 } from "../types";
 
 import {
@@ -38,7 +39,7 @@ import {
   type FrameClock,
   type ScrollStateController,
 } from "../input/frameInput";
-import { type PageScrollMetrics } from "../input/pageScroll";
+import { createNativeScrollAdapter } from "../input/scrollAdapter";
 import {
   createPointerController,
   type PointerController,
@@ -134,9 +135,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const scrollState =
     internalOptions.scrollState ??
     createScrollController({
-      getScrollMetrics: readPageScrollMetrics,
+      scrollAdapter:
+        internalOptions.scrollAdapter ??
+        createNativeScrollAdapter({
+          readMetrics: readPageScrollMetrics,
+          eventTarget: options.container,
+        }),
       scrollLock: createScrollLockController(document.documentElement),
-      eventTarget: options.container,
     });
   const ownerDocument = options.container.ownerDocument;
   const pointerController =
@@ -1116,7 +1121,7 @@ function readViewportSize(): { width: number; height: number } {
   };
 }
 
-function readPageScrollMetrics(): PageScrollMetrics {
+function readPageScrollMetrics(): WebGLScrollMetrics {
   const documentElement = document.documentElement;
 
   return {

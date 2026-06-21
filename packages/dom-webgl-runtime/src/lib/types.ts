@@ -146,6 +146,7 @@ export type WebGLDeclaration = {
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
   effects?: readonly WebGLEffectDefinition[];
+  scrollAdapter?: WebGLScrollAdapter;
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
@@ -194,6 +195,27 @@ export type WebGLFrameInput = {
         velocity: number;
       };
   pointer: WebGLPointerState;
+};
+
+export type WebGLScrollMetrics = {
+  scrollY: number;
+  scrollHeight: number;
+  viewportHeight: number;
+};
+
+export type WebGLScrollDeltaRouter = (deltaY: number) => boolean;
+
+export type WebGLScrollGateState =
+  | { active: false }
+  | { active: true; key: string; progress: number };
+
+export type WebGLScrollAdapter = {
+  readonly kind?: string;
+  readMetrics(): WebGLScrollMetrics;
+  connectDeltaRouter?(router: WebGLScrollDeltaRouter): () => void;
+  subscribe?(listener: () => void): () => void;
+  onGateStateChange?(state: WebGLScrollGateState): void;
+  dispose?(): void;
 };
 
 export type WebGLResourceStatus = "idle" | "loading" | "ready" | "error";

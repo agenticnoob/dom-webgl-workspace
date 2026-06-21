@@ -1123,10 +1123,16 @@ Required first-version rules:
 - Respect reduced motion by skipping or shortening gated scene animation.
 - Treat reverse direction as an explicit behavior, not a side effect.
 
-Open implementation choice for the first project:
+Delivered third-party adapter boundary:
 
-- Prefer a small internal scroll controller before adopting a third-party scroll library.
-- Add an adapter later if Lenis, GSAP ScrollTrigger, or another scroll system is required by a demo.
+- The runtime keeps the small internal scroll controller as the default native
+  page/gate implementation.
+- Core exposes `WebGLScrollAdapter` for applications that already own Lenis,
+  GSAP ScrollTrigger, or another scroll system.
+- Optional third-party glue lives in `@project/dom-webgl-scroll-adapters`.
+- Core must not import Lenis, GSAP, or ScrollTrigger directly.
+- Effects continue to consume normalized `ctx.scroll` / `ctx.scrollProgress`,
+  not third-party scroll instances.
 
 ## Debug And Validation Contract
 
@@ -1284,10 +1290,11 @@ Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
   public authoring API, and the root/React public entrypoints do not expose
   registry construction as the preferred consumer path.
 - Concrete text effects, shader authoring, particles, picking, multiple
-  canvases, third-party scroll adapters, and CSS paint cloning remain outside
-  core scope. Generic source capability handles now cover text/glyph output,
-  media texture transforms, video playback, and model controls; effect-specific
-  behavior remains consumer-owned.
+  canvases, concrete third-party scroll behavior, and CSS paint cloning remain
+  outside core scope. Generic source capability handles now cover text/glyph
+  output, media texture transforms, video playback, and model controls; the
+  optional scroll adapters package covers Lenis, GSAP ticker, and ScrollTrigger
+  glue without adding those libraries to core.
 
 Delivered Phase 8 behavior:
 
