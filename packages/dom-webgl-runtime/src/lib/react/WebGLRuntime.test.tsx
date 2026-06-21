@@ -95,6 +95,46 @@ describe("WebGLRuntime", () => {
     expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
   });
 
+  test("keeps DOM fallback mounted when WebGL runtime creation fails", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root, host } = createTestRoot();
+    const onDebugStateChange = vi.fn();
+    const error = new Error("Error creating WebGL context.");
+
+    runtimeMocks.createWebGLRuntime.mockImplementation(() => {
+      throw error;
+    });
+
+    await act(async () => {
+      expect(() => {
+        root.render(
+          createElement(
+            WebGLRuntime,
+            { onDebugStateChange },
+            createElement("span", { "data-runtime-child": true }, "child"),
+          ),
+        );
+      }).not.toThrow();
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(host.querySelector("[data-runtime-child]")?.textContent).toBe("child");
+    expect(onDebugStateChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetCount: 0,
+        renderableCount: 0,
+        targets: [
+          expect.objectContaining({
+            key: "runtime",
+            lifecycleState: "error",
+            resourceStatus: "error",
+            error: "Error creating WebGL context.",
+          }),
+        ],
+      }),
+    );
+  });
+
   test("passes effect definitions to the runtime on mount", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();

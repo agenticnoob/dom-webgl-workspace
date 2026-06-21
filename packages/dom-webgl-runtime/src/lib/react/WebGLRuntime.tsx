@@ -34,6 +34,7 @@ export function WebGLRuntime({
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingRuntimeRef = useRef<RuntimeInstance | null>(null);
+  const failedEffectsRef = useRef<WebGLRuntimeOptions["effects"] | null>(null);
   const onDebugStateChangeRef = useRef(onDebugStateChange);
   const [runtime, setRuntime] = useState<RuntimeInstance | null>(null);
 
@@ -50,14 +51,28 @@ export function WebGLRuntime({
       return;
     }
 
-    const nextRuntime = createWebGLRuntime({
-      container,
-      effects,
-      onDebugStateChange(state) {
-        onDebugStateChangeRef.current?.(state);
-      },
-    });
+    if (failedEffectsRef.current === effects) {
+      return;
+    }
 
+    let nextRuntime: RuntimeInstance;
+
+    try {
+      nextRuntime = createWebGLRuntime({
+        container,
+        effects,
+        onDebugStateChange(state) {
+          onDebugStateChangeRef.current?.(state);
+        },
+      });
+    } catch (error: unknown) {
+      failedEffectsRef.current = effects ?? null;
+      setRuntime(null);
+      onDebugStateChangeRef.current?.(createRuntimeCreationErrorState(error));
+      return;
+    }
+
+    failedEffectsRef.current = null;
     setRuntime(nextRuntime);
 
     return () => {
@@ -110,6 +125,49 @@ function createPendingRuntime(): RuntimeInstance {
     },
     dispose() {},
   };
+}
+
+function createRuntimeCreationErrorState(error: unknown): WebGLDebugState {
+  return {
+    targetCount: 0,
+    renderableCount: 0,
+    currentScrollMode: "page",
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+    targets: [
+      {
+        key: "runtime",
+        sourceKind: "runtime",
+        renderRole: "overlay",
+        resourceStatus: "error",
+        lifecycleState: "error",
+        visible: false,
+        error: readErrorMessage(error),
+      },
+    ],
+  };
+}
+
+function readErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 function createPendingRuntimeContainer(): HTMLElement {
