@@ -15,6 +15,16 @@ export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHand
         (object3D as { visible?: boolean }).visible = visible;
       }
     },
+    setPosition(x, y, z) {
+      const position = (object3D as { position?: unknown } | undefined)?.position;
+      if (position && typeof position === "object" && "set" in position) {
+        (position as { set: (x: number, y: number, z: number) => void }).set(
+          x,
+          y,
+          z ?? 0,
+        );
+      }
+    },
     setRotation(x, y, z) {
       const rotation = (object3D as { rotation?: unknown } | undefined)?.rotation;
       if (rotation && typeof rotation === "object" && "set" in rotation) {

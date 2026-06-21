@@ -89,14 +89,30 @@ function applyScrollImageZoom(
   ctx.target?.setScale(scale, scale, 1);
 }
 
+export const demoScrollGalleryEffect = defineWebGLEffect<{
+  kind: "demo.scrollGallery";
+  travel?: number;
+}>({
+  kind: "demo.scrollGallery",
+  source: ["image", "snapshot/text"],
+  update(ctx, _state, params) {
+    const progress = readStickyStageProgress(ctx);
+    const travel = readGalleryTravel(ctx, params.travel);
+    const x = ctx.layout.left + ctx.layout.width / 2 + travel * progress;
+    const y = ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2);
+
+    ctx.target?.setPosition(x, y, 0);
+  },
+});
+
 function readStickyStageProgress(
   ctx: Parameters<typeof demoScrollImageZoomEffect.update>[0],
 ): number {
-  if (ctx.source.kind !== "image") {
+  if (!("element" in ctx.source)) {
     return 0;
   }
 
-  const stage = ctx.source.element.parentElement;
+  const stage = ctx.source.element.closest(".demo-scroll-zoom-stage");
   const viewportHeight = Math.max(1, ctx.layout.viewport.height);
   const stageRect = stage?.getBoundingClientRect();
   if (!stageRect) {
@@ -106,6 +122,29 @@ function readStickyStageProgress(
   const scrollRange = Math.max(1, stageRect.height - viewportHeight);
 
   return clampNumber(-stageRect.top / scrollRange, 0, 1, 0);
+}
+
+function readGalleryTravel(
+  ctx: Parameters<typeof demoScrollGalleryEffect.update>[0],
+  explicitTravel: number | undefined,
+): number {
+  if (explicitTravel !== undefined && Number.isFinite(explicitTravel)) {
+    return explicitTravel;
+  }
+
+  if (!("element" in ctx.source)) {
+    return 0;
+  }
+
+  const gallery = ctx.source.element.closest(".demo-scroll-zoom-gallery");
+  if (!gallery) {
+    return 0;
+  }
+
+  const galleryWidth = gallery.getBoundingClientRect().width;
+  const viewportWidth = Math.min(ctx.layout.viewport.width, 1180);
+
+  return -Math.max(0, galleryWidth - viewportWidth);
 }
 
 export const demoCapabilitySurfaceEffect = defineWebGLEffect<{

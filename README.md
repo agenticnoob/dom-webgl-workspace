@@ -218,15 +218,17 @@ Current visual behavior:
 ### Effect model
 
 Effects are user-authored runtime definitions. They receive the target source
-handle, layout snapshot, frame input, pointer and scroll state, target controls,
-and managed resources. They do not scan DOM, mutate arbitrary DOM, create their
-own renderer, or own independent asset loading.
+handle, layout snapshot, frame input, pointer and scroll state, target controls
+such as position/rotation/scale/opacity, and managed resources. They do not
+scan DOM, mutate arbitrary DOM, create their own renderer, or own independent
+asset loading.
 
 The effect context exposes low-level runtime output handles for every supported
 source kind. Consumers can draw to canvas-backed element surfaces, control
 WebGL text layers and glyph layout, transform image/video texture planes,
 control video playback, and inspect or manipulate GLB model handles through
-public effect context. Concrete effects remain application-owned.
+public effect context. Target `setPosition(...)` writes runtime scene-space
+coordinates, not DOM `left`/`top`. Concrete effects remain application-owned.
 
 Preferred declaration form:
 
@@ -280,6 +282,11 @@ const modelProbeEffect = defineWebGLEffect({
   source: "model/glb",
   update(context) {
     context.source.model.sampleVertices({ maxPoints: 256 });
+    context.target?.setPosition(
+      context.layout.left + context.layout.width / 2,
+      context.layout.viewport.height - (context.layout.top + context.layout.height / 2),
+      0,
+    );
     context.target?.setRotation(0, context.pointer.normalizedX * 0.25, 0);
   },
 });

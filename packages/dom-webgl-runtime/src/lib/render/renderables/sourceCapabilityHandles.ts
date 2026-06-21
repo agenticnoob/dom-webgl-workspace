@@ -244,6 +244,16 @@ function createRenderableControls(
         (object3D as { visible?: boolean }).visible = visible;
       }
     },
+    setPosition(x: number, y: number, z?: number) {
+      const position = (object3D as { position?: unknown } | undefined)?.position;
+      if (position && typeof position === "object" && "set" in position) {
+        (position as { set: (x: number, y: number, z: number) => void }).set(
+          x,
+          y,
+          z ?? 0,
+        );
+      }
+    },
     setRotation(x: number, y: number, z?: number) {
       const rotation = (object3D as { rotation?: unknown } | undefined)?.rotation;
       if (rotation && typeof rotation === "object" && "set" in rotation) {

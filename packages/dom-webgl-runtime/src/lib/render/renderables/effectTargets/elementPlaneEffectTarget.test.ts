@@ -20,6 +20,7 @@ describe("createElementPlaneEffectTarget", () => {
     target.setVisible(true);
     target.setRotation(0.1, -0.2, 0.3);
     target.setScale(1.2, 0.9, 1);
+    target.setPosition(12, -8, 2);
     target.setOpacity(0.42);
 
     expect(mesh.visible).toBe(true);
@@ -28,6 +29,9 @@ describe("createElementPlaneEffectTarget", () => {
     expect(mesh.rotation.z).toBe(0.3);
     expect(mesh.scale.x).toBe(1.2);
     expect(mesh.scale.y).toBe(0.9);
+    expect(mesh.position.x).toBe(12);
+    expect(mesh.position.y).toBe(-8);
+    expect(mesh.position.z).toBe(2);
     expect(material.opacity).toBe(0.42);
     expect(material.transparent).toBe(true);
 

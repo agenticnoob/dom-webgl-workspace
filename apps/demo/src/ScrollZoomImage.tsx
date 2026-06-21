@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { WebGLTarget } from "@project/dom-webgl-runtime/react";
@@ -50,45 +49,8 @@ export function ScrollZoomImage({
   src,
   webglKey,
 }: ScrollZoomImageProps) {
-  const stageRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) {
-      return;
-    }
-
-    let frame = 0;
-    const updateProgress = () => {
-      frame = 0;
-      const viewportHeight = Math.max(1, window.innerHeight || 1);
-      const rect = stage.getBoundingClientRect();
-      const scrollRange = Math.max(1, rect.height - viewportHeight);
-      const progress = Math.min(1, Math.max(0, -rect.top / scrollRange));
-      stage.style.setProperty("--demo-scroll-zoom-progress", progress.toFixed(4));
-    };
-    const scheduleProgressUpdate = () => {
-      if (frame) {
-        return;
-      }
-      frame = window.requestAnimationFrame(updateProgress);
-    };
-
-    updateProgress();
-    window.addEventListener("scroll", scheduleProgressUpdate, { passive: true });
-    window.addEventListener("resize", scheduleProgressUpdate);
-
-    return () => {
-      if (frame) {
-        window.cancelAnimationFrame(frame);
-      }
-      window.removeEventListener("scroll", scheduleProgressUpdate);
-      window.removeEventListener("resize", scheduleProgressUpdate);
-    };
-  }, []);
-
   return (
-    <section className="demo-scroll-zoom-stage" ref={stageRef}>
+    <section className="demo-scroll-zoom-stage">
       <WebGLTarget
         as="img"
         className="demo-scroll-card demo-scroll-card--zoom-image"
@@ -125,6 +87,7 @@ export function ScrollZoomImage({
                 webgl={{
                   key: `${webglKey}.gallery.${index}`,
                   source: { kind: "image", src: item.src },
+                  effects: [{ kind: "demo.scrollGallery" }],
                 }}
               />
               <WebGLTarget
@@ -133,6 +96,7 @@ export function ScrollZoomImage({
                 webgl={{
                   key: `${webglKey}.gallery.${index}.caption`,
                   source: { kind: "snapshot", mode: "text" },
+                  effects: [{ kind: "demo.scrollGallery" }],
                 }}
               >
                 {item.label}

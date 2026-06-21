@@ -37,6 +37,7 @@ describe("ScrollZoomImage", () => {
 
   afterEach(() => {
     targetProps.length = 0;
+    vi.restoreAllMocks();
     for (const root of roots.splice(0)) {
       act(() => {
         root.unmount();
@@ -74,6 +75,11 @@ describe("ScrollZoomImage", () => {
     });
 
     expect(host.querySelector(".demo-scroll-zoom-stage")).not.toBeNull();
+    expect(
+      host
+        .querySelector<HTMLElement>(".demo-scroll-zoom-stage")
+        ?.style.getPropertyValue("--demo-scroll-zoom-progress"),
+    ).toBe("");
     expect(host.querySelector(".demo-scroll-zoom-content")?.textContent).toBe(
       "Overlay copy",
     );
@@ -109,6 +115,7 @@ describe("ScrollZoomImage", () => {
       webgl: {
         key: "demo.scroll.marker.01.gallery.0",
         source: { kind: "image", src: "/demo/image.png" },
+        effects: [{ kind: "demo.scrollGallery" }],
       },
     });
     expect(targetProps[3]).toMatchObject({
@@ -117,6 +124,7 @@ describe("ScrollZoomImage", () => {
       webgl: {
         key: "demo.scroll.marker.01.gallery.0.caption",
         source: { kind: "snapshot", mode: "text" },
+        effects: [{ kind: "demo.scrollGallery" }],
       },
     });
     expect(targetProps[1]?.webgl).not.toHaveProperty("scroll");

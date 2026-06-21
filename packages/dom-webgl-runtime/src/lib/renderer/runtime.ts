@@ -868,6 +868,9 @@ function createTrackedEffectTarget(
       effectVisibilityByTargetKey.set(key, visible);
       target.setVisible(visible);
     },
+    setPosition(x, y, z) {
+      target.setPosition(x, y, z);
+    },
     setRotation(x, y, z) {
       target.setRotation(x, y, z);
     },

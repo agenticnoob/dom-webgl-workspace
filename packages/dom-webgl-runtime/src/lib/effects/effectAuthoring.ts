@@ -17,6 +17,7 @@ export type WebGLEffectResourceScope = {
 export type WebGLEffectRenderableHandle = {
   readonly object3D: unknown;
   setVisible?(visible: boolean): void;
+  setPosition?(x: number, y: number, z?: number): void;
   setRotation?(x: number, y: number, z?: number): void;
   setScale?(x: number, y?: number, z?: number): void;
   setOpacity?(opacity: number): void;
@@ -114,6 +115,7 @@ export type WebGLEffectVideoLayerHandle =
 
 export type WebGLEffectTargetHandle = {
   setVisible(visible: boolean): void;
+  setPosition(x: number, y: number, z?: number): void;
   setRotation(x: number, y: number, z?: number): void;
   setScale(x: number, y?: number, z?: number): void;
   setOpacity(opacity: number): void;

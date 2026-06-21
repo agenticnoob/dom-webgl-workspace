@@ -9,6 +9,11 @@ public handle types from the root entrypoint, renderables attach runtime-owned
 source capability handles, demo effects consume each handle as application-owned
 examples, and docs/tests are aligned with the package boundary.
 
+**Current truth update:** After the ScrollZoomImage gallery migration, common
+target/model/renderable controls also include scene-space `setPosition(...)`.
+The "Starting Truth" section below records the pre-plan baseline and should not
+be copied as current API surface.
+
 **Architecture:** Keep all concrete effects consumer-owned. The package exposes controlled render-output primitives through `defineWebGLEffect(...)` context: canvas surface, text/glyph layer, texture layer, video layer, and model handle. Effects receive inputs from `ctx.source`, `ctx.pointer`, `ctx.scroll`, `ctx.layout`, and `ctx.time`, then mutate only runtime-managed output handles. Renderer, camera, scene, render order, depth flags, ray picking, multiple canvases, and concrete presets remain internal.
 
 **Tech Stack:** TypeScript, Three.js internal renderables, CanvasTexture, Vitest, public export type fixtures, docs in `README.md`, `docs/00-goal.md`, `docs/agent/package-usage.md`, and `docs/EXECUTION_STATE.md`.
@@ -34,7 +39,7 @@ This means future effects such as scrambled text, text pressure, wave text, spli
 - Public effect authoring is `defineWebGLEffect(...)` plus runtime-level `effects`.
 - The package does not export concrete visual effects and must not reintroduce an `./effects` subpath.
 - Existing `ctx.source.kind` values already cover `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
-- Existing `ctx.target` only gives generic target controls: visible, rotation, scale, opacity, and `addObject3D`.
+- Existing `ctx.target` only gives generic target controls: visible, rotation, scale, opacity, and `addObject3D`. Superseded current truth: target handles now also expose scene-space `setPosition(...)`.
 - Existing `snapshot/text` can render a runtime text canvas internally, but the effect context does not expose canvas, texture, style, glyph layout, or draw hooks.
 - Existing `image` and `video` renderables create texture planes internally, but the effect context does not expose texture/material/mesh handles.
 - Existing `model/glb` exposes model helpers, but common controls should be aligned with other source handles.
@@ -82,6 +87,7 @@ Use these public handle types:
 export type WebGLEffectRenderableHandle = {
   readonly object3D: unknown;
   setVisible?(visible: boolean): void;
+  setPosition?(x: number, y: number, z?: number): void;
   setRotation?(x: number, y: number, z?: number): void;
   setScale?(x: number, y?: number, z?: number): void;
   setOpacity?(opacity: number): void;
@@ -438,7 +444,8 @@ Create tests covering:
 - text layer `getGlyphs()`, `setText(...)`, `setGlyphs(...)`;
 - texture layer `setTextureTransform(...)`;
 - video layer `play()`, `pause()`, `setMuted(...)`, `setPlaybackRate(...)`;
-- common object controls `setVisible`, `setRotation`, `setScale`, `setOpacity`.
+- common object controls `setVisible`, `setPosition`, `setRotation`,
+  `setScale`, `setOpacity`.
 
 The text-layer test must prove `setGlyphs(...)` redraws from glyph render commands without mutating the DOM element text.
 

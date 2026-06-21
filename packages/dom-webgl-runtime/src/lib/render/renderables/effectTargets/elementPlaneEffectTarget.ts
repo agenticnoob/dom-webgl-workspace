@@ -13,6 +13,9 @@ export function createElementPlaneEffectTarget(
     setVisible(visible) {
       mesh.visible = visible;
     },
+    setPosition(x, y, z) {
+      setObject3DPosition(mesh, x, y, z);
+    },
     setRotation(x, y, z) {
       setObject3DRotation(mesh, x, y, z);
     },
@@ -40,6 +43,9 @@ export function createObject3DEffectTarget(
     setVisible(visible) {
       (object3D as { visible?: boolean }).visible = visible;
     },
+    setPosition(x, y, z) {
+      setObject3DPosition(object3D, x, y, z);
+    },
     setRotation(x, y, z) {
       setObject3DRotation(object3D, x, y, z);
     },
@@ -51,6 +57,24 @@ export function createObject3DEffectTarget(
     },
     addObject3D,
   };
+}
+
+function setObject3DPosition(
+  object3D: unknown,
+  x: number,
+  y: number,
+  z?: number,
+): void {
+  const position = (object3D as Partial<Object3D> | undefined)?.position;
+
+  if (position && typeof position === "object" && "set" in position) {
+    position.set(x, y, z ?? (position as { z?: number }).z ?? 0);
+    return;
+  }
+
+  if (position && typeof position === "object") {
+    Object.assign(position, { x, y, z: z ?? (position as { z?: number }).z ?? 0 });
+  }
 }
 
 function setObject3DRotation(

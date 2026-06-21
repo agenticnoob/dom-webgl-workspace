@@ -332,7 +332,6 @@ body {
 
 .demo-scroll-zoom-stage {
   position: relative;
-  --demo-scroll-zoom-progress: 0;
   height: 220vh;
   min-height: 1120px;
   margin-left: calc(50% - 50vw);
@@ -384,20 +383,12 @@ body {
 }
 
 .demo-scroll-zoom-gallery {
-  --demo-scroll-zoom-gallery-travel: calc(-100% + min(100vw, 1180px));
   display: flex;
   gap: clamp(18px, 3vw, 36px);
   align-items: end;
   width: max-content;
   height: 100%;
   padding: 18vh clamp(24px, 6vw, 72px) 10vh;
-  transform: translate3d(
-    calc(var(--demo-scroll-zoom-progress) * var(--demo-scroll-zoom-gallery-travel)),
-    0,
-    0
-  );
-  transition: transform 80ms linear;
-  will-change: transform;
 }
 
 .demo-scroll-zoom-gallery-item {
@@ -528,7 +519,6 @@ body {
   }
 
   .demo-scroll-zoom-gallery {
-    --demo-scroll-zoom-gallery-travel: calc(-100% + 100vw);
     padding: 24vh 24px 9vh;
   }
 

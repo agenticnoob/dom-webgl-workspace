@@ -26,7 +26,6 @@ describe("demo CSS", () => {
   test("renders the first scroll marker image as a native sticky full-bleed cover target", () => {
     const css = readFileSync(resolve(__dirname, "demo.css"), "utf8");
 
-    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*--demo-scroll-zoom-progress: 0/);
     expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*height: 220vh/);
     expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*position: relative/);
     expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*margin-left: calc/);
@@ -40,6 +39,9 @@ describe("demo CSS", () => {
     expect(css).toMatch(/\.demo-scroll-zoom-gallery-viewport\s*\{[^}]*position: sticky/);
     expect(css).toMatch(/\.demo-scroll-zoom-gallery-viewport\s*\{[^}]*margin-top: -100vh/);
     expect(css).toMatch(/\.demo-scroll-zoom-gallery\s*\{[^}]*width: max-content/);
-    expect(css).toContain("var(--demo-scroll-zoom-progress) * var(--demo-scroll-zoom-gallery-travel)");
+    expect(css).not.toContain("--demo-scroll-zoom-progress");
+    expect(css).not.toContain("--demo-scroll-zoom-gallery-travel");
+    expect(css).not.toMatch(/\.demo-scroll-zoom-gallery\s*\{[^}]*transform:/);
+    expect(css).not.toMatch(/\.demo-scroll-zoom-gallery\s*\{[^}]*transition:\s*transform/);
   });
 });

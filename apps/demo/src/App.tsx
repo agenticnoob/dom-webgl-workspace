@@ -15,6 +15,7 @@ import {
   demoGLBRotateEffect,
   demoPointerTiltEffect,
   demoScrambledTextEffect,
+  demoScrollGalleryEffect,
   demoScrollImageZoomEffect,
   demoSurfaceEffect,
   demoTextPressureEffect,
@@ -30,6 +31,7 @@ const demoRuntimeEffects = [
   demoGLBRotateEffect,
   demoGLBVertexParticlesEffect,
   demoScrambledTextEffect,
+  demoScrollGalleryEffect,
   demoScrollImageZoomEffect,
   demoTextPressureEffect,
 ] as const;

@@ -8,6 +8,7 @@ import {
   demoGLBVertexParticlesEffect,
   demoGLBRotateEffect,
   demoScrambledTextEffect,
+  demoScrollGalleryEffect,
   demoScrollImageZoomEffect,
   demoSurfaceEffect,
   demoTextPressureEffect,
@@ -613,6 +614,41 @@ describe("demo capability effects", () => {
     expect(target.setScale).toHaveBeenNthCalledWith(2, 1.4, 1.4, 1);
     expect(target.setScale).toHaveBeenNthCalledWith(3, 1, 1, 1);
   });
+
+  test("moves scroll gallery targets from their sticky stage progress", () => {
+    const target = {
+      setPosition: vi.fn(),
+    };
+
+    demoScrollGalleryEffect.update(
+      createGalleryContext({
+        stageRect: { top: 0, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollGallery", travel: -280 },
+    );
+    demoScrollGalleryEffect.update(
+      createGalleryContext({
+        stageRect: { top: -300, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollGallery", travel: -280 },
+    );
+    demoScrollGalleryEffect.update(
+      createGalleryContext({
+        stageRect: { top: -600, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollGallery", travel: -280 },
+    );
+
+    expect(target.setPosition).toHaveBeenNthCalledWith(1, 160, 510, 0);
+    expect(target.setPosition).toHaveBeenNthCalledWith(2, 20, 510, 0);
+    expect(target.setPosition).toHaveBeenNthCalledWith(3, -120, 510, 0);
+  });
 });
 
 describe("demoGLBRotateEffect", () => {
@@ -968,6 +1004,7 @@ function createImageZoomContext(options: {
   const image = document.createElement("img");
   image.src = "/demo/bg.png";
   const stage = document.createElement("section");
+  stage.className = "demo-scroll-zoom-stage";
   stage.append(image);
   stage.getBoundingClientRect = vi.fn(() => ({
     bottom: options.stageRect.top + options.stageRect.height,
@@ -995,6 +1032,50 @@ function createImageZoomContext(options: {
     key: "demo.scroll.marker.01",
     sourceKind: "image",
   } as Parameters<typeof demoScrollImageZoomEffect.update>[0];
+}
+
+function createGalleryContext(options: {
+  stageRect: { top: number; height: number };
+  target: unknown;
+}) {
+  const caption = document.createElement("figcaption");
+  const item = document.createElement("figure");
+  const gallery = document.createElement("div");
+  const viewport = document.createElement("div");
+  const stage = document.createElement("section");
+
+  stage.className = "demo-scroll-zoom-stage";
+  gallery.className = "demo-scroll-zoom-gallery";
+  item.append(caption);
+  gallery.append(item);
+  viewport.append(gallery);
+  stage.append(viewport);
+  stage.getBoundingClientRect = vi.fn(() => ({
+    bottom: options.stageRect.top + options.stageRect.height,
+    height: options.stageRect.height,
+    left: 0,
+    right: 320,
+    top: options.stageRect.top,
+    width: 320,
+    x: 0,
+    y: options.stageRect.top,
+    toJSON: () => ({}),
+  }));
+
+  const baseContext = createCapabilityContext({
+    source: {
+      kind: "snapshot/text",
+      element: caption,
+      text: "Caption",
+    },
+    target: options.target,
+  });
+
+  return {
+    ...baseContext,
+    key: "demo.scroll.marker.01.gallery.0.caption",
+    sourceKind: "snapshot/text",
+  } as Parameters<typeof demoScrollGalleryEffect.update>[0];
 }
 
 function createEffectContext(

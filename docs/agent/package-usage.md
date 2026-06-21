@@ -350,8 +350,8 @@ effects built on these primitives.
 Model helper rules:
 
 - `model.object3D` is the loaded model object exposed as `unknown`.
-- `model.setVisible`, `model.setRotation`, `model.setScale`, and
-  `model.setOpacity` provide common object controls.
+- `model.setVisible`, `model.setPosition`, `model.setRotation`,
+  `model.setScale`, and `model.setOpacity` provide common object controls.
 - `model.traverseMeshes(visitor)` visits model meshes.
 - `model.sampleVertices({ maxPoints })` returns model-root local vertex samples.
 - `model.createPointCloud({ density, color, size })` returns a point cloud object.
@@ -363,8 +363,17 @@ Model helper rules:
 
 Use optional chaining:
 
+`setPosition(...)` writes the runtime scene-object position. When deriving it
+from a DOM layout snapshot, project the DOM center into scene coordinates as
+shown below.
+
 ```ts
 ctx.target?.setVisible(true);
+ctx.target?.setPosition(
+  ctx.layout.left + ctx.layout.width / 2,
+  ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+  0,
+);
 ctx.target?.setRotation(0, ctx.pointer.normalizedX * 0.2, 0);
 ctx.target?.setScale(1.05);
 ctx.target?.setOpacity(0.8);

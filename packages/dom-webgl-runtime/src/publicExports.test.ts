@@ -341,6 +341,7 @@ describe("public package exports", () => {
 			          update(ctx, state) {
 			            ctx satisfies WebGLEffectContext;
 			            state.density satisfies number;
+			            ctx.target?.setPosition(0, 0, 0);
 			            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
 			          },
 			        }) satisfies WebGLEffectDefinition<

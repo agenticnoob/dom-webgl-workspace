@@ -271,6 +271,7 @@ describe("createWebGLEffectController", () => {
 });
 
 function createEffectTarget(): WebGLEffectTarget & {
+  setPosition: ReturnType<typeof vi.fn>;
   setRotation: ReturnType<typeof vi.fn>;
   setVisible: ReturnType<typeof vi.fn>;
   setScale: ReturnType<typeof vi.fn>;
@@ -279,6 +280,7 @@ function createEffectTarget(): WebGLEffectTarget & {
 } {
   return {
     setVisible: vi.fn(),
+    setPosition: vi.fn(),
     setRotation: vi.fn(),
     setScale: vi.fn(),
     setOpacity: vi.fn(),
