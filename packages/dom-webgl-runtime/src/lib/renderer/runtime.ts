@@ -67,7 +67,10 @@ import {
   type ThreeRendererHost,
 } from "./threeRenderer";
 import { createRendererLoop } from "./rendererLoop";
-import { createViewportLifecycle } from "./viewportLifecycle";
+import {
+  createViewportLifecycle,
+  type ViewportLifecycleState,
+} from "./viewportLifecycle";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -157,6 +160,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const renderables = new Set<DisposableRenderable>(
     internalOptions.renderables ?? [],
   );
+  const retiredRenderables = new WeakSet<Renderable>();
   const renderablesByTargetKey = new Map<string, Renderable>();
   const parkedAtByTargetKey = new Map<string, number>();
   const parkedVisibilityByTargetKey = new Map<string, boolean>();
@@ -250,6 +254,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         effectControllersByTargetKey,
         renderables,
         debugRecordsByTargetKey,
+        retiredRenderables,
       );
       emitDebugState();
     },
@@ -283,6 +288,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       disposed = true;
 
       try {
+        for (const renderable of renderablesByTargetKey.values()) {
+          retiredRenderables.add(renderable);
+        }
+
         for (const renderable of renderables) {
           renderable.dispose();
         }
@@ -413,6 +422,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         );
         if (renderable) {
           restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+          retiredRenderables.add(renderable);
           renderable.dispose();
           renderables.delete(renderable);
           renderablesByTargetKey.delete(descriptor.key);
@@ -426,6 +436,33 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         const offscreenPolicy = compileOffscreenPolicy(
           descriptor.declaration.lifecycle,
         );
+
+        if (
+          renderable &&
+          shouldDisposeParkedRenderable({
+            viewportState,
+            offscreenPolicy,
+            parkedAt: parkedAtByTargetKey.get(descriptor.key),
+            now: frameInput.time,
+          })
+        ) {
+          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+          disposeTrackedEffectController(
+            descriptor.key,
+            effectControllersByTargetKey,
+            effectVisibilityByTargetKey,
+          );
+          retiredRenderables.add(renderable);
+          renderable.dispose();
+          renderables.delete(renderable);
+          renderablesByTargetKey.delete(descriptor.key);
+          parkedAtByTargetKey.delete(descriptor.key);
+          parkedVisibilityByTargetKey.delete(descriptor.key);
+          lifecycleVersionByTargetKey.delete(descriptor.key);
+          debugRecord.lifecycleState = "disposed";
+          debugRecord.visible = false;
+          continue;
+        }
 
         if (renderable && offscreenPolicy.strategy === "park") {
           if (!parkedAtByTargetKey.has(descriptor.key)) {
@@ -552,6 +589,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             })
             .catch((error: unknown) => {
               if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                if (retiredRenderables.has(renderable)) {
+                  return;
+                }
                 throw error;
               }
               if (
@@ -716,6 +756,7 @@ function disposeTargetRenderable(
   effectControllersByTargetKey: Map<string, WebGLEffectController>,
   renderables: Set<DisposableRenderable>,
   debugRecordsByTargetKey: Map<string, TargetDebugRecord>,
+  retiredRenderables: WeakSet<Renderable>,
 ): void {
   const renderable = renderablesByTargetKey.get(key);
   const effectController = effectControllersByTargetKey.get(key);
@@ -735,6 +776,7 @@ function disposeTargetRenderable(
   renderablesByTargetKey.delete(key);
   renderables.delete(renderable);
   debugRecordsByTargetKey.delete(key);
+  retiredRenderables.add(renderable);
   renderable.dispose();
 }
 
@@ -899,6 +941,31 @@ function readRenderableVisibilityForPark(
     renderable.sceneObjectController?.visible ??
     true
   );
+}
+
+function shouldDisposeParkedRenderable(input: {
+  viewportState: ViewportLifecycleState;
+  offscreenPolicy: ReturnType<typeof compileOffscreenPolicy>;
+  parkedAt: number | undefined;
+  now: number;
+}): boolean {
+  if (input.viewportState === "disposed") {
+    return true;
+  }
+
+  if (input.offscreenPolicy.strategy !== "park") {
+    return false;
+  }
+
+  if (input.offscreenPolicy.warmTtlMs <= 0) {
+    return false;
+  }
+
+  if (input.parkedAt === undefined) {
+    return false;
+  }
+
+  return input.now - input.parkedAt >= input.offscreenPolicy.warmTtlMs;
 }
 
 function readRenderableSceneVisibility(renderable: Renderable): boolean {

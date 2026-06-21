@@ -830,6 +830,70 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("restores DOM fallback and disposes parked renderables after warm TTL", async () => {
+    const element = document.createElement("section");
+    let now = 0;
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const dispose = vi.fn();
+    const runtime = await createPipelineRuntime({
+      clock: () => now,
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalDispose = renderable.dispose.bind(renderable);
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+
+        renderable.dispose = () => {
+          dispose();
+          originalDispose();
+        };
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          originalSetVisible(nextVisible);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.park-ttl",
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "subtree",
+        offscreen: { strategy: "park", warmTtlMs: 100 },
+      },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    now = 50;
+    await runtime.sync();
+
+    expect(dispose).not.toHaveBeenCalled();
+    expect(element.style.visibility).toBe("hidden");
+
+    now = 200;
+    await runtime.sync();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(element.style.visibility).toBe("");
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.park-ttl",
+      lifecycleState: "disposed",
+      visible: false,
+    });
+
+    runtime.dispose();
+  });
+
   test("resumes parked renderables once without forcing visibility on later active syncs", async () => {
     const element = document.createElement("section");
     let measurement = createLayoutMeasurement(0, 0, 200, 120);
@@ -1202,6 +1266,86 @@ describe("runtime pipeline sync", () => {
       lifecycleState: "active",
       visible: true,
     });
+    expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
+
+    runtime.dispose();
+  });
+
+  test("stale async reject after parked TTL eviction does not fail the old sync or change disposed state", async () => {
+    const element = document.createElement("section");
+    let now = 0;
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    let rejectOldUpdate: ((error: unknown) => void) | undefined;
+    const dispose = vi.fn();
+    const runtime = await createPipelineRuntime({
+      clock: () => now,
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        let updateCallCount = 0;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalDispose = renderable.dispose.bind(renderable);
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.dispose = () => {
+          dispose();
+          originalDispose();
+        };
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          originalSetVisible(nextVisible);
+        };
+        renderable.update = (input) => {
+          updateCallCount += 1;
+          if (updateCallCount === 1) {
+            return new Promise<void>((_resolve, reject) => {
+              rejectOldUpdate = reject;
+            }).then(() => originalUpdate(input));
+          }
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.async-stale-reject-ttl",
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "subtree",
+        offscreen: { strategy: "park", warmTtlMs: 100 },
+      },
+    });
+
+    const firstSync = runtime.sync();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    now = 50;
+    await runtime.sync();
+
+    now = 200;
+    await runtime.sync();
+
+    const debugStateBeforeReject = runtime.getDebugState().targets[0];
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(element.style.visibility).toBe("");
+    expect(debugStateBeforeReject).toMatchObject({
+      key: "hero.async-stale-reject-ttl",
+      lifecycleState: "disposed",
+      visible: false,
+    });
+
+    rejectOldUpdate?.(new Error("stale async reject after ttl"));
+    await expect(firstSync).resolves.toBeUndefined();
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(element.style.visibility).toBe("");
+    expect(runtime.getDebugState().targets[0]).toMatchObject(debugStateBeforeReject!);
     expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
 
     runtime.dispose();
