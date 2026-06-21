@@ -60,7 +60,11 @@ export function createElementSnapshotRenderable(
       return state.scene?.object.effectTarget;
     },
     effectSource() {
-      return { kind: "snapshot/element", element: context.descriptor.element };
+      return {
+        kind: "snapshot/element",
+        element: context.descriptor.element,
+        surface: state.scene?.object.surfaceCapability,
+      };
     },
     dispose() {
       state.visible = false;

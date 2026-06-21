@@ -22,7 +22,17 @@ import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
 
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
-import type { WebGLEffectManagedObjectHandle } from "../../effects/effectAuthoring";
+import type {
+  WebGLEffectCanvasSurfaceHandle,
+  WebGLEffectManagedObjectHandle,
+  WebGLEffectTextLayerHandle,
+  WebGLEffectTextureTransform,
+  WebGLEffectTextureLayerHandle,
+  WebGLEffectVideoLayerHandle,
+  WebGLTextGlyph,
+  WebGLTextGlyphRenderCommand,
+  WebGLTextLayerStyle,
+} from "../../effects/effectAuthoring";
 import type { WebGLEffectTarget } from "../../effects/effectTarget";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
 import {
@@ -30,11 +40,20 @@ import {
   computeObjectFitTextureTransform,
 } from "./objectFit";
 import {
+  computeTextGlyphLayout,
   createTextCanvasRenderSignature,
   drawTextSnapshotToCanvas,
   readTextCanvasRenderState,
   type TextCanvasRenderState,
 } from "./textCanvasLayout";
+import {
+  createCanvasSurfaceCapabilityHandle,
+  createTextLayerCapabilityHandle,
+  createTextureLayerCapabilityHandle,
+  createVideoLayerCapabilityHandle,
+  drawTextGlyphCommands,
+  type TextLayerCapabilityOptions,
+} from "./sourceCapabilityHandles";
 import {
   createElementPlaneEffectTarget,
   createObject3DEffectTarget,
@@ -49,6 +68,7 @@ type ElementMeasurement = {
   right: number;
   bottom: number;
   left: number;
+  devicePixelRatio?: number;
 };
 
 export type SceneRenderableObject = WebGLSceneObject & {
@@ -58,6 +78,10 @@ export type SceneRenderableObject = WebGLSceneObject & {
   textContent?: string;
   textureSource?: unknown;
   effectTarget?: WebGLEffectTarget;
+  surfaceCapability?: WebGLEffectCanvasSurfaceHandle;
+  textLayerCapability?: WebGLEffectTextLayerHandle;
+  textureLayerCapability?: WebGLEffectTextureLayerHandle<HTMLImageElement>;
+  videoLayerCapability?: WebGLEffectVideoLayerHandle;
   updateTextContent?(textContent: string): void;
   updateTextLayout?(measurement: ElementMeasurement): void;
   invalidateContent?(): void;
@@ -159,13 +183,18 @@ export function createSceneRenderableController(
 export function createElementPlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
 ): SceneRenderableController {
+  const canvas = options.element.ownerDocument.createElement("canvas");
+  const context = readCanvasContext(canvas);
+  const texture = new CanvasTexture(canvas);
   const geometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
+    map: texture,
     transparent: true,
     opacity: 0,
   });
   material.transparent = true;
   const mesh = new Mesh(geometry, material);
+  let lastMeasurement: ElementMeasurement | undefined;
 
   mesh.visible = false;
 
@@ -178,10 +207,29 @@ export function createElementPlaneSceneRenderableController(
       createManagedObject3DFactory(options),
     ),
     disposeResources() {
+      texture.dispose();
       geometry.dispose();
       material.dispose();
     },
   });
+  controller.object.surfaceCapability = createCanvasSurfaceCapabilityHandle({
+    object3D: mesh,
+    mesh,
+    material,
+    canvas,
+    context,
+    texture,
+    getSize() {
+      return readSurfaceSize(lastMeasurement);
+    },
+    invalidate() {
+      texture.needsUpdate = true;
+    },
+  });
+  controller.object.updateTextLayout = (measurement) => {
+    lastMeasurement = measurement;
+    resizeCanvasToMeasurement(canvas, texture, measurement);
+  };
 
   return controller;
 }
@@ -261,6 +309,7 @@ export function createTextPlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
 ): SceneRenderableController {
   const canvas = options.element.ownerDocument.createElement("canvas");
+  const context = readCanvasContext(canvas);
   const texture = new CanvasTexture(canvas);
   const geometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
@@ -273,6 +322,20 @@ export function createTextPlaneSceneRenderableController(
   let lastMeasurement: ElementLayoutSnapshot | undefined;
   let lastRenderSignature = "";
   let lastRasterGeometrySignature = "";
+  let glyphs: readonly WebGLTextGlyph[] = [];
+  let glyphCommandTransform:
+    | ((
+        glyphs: readonly WebGLTextGlyph[],
+      ) => readonly WebGLTextGlyphRenderCommand[])
+    | undefined;
+  let textLayerStyle = readTextLayerStyle(
+    readTextCanvasRenderState(options.element, textContent, {
+      width: 1,
+      height: 1,
+      devicePixelRatio: 1,
+      style: initialStyle,
+    }),
+  );
   const controller = createSceneRenderableController({
     ...options,
     object3D: mesh,
@@ -317,6 +380,9 @@ export function createTextPlaneSceneRenderableController(
     lastRenderSignature = signature;
     lastRasterGeometrySignature = rasterGeometrySignature;
     updateTextCanvas(canvas, texture, textContent, state);
+    glyphs = context ? computeTextGlyphLayout(context, textContent, state) : [];
+    textLayerStyle = readTextLayerStyle(state);
+    applyGlyphCommandTransform();
     applyDOMActivityVisibility(mesh, initialStyle);
   };
 
@@ -343,6 +409,45 @@ export function createTextPlaneSceneRenderableController(
     lastRenderSignature = "";
     renderTextSnapshot(lastMeasurement, true);
   };
+  const textLayerOptions: TextLayerCapabilityOptions = {
+    object3D: mesh,
+    mesh,
+    material,
+    canvas,
+    context,
+    texture,
+    getSize() {
+      return readSurfaceSize(lastMeasurement);
+    },
+    getText() {
+      return textContent;
+    },
+    getStyle() {
+      return textLayerStyle;
+    },
+    getGlyphs() {
+      return glyphs;
+    },
+    setText(nextText) {
+      controller.updateTextContent(nextText);
+    },
+    setGlyphs(transform) {
+      glyphCommandTransform = transform;
+      applyGlyphCommandTransform();
+    },
+    invalidate() {
+      texture.needsUpdate = true;
+    },
+  };
+  const applyGlyphCommandTransform = () => {
+    if (!glyphCommandTransform) {
+      return;
+    }
+
+    drawTextGlyphCommands(textLayerOptions, glyphCommandTransform(glyphs));
+  };
+  controller.object.textLayerCapability =
+    createTextLayerCapabilityHandle(textLayerOptions);
 
   if (options.textContent) {
     controller.updateTextContent(options.textContent);
@@ -370,6 +475,7 @@ export function createTexturePlaneSceneRenderableController(
   const group = new Group();
   const initialStyle = readDOMStyleSnapshot(options.element);
   let lastTextureTransformSignature = "";
+  let textureLayerTransform: WebGLEffectTextureTransform | undefined;
 
   group.add(mediaMesh);
   texture.needsUpdate = true;
@@ -419,6 +525,7 @@ export function createTexturePlaneSceneRenderableController(
 
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
+    applyTextureLayerTransform();
     applyMediaContentBox(mediaMesh, mediaBox, contentBox);
     applyDOMActivityVisibility(group, initialStyle);
     applyDOMActivityVisibility(mediaMesh, initialStyle);
@@ -429,8 +536,52 @@ export function createTexturePlaneSceneRenderableController(
   controller.object.invalidateContent = () => {
     lastTextureTransformSignature = "";
   };
+  if (options.textureKind === "video") {
+    controller.object.videoLayerCapability = createVideoLayerCapabilityHandle({
+      object3D: group,
+      mesh: mediaMesh,
+      material,
+      texture,
+      source: options.textureSource as HTMLVideoElement,
+      setTextureTransform(transform) {
+        textureLayerTransform = transform;
+        applyTextureLayerTransform();
+      },
+      invalidate() {
+        controller.object.invalidateContent?.();
+      },
+    });
+  } else {
+    controller.object.textureLayerCapability = createTextureLayerCapabilityHandle({
+      object3D: group,
+      mesh: mediaMesh,
+      material,
+      texture,
+      source: options.textureSource as HTMLImageElement,
+      setTextureTransform(transform) {
+        textureLayerTransform = transform;
+        applyTextureLayerTransform();
+      },
+      invalidate() {
+        controller.object.invalidateContent?.();
+      },
+    });
+  }
 
   return controller;
+
+  function applyTextureLayerTransform(): void {
+    if (!textureLayerTransform) {
+      return;
+    }
+
+    applyTextureTransform(texture, {
+      repeatX: textureLayerTransform.repeatX ?? 1,
+      repeatY: textureLayerTransform.repeatY ?? 1,
+      offsetX: textureLayerTransform.offsetX ?? 0,
+      offsetY: textureLayerTransform.offsetY ?? 0,
+    });
+  }
 }
 
 function createRasterGeometrySignature(layout: ElementLayoutSnapshot): string {
@@ -699,6 +850,62 @@ function disposeObject3D(object3D: unknown): void {
   if (typeof dispose === "function") {
     dispose.call(object3D);
   }
+}
+
+function readCanvasContext(
+  canvas: HTMLCanvasElement,
+): CanvasRenderingContext2D | null {
+  if (!canvas.ownerDocument.defaultView?.CanvasRenderingContext2D) {
+    return null;
+  }
+
+  try {
+    return canvas.getContext("2d");
+  } catch {
+    return null;
+  }
+}
+
+function readSurfaceSize(measurement: ElementMeasurement | undefined): {
+  width: number;
+  height: number;
+  devicePixelRatio: number;
+} {
+  return {
+    width: Math.max(1, Math.ceil(measurement?.width ?? 1)),
+    height: Math.max(1, Math.ceil(measurement?.height ?? 1)),
+    devicePixelRatio: measurement?.devicePixelRatio ?? 1,
+  };
+}
+
+function resizeCanvasToMeasurement(
+  canvas: HTMLCanvasElement,
+  texture: CanvasTexture,
+  measurement: ElementMeasurement,
+): void {
+  const size = readSurfaceSize(measurement);
+  const dpr = Math.min(Math.max(1, size.devicePixelRatio), 1.5);
+  const width = Math.max(1, Math.ceil(size.width * dpr));
+  const height = Math.max(1, Math.ceil(size.height * dpr));
+
+  if (canvas.width !== width) {
+    canvas.width = width;
+  }
+  if (canvas.height !== height) {
+    canvas.height = height;
+  }
+  texture.needsUpdate = true;
+}
+
+function readTextLayerStyle(state: TextCanvasRenderState): WebGLTextLayerStyle {
+  return {
+    font: state.font,
+    lineHeight: state.lineHeight,
+    letterSpacing: state.letterSpacing,
+    wordSpacing: state.wordSpacing,
+    textAlign: state.textAlign,
+    color: "#000000",
+  };
 }
 
 function updateTextCanvas(

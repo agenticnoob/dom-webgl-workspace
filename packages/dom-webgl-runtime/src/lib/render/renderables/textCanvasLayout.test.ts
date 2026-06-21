@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { readDOMStyleSnapshot } from "../../dom/styleSnapshot";
 import {
+  computeTextGlyphLayout,
   drawTextToCanvas,
   readTextCanvasRenderState,
 } from "./textCanvasLayout";
@@ -127,6 +128,51 @@ describe("text canvas layout", () => {
 
     expect(context.fillText).toHaveBeenCalledWith("中文", 0, 0);
     expect(context.fillText).toHaveBeenCalledWith("测试", 0, 20);
+  });
+
+  test("computes per-glyph layout with wrapping and stable indices", () => {
+    const context = createCanvasContextStub({ characterWidth: 10 });
+    const state = {
+      width: 100,
+      height: 120,
+      devicePixelRatio: 1,
+      font: "16px sans-serif",
+      lineHeight: 20,
+      letterSpacing: 1,
+      wordSpacing: 3,
+      whiteSpace: "normal",
+      blockAlignment: "start",
+      textAlign: "left",
+      paddingTop: 10,
+      paddingRight: 10,
+      paddingBottom: 10,
+      paddingLeft: 10,
+      style: createTextStyleSnapshot(),
+    } as const;
+
+    const glyphs = computeTextGlyphLayout(context, "Alpha Beta", state);
+
+    expect(glyphs.map((glyph) => glyph.char).join("")).toBe("AlphaBeta");
+    expect(glyphs[0]).toMatchObject({
+      index: 0,
+      char: "A",
+      line: 0,
+      x: 10,
+      y: 10,
+      width: 10,
+      height: 20,
+      baseline: 30,
+    });
+    expect(glyphs[5]).toMatchObject({
+      index: 5,
+      char: "B",
+      line: 1,
+      x: 10,
+      y: 30,
+      width: 10,
+      height: 20,
+      baseline: 50,
+    });
   });
 });
 

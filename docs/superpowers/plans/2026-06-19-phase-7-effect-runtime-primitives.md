@@ -8,8 +8,11 @@
 > public authoring model, and do not add an `@project/dom-webgl-runtime/effects`
 > subpath from this plan. Current package truth is: `defineWebGLEffect(...)` plus
 > runtime-level `effects` are public; concrete effects belong in consumer/demo
-> code. Treat unchecked implementation steps below as historical unless they are
-> explicitly re-planned under the current package boundary.
+> code. The 2026-06-21 unified source capability plan has since exposed the
+> generic `snapshot/text`, media, and model output handles that this plan
+> intentionally postponed. Treat unchecked implementation steps below as
+> historical unless they are explicitly re-planned under the current package
+> boundary.
 
 **Goal:** Replace the fixed `material`/`motion` effect slots with a capability-driven effect runtime that can host built-in and future user-registered effects without coupling the core runtime to individual effect kinds.
 
@@ -57,7 +60,10 @@ Internally both forms compile to the same normalized effect entries. This keeps 
 
 ## Non-Goals
 
-- Do not implement ReactBits-style scrambled text in this phase. This plan creates the effect runtime primitive that would make it possible; text-specific mutation needs a separate source/target capability plan.
+- Do not implement ReactBits-style scrambled text in this phase. This plan
+  creates the effect runtime primitive that would make it possible; the later
+  2026-06-21 unified source capability plan supplies the generic text output
+  handle needed for consumer-owned text effects.
 - Do not clone arbitrary CSS visual paint.
 - Do not expose Three.js flags or objects in public declarations.
 - Do not add a shader authoring API.
@@ -72,7 +78,10 @@ Internally both forms compile to the same normalized effect entries. This keeps 
 - **Interface Segregation:** effects request explicit target capabilities such as `material.surface` or `transform.rotation`; they do not assume every target supports every method.
 - **High Cohesion:** built-in effect normalization and execution live beside their plugin definitions.
 - **Low Coupling:** pure effect modules do not import Three.js, React, demo code, or renderable implementation modules.
-- **YAGNI:** support only existing built-ins plus custom registration primitives; postpone text mutation until the target capability is real.
+- **YAGNI:** support only existing built-ins plus custom registration
+  primitives; in Phase 7, text mutation stayed postponed until a generic target
+  capability existed. The later 2026-06-21 plan supplies that generic
+  capability.
 
 ## File Map
 
@@ -1443,7 +1452,12 @@ The legacy `{ material, motion }` object form remains supported for Phase 6 comp
 Add this boundary to `docs/00-goal.md`:
 
 ```md
-Text animation effects such as scrambled text require an explicit text target capability. They should not run by mutating native DOM and waiting for snapshot refresh, because that couples effect timing to browser paint and snapshot cadence. They also should not edit a bitmap snapshot directly unless the target exposes that as a supported capability. The intended future path is a `snapshot/text` effect target that exposes controlled text-content or text-texture updates to registered effects.
+At Phase 7 time, text animation effects such as scrambled text still required a
+separate text target capability. They should not run by mutating native DOM and
+waiting for snapshot refresh, because that couples effect timing to browser
+paint and snapshot cadence. That follow-on path is now covered by the 2026-06-21
+unified source capability handles: `snapshot/text` exposes a public text-layer
+handle for WebGL-only text and glyph output updates.
 ```
 
 - [ ] **Step 3: Update execution state**
@@ -1451,7 +1465,12 @@ Text animation effects such as scrambled text require an explicit text target ca
 Add the Phase 7 status to `docs/EXECUTION_STATE.md`:
 
 ```md
-Phase 7 reframes effects as registry-driven runtime plugins. Built-in `solid`, `surface`, and `pointer-tilt` behavior is preserved, the preferred declaration shape becomes an ordered effects array, and custom registration can target existing runtime capabilities. Text mutation remains a future capability because the runtime does not yet expose a stable `snapshot/text` mutation target.
+Phase 7 reframed effects as registry-driven runtime plugins. Built-in `solid`,
+`surface`, and `pointer-tilt` behavior was preserved, the preferred declaration
+shape became an ordered effects array, and custom registration could target the
+then-existing runtime capabilities. The later Phase 8 cleanup superseded the
+public registry model, and the 2026-06-21 unified source capability handles
+superseded the missing `snapshot/text` mutation note.
 ```
 
 - [ ] **Step 4: Verify docs contain no stale “custom registry out of scope” statement for Phase 7**
@@ -1541,7 +1560,10 @@ Skip this commit only when `git status --short` is empty after verification.
 
 ## Follow-On Plan
 
-After Phase 7 is merged, create a separate plan for text mutation effects. That plan should add a `snapshot/text` target capability before attempting a scrambled-text effect. The recommended shape is:
+The follow-on text capability plan is now
+`2026-06-21-unified-source-capability-handles.md`. It added a generic
+`snapshot/text` text-layer handle before any concrete scrambled-text effect. The
+recommended shape at Phase 7 time was:
 
 ```ts
 export type WebGLTextEffectTargetState = {

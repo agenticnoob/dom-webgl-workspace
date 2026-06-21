@@ -174,6 +174,86 @@ describe("createWebGLEffectController", () => {
     expect(update).toHaveBeenCalledTimes(1);
   });
 
+  test.each([
+    [
+      "snapshot/element",
+      createElementSnapshotSource(),
+      {
+        kind: "snapshot/element" as const,
+        element: document.createElement("section"),
+        surface: createCanvasSurfaceHandle(),
+      },
+    ],
+    [
+      "snapshot/text",
+      {
+        kind: "snapshot" as const,
+        mode: "text" as const,
+        element: document.createElement("p"),
+      },
+      {
+        kind: "snapshot/text" as const,
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer: createTextLayerHandle(),
+      },
+    ],
+    [
+      "image",
+      createImageSource(),
+      {
+        kind: "image" as const,
+        element: document.createElement("img"),
+        src: "/hero.png",
+        image: createTextureLayerHandle(document.createElement("img")),
+      },
+    ],
+    [
+      "video",
+      {
+        kind: "video" as const,
+        element: document.createElement("video"),
+        src: "/intro.mp4",
+      },
+      {
+        kind: "video" as const,
+        element: document.createElement("video"),
+        src: "/intro.mp4",
+        video: createVideoLayerHandle(document.createElement("video")),
+      },
+    ],
+    [
+      "model/glb",
+      {
+        kind: "model" as const,
+        format: "glb" as const,
+        element: document.createElement("div"),
+        anchor: document.createElement("div"),
+        src: "/model.glb",
+      },
+      createModelEffectSource(),
+    ],
+  ])("passes dynamic %s source handles to effects", (_kind, source, handle) => {
+    const update = vi.fn();
+    const controller = createWebGLEffectController({
+      key: "custom.source",
+      declaration: [{ kind: "custom.inspect" }],
+      source,
+      getSource: () => handle,
+      target: createEffectTarget(),
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.inspect",
+          update,
+        }),
+      ]),
+    });
+
+    controller.update(createFrameInput(), createLayoutSnapshot());
+
+    expect(update.mock.calls[0]?.[0].source).toBe(handle);
+  });
+
   test("disposes the effect target", () => {
     const target = createEffectTarget();
     const controller = createWebGLEffectController({
@@ -229,6 +309,90 @@ function createModelEffectSource() {
       createPointCloud() {
         return {};
       },
+    },
+  };
+}
+
+function createCanvasSurfaceHandle() {
+  return {
+    object3D: {},
+    canvas: document.createElement("canvas"),
+    context: null,
+    texture: {},
+    mesh: {},
+    material: {},
+    clear() {
+      return;
+    },
+    draw() {
+      return;
+    },
+    invalidate() {
+      return;
+    },
+    getSize() {
+      return { width: 1, height: 1, devicePixelRatio: 1 };
+    },
+  };
+}
+
+function createTextLayerHandle() {
+  return {
+    ...createCanvasSurfaceHandle(),
+    text: "Hello",
+    style: {
+      font: "16px sans-serif",
+      lineHeight: 20,
+      letterSpacing: 0,
+      wordSpacing: 0,
+      textAlign: "left" as const,
+      color: "#000000",
+    },
+    getGlyphs() {
+      return [];
+    },
+    setText() {
+      return;
+    },
+    setGlyphs() {
+      return;
+    },
+  };
+}
+
+function createTextureLayerHandle<TSource extends HTMLImageElement | HTMLVideoElement>(
+  source: TSource,
+) {
+  return {
+    object3D: {},
+    source,
+    texture: {},
+    mesh: {},
+    material: {},
+    setTextureTransform() {
+      return;
+    },
+    invalidate() {
+      return;
+    },
+  };
+}
+
+function createVideoLayerHandle(source: HTMLVideoElement) {
+  return {
+    ...createTextureLayerHandle(source),
+    source,
+    play() {
+      return;
+    },
+    pause() {
+      return;
+    },
+    setMuted() {
+      return;
+    },
+    setPlaybackRate() {
+      return;
     },
   };
 }

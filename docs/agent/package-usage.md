@@ -310,17 +310,29 @@ if (ctx.source.kind !== "model/glb") {
 const model = ctx.source.model;
 ```
 
-Available handles:
+Available source handles:
 
-- `snapshot/element`: `{ element }`
-- `snapshot/text`: `{ element, text }`
-- `image`: `{ element, src }`
-- `video`: `{ element, src }`
-- `model/glb`: `{ anchor, src, model }`
+| Source kind | Public output handle | Main controls |
+| --- | --- | --- |
+| `snapshot/element` | `ctx.source.surface` | canvas draw, clear, invalidate, object/material controls |
+| `snapshot/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, object/material controls |
+| `image` | `ctx.source.image` | texture, material, mesh, texture transform, invalidate |
+| `video` | `ctx.source.video` | texture controls plus play, pause, muted, playback rate |
+| `model/glb` | `ctx.source.model` | object controls, mesh traversal, vertex samples, point cloud creation |
+
+DOM text remains the source of content, accessibility, and fallback.
+`textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
+output layer. Effects should not mutate DOM text for visual animation.
+
+The package core does not include scrambled text, text pressure, image
+distortion, media playback, or model particle effects. Those are application
+effects built on these primitives.
 
 Model helper rules:
 
 - `model.object3D` is the loaded model object exposed as `unknown`.
+- `model.setVisible`, `model.setRotation`, `model.setScale`, and
+  `model.setOpacity` provide common object controls.
 - `model.traverseMeshes(visitor)` visits model meshes.
 - `model.sampleVertices({ maxPoints })` returns model-root local vertex samples.
 - `model.createPointCloud({ density, color, size })` returns a point cloud object.

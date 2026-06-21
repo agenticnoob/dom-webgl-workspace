@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. Unified source capability handles now expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -23,9 +23,10 @@ default visual effects; consumers pass `defineWebGLEffect(...)` definitions
 through runtime-level `effects`. The package exports no concrete effect
 implementations or effect preset subpath. The internal registry remains an
 implementation detail. `docs/agent/package-usage.md` is the agent-first entry
-for downstream package integration and custom effect authoring. Text mutation
-remains a future capability because the runtime does not yet expose a stable
-`snapshot/text` mutation target.
+for downstream package integration and custom effect authoring. Source
+capability handles expose stable WebGL output controls for `snapshot/element`,
+`snapshot/text`, `image`, `video`, and `model/glb`; concrete visual effects
+remain consumer-owned.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -112,12 +113,12 @@ remains a future capability because the runtime does not yet expose a stable
 - Task 82: Phase 8 Package Effect Boundary Cleanup.
 
 ## Current Task
-Phase 8 package effect boundary cleanup is complete: package exports provide
-only authoring/runtime primitives, with concrete effects owned by applications,
+Unified source capability handles are implemented on top of the Phase 8 package
+effect boundary. Package exports provide authoring/runtime primitives and
+runtime-owned output handles; concrete effects remain owned by applications,
 demos, or documentation examples. Phase 6.3 remains a decision gate only and
 should not start unless a specific surface detail such as border, shadow,
-texture quality, or cache tuning is explicitly approved. Text mutation effects
-require a future `snapshot/text` target-capability plan.
+texture quality, or cache tuning is explicitly approved.
 
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package
@@ -660,21 +661,29 @@ require a future `snapshot/text` target-capability plan.
 - `npm test -- --run apps/demo/src/App.test.tsx packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx` (green post-bugfix focused verification: 22 tests passed)
 - `npm test -- --run apps/demo/src/App.test.tsx` (green post-bugfix focused verification: 11 tests passed)
 - `npm run typecheck`, `npm run build`, `npm run check:imports`, and `git diff --check` (green post-bugfix verification; build passed with the existing non-blocking Vite chunk-size warning)
+- `npm run check` (green unified source capability final verification: 63 test files / 321 tests passed)
+- `npm run build` (green final verification; build passed with the existing non-blocking Vite chunk-size warning)
+- `npm run check:imports` (green final verification: `Demo import boundary OK`)
+- `git diff --check` (green final verification)
 
 ## Last Result
-Phase 8 package effect boundary cleanup is implemented. User effects use
-`defineWebGLEffect(...)` and runtime-level `effects`; core registers no default
-visual effects; the package no longer exports concrete effects or the
-`@project/dom-webgl-runtime/effects` subpath; and the demo defines local
-consumer-owned effects through public imports. Fresh verification passed:
-typecheck, full Vitest, production build, demo import boundary, and diff
-whitespace checks are green.
+Unified source capability handles are implemented. User effects still use
+`defineWebGLEffect(...)` and runtime-level `effects`; core still registers no
+default visual effects and exports no concrete effect subpath. The public
+effect context now exposes low-level runtime output handles for
+`snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`:
+canvas-backed element surfaces, WebGL text/glyph layers, image/video texture
+planes, video playback controls, and GLB model controls. Concrete effects
+remain application-owned; the demo consumes these primitives through local
+effects imported only from public package entrypoints.
 
 ## Files Changed
 - `README.md`
 - `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
 - `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`
+- `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`
+- `docs/superpowers/plans/2026-06-21-unified-source-capability-handles.md`
 - `apps/demo/src/App.tsx`
 - `apps/demo/src/App.test.tsx`
 - `apps/demo/src/demoEffects.ts`
@@ -685,6 +694,9 @@ whitespace checks are green.
 - `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`
 - `packages/dom-webgl-runtime/src/lib/render/renderable.ts`
 - `packages/dom-webgl-runtime/src/lib/render/renderables/*`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/*`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/sourceCapabilityHandles.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/sourceCapabilityHandles.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 - `packages/dom-webgl-runtime/src/lib/types.ts`
@@ -722,8 +734,8 @@ non-blocking Vite production build chunk-size warning remains.
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-The next step can either harden the Phase 8 authoring/context contract or plan a
-narrow text/model effect capability. Keep the boundary explicit: no package
-effect presets, no public renderer/camera/scene mutation, no multiple-canvas
-path, no picking path, no third-party scroll adapter, no CSS paint cloning, and
-no demo-specific runtime branch.
+Use the source capability handles for consumer-owned effects such as scrambled
+text, text pressure, media distortion, video scrubbing, or GLB particles. Keep
+the boundary explicit: no package effect presets, no public renderer/camera/scene
+mutation, no multiple-canvas path, no picking path, no third-party scroll
+adapter, no CSS paint cloning, and no demo-specific runtime branch.

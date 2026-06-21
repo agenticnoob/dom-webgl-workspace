@@ -6,6 +6,10 @@ import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
 import {
+  demoCapabilityImageTextureEffect,
+  demoCapabilitySurfaceEffect,
+  demoCapabilityTextLayerEffect,
+  demoCapabilityVideoPlaybackEffect,
   demoGLBVertexParticlesEffect,
   demoGLBRotateEffect,
   demoPointerTiltEffect,
@@ -15,6 +19,10 @@ import {
 const demoRuntimeEffects = [
   demoSurfaceEffect,
   demoPointerTiltEffect,
+  demoCapabilitySurfaceEffect,
+  demoCapabilityTextLayerEffect,
+  demoCapabilityImageTextureEffect,
+  demoCapabilityVideoPlaybackEffect,
   demoGLBRotateEffect,
   demoGLBVertexParticlesEffect,
 ] as const;
@@ -50,6 +58,7 @@ export default function App() {
               webgl={{
                 key: "demo.surface",
                 source: { kind: "snapshot", mode: "element" },
+                effects: [{ kind: "demo.capabilitySurface" }],
                 // lifecycle: { hideWhenReady: false },
               }}
             >
@@ -64,6 +73,7 @@ export default function App() {
               webgl={{
                 key: "demo.text",
                 source: { kind: "snapshot", mode: "text" },
+                effects: [{ kind: "demo.capabilityTextLayer" }],
                 // lifecycle: { hideWhenReady: false },
               }}
             >
@@ -78,6 +88,7 @@ export default function App() {
               webgl={{
                 key: "demo.image",
                 source: { kind: "image", src: "/demo/image.png" },
+                effects: [{ kind: "demo.capabilityImageTexture" }],
                 // lifecycle: { hideWhenReady: false },
               }}
             />
@@ -93,6 +104,7 @@ export default function App() {
               webgl={{
                 key: "demo.video",
                 source: { kind: "video", src: "/demo/video.mp4" },
+                effects: [{ kind: "demo.capabilityVideoPlayback" }],
                 // lifecycle: { hideWhenReady: false },
               }}
             />

@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createElementPlaneSceneRenderableController } from "./sceneRenderableObject";
+import {
+  createElementPlaneSceneRenderableController,
+  createTextPlaneSceneRenderableController,
+  createTexturePlaneSceneRenderableController,
+} from "./sceneRenderableObject";
 
 describe("element plane scene renderable", () => {
   test("does not make element snapshots visible from DOM visual CSS paint", () => {
@@ -92,7 +96,94 @@ describe("element plane scene renderable", () => {
 
     controller.controller.dispose();
   });
+
+  test("keeps text layer glyph overrides after text layout rerenders", () => {
+    const context = createCanvasContextStub();
+    const restoreCanvas = stubCanvasContext(context);
+    const element = document.createElement("h2");
+    element.textContent = "Hi";
+
+    try {
+      const controller = createTextPlaneSceneRenderableController({
+        key: "effect.text",
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(),
+        getViewportSize: () => ({ width: 800, height: 600 }),
+        element,
+        textContent: "Hi",
+      });
+
+      controller.updateLayout(createMeasurement());
+      expect(controller.object.textLayerCapability?.getGlyphs().length).toBeGreaterThan(0);
+      controller.object.textLayerCapability?.setGlyphs((glyphs) =>
+        glyphs.map((glyph) => ({
+          index: glyph.index,
+          char: "X",
+          y: glyph.y + 12,
+        })),
+      );
+      expect(context.fillText).toHaveBeenCalledWith("X", 0, 0);
+      context.fillText.mockClear();
+
+      controller.updateLayout({ ...createMeasurement(), width: 420, right: 452 });
+
+      expect(context.fillText).toHaveBeenCalledWith("X", 0, 0);
+
+      controller.controller.dispose();
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  test("keeps image texture overrides after media layout rerenders", () => {
+    const image = document.createElement("img");
+    Object.defineProperties(image, {
+      naturalWidth: { value: 200 },
+      naturalHeight: { value: 100 },
+    });
+
+    const controller = createTexturePlaneSceneRenderableController({
+      key: "effect.image",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: image,
+      textureKind: "image",
+      textureSource: image,
+    });
+
+    controller.updateLayout(createMeasurement());
+    controller.object.textureLayerCapability?.setTextureTransform({
+      repeatX: 1.5,
+      repeatY: 1.25,
+      offsetX: -0.2,
+      offsetY: -0.1,
+    });
+
+    const texture = readMediaTexture(controller.object.object3D);
+    expect(texture.repeat.x).toBe(1.5);
+    expect(texture.repeat.y).toBe(1.25);
+    expect(texture.offset.x).toBe(-0.2);
+    expect(texture.offset.y).toBe(-0.1);
+
+    controller.updateLayout({ ...createMeasurement(), width: 420, right: 452 });
+
+    expect(texture.repeat.x).toBe(1.5);
+    expect(texture.repeat.y).toBe(1.25);
+    expect(texture.offset.x).toBe(-0.2);
+    expect(texture.offset.y).toBe(-0.1);
+
+    controller.controller.dispose();
+  });
 });
+
+function createSceneAdapter() {
+  return {
+    addObject: vi.fn(),
+    removeObject: vi.fn(),
+    render: vi.fn(),
+  };
+}
 
 function createMeasurement() {
   return {
@@ -105,4 +196,95 @@ function createMeasurement() {
     width: 400,
     height: 300,
   };
+}
+
+function createCanvasContextStub(): CanvasRenderingContext2D & {
+  clearRect: ReturnType<typeof vi.fn>;
+  fillText: ReturnType<typeof vi.fn>;
+  measureText: ReturnType<typeof vi.fn>;
+  save: ReturnType<typeof vi.fn>;
+  restore: ReturnType<typeof vi.fn>;
+  translate: ReturnType<typeof vi.fn>;
+  rotate: ReturnType<typeof vi.fn>;
+  scale: ReturnType<typeof vi.fn>;
+  setTransform: ReturnType<typeof vi.fn>;
+  fillStyle: string;
+  font: string;
+  globalAlpha: number;
+  textAlign: CanvasTextAlign;
+  textBaseline: CanvasTextBaseline;
+} {
+  return {
+    clearRect: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn((text: string) => ({ width: text.length * 10 })),
+    save: vi.fn(),
+    restore: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
+    scale: vi.fn(),
+    setTransform: vi.fn(),
+    fillStyle: "",
+    font: "",
+    globalAlpha: 1,
+    textAlign: "left",
+    textBaseline: "alphabetic",
+  } as unknown as CanvasRenderingContext2D & {
+    clearRect: ReturnType<typeof vi.fn>;
+    fillText: ReturnType<typeof vi.fn>;
+    measureText: ReturnType<typeof vi.fn>;
+    save: ReturnType<typeof vi.fn>;
+    restore: ReturnType<typeof vi.fn>;
+    translate: ReturnType<typeof vi.fn>;
+    rotate: ReturnType<typeof vi.fn>;
+    scale: ReturnType<typeof vi.fn>;
+    setTransform: ReturnType<typeof vi.fn>;
+    fillStyle: string;
+    font: string;
+    globalAlpha: number;
+    textAlign: CanvasTextAlign;
+    textBaseline: CanvasTextBaseline;
+  };
+}
+
+function stubCanvasContext(context: CanvasRenderingContext2D): () => void {
+  const originalCreateElement = document.createElement.bind(document);
+  const createElement = vi.spyOn(document, "createElement");
+  const originalCanvasRenderingContext2D = window.CanvasRenderingContext2D;
+
+  Object.defineProperty(window, "CanvasRenderingContext2D", {
+    configurable: true,
+    value: function CanvasRenderingContext2D() {
+      return undefined;
+    },
+  });
+
+  createElement.mockImplementation(((tagName: string, options?: ElementCreationOptions) => {
+    const element = originalCreateElement(tagName, options);
+    if (tagName.toLowerCase() === "canvas") {
+      vi.spyOn(element as HTMLCanvasElement, "getContext").mockReturnValue(
+        context,
+      );
+    }
+
+    return element;
+  }) as typeof document.createElement);
+
+  return () => {
+    createElement.mockRestore();
+    Object.defineProperty(window, "CanvasRenderingContext2D", {
+      configurable: true,
+      value: originalCanvasRenderingContext2D,
+    });
+  };
+}
+
+function readMediaTexture(object3D: unknown) {
+  const group = object3D as {
+    children: Array<{
+      material: { map: { repeat: { x: number; y: number }; offset: { x: number; y: number } } };
+    }>;
+  };
+
+  return group.children[0].material.map;
 }

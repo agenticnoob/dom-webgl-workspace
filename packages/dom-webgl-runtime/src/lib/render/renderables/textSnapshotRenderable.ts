@@ -75,6 +75,7 @@ export function createTextSnapshotRenderable(
           kind: "snapshot/text",
           element: context.descriptor.element,
           text: state.textContent,
+          textLayer: state.scene?.object.textLayerCapability,
         };
       },
       dispose() {

@@ -56,6 +56,16 @@ describe("createImageRenderable", () => {
     expect(renderable.status).toBe("ready");
     expect(renderable.fallbackVisible).toBe(false);
     expect(renderable.hasSceneObject).toBe(true);
+    expect(renderable.effectSource).toMatchObject({
+      kind: "image",
+      src: "/assets/hero.png",
+      image: expect.objectContaining({
+        source: source.element,
+        texture: expect.anything(),
+        setTextureTransform: expect.any(Function),
+        invalidate: expect.any(Function),
+      }),
+    });
     expect(sceneAdapter.objects).toHaveLength(1);
     expect(sceneAdapter.objects[0]).toMatchObject({
       key: "hero.image",

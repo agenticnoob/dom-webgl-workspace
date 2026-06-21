@@ -3,7 +3,10 @@ import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 
-import { createElementPlaneEffectTarget } from "./elementPlaneEffectTarget";
+import {
+  createElementPlaneEffectTarget,
+  createObject3DEffectTarget,
+} from "./elementPlaneEffectTarget";
 
 describe("createElementPlaneEffectTarget", () => {
   test("applies generic visibility transform and opacity controls", () => {
@@ -53,5 +56,29 @@ describe("createElementPlaneEffectTarget", () => {
 
     geometry.dispose();
     material.dispose();
+  });
+
+  test("sets opacity recursively for grouped object targets", () => {
+    const childMaterial = { opacity: 1, transparent: false, needsUpdate: false };
+    const nestedMaterial = { opacity: 1, transparent: false, needsUpdate: false };
+    const target = createObject3DEffectTarget({
+      children: [
+        { material: childMaterial },
+        { children: [{ material: [nestedMaterial] }] },
+      ],
+    });
+
+    target?.setOpacity(0.42);
+
+    expect(childMaterial).toMatchObject({
+      opacity: 0.42,
+      transparent: true,
+      needsUpdate: true,
+    });
+    expect(nestedMaterial).toMatchObject({
+      opacity: 0.42,
+      transparent: true,
+      needsUpdate: true,
+    });
   });
 });

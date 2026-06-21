@@ -34,6 +34,13 @@ all concrete effect implementations live in application, demo, or documentation
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
 
+The current effect context exposes low-level runtime output handles for every
+supported source kind. Consumers can draw to canvas-backed element surfaces,
+control WebGL text layers and glyph layout, transform image/video texture
+planes, control video playback, and inspect or manipulate GLB model handles
+through public effect context. These are primitives, not package-owned visual
+effects.
+
 ## Purpose
 
 Build a new DOM-first interactive WebGL runtime from zero with a clear product model.
@@ -1276,9 +1283,11 @@ Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
 - The internal registry remains dispatch machinery. `effectRegistry` is not the
   public authoring API, and the root/React public entrypoints do not expose
   registry construction as the preferred consumer path.
-- Text mutation, shader authoring, particles, picking, multiple canvases,
-  third-party scroll adapters, and CSS paint cloning remain outside scope unless
-  a later plan defines the missing target capabilities first.
+- Concrete text effects, shader authoring, particles, picking, multiple
+  canvases, third-party scroll adapters, and CSS paint cloning remain outside
+  core scope. Generic source capability handles now cover text/glyph output,
+  media texture transforms, video playback, and model controls; effect-specific
+  behavior remains consumer-owned.
 
 Delivered Phase 8 behavior:
 
@@ -1294,13 +1303,12 @@ Delivered Phase 8 behavior:
   effects do not load GLB assets themselves.
 - Raw renderer, camera, and scene mutation remain outside the default API.
 
-Text animation effects such as scrambled text require an explicit text target
-capability. They should not run by mutating native DOM and waiting for snapshot
-refresh, because that couples effect timing to browser paint and snapshot
-cadence. They also should not edit a bitmap snapshot directly unless the target
-exposes that as a supported capability. The intended future path is a
-`snapshot/text` effect target that exposes controlled text-content or
-text-texture updates to registered effects.
+Text animation effects such as scrambled text and text pressure should use the
+public `snapshot/text` text-layer handle. They should not run by mutating native
+DOM and waiting for snapshot refresh, because that couples effect timing to
+browser paint and snapshot cadence. `textLayer.setText(...)` and
+`textLayer.setGlyphs(...)` update only the WebGL output layer; DOM text remains
+the source for content, accessibility, and fallback.
 
 ## Non-Goals For The New Project
 

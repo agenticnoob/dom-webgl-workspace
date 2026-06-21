@@ -94,7 +94,17 @@ function setObject3DOpacity(object3D: unknown, opacity: number): void {
     return;
   }
 
-  const material = (object3D as { material?: unknown }).material;
+  applyOpacityToMaterial((object3D as { material?: unknown }).material, opacity);
+
+  const children = (object3D as { children?: unknown }).children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      setObject3DOpacity(child, opacity);
+    }
+  }
+}
+
+function applyOpacityToMaterial(material: unknown, opacity: number): void {
   const materials = Array.isArray(material) ? material : [material];
 
   for (const entry of materials) {

@@ -6,9 +6,38 @@ export const demoSurfaceEffect = defineWebGLEffect<{
 }>({
   kind: "demo.surface",
   source: "snapshot/element",
+  setup(ctx, params) {
+    if (ctx.source.kind !== "snapshot/element") {
+      return;
+    }
+
+    ctx.source.surface?.draw(({ context, width, height }) => {
+      context.fillStyle = "rgba(44, 70, 54, 0.82)";
+      context.fillRect(0, 0, width, height);
+      context.strokeStyle = "rgba(255, 255, 255, 0.38)";
+      context.lineWidth = Math.max(2, Math.min(width, height) * 0.012);
+      context.strokeRect(
+        context.lineWidth / 2,
+        context.lineWidth / 2,
+        width - context.lineWidth,
+        height - context.lineWidth,
+      );
+    });
+    ctx.source.surface?.setVisible?.(true);
+    ctx.source.surface?.setOpacity?.(clampNumber(params.opacity, 0, 1, 1));
+  },
   update(ctx, _state, params) {
+    const opacity = clampNumber(params.opacity, 0, 1, 1);
+
     ctx.target?.setVisible(true);
-    ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
+    ctx.target?.setOpacity(opacity);
+
+    if (ctx.source.kind !== "snapshot/element") {
+      return;
+    }
+
+    ctx.source.surface?.setVisible?.(true);
+    ctx.source.surface?.setOpacity?.(opacity);
   },
 });
 
@@ -32,6 +61,112 @@ export const demoPointerTiltEffect = defineWebGLEffect<{
       -ctx.pointer.normalizedY * radians * strength,
       ctx.pointer.normalizedX * radians * strength,
     );
+  },
+});
+
+export const demoCapabilitySurfaceEffect = defineWebGLEffect<{
+  kind: "demo.capabilitySurface";
+}>({
+  kind: "demo.capabilitySurface",
+  source: "snapshot/element",
+  setup(ctx) {
+    if (ctx.source.kind !== "snapshot/element") {
+      return;
+    }
+
+    ctx.source.surface?.draw(({ context, width, height }) => {
+      context.fillStyle = "rgba(255, 207, 90, 0.42)";
+      context.fillRect(0, 0, width, height);
+      context.strokeStyle = "rgba(20, 20, 20, 0.82)";
+      context.lineWidth = Math.max(2, Math.min(width, height) * 0.015);
+      context.strokeRect(
+        context.lineWidth / 2,
+        context.lineWidth / 2,
+        width - context.lineWidth,
+        height - context.lineWidth,
+      );
+    });
+    ctx.source.surface?.setOpacity?.(0.55);
+    ctx.source.surface?.setVisible?.(true);
+  },
+  update() {
+    return;
+  },
+});
+
+export const demoCapabilityTextLayerEffect = defineWebGLEffect<{
+  kind: "demo.capabilityTextLayer";
+}>({
+  kind: "demo.capabilityTextLayer",
+  source: "snapshot/text",
+  setup(ctx) {
+    if (ctx.source.kind !== "snapshot/text") {
+      return;
+    }
+
+    ctx.source.textLayer?.setGlyphs((glyphs) =>
+      glyphs.map((glyph) => {
+        const lift = glyph.index % 2 === 0 ? -10 : 10;
+
+        return {
+          index: glyph.index,
+          char: glyph.char.trim() ? (glyph.index % 3 === 0 ? "*" : glyph.char) : glyph.char,
+          y: glyph.y + lift,
+          color: glyph.index % 2 === 0 ? "#ffcf5a" : "#4be1ec",
+          scaleX: glyph.index % 2 === 0 ? 1.08 : 0.92,
+          scaleY: glyph.index % 2 === 0 ? 1.28 : 0.86,
+          rotation: glyph.index % 2 === 0 ? -0.05 : 0.05,
+          opacity: 1,
+        };
+      }),
+    );
+  },
+  update() {
+    return;
+  },
+});
+
+export const demoCapabilityImageTextureEffect = defineWebGLEffect<{
+  kind: "demo.capabilityImageTexture";
+}>({
+  kind: "demo.capabilityImageTexture",
+  source: "image",
+  setup(ctx) {
+    if (ctx.source.kind !== "image") {
+      return;
+    }
+
+    ctx.source.image?.setTextureTransform({
+      repeatX: 0.55,
+      repeatY: 0.55,
+      offsetX: 0.22,
+      offsetY: 0.22,
+    });
+  },
+  update() {
+    return;
+  },
+});
+
+export const demoCapabilityVideoPlaybackEffect = defineWebGLEffect<{
+  kind: "demo.capabilityVideoPlayback";
+}>({
+  kind: "demo.capabilityVideoPlayback",
+  source: "video",
+  setup(ctx) {
+    if (ctx.source.kind !== "video") {
+      return;
+    }
+
+    ctx.source.video?.setMuted(true);
+    ctx.source.video?.setPlaybackRate(1.15);
+    const playResult = ctx.source.video?.play();
+    if (playResult && typeof playResult.catch === "function") {
+      void playResult.catch(() => undefined);
+    }
+  },
+  update() {
+    return;
   },
 });
 

@@ -232,18 +232,22 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.surface")).toMatchObject({
       key: "demo.surface",
       source: { kind: "snapshot", mode: "element" },
+      effects: [{ kind: "demo.capabilitySurface" }],
     });
     expect(webglDeclarationFor("demo.text")).toMatchObject({
       key: "demo.text",
       source: { kind: "snapshot", mode: "text" },
+      effects: [{ kind: "demo.capabilityTextLayer" }],
     });
     expect(webglDeclarationFor("demo.image")).toMatchObject({
       key: "demo.image",
       source: { kind: "image", src: "/demo/image.png" },
+      effects: [{ kind: "demo.capabilityImageTexture" }],
     });
     expect(webglDeclarationFor("demo.video")).toMatchObject({
       key: "demo.video",
       source: { kind: "video", src: "/demo/video.mp4" },
+      effects: [{ kind: "demo.capabilityVideoPlayback" }],
     });
     expect(webglDeclarationFor("demo.model")).toMatchObject({
       key: "demo.model",
@@ -300,6 +304,10 @@ describe("demo App", () => {
         expect.objectContaining({ kind: "demo.pointerTilt" }),
         expect.objectContaining({ kind: "demo.glbRotate" }),
         expect.objectContaining({ kind: "demo.glbVertexParticles" }),
+        expect.objectContaining({ kind: "demo.capabilitySurface" }),
+        expect.objectContaining({ kind: "demo.capabilityTextLayer" }),
+        expect.objectContaining({ kind: "demo.capabilityImageTexture" }),
+        expect.objectContaining({ kind: "demo.capabilityVideoPlayback" }),
       ]),
     });
 

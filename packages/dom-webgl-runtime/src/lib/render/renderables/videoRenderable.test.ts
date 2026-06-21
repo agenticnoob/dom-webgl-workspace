@@ -61,6 +61,17 @@ describe("createVideoRenderable", () => {
     expect(renderable.fallbackVisible).toBe(false);
     expect(renderable.resourceReady).toBe(true);
     expect(renderable.hasSceneObject).toBe(true);
+    expect(renderable.effectSource).toMatchObject({
+      kind: "video",
+      src: "/assets/hero.mp4",
+      video: expect.objectContaining({
+        source: source.element,
+        play: expect.any(Function),
+        pause: expect.any(Function),
+        setMuted: expect.any(Function),
+        setPlaybackRate: expect.any(Function),
+      }),
+    });
     expect(sceneAdapter.objects[0]).toMatchObject({
       key: "hero.video",
       textureSource: source.element,

@@ -14,6 +14,104 @@ export type WebGLEffectResourceScope = {
   dispose(): void;
 };
 
+export type WebGLEffectRenderableHandle = {
+  readonly object3D: unknown;
+  setVisible?(visible: boolean): void;
+  setRotation?(x: number, y: number, z?: number): void;
+  setScale?(x: number, y?: number, z?: number): void;
+  setOpacity?(opacity: number): void;
+};
+
+export type WebGLEffectCanvasDrawer = (context: {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  devicePixelRatio: number;
+}) => void;
+
+export type WebGLEffectCanvasSurfaceHandle = WebGLEffectRenderableHandle & {
+  readonly canvas: HTMLCanvasElement;
+  readonly context: CanvasRenderingContext2D | null;
+  readonly texture: unknown;
+  readonly mesh: unknown;
+  readonly material: unknown;
+  clear(): void;
+  draw(drawer: WebGLEffectCanvasDrawer): void;
+  invalidate(): void;
+  getSize(): { width: number; height: number; devicePixelRatio: number };
+};
+
+export type WebGLTextGlyph = {
+  index: number;
+  char: string;
+  line: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  baseline: number;
+};
+
+export type WebGLTextGlyphRenderCommand = Partial<WebGLTextGlyph> & {
+  index: number;
+  char?: string;
+  opacity?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  color?: string;
+};
+
+export type WebGLTextLayerStyle = {
+  font: string;
+  lineHeight: number;
+  letterSpacing: number;
+  wordSpacing: number;
+  textAlign: CanvasTextAlign;
+  color: string;
+};
+
+export type WebGLEffectTextLayerHandle = WebGLEffectCanvasSurfaceHandle & {
+  readonly text: string;
+  readonly style: WebGLTextLayerStyle;
+  getGlyphs(): readonly WebGLTextGlyph[];
+  setText(text: string): void;
+  setGlyphs(
+    transform: (
+      glyphs: readonly WebGLTextGlyph[],
+    ) => readonly WebGLTextGlyphRenderCommand[],
+  ): void;
+};
+
+export type WebGLEffectTextureTransform = {
+  repeatX?: number;
+  repeatY?: number;
+  offsetX?: number;
+  offsetY?: number;
+};
+
+export type WebGLEffectTextureLayerHandle<
+  TSource extends HTMLImageElement | HTMLVideoElement =
+    | HTMLImageElement
+    | HTMLVideoElement,
+> = WebGLEffectRenderableHandle & {
+  readonly source: TSource;
+  readonly texture: unknown;
+  readonly mesh: unknown;
+  readonly material: unknown;
+  setTextureTransform(transform: WebGLEffectTextureTransform): void;
+  invalidate(): void;
+};
+
+export type WebGLEffectVideoLayerHandle =
+  WebGLEffectTextureLayerHandle<HTMLVideoElement> & {
+    play(): Promise<void> | void;
+    pause(): void;
+    setMuted(muted: boolean): void;
+    setPlaybackRate(rate: number): void;
+  };
+
 export type WebGLEffectTargetHandle = {
   setVisible(visible: boolean): void;
   setRotation(x: number, y: number, z?: number): void;
@@ -33,7 +131,7 @@ export type WebGLEffectManagedObjectHandle = {
   setPointer?(x: number, y: number): void;
 };
 
-export type WebGLModelEffectHandle = {
+export type WebGLModelEffectHandle = WebGLEffectRenderableHandle & {
   readonly object3D: unknown;
   traverseMeshes(visitor: (mesh: unknown) => void): void;
   sampleVertices(options?: { maxPoints?: number }): Float32Array;
@@ -45,10 +143,29 @@ export type WebGLModelEffectHandle = {
 };
 
 export type WebGLEffectSourceHandle =
-  | { kind: "snapshot/element"; element: HTMLElement }
-  | { kind: "snapshot/text"; element: HTMLElement; text: string }
-  | { kind: "image"; element: HTMLImageElement; src: string }
-  | { kind: "video"; element: HTMLVideoElement; src: string }
+  | {
+      kind: "snapshot/element";
+      element: HTMLElement;
+      surface?: WebGLEffectCanvasSurfaceHandle;
+    }
+  | {
+      kind: "snapshot/text";
+      element: HTMLElement;
+      text: string;
+      textLayer?: WebGLEffectTextLayerHandle;
+    }
+  | {
+      kind: "image";
+      element: HTMLImageElement;
+      src: string;
+      image?: WebGLEffectTextureLayerHandle<HTMLImageElement>;
+    }
+  | {
+      kind: "video";
+      element: HTMLVideoElement;
+      src: string;
+      video?: WebGLEffectVideoLayerHandle;
+    }
   | {
       kind: "model/glb";
       anchor: HTMLElement;

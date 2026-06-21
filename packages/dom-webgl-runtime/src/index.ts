@@ -1,15 +1,25 @@
 export { createWebGLRuntime } from "./lib/renderer/runtime";
 export {
   defineWebGLEffect,
+  type WebGLEffectCanvasDrawer,
+  type WebGLEffectCanvasSurfaceHandle,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
   type WebGLEffectManagedObjectHandle,
+  type WebGLEffectRenderableHandle,
   type WebGLEffectResourceScope,
   type WebGLEffectSetupContext,
   type WebGLEffectSourceHandle,
   type WebGLEffectTargetHandle,
+  type WebGLEffectTextLayerHandle,
+  type WebGLEffectTextureLayerHandle,
+  type WebGLEffectTextureTransform,
   type WebGLEffectUpdateContext,
+  type WebGLEffectVideoLayerHandle,
   type WebGLModelEffectHandle,
+  type WebGLTextGlyph,
+  type WebGLTextGlyphRenderCommand,
+  type WebGLTextLayerStyle,
 } from "./lib/effects/effectAuthoring";
 export type { WebGLDebugState } from "./lib/types";
 export type {

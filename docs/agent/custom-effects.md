@@ -11,3 +11,7 @@ agent-facing contract for:
 - custom `defineWebGLEffect(...)` definitions;
 - source/target/resource handles;
 - validation and common failure modes.
+
+Current source handles expose reusable output primitives for element surfaces,
+text/glyph layers, image textures, video playback, and GLB models. Concrete
+effects remain consumer-owned.

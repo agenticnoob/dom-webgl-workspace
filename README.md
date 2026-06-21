@@ -36,6 +36,11 @@ Phase 8 is implemented in
 `defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
 API. Core registers no default visual effects, the package exports no concrete
 effect implementations, and demo/example effects are consumer-owned code.
+Unified source capability handles are implemented in
+`docs/superpowers/plans/2026-06-21-unified-source-capability-handles.md`:
+custom effects can now control runtime-owned output handles for
+`snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` without
+mutating source DOM or reaching into renderer internals.
 Agent-facing package usage rules live in `docs/agent/package-usage.md`; agents
 should read that file before integrating the package or authoring custom effects.
 Reusable architecture lessons from the sibling `codex-web` project are captured
@@ -165,9 +170,9 @@ Current visual behavior:
   canvas ownership layer.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
-- Text mutation effects, shader authoring APIs, core-provided particle systems,
-  animation layers, WebGL raycast picking, Lenis, GSAP, and ScrollTrigger
-  adapters remain intentionally out of scope.
+- Concrete text animation effects, shader authoring APIs, core-provided
+  particle systems, animation layers, WebGL raycast picking, Lenis, GSAP, and
+  ScrollTrigger adapters remain intentionally out of scope.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
@@ -204,6 +209,12 @@ Effects are user-authored runtime definitions. They receive the target source
 handle, layout snapshot, frame input, pointer and scroll state, target controls,
 and managed resources. They do not scan DOM, mutate arbitrary DOM, create their
 own renderer, or own independent asset loading.
+
+The effect context exposes low-level runtime output handles for every supported
+source kind. Consumers can draw to canvas-backed element surfaces, control
+WebGL text layers and glyph layout, transform image/video texture planes,
+control video playback, and inspect or manipulate GLB model handles through
+public effect context. Concrete effects remain application-owned.
 
 Preferred declaration form:
 

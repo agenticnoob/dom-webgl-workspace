@@ -10,6 +10,48 @@ import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
 export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHandle {
   return {
     object3D,
+    setVisible(visible) {
+      if (object3D && typeof object3D === "object") {
+        (object3D as { visible?: boolean }).visible = visible;
+      }
+    },
+    setRotation(x, y, z) {
+      const rotation = (object3D as { rotation?: unknown } | undefined)?.rotation;
+      if (rotation && typeof rotation === "object" && "set" in rotation) {
+        (rotation as { set: (x: number, y: number, z: number) => void }).set(
+          x,
+          y,
+          z ?? 0,
+        );
+      }
+    },
+    setScale(x, y = x, z = x) {
+      const scale = (object3D as { scale?: unknown } | undefined)?.scale;
+      if (scale && typeof scale === "object" && "set" in scale) {
+        (scale as { set: (x: number, y: number, z: number) => void }).set(
+          x,
+          y,
+          z,
+        );
+      }
+    },
+    setOpacity(opacity) {
+      traverseObject(object3D, (candidate) => {
+        const material = (candidate as { material?: unknown } | undefined)
+          ?.material;
+        const materials = Array.isArray(material) ? material : [material];
+
+        for (const entry of materials) {
+          if (entry && typeof entry === "object") {
+            Object.assign(entry, {
+              opacity,
+              transparent: opacity < 1,
+              needsUpdate: true,
+            });
+          }
+        }
+      });
+    },
     traverseMeshes(visitor) {
       traverseObject(object3D, (candidate) => {
         if (isMeshLike(candidate)) {

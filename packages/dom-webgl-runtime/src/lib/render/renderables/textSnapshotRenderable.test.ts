@@ -52,6 +52,17 @@ describe("createTextSnapshotRenderable", () => {
       lastLayout: { x: 112, y: 556, width: 200, height: 40 },
     });
     expect(renderable.status).toBe("ready");
+    expect(renderable.effectSource).toMatchObject({
+      kind: "snapshot/text",
+      text: "Hello WebGL text",
+      textLayer: expect.objectContaining({
+        canvas: expect.any(HTMLCanvasElement),
+        texture: expect.anything(),
+        getGlyphs: expect.any(Function),
+        setGlyphs: expect.any(Function),
+        setText: expect.any(Function),
+      }),
+    });
 
     element.textContent = "Updated WebGL text";
     renderable.updateLayout?.(createMeasurement(12, 24, 200, 40));

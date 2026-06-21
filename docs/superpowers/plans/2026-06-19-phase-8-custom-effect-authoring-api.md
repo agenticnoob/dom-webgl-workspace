@@ -5,7 +5,9 @@
 > **Historical status:** This plan's authoring API is implemented, but all
 > package preset/export instructions are superseded by
 > `2026-06-20-package-effect-boundary-cleanup.md`. Do not copy the historical
-> `@project/dom-webgl-runtime/effects` references below into current code.
+> `@project/dom-webgl-runtime/effects` references below into current code. The
+> 2026-06-21 unified source capability plan has since expanded the public source
+> handles beyond the narrow pre-Phase-8 target controls described below.
 
 **Goal:** Make user-authored effects the single effect model: core registers no default effects, runtime supplies managed context, and concrete effects are authored by consumers or examples outside the package.
 

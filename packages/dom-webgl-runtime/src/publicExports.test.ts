@@ -173,14 +173,21 @@ describe("public package exports", () => {
 			        import type {
 			          WebGLDebugState,
 			          WebGLDeclaration,
+			          WebGLEffectCanvasDrawer,
+			          WebGLEffectCanvasSurfaceHandle,
 			          WebGLEffectContext,
 			          WebGLEffectDefinition,
+			          WebGLEffectRenderableHandle,
 			          WebGLEffectResourceScope,
 			          WebGLEffectSourceHandle,
 			          WebGLEffectTargetHandle,
+			          WebGLEffectTextLayerHandle,
+			          WebGLEffectTextureLayerHandle,
+			          WebGLEffectTextureTransform,
+			          WebGLEffectVideoLayerHandle,
 			          WebGLEffectsDeclaration,
 			          WebGLFrameInput,
-	          WebGLGateScrollBehavior,
+			          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
 	          WebGLImageSourceDeclaration,
 	          WebGLMaterialDeclaration,
@@ -197,6 +204,9 @@ describe("public package exports", () => {
           WebGLSolidMaterialDeclaration,
           WebGLSourceDeclaration,
           WebGLSurfaceMaterialDeclaration,
+          WebGLTextGlyph,
+          WebGLTextGlyphRenderCommand,
+          WebGLTextLayerStyle,
           WebGLVideoSourceDeclaration,
         } from "${importPath}";
 
@@ -328,7 +338,60 @@ describe("public package exports", () => {
 			          { density: number; scrollAtSetup: number }
 			        >;
 
-		        const declaration = {
+        const sourceCapabilityEffect = defineWebGLEffect({
+          kind: "custom.sourceCapabilities",
+          update(ctx) {
+            if (ctx.source.kind === "snapshot/element") {
+              ctx.source.surface satisfies WebGLEffectCanvasSurfaceHandle | undefined;
+              ctx.source.surface?.draw(({ context }) => {
+                context.fillRect(0, 0, 10, 10);
+              });
+            }
+
+            if (ctx.source.kind === "snapshot/text") {
+              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
+              const glyphs = ctx.source.textLayer?.getGlyphs() ?? [];
+              glyphs satisfies readonly WebGLTextGlyph[];
+              ctx.source.textLayer?.setGlyphs((entries) =>
+                entries.map((glyph) => ({
+                  index: glyph.index,
+                  char: glyph.char,
+                  scaleX: 1,
+                  scaleY: 1,
+                  opacity: 1,
+                })),
+              );
+            }
+
+            if (ctx.source.kind === "image") {
+              ctx.source.image satisfies
+                | WebGLEffectTextureLayerHandle<HTMLImageElement>
+                | undefined;
+              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
+            }
+
+            if (ctx.source.kind === "video") {
+              ctx.source.video satisfies WebGLEffectVideoLayerHandle | undefined;
+              ctx.source.video?.setMuted(true);
+              ctx.source.video?.setPlaybackRate(1);
+            }
+
+            if (ctx.source.kind === "model/glb") {
+              ctx.source.model satisfies WebGLEffectRenderableHandle;
+              ctx.source.model.sampleVertices({ maxPoints: 64 });
+            }
+          },
+        });
+
+        sourceCapabilityEffect satisfies WebGLEffectDefinition;
+        ({ repeatX: 1, offsetY: 0 }) satisfies WebGLEffectTextureTransform;
+        ({ index: 0, char: "A" }) satisfies WebGLTextGlyphRenderCommand;
+        declare const drawer: WebGLEffectCanvasDrawer;
+        drawer satisfies WebGLEffectCanvasDrawer;
+        declare const style: WebGLTextLayerStyle;
+        style.font satisfies string;
+
+	        const declaration = {
 	          key: "hero.model",
 	          source: modelSource,
 	          renderRole,

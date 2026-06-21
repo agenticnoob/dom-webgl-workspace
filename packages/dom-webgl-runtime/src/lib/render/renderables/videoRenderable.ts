@@ -81,6 +81,7 @@ export function createVideoRenderable(
           kind: "video",
           element: source.element,
           src: source.src,
+          video: state.scene?.object.videoLayerCapability,
         };
       },
       dispose() {

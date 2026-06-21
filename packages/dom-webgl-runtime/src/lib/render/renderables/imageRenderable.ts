@@ -87,6 +87,7 @@ export function createImageRenderable(
           kind: "image",
           element: source.element,
           src: source.src,
+          image: state.scene?.object.textureLayerCapability,
         };
       },
       dispose() {

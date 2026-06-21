@@ -2,6 +2,7 @@ import {
   readDOMStyleSnapshot,
   type DOMStyleSnapshot,
 } from "../../dom/styleSnapshot";
+import type { WebGLTextGlyph } from "../../effects/effectAuthoring";
 
 export type TextCanvasMeasurement = {
   width: number;
@@ -124,6 +125,59 @@ export function drawTextToCanvas(
     drawTextLine(context, line, x, y, state);
     y += state.lineHeight;
   }
+}
+
+export function computeTextGlyphLayout(
+  context: Pick<CanvasRenderingContext2D, "font" | "measureText">,
+  textContent: string,
+  state: TextCanvasRenderState,
+): WebGLTextGlyph[] {
+  context.font = state.font;
+
+  const maxLineWidth = Math.max(
+    1,
+    state.width - state.paddingLeft - state.paddingRight,
+  );
+  const lines = wrapCanvasText(
+    context as CanvasRenderingContext2D,
+    textContent,
+    state,
+    maxLineWidth,
+  );
+  const x = readTextX(state);
+  let y = readTextStartY(state, lines.length);
+  let index = 0;
+  const glyphs: WebGLTextGlyph[] = [];
+
+  lines.forEach((line, lineIndex) => {
+    let cursorX = readTextLineStartX(
+      context as CanvasRenderingContext2D,
+      line,
+      x,
+      state,
+    );
+
+    for (const char of Array.from(line)) {
+      const width = context.measureText(char).width;
+
+      glyphs.push({
+        index,
+        char,
+        line: lineIndex,
+        x: cursorX,
+        y,
+        width,
+        height: state.lineHeight,
+        baseline: y + state.lineHeight,
+      });
+      index += 1;
+      cursorX += width + readTextSpacing(char, state);
+    }
+
+    y += state.lineHeight;
+  });
+
+  return glyphs;
 }
 
 function readTextX(state: TextCanvasRenderState): number {

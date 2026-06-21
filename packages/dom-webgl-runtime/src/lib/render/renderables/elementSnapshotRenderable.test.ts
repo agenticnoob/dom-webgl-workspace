@@ -48,6 +48,16 @@ describe("createElementSnapshotRenderable", () => {
     expect(sceneAdapter.addObject).toHaveBeenCalledTimes(1);
     expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.status).toBe("ready");
+    expect(renderable.effectSource).toMatchObject({
+      kind: "snapshot/element",
+      surface: expect.objectContaining({
+        canvas: expect.any(HTMLCanvasElement),
+        texture: expect.anything(),
+        draw: expect.any(Function),
+        clear: expect.any(Function),
+        invalidate: expect.any(Function),
+      }),
+    });
 
     renderable.setVisible(false);
     expect(sceneAdapter.objects[0]?.visible).toBe(false);

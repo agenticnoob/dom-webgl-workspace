@@ -1,9 +1,199 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  demoCapabilityImageTextureEffect,
+  demoCapabilitySurfaceEffect,
+  demoCapabilityTextLayerEffect,
+  demoCapabilityVideoPlaybackEffect,
   demoGLBVertexParticlesEffect,
   demoGLBRotateEffect,
+  demoSurfaceEffect,
 } from "./demoEffects";
+
+describe("demoSurfaceEffect", () => {
+  test("draws a visible element snapshot surface while applying target opacity", () => {
+    const surface = {
+      draw: vi.fn(),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      target: {
+        setOpacity: vi.fn(),
+        setVisible: vi.fn(),
+      },
+      source: {
+        kind: "snapshot/element",
+        element: document.createElement("section"),
+        surface,
+      },
+    });
+
+    const state = demoSurfaceEffect.setup?.(context, {
+      kind: "demo.surface",
+      opacity: 0.82,
+    });
+    demoSurfaceEffect.update(context, state, {
+      kind: "demo.surface",
+      opacity: 0.82,
+    });
+    demoSurfaceEffect.update(context, state, {
+      kind: "demo.surface",
+      opacity: 0.64,
+    });
+
+    expect(context.target?.setVisible).toHaveBeenCalledWith(true);
+    expect(context.target?.setOpacity).toHaveBeenLastCalledWith(0.64);
+    expect(surface.draw).toHaveBeenCalledTimes(1);
+    expect(surface.setVisible).toHaveBeenCalledWith(true);
+    expect(surface.setOpacity).toHaveBeenCalledWith(0.82);
+  });
+});
+
+describe("demo capability effects", () => {
+  test("draws the element surface once with a visible overlay", () => {
+    const surface = {
+      draw: vi.fn(),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      source: {
+        kind: "snapshot/element",
+        element: document.createElement("section"),
+        surface,
+      },
+    });
+
+    demoCapabilitySurfaceEffect.setup?.(context, {
+      kind: "demo.capabilitySurface",
+    });
+    demoCapabilitySurfaceEffect.update(context, undefined, {
+      kind: "demo.capabilitySurface",
+    });
+    demoCapabilitySurfaceEffect.update(context, undefined, {
+      kind: "demo.capabilitySurface",
+    });
+
+    expect(surface.draw).toHaveBeenCalledTimes(1);
+    expect(surface.setOpacity).toHaveBeenCalledWith(0.55);
+    expect(surface.setVisible).toHaveBeenCalledWith(true);
+  });
+
+  test("draws the text layer once with non-identity glyph commands", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer,
+      },
+    });
+
+    demoCapabilityTextLayerEffect.setup?.(context, {
+      kind: "demo.capabilityTextLayer",
+    });
+    demoCapabilityTextLayerEffect.update(context, undefined, {
+      kind: "demo.capabilityTextLayer",
+    });
+    demoCapabilityTextLayerEffect.update(context, undefined, {
+      kind: "demo.capabilityTextLayer",
+    });
+
+    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
+
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const commands = transform?.([
+      {
+        index: 0,
+        char: "H",
+        line: 0,
+        x: 0,
+        y: 20,
+        width: 10,
+        height: 20,
+        baseline: 16,
+      },
+    ]);
+
+    expect(commands?.[0]).toMatchObject({
+      index: 0,
+      char: "*",
+      color: "#ffcf5a",
+      rotation: -0.05,
+      scaleX: 1.08,
+      scaleY: 1.28,
+      y: 10,
+    });
+  });
+
+  test("applies a visible image texture transform once", () => {
+    const image = {
+      setTextureTransform: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      source: {
+        kind: "image",
+        element: document.createElement("img"),
+        src: "/poster.png",
+        image,
+      },
+    });
+
+    demoCapabilityImageTextureEffect.setup?.(context, {
+      kind: "demo.capabilityImageTexture",
+    });
+    demoCapabilityImageTextureEffect.update(context, undefined, {
+      kind: "demo.capabilityImageTexture",
+    });
+    demoCapabilityImageTextureEffect.update(context, undefined, {
+      kind: "demo.capabilityImageTexture",
+    });
+
+    expect(image.setTextureTransform).toHaveBeenCalledTimes(1);
+    expect(image.setTextureTransform).toHaveBeenCalledWith({
+      repeatX: 0.55,
+      repeatY: 0.55,
+      offsetX: 0.22,
+      offsetY: 0.22,
+    });
+  });
+
+  test("applies video playback settings once", () => {
+    const video = {
+      play: vi.fn(),
+      setMuted: vi.fn(),
+      setPlaybackRate: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      source: {
+        kind: "video",
+        element: document.createElement("video"),
+        src: "/intro.mp4",
+        video,
+      },
+    });
+
+    demoCapabilityVideoPlaybackEffect.setup?.(context, {
+      kind: "demo.capabilityVideoPlayback",
+    });
+    demoCapabilityVideoPlaybackEffect.update(context, undefined, {
+      kind: "demo.capabilityVideoPlayback",
+    });
+    demoCapabilityVideoPlaybackEffect.update(context, undefined, {
+      kind: "demo.capabilityVideoPlayback",
+    });
+
+    expect(video.setMuted).toHaveBeenCalledTimes(1);
+    expect(video.setPlaybackRate).toHaveBeenCalledTimes(1);
+    expect(video.play).toHaveBeenCalledTimes(1);
+    expect(video.setMuted).toHaveBeenCalledWith(true);
+    expect(video.setPlaybackRate).toHaveBeenCalledWith(1.15);
+  });
+});
 
 describe("demoGLBRotateEffect", () => {
   test("rotates the original GLB object slowly on the y axis using seconds", () => {
@@ -251,6 +441,74 @@ function createPointCloud(options: { positions?: Float32Array } = {}) {
     renderOrder: 0,
     scale: { setScalar: vi.fn() },
   };
+}
+
+function createCapabilityContext(options: { source: unknown; target?: unknown }) {
+  return {
+    key: "demo.capability",
+    sourceKind: "snapshot/element",
+    layout: {
+      x: 0,
+      y: 0,
+      width: 320,
+      height: 180,
+      top: 0,
+      right: 320,
+      bottom: 180,
+      left: 0,
+      viewport: { width: 800, height: 600 },
+      devicePixelRatio: 1,
+      layoutSignature: "capability",
+    },
+    input: {
+      time: 0,
+      delta: 16,
+      scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
+      pointer: {
+        x: -1,
+        y: -1,
+        normalizedX: 0,
+        normalizedY: 0,
+        isInside: false,
+        isDown: false,
+        downTime: 0,
+        pressDuration: 0,
+        isDragging: false,
+        dragStartX: 0,
+        dragStartY: 0,
+        dragDeltaX: 0,
+        dragDeltaY: 0,
+        clickCount: 0,
+      },
+    },
+    pointer: {
+      x: -1,
+      y: -1,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+    scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
+    scrollProgress: 0,
+    time: 0,
+    delta: 16,
+    source: options.source,
+    target: options.target,
+    resources: {
+      addDisposable: vi.fn(),
+      createObject3D: vi.fn((factory: () => unknown) => factory()),
+      dispose: vi.fn(),
+    },
+  } as Parameters<typeof demoCapabilitySurfaceEffect.update>[0];
 }
 
 function createEffectContext(
