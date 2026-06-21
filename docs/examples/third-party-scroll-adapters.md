@@ -8,10 +8,7 @@ import { useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { WebGLRuntimeOptions } from "@project/dom-webgl-runtime";
 import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
-import {
-  createGsapTickerLenisBridge,
-  createLenisScrollAdapter,
-} from "@project/dom-webgl-scroll-adapters";
+import { createLenisGsapScrollStack } from "@project/dom-webgl-scroll-adapters";
 
 export function AppScrollRuntime({
   children,
@@ -34,29 +31,46 @@ export function AppScrollRuntime({
     raf(time: number): void;
     on?(event: "scroll", listener: () => void): void | (() => void);
   };
-  ScrollTrigger?: { update(): void };
+  ScrollTrigger?: {
+    update(): void;
+    refresh(safe?: boolean): void;
+    scrollerProxy?(
+      scroller: string | Element,
+      proxy: {
+        scrollTop?(value?: number): number | void;
+        scrollLeft?(value?: number): number | void;
+        getBoundingClientRect?(): {
+          top: number;
+          left: number;
+          width: number;
+          height: number;
+        };
+        pinType?: "fixed" | "transform";
+      },
+    ): void;
+  };
   runtimeEffects: WebGLRuntimeOptions["effects"];
 }) {
-  const scrollAdapter = useMemo(
+  const smoothScroll = useMemo(
     () =>
-      createLenisScrollAdapter(lenis, {
+      createLenisGsapScrollStack({
+        lenis,
+        gsap,
+        ScrollTrigger,
         getViewportHeight: () => window.innerHeight,
       }),
-    [lenis],
+    [gsap, lenis, ScrollTrigger],
   );
 
   useEffect(() => {
-    const bridge = createGsapTickerLenisBridge({
-      gsap,
-      lenis,
-      scrollTrigger: ScrollTrigger,
-    });
-
-    return () => bridge.dispose();
-  }, [gsap, lenis, ScrollTrigger]);
+    return () => smoothScroll.dispose();
+  }, [smoothScroll]);
 
   return (
-    <WebGLRuntime effects={runtimeEffects} scrollAdapter={scrollAdapter}>
+    <WebGLRuntime
+      effects={runtimeEffects}
+      scrollAdapter={smoothScroll.scrollAdapter}
+    >
       {children}
     </WebGLRuntime>
   );
@@ -65,7 +79,7 @@ export function AppScrollRuntime({
 
 Rules:
 
-- Keep `scrollAdapter` stable for the lifetime of the runtime.
-- Dispose bridge objects from the surrounding app lifecycle when their Lenis or
-  GSAP instances change.
+- Keep `smoothScroll.scrollAdapter` stable for the lifetime of the runtime.
+- Dispose the stack from the surrounding app lifecycle when its Lenis or GSAP
+  instances change.
 - Keep app-specific triggers and timelines outside the runtime package.

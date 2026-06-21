@@ -18,25 +18,51 @@ Core must not import `lenis`, `gsap`, or `ScrollTrigger`.
 
 ## Runtime Integration
 
-Native scroll needs no adapter:
+There are three supported routes.
+
+### 1. Native Default
+
+Native browser scroll needs no adapter:
 
 ```tsx
 <WebGLRuntime effects={runtimeEffects}>{children}</WebGLRuntime>
 ```
 
-Adapter-backed scroll:
+This remains the default for `@project/dom-webgl-runtime`.
+
+### 2. Official Smooth Scroll Stack
+
+Use `createLenisGsapScrollStack(...)` when the application wants the recommended
+Lenis + GSAP ticker + ScrollTrigger bridge.
 
 ```tsx
 import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
-import { createLenisScrollAdapter } from "@project/dom-webgl-scroll-adapters";
+import { createLenisGsapScrollStack } from "@project/dom-webgl-scroll-adapters";
 
-const scrollAdapter = createLenisScrollAdapter(lenis, {
-  getViewportHeight: () => window.innerHeight,
+const smoothScroll = createLenisGsapScrollStack({
+  lenis,
+  gsap,
+  ScrollTrigger,
 });
 
-<WebGLRuntime effects={runtimeEffects} scrollAdapter={scrollAdapter}>
+<WebGLRuntime effects={runtimeEffects} scrollAdapter={smoothScroll.scrollAdapter}>
   {children}
 </WebGLRuntime>;
+```
+
+When Lenis is manually driven by the GSAP ticker, configure Lenis with
+`autoRaf: false` in the application-owned Lenis setup.
+
+### 3. Custom Adapter
+
+Use a custom `WebGLScrollAdapter` when the application owns another scroll
+system or needs a different lifecycle.
+
+```ts
+const runtime = createWebGLRuntime({
+  container,
+  scrollAdapter: customScrollAdapter,
+});
 ```
 
 Keep `scrollAdapter` reference stable. In React, create it at module scope only

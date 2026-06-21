@@ -150,6 +150,35 @@ Rules:
 - See `docs/agent/scroll-adapters.md` for optional Lenis, GSAP ticker, and
   ScrollTrigger bridge rules.
 
+### Official Smooth Scroll Stack
+
+The recommended third-party route is the opt-in Lenis + GSAP ticker +
+ScrollTrigger stack from `<scroll-adapters-package>`.
+
+```ts
+import { createLenisGsapScrollStack } from "<scroll-adapters-package>";
+
+const smoothScroll = createLenisGsapScrollStack({
+  lenis,
+  gsap,
+  ScrollTrigger,
+});
+
+const runtime = createWebGLRuntime({
+  container,
+  scrollAdapter: smoothScroll.scrollAdapter,
+});
+```
+
+Rules:
+
+- This stack is not the core runtime default; native scroll remains the default
+  when `scrollAdapter` is omitted.
+- Configure Lenis with `autoRaf: false` when GSAP drives `lenis.raf(...)`.
+- Call `smoothScroll.dispose()` from the application lifecycle.
+- Use `smoothScroll.refresh(true)` after layout changes that should force
+  ScrollTrigger to recalculate positions.
+
 ## Target Declaration
 
 Minimum target:
