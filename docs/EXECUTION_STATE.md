@@ -33,10 +33,10 @@ public `WebGLScrollAdapter` protocol plus the optional
 as the default and does not import Lenis, GSAP, or ScrollTrigger. The optional
 adapter package now exposes `createLenisGsapScrollStack(...)` to compose Lenis
 metrics, GSAP ticker driving, and ScrollTrigger update/refresh/proxy bridging
-behind one opt-in lifecycle object. Demo `ScrollZoomImage` is a consumer-owned
-example that uses native page scroll to zoom a full-bleed image and moves its
-WebGL-targeted gallery through the local `demo.scrollGallery` effect rather than
-CSS transform animation or CSS progress variables. Runtime lifecycle disposal
+behind one opt-in lifecycle object. Demo `ScrollZoomImage` now uses that smooth
+scroll stack to zoom a full-bleed image and moves its WebGL-targeted gallery
+through the local `demo.scrollGallery` effect rather than CSS transform
+animation or CSS progress variables. Runtime lifecycle disposal
 restores fallback visibility before unloading ready offscreen renderables.
 Offscreen resource policy is target-scoped: far-offscreen targets restore native
 DOM fallback and dispose resources by default; near-offscreen parking enables

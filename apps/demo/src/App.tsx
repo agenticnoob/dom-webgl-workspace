@@ -1,7 +1,14 @@
 import * as React from "react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import type { WebGLDebugState } from "@project/dom-webgl-runtime";
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
+import {
+  createLenisGsapScrollStack,
+  type LenisGsapScrollStack,
+} from "@project/dom-webgl-scroll-adapters";
+import gsap from "gsap";
+import Lenis from "lenis";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
@@ -36,14 +43,22 @@ const demoRuntimeEffects = [
   demoTextPressureEffect,
 ] as const;
 
+gsap.registerPlugin(ScrollTrigger);
+
 export default function App() {
   const [debugState, setDebugState] = useState<WebGLDebugState>(createInitialDebugState);
+  const smoothScroll = useDemoSmoothScrollStack();
+
+  if (!smoothScroll) {
+    return <main className="demo-shell" />;
+  }
 
   return (
     <main className="demo-shell">
       <WebGLRuntime
         className="demo-runtime"
         effects={demoRuntimeEffects}
+        scrollAdapter={smoothScroll.scrollAdapter}
         onDebugStateChange={setDebugState}
       >
         <WebGLTarget as="section" className="demo-scene" aria-label="DOM WebGL demo scene"
@@ -246,10 +261,10 @@ export default function App() {
               >
                 <div>
                   <p className="demo-label">Scroll marker 01 / 滚动标记 01</p>
-                  <strong>Native sticky zoom / 原生滚动缩放</strong>
+                  <strong>Smooth sticky zoom / 平滑滚动缩放</strong>
                   <span>
-                    Sticky DOM structure keeps the page scroll native while WebGL scales the image
-                    and captures this content target. sticky DOM 结构保持原生滚动，WebGL 同时缩放图片并捕获这组内容。
+                    Sticky DOM structure keeps page progress stable while WebGL scales the image
+                    and captures this content target. sticky DOM 结构保持页面进度稳定，WebGL 同时缩放图片并捕获这组内容。
                   </span>
                 </div>
                 <em>0-15%</em>
@@ -424,6 +439,29 @@ export default function App() {
       </WebGLRuntime>
     </main>
   );
+}
+
+function useDemoSmoothScrollStack(): LenisGsapScrollStack | null {
+  const [smoothScroll, setSmoothScroll] = useState<LenisGsapScrollStack | null>(null);
+
+  useLayoutEffect(() => {
+    const lenis = new Lenis({ autoRaf: false });
+    const nextSmoothScroll = createLenisGsapScrollStack({
+      lenis,
+      gsap,
+      ScrollTrigger,
+      getViewportHeight: () => window.innerHeight,
+      manageLenis: true,
+    });
+
+    setSmoothScroll(nextSmoothScroll);
+
+    return () => {
+      nextSmoothScroll.dispose();
+    };
+  }, []);
+
+  return smoothScroll;
 }
 
 function createInitialDebugState(): WebGLDebugState {

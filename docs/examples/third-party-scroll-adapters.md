@@ -1,7 +1,7 @@
 # Third-Party Scroll Adapter Example
 
-This example shows the package boundary. It is intentionally docs-only so the
-default demo does not depend on Lenis, GSAP, or ScrollTrigger.
+This example shows the package boundary used by the demo when it opts into the
+official Lenis + GSAP ticker + ScrollTrigger stack.
 
 ```tsx
 import { useEffect, useMemo } from "react";

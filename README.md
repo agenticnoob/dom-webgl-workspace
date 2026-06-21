@@ -65,9 +65,10 @@ Current demo behavior:
   scroll-event marker targets for testing effect behavior across longer page
   travel.
 - The first scroll marker uses a demo-owned `ScrollZoomImage` component:
-  `/demo/bg.png` is rendered as a full-bleed sticky image target, a native page
-  scroll segment drives the image zoom effect, and an overlaid gallery moves
-  horizontally while its image and caption items are declared as WebGL targets.
+  `/demo/bg.png` is rendered as a full-bleed sticky image target, the demo's
+  opt-in Lenis + GSAP ticker stack feeds normalized page progress, and an
+  overlaid gallery moves horizontally while its image and caption items are
+  declared as WebGL targets.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.

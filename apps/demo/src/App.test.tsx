@@ -385,9 +385,19 @@ describe("demo App", () => {
     });
   });
 
+  test("passes the official smooth scroll adapter into the demo runtime", async () => {
+    await renderApp();
+
+    expect(runtimeProps[0]?.scrollAdapter).toMatchObject({
+      kind: "lenis",
+      readMetrics: expect.any(Function),
+    });
+  });
+
   test("keeps runtime effect definitions stable across debug re-renders", async () => {
     await renderApp();
     const initialEffects = runtimeProps[0]?.effects;
+    const initialScrollAdapter = runtimeProps[0]?.scrollAdapter;
 
     await act(async () => {
       runtimeProps[0]?.onDebugStateChange?.(createEmptyDebugState());
@@ -395,6 +405,7 @@ describe("demo App", () => {
 
     expect(runtimeProps).toHaveLength(2);
     expect(runtimeProps[1]?.effects).toBe(initialEffects);
+    expect(runtimeProps[1]?.scrollAdapter).toBe(initialScrollAdapter);
   });
 
   test("declares a demo-owned surface effect harness through public WebGLTarget props", async () => {
@@ -434,7 +445,7 @@ describe("demo App", () => {
       (webgl as { key: string }).key === "demo.scroll.marker.01",
     )?.as).toBe("img");
     expect(host.querySelector(".demo-scroll-zoom-stage")).not.toBeNull();
-    expect(host.textContent).toContain("Native sticky zoom");
+    expect(host.textContent).toContain("Smooth sticky zoom");
     expect(webglDeclarationFor("demo.scroll.marker.01.content")).toMatchObject({
       key: "demo.scroll.marker.01.content",
       source: { kind: "snapshot", mode: "element" },
@@ -543,7 +554,7 @@ describe("demo App", () => {
     expect(host.textContent).not.toContain("Fidelity");
   });
 
-  test("keeps the scroll demo on native page scrolling without scene gates", async () => {
+  test("keeps the scroll demo on smooth page scrolling without scene gates", async () => {
     await renderApp();
 
     const gatedTargets = targetProps.filter(({ webgl }) => {
