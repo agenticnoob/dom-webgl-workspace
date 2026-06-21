@@ -4,6 +4,8 @@
 
 **Goal:** Add an official opt-in Lenis + GSAP ticker + ScrollTrigger stack preset while keeping `@project/dom-webgl-runtime` native-scroll-by-default and free of direct third-party scroll dependencies.
 
+**Implementation status:** Completed on `2026-06-22`. `@project/dom-webgl-scroll-adapters` now exports `createLenisGsapScrollStack(...)`, docs present native default / official stack / custom adapter routes, core runtime remains free of direct Lenis/GSAP/ScrollTrigger dependencies, and full workspace verification passed.
+
 **Architecture:** Keep core runtime unchanged: it still receives only `WebGLScrollAdapter`. Add a composed stack factory in `@project/dom-webgl-scroll-adapters` that wires the existing Lenis adapter, GSAP ticker bridge, and ScrollTrigger bridge into one lifecycle object. Consumers choose between native scroll, the official smooth-scroll stack, or a custom `WebGLScrollAdapter`.
 
 **Tech Stack:** TypeScript, Vitest, `@project/dom-webgl-runtime` public types, existing `@project/dom-webgl-scroll-adapters` helpers, Lenis structural interface, GSAP ticker structural interface, ScrollTrigger structural interface.
@@ -618,7 +620,7 @@ driving, and ScrollTrigger update/refresh/proxy bridging. Core runtime still
 defaults to native page/gate scroll and receives only a `WebGLScrollAdapter`.
 ```
 
-- [ ] **Step 4: Commit status docs**
+- [x] **Step 4: Commit status docs**
 
 Run:
 
@@ -632,7 +634,7 @@ git commit -m "docs: align smooth scroll stack status"
 **Files:**
 - All changed package and docs files.
 
-- [ ] **Step 1: Run focused adapter tests**
+- [x] **Step 1: Run focused adapter tests**
 
 Run:
 
@@ -642,7 +644,7 @@ npm test -- --run packages/dom-webgl-scroll-adapters/src
 
 Expected: PASS. The stack factory and lower-level helper tests pass.
 
-- [ ] **Step 2: Run runtime scroll regression tests**
+- [x] **Step 2: Run runtime scroll regression tests**
 
 Run:
 
@@ -652,7 +654,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts pa
 
 Expected: PASS. Core runtime still accepts adapters and native behavior remains covered.
 
-- [ ] **Step 3: Run typecheck and import boundary checks**
+- [x] **Step 3: Run typecheck and import boundary checks**
 
 Run:
 
@@ -663,7 +665,7 @@ npm run check:imports
 
 Expected: PASS. The adapter package type-checks and demo imports still use public package APIs.
 
-- [ ] **Step 4: Sweep for forbidden core coupling**
+- [x] **Step 4: Sweep for forbidden core coupling**
 
 Run:
 
@@ -673,7 +675,7 @@ rg -n "from [\"'](lenis|gsap)|from [\"']@project/dom-webgl-scroll-adapters|Scrol
 
 Expected: no matches in `packages/dom-webgl-runtime/src`. Matches in docs or `packages/dom-webgl-scroll-adapters/src` are acceptable; matches in `apps/demo/src` require review because the default demo must not require Lenis, GSAP, or ScrollTrigger.
 
-- [ ] **Step 5: Run full workspace verification**
+- [x] **Step 5: Run full workspace verification**
 
 Run:
 
@@ -685,7 +687,7 @@ git diff --check
 
 Expected: all commands exit 0. Existing Vite chunk-size warning remains acceptable if unchanged.
 
-- [ ] **Step 6: Commit verification-driven fixes if needed**
+- [x] **Step 6: Commit verification-driven fixes if needed**
 
 If verification surfaces a real issue, fix only the failing scope and commit:
 
