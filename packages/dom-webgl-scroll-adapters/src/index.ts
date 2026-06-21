@@ -12,6 +12,12 @@ export {
   type LenisScrollAdapterOptions,
 } from "./lenis";
 export {
+  createLenisGsapScrollStack,
+  type LenisGsapScrollStack,
+  type LenisGsapScrollStackLenis,
+  type LenisGsapScrollStackOptions,
+} from "./smoothScrollStack";
+export {
   createScrollTriggerBridge,
   type ScrollTriggerBridge,
   type ScrollTriggerBridgeOptions,
