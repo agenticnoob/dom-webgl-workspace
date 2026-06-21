@@ -40,6 +40,8 @@ export type {
   WebGLRuntime,
   WebGLRuntimeOptions,
   WebGLScrollBehavior,
+  WebGLOffscreenLifecycleDeclaration,
+  WebGLOffscreenStrategy,
   WebGLSnapshotSourceDeclaration,
   WebGLSolidMaterialDeclaration,
   WebGLSourceDeclaration,

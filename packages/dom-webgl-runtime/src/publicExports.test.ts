@@ -189,6 +189,8 @@ describe("public package exports", () => {
 			          WebGLFrameInput,
 			          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
+	          WebGLOffscreenLifecycleDeclaration,
+	          WebGLOffscreenStrategy,
 	          WebGLImageSourceDeclaration,
 	          WebGLMaterialDeclaration,
 	          WebGLModelSourceDeclaration,
@@ -274,10 +276,18 @@ describe("public package exports", () => {
           release: "both-directions-complete",
         } satisfies WebGLGateScrollBehavior;
         gateScroll satisfies WebGLScrollBehavior;
-	        const lifecycle = {
-	          hideWhenReady: true,
-	          hideMode: "subtree",
-	        } satisfies WebGLLifecycleDeclaration;
+        const offscreenStrategy: WebGLOffscreenStrategy = "restore-dom";
+        const offscreenLifecycle: WebGLOffscreenLifecycleDeclaration = {
+          strategy: offscreenStrategy,
+        };
+        const lifecycle = {
+          hideWhenReady: true,
+          hideMode: "subtree",
+        } satisfies WebGLLifecycleDeclaration;
+        const lifecycleWithOffscreen = {
+          ...lifecycle,
+          offscreen: offscreenLifecycle,
+        };
         const material = {
           kind: "solid",
           color: 0x111827,
@@ -397,7 +407,7 @@ describe("public package exports", () => {
 	          renderRole,
 	          scroll: pageScroll,
 	          pointer: pointerDeclaration,
-		          lifecycle,
+		          lifecycle: lifecycleWithOffscreen,
 		          effects,
 		        } satisfies WebGLDeclaration;
 		        const arrayEffectDeclaration = {

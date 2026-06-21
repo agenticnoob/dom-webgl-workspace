@@ -58,6 +58,14 @@ export type WebGLPointerDeclaration = {
 export type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
   hideMode?: "subtree" | "self";
+  offscreen?: WebGLOffscreenLifecycleDeclaration;
+};
+
+export type WebGLOffscreenStrategy = "restore-dom" | "park";
+
+export type WebGLOffscreenLifecycleDeclaration = {
+  strategy?: WebGLOffscreenStrategy;
+  warmTtlMs?: number;
 };
 
 export type WebGLSolidMaterialDeclaration = {

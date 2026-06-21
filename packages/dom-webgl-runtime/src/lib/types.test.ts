@@ -62,6 +62,22 @@ describe("WebGLDeclaration public types", () => {
 	          hideWhenReady: true,
 	          hideMode: "subtree",
 	        } satisfies WebGLLifecycleDeclaration;
+        const restoreDomLifecycle = {
+          hideWhenReady: true,
+          hideMode: "self",
+          offscreen: {
+            strategy: "restore-dom",
+            warmTtlMs: 0,
+          },
+        } satisfies WebGLLifecycleDeclaration;
+        const parkLifecycle = {
+          hideWhenReady: true,
+          hideMode: "self",
+          offscreen: {
+            strategy: "park",
+            warmTtlMs: 1500,
+          },
+        } satisfies WebGLLifecycleDeclaration;
         const material = {
           kind: "solid",
           color: 0x111827,
@@ -109,6 +125,8 @@ describe("WebGLDeclaration public types", () => {
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
         surfaceDeclaration.effects?.material?.kind satisfies "surface";
         subtreeLifecycle satisfies WebGLLifecycleDeclaration;
+        restoreDomLifecycle satisfies WebGLLifecycleDeclaration;
+        parkLifecycle satisfies WebGLLifecycleDeclaration;
         lifecycleState satisfies
           | "declared"
           | "preloading"
@@ -119,6 +137,14 @@ describe("WebGLDeclaration public types", () => {
           | "paused"
           | "disposed"
           | "error";
+
+        ({
+          hideWhenReady: true,
+          offscreen: {
+            // @ts-expect-error offscreen strategy only supports restore-dom or park.
+            strategy: "keep-active",
+          },
+        } satisfies WebGLLifecycleDeclaration);
 
         ({
           hideWhenReady: true,
