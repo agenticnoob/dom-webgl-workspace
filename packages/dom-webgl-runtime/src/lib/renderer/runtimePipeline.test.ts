@@ -771,6 +771,483 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("parks near-offscreen renderables without restoring DOM fallback", async () => {
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const setVisible = vi.fn();
+    const update = vi.fn();
+    const runtime = await createPipelineRuntime({
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          setVisible(nextVisible);
+          originalSetVisible(nextVisible);
+        };
+        renderable.update = (frameInput) => {
+          update(frameInput);
+          return originalUpdate(frameInput);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.park",
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "subtree",
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+    expect(update).toHaveBeenCalledTimes(1);
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+
+    expect(setVisible).toHaveBeenLastCalledWith(false);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(element.style.visibility).toBe("hidden");
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.park",
+      lifecycleState: "paused",
+      visible: false,
+    });
+
+    runtime.dispose();
+  });
+
+  test("resumes parked renderables once without forcing visibility on later active syncs", async () => {
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const setVisible = vi.fn();
+    const runtime = await createPipelineRuntime({
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          setVisible(nextVisible);
+          originalSetVisible(nextVisible);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.resume",
+      lifecycle: {
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+    });
+
+    await runtime.sync();
+    expect(setVisible).not.toHaveBeenCalled();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+    expect(setVisible.mock.calls).toEqual([[false]]);
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+    expect(setVisible.mock.calls).toEqual([[false], [true]]);
+
+    await runtime.sync();
+    expect(setVisible.mock.calls).toEqual([[false], [true]]);
+
+    runtime.dispose();
+  });
+
+  test("resume preserves effect-owned hidden visibility that was applied through ctx.target", async () => {
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const renderableSetVisible = vi.fn();
+    const effectTargetSetVisible = vi.fn();
+    const effectUpdate = vi.fn();
+    let effectTargetVisible = true;
+    let createdRenderable: Renderable | undefined;
+    const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.hideTarget",
+          source: "snapshot/element",
+          update(ctx) {
+            effectUpdate();
+            ctx.target?.setVisible(false);
+          },
+        }),
+      ],
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        createdRenderable = renderable;
+        let sceneVisible = true;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible: sceneVisible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          sceneVisible = nextVisible;
+          renderableSetVisible(nextVisible);
+          originalSetVisible(nextVisible);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.resume-hidden",
+      lifecycle: {
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+      effects: [{ kind: "custom.hideTarget" }],
+    });
+
+    await runtime.sync();
+    const originalTarget = createdRenderable?.effectTarget;
+    expect(originalTarget).toBeDefined();
+
+    Object.defineProperty(createdRenderable as Renderable, "effectTarget", {
+      configurable: true,
+      get: () =>
+        originalTarget
+          ? {
+              ...originalTarget,
+              setVisible(nextVisible: boolean) {
+                effectTargetVisible = nextVisible;
+                effectTargetSetVisible(nextVisible);
+                originalTarget.setVisible(nextVisible);
+              },
+            }
+          : undefined,
+    });
+
+    await runtime.sync();
+    expect(effectUpdate).toHaveBeenCalledTimes(2);
+    expect(effectTargetSetVisible.mock.calls).toEqual([[false]]);
+    expect(effectTargetVisible).toBe(false);
+    expect(renderableSetVisible).not.toHaveBeenCalled();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(renderableSetVisible.mock.calls).toEqual([[false], [false]]);
+    expect(effectTargetSetVisible.mock.calls).toEqual([[false], [false]]);
+    expect(effectTargetSetVisible).not.toHaveBeenCalledWith(true);
+    expect(effectTargetVisible).toBe(false);
+
+    runtime.dispose();
+  });
+
+  test("far-offscreen dispose does not let stale effect visibility leak into same-key rebuild resume", async () => {
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const renderableSetVisible: Array<ReturnType<typeof vi.fn>> = [];
+    const effectUpdate = vi.fn();
+    const effectDispose = vi.fn();
+    const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.disposeVisibilityLeak",
+          source: "snapshot/element",
+          update(ctx) {
+            effectUpdate();
+            void ctx;
+          },
+          dispose(ctx) {
+            effectDispose();
+            ctx.target?.setVisible(false);
+          },
+        }),
+      ],
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        const setVisible = vi.fn();
+        renderableSetVisible.push(setVisible);
+        let visible = true;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          setVisible(nextVisible);
+          originalSetVisible(nextVisible);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.dispose-visibility-stale",
+      lifecycle: {
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+      effects: [{ kind: "custom.disposeVisibilityLeak" }],
+    });
+
+    await runtime.sync();
+    expect(effectUpdate).toHaveBeenCalledTimes(1);
+    expect(renderableSetVisible).toHaveLength(1);
+
+    measurement = createLayoutMeasurement(0, 3_600, 200, 120);
+    await runtime.sync();
+
+    expect(effectDispose).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.dispose-visibility-stale",
+      lifecycleState: "disposed",
+      visible: false,
+    });
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(effectUpdate).toHaveBeenCalledTimes(2);
+    expect(renderableSetVisible).toHaveLength(2);
+    expect(renderableSetVisible[1]).not.toHaveBeenCalled();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+    expect(renderableSetVisible[1].mock.calls).toEqual([[false]]);
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(renderableSetVisible[1].mock.calls).toEqual([[false], [true]]);
+
+    runtime.dispose();
+  });
+
+  test("old async completions do not replay post-update side effects after park and resume", async () => {
+    const effectUpdate = vi.fn();
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    let resolveUpdate: (() => void) | undefined;
+    const updateLayout = vi.fn();
+    const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.asyncProbe",
+          source: "snapshot/element",
+          update: effectUpdate,
+        }),
+      ],
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        let updateCallCount = 0;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+        const originalUpdate = renderable.update.bind(renderable);
+        const originalUpdateLayout = renderable.updateLayout?.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          originalSetVisible(nextVisible);
+        };
+        renderable.update = (input) => {
+          updateCallCount += 1;
+          if (updateCallCount === 1) {
+            return new Promise<void>((resolve) => {
+              resolveUpdate = resolve;
+            }).then(() => originalUpdate(input));
+          }
+          return originalUpdate(input);
+        };
+        renderable.updateLayout = (snapshot) => {
+          updateLayout(snapshot);
+          originalUpdateLayout?.(snapshot);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.async-park",
+      lifecycle: {
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+      effects: [{ kind: "custom.asyncProbe" }],
+    });
+
+    const firstSync = runtime.sync();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.async-park",
+      lifecycleState: "paused",
+      visible: false,
+    });
+    expect(updateLayout).not.toHaveBeenCalled();
+    expect(effectUpdate).not.toHaveBeenCalled();
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(updateLayout).toHaveBeenCalledTimes(1);
+    expect(effectUpdate).toHaveBeenCalledTimes(1);
+
+    resolveUpdate?.();
+    await firstSync;
+
+    expect(updateLayout).toHaveBeenCalledTimes(1);
+    expect(effectUpdate).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.async-park",
+      lifecycleState: "active",
+      visible: true,
+    });
+
+    runtime.dispose();
+  });
+
+  test("stale async reject after park and resume does not fail the old sync or restore fallback", async () => {
+    const element = document.createElement("section");
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    let rejectOldUpdate: ((error: unknown) => void) | undefined;
+    const runtime = await createPipelineRuntime({
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        let visible = true;
+        let updateCallCount = 0;
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible,
+          }),
+        });
+        const originalSetVisible = renderable.setVisible.bind(renderable);
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.setVisible = (nextVisible) => {
+          visible = nextVisible;
+          originalSetVisible(nextVisible);
+        };
+        renderable.update = (input) => {
+          updateCallCount += 1;
+          if (updateCallCount === 1) {
+            return new Promise<void>((_resolve, reject) => {
+              rejectOldUpdate = reject;
+            }).then(() => originalUpdate(input));
+          }
+          return originalUpdate(input);
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.async-stale-reject",
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "subtree",
+        offscreen: { strategy: "park", warmTtlMs: 2_000 },
+      },
+    });
+
+    const firstSync = runtime.sync();
+
+    measurement = createLayoutMeasurement(0, 1_800, 200, 120);
+    await runtime.sync();
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(element.style.visibility).toBe("hidden");
+    rejectOldUpdate?.(new Error("stale async reject"));
+    await expect(firstSync).resolves.toBeUndefined();
+    expect(element.style.visibility).toBe("hidden");
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.async-stale-reject",
+      resourceStatus: "ready",
+      lifecycleState: "active",
+      visible: true,
+    });
+    expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
+
+    runtime.dispose();
+  });
+
+  test("active async reject still marks the target as error and restores fallback", async () => {
+    const element = document.createElement("section");
+    let rejectUpdate: ((error: unknown) => void) | undefined;
+    const runtime = await createPipelineRuntime({
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible: true,
+          }),
+        });
+        const originalUpdate = renderable.update.bind(renderable);
+
+        renderable.update = (input) =>
+          new Promise<void>((_resolve, reject) => {
+            rejectUpdate = reject;
+          }).then(() => originalUpdate(input));
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.async-reject",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    const syncResult = runtime.sync();
+
+    expect(element.style.visibility).toBe("");
+    rejectUpdate?.(new Error("active async reject"));
+    await expect(syncResult).rejects.toThrow("active async reject");
+    expect(element.style.visibility).toBe("");
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.async-reject",
+      resourceStatus: "error",
+      lifecycleState: "error",
+    });
+
+    runtime.dispose();
+  });
+
   test("reports active gate state through runtime debug state", async () => {
     const scrollController = createGateAwareScrollController();
     const runtime = await createPipelineRuntime({ scrollState: scrollController });
