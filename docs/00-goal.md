@@ -1130,6 +1130,11 @@ Delivered third-party adapter boundary:
 - Core exposes `WebGLScrollAdapter` for applications that already own Lenis,
   GSAP ScrollTrigger, or another scroll system.
 - Optional third-party glue lives in `@project/dom-webgl-scroll-adapters`.
+- `@project/dom-webgl-scroll-adapters` provides
+  `createLenisGsapScrollStack(...)` as the recommended opt-in stack for
+  applications that want Lenis + GSAP ticker + ScrollTrigger wiring.
+- This stack does not change the core default: no `scrollAdapter` means native
+  browser scroll.
 - Core must not import Lenis, GSAP, or ScrollTrigger directly.
 - Effects continue to consume normalized `ctx.scroll` / `ctx.scrollProgress`,
   not third-party scroll instances.

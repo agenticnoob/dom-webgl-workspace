@@ -182,11 +182,14 @@ Current visual behavior:
   intentionally out of scope. Third-party scroll integration now uses a small
   public `WebGLScrollAdapter` protocol in core plus the optional
   `@project/dom-webgl-scroll-adapters` package for Lenis, GSAP ticker, and
-  ScrollTrigger glue. Offscreen resource policy is target-scoped: active targets
-  own renderables; near-offscreen parked targets pause effects and hide WebGL
-  scene objects; far-offscreen targets restore native DOM fallback and dispose
-  WebGL resources, and re-entry from disposal rebuilds from source while
-  re-entry from park resumes existing renderables.
+  ScrollTrigger glue. The optional scroll adapters package also exposes
+  `createLenisGsapScrollStack(...)` as the official opt-in convenience entry for
+  that wiring; omitting `scrollAdapter` still uses native browser scroll.
+  Offscreen resource policy is target-scoped: active targets own renderables;
+  near-offscreen parked targets pause effects and hide WebGL scene objects;
+  far-offscreen targets restore native DOM fallback and dispose WebGL resources,
+  and re-entry from disposal rebuilds from source while re-entry from park
+  resumes existing renderables.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas
@@ -205,7 +208,9 @@ Current visual behavior:
   Shader authoring APIs, core-provided particle systems, public Three.js render
   flags, multiple canvases, and raycast picking remain out of core scope.
   Third-party scroll libraries integrate through `WebGLScrollAdapter` and the
-  optional scroll adapters package, not through direct core dependencies.
+  optional scroll adapters package, not through direct core dependencies. The
+  recommended Lenis + GSAP ticker + ScrollTrigger route is the opt-in
+  `createLenisGsapScrollStack(...)` stack.
 - Phase 6.1/6.2 are now historical implementation phases. Their legacy
   `effects.material` / `effects.motion` declaration shapes still type-check and
   compile into effect entries, but the package no longer provides matching
