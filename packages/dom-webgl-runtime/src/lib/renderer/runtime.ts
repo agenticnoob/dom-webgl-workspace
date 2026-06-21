@@ -861,6 +861,8 @@ function createTrackedEffectTarget(
   target: WebGLEffectTarget,
   effectVisibilityByTargetKey: Map<string, boolean>,
 ): WebGLEffectTarget {
+  const addObject3D = target.addObject3D;
+
   return {
     setVisible(visible) {
       effectVisibilityByTargetKey.set(key, visible);
@@ -875,8 +877,8 @@ function createTrackedEffectTarget(
     setOpacity(opacity) {
       target.setOpacity(opacity);
     },
-    addObject3D: target.addObject3D
-      ? (object3D, options) => target.addObject3D?.(object3D, options)
+    addObject3D: addObject3D
+      ? (object3D, options) => addObject3D(object3D, options)
       : undefined,
     disposeEffects: target.disposeEffects ? () => target.disposeEffects?.() : undefined,
   };

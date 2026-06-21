@@ -20,7 +20,7 @@ export function compileOffscreenPolicy(
 }
 
 function normalizeWarmTtl(warmTtlMs: number | undefined): number {
-  if (!Number.isFinite(warmTtlMs) || warmTtlMs <= 0) {
+  if (warmTtlMs === undefined || !Number.isFinite(warmTtlMs) || warmTtlMs <= 0) {
     return 0;
   }
 
