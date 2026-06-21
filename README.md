@@ -179,9 +179,12 @@ Current visual behavior:
   explicit reverse gate behavior.
 - Concrete text animation effects, shader authoring APIs, core-provided
   particle systems, animation layers, WebGL raycast picking, Lenis, GSAP, and
-  ScrollTrigger adapters remain intentionally out of scope. Offscreen renderable
-  or snapshot caching is not implemented yet; disposed targets currently restore
-  DOM fallback and rebuild from source when they become active again.
+  ScrollTrigger adapters remain intentionally out of scope. Offscreen resource
+  policy is target-scoped: active targets own renderables; near-offscreen parked
+  targets pause effects and hide WebGL scene objects; far-offscreen targets
+  restore native DOM fallback and dispose WebGL resources, and re-entry from
+  disposal rebuilds from source while re-entry from park resumes existing
+  renderables.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas

@@ -143,13 +143,15 @@ Lifecycle rules:
 
 - `hideWhenReady: true` is the default for registered targets.
 - `hideWhenReady: false` keeps DOM fallback visible.
-- `hideMode: "self"` hides the target node after WebGL readiness.
-- `hideMode: "subtree"` hides the target subtree after WebGL readiness.
+- `hideMode: "self"` is the safe default for mixed DOM/WebGL targets; children stay native DOM unless they register their own target.
+- `hideMode: "subtree"` hides the target subtree after WebGL readiness and is only for explicitly WebGL-owned subtrees.
 - Failed or pending renderables keep fallback DOM visible.
-- When viewport lifecycle unloads a ready offscreen renderable, the runtime
-  restores fallback visibility before disposal so the target does not disappear.
-- Offscreen renderable or snapshot caching is not implemented yet. A disposed
-  target rebuilds from the DOM/source when it becomes active again.
+- `lifecycle.offscreen.strategy: "restore-dom"` is the default far-offscreen
+  policy: restore native DOM fallback before disposing offscreen renderables.
+- `lifecycle.offscreen.strategy: "park"` enables near-offscreen parking: keep
+  renderables briefly, pause effects, and hide the WebGL scene object.
+- `lifecycle.offscreen.warmTtlMs` sets how long parking is retained before the
+  runtime restores DOM fallback and disposes resources.
 
 ## WebGL-Owned Text And Surface
 
