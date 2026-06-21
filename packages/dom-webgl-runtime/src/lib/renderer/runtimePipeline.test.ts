@@ -771,6 +771,36 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("offscreen disposal with self mode does not hide unregistered child DOM", async () => {
+    const element = document.createElement("section");
+    const child = document.createElement("button");
+    child.style.visibility = "visible";
+    element.appendChild(child);
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+
+    const runtime = await createPipelineRuntime({
+      measureElement: () => measurement,
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.unregistered-child",
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+    });
+
+    await runtime.sync();
+
+    expect(element.style.visibility).toBe("hidden");
+    expect(child.style.visibility).toBe("visible");
+
+    measurement = createLayoutMeasurement(0, 3_600, 200, 120);
+    await runtime.sync();
+
+    expect(element.style.visibility).toBe("");
+    expect(child.style.visibility).toBe("visible");
+
+    runtime.dispose();
+  });
+
   test("parks near-offscreen renderables without restoring DOM fallback", async () => {
     const element = document.createElement("section");
     let measurement = createLayoutMeasurement(0, 0, 200, 120);

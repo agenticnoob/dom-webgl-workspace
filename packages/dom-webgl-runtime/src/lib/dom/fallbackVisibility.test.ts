@@ -67,6 +67,30 @@ describe("createFallbackVisibilityController", () => {
     expect(child.style.visibility).toBe("visible");
   });
 
+  test("self mode restores only the target fallback and preserves child inline visibility", () => {
+    const element = document.createElement("section");
+    const child = document.createElement("button");
+    child.style.visibility = "visible";
+    child.textContent = "Launch";
+    element.appendChild(child);
+
+    const controller = createFallbackVisibilityController(element, {
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+
+    controller.hide();
+
+    expect(element.style.visibility).toBe("hidden");
+    expect(child.style.visibility).toBe("visible");
+
+    controller.restore();
+
+    expect(element.getAttribute("style")).toBeNull();
+    expect(child.style.visibility).toBe("visible");
+    expect(child.textContent).toBe("Launch");
+  });
+
   test("parent self mode does not override nested managed fallback targets", () => {
     const parent = document.createElement("section");
     const child = document.createElement("p");
