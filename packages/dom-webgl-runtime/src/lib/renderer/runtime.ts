@@ -412,21 +412,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       let renderable = renderablesByTargetKey.get(descriptor.key);
 
       if (viewportState === "disposed") {
-        parkedAtByTargetKey.delete(descriptor.key);
-        parkedVisibilityByTargetKey.delete(descriptor.key);
-        lifecycleVersionByTargetKey.delete(descriptor.key);
-        disposeTrackedEffectController(
-          descriptor.key,
+        disposeOffscreenRenderable({
+          key: descriptor.key,
+          renderable,
+          restoreFallback: true,
+          fallbackControllersByTargetKey,
           effectControllersByTargetKey,
           effectVisibilityByTargetKey,
-        );
-        if (renderable) {
-          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
-          retiredRenderables.add(renderable);
-          renderable.dispose();
-          renderables.delete(renderable);
-          renderablesByTargetKey.delete(descriptor.key);
-        }
+          renderables,
+          renderablesByTargetKey,
+          parkedAtByTargetKey,
+          parkedVisibilityByTargetKey,
+          lifecycleVersionByTargetKey,
+          retiredRenderables,
+        });
         debugRecord.lifecycleState = "disposed";
         debugRecord.visible = false;
         continue;
@@ -446,19 +445,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             now: frameInput.time,
           })
         ) {
-          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
-          disposeTrackedEffectController(
-            descriptor.key,
+          disposeOffscreenRenderable({
+            key: descriptor.key,
+            renderable,
+            restoreFallback: true,
+            fallbackControllersByTargetKey,
             effectControllersByTargetKey,
             effectVisibilityByTargetKey,
-          );
-          retiredRenderables.add(renderable);
-          renderable.dispose();
-          renderables.delete(renderable);
-          renderablesByTargetKey.delete(descriptor.key);
-          parkedAtByTargetKey.delete(descriptor.key);
-          parkedVisibilityByTargetKey.delete(descriptor.key);
-          lifecycleVersionByTargetKey.delete(descriptor.key);
+            renderables,
+            renderablesByTargetKey,
+            parkedAtByTargetKey,
+            parkedVisibilityByTargetKey,
+            lifecycleVersionByTargetKey,
+            retiredRenderables,
+          });
           debugRecord.lifecycleState = "disposed";
           debugRecord.visible = false;
           continue;
@@ -818,6 +818,42 @@ function restoreAllFallbackVisibility(
   for (const controller of fallbackControllersByTargetKey.values()) {
     controller.restore();
   }
+}
+
+function disposeOffscreenRenderable(input: {
+  key: string;
+  renderable: Renderable | undefined;
+  restoreFallback: boolean;
+  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>;
+  effectControllersByTargetKey: Map<string, WebGLEffectController>;
+  effectVisibilityByTargetKey: Map<string, boolean>;
+  renderables: Set<DisposableRenderable>;
+  renderablesByTargetKey: Map<string, Renderable>;
+  parkedAtByTargetKey: Map<string, number>;
+  parkedVisibilityByTargetKey: Map<string, boolean>;
+  lifecycleVersionByTargetKey: Map<string, number>;
+  retiredRenderables: WeakSet<Renderable>;
+}): void {
+  if (input.restoreFallback) {
+    restoreFallbackVisibility(input.fallbackControllersByTargetKey, input.key);
+  }
+
+  disposeTrackedEffectController(
+    input.key,
+    input.effectControllersByTargetKey,
+    input.effectVisibilityByTargetKey,
+  );
+
+  if (input.renderable) {
+    input.retiredRenderables.add(input.renderable);
+    input.renderable.dispose();
+    input.renderables.delete(input.renderable);
+  }
+
+  input.renderablesByTargetKey.delete(input.key);
+  input.parkedAtByTargetKey.delete(input.key);
+  input.parkedVisibilityByTargetKey.delete(input.key);
+  input.lifecycleVersionByTargetKey.delete(input.key);
 }
 
 function createTrackedEffectTarget(
