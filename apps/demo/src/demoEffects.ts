@@ -64,6 +64,50 @@ export const demoPointerTiltEffect = defineWebGLEffect<{
   },
 });
 
+export const demoScrollImageZoomEffect = defineWebGLEffect<{
+  kind: "demo.scrollImageZoom";
+  maxScale?: number;
+}>({
+  kind: "demo.scrollImageZoom",
+  source: "image",
+  setup(ctx, params) {
+    applyScrollImageZoom(ctx, params);
+  },
+  update(ctx, _state, params) {
+    applyScrollImageZoom(ctx, params);
+  },
+});
+
+function applyScrollImageZoom(
+  ctx: Parameters<typeof demoScrollImageZoomEffect.update>[0],
+  params: { maxScale?: number },
+) {
+  const progress = readStickyStageProgress(ctx);
+  const maxScale = clampNumber(params.maxScale, 1, 3, 1.72);
+  const scale = 1 + (maxScale - 1) * progress;
+
+  ctx.target?.setScale(scale, scale, 1);
+}
+
+function readStickyStageProgress(
+  ctx: Parameters<typeof demoScrollImageZoomEffect.update>[0],
+): number {
+  if (ctx.source.kind !== "image") {
+    return 0;
+  }
+
+  const stage = ctx.source.element.parentElement;
+  const viewportHeight = Math.max(1, ctx.layout.viewport.height);
+  const stageRect = stage?.getBoundingClientRect();
+  if (!stageRect) {
+    return 0;
+  }
+
+  const scrollRange = Math.max(1, stageRect.height - viewportHeight);
+
+  return clampNumber(-stageRect.top / scrollRange, 0, 1, 0);
+}
+
 export const demoCapabilitySurfaceEffect = defineWebGLEffect<{
   kind: "demo.capabilitySurface";
 }>({
@@ -125,6 +169,261 @@ export const demoCapabilityTextLayerEffect = defineWebGLEffect<{
     return;
   },
 });
+
+const SCRAMBLED_TEXT_CHARACTERS = "!<>-_\\/[]{}--=+*^?#________";
+
+type DemoPointerTextState = {
+  activity: number;
+  lastPointerX: number | undefined;
+  lastPointerY: number | undefined;
+  lastTime: number | undefined;
+};
+
+export const demoScrambledTextEffect = defineWebGLEffect<{
+  kind: "demo.scrambledText";
+  characters?: string;
+  intensity?: number;
+  radius?: number;
+  speed?: number;
+  trailMs?: number;
+}, DemoPointerTextState>({
+  kind: "demo.scrambledText",
+  source: "snapshot/text",
+  setup(ctx, params) {
+    if (ctx.source.kind !== "snapshot/text") {
+      return createPointerTextState();
+    }
+
+    const state = createPointerTextState();
+
+    applyScrambledTextGlyphs(ctx, state, params);
+
+    return state;
+  },
+  update(ctx, state, params) {
+    if (ctx.source.kind !== "snapshot/text") {
+      return;
+    }
+
+    applyScrambledTextGlyphs(ctx, state, params);
+  },
+});
+
+function applyScrambledTextGlyphs(
+  ctx: Parameters<typeof demoScrambledTextEffect.update>[0],
+  state: DemoPointerTextState,
+  params: {
+    characters?: string;
+    intensity?: number;
+    radius?: number;
+    speed?: number;
+    trailMs?: number;
+  },
+) {
+  if (ctx.source.kind !== "snapshot/text") {
+    return;
+  }
+
+  const textLayer = ctx.source.textLayer;
+  if (!textLayer) {
+    return;
+  }
+
+  updatePointerTextActivity(ctx, state, {
+    trailMs: params.trailMs,
+  });
+  const intensity = clampNumber(params.intensity, 0, 1, 0.84) * state.activity;
+  const radius = clampNumber(params.radius, 8, 240, 72);
+  const speed = clampNumber(params.speed, 1, 32, 12);
+  const characters = params.characters?.length
+    ? params.characters
+    : SCRAMBLED_TEXT_CHARACTERS;
+  const frame = Math.floor((ctx.time / 1000) * speed);
+  const localPointerX = ctx.pointer.x - ctx.layout.left;
+  const localPointerY = ctx.pointer.y - ctx.layout.top;
+
+  textLayer.setGlyphs((glyphs) =>
+    glyphs.map((glyph) => {
+      const glyphCenterX = glyph.x + glyph.width / 2;
+      const glyphCenterY = glyph.y - glyph.height / 2;
+      const distance = Math.hypot(
+        glyphCenterX - localPointerX,
+        glyphCenterY - localPointerY,
+      );
+      const proximity = Math.max(0, 1 - distance / radius);
+      const glyphIntensity = intensity * proximity;
+
+      if (!glyph.char.trim() || glyphIntensity <= 0) {
+        return {
+          index: glyph.index,
+          char: glyph.char,
+          opacity: 1,
+        };
+      }
+
+      const noise = seededUnit(frame, glyph.index);
+      const shouldScramble = noise < glyphIntensity;
+      const char = shouldScramble
+        ? characters[Math.floor(noise * characters.length) % characters.length]
+        : glyph.char;
+      const jitter = shouldScramble ? (seededUnit(frame + 17, glyph.index) - 0.5) * 3 : 0;
+
+      return {
+        index: glyph.index,
+        char,
+        y: glyph.y + jitter,
+        color: shouldScramble ? "#4be1ec" : undefined,
+        opacity: 1,
+        scaleX: shouldScramble ? 1.04 : 1,
+        scaleY: shouldScramble ? 1.08 : 1,
+      };
+    }),
+  );
+}
+
+export const demoTextPressureEffect = defineWebGLEffect<{
+  kind: "demo.textPressure";
+  intensity?: number;
+  radius?: number;
+  trailMs?: number;
+}, DemoPointerTextState>({
+  kind: "demo.textPressure",
+  source: "snapshot/text",
+  setup(ctx, params) {
+    const state = createPointerTextState();
+
+    if (ctx.source.kind === "snapshot/text") {
+      applyTextPressureGlyphs(ctx, state, params);
+    }
+
+    return state;
+  },
+  update(ctx, state, params) {
+    if (ctx.source.kind !== "snapshot/text") {
+      return;
+    }
+
+    applyTextPressureGlyphs(ctx, state, params);
+  },
+});
+
+function applyTextPressureGlyphs(
+  ctx: Parameters<typeof demoTextPressureEffect.update>[0],
+  state: DemoPointerTextState,
+  params: {
+    intensity?: number;
+    radius?: number;
+    trailMs?: number;
+  },
+) {
+  if (ctx.source.kind !== "snapshot/text") {
+    return;
+  }
+
+  const textLayer = ctx.source.textLayer;
+  if (!textLayer) {
+    return;
+  }
+
+  updatePointerTextActivity(ctx, state, {
+    trailMs: params.trailMs,
+  });
+  const intensity = clampNumber(params.intensity, 0, 1, 0.9) * state.activity;
+  const radius = clampNumber(params.radius, 8, 260, 76);
+  const localPointerX = ctx.pointer.x - ctx.layout.left;
+  const localPointerY = ctx.pointer.y - ctx.layout.top;
+
+  textLayer.setGlyphs((glyphs) =>
+    glyphs.map((glyph) => {
+      const proximity = readGlyphPointerProximity(
+        glyph,
+        localPointerX,
+        localPointerY,
+        radius,
+      );
+      const pressure = intensity * proximity;
+
+      if (!glyph.char.trim() || pressure <= 0) {
+        return {
+          index: glyph.index,
+          char: glyph.char,
+          opacity: 1,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+        };
+      }
+
+      const direction = glyph.x + glyph.width / 2 < localPointerX ? -1 : 1;
+
+      return {
+        index: glyph.index,
+        char: glyph.char,
+        color: "#ffcf5a",
+        opacity: 1,
+        rotation: direction * pressure * 0.11,
+        scaleX: 1 - pressure * 0.22,
+        scaleY: 1 + pressure * 0.65,
+      };
+    }),
+  );
+}
+
+function createPointerTextState(): DemoPointerTextState {
+  return {
+    activity: 0,
+    lastPointerX: undefined,
+    lastPointerY: undefined,
+    lastTime: undefined,
+  };
+}
+
+function updatePointerTextActivity(
+  ctx: Parameters<typeof demoScrambledTextEffect.update>[0],
+  state: DemoPointerTextState,
+  params: { trailMs?: number },
+) {
+  const pointerInTarget =
+    ctx.pointer.isInside &&
+    ctx.pointer.x >= ctx.layout.left &&
+    ctx.pointer.x <= ctx.layout.right &&
+    ctx.pointer.y >= ctx.layout.top &&
+    ctx.pointer.y <= ctx.layout.bottom;
+  const moved =
+    state.lastPointerX !== undefined &&
+    state.lastPointerY !== undefined &&
+    (Math.abs(ctx.pointer.x - state.lastPointerX) > 0.5 ||
+      Math.abs(ctx.pointer.y - state.lastPointerY) > 0.5);
+  const elapsed =
+    state.lastTime === undefined ? 0 : Math.max(0, ctx.time - state.lastTime);
+  const trailMs = clampNumber(params.trailMs, 40, 1000, 260);
+
+  if (pointerInTarget && moved) {
+    state.activity = 1;
+  } else {
+    state.activity = Math.max(0, state.activity - elapsed / trailMs);
+  }
+
+  state.lastPointerX = ctx.pointer.x;
+  state.lastPointerY = ctx.pointer.y;
+  state.lastTime = ctx.time;
+}
+
+function readGlyphPointerProximity(
+  glyph: { x: number; y: number; width: number; height: number },
+  localPointerX: number,
+  localPointerY: number,
+  radius: number,
+): number {
+  const glyphCenterX = glyph.x + glyph.width / 2;
+  const glyphCenterY = glyph.y + glyph.height / 2;
+  const distance = Math.hypot(
+    glyphCenterX - localPointerX,
+    glyphCenterY - localPointerY,
+  );
+
+  return Math.max(0, 1 - distance / radius);
+}
 
 export const demoCapabilityImageTextureEffect = defineWebGLEffect<{
   kind: "demo.capabilityImageTexture";
@@ -336,6 +635,12 @@ function clampNumber(
   }
 
   return Math.min(max, Math.max(min, value));
+}
+
+function seededUnit(a: number, b: number): number {
+  const value = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+
+  return value - Math.floor(value);
 }
 
 function setObjectRotation(

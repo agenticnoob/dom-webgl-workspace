@@ -5,6 +5,7 @@ import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
+import { ScrollZoomImage } from "./ScrollZoomImage";
 import {
   demoCapabilityImageTextureEffect,
   demoCapabilitySurfaceEffect,
@@ -13,7 +14,10 @@ import {
   demoGLBVertexParticlesEffect,
   demoGLBRotateEffect,
   demoPointerTiltEffect,
+  demoScrambledTextEffect,
+  demoScrollImageZoomEffect,
   demoSurfaceEffect,
+  demoTextPressureEffect,
 } from "./demoEffects";
 
 const demoRuntimeEffects = [
@@ -25,6 +29,9 @@ const demoRuntimeEffects = [
   demoCapabilityVideoPlaybackEffect,
   demoGLBRotateEffect,
   demoGLBVertexParticlesEffect,
+  demoScrambledTextEffect,
+  demoScrollImageZoomEffect,
+  demoTextPressureEffect,
 ] as const;
 
 export default function App() {
@@ -73,7 +80,14 @@ export default function App() {
               webgl={{
                 key: "demo.text",
                 source: { kind: "snapshot", mode: "text" },
-                effects: [{ kind: "demo.capabilityTextLayer" }],
+                effects: [
+                  { kind: "demo.capabilityTextLayer" },
+                  {
+                    kind: "demo.textPressure",
+                    intensity: 0.95,
+                    radius: 92,
+                  },
+                ],
                 // lifecycle: { hideWhenReady: false },
               }}
             >
@@ -159,6 +173,11 @@ export default function App() {
               webgl={{
                 key: "demo.layout.text",
                 source: { kind: "snapshot", mode: "text" },
+                effects: [{
+                  kind: "demo.textPressure",
+                  intensity: 1.95,
+                  radius: 50,
+                },],
               }}
             >
               Multi-line text snapshot with centered alignment and responsive line
@@ -218,27 +237,21 @@ export default function App() {
             </header>
 
             <div className="demo-scroll-stack">
-              <WebGLTarget
-                className="demo-scroll-card demo-scroll-card--mint"
-                webgl={{
-                  key: "demo.scroll.marker.01",
-                  source: { kind: "snapshot", mode: "element" },
-                  effects: [
-                    { kind: "demo.surface", opacity: 0.58 },
-                    { kind: "demo.pointerTilt", strength: 0.25, maxDegrees: 4 },
-                  ],
-                }}
+              <ScrollZoomImage
+                alt="Full-bleed mountain background scroll zoom target"
+                src="/demo/bg.png"
+                webglKey="demo.scroll.marker.01"
               >
                 <div>
                   <p className="demo-label">Scroll marker 01 / 滚动标记 01</p>
-                  <strong>Top threshold / 顶部阈值</strong>
+                  <strong>Native sticky zoom / 原生滚动缩放</strong>
                   <span>
-                    Large element anchor for checking enter and leave ranges near the hero.
-                    大尺寸元素锚点，用来检查 hero 附近的进入和离开区间。
+                    Sticky DOM structure keeps the page scroll native while WebGL scales the image
+                    and captures this content target. sticky DOM 结构保持原生滚动，WebGL 同时缩放图片并捕获这组内容。
                   </span>
                 </div>
                 <em>0-15%</em>
-              </WebGLTarget>
+              </ScrollZoomImage>
 
               <WebGLTarget
                 className="demo-scroll-card demo-scroll-card--sky"
@@ -258,6 +271,14 @@ export default function App() {
                     webgl={{
                       key: "demo.scroll.marker.02.copy",
                       source: { kind: "snapshot", mode: "text" },
+                      effects: [
+                        {
+                          kind: "demo.scrambledText",
+                          intensity: 0.9,
+                          radius: 84,
+                          speed: 18,
+                        },
+                      ],
                     }}
                   >
                     Text snapshot target with enough copy to expose line wrapping during scroll.

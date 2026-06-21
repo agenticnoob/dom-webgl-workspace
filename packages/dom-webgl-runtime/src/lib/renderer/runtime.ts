@@ -390,6 +390,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (viewportState === "disposed") {
         if (renderable) {
+          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
           effectControllersByTargetKey.get(descriptor.key)?.dispose();
           effectControllersByTargetKey.delete(descriptor.key);
           renderable.dispose();

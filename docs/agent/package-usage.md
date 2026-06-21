@@ -146,6 +146,10 @@ Lifecycle rules:
 - `hideMode: "self"` hides the target node after WebGL readiness.
 - `hideMode: "subtree"` hides the target subtree after WebGL readiness.
 - Failed or pending renderables keep fallback DOM visible.
+- When viewport lifecycle unloads a ready offscreen renderable, the runtime
+  restores fallback visibility before disposal so the target does not disappear.
+- Offscreen renderable or snapshot caching is not implemented yet. A disposed
+  target rebuilds from the DOM/source when it becomes active again.
 
 ## WebGL-Owned Text And Surface
 
@@ -324,6 +328,19 @@ DOM text remains the source of content, accessibility, and fallback.
 `textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
 output layer. Effects should not mutate DOM text for visual animation.
 
+Glyph coordinates are text-layer local CSS-pixel coordinates. `glyph.x` and
+`glyph.y` describe the glyph's top-left drawing position, and `glyph.height`
+matches the line height. For pointer-local text effects such as scrambled text
+or text pressure, compute the visual center as:
+
+```ts
+const centerX = glyph.x + glyph.width / 2;
+const centerY = glyph.y + glyph.height / 2;
+```
+
+Do not treat `glyph.y` as a baseline or subtract half the glyph height; doing so
+shifts the effect radius away from the cursor.
+
 The package core does not include scrambled text, text pressure, image
 distortion, media playback, or model particle effects. Those are application
 effects built on these primitives.
@@ -434,8 +451,15 @@ Effect-specific tests should cover:
 - `setup` creates resources once;
 - `update` uses `ctx.delta` for motion;
 - target-local pointer math maps through `ctx.layout`;
+- text glyph pointer effects use `glyph.y + glyph.height / 2` for visual
+  center proximity;
 - transformed model picking accounts for current object transform;
 - `dispose` releases effect-owned resources and restores source mutations.
+
+Effect-specific behavior such as whether a hover animation decays while the
+pointer is stationary, or whether all glyphs or only nearby glyphs react, belongs
+to the consuming effect contract. Do not record those product choices as package
+pitfalls unless they expose a reusable coordinate, lifecycle, or ownership bug.
 
 ## Common Failures
 
@@ -444,6 +468,8 @@ Effect-specific tests should cover:
 - Runtime recreates in React: `effects` array identity changes on render.
 - Pointer offset: effect compares runtime normalized pointer coordinates directly
   to target-local coordinates.
+- Text effect vertical drift: effect treats `glyph.y` as a baseline and uses
+  `glyph.y - glyph.height / 2`; glyph `y` is already the top drawing position.
 - Rotating model interaction drift: effect hit-tests unrotated model-local
   vertices while visible model is transformed.
 - Resource leak: effect creates objects/listeners without `ctx.resources`.

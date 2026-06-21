@@ -726,6 +726,51 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("restores hidden fallback when viewport lifecycle disposes a ready renderable", async () => {
+    const element = document.createElement("section");
+    const dispose = vi.fn();
+    let measurement = createLayoutMeasurement(0, 0, 200, 120);
+    const runtime = await createPipelineRuntime({
+      measureElement: () => measurement,
+      onRenderableCreated(renderable) {
+        Object.defineProperty(renderable, "sceneObjectController", {
+          configurable: true,
+          get: () => ({
+            attached: true,
+            visible: true,
+          }),
+        });
+        const originalDispose = renderable.dispose.bind(renderable);
+
+        renderable.dispose = () => {
+          dispose();
+          originalDispose();
+        };
+      },
+    });
+
+    runtime.registerTarget(element, {
+      key: "hero.lifecycle",
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+    });
+
+    await runtime.sync();
+    expect(element.style.visibility).toBe("hidden");
+
+    measurement = createLayoutMeasurement(0, 3_600, 200, 120);
+    await runtime.sync();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(element.style.visibility).toBe("");
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.lifecycle",
+      lifecycleState: "disposed",
+      visible: false,
+    });
+
+    runtime.dispose();
+  });
+
   test("reports active gate state through runtime debug state", async () => {
     const scrollController = createGateAwareScrollController();
     const runtime = await createPipelineRuntime({ scrollState: scrollController });

@@ -64,6 +64,10 @@ Current demo behavior:
   media, narrow viewport layout, a Phase 8 effect authoring harness, and extra
   scroll-event marker targets for testing effect behavior across longer page
   travel.
+- The first scroll marker uses a demo-owned `ScrollZoomImage` component:
+  `/demo/bg.png` is rendered as a full-bleed sticky image target, a native page
+  scroll segment drives the image zoom effect, and an overlaid gallery moves
+  horizontally while its image and caption items are declared as WebGL targets.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -159,6 +163,9 @@ Current visual behavior:
   `hideMode: "self"` unless lifecycle options opt out or request subtree hiding.
 - Loading and error renderables keep fallback DOM visible.
 - Unregistering a target or disposing the runtime restores fallback visibility.
+  Viewport lifecycle disposal also restores fallback visibility before releasing
+  a ready renderable, so targets that were hidden after WebGL readiness do not
+  disappear when their offscreen renderable is unloaded.
 - `hideMode: "subtree"` hides the target and descendants after readiness.
 - `hideMode: "self"` hides only the target's own fallback paint while preserving
   child DOM visibility; nested managed WebGL targets keep their own fallback
@@ -172,7 +179,9 @@ Current visual behavior:
   explicit reverse gate behavior.
 - Concrete text animation effects, shader authoring APIs, core-provided
   particle systems, animation layers, WebGL raycast picking, Lenis, GSAP, and
-  ScrollTrigger adapters remain intentionally out of scope.
+  ScrollTrigger adapters remain intentionally out of scope. Offscreen renderable
+  or snapshot caching is not implemented yet; disposed targets currently restore
+  DOM fallback and rebuild from source when they become active again.
 - The runtime keeps one WebGL canvas per runtime instance and does not expose
   Three.js `renderOrder`, `transparent`, or `depthWrite` in the public API.
 - Phase 3.5 replaced the bridge sync with a renderer-owned loop, made the canvas

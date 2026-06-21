@@ -111,6 +111,15 @@ describe("demo App", () => {
       "demo.effects.surface",
       "demo.effects.surface.phase6",
       "demo.scroll.marker.01",
+      "demo.scroll.marker.01.content",
+      "demo.scroll.marker.01.gallery.0",
+      "demo.scroll.marker.01.gallery.0.caption",
+      "demo.scroll.marker.01.gallery.1",
+      "demo.scroll.marker.01.gallery.1.caption",
+      "demo.scroll.marker.01.gallery.2",
+      "demo.scroll.marker.01.gallery.2.caption",
+      "demo.scroll.marker.01.gallery.3",
+      "demo.scroll.marker.01.gallery.3.caption",
       "demo.scroll.marker.02",
       "demo.scroll.marker.02.copy",
       "demo.scroll.marker.03",
@@ -162,7 +171,43 @@ describe("demo App", () => {
       },
       {
         key: "demo.scroll.marker.01",
+        source: { kind: "image", src: "/demo/bg.png" },
+      },
+      {
+        key: "demo.scroll.marker.01.content",
         source: { kind: "snapshot", mode: "element" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.0",
+        source: { kind: "image", src: "/demo/image.png" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.0.caption",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.1",
+        source: { kind: "image", src: "/demo/layout-cover.png" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.1.caption",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.2",
+        source: { kind: "image", src: "/demo/bg.png" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.2.caption",
+        source: { kind: "snapshot", mode: "text" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.3",
+        source: { kind: "image", src: "/demo/image.png" },
+      },
+      {
+        key: "demo.scroll.marker.01.gallery.3.caption",
+        source: { kind: "snapshot", mode: "text" },
       },
       {
         key: "demo.scroll.marker.02",
@@ -213,7 +258,16 @@ describe("demo App", () => {
       "img",
       "div",
       "section",
+      "img",
       "div",
+      "img",
+      "figcaption",
+      "img",
+      "figcaption",
+      "img",
+      "figcaption",
+      "img",
+      "figcaption",
       "div",
       "p",
       "div",
@@ -237,7 +291,14 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.text")).toMatchObject({
       key: "demo.text",
       source: { kind: "snapshot", mode: "text" },
-      effects: [{ kind: "demo.capabilityTextLayer" }],
+      effects: [
+        { kind: "demo.capabilityTextLayer" },
+        {
+          kind: "demo.textPressure",
+          intensity: 0.95,
+          radius: 92,
+        },
+      ],
     });
     expect(webglDeclarationFor("demo.image")).toMatchObject({
       key: "demo.image",
@@ -308,6 +369,9 @@ describe("demo App", () => {
         expect.objectContaining({ kind: "demo.capabilityTextLayer" }),
         expect.objectContaining({ kind: "demo.capabilityImageTexture" }),
         expect.objectContaining({ kind: "demo.capabilityVideoPlayback" }),
+        expect.objectContaining({ kind: "demo.scrambledText" }),
+        expect.objectContaining({ kind: "demo.textPressure" }),
+        expect.objectContaining({ kind: "demo.scrollImageZoom" }),
       ]),
     });
 
@@ -354,15 +418,37 @@ describe("demo App", () => {
     const targetKeys = targetProps.map(({ webgl }) => (webgl as { key: string }).key);
 
     expect(host.querySelector('[aria-label="Scroll event effect targets"]')).not.toBeNull();
-    expect(scrollTargets).toHaveLength(10);
+    expect(scrollTargets).toHaveLength(19);
     expect(new Set(targetKeys).size).toBe(targetKeys.length);
     expect(webglDeclarationFor("demo.scroll.marker.01")).toMatchObject({
       key: "demo.scroll.marker.01",
-      source: { kind: "snapshot", mode: "element" },
+      source: { kind: "image", src: "/demo/bg.png" },
       effects: [
-        { kind: "demo.surface", opacity: 0.58 },
-        { kind: "demo.pointerTilt", strength: 0.25, maxDegrees: 4 },
+        { kind: "demo.scrollImageZoom", maxScale: 1.72 },
       ],
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.01")).not.toHaveProperty(
+      "scroll",
+    );
+    expect(targetProps.find(({ webgl }) =>
+      (webgl as { key: string }).key === "demo.scroll.marker.01",
+    )?.as).toBe("img");
+    expect(host.querySelector(".demo-scroll-zoom-stage")).not.toBeNull();
+    expect(host.textContent).toContain("Native sticky zoom");
+    expect(webglDeclarationFor("demo.scroll.marker.01.content")).toMatchObject({
+      key: "demo.scroll.marker.01.content",
+      source: { kind: "snapshot", mode: "element" },
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.01.content")).not.toHaveProperty(
+      "scroll",
+    );
+    expect(webglDeclarationFor("demo.scroll.marker.01.gallery.0")).toMatchObject({
+      key: "demo.scroll.marker.01.gallery.0",
+      source: { kind: "image", src: "/demo/image.png" },
+    });
+    expect(webglDeclarationFor("demo.scroll.marker.01.gallery.0.caption")).toMatchObject({
+      key: "demo.scroll.marker.01.gallery.0.caption",
+      source: { kind: "snapshot", mode: "text" },
     });
     expect(webglDeclarationFor("demo.scroll.marker.02")).toMatchObject({
       key: "demo.scroll.marker.02",
@@ -373,6 +459,14 @@ describe("demo App", () => {
     expect(webglDeclarationFor("demo.scroll.marker.02.copy")).toMatchObject({
       key: "demo.scroll.marker.02.copy",
       source: { kind: "snapshot", mode: "text" },
+      effects: [
+        {
+          kind: "demo.scrambledText",
+          intensity: 0.9,
+          radius: 84,
+          speed: 18,
+        },
+      ],
     });
     expect(targetProps.find(({ webgl }) =>
       (webgl as { key: string }).key === "demo.scroll.marker.02.copy",
@@ -449,16 +543,16 @@ describe("demo App", () => {
     expect(host.textContent).not.toContain("Fidelity");
   });
 
-  test("does not enable scene gate locking in the default scroll demo", async () => {
+  test("keeps the scroll demo on native page scrolling without scene gates", async () => {
     await renderApp();
 
-    expect(
-      targetProps.every(({ webgl }) => {
-        const scroll = (webgl as { scroll?: Record<string, unknown> }).scroll;
+    const gatedTargets = targetProps.filter(({ webgl }) => {
+      const scroll = (webgl as { scroll?: Record<string, unknown> }).scroll;
 
-        return scroll?.type !== "gate";
-      }),
-    ).toBe(true);
+      return scroll?.type === "gate";
+    });
+
+    expect(gatedTargets).toHaveLength(0);
   });
 });
 

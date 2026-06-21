@@ -22,4 +22,24 @@ describe("demo CSS", () => {
     expect(css).toMatch(/\.demo-card-media\s*\{[^}]*height: 100%/);
     expect(css).not.toMatch(/\.demo-card-media\s*\{[^}]*aspect-ratio:/);
   });
+
+  test("renders the first scroll marker image as a native sticky full-bleed cover target", () => {
+    const css = readFileSync(resolve(__dirname, "demo.css"), "utf8");
+
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*--demo-scroll-zoom-progress: 0/);
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*height: 220vh/);
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*position: relative/);
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*margin-left: calc/);
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*margin-bottom: 42vh/);
+    expect(css).toMatch(/\.demo-scroll-zoom-stage\s*\{[^}]*overflow: clip/);
+    expect(css).toMatch(/\.demo-scroll-card--zoom-image\s*\{[^}]*width: 100vw/);
+    expect(css).toMatch(/\.demo-scroll-card--zoom-image\s*\{[^}]*height: 100vh/);
+    expect(css).toMatch(/\.demo-scroll-card--zoom-image\s*\{[^}]*position: sticky/);
+    expect(css).toMatch(/\.demo-scroll-card--zoom-image\s*\{[^}]*top: 0/);
+    expect(css).toMatch(/\.demo-scroll-card--zoom-image\s*\{[^}]*object-fit: cover/);
+    expect(css).toMatch(/\.demo-scroll-zoom-gallery-viewport\s*\{[^}]*position: sticky/);
+    expect(css).toMatch(/\.demo-scroll-zoom-gallery-viewport\s*\{[^}]*margin-top: -100vh/);
+    expect(css).toMatch(/\.demo-scroll-zoom-gallery\s*\{[^}]*width: max-content/);
+    expect(css).toContain("var(--demo-scroll-zoom-progress) * var(--demo-scroll-zoom-gallery-travel)");
+  });
 });

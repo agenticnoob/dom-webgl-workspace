@@ -7,7 +7,10 @@ import {
   demoCapabilityVideoPlaybackEffect,
   demoGLBVertexParticlesEffect,
   demoGLBRotateEffect,
+  demoScrambledTextEffect,
+  demoScrollImageZoomEffect,
   demoSurfaceEffect,
+  demoTextPressureEffect,
 } from "./demoEffects";
 
 describe("demoSurfaceEffect", () => {
@@ -192,6 +195,423 @@ describe("demo capability effects", () => {
     expect(video.play).toHaveBeenCalledTimes(1);
     expect(video.setMuted).toHaveBeenCalledWith(true);
     expect(video.setPlaybackRate).toHaveBeenCalledWith(1.15);
+  });
+
+  test("scrambles text glyphs while pointer is inside", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 160, height: 60 },
+      pointer: { isInside: true, x: 130, y: 120 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer,
+      },
+      time: 1_250,
+    });
+
+    const state = demoScrambledTextEffect.setup?.(context, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+    if (!state) {
+      throw new Error("Expected demo.scrambledText setup state");
+    }
+    demoScrambledTextEffect.update(
+      createCapabilityContext({
+        layout: { left: 100, top: 100, width: 160, height: 60 },
+        pointer: { isInside: true, x: 146, y: 124 },
+        source: {
+          kind: "snapshot/text",
+          element: document.createElement("p"),
+          text: "Hello",
+          textLayer,
+        },
+        time: 1_266,
+      }),
+      state,
+      { kind: "demo.scrambledText", intensity: 1 },
+    );
+
+    expect(textLayer.setGlyphs).toHaveBeenCalled();
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "e"),
+      createGlyph(2, "l"),
+      createGlyph(3, "l"),
+      createGlyph(4, "o"),
+      createGlyph(20, "!"),
+    ]) ?? []) as Array<{ index: number; char?: string; opacity?: number }>;
+
+    expect(commands.slice(0, 5).some((command) => command.char !== "Hello"[command.index])).toBe(true);
+    expect(commands.find((command) => command.index === 20)?.char).toBe("!");
+    expect(commands?.every((command) => command.opacity === 1)).toBe(true);
+  });
+
+  test("restores original text glyphs when pointer leaves", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      pointer: { isInside: false },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer,
+      },
+      time: 1_250,
+    });
+
+    const state = demoScrambledTextEffect.setup?.(context, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+    if (!state) {
+      throw new Error("Expected demo.scrambledText setup state");
+    }
+    demoScrambledTextEffect.update(context, state, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "e"),
+      createGlyph(2, "l"),
+      createGlyph(3, "l"),
+      createGlyph(4, "o"),
+    ]) ?? []) as Array<{ index: number; char?: string; opacity?: number }>;
+
+    expect(commands?.map((command) => command.char).join("")).toBe("Hello");
+  });
+
+  test("does not scramble when the pointer is inside the runtime but outside the text layout", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 160, height: 60 },
+      pointer: { isInside: true, x: 20, y: 20 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer,
+      },
+      time: 1_250,
+    });
+
+    const state = demoScrambledTextEffect.setup?.(context, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+    if (!state) {
+      throw new Error("Expected demo.scrambledText setup state");
+    }
+    demoScrambledTextEffect.update(context, state, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "e"),
+      createGlyph(2, "l"),
+      createGlyph(3, "l"),
+      createGlyph(4, "o"),
+    ]) ?? []) as Array<{ index: number; char?: string }>;
+
+    expect(commands.map((command) => command.char).join("")).toBe("Hello");
+  });
+
+  test("does not keep scrambling from time alone when the pointer is stationary", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 160, height: 60 },
+      pointer: { isInside: true, x: 140, y: 120 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Hello",
+        textLayer,
+      },
+      time: 1_250,
+    });
+
+    const state = demoScrambledTextEffect.setup?.(context, {
+      kind: "demo.scrambledText",
+      intensity: 1,
+    });
+    if (!state) {
+      throw new Error("Expected demo.scrambledText setup state");
+    }
+    demoScrambledTextEffect.update(
+      createCapabilityContext({
+        layout: { left: 100, top: 100, width: 160, height: 60 },
+        pointer: { isInside: true, x: 140, y: 120 },
+        source: {
+          kind: "snapshot/text",
+          element: document.createElement("p"),
+          text: "Hello",
+          textLayer,
+        },
+        time: 1_500,
+      }),
+      state,
+      { kind: "demo.scrambledText", intensity: 1 },
+    );
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "e"),
+      createGlyph(2, "l"),
+      createGlyph(3, "l"),
+      createGlyph(4, "o"),
+    ]) ?? []) as Array<{ index: number; char?: string }>;
+
+    expect(commands.map((command) => command.char).join("")).toBe("Hello");
+  });
+
+  test("pressurizes only glyphs near a moving pointer inside the text layout", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 180, height: 80 },
+      pointer: { isInside: true, x: 130, y: 120 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("h2"),
+        text: "HELLO!",
+        textLayer,
+      },
+      time: 2_000,
+    });
+
+    const state = demoTextPressureEffect.setup?.(context, {
+      kind: "demo.textPressure",
+      intensity: 1,
+      radius: 54,
+    });
+    if (!state) {
+      throw new Error("Expected demo.textPressure setup state");
+    }
+    demoTextPressureEffect.update(
+      createCapabilityContext({
+        layout: { left: 100, top: 100, width: 180, height: 80 },
+        pointer: { isInside: true, x: 138, y: 122 },
+        source: {
+          kind: "snapshot/text",
+          element: document.createElement("h2"),
+          text: "HELLO!",
+          textLayer,
+        },
+        time: 2_016,
+      }),
+      state,
+      { kind: "demo.textPressure", intensity: 1, radius: 54 },
+    );
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "E"),
+      createGlyph(2, "L"),
+      createGlyph(3, "L"),
+      createGlyph(18, "!"),
+    ]) ?? []) as Array<{
+      index: number;
+      char?: string;
+      color?: string;
+      rotation?: number;
+      scaleX?: number;
+      scaleY?: number;
+    }>;
+
+    expect(commands.slice(0, 4).some((command) => (command.scaleY ?? 1) > 1)).toBe(
+      true,
+    );
+    expect(commands.slice(0, 4).some((command) => (command.scaleX ?? 1) < 1)).toBe(
+      true,
+    );
+    expect(commands.find((command) => command.index === 18)).toMatchObject({
+      char: "!",
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+    });
+  });
+
+  test("uses glyph visual center instead of baseline math for pressure proximity", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 180, height: 80 },
+      pointer: { isInside: true, x: 110, y: 130 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("h2"),
+        text: "A",
+        textLayer,
+      },
+      time: 2_000,
+    });
+
+    const state = demoTextPressureEffect.setup?.(context, {
+      kind: "demo.textPressure",
+      intensity: 1,
+      radius: 18,
+    });
+    if (!state) {
+      throw new Error("Expected demo.textPressure setup state");
+    }
+    demoTextPressureEffect.update(
+      createCapabilityContext({
+        layout: { left: 100, top: 100, width: 180, height: 80 },
+        pointer: { isInside: true, x: 111, y: 130 },
+        source: {
+          kind: "snapshot/text",
+          element: document.createElement("h2"),
+          text: "A",
+          textLayer,
+        },
+        time: 2_016,
+      }),
+      state,
+      { kind: "demo.textPressure", intensity: 1, radius: 18 },
+    );
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      {
+        ...createGlyph(0, "A"),
+        x: 5,
+        y: 20,
+        width: 10,
+        height: 20,
+      },
+    ]) ?? []) as Array<{ index: number; scaleY?: number }>;
+
+    expect(commands[0]?.scaleY).toBeGreaterThan(1);
+  });
+
+  test("does not pressurize text from runtime pointer state outside the text layout", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createCapabilityContext({
+      layout: { left: 100, top: 100, width: 180, height: 80 },
+      pointer: { isInside: true, x: 40, y: 40 },
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("h2"),
+        text: "HELLO",
+        textLayer,
+      },
+      time: 2_000,
+    });
+
+    const state = demoTextPressureEffect.setup?.(context, {
+      kind: "demo.textPressure",
+      intensity: 1,
+    });
+    if (!state) {
+      throw new Error("Expected demo.textPressure setup state");
+    }
+    demoTextPressureEffect.update(context, state, {
+      kind: "demo.textPressure",
+      intensity: 1,
+    });
+
+    const transform = textLayer.setGlyphs.mock.calls.at(-1)?.[0];
+    const commands = (transform?.([
+      createGlyph(0, "H"),
+      createGlyph(1, "E"),
+      createGlyph(2, "L"),
+    ]) ?? []) as Array<{ index: number; scaleX?: number; scaleY?: number }>;
+
+    expect(commands.every((command) => command.scaleX === 1)).toBe(true);
+    expect(commands.every((command) => command.scaleY === 1)).toBe(true);
+  });
+
+  test("scales scroll image targets from their sticky stage progress", () => {
+    const target = {
+      setScale: vi.fn(),
+    };
+    demoScrollImageZoomEffect.setup?.(
+      createImageZoomContext({
+        stageRect: { top: 0, height: 1200 },
+        target,
+      }),
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+
+    demoScrollImageZoomEffect.update(
+      createImageZoomContext({
+        stageRect: { top: -300, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+    demoScrollImageZoomEffect.update(
+      createImageZoomContext({
+        stageRect: { top: -600, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+
+    expect(target.setScale).toHaveBeenNthCalledWith(1, 1, 1, 1);
+    expect(target.setScale).toHaveBeenNthCalledWith(2, 1.4, 1.4, 1);
+    expect(target.setScale).toHaveBeenNthCalledWith(3, 1.8, 1.8, 1);
+  });
+
+  test("reverses scroll image target scale when sticky stage progress moves backward", () => {
+    const target = {
+      setScale: vi.fn(),
+    };
+    demoScrollImageZoomEffect.setup?.(
+      createImageZoomContext({
+        stageRect: { top: -600, height: 1200 },
+        target,
+      }),
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+
+    demoScrollImageZoomEffect.update(
+      createImageZoomContext({
+        stageRect: { top: -300, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+    demoScrollImageZoomEffect.update(
+      createImageZoomContext({
+        stageRect: { top: 0, height: 1200 },
+        target,
+      }),
+      undefined,
+      { kind: "demo.scrollImageZoom", maxScale: 1.8 },
+    );
+
+    expect(target.setScale).toHaveBeenNthCalledWith(1, 1.8, 1.8, 1);
+    expect(target.setScale).toHaveBeenNthCalledWith(2, 1.4, 1.4, 1);
+    expect(target.setScale).toHaveBeenNthCalledWith(3, 1, 1, 1);
   });
 });
 
@@ -443,33 +863,63 @@ function createPointCloud(options: { positions?: Float32Array } = {}) {
   };
 }
 
-function createCapabilityContext(options: { source: unknown; target?: unknown }) {
+function createGlyph(index: number, char: string) {
+  return {
+    index,
+    char,
+    line: 0,
+    x: index * 10,
+    y: 20,
+    width: 10,
+    height: 20,
+    baseline: 16,
+  };
+}
+
+function createCapabilityContext(options: {
+  layout?: Partial<{
+    height: number;
+    left: number;
+    top: number;
+    width: number;
+  }>;
+  pointer?: Partial<{
+    isInside: boolean;
+    normalizedX: number;
+    normalizedY: number;
+    x: number;
+    y: number;
+  }>;
+  source: unknown;
+  target?: unknown;
+  time?: number;
+}) {
   return {
     key: "demo.capability",
     sourceKind: "snapshot/element",
     layout: {
-      x: 0,
-      y: 0,
-      width: 320,
-      height: 180,
-      top: 0,
-      right: 320,
-      bottom: 180,
-      left: 0,
+      x: options.layout?.left ?? 0,
+      y: options.layout?.top ?? 0,
+      width: options.layout?.width ?? 320,
+      height: options.layout?.height ?? 180,
+      top: options.layout?.top ?? 0,
+      right: (options.layout?.left ?? 0) + (options.layout?.width ?? 320),
+      bottom: (options.layout?.top ?? 0) + (options.layout?.height ?? 180),
+      left: options.layout?.left ?? 0,
       viewport: { width: 800, height: 600 },
       devicePixelRatio: 1,
       layoutSignature: "capability",
     },
     input: {
-      time: 0,
+      time: options.time ?? 0,
       delta: 16,
       scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
       pointer: {
-        x: -1,
-        y: -1,
-        normalizedX: 0,
-        normalizedY: 0,
-        isInside: false,
+        x: options.pointer?.x ?? -1,
+        y: options.pointer?.y ?? -1,
+        normalizedX: options.pointer?.normalizedX ?? 0,
+        normalizedY: options.pointer?.normalizedY ?? 0,
+        isInside: options.pointer?.isInside ?? false,
         isDown: false,
         downTime: 0,
         pressDuration: 0,
@@ -482,11 +932,11 @@ function createCapabilityContext(options: { source: unknown; target?: unknown })
       },
     },
     pointer: {
-      x: -1,
-      y: -1,
-      normalizedX: 0,
-      normalizedY: 0,
-      isInside: false,
+      x: options.pointer?.x ?? -1,
+      y: options.pointer?.y ?? -1,
+      normalizedX: options.pointer?.normalizedX ?? 0,
+      normalizedY: options.pointer?.normalizedY ?? 0,
+      isInside: options.pointer?.isInside ?? false,
       isDown: false,
       downTime: 0,
       pressDuration: 0,
@@ -499,7 +949,7 @@ function createCapabilityContext(options: { source: unknown; target?: unknown })
     },
     scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
     scrollProgress: 0,
-    time: 0,
+    time: options.time ?? 0,
     delta: 16,
     source: options.source,
     target: options.target,
@@ -509,6 +959,42 @@ function createCapabilityContext(options: { source: unknown; target?: unknown })
       dispose: vi.fn(),
     },
   } as Parameters<typeof demoCapabilitySurfaceEffect.update>[0];
+}
+
+function createImageZoomContext(options: {
+  stageRect: { top: number; height: number };
+  target: unknown;
+}) {
+  const image = document.createElement("img");
+  image.src = "/demo/bg.png";
+  const stage = document.createElement("section");
+  stage.append(image);
+  stage.getBoundingClientRect = vi.fn(() => ({
+    bottom: options.stageRect.top + options.stageRect.height,
+    height: options.stageRect.height,
+    left: 0,
+    right: 320,
+    top: options.stageRect.top,
+    width: 320,
+    x: 0,
+    y: options.stageRect.top,
+    toJSON: () => ({}),
+  }));
+
+  const baseContext = createCapabilityContext({
+    source: {
+      kind: "image",
+      element: image,
+      src: "/demo/bg.png",
+    },
+    target: options.target,
+  });
+
+  return {
+    ...baseContext,
+    key: "demo.scroll.marker.01",
+    sourceKind: "image",
+  } as Parameters<typeof demoScrollImageZoomEffect.update>[0];
 }
 
 function createEffectContext(
