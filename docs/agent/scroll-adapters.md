@@ -51,7 +51,13 @@ const smoothScroll = createLenisGsapScrollStack({
 ```
 
 When Lenis is manually driven by the GSAP ticker, configure Lenis with
-`autoRaf: false` in the application-owned Lenis setup.
+`autoRaf: false` in the application-owned Lenis setup. The demo imports
+`lenis/dist/lenis.css`, creates the Lenis instance inside
+`useDemoSmoothScrollStack(...)`, passes it to `createLenisGsapScrollStack(...)`
+with `manageLenis: false`, and destroys Lenis from the same hook cleanup. This
+keeps ownership simple: the app owns Lenis, while the adapter stack owns only
+runtime adapter subscriptions, GSAP ticker wiring, and optional ScrollTrigger
+updates.
 
 ### 3. Custom Adapter
 

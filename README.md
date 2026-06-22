@@ -66,9 +66,13 @@ Current demo behavior:
   travel.
 - The first scroll marker uses a demo-owned `ScrollZoomImage` component:
   `/demo/bg.png` is rendered as a full-bleed sticky image target, the demo's
-  opt-in Lenis + GSAP ticker stack feeds normalized page progress, and an
-  overlaid gallery moves horizontally while its image and caption items are
-  declared as WebGL targets.
+  opt-in Lenis + GSAP ticker stack feeds normalized page progress through the
+  local `useDemoSmoothScrollStack(...)` hook, and an overlaid gallery moves
+  horizontally while its image and caption items are declared as WebGL targets.
+  The demo owns the Lenis instance lifecycle, passes it to
+  `createLenisGsapScrollStack(...)` with `manageLenis: false`, and keeps the
+  optional adapter stack responsible only for runtime adapter subscriptions,
+  GSAP ticker wiring, and ScrollTrigger updates.
 - The default demo does not enable scene gates, so normal page scrolling cannot
   be trapped by a demo gate lock. Scene-gate declarations remain covered by
   dedicated runtime, React adapter, and public type tests.
@@ -211,7 +215,9 @@ Current visual behavior:
   Third-party scroll libraries integrate through `WebGLScrollAdapter` and the
   optional scroll adapters package, not through direct core dependencies. The
   recommended Lenis + GSAP ticker + ScrollTrigger route is the opt-in
-  `createLenisGsapScrollStack(...)` stack.
+  `createLenisGsapScrollStack(...)` stack; applications that create a Lenis
+  instance should keep `manageLenis: false` and destroy Lenis from their own
+  lifecycle cleanup.
 - Phase 6.1/6.2 are now historical implementation phases. Their legacy
   `effects.material` / `effects.motion` declaration shapes still type-check and
   compile into effect entries, but the package no longer provides matching

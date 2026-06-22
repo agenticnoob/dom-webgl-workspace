@@ -3,6 +3,15 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
 describe("demo CSS", () => {
+  test("loads the Lenis recommended runtime CSS", () => {
+    const hookSource = readFileSync(
+      resolve(__dirname, "useDemoSmoothScrollStack.ts"),
+      "utf8",
+    );
+
+    expect(hookSource).toContain('import "lenis/dist/lenis.css";');
+  });
+
   test("keeps the vertical scrollbar gutter stable during runtime scroll", () => {
     const css = readFileSync(resolve(__dirname, "demo.css"), "utf8");
 

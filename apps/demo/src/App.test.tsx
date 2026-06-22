@@ -92,6 +92,7 @@ describe("demo App", () => {
     await act(async () => {
       root.render(createElement(App));
     });
+    await flushSmoothScrollPublishFrame();
 
     expect(runtimeProps).toHaveLength(1);
     expect(runtimeProps[0]?.className).toBe("demo-runtime");
@@ -577,8 +578,15 @@ async function renderApp(): Promise<HTMLElement> {
   await act(async () => {
     root.render(createElement(App));
   });
+  await flushSmoothScrollPublishFrame();
 
   return host;
+}
+
+async function flushSmoothScrollPublishFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+  });
 }
 
 function webglDeclarationFor(key: string): Record<string, unknown> | undefined {

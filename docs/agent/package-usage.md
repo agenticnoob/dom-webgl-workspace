@@ -162,6 +162,7 @@ const smoothScroll = createLenisGsapScrollStack({
   lenis,
   gsap,
   ScrollTrigger,
+  manageLenis: false,
 });
 
 const runtime = createWebGLRuntime({
@@ -175,7 +176,9 @@ Rules:
 - This stack is not the core runtime default; native scroll remains the default
   when `scrollAdapter` is omitted.
 - Configure Lenis with `autoRaf: false` when GSAP drives `lenis.raf(...)`.
-- Call `smoothScroll.dispose()` from the application lifecycle.
+- When the application creates Lenis, keep `manageLenis: false`, call
+  `smoothScroll.dispose()` from the application lifecycle, and explicitly call
+  `lenis.destroy()` from that same cleanup.
 - Use `smoothScroll.refresh(true)` after layout changes that should force
   ScrollTrigger to recalculate positions.
 

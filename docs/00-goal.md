@@ -1133,6 +1133,9 @@ Delivered third-party adapter boundary:
 - `@project/dom-webgl-scroll-adapters` provides
   `createLenisGsapScrollStack(...)` as the recommended opt-in stack for
   applications that want Lenis + GSAP ticker + ScrollTrigger wiring.
+- Applications that create their own Lenis instance should pass it with
+  `manageLenis: false` and destroy Lenis from the same application lifecycle
+  cleanup that disposes the adapter stack.
 - This stack does not change the core default: no `scrollAdapter` means native
   browser scroll.
 - Core must not import Lenis, GSAP, or ScrollTrigger directly.

@@ -1,14 +1,7 @@
 import * as React from "react";
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import type { WebGLDebugState } from "@project/dom-webgl-runtime";
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
-import {
-  createLenisGsapScrollStack,
-  type LenisGsapScrollStack,
-} from "@project/dom-webgl-scroll-adapters";
-import gsap from "gsap";
-import Lenis from "lenis";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import "./demo.css";
 import { DebugPanel } from "./debugPanel";
@@ -27,6 +20,7 @@ import {
   demoSurfaceEffect,
   demoTextPressureEffect,
 } from "./demoEffects";
+import { useDemoSmoothScrollStack } from "./useDemoSmoothScrollStack";
 
 const demoRuntimeEffects = [
   demoSurfaceEffect,
@@ -42,8 +36,6 @@ const demoRuntimeEffects = [
   demoScrollImageZoomEffect,
   demoTextPressureEffect,
 ] as const;
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
   const [debugState, setDebugState] = useState<WebGLDebugState>(createInitialDebugState);
@@ -439,29 +431,6 @@ export default function App() {
       </WebGLRuntime>
     </main>
   );
-}
-
-function useDemoSmoothScrollStack(): LenisGsapScrollStack | null {
-  const [smoothScroll, setSmoothScroll] = useState<LenisGsapScrollStack | null>(null);
-
-  useLayoutEffect(() => {
-    const lenis = new Lenis({ autoRaf: false });
-    const nextSmoothScroll = createLenisGsapScrollStack({
-      lenis,
-      gsap,
-      ScrollTrigger,
-      getViewportHeight: () => window.innerHeight,
-      manageLenis: true,
-    });
-
-    setSmoothScroll(nextSmoothScroll);
-
-    return () => {
-      nextSmoothScroll.dispose();
-    };
-  }, []);
-
-  return smoothScroll;
 }
 
 function createInitialDebugState(): WebGLDebugState {
