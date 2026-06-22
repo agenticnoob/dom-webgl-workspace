@@ -68,70 +68,14 @@ export type WebGLOffscreenLifecycleDeclaration = {
   warmTtlMs?: number;
 };
 
-export type WebGLSolidMaterialDeclaration = {
-  kind: "solid";
-  color?: number;
-  opacity?: number;
-};
-
-export type WebGLSurfaceMaterialDeclaration = {
-  kind: "surface";
-  color?: number;
-  opacity?: number;
-  radius?: number;
-};
-
-export type WebGLMaterialDeclaration =
-  | WebGLSolidMaterialDeclaration
-  | WebGLSurfaceMaterialDeclaration;
-
-export type WebGLMotionDeclaration = {
-  kind: "pointer-tilt";
-  strength?: number;
-  maxDegrees?: number;
-};
-
-export type WebGLSurfaceBasicEffectDeclaration = {
-  kind: "surface.basic";
-  color?: number;
-  opacity?: number;
-  radius?: number;
-};
-
-export type WebGLSolidMaterialEffectDeclaration = {
-  kind: "material.solid";
-  color?: number;
-  opacity?: number;
-};
-
-export type WebGLPointerTiltEffectDeclaration = {
-  kind: "motion.pointerTilt";
-  strength?: number;
-  maxDegrees?: number;
-};
-
-export type WebGLBuiltInEffectDeclaration =
-  | WebGLSurfaceBasicEffectDeclaration
-  | WebGLSolidMaterialEffectDeclaration
-  | WebGLPointerTiltEffectDeclaration;
-
 export type WebGLCustomEffectDeclaration = {
   kind: string;
   [property: string]: unknown;
 };
 
-export type WebGLEffectDeclaration =
-  | WebGLBuiltInEffectDeclaration
-  | WebGLCustomEffectDeclaration;
+export type WebGLEffectDeclaration = WebGLCustomEffectDeclaration;
 
-export type WebGLLegacyEffectsDeclaration = {
-  material?: WebGLMaterialDeclaration;
-  motion?: WebGLMotionDeclaration;
-};
-
-export type WebGLEffectsDeclaration =
-  | readonly WebGLEffectDeclaration[]
-  | WebGLLegacyEffectsDeclaration;
+export type WebGLEffectsDeclaration = readonly WebGLEffectDeclaration[];
 
 export type WebGLDeclaration = {
   key: string;

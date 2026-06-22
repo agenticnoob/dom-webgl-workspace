@@ -15,31 +15,12 @@ describe("compileWebGLEffectDeclarations", () => {
     ]);
   });
 
-  test("compiles legacy material and motion slots into ordered effect declarations", () => {
-    expect(
+  test("rejects legacy object-form effects", () => {
+    expect(() =>
       compileWebGLEffectDeclarations({
-        material: {
-          kind: "surface",
-          color: 0x222222,
-          opacity: 0.75,
-          radius: 24,
-        },
-        motion: { kind: "pointer-tilt", strength: 0.8, maxDegrees: 9 },
-      }),
-    ).toEqual([
-      { kind: "surface.basic", color: 0x222222, opacity: 0.75, radius: 24 },
-      { kind: "motion.pointerTilt", strength: 0.8, maxDegrees: 9 },
-    ]);
-  });
-
-  test("compiles legacy solid material into the explicit solid effect kind", () => {
-    expect(
-      compileWebGLEffectDeclarations({
-        material: { kind: "solid", color: 0xffffff, opacity: 0.9 },
-      }),
-    ).toEqual([
-      { kind: "material.solid", color: 0xffffff, opacity: 0.9 },
-    ]);
+        material: { kind: "solid" },
+      } as never),
+    ).toThrow("WebGL effects must be declared as an array of effect entries.");
   });
 
   test("returns an empty array when effects are not declared", () => {

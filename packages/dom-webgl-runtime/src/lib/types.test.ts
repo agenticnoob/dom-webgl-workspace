@@ -25,8 +25,6 @@ describe("WebGLDeclaration public types", () => {
 	          WebGLEffectsDeclaration,
 	          WebGLLifecycleState,
 	          WebGLLifecycleDeclaration,
-	          WebGLMaterialDeclaration,
-	          WebGLMotionDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLRenderRole,
 	          WebGLScrollBehavior,
@@ -78,52 +76,41 @@ describe("WebGLDeclaration public types", () => {
             warmTtlMs: 1500,
           },
         } satisfies WebGLLifecycleDeclaration;
-        const material = {
-          kind: "solid",
-          color: 0x111827,
-          opacity: 0.82,
-        } satisfies WebGLMaterialDeclaration;
-        const surfaceMaterial = {
-          kind: "surface",
-          color: 0x111827,
-          opacity: 0.86,
-          radius: 18,
-        } satisfies WebGLMaterialDeclaration;
-	        const motion = {
-	          kind: "pointer-tilt",
-	          strength: 0.6,
-	          maxDegrees: 8,
-	        } satisfies WebGLMotionDeclaration;
-	        const effects = {
-	          material,
-	          motion,
-	        } satisfies WebGLEffectsDeclaration;
+		        const arrayEffects = [
+		          { kind: "app.surface", opacity: 0.86 },
+		          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
+		        ] satisfies WebGLEffectsDeclaration;
+		        const legacyEffects = {
+		          material: { kind: "solid" as const, color: 0x111827, opacity: 0.82 },
+		          motion: { kind: "pointer-tilt" as const, strength: 0.6, maxDegrees: 8 },
+		        };
+		        // @ts-expect-error legacy object-form effects are no longer public contract.
+		        legacyEffects satisfies WebGLEffectsDeclaration;
 
-	        const declaration = {
-	          key: "hero.model",
-	          source,
+		        const declaration = {
+		          key: "hero.model",
+		          source,
 	          renderRole,
-	          scroll: pageScroll,
-	          pointer,
-	          lifecycle,
-	          effects,
-	        } satisfies WebGLDeclaration;
+		          scroll: pageScroll,
+		          pointer,
+		          lifecycle,
+		          effects: arrayEffects,
+		        } satisfies WebGLDeclaration;
 
         const gateDeclaration = {
           key: "hero.scene",
           scroll: gateScroll,
         } satisfies WebGLDeclaration;
-        const surfaceDeclaration = {
+        const legacyDeclaration = {
           key: "card.surface",
           source: { kind: "snapshot", mode: "element" },
-          effects: {
-            material: surfaceMaterial,
-          },
-        } satisfies WebGLDeclaration;
+          effects: legacyEffects,
+        };
 
         declaration.key satisfies string;
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
-        surfaceDeclaration.effects?.material?.kind satisfies "surface";
+        // @ts-expect-error legacy object-form effects are no longer public contract.
+        legacyDeclaration satisfies WebGLDeclaration;
         subtreeLifecycle satisfies WebGLLifecycleDeclaration;
         restoreDomLifecycle satisfies WebGLLifecycleDeclaration;
         parkLifecycle satisfies WebGLLifecycleDeclaration;
@@ -182,34 +169,13 @@ describe("WebGLDeclaration public types", () => {
 	          effects: ["blur"],
 	        } satisfies WebGLDeclaration);
 
-	        ({
-	          key: "hero.surface",
-	          // @ts-expect-error only built-in legacy material kinds are supported.
-	          effects: {
-	            material: {
-	              kind: "gradient",
-	            },
-	          },
-	        } satisfies WebGLDeclaration);
-
-	        ({
-	          key: "card.surface",
-	          // @ts-expect-error legacy surface colors are declaration-owned numeric values.
-	          effects: {
-	            material: {
-	              kind: "surface",
-	              color: "rgb(17, 24, 39)",
-	            },
-	          },
-        } satisfies WebGLDeclaration);
-
-	        ({
-	          key: "hero.surface",
-	          effects: {
-	            // @ts-expect-error custom effect callbacks are not public API.
-	            custom: () => undefined,
-	          },
-	        } satisfies WebGLDeclaration);
+		        ({
+		          key: "hero.surface",
+		          effects: {
+		            // @ts-expect-error target effects must be array-form declarations.
+		            custom: () => undefined,
+		          },
+		        } satisfies WebGLDeclaration);
 	      `,
 	    );
 

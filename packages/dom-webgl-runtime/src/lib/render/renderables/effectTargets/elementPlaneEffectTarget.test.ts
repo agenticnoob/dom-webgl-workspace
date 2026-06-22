@@ -62,6 +62,27 @@ describe("createElementPlaneEffectTarget", () => {
     material.dispose();
   });
 
+  test("preserves plane and object scale z defaults", () => {
+    const geometry = new PlaneGeometry(1, 1);
+    const material = new MeshBasicMaterial();
+    const mesh = new Mesh(geometry, material);
+    const scaleSet = vi.fn();
+    const objectTarget = createObject3DEffectTarget({
+      scale: { set: scaleSet },
+    });
+
+    createElementPlaneEffectTarget(mesh, material).setScale(2);
+    objectTarget?.setScale(2);
+
+    expect(mesh.scale.x).toBe(2);
+    expect(mesh.scale.y).toBe(2);
+    expect(mesh.scale.z).toBe(1);
+    expect(scaleSet).toHaveBeenCalledWith(2, 2, 2);
+
+    geometry.dispose();
+    material.dispose();
+  });
+
   test("sets opacity recursively for grouped object targets", () => {
     const childMaterial = { opacity: 1, transparent: false, needsUpdate: false };
     const nestedMaterial = { opacity: 1, transparent: false, needsUpdate: false };

@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Runtime viewport lifecycle disposal now restores fallback visibility before releasing a ready offscreen renderable, so hidden fallback DOM is not left invisible when WebGL resources are unloaded. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. Unified source capability handles now expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. Public target/model/common renderable handles include `setPosition(...)` scene-space control alongside visibility, rotation, scale, and opacity. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity. Offscreen resource policy is target-scoped. Far-offscreen targets restore native DOM fallback and dispose WebGL resources by default; near-offscreen parking is available through lifecycle offscreen policy for short warm resumes. Third-party scroll support now exposes a public adapter protocol in core and optional Lenis/GSAP/ScrollTrigger glue in `@project/dom-webgl-scroll-adapters`, while core keeps native scroll as the default and owns no direct third-party scroll dependency. The demo's smooth-scroll lifecycle is now localized in `useDemoSmoothScrollStack(...)`: the demo imports Lenis CSS, creates Lenis with `autoRaf: false`, `lerp: 0.055`, and `wheelMultiplier: 0.85`, passes it to `createLenisGsapScrollStack(...)` with `manageLenis: false`, and destroys Lenis from the same hook cleanup.
+Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Runtime viewport lifecycle disposal now restores fallback visibility before releasing a ready offscreen renderable, so hidden fallback DOM is not left invisible when WebGL resources are unloaded. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. The 2026-06-22 runtime contract and modularity optimization is implemented: target effects are array-form only, legacy object-form `effects.material` / `effects.motion` compatibility is removed, image/video declarations are tied to real `<img>` / `<video>` targets, and explicit image/video declarations on non-media elements throw instead of silently falling back to snapshots. The same pass globally caps model vertex sampling, indexes text glyph command lookup by glyph id, extracts shared object3D controls, splits source-kind scene renderable controllers behind the existing compatibility export path, and moves per-target runtime bookkeeping into `targetRuntimeState.ts`. Unified source capability handles expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. Public target/model/common renderable handles include `setPosition(...)` scene-space control alongside visibility, rotation, scale, and opacity. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local consumer examples. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity. Offscreen resource policy is target-scoped. Far-offscreen targets restore native DOM fallback and dispose WebGL resources by default; near-offscreen parking is available through lifecycle offscreen policy for short warm resumes. Third-party scroll support now exposes a public adapter protocol in core and optional Lenis/GSAP/ScrollTrigger glue in `@project/dom-webgl-scroll-adapters`, while core keeps native scroll as the default and owns no direct third-party scroll dependency. The demo's smooth-scroll lifecycle is now localized in `useDemoSmoothScrollStack(...)`: the demo imports Lenis CSS, creates Lenis with `autoRaf: false`, `lerp: 0.055`, and `wheelMultiplier: 0.85`, passes it to `createLenisGsapScrollStack(...)` with `manageLenis: false`, and destroys Lenis from the same hook cleanup.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -27,7 +27,12 @@ for downstream package integration and custom effect authoring. Source
 capability handles expose stable WebGL output controls for `snapshot/element`,
 `snapshot/text`, `image`, `video`, and `model/glb`; target/model/common
 renderable handles include scene-space `setPosition(...)`. Concrete visual
-effects remain consumer-owned. Third-party scroll integration now uses the
+effects remain consumer-owned. Target effects use array-form declarations only;
+legacy object-form `effects.material` / `effects.motion` is removed from the
+public contract and runtime compiler. Explicit `image` and `video` source
+declarations are reserved for real `img` and `video` targets; non-media elements
+should use snapshot or model sources, and invalid media declarations now throw
+clearly. Third-party scroll integration now uses the
 public `WebGLScrollAdapter` protocol plus the optional
 `@project/dom-webgl-scroll-adapters` package. Core keeps native page/gate scroll
 as the default and does not import Lenis, GSAP, or ScrollTrigger. The optional
@@ -198,7 +203,8 @@ texture quality, or cache tuning is explicitly approved.
 - Boundary notes: This public registry/built-in plugin model is superseded by
   Phase 8 authoring plus package boundary cleanup. The internal registry remains
   dispatch machinery, but consumers provide definitions through runtime-level
-  `effects`.
+  `effects`. The forward target declaration contract keeps array-form effects
+  only; legacy object-form effect compatibility has been removed.
 
 ## Phase 6.1 Effect Core Boundary Refactor
 - Historical completed work: Extracted effect normalization, compatibility,
@@ -210,7 +216,8 @@ texture quality, or cache tuning is explicitly approved.
   `Demo import boundary OK`; `git diff --check` passed.
 - Boundary notes: The package boundary cleanup later removed the unused
   package-owned normalization and pointer-motion helpers. Legacy declaration
-  compatibility remains, but matching concrete effects must be user-provided.
+  compatibility is historical and has been removed; matching concrete effects
+  must be user-provided through array-form target declarations.
 
 ## Phase 6.2 Minimal Surface Material
 - Historical completed work: Added public minimal `surface` material declaration
@@ -219,17 +226,19 @@ texture quality, or cache tuning is explicitly approved.
   alignment.
 - Verification: `npm run test -- --run`, `npm run typecheck`,
   `npm run build`, `npm run check:imports`, and `git diff --check` passed.
-- Boundary notes: The declaration shape remains as compatibility input, but the
-  package no longer exports or auto-registers a concrete `surface` effect.
+- Boundary notes: The declaration shape is historical input removed from the
+  current public contract, and the package no longer exports or auto-registers a
+  concrete `surface` effect.
 
 ## Phase 5 Public Minimum Effect/Material Checklist
 - Historical checklist, superseded by Phase 8 package boundary cleanup:
-  `WebGLDeclaration.effects`, `WebGLEffectsDeclaration`,
-  `WebGLMaterialDeclaration`, and `WebGLMotionDeclaration` remain public
-  compatibility types, but package-owned `solid`, `surface`, and `pointer-tilt`
-  implementations were removed.
-- Legacy object-form declarations compile into ordered effect entries, but those
-  entries run only when the consumer passes matching `defineWebGLEffect(...)`
+  `WebGLDeclaration.effects` and `WebGLEffectsDeclaration` continue as the
+  public array-form target effect surface. Legacy `WebGLMaterialDeclaration`
+  and `WebGLMotionDeclaration` are removed public compatibility artifacts.
+  Package-owned `solid`, `surface`, and `pointer-tilt` implementations were
+  removed.
+- Legacy object-form declarations are not the forward contract and no longer
+  compile into effect entries. Consumers pass matching `defineWebGLEffect(...)`
   definitions through runtime-level `effects`.
 - Effect targets remain internal renderable/scene object state and are not
   exported from root or React public entrypoints.
@@ -693,7 +702,12 @@ effect context now exposes low-level runtime output handles for
 canvas-backed element surfaces, WebGL text/glyph layers, image/video texture
 planes, video playback controls, and GLB model controls. Concrete effects
 remain application-owned; the demo consumes these primitives through local
-effects imported only from public package entrypoints.
+effects imported only from public package entrypoints. React `WebGLTarget`
+`webgl` declarations are registration-time static: keep `source`, `effects`,
+`scroll`, `pointer`, and `lifecycle` stable under a given key, and use a new key
+or remount when the declaration needs to change. Target effects are array-form
+only, legacy object-form `effects.material` / `effects.motion` compatibility is
+removed, and explicit `image` / `video` declarations on non-media targets throw.
 
 ## Files Changed
 - `README.md`

@@ -86,6 +86,38 @@ describe("inferSourceDescriptor", () => {
     );
   });
 
+  test("rejects explicit image declarations on non-image elements", () => {
+    const element = document.createElement("div");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "hero.image",
+        source: { kind: "image", src: "/images/hero.png" },
+      },
+      0,
+    );
+
+    expect(() => inferSourceDescriptor(target)).toThrow(
+      'WebGL target "hero.image" declares an image source but is not an IMG element.',
+    );
+  });
+
+  test("rejects explicit video declarations on non-video elements", () => {
+    const element = document.createElement("section");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "hero.video",
+        source: { kind: "video", src: "/videos/intro.mp4" },
+      },
+      0,
+    );
+
+    expect(() => inferSourceDescriptor(target)).toThrow(
+      'WebGL target "hero.video" declares a video source but is not a VIDEO element.',
+    );
+  });
+
   test("falls back to an element snapshot", () => {
     const element = document.createElement("section");
     const target = createTargetDescriptor(element, { key: "hero.surface" }, 0);

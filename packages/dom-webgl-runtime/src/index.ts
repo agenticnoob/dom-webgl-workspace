@@ -30,9 +30,7 @@ export type {
   WebGLLifecycleDeclaration,
   WebGLLifecycleState,
   WebGLImageSourceDeclaration,
-  WebGLMaterialDeclaration,
   WebGLModelSourceDeclaration,
-  WebGLMotionDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,
   WebGLRenderRole,
@@ -47,8 +45,6 @@ export type {
   WebGLOffscreenLifecycleDeclaration,
   WebGLOffscreenStrategy,
   WebGLSnapshotSourceDeclaration,
-  WebGLSolidMaterialDeclaration,
   WebGLSourceDeclaration,
-  WebGLSurfaceMaterialDeclaration,
   WebGLVideoSourceDeclaration,
 } from "./lib/types";

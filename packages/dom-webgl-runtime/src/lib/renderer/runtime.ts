@@ -1,7 +1,6 @@
 import {
   createDebugState,
   type DebugRuntimeState,
-  type DebugTargetState,
 } from "../debug/debugState";
 import type {
   WebGLDebugState,
@@ -22,7 +21,6 @@ import { createDOMInvalidationController } from "../dom/domInvalidation";
 import type { DOMInvalidationController } from "../dom/domInvalidation";
 import {
   createFallbackVisibilityController,
-  type FallbackVisibilityController,
 } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import {
@@ -53,10 +51,7 @@ import {
   createRenderable,
   type RenderableFactoryContext,
 } from "../render/renderableFactory";
-import {
-  isRenderableVisuallyReady,
-  type Renderable,
-} from "../render/renderable";
+import type { Renderable } from "../render/renderable";
 import { compileRenderPolicy } from "../render/renderPolicy";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
@@ -72,12 +67,23 @@ import {
   createViewportLifecycle,
   type ViewportLifecycleState,
 } from "./viewportLifecycle";
+import {
+  bumpLifecycleVersion,
+  createTargetRuntimeState,
+  createTrackedEffectTarget,
+  disposeOffscreenRenderable,
+  disposeTargetRenderable,
+  disposeTargetRuntimeState,
+  readLifecycleVersion,
+  readRenderableVisibilityForPark,
+  restoreFallbackVisibility,
+  syncFallbackVisibility,
+  type DisposableRenderable,
+  type TargetDebugRecord,
+  type TargetRuntimeState,
+} from "./targetRuntimeState";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
-
-type DisposableRenderable = {
-  dispose(): void;
-};
 
 type RuntimeInternalOptions = WebGLRuntimeOptions & {
   rendererHostFactory?: (container: HTMLElement) => ThreeRendererHost;
@@ -102,8 +108,6 @@ type RuntimeScrollController = ScrollStateController &
       | "dispose"
     >
   >;
-
-type TargetDebugRecord = Omit<DebugTargetState, "key">;
 
 type PipelineRenderableContext = RenderableFactoryContext & {
   effectRegistry?: WebGLEffectRegistry;
@@ -162,21 +166,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   });
   const invalidationController =
     internalOptions.invalidationController ?? createDOMInvalidationController();
-  const renderables = new Set<DisposableRenderable>(
+  const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );
-  const retiredRenderables = new WeakSet<Renderable>();
-  const renderablesByTargetKey = new Map<string, Renderable>();
-  const parkedAtByTargetKey = new Map<string, number>();
-  const parkedVisibilityByTargetKey = new Map<string, boolean>();
-  const effectVisibilityByTargetKey = new Map<string, boolean>();
-  const lifecycleVersionByTargetKey = new Map<string, number>();
-  const effectControllersByTargetKey = new Map<string, WebGLEffectController>();
-  const debugRecordsByTargetKey = new Map<string, TargetDebugRecord>();
-  const fallbackControllersByTargetKey = new Map<
-    string,
-    FallbackVisibilityController
-  >();
   const renderableFactoryContext: PipelineRenderableContext = {
     resourceManager,
     sceneAdapter: rendererHost.sceneAdapter,
@@ -247,20 +239,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       registry.unregister(targetKey);
       invalidationController.unobserveTarget(targetKey);
       unregisterGateTarget(scrollState, descriptor);
-      restoreFallbackVisibility(fallbackControllersByTargetKey, targetKey);
-      fallbackControllersByTargetKey.delete(targetKey);
-      disposeTargetRenderable(
-        targetKey,
-        renderablesByTargetKey,
-        parkedAtByTargetKey,
-        parkedVisibilityByTargetKey,
-        effectVisibilityByTargetKey,
-        lifecycleVersionByTargetKey,
-        effectControllersByTargetKey,
-        renderables,
-        debugRecordsByTargetKey,
-        retiredRenderables,
-      );
+      restoreFallbackVisibility(targetState, targetKey);
+      targetState.fallbackControllersByTargetKey.delete(targetKey);
+      disposeTargetRenderable(targetState, targetKey);
       emitDebugState();
     },
     sync() {
@@ -293,27 +274,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       disposed = true;
 
       try {
-        for (const renderable of renderablesByTargetKey.values()) {
-          retiredRenderables.add(renderable);
-        }
-
-        for (const renderable of renderables) {
-          renderable.dispose();
-        }
+        disposeTargetRuntimeState(targetState);
       } finally {
-        for (const effectController of effectControllersByTargetKey.values()) {
-          effectController.dispose();
-        }
-        effectControllersByTargetKey.clear();
-        renderablesByTargetKey.clear();
-        parkedAtByTargetKey.clear();
-        parkedVisibilityByTargetKey.clear();
-        effectVisibilityByTargetKey.clear();
-        lifecycleVersionByTargetKey.clear();
-        renderables.clear();
-        debugRecordsByTargetKey.clear();
-        restoreAllFallbackVisibility(fallbackControllersByTargetKey);
-        fallbackControllersByTargetKey.clear();
         ownerDocument.removeEventListener(
           "visibilitychange",
           handleVisibilityChange,
@@ -346,12 +308,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
     return createDebugState({
       targetCount: descriptors.length,
-      renderableCount: renderablesByTargetKey.size,
+      renderableCount: targetState.renderablesByTargetKey.size,
       ...readDebugScrollState(scroll),
       pointer: frameInput.pointer,
       targets: descriptors.map((descriptor) => ({
         key: descriptor.key,
-        ...readTargetDebugRecord(descriptor, debugRecordsByTargetKey),
+        ...readTargetDebugRecord(descriptor, targetState),
       })),
     });
   }
@@ -392,7 +354,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     } catch (error: unknown) {
       for (const descriptor of descriptors) {
         markDebugRecordError(
-          readTargetDebugRecord(descriptor, debugRecordsByTargetKey),
+          readTargetDebugRecord(descriptor, targetState),
           error,
         );
       }
@@ -406,30 +368,18 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     let didSynchronousUpdate = false;
 
     for (const descriptor of descriptors) {
-      let debugRecord = readTargetDebugRecord(
-        descriptor,
-        debugRecordsByTargetKey,
-      );
+      let debugRecord = readTargetDebugRecord(descriptor, targetState);
       const layoutMeasurement = layoutMeasurements.get(descriptor.key);
       const viewportState = layoutMeasurement
         ? viewportLifecycle.classify(layoutMeasurement)
         : "active";
-      let renderable = renderablesByTargetKey.get(descriptor.key);
+      let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
       if (viewportState === "disposed") {
-        disposeOffscreenRenderable({
+        disposeOffscreenRenderable(targetState, {
           key: descriptor.key,
           renderable,
           restoreFallback: true,
-          fallbackControllersByTargetKey,
-          effectControllersByTargetKey,
-          effectVisibilityByTargetKey,
-          renderables,
-          renderablesByTargetKey,
-          parkedAtByTargetKey,
-          parkedVisibilityByTargetKey,
-          lifecycleVersionByTargetKey,
-          retiredRenderables,
         });
         debugRecord.lifecycleState = "disposed";
         debugRecord.visible = false;
@@ -446,23 +396,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           shouldDisposeParkedRenderable({
             viewportState,
             offscreenPolicy,
-            parkedAt: parkedAtByTargetKey.get(descriptor.key),
+            parkedAt: targetState.parkedAtByTargetKey.get(descriptor.key),
             now: frameInput.time,
           })
         ) {
-          disposeOffscreenRenderable({
+          disposeOffscreenRenderable(targetState, {
             key: descriptor.key,
             renderable,
             restoreFallback: true,
-            fallbackControllersByTargetKey,
-            effectControllersByTargetKey,
-            effectVisibilityByTargetKey,
-            renderables,
-            renderablesByTargetKey,
-            parkedAtByTargetKey,
-            parkedVisibilityByTargetKey,
-            lifecycleVersionByTargetKey,
-            retiredRenderables,
           });
           debugRecord.lifecycleState = "disposed";
           debugRecord.visible = false;
@@ -470,17 +411,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         }
 
         if (renderable && offscreenPolicy.strategy === "park") {
-          if (!parkedAtByTargetKey.has(descriptor.key)) {
-            parkedAtByTargetKey.set(descriptor.key, frameInput.time);
-            parkedVisibilityByTargetKey.set(
+          if (!targetState.parkedAtByTargetKey.has(descriptor.key)) {
+            targetState.parkedAtByTargetKey.set(descriptor.key, frameInput.time);
+            targetState.parkedVisibilityByTargetKey.set(
               descriptor.key,
               readRenderableVisibilityForPark(
+                targetState,
                 descriptor.key,
                 renderable,
-                effectVisibilityByTargetKey,
               ),
             );
-            bumpLifecycleVersion(lifecycleVersionByTargetKey, descriptor.key);
+            bumpLifecycleVersion(targetState, descriptor.key);
           }
           renderable.setVisible(false);
           debugRecord.lifecycleState = "paused";
@@ -493,12 +434,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         continue;
       }
 
-      const wasParked = parkedAtByTargetKey.delete(descriptor.key);
+      const wasParked = targetState.parkedAtByTargetKey.delete(descriptor.key);
       if (wasParked) {
         renderable?.setVisible(
-          parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
+          targetState.parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
         );
-        parkedVisibilityByTargetKey.delete(descriptor.key);
+        targetState.parkedVisibilityByTargetKey.delete(descriptor.key);
       }
 
       if (!renderable) {
@@ -508,11 +449,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           pipeline = createPipelineRenderable(
             descriptor,
             renderableFactoryContext,
-            effectVisibilityByTargetKey,
+            targetState,
           );
         } catch (error: unknown) {
           markDebugRecordError(debugRecord, error);
-          restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+          restoreFallbackVisibility(targetState, descriptor.key);
           releaseActiveGate(scrollState);
           emitDebugState();
           throw error;
@@ -520,13 +461,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
         renderable = pipeline.renderable;
         debugRecord = pipeline.debugRecord;
-        renderablesByTargetKey.set(descriptor.key, renderable);
-        effectControllersByTargetKey.set(
+        targetState.renderablesByTargetKey.set(descriptor.key, renderable);
+        targetState.effectControllersByTargetKey.set(
           descriptor.key,
           pipeline.effectController,
         );
-        debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
-        fallbackControllersByTargetKey.set(
+        targetState.debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
+        targetState.fallbackControllersByTargetKey.set(
           descriptor.key,
           createFallbackVisibilityController(
             descriptor.element,
@@ -534,7 +475,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             { defaultHideWhenReady: true, defaultHideMode: "self" },
           ),
         );
-        renderables.add(renderable);
+        targetState.renderables.add(renderable);
         internalOptions.onRenderableCreated?.(renderable);
       }
 
@@ -544,7 +485,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       let result: void | Promise<void>;
       const lifecycleVersion = readLifecycleVersion(
-        lifecycleVersionByTargetKey,
+        targetState,
         descriptor.key,
       );
 
@@ -552,7 +493,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         result = renderable.update(frameInput);
       } catch (error: unknown) {
         markDebugRecordError(debugRecord, error);
-        restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+        restoreFallbackVisibility(targetState, descriptor.key);
         releaseActiveGate(scrollState);
         emitDebugState();
         throw error;
@@ -560,62 +501,59 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (isPromiseLike(result)) {
         markDebugRecordLoading(debugRecord);
-        restoreFallbackVisibility(fallbackControllersByTargetKey, descriptor.key);
+        restoreFallbackVisibility(targetState, descriptor.key);
         pendingUpdates.push(
           result
             .then(() => {
-              if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
+              if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
                 return;
               }
               if (
                 readLifecycleVersion(
-                  lifecycleVersionByTargetKey,
+                  targetState,
                   descriptor.key,
                 ) !== lifecycleVersion
               ) {
                 return;
               }
-              if (parkedAtByTargetKey.has(descriptor.key)) {
+              if (targetState.parkedAtByTargetKey.has(descriptor.key)) {
                 return;
               }
 
               if (layoutMeasurement) {
                 renderable.updateLayout?.(layoutMeasurement);
-                effectControllersByTargetKey
+                targetState.effectControllersByTargetKey
                   .get(descriptor.key)
                   ?.update(frameInput, layoutMeasurement);
               }
               syncDebugRecordFromRenderable(debugRecord, renderable);
               syncFallbackVisibility(
+                targetState,
                 descriptor,
                 renderable,
-                fallbackControllersByTargetKey,
               );
             })
             .catch((error: unknown) => {
-              if (renderablesByTargetKey.get(descriptor.key) !== renderable) {
-                if (retiredRenderables.has(renderable)) {
+              if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
+                if (targetState.retiredRenderables.has(renderable)) {
                   return;
                 }
                 throw error;
               }
               if (
                 readLifecycleVersion(
-                  lifecycleVersionByTargetKey,
+                  targetState,
                   descriptor.key,
                 ) !== lifecycleVersion
               ) {
                 return;
               }
-              if (parkedAtByTargetKey.has(descriptor.key)) {
+              if (targetState.parkedAtByTargetKey.has(descriptor.key)) {
                 return;
               }
 
               markDebugRecordError(debugRecord, error);
-              restoreFallbackVisibility(
-                fallbackControllersByTargetKey,
-                descriptor.key,
-              );
+              restoreFallbackVisibility(targetState, descriptor.key);
               releaseActiveGate(scrollState);
               throw error;
             }),
@@ -623,15 +561,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       } else {
         if (layoutMeasurement) {
           renderable.updateLayout?.(layoutMeasurement);
-          effectControllersByTargetKey
+          targetState.effectControllersByTargetKey
             .get(descriptor.key)
             ?.update(frameInput, layoutMeasurement);
         }
         syncDebugRecordFromRenderable(debugRecord, renderable);
         syncFallbackVisibility(
+          targetState,
           descriptor,
           renderable,
-          fallbackControllersByTargetKey,
         );
         didSynchronousUpdate = true;
       }
@@ -697,7 +635,7 @@ function readDebugScrollState(
 function createPipelineRenderable(
   descriptor: TargetDescriptor,
   context: PipelineRenderableContext,
-  effectVisibilityByTargetKey: Map<string, boolean>,
+  targetState: TargetRuntimeState,
 ): {
   renderable: Renderable;
   effectController: WebGLEffectController;
@@ -733,9 +671,9 @@ function createPipelineRenderable(
       if (target !== rawEffectTarget || !trackedEffectTarget) {
         rawEffectTarget = target;
         trackedEffectTarget = createTrackedEffectTarget(
+          targetState,
           descriptor.key,
           target,
-          effectVisibilityByTargetKey,
         );
       }
 
@@ -751,179 +689,11 @@ function createPipelineRenderable(
   };
 }
 
-function disposeTargetRenderable(
-  key: string,
-  renderablesByTargetKey: Map<string, Renderable>,
-  parkedAtByTargetKey: Map<string, number>,
-  parkedVisibilityByTargetKey: Map<string, boolean>,
-  effectVisibilityByTargetKey: Map<string, boolean>,
-  lifecycleVersionByTargetKey: Map<string, number>,
-  effectControllersByTargetKey: Map<string, WebGLEffectController>,
-  renderables: Set<DisposableRenderable>,
-  debugRecordsByTargetKey: Map<string, TargetDebugRecord>,
-  retiredRenderables: WeakSet<Renderable>,
-): void {
-  const renderable = renderablesByTargetKey.get(key);
-  const effectController = effectControllersByTargetKey.get(key);
-
-  parkedAtByTargetKey.delete(key);
-  parkedVisibilityByTargetKey.delete(key);
-  lifecycleVersionByTargetKey.delete(key);
-  effectController?.dispose();
-  effectControllersByTargetKey.delete(key);
-  effectVisibilityByTargetKey.delete(key);
-
-  if (!renderable) {
-    debugRecordsByTargetKey.delete(key);
-    return;
-  }
-
-  renderablesByTargetKey.delete(key);
-  renderables.delete(renderable);
-  debugRecordsByTargetKey.delete(key);
-  retiredRenderables.add(renderable);
-  renderable.dispose();
-}
-
-function syncFallbackVisibility(
-  descriptor: TargetDescriptor,
-  renderable: Renderable,
-  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
-): void {
-  const controller = fallbackControllersByTargetKey.get(descriptor.key);
-
-  if (!controller) {
-    return;
-  }
-
-  if (isRenderableVisuallyReady(renderable)) {
-    controller.hide();
-    return;
-  }
-
-  controller.restore();
-}
-
-function restoreFallbackVisibility(
-  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
-  key: string,
-): void {
-  const controller = fallbackControllersByTargetKey.get(key);
-
-  if (!controller) {
-    return;
-  }
-
-  controller.restore();
-}
-
-function restoreAllFallbackVisibility(
-  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>,
-): void {
-  for (const controller of fallbackControllersByTargetKey.values()) {
-    controller.restore();
-  }
-}
-
-function disposeOffscreenRenderable(input: {
-  key: string;
-  renderable: Renderable | undefined;
-  restoreFallback: boolean;
-  fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>;
-  effectControllersByTargetKey: Map<string, WebGLEffectController>;
-  effectVisibilityByTargetKey: Map<string, boolean>;
-  renderables: Set<DisposableRenderable>;
-  renderablesByTargetKey: Map<string, Renderable>;
-  parkedAtByTargetKey: Map<string, number>;
-  parkedVisibilityByTargetKey: Map<string, boolean>;
-  lifecycleVersionByTargetKey: Map<string, number>;
-  retiredRenderables: WeakSet<Renderable>;
-}): void {
-  if (input.restoreFallback) {
-    restoreFallbackVisibility(input.fallbackControllersByTargetKey, input.key);
-  }
-
-  disposeTrackedEffectController(
-    input.key,
-    input.effectControllersByTargetKey,
-    input.effectVisibilityByTargetKey,
-  );
-
-  if (input.renderable) {
-    input.retiredRenderables.add(input.renderable);
-    input.renderable.dispose();
-    input.renderables.delete(input.renderable);
-  }
-
-  input.renderablesByTargetKey.delete(input.key);
-  input.parkedAtByTargetKey.delete(input.key);
-  input.parkedVisibilityByTargetKey.delete(input.key);
-  input.lifecycleVersionByTargetKey.delete(input.key);
-}
-
-function createTrackedEffectTarget(
-  key: string,
-  target: WebGLEffectTarget,
-  effectVisibilityByTargetKey: Map<string, boolean>,
-): WebGLEffectTarget {
-  const addObject3D = target.addObject3D;
-
-  return {
-    setVisible(visible) {
-      effectVisibilityByTargetKey.set(key, visible);
-      target.setVisible(visible);
-    },
-    setPosition(x, y, z) {
-      target.setPosition(x, y, z);
-    },
-    setRotation(x, y, z) {
-      target.setRotation(x, y, z);
-    },
-    setScale(x, y, z) {
-      target.setScale(x, y, z);
-    },
-    setOpacity(opacity) {
-      target.setOpacity(opacity);
-    },
-    addObject3D: addObject3D
-      ? (object3D, options) => addObject3D(object3D, options)
-      : undefined,
-    disposeEffects: target.disposeEffects ? () => target.disposeEffects?.() : undefined,
-  };
-}
-
-function disposeTrackedEffectController(
-  key: string,
-  effectControllersByTargetKey: Map<string, WebGLEffectController>,
-  effectVisibilityByTargetKey: Map<string, boolean>,
-): void {
-  effectControllersByTargetKey.get(key)?.dispose();
-  effectControllersByTargetKey.delete(key);
-  effectVisibilityByTargetKey.delete(key);
-}
-
-function readLifecycleVersion(
-  lifecycleVersionByTargetKey: Map<string, number>,
-  key: string,
-): number {
-  return lifecycleVersionByTargetKey.get(key) ?? 0;
-}
-
-function bumpLifecycleVersion(
-  lifecycleVersionByTargetKey: Map<string, number>,
-  key: string,
-): void {
-  lifecycleVersionByTargetKey.set(
-    key,
-    readLifecycleVersion(lifecycleVersionByTargetKey, key) + 1,
-  );
-}
-
 function readTargetDebugRecord(
   descriptor: TargetDescriptor,
-  debugRecordsByTargetKey: Map<string, TargetDebugRecord>,
+  targetState: TargetRuntimeState,
 ): TargetDebugRecord {
-  const existing = debugRecordsByTargetKey.get(descriptor.key);
+  const existing = targetState.debugRecordsByTargetKey.get(descriptor.key);
 
   if (existing) {
     return existing;
@@ -938,7 +708,7 @@ function readTargetDebugRecord(
     visible: true,
   };
 
-  debugRecordsByTargetKey.set(descriptor.key, record);
+  targetState.debugRecordsByTargetKey.set(descriptor.key, record);
 
   return record;
 }
@@ -975,18 +745,6 @@ function syncDebugRecordFromRenderable(
   if (renderable.status !== "error") {
     delete debugRecord.error;
   }
-}
-
-function readRenderableVisibilityForPark(
-  key: string,
-  renderable: Renderable,
-  effectVisibilityByTargetKey: Map<string, boolean>,
-): boolean {
-  return (
-    effectVisibilityByTargetKey.get(key) ??
-    renderable.sceneObjectController?.visible ??
-    true
-  );
 }
 
 function shouldDisposeParkedRenderable(input: {

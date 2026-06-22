@@ -23,14 +23,15 @@ boundary cleanup.
 Phase 6.2 in
 `docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
 historically added a minimal `surface` material declaration on top of the
-modular Phase 6.1 effect boundaries; it is now legacy compatibility input, not
-a package-provided concrete visual effect.
+modular Phase 6.1 effect boundaries; it is now historical input, not a
+package-provided concrete visual effect.
 Phase 7 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
-it preserves the Phase 6 object-form declarations as compatibility input while
-moving internal effect dispatch to registry primitives. Its built-in plugin and
-public registry authoring model is superseded by Phase 8 and the package
-boundary cleanup.
+it historically preserved the Phase 6 object-form declarations as compatibility
+input while moving internal effect dispatch to registry primitives. Its built-in
+plugin and public registry authoring model is superseded by Phase 8 and the
+package boundary cleanup; the selected forward contract removes object-form
+target effects and keeps only array-form effect declarations.
 Phase 8 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`:
 `defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
@@ -219,9 +220,8 @@ Current visual behavior:
   instance should keep `manageLenis: false` and destroy Lenis from their own
   lifecycle cleanup.
 - Phase 6.1/6.2 are now historical implementation phases. Their legacy
-  `effects.material` / `effects.motion` declaration shapes still type-check and
-  compile into effect entries, but the package no longer provides matching
-  concrete effect definitions by default.
+  `effects.material` / `effects.motion` declaration shapes no longer type-check
+  or compile. Target effects use array-form declarations only.
 - Phase 7's registry primitives remain internal dispatch machinery. Public
   authoring no longer uses `effectRegistry`, and package built-in plugins are
   not registered or exported.
@@ -245,6 +245,12 @@ control video playback, and inspect or manipulate GLB model handles through
 public effect context. Target `setPosition(...)` writes runtime scene-space
 coordinates, not DOM `left`/`top`. Concrete effects remain application-owned.
 
+Source declarations keep media sources tied to their real DOM media element:
+`{ kind: "image" }` is for actual `<img>` targets, and `{ kind: "video" }` is
+for actual `<video>` targets. Non-media elements should use `snapshot`,
+`snapshot/text`, or `model/glb`; explicitly declaring `image` or `video` on a
+non-media element throws instead of falling back to a snapshot.
+
 Preferred declaration form:
 
 ```ts
@@ -253,6 +259,9 @@ effects: [
   { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 6 },
 ]
 ```
+
+This array form is the target effects contract. Do not use legacy object-form
+declarations such as `effects.material` or `effects.motion` in new code.
 
 Matching effect definitions are supplied to the runtime:
 
@@ -286,6 +295,12 @@ createWebGLRuntime({
   effects: [appSurfaceEffect, appPointerTiltEffect],
 });
 ```
+
+React target declarations are registration-time static. Keep a given
+`WebGLTarget` key's `webgl` declaration stable after mount; do not dynamically
+change `source`, `effects`, `scroll`, `pointer`, or `lifecycle` under the same
+key. When a target needs a different declaration, use a different key or remount
+that target.
 
 Application effects use the same API:
 

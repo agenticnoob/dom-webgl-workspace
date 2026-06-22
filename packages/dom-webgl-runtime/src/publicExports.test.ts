@@ -91,23 +91,32 @@ describe("public package exports", () => {
 
 		        runtimeElement satisfies ReactElement;
 
-		        const props = {
-	          webgl: {
-	            key: "hero.gate",
-	            scroll: {
-	              type: "gate",
-	              start: "top top",
-	              duration: 1,
-	              release: "both-directions-complete",
-	            },
-	            effects: {
-	              material: { kind: "solid", color: 0x111827, opacity: 0.82 },
-	              motion: { kind: "pointer-tilt", strength: 0.6, maxDegrees: 8 },
-	            },
-	          },
-	        } satisfies WebGLTargetProps;
+		const props = {
+		  webgl: {
+		    key: "hero.gate",
+		    scroll: {
+		      type: "gate",
+		      start: "top top",
+		      duration: 1,
+		      release: "both-directions-complete",
+		    },
+		    effects: [{ kind: "custom.reactEffect" }],
+		  },
+		} satisfies WebGLTargetProps;
+
+		const legacyProps = {
+		  webgl: {
+		    key: "hero.legacy-effects",
+		    effects: {
+		      material: { kind: "solid" as const, color: 0x111827, opacity: 0.82 },
+		      motion: { kind: "pointer-tilt" as const, strength: 0.6, maxDegrees: 8 },
+		    },
+		  },
+		};
+		// @ts-expect-error legacy object-form effects are no longer public contract.
+		legacyProps satisfies WebGLTargetProps;
 	      `,
-    );
+	    );
 
     try {
       const configPath = resolve(repoRoot, "tsconfig.base.json");
@@ -192,9 +201,7 @@ describe("public package exports", () => {
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
 	          WebGLImageSourceDeclaration,
-	          WebGLMaterialDeclaration,
 	          WebGLModelSourceDeclaration,
-	          WebGLMotionDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLPointerState,
 	          WebGLRenderRole,
@@ -206,15 +213,22 @@ describe("public package exports", () => {
           WebGLScrollDeltaRouter,
           WebGLScrollGateState,
           WebGLScrollMetrics,
-          WebGLSnapshotSourceDeclaration,
-          WebGLSolidMaterialDeclaration,
-          WebGLSourceDeclaration,
-          WebGLSurfaceMaterialDeclaration,
-          WebGLTextGlyph,
-          WebGLTextGlyphRenderCommand,
-          WebGLTextLayerStyle,
-          WebGLVideoSourceDeclaration,
-        } from "${importPath}";
+	          WebGLSnapshotSourceDeclaration,
+	          WebGLSourceDeclaration,
+	          WebGLTextGlyph,
+	          WebGLTextGlyphRenderCommand,
+	          WebGLTextLayerStyle,
+	          WebGLVideoSourceDeclaration,
+	        } from "${importPath}";
+
+        // @ts-expect-error legacy material declarations are no longer public exports.
+        import type { WebGLMaterialDeclaration } from "${importPath}";
+        // @ts-expect-error legacy motion declarations are no longer public exports.
+        import type { WebGLMotionDeclaration } from "${importPath}";
+        // @ts-expect-error legacy solid material declarations are no longer public exports.
+        import type { WebGLSolidMaterialDeclaration } from "${importPath}";
+        // @ts-expect-error legacy surface material declarations are no longer public exports.
+        import type { WebGLSurfaceMaterialDeclaration } from "${importPath}";
 
         // @ts-expect-error Target registry is an internal pipeline helper.
         import { createTargetRegistry } from "${importPath}";
@@ -320,37 +334,21 @@ describe("public package exports", () => {
           ...lifecycle,
           offscreen: offscreenLifecycle,
         };
-        const material = {
-          kind: "solid",
-          color: 0x111827,
-          opacity: 0.82,
-        } satisfies WebGLMaterialDeclaration;
-        const solidMaterial = material satisfies WebGLSolidMaterialDeclaration;
-        const surfaceMaterial = {
-          kind: "surface",
-          color: 0x111827,
-          opacity: 0.86,
-          radius: 18,
-        } satisfies WebGLSurfaceMaterialDeclaration;
-        surfaceMaterial satisfies WebGLMaterialDeclaration;
-	        const motion = {
-	          kind: "pointer-tilt",
-	          strength: 0.6,
-	          maxDegrees: 8,
-	        } satisfies WebGLMotionDeclaration;
-		        const effects = {
-		          material,
-		          motion,
-		        } satisfies WebGLEffectsDeclaration;
-		        const arrayEffects = [
-		          { kind: "app.surface", opacity: 0.86 },
-		          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
-		        ] satisfies WebGLEffectsDeclaration;
-		        const customEffects = [
-		          { kind: "custom.surfacePulse", opacity: 0.4 },
-		        ] satisfies WebGLEffectsDeclaration;
-		        arrayEffects satisfies WebGLEffectsDeclaration;
-		        customEffects satisfies WebGLEffectsDeclaration;
+			        const arrayEffects = [
+			          { kind: "app.surface", opacity: 0.86 },
+			          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
+			        ] satisfies WebGLEffectsDeclaration;
+			        const customEffects = [
+			          { kind: "custom.surfacePulse", opacity: 0.4 },
+			        ] satisfies WebGLEffectsDeclaration;
+			        const legacyEffects = {
+			          material: { kind: "solid" as const, color: 0x111827, opacity: 0.82 },
+			          motion: { kind: "pointer-tilt" as const, strength: 0.6, maxDegrees: 8 },
+			        };
+			        // @ts-expect-error legacy object-form effects are no longer public contract.
+			        legacyEffects satisfies WebGLEffectsDeclaration;
+			        arrayEffects satisfies WebGLEffectsDeclaration;
+			        customEffects satisfies WebGLEffectsDeclaration;
 			        const customModelEffect = defineWebGLEffect({
 			          kind: "custom.glbParticles",
 			          source: "model/glb",
@@ -438,11 +436,17 @@ describe("public package exports", () => {
 	          key: "hero.model",
 	          source: modelSource,
 	          renderRole,
-	          scroll: pageScroll,
-	          pointer: pointerDeclaration,
-		          lifecycle: lifecycleWithOffscreen,
-		          effects,
-		        } satisfies WebGLDeclaration;
+			          scroll: pageScroll,
+			          pointer: pointerDeclaration,
+			          lifecycle: lifecycleWithOffscreen,
+			          effects: arrayEffects,
+			        } satisfies WebGLDeclaration;
+			        const legacyEffectDeclaration = {
+			          key: "hero.legacy-effects",
+			          effects: legacyEffects,
+			        };
+			        // @ts-expect-error legacy object-form effects are no longer public contract.
+			        legacyEffectDeclaration satisfies WebGLDeclaration;
 		        const arrayEffectDeclaration = {
 		          key: "hero.array-effects",
 		          effects: arrayEffects,

@@ -33,13 +33,39 @@ export function inferSourceDescriptor(
     };
   }
 
+  if (declaredSource?.kind === "image") {
+    if (!isImageElement(element)) {
+      throw new Error(
+        `WebGL target "${targetDescriptor.key}" declares an image source but is not an IMG element.`,
+      );
+    }
+
+    return {
+      kind: "image",
+      element,
+      src: declaredSource.src ?? readElementSrc(element),
+    };
+  }
+
+  if (declaredSource?.kind === "video") {
+    if (!isVideoElement(element)) {
+      throw new Error(
+        `WebGL target "${targetDescriptor.key}" declares a video source but is not a VIDEO element.`,
+      );
+    }
+
+    return {
+      kind: "video",
+      element,
+      src: declaredSource.src ?? readElementSrc(element),
+    };
+  }
+
   if (isImageElement(element)) {
     return {
       kind: "image",
       element,
-      src: declaredSource?.kind === "image" && declaredSource.src
-        ? declaredSource.src
-        : readElementSrc(element),
+      src: readElementSrc(element),
     };
   }
 
@@ -47,9 +73,7 @@ export function inferSourceDescriptor(
     return {
       kind: "video",
       element,
-      src: declaredSource?.kind === "video" && declaredSource.src
-        ? declaredSource.src
-        : readElementSrc(element),
+      src: readElementSrc(element),
     };
   }
 

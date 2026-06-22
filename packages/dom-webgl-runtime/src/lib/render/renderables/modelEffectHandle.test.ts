@@ -52,4 +52,26 @@ describe("createModelEffectHandle", () => {
 
     expect(Array.from(positions)).toEqual([11, 22, 33]);
   });
+
+  test("caps sampled vertices across multiple meshes", () => {
+    const root = new Group();
+    const firstGeometry = new BufferGeometry();
+    firstGeometry.setAttribute(
+      "position",
+      new BufferAttribute(new Float32Array([1, 0, 0, 2, 0, 0]), 3),
+    );
+    const secondGeometry = new BufferGeometry();
+    secondGeometry.setAttribute(
+      "position",
+      new BufferAttribute(new Float32Array([3, 0, 0, 4, 0, 0]), 3),
+    );
+    root.add(new Mesh(firstGeometry, new MeshBasicMaterial()));
+    root.add(new Mesh(secondGeometry, new MeshBasicMaterial()));
+
+    const vertices = createModelEffectHandle(root).sampleVertices({
+      maxPoints: 1,
+    });
+
+    expect(vertices.length).toBe(3);
+  });
 });

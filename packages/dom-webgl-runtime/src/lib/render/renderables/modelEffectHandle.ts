@@ -6,62 +6,14 @@ import { PointsMaterial } from "three/src/materials/PointsMaterial.js";
 import { Points } from "three/src/objects/Points.js";
 
 import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
+import { createObject3DControls } from "./object3DControls";
 
 export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHandle {
   return {
-    object3D,
-    setVisible(visible) {
-      if (object3D && typeof object3D === "object") {
-        (object3D as { visible?: boolean }).visible = visible;
-      }
-    },
-    setPosition(x, y, z) {
-      const position = (object3D as { position?: unknown } | undefined)?.position;
-      if (position && typeof position === "object" && "set" in position) {
-        (position as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z ?? 0,
-        );
-      }
-    },
-    setRotation(x, y, z) {
-      const rotation = (object3D as { rotation?: unknown } | undefined)?.rotation;
-      if (rotation && typeof rotation === "object" && "set" in rotation) {
-        (rotation as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z ?? 0,
-        );
-      }
-    },
-    setScale(x, y = x, z = x) {
-      const scale = (object3D as { scale?: unknown } | undefined)?.scale;
-      if (scale && typeof scale === "object" && "set" in scale) {
-        (scale as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z,
-        );
-      }
-    },
-    setOpacity(opacity) {
-      traverseObject(object3D, (candidate) => {
-        const material = (candidate as { material?: unknown } | undefined)
-          ?.material;
-        const materials = Array.isArray(material) ? material : [material];
-
-        for (const entry of materials) {
-          if (entry && typeof entry === "object") {
-            Object.assign(entry, {
-              opacity,
-              transparent: opacity < 1,
-              needsUpdate: true,
-            });
-          }
-        }
-      });
-    },
+    ...createObject3DControls(object3D, {
+      scaleZ: "x",
+      opacity: { kind: "object" },
+    }),
     traverseMeshes(visitor) {
       traverseObject(object3D, (candidate) => {
         if (isMeshLike(candidate)) {
@@ -117,8 +69,13 @@ function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array
   const vertices: number[] = [];
   const rootInverse = readRootInverseMatrix(object3D);
   const vertex = new Vector3();
+  let sampledPoints = 0;
 
   traverseObject(object3D, (candidate) => {
+    if (sampledPoints >= maxPoints) {
+      return;
+    }
+
     const mesh = candidate as {
       geometry?: {
         attributes?: {
@@ -152,7 +109,8 @@ function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array
         vertex.y,
         vertex.z,
       );
-      if (vertices.length / 3 >= maxPoints) {
+      sampledPoints += 1;
+      if (sampledPoints >= maxPoints) {
         return;
       }
     }

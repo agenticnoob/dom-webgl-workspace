@@ -180,6 +180,65 @@ describe("source capability handles", () => {
     expect(context.fillText).toHaveBeenCalledWith("X", 0, 0);
   });
 
+  test("text layer glyph commands lookup scrambled glyph indexes once and preserve command order", () => {
+    const context = createCanvasContextStub();
+    const canvas = createCanvasStub(context);
+    const getGlyphs = vi.fn(() => [
+      {
+        index: 2,
+        char: "C",
+        line: 0,
+        x: 30,
+        y: 10,
+        width: 10,
+        height: 20,
+        baseline: 30,
+      },
+      {
+        index: 0,
+        char: "A",
+        line: 0,
+        x: 10,
+        y: 10,
+        width: 10,
+        height: 20,
+        baseline: 30,
+      },
+    ]);
+    const handle = createTextLayerCapabilityHandle({
+      object3D: createObject3D(),
+      mesh: createObject3D(),
+      material: createMaterial(),
+      canvas,
+      context,
+      texture: { needsUpdate: false },
+      getSize: () => ({ width: 200, height: 80, devicePixelRatio: 1 }),
+      getText: () => "AC",
+      getStyle: () => ({
+        font: "20px sans-serif",
+        lineHeight: 24,
+        letterSpacing: 0,
+        wordSpacing: 0,
+        textAlign: "left",
+        color: "#111111",
+      }),
+      getGlyphs,
+      setText: vi.fn(),
+      invalidate: vi.fn(),
+    });
+
+    handle.setGlyphs(() => [
+      { index: 2, char: "Z" },
+      { index: 0, char: "X" },
+    ]);
+
+    expect(getGlyphs).toHaveBeenCalledTimes(2);
+    expect(context.translate).toHaveBeenNthCalledWith(1, 30, 10);
+    expect(context.translate).toHaveBeenNthCalledWith(2, 10, 10);
+    expect(context.fillText).toHaveBeenNthCalledWith(1, "Z", 0, 0);
+    expect(context.fillText).toHaveBeenNthCalledWith(2, "X", 0, 0);
+  });
+
   test("texture layer handle updates texture transform", () => {
     const texture = {
       repeat: { set: vi.fn() },

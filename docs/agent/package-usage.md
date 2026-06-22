@@ -18,6 +18,9 @@ implementation policy.
   core in `<scroll-adapters-package>`.
 - The package does not provide default visual effects or an official
   `effects` preset subpath.
+- Target effects use array-form declarations only:
+  `effects: [{ kind: "app.effect", ...params }]`. Do not use legacy
+  object-form `effects.material` or `effects.motion`.
 
 ## Public Imports
 
@@ -112,8 +115,15 @@ Rules:
   scope, in a stable ref, or in a memoized integration component that owns the
   third-party instance lifecycle.
 - Every target key must be stable and unique inside one runtime.
+- Treat each target `webgl` declaration as registration-time static. Do not
+  dynamically change `source`, `effects`, `scroll`, `pointer`, or `lifecycle`
+  under the same key; use a new key or remount the target when the declaration
+  must change.
 - Target `webgl.effects` contains data only. The executable effect definition is
   registered at runtime level.
+- Use array-form target effects only. Legacy object-form declarations such as
+  `effects: { material: ..., motion: ... }` are outside the forward package
+  contract.
 - Do not create nested runtimes unless the application intentionally needs
   independent canvases and lifecycle ownership.
 
@@ -210,9 +220,14 @@ const declaration: WebGLDeclaration = {
 Supported source declarations:
 
 - `{ kind: "snapshot", mode?: "element" | "text" }`
-- `{ kind: "image", src?: string }`
-- `{ kind: "video", src?: string }`
+- `{ kind: "image", src?: string }` on an actual `img` target only.
+- `{ kind: "video", src?: string }` on an actual `video` target only.
 - `{ kind: "model", format: "glb", src: string }`
+
+Do not declare image/video sources on non-media elements. A `div`, `section`,
+or text node target should use `snapshot` or `model`; explicit `image` and
+`video` declarations are reserved for real `img` and `video` elements and throw
+when used on non-media elements.
 
 Lifecycle rules:
 
@@ -551,6 +566,10 @@ pitfalls unless they expose a reusable coordinate, lifecycle, or ownership bug.
 
 - Unknown effect: target declares `{ kind: "x" }`, but runtime `effects` omits
   `defineWebGLEffect({ kind: "x" })`.
+- Legacy object-form effects: use `effects: [{ kind: "app.effect" }]`, not
+  `effects: { material, motion }`.
+- Invalid media source: target declares `{ kind: "image" }` or
+  `{ kind: "video" }` on a non-`img` / non-`video` element.
 - Runtime recreates in React: `effects` array identity changes on render.
 - Pointer offset: effect compares runtime normalized pointer coordinates directly
   to target-local coordinates.

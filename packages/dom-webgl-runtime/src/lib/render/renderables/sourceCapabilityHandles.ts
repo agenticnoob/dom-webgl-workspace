@@ -10,6 +10,8 @@ import type {
   WebGLTextLayerStyle,
 } from "../../effects/effectAuthoring";
 
+import { createObject3DControls } from "./object3DControls";
+
 export type CanvasSurfaceCapabilityOptions = {
   object3D: unknown;
   mesh: unknown;
@@ -49,7 +51,10 @@ export function createCanvasSurfaceCapabilityHandle(
   options: CanvasSurfaceCapabilityOptions,
 ): WebGLEffectCanvasSurfaceHandle {
   return {
-    ...createRenderableControls(options.object3D, options.material, 1),
+    ...createObject3DControls(options.object3D, {
+      scaleZ: 1,
+      opacity: { kind: "material", material: options.material },
+    }),
     canvas: options.canvas,
     context: options.context,
     texture: options.texture,
@@ -105,7 +110,10 @@ export function createTextureLayerCapabilityHandle<
   options: TextureLayerCapabilityOptions<TSource>,
 ): WebGLEffectTextureLayerHandle<TSource> {
   return {
-    ...createRenderableControls(options.object3D, options.material, 1),
+    ...createObject3DControls(options.object3D, {
+      scaleZ: 1,
+      opacity: { kind: "material", material: options.material },
+    }),
     source: options.source,
     texture: options.texture,
     mesh: options.mesh,
@@ -201,11 +209,12 @@ export function drawTextGlyphCommands(
   context.font = style.font;
   context.textAlign = "left";
   context.textBaseline = "top";
+  const glyphsByIndex = new Map(
+    options.getGlyphs().map((glyph) => [glyph.index, glyph] as const),
+  );
 
   for (const command of commands) {
-    const glyph = options
-      .getGlyphs()
-      .find((candidate) => candidate.index === command.index);
+    const glyph = glyphsByIndex.get(command.index);
     if (!glyph) {
       continue;
     }
@@ -230,67 +239,6 @@ export function drawTextGlyphCommands(
 
   context.globalAlpha = 1;
   markTextureDirty(options.texture, options.invalidate);
-}
-
-function createRenderableControls(
-  object3D: unknown,
-  material: unknown,
-  defaultZScale: number,
-) {
-  return {
-    object3D,
-    setVisible(visible: boolean) {
-      if (object3D && typeof object3D === "object") {
-        (object3D as { visible?: boolean }).visible = visible;
-      }
-    },
-    setPosition(x: number, y: number, z?: number) {
-      const position = (object3D as { position?: unknown } | undefined)?.position;
-      if (position && typeof position === "object" && "set" in position) {
-        (position as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z ?? 0,
-        );
-      }
-    },
-    setRotation(x: number, y: number, z?: number) {
-      const rotation = (object3D as { rotation?: unknown } | undefined)?.rotation;
-      if (rotation && typeof rotation === "object" && "set" in rotation) {
-        (rotation as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z ?? 0,
-        );
-      }
-    },
-    setScale(x: number, y = x, z = defaultZScale) {
-      const scale = (object3D as { scale?: unknown } | undefined)?.scale;
-      if (scale && typeof scale === "object" && "set" in scale) {
-        (scale as { set: (x: number, y: number, z: number) => void }).set(
-          x,
-          y,
-          z,
-        );
-      }
-    },
-    setOpacity(opacity: number) {
-      setMaterialOpacity(material, opacity);
-    },
-  };
-}
-
-function setMaterialOpacity(material: unknown, opacity: number): void {
-  const materials = Array.isArray(material) ? material : [material];
-  for (const entry of materials) {
-    if (entry && typeof entry === "object") {
-      Object.assign(entry, {
-        opacity,
-        transparent: opacity < 1,
-        needsUpdate: true,
-      });
-    }
-  }
 }
 
 function applyTextureTransform(
