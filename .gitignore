@@ -4,6 +4,7 @@ dist/
 coverage/
 
 .codegraph/
+.omo/
 
 *.log
 .DS_Store
