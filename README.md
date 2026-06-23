@@ -114,6 +114,10 @@ Current example behavior:
   `example.textReveal`, `example.imagePan`, `example.imageZoom`,
   `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
   `example.modelFloat`.
+- In the current example, `example.surfaceFill` paints `/example/bg.png` onto
+  the element snapshot surface without changing the target opacity, and
+  `example.surfacePulse` draws the pulse on the surface layer without changing
+  the target or DOM child opacity.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while

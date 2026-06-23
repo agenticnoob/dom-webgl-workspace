@@ -24,7 +24,7 @@ export default function App() {
             <div className="example-row-copy">
               <span>snapshot/element</span>
               <h2>表面填充</h2>
-              <p>绘制元素快照对应的画布表面，并控制它的透明度。</p>
+              <p>用 bg.png 填充元素快照表面，并只控制表面层透明度。</p>
             </div>
             <WebGLTarget
               as="section"
@@ -36,7 +36,7 @@ export default function App() {
                 effects: [
                   {
                     kind: "example.surfaceFill",
-                    color: "#f6c453",
+                    imageSrc: "/example/bg.png",
                     opacity: 0.72,
                   },
                 ],
@@ -51,7 +51,7 @@ export default function App() {
             <div className="example-row-copy">
               <span>snapshot/element</span>
               <h2>表面脉冲</h2>
-              <p>保留声明式 DOM 来源，同时用 target transform 控制渲染对象。</p>
+              <p>保留声明式 DOM 来源，同时在 WebGL 表面层绘制可见脉冲。</p>
             </div>
             <WebGLTarget
               as="section"
@@ -60,11 +60,11 @@ export default function App() {
                 key: "example.surface.pulse",
                 source: { kind: "snapshot", mode: "element" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [{ kind: "example.surfacePulse", scale: 1.22, opacity: 0.76 }],
+                effects: [{ kind: "example.surfacePulse", scale: 1.36, opacity: 0.92 }],
               }}
             >
               <span>target</span>
-              <strong>在 effect 中缩放并淡化渲染对象。</strong>
+              <strong>真实 DOM 文案盖在 WebGL 脉冲表面之上。</strong>
             </WebGLTarget>
           </section>
 

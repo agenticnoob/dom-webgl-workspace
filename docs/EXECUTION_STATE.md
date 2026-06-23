@@ -60,7 +60,10 @@ a vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
 `example.imageZoom`, `example.videoPlayback`, `example.videoDrift`,
 `example.modelSpin`, and `example.modelFloat` effects, presents the example
 page with Chinese visible copy while keeping source/effect identifiers in
-English as API data, and records current authoring friction in
+English as API data, uses `/example/bg.png` for the element surface-fill
+example without applying opacity to the whole target, keeps surface-pulse
+visibility in surface-layer drawing without changing target or DOM child
+opacity, and records current authoring friction in
 `docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks

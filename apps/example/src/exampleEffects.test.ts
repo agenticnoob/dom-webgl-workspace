@@ -20,17 +20,22 @@ describe("example effect authoring definitions", () => {
       setOpacity: vi.fn(),
       setVisible: vi.fn(),
     };
+    const target = {
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
     const context = createEffectContext({
       source: {
         kind: "snapshot/element",
         element: document.createElement("section"),
         surface,
       },
+      target,
     });
 
     const state = exampleSurfaceFillEffect.setup?.(context, {
       kind: "example.surfaceFill",
-      color: "#f6c453",
+      imageSrc: "/example/bg.png",
       opacity: 0.72,
     });
     if (!state) {
@@ -38,7 +43,7 @@ describe("example effect authoring definitions", () => {
     }
     exampleSurfaceFillEffect.update(context, state, {
       kind: "example.surfaceFill",
-      color: "#f6c453",
+      imageSrc: "/example/bg.png",
       opacity: 0.72,
     });
     exampleSurfaceFillEffect.update(
@@ -50,17 +55,20 @@ describe("example effect authoring definitions", () => {
         },
       }),
       state,
-      { kind: "example.surfaceFill", color: "#000", opacity: 1 },
+      { kind: "example.surfaceFill", imageSrc: "/example/bg.png", opacity: 1 },
     );
 
     expect(exampleSurfaceFillEffect.source).toBe("snapshot/element");
     expect(surface.draw).toHaveBeenCalledTimes(1);
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenCalledWith(0.72);
+    expect(target.setVisible).toHaveBeenCalledWith(true);
+    expect(target.setOpacity).not.toHaveBeenCalled();
   });
 
-  test("surface pulse drives target transforms for element snapshots", () => {
+  test("surface pulse visibly animates surface opacity and target scale for element snapshots", () => {
     const surface = {
+      draw: vi.fn(),
       setOpacity: vi.fn(),
       setVisible: vi.fn(),
     };
@@ -69,12 +77,21 @@ describe("example effect authoring definitions", () => {
       setScale: vi.fn(),
       setVisible: vi.fn(),
     };
+    const layout = {
+      key: "example.test",
+      left: 0,
+      top: 0,
+      width: 120,
+      height: 60,
+      viewport: { width: 1024, height: 768 },
+    };
     const context = createEffectContext({
       source: {
         kind: "snapshot/element",
         element: document.createElement("section"),
         surface,
       },
+      layout,
       target,
       time: 520,
     });
@@ -84,12 +101,32 @@ describe("example effect authoring definitions", () => {
       scale: 1.2,
       opacity: 0.76,
     });
+    exampleSurfacePulseEffect.update(
+      createEffectContext({
+        source: {
+          kind: "snapshot/element",
+          element: document.createElement("section"),
+          surface,
+        },
+        target,
+        time: 1040,
+      }),
+      undefined,
+      {
+        kind: "example.surfacePulse",
+        scale: 1.2,
+        opacity: 0.76,
+      },
+    );
 
     expect(exampleSurfacePulseEffect.source).toBe("snapshot/element");
     expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setScale).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1);
-    expect(target.setOpacity).toHaveBeenCalledWith(0.76);
+    expect(target.setScale).not.toHaveBeenCalled();
+    expect(target.setOpacity).not.toHaveBeenCalled();
     expect(surface.setVisible).toHaveBeenCalledWith(true);
+    expect(surface.draw).toHaveBeenCalledTimes(2);
+    expect(surface.setOpacity).toHaveBeenCalledTimes(2);
+    expect(surface.setOpacity).toHaveBeenCalledWith(1);
   });
 
   test("text wave rewrites glyph commands using elapsed runtime time", () => {

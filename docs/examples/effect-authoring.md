@@ -134,8 +134,10 @@ definition is missing, the target declaration has no executable effect.
 
 `apps/example/src/exampleEffects.ts` covers the current public source handles:
 
-- `example.surfaceFill`: draws an element snapshot surface.
-- `example.surfacePulse`: scales and fades an element snapshot target.
+- `example.surfaceFill`: draws `/example/bg.png` onto the element snapshot
+  surface and applies opacity only to that surface layer.
+- `example.surfacePulse`: draws a visible pulse on the element snapshot surface
+  without changing the target or DOM child opacity.
 - `example.textWave`: rewrites text glyph output.
 - `example.textReveal`: maps scroll progress into per-glyph opacity and scale.
 - `example.imagePan`: applies an image texture transform.
