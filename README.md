@@ -44,6 +44,9 @@ custom effects can now control runtime-owned output handles for
 mutating source DOM or reaching into renderer internals.
 Agent-facing package usage rules live in `docs/agent/package-usage.md`; agents
 should read that file before integrating the package or authoring custom effects.
+React-only effect authoring examples live in `apps/example` and
+`docs/examples/effect-authoring.md`; they are downstream consumer examples, not
+runtime package exports.
 Reusable architecture lessons from the sibling `codex-web` project are captured
 in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
@@ -52,6 +55,8 @@ Project boundary:
 - This workspace implements a reusable open-source DOM WebGL runtime.
 - `apps/demo` is a public API consumer and validation surface, not a privileged
   runtime input.
+- `apps/example` is a downstream consumer-style example for package usage and
+  effect authoring. It must not import demo source code or runtime internals.
 - Runtime/package implementation code must not hardcode demo target keys, demo
   asset paths, demo DOM structure, demo layout, or demo copy.
 - `packages/dom-webgl-runtime/src/open-source-boundary.test.ts` guards runtime
@@ -89,6 +94,30 @@ Current demo behavior:
   `sceneProgress` while a gate is active.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
 - Demo assets are loaded from `apps/demo/public`.
+
+Current example behavior:
+
+- `apps/example` is a React-only Vite app that uses
+  `@project/dom-webgl-runtime`, `@project/dom-webgl-runtime/react`, and the
+  optional `@project/dom-webgl-scroll-adapters` package through public
+  entrypoints only.
+- The example registers a stable module-scope `exampleEffects` array and
+  declares a vertical catalog of targets across the public source kinds:
+  `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
+- The example page uses Chinese visible copy for its effect explanations while
+  keeping source kinds and effect kind identifiers in English as API data.
+- The example creates an app-owned Lenis instance, drives it through GSAP via
+  `createLenisGsapScrollStack(...)`, passes only `smoothScroll.scrollAdapter` to
+  `<WebGLRuntime />`, and destroys Lenis from the example hook cleanup.
+- The example effects are application-owned contract examples:
+  `example.surfaceFill`, `example.surfacePulse`, `example.textWave`,
+  `example.textReveal`, `example.imagePan`, `example.imageZoom`,
+  `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
+  `example.modelFloat`.
+- Example static assets are copied into `apps/example/public`; the example does
+  not rely on `apps/demo/public` being served at runtime.
+- `docs/agent/effect-authoring-example-report.md` records friction found while
+  using the public docs as a downstream consumer.
 
 Current visual behavior:
 

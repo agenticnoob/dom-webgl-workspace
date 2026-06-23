@@ -2,6 +2,26 @@ import { vi } from "vitest";
 
 const testWindow = globalThis.window;
 
+if (!globalThis.requestAnimationFrame) {
+  Object.defineProperty(globalThis, "requestAnimationFrame", {
+    configurable: true,
+    writable: true,
+    value(callback: FrameRequestCallback): number {
+      return setTimeout(() => callback(Date.now()), 16) as unknown as number;
+    },
+  });
+}
+
+if (!globalThis.cancelAnimationFrame) {
+  Object.defineProperty(globalThis, "cancelAnimationFrame", {
+    configurable: true,
+    writable: true,
+    value(handle: number): void {
+      clearTimeout(handle);
+    },
+  });
+}
+
 if (testWindow && !testWindow.matchMedia) {
   Object.defineProperty(testWindow, "matchMedia", {
     configurable: true,

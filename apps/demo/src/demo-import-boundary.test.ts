@@ -11,6 +11,7 @@ type DemoImportViolation = {
 };
 
 type FindDemoImportViolations = (options?: {
+  forbiddenSourceDirs?: readonly string[];
   workspaceRoot?: string;
   demoSourceDir?: string;
 }) => Promise<DemoImportViolation[]>;
@@ -145,6 +146,33 @@ describe("demo import boundary", () => {
     });
 
     expect(violations).toEqual([]);
+  });
+
+  test("rejects relative imports into explicitly forbidden app source directories", async () => {
+    const tempRoot = await createTempWorkspace();
+    const exampleSourceDir = path.join(tempRoot, "apps", "example", "src");
+    const demoSourceDir = path.join(tempRoot, "apps", "demo", "src");
+    await mkdir(exampleSourceDir, { recursive: true });
+    await mkdir(demoSourceDir, { recursive: true });
+    await writeFile(path.join(demoSourceDir, "demoEffects.ts"), "export const demoOnly = true;\n");
+    await writeFile(
+      path.join(exampleSourceDir, "bad.ts"),
+      'import { demoOnly } from "../../demo/src/demoEffects";\n',
+    );
+
+    const findDemoImportViolations = await loadFindDemoImportViolations();
+    const violations = await findDemoImportViolations({
+      demoSourceDir: exampleSourceDir,
+      forbiddenSourceDirs: [demoSourceDir],
+      workspaceRoot: tempRoot,
+    });
+
+    expect(violations).toEqual([
+      expect.objectContaining({
+        specifier: "../../demo/src/demoEffects",
+        reason: "relative import reaches forbidden app source",
+      }),
+    ]);
   });
 });
 

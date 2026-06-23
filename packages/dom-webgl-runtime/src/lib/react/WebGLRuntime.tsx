@@ -1,6 +1,6 @@
 import {
   createElement,
-  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -36,6 +36,7 @@ export function WebGLRuntime({
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingRuntimeRef = useRef<RuntimeInstance | null>(null);
+  const activeRuntimeRef = useRef<RuntimeInstance | null>(null);
   const failedEffectsRef = useRef<WebGLRuntimeOptions["effects"] | null>(null);
   const onDebugStateChangeRef = useRef(onDebugStateChange);
   const [runtime, setRuntime] = useState<RuntimeInstance | null>(null);
@@ -46,7 +47,7 @@ export function WebGLRuntime({
     pendingRuntimeRef.current = createPendingRuntime();
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
 
     if (!container) {
@@ -69,19 +70,34 @@ export function WebGLRuntime({
         },
       });
     } catch (error: unknown) {
+      const previousRuntime = activeRuntimeRef.current;
+      activeRuntimeRef.current = null;
       failedEffectsRef.current = effects ?? null;
       setRuntime(null);
+      if (previousRuntime) {
+        scheduleRuntimeDisposal(previousRuntime);
+      }
       onDebugStateChangeRef.current?.(createRuntimeCreationErrorState(error));
       return;
     }
 
     failedEffectsRef.current = null;
+    const previousRuntime = activeRuntimeRef.current;
+    activeRuntimeRef.current = nextRuntime;
     setRuntime(nextRuntime);
 
-    return () => {
-      nextRuntime.dispose();
-    };
+    if (previousRuntime) {
+      scheduleRuntimeDisposal(previousRuntime);
+    }
   }, [effects, scrollAdapter]);
+
+  useLayoutEffect(() => {
+    return () => {
+      const activeRuntime = activeRuntimeRef.current;
+      activeRuntimeRef.current = null;
+      activeRuntime?.dispose();
+    };
+  }, []);
 
   return createElement(
     "div",
@@ -92,6 +108,12 @@ export function WebGLRuntime({
       children,
     ),
   );
+}
+
+function scheduleRuntimeDisposal(runtime: RuntimeInstance): void {
+  setTimeout(() => {
+    runtime.dispose();
+  }, 0);
 }
 
 function createPendingRuntime(): RuntimeInstance {

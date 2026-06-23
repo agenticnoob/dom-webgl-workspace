@@ -1,0 +1,19 @@
+import { access } from "node:fs/promises";
+import path from "node:path";
+
+import { describe, expect, test } from "vitest";
+
+const examplePublicDir = path.join(process.cwd(), "apps", "example", "public");
+
+describe("example static assets", () => {
+  test("ships every static asset referenced by the React example", async () => {
+    await expectAsset("example/image.png");
+    await expectAsset("example/video.mp4");
+    await expectAsset("models/hero.glb");
+  });
+});
+
+async function expectAsset(relativePath: string): Promise<void> {
+  await expect(access(path.join(examplePublicDir, relativePath))).resolves.toBeUndefined();
+}
+

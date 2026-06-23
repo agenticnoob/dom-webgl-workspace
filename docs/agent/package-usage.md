@@ -114,6 +114,8 @@ Rules:
 - Keep `scrollAdapter` reference stable. In React, define the adapter at module
   scope, in a stable ref, or in a memoized integration component that owns the
   third-party instance lifecycle.
+- Changing `scrollAdapter` recreates the runtime. Keep it stable once ready to
+  avoid unnecessary runtime churn.
 - Every target key must be stable and unique inside one runtime.
 - Treat each target `webgl` declaration as registration-time static. Do not
   dynamically change `source`, `effects`, `scroll`, `pointer`, or `lifecycle`
@@ -126,6 +128,21 @@ Rules:
   contract.
 - Do not create nested runtimes unless the application intentionally needs
   independent canvases and lifecycle ownership.
+
+## React Effect Authoring Example
+
+The current downstream-style React example lives in `apps/example`.
+
+- Source code: `apps/example/src/App.tsx` and
+  `apps/example/src/exampleEffects.ts`.
+- Visible page explanations are Chinese; source kinds and effect kind strings
+  remain English API data.
+- Smooth-scroll setup: `apps/example/src/useExampleSmoothScrollStack.ts`.
+- Tutorial: `docs/examples/effect-authoring.md`.
+- Friction report: `docs/agent/effect-authoring-example-report.md`.
+
+Treat this example as consumer application code. Do not import it from package
+source, and do not promote its effects into runtime package exports.
 
 ## Scroll Adapter Setup
 

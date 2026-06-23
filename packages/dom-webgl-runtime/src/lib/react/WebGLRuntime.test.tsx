@@ -1,4 +1,4 @@
-import { act, createElement, useState } from "react";
+import { act, createElement, useLayoutEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -185,6 +185,7 @@ describe("WebGLRuntime", () => {
     await act(async () => {
       root.render(createElement(WebGLRuntime, { effects: secondEffects }));
     });
+    await flushRuntimeDisposal();
 
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
     expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
@@ -211,6 +212,7 @@ describe("WebGLRuntime", () => {
     await act(async () => {
       root.render(createElement(WebGLRuntime, { scrollAdapter: secondScrollAdapter }));
     });
+    await flushRuntimeDisposal();
 
     expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
     expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
@@ -219,6 +221,53 @@ describe("WebGLRuntime", () => {
         scrollAdapter: secondScrollAdapter,
       }),
     );
+  });
+
+  test("does not let targets register against a disposed runtime when scroll adapter becomes ready", async () => {
+    const { WebGLRuntime, WebGLTarget } = await import("../../react");
+    const { root } = createTestRoot();
+    const firstRuntime = createStrictRuntimeStub(document.createElement("div"));
+    const secondRuntime = createStrictRuntimeStub(document.createElement("div"));
+    runtimeMocks.createWebGLRuntime
+      .mockImplementationOnce((options: WebGLRuntimeOptions) => ({
+        ...firstRuntime,
+        container: options.container,
+      }))
+      .mockImplementationOnce((options: WebGLRuntimeOptions) => ({
+        ...secondRuntime,
+        container: options.container,
+      }));
+
+    function RuntimeHost() {
+      const [scrollAdapter, setScrollAdapter] =
+        useState<WebGLRuntimeOptions["scrollAdapter"]>();
+
+      useLayoutEffect(() => {
+        setScrollAdapter(createTestScrollAdapter(160));
+      }, []);
+
+      return createElement(
+        WebGLRuntime,
+        { scrollAdapter },
+        createElement(WebGLTarget, {
+          webgl: {
+            key: "example.target",
+            source: { kind: "snapshot", mode: "element" },
+          },
+        }),
+      );
+    }
+
+    await act(async () => {
+      expect(() => {
+        root.render(createElement(RuntimeHost));
+      }).not.toThrow();
+    });
+    await flushRuntimeDisposal();
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
+    expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
+    expect(secondRuntime.registerTarget).toHaveBeenCalledTimes(1);
   });
 
   test("does not recreate the runtime when debug callbacks update parent state", async () => {
@@ -395,6 +444,22 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
   };
 }
 
+function createStrictRuntimeStub(container: HTMLElement): RuntimeInstance {
+  let disposed = false;
+
+  return {
+    ...createRuntimeStub(container),
+    registerTarget: vi.fn(() => {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL target after runtime disposal.");
+      }
+    }),
+    dispose: vi.fn(() => {
+      disposed = true;
+    }),
+  };
+}
+
 function createTestEffects(kind = "custom.test"): WebGLRuntimeOptions["effects"] {
   return [
     {
@@ -418,6 +483,12 @@ function createTestScrollAdapter(
       };
     },
   };
+}
+
+async function flushRuntimeDisposal(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 }
 
 function createEmptyDebugState() {
