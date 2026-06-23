@@ -97,9 +97,9 @@ request subtree replacement with `hideMode: "subtree"`.
 The runtime inserts the fixed WebGL canvas before author DOM in its container.
 That canvas-first structure lets undeclared DOM and `hideWhenReady: false`
 targets remain visually native without a global wrapper layer, while the canvas
-stays pointer-transparent. The canvas is explicitly stacked below direct author
-DOM children (`z-index: 0` canvas, `z-index: 1` DOM children), because DOM order
-alone does not put a fixed-position canvas below normal-flow DOM.
+stays pointer-transparent. The React adapter owns a stable DOM content layer
+above the canvas, so app children stay above the runtime canvas without
+app-authored `z-index` rules.
 
 Package consumers should think about:
 

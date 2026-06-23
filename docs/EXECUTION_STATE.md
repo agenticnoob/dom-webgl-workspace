@@ -347,9 +347,9 @@ border, shadow, texture quality, or cache tuning is explicitly approved.
   `hideMode: "self"` after visual readiness.
 - `hideWhenReady: false` keeps mapped DOM fallback visible, and
   `hideMode: "subtree"` explicitly hides descendants.
-- The fixed WebGL canvas remains `pointer-events: none` and is explicitly
-  stacked below direct author DOM children, so unregistered DOM keeps native
-  visual order and pointer interaction.
+- The fixed WebGL canvas remains `pointer-events: none`; the renderer keeps it
+  below native DOM, and the React adapter owns a stable content layer above the
+  canvas so unregistered DOM keeps native visual order and pointer interaction.
 - Parent `hideMode: "self"` containers preserve ordinary child DOM but do not
   override nested WebGL targets that already manage fallback visibility.
 - WebGL-owned text should not be placed behind native semi-transparent DOM
