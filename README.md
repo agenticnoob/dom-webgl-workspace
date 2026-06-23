@@ -159,10 +159,11 @@ Current visual behavior:
 - The runtime inserts the fixed canvas as the first child of its container and
   leaves author DOM after it, so `hideWhenReady: false` and undeclared DOM can
   remain visually native without an extra global DOM layer.
-- The canvas is explicitly stacked below author DOM (`z-index: 0` for the
-  canvas, `z-index: 1` for direct DOM children) while remaining
-  `pointer-events: none`, so native DOM can stay visually and interactively on
-  top when it is not taken over by WebGL.
+- The canvas is explicitly stacked below the React-owned DOM content layer while
+  remaining `pointer-events: none`, so native DOM can stay visually and
+  interactively on top when it is not taken over by WebGL.
+- The React runtime adapter owns the DOM content layer, so app children remain
+  above the runtime canvas without app-authored `z-index` rules.
 - Runtime pointer input is captured from the document and normalized against the
   fixed viewport canvas, so shared pointer effects are not limited by the
   `WebGLRuntime` container's document-flow box.

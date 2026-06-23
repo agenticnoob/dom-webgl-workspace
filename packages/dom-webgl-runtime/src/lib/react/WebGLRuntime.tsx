@@ -17,6 +17,11 @@ import type {
 
 import { WebGLRuntimeProvider } from "./runtimeContext";
 
+const runtimeContentLayerStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+};
+
 export type WebGLRuntimeProps = {
   children?: ReactNode;
   className?: string;
@@ -103,9 +108,16 @@ export function WebGLRuntime({
     "div",
     { ref: containerRef, className, style },
     createElement(
-      WebGLRuntimeProvider,
-      { runtime: runtime ?? pendingRuntimeRef.current },
-      children,
+      "div",
+      {
+        "data-dom-webgl-runtime-content": "true",
+        style: runtimeContentLayerStyle,
+      },
+      createElement(
+        WebGLRuntimeProvider,
+        { runtime: runtime ?? pendingRuntimeRef.current },
+        children,
+      ),
     ),
   );
 }

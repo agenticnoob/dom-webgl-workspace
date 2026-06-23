@@ -18,8 +18,6 @@ body {
 }
 
 .example-shell {
-  position: relative;
-  z-index: 1;
   min-height: 100vh;
   padding: 56px clamp(20px, 5vw, 72px);
 }

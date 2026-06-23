@@ -196,6 +196,61 @@ describe("WebGLRuntime", () => {
     );
   });
 
+  test("keeps React children above the canvas across runtime replacement", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const effectsA = [] as const;
+    const effectsB = [] as const;
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntime,
+          { effects: effectsA },
+          createElement("main", { "data-testid": "content" }, "DOM content"),
+        ),
+      );
+    });
+
+    const content = document.querySelector(
+      "[data-testid='content']",
+    ) as HTMLElement;
+    const contentLayer = content.parentElement as HTMLElement;
+    const runtimeRoot = contentLayer.parentElement as HTMLElement;
+    const canvas = runtimeRoot.querySelector("canvas") as HTMLCanvasElement;
+
+    expect(canvas.style.zIndex).toBe("0");
+    expect(contentLayer.dataset.domWebglRuntimeContent).toBe("true");
+    expect(contentLayer.style.position).toBe("relative");
+    expect(contentLayer.style.zIndex).toBe("1");
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntime,
+          { effects: effectsB },
+          createElement("main", { "data-testid": "content" }, "DOM content"),
+        ),
+      );
+    });
+
+    await flushRuntimeDisposal();
+
+    const nextContent = document.querySelector(
+      "[data-testid='content']",
+    ) as HTMLElement;
+    const nextContentLayer = nextContent.parentElement as HTMLElement;
+    const nextRuntimeRoot = nextContentLayer.parentElement as HTMLElement;
+    const nextCanvas = nextRuntimeRoot.querySelector(
+      "canvas",
+    ) as HTMLCanvasElement;
+
+    expect(nextCanvas.style.zIndex).toBe("0");
+    expect(nextContentLayer.dataset.domWebglRuntimeContent).toBe("true");
+    expect(nextContentLayer.style.position).toBe("relative");
+    expect(nextContentLayer.style.zIndex).toBe("1");
+  });
+
   test("recreates the runtime when the scroll adapter changes", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
@@ -411,6 +466,10 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 }
 
 function createRuntimeStub(container: HTMLElement): RuntimeInstance {
+  const canvas = container.ownerDocument.createElement("canvas");
+  canvas.style.zIndex = "0";
+  container.prepend(canvas);
+
   return {
     container,
     registerTarget: vi.fn(),
@@ -440,7 +499,9 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
         targets: [],
       };
     },
-    dispose: vi.fn(),
+    dispose: vi.fn(() => {
+      canvas.remove();
+    }),
   };
 }
 
