@@ -327,21 +327,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     rendererHost.sceneAdapter.render();
   }
 
-  function syncFrame(): SyncFrameResult {
-    if (disposed) {
-      return { didSynchronousUpdate: false };
-    }
-
-    const descriptors = listTargetsInScanOrder(registry);
-    const frameInput = frameInputSource.update();
-
-    rendererHost.resizeIfNeeded();
-    const dirtyKeys = invalidationController.consumeDirtyKeys();
-
-    let layoutMeasurements: Map<string, ElementLayoutSnapshot>;
-
+  function measureTargetLayouts(
+    descriptors: TargetDescriptor[],
+  ): Map<string, ElementLayoutSnapshot> {
     try {
-      layoutMeasurements = layoutPass.measure(
+      return layoutPass.measure(
         descriptors.map((descriptor) => ({
           key: descriptor.key,
           element: descriptor.element,
@@ -359,75 +349,232 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       emitDebugState(true);
       throw error;
     }
+  }
+
+  function reconcileOffscreenTarget(
+    viewportState: ViewportLifecycleState,
+    descriptor: TargetDescriptor,
+    renderable: Renderable | undefined,
+    frameInput: WebGLFrameInput,
+    debugRecord: TargetDebugRecord,
+  ): boolean {
+    if (viewportState === "disposed") {
+      disposeOffscreenRenderable(targetState, {
+        key: descriptor.key,
+        renderable,
+        restoreFallback: true,
+      });
+      debugRecord.lifecycleState = "disposed";
+      debugRecord.visible = false;
+      return true;
+    }
+
+    const offscreenPolicy = compileOffscreenPolicy(
+      descriptor.declaration.lifecycle,
+    );
+
+    if (
+      renderable &&
+      shouldDisposeParkedRenderable({
+        viewportState,
+        offscreenPolicy,
+        parkedAt: targetState.parkedAtByTargetKey.get(descriptor.key),
+        now: frameInput.time,
+      })
+    ) {
+      disposeOffscreenRenderable(targetState, {
+        key: descriptor.key,
+        renderable,
+        restoreFallback: true,
+      });
+      debugRecord.lifecycleState = "disposed";
+      debugRecord.visible = false;
+      return true;
+    }
+
+    if (renderable && offscreenPolicy.strategy === "park") {
+      if (!targetState.parkedAtByTargetKey.has(descriptor.key)) {
+        targetState.parkedAtByTargetKey.set(descriptor.key, frameInput.time);
+        targetState.parkedVisibilityByTargetKey.set(
+          descriptor.key,
+          readRenderableVisibilityForPark(targetState, descriptor.key, renderable),
+        );
+        bumpLifecycleVersion(targetState, descriptor.key);
+      }
+      renderable.setVisible(false);
+      debugRecord.lifecycleState = "paused";
+      debugRecord.visible = false;
+      return true;
+    }
+
+    debugRecord.lifecycleState =
+      viewportState === "preloading" ? "preloading" : "inactive";
+    return true;
+  }
+
+  function ensureRenderableCreated(
+    descriptor: TargetDescriptor,
+    debugRecord: TargetDebugRecord,
+  ): Renderable | null {
+    if (targetState.failedTargetKeys.has(descriptor.key)) {
+      debugRecord.lifecycleState = "error";
+      return null;
+    }
+
+    let pipeline: ReturnType<typeof createPipelineRenderable>;
+
+    try {
+      pipeline = createPipelineRenderable(
+        descriptor,
+        renderableFactoryContext,
+        targetState,
+      );
+    } catch (error: unknown) {
+      markDebugRecordError(debugRecord, error);
+      restoreFallbackVisibility(targetState, descriptor.key);
+      targetState.failedTargetKeys.add(descriptor.key);
+      if (isGateTarget(descriptor)) {
+        releaseActiveGate(scrollState);
+      }
+      emitDebugState(true);
+      throw error;
+    }
+
+    const renderable = pipeline.renderable;
+    targetState.renderablesByTargetKey.set(descriptor.key, renderable);
+    targetState.effectControllersByTargetKey.set(
+      descriptor.key,
+      pipeline.effectController,
+    );
+    targetState.debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
+    targetState.fallbackControllersByTargetKey.set(
+      descriptor.key,
+      createFallbackVisibilityController(
+        descriptor.element,
+        descriptor.declaration.lifecycle ?? {},
+        { defaultHideWhenReady: true, defaultHideMode: "self" },
+      ),
+    );
+    targetState.renderables.add(renderable);
+    internalOptions.onRenderableCreated?.(renderable);
+    return renderable;
+  }
+
+  function scheduleAsyncCompletion(
+    resultPromise: Promise<void>,
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+    debugRecord: TargetDebugRecord,
+    layoutMeasurement: ElementLayoutSnapshot | undefined,
+    lifecycleVersion: number,
+    pendingUpdates: Array<Promise<void>>,
+    frameInput: WebGLFrameInput,
+  ): void {
+    markDebugRecordLoading(debugRecord);
+    restoreFallbackVisibility(targetState, descriptor.key);
+    pendingAsyncTargets.add(descriptor.key);
+    pendingUpdates.push(
+      resultPromise
+        .then(() => {
+          pendingAsyncTargets.delete(descriptor.key);
+          if (isStaleAsyncCompletion(descriptor, renderable, lifecycleVersion)) return;
+
+          if (layoutMeasurement) {
+            const currentInput = frameInputSource.getState();
+            renderable.updateLayout?.(layoutMeasurement);
+            targetState.effectControllersByTargetKey
+              .get(descriptor.key)
+              ?.update(currentInput, layoutMeasurement);
+          }
+          syncDebugRecordFromRenderable(debugRecord, renderable);
+          syncFallbackVisibility(targetState, descriptor, renderable);
+        })
+        .catch((error: unknown) => {
+          pendingAsyncTargets.delete(descriptor.key);
+          if (isStaleAsyncReject(descriptor, renderable, lifecycleVersion)) return;
+
+          markDebugRecordError(debugRecord, error);
+          restoreFallbackVisibility(targetState, descriptor.key);
+          if (isGateTarget(descriptor)) releaseActiveGate(scrollState);
+          throw error;
+        }),
+    );
+  }
+
+  function applySyncCompletion(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+    debugRecord: TargetDebugRecord,
+    layoutMeasurement: ElementLayoutSnapshot | undefined,
+    frameInput: WebGLFrameInput,
+  ): void {
+    if (layoutMeasurement) {
+      renderable.updateLayout?.(layoutMeasurement);
+      targetState.effectControllersByTargetKey
+        .get(descriptor.key)
+        ?.update(frameInput, layoutMeasurement);
+    }
+    syncDebugRecordFromRenderable(debugRecord, renderable);
+    syncFallbackVisibility(targetState, descriptor, renderable);
+  }
+
+  function isStaleAsyncCompletion(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+    lifecycleVersion: number,
+  ): boolean {
+    return (
+      targetState.renderablesByTargetKey.get(descriptor.key) !== renderable ||
+      readLifecycleVersion(targetState, descriptor.key) !== lifecycleVersion ||
+      targetState.parkedAtByTargetKey.has(descriptor.key)
+    );
+  }
+
+  function isStaleAsyncReject(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+    lifecycleVersion: number,
+  ): boolean {
+    if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
+      if (targetState.retiredRenderables.has(renderable)) return true;
+      return false;
+    }
+    return (
+      readLifecycleVersion(targetState, descriptor.key) !== lifecycleVersion ||
+      targetState.parkedAtByTargetKey.has(descriptor.key)
+    );
+  }
+
+  function syncFrame(): SyncFrameResult {
+    if (disposed) {
+      return { didSynchronousUpdate: false };
+    }
+
+    const descriptors = listTargetsInScanOrder(registry);
+    const frameInput = frameInputSource.update();
+
+    rendererHost.resizeIfNeeded();
+    const dirtyKeys = invalidationController.consumeDirtyKeys();
+
+    const layoutMeasurements = measureTargetLayouts(descriptors);
 
     const pendingUpdates: Array<Promise<void>> = [];
     let didSynchronousUpdate = false;
+    const viewportHeight = window.innerHeight || 600;
 
     for (const descriptor of descriptors) {
       let debugRecord = readTargetDebugRecord(descriptor, targetState);
       const layoutMeasurement = layoutMeasurements.get(descriptor.key);
       const viewportState = layoutMeasurement
-        ? viewportLifecycle.classify(layoutMeasurement, window.innerHeight || 600)
+        ? viewportLifecycle.classify(layoutMeasurement, viewportHeight)
         : "active";
       let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
-      if (viewportState === "disposed") {
-        disposeOffscreenRenderable(targetState, {
-          key: descriptor.key,
-          renderable,
-          restoreFallback: true,
-        });
-        debugRecord.lifecycleState = "disposed";
-        debugRecord.visible = false;
-        continue;
-      }
-
       if (viewportState !== "active") {
-        const offscreenPolicy = compileOffscreenPolicy(
-          descriptor.declaration.lifecycle,
+        const skipped = reconcileOffscreenTarget(
+          viewportState, descriptor, renderable, frameInput, debugRecord,
         );
-
-        if (
-          renderable &&
-          shouldDisposeParkedRenderable({
-            viewportState,
-            offscreenPolicy,
-            parkedAt: targetState.parkedAtByTargetKey.get(descriptor.key),
-            now: frameInput.time,
-          })
-        ) {
-          disposeOffscreenRenderable(targetState, {
-            key: descriptor.key,
-            renderable,
-            restoreFallback: true,
-          });
-          debugRecord.lifecycleState = "disposed";
-          debugRecord.visible = false;
-          continue;
-        }
-
-        if (renderable && offscreenPolicy.strategy === "park") {
-          if (!targetState.parkedAtByTargetKey.has(descriptor.key)) {
-            targetState.parkedAtByTargetKey.set(descriptor.key, frameInput.time);
-            targetState.parkedVisibilityByTargetKey.set(
-              descriptor.key,
-              readRenderableVisibilityForPark(
-                targetState,
-                descriptor.key,
-                renderable,
-              ),
-            );
-            bumpLifecycleVersion(targetState, descriptor.key);
-          }
-          renderable.setVisible(false);
-          debugRecord.lifecycleState = "paused";
-          debugRecord.visible = false;
-          continue;
-        }
-
-        debugRecord.lifecycleState =
-          viewportState === "preloading" ? "preloading" : "inactive";
-        continue;
+        if (skipped) continue;
       }
 
       const wasParked = targetState.parkedAtByTargetKey.delete(descriptor.key);
@@ -439,59 +586,18 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       if (!renderable) {
-        if (targetState.failedTargetKeys.has(descriptor.key)) {
-          debugRecord.lifecycleState = "error";
-          continue;
-        }
-
-        let pipeline: ReturnType<typeof createPipelineRenderable>;
-
-        try {
-          pipeline = createPipelineRenderable(
-            descriptor,
-            renderableFactoryContext,
-            targetState,
-          );
-        } catch (error: unknown) {
-          markDebugRecordError(debugRecord, error);
-          restoreFallbackVisibility(targetState, descriptor.key);
-          targetState.failedTargetKeys.add(descriptor.key);
-          if (isGateTarget(descriptor)) {
-            releaseActiveGate(scrollState);
-          }
-          emitDebugState(true);
-          throw error;    // propagate configuration errors to sync() caller
-        }
-
-        renderable = pipeline.renderable;
-        debugRecord = pipeline.debugRecord;
-        targetState.renderablesByTargetKey.set(descriptor.key, renderable);
-        targetState.effectControllersByTargetKey.set(
-          descriptor.key,
-          pipeline.effectController,
-        );
-        targetState.debugRecordsByTargetKey.set(descriptor.key, pipeline.debugRecord);
-        targetState.fallbackControllersByTargetKey.set(
-          descriptor.key,
-          createFallbackVisibilityController(
-            descriptor.element,
-            descriptor.declaration.lifecycle ?? {},
-            { defaultHideWhenReady: true, defaultHideMode: "self" },
-          ),
-        );
-        targetState.renderables.add(renderable);
-        internalOptions.onRenderableCreated?.(renderable);
+        const created = ensureRenderableCreated(descriptor, debugRecord);
+        if (!created) continue;
+        renderable = created;
+        debugRecord = readTargetDebugRecord(descriptor, targetState);
       }
 
       if (dirtyKeys.has(descriptor.key)) {
         renderable.invalidateContent?.();
       }
 
+      const lifecycleVersion = readLifecycleVersion(targetState, descriptor.key);
       let result: void | Promise<void>;
-      const lifecycleVersion = readLifecycleVersion(
-        targetState,
-        descriptor.key,
-      );
 
       try {
         result = renderable.update(frameInput);
@@ -501,90 +607,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         if (isGateTarget(descriptor)) {
           releaseActiveGate(scrollState);
         }
-          emitDebugState(true);
-          throw error;
-        }
+        emitDebugState(true);
+        throw error;
+      }
 
       if (isPromiseLike(result)) {
-        markDebugRecordLoading(debugRecord);
-        restoreFallbackVisibility(targetState, descriptor.key);
-        pendingAsyncTargets.add(descriptor.key);
-        pendingUpdates.push(
-          result
-            .then(() => {
-              pendingAsyncTargets.delete(descriptor.key);
-
-              if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
-                return;
-              }
-              if (
-                readLifecycleVersion(
-                  targetState,
-                  descriptor.key,
-                ) !== lifecycleVersion
-              ) {
-                return;
-              }
-              if (targetState.parkedAtByTargetKey.has(descriptor.key)) {
-                return;
-              }
-
-              if (layoutMeasurement) {
-                renderable.updateLayout?.(layoutMeasurement);
-                const currentInput = frameInputSource.getState();
-                targetState.effectControllersByTargetKey
-                  .get(descriptor.key)
-                  ?.update(currentInput, layoutMeasurement);
-              }
-              syncDebugRecordFromRenderable(debugRecord, renderable);
-              syncFallbackVisibility(
-                targetState,
-                descriptor,
-                renderable,
-              );
-            })
-            .catch((error: unknown) => {
-              pendingAsyncTargets.delete(descriptor.key);
-
-              if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
-                if (targetState.retiredRenderables.has(renderable)) {
-                  return;
-                }
-                throw error;
-              }
-              if (
-                readLifecycleVersion(
-                  targetState,
-                  descriptor.key,
-                ) !== lifecycleVersion
-              ) {
-                return;
-              }
-              if (targetState.parkedAtByTargetKey.has(descriptor.key)) {
-                return;
-              }
-
-              markDebugRecordError(debugRecord, error);
-              restoreFallbackVisibility(targetState, descriptor.key);
-              if (isGateTarget(descriptor)) {
-                releaseActiveGate(scrollState);
-              }
-              throw error;
-            }),
-        );
+        scheduleAsyncCompletion(result, descriptor, renderable, debugRecord,
+          layoutMeasurement, lifecycleVersion, pendingUpdates, frameInput);
       } else {
-        if (layoutMeasurement) {
-          renderable.updateLayout?.(layoutMeasurement);
-          targetState.effectControllersByTargetKey
-            .get(descriptor.key)
-            ?.update(frameInput, layoutMeasurement);
-        }
-        syncDebugRecordFromRenderable(debugRecord, renderable);
-        syncFallbackVisibility(
-          targetState,
-          descriptor,
-          renderable,
-        );
+        applySyncCompletion(descriptor, renderable, debugRecord,
+          layoutMeasurement, frameInput);
         didSynchronousUpdate = true;
       }
     }
@@ -598,13 +630,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     return {
       didSynchronousUpdate,
       pendingUpdate: Promise.all(pendingUpdates).then(
-        () => {
-          emitDebugState(true);
-        },
-        (error: unknown) => {
-          emitDebugState(true);
-          throw error;
-        },
+        () => { emitDebugState(true); },
+        (error: unknown) => { emitDebugState(true); throw error; },
       ),
     };
   }
