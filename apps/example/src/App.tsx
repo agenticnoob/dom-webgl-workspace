@@ -1,10 +1,16 @@
 import * as React from "react";
-import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
+import {
+  WebGLDebugPanel,
+  WebGLRuntime,
+  WebGLTarget,
+  useWebGLDebugState,
+} from "@project/dom-webgl-runtime/react";
 
 import { exampleEffects } from "./exampleEffects";
 import { useExampleSmoothScrollStack } from "./useExampleSmoothScrollStack";
 
 export default function App() {
+  const [debugState, onDebugStateChange] = useWebGLDebugState();
   const smoothScroll = useExampleSmoothScrollStack();
 
   return (
@@ -12,6 +18,7 @@ export default function App() {
       className="example-runtime"
       effects={exampleEffects}
       scrollAdapter={smoothScroll?.scrollAdapter}
+      onDebugStateChange={onDebugStateChange}
     >
       <main className="example-shell">
         <section className="example-intro">
@@ -234,6 +241,7 @@ export default function App() {
           </section>
         </div>
       </main>
+      <WebGLDebugPanel state={debugState} />
     </WebGLRuntime>
   );
 }

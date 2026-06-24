@@ -1,6 +1,8 @@
-import { act, createElement, type ReactNode } from "react";
+import { act, createElement, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+import type { WebGLDebugState } from "@project/dom-webgl-runtime";
 
 const runtimeProps: RuntimeMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
@@ -10,6 +12,7 @@ type RuntimeMockProps = {
   children?: ReactNode;
   effects?: readonly unknown[];
   scrollAdapter?: unknown;
+  onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
 type TargetMockProps = {
@@ -31,6 +34,23 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
   WebGLTarget: ({ as = "div", children, webgl, ...props }: TargetMockProps) => {
     targetProps.push({ as, children, webgl });
     return createElement(as, props, children);
+  },
+  WebGLDebugPanel: () => null,
+  useWebGLDebugState: () => {
+    const [state, setState] = useState<WebGLDebugState>({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: {
+        x: 0, y: 0, normalizedX: 0, normalizedY: 0,
+        isInside: false, isDown: false, downTime: 0,
+        pressDuration: 0, isDragging: false,
+        dragStartX: 0, dragStartY: 0,
+        dragDeltaX: 0, dragDeltaY: 0, clickCount: 0,
+      },
+      targets: [],
+    });
+    return [state, setState];
   },
 }));
 
@@ -65,6 +85,7 @@ describe("effect authoring example app", () => {
     expect(runtimeProps.length).toBeGreaterThanOrEqual(1);
     expect(runtimeProps.every(({ effects }) => effects === exampleEffects)).toBe(true);
     expect(runtimeProps.at(-1)?.scrollAdapter).toBeDefined();
+    expect(runtimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
     expect(host.querySelector('[data-testid="example-runtime"]')).not.toBeNull();
 
     const finalTargetProps = targetProps.slice(-10);
