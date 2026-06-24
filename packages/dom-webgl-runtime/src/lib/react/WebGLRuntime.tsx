@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { createInitialPointerState } from "../input/pointerController";
 import { createWebGLRuntime } from "../renderer/runtime";
 import type {
   WebGLDebugState,
@@ -141,22 +142,7 @@ function createPendingRuntime(): RuntimeInstance {
         targetCount: 0,
         renderableCount: 0,
         currentScrollMode: "page",
-        pointer: {
-          x: 0,
-          y: 0,
-          normalizedX: 0,
-          normalizedY: 0,
-          isInside: false,
-          isDown: false,
-          downTime: 0,
-          pressDuration: 0,
-          isDragging: false,
-          dragStartX: 0,
-          dragStartY: 0,
-          dragDeltaX: 0,
-          dragDeltaY: 0,
-          clickCount: 0,
-        },
+        pointer: createInitialPointerState(),
         targets: [],
       };
     },
@@ -169,22 +155,7 @@ function createRuntimeCreationErrorState(error: unknown): WebGLDebugState {
     targetCount: 0,
     renderableCount: 0,
     currentScrollMode: "page",
-    pointer: {
-      x: 0,
-      y: 0,
-      normalizedX: 0,
-      normalizedY: 0,
-      isInside: false,
-      isDown: false,
-      downTime: 0,
-      pressDuration: 0,
-      isDragging: false,
-      dragStartX: 0,
-      dragStartY: 0,
-      dragDeltaX: 0,
-      dragDeltaY: 0,
-      clickCount: 0,
-    },
+    pointer: createInitialPointerState(),
     targets: [
       {
         key: "runtime",

@@ -187,6 +187,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const pendingAsyncTargets = new Set<string>();
   let lastDebugEmit = 0;
 
+  // Tracks position + consecutive disposed frames per target.
+  // After 3+ stable frames, uses scroll-estimated position to decide if
+  // the rect read can be safely skipped.
+  type RectSkipState = { lastTop: number; lastScrollY: number; frames: number };
+  const rectSkipState = new Map<string, RectSkipState>();
+
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
     beforeRender() {
@@ -330,14 +336,36 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   function measureTargetLayouts(
     descriptors: TargetDescriptor[],
   ): Map<string, ElementLayoutSnapshot> {
+    const currentScrollY = window.scrollY;
+    const viewportHeight = window.innerHeight || 600;
+    const unloadPx = (250 / 100) * viewportHeight;
+    const safetyPx = viewportHeight * 0.5;
+
+    const needsMeasure = descriptors.filter((d) => {
+      const state = rectSkipState.get(d.key);
+      if (!state || state.frames < 3) return true;
+
+      // Stably far for 3+ frames — estimate whether still far via scroll delta.
+      const scrollDelta = currentScrollY - state.lastScrollY;
+      const estimatedTop = state.lastTop - scrollDelta;
+
+      if (estimatedTop > unloadPx + safetyPx || estimatedTop < -(unloadPx + safetyPx + viewportHeight)) {
+        return false; // still safely far — skip rect read
+      }
+
+      return true;
+    });
+
     try {
-      return layoutPass.measure(
-        descriptors.map((descriptor) => ({
+      const measurements = layoutPass.measure(
+        needsMeasure.map((descriptor) => ({
           key: descriptor.key,
           element: descriptor.element,
           active: true,
         })),
       );
+
+      return measurements;
     } catch (error: unknown) {
       for (const descriptor of descriptors) {
         markDebugRecordError(
@@ -565,9 +593,34 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     for (const descriptor of descriptors) {
       let debugRecord = readTargetDebugRecord(descriptor, targetState);
       const layoutMeasurement = layoutMeasurements.get(descriptor.key);
-      const viewportState = layoutMeasurement
-        ? viewportLifecycle.classify(layoutMeasurement, viewportHeight)
-        : "active";
+
+      if (!layoutMeasurement) {
+        // Pre-filter skipped this target — kept as disposed via scroll estimation.
+        const prev = rectSkipState.get(descriptor.key);
+        if (prev) rectSkipState.set(descriptor.key, { ...prev, frames: prev.frames + 1 });
+        const renderable = targetState.renderablesByTargetKey.get(descriptor.key);
+        reconcileOffscreenTarget(
+          "disposed",
+          descriptor,
+          renderable,
+          frameInput,
+          readTargetDebugRecord(descriptor, targetState),
+        );
+        continue;
+      }
+
+      const viewportState = viewportLifecycle.classify(layoutMeasurement, viewportHeight);
+
+      if (viewportState === "disposed") {
+        rectSkipState.set(descriptor.key, {
+          lastTop: layoutMeasurement.top,
+          lastScrollY: window.scrollY,
+          frames: (rectSkipState.get(descriptor.key)?.frames ?? 0) + 1,
+        });
+      } else {
+        rectSkipState.delete(descriptor.key);
+      }
+
       let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
       if (viewportState !== "active") {

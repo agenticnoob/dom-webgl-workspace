@@ -1,6 +1,11 @@
 export { createWebGLRuntime } from "./lib/renderer/runtime";
+export { createInitialPointerState } from "./lib/input/pointerController";
 export {
   defineWebGLEffect,
+  createEffectDeclarations,
+  type EffectDeclarationMap,
+  type TypedEffectDeclaration,
+  type WebGLEffectsDeclarationOf,
   type WebGLEffectCanvasDrawer,
   type WebGLEffectCanvasSurfaceHandle,
   type WebGLEffectContext,

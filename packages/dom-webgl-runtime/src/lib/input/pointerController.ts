@@ -111,7 +111,7 @@ function isPointerControllerOptions(
   return "coordinateElement" in input;
 }
 
-function createInitialPointerState(): WebGLPointerState {
+export function createInitialPointerState(): WebGLPointerState {
   return {
     x: 0,
     y: 0,

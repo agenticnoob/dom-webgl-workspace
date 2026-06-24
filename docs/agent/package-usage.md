@@ -387,6 +387,65 @@ Rules:
 - Create expensive resources in `setup`, not `update`.
 - Dispose effect-owned resources through `ctx.resources`.
 
+## Type-Safe Effect Declarations
+
+The `effects` array on a target declaration is checked at **runtime** (the registry
+resolves `kind` strings against registered definitions). For **compile-time** protection
+against misspelled params or unknown kinds, provide a type map and use the
+`createEffectDeclarations()` helper or `WebGLEffectsDeclarationOf` type.
+
+Define a param type map for your application:
+
+```ts
+interface AppEffectParams {
+  "app.surface": { opacity?: number };
+  "app.pointerTilt": { strength?: number; maxDegrees?: number };
+  "app.modelSpin": { speed?: number };
+}
+```
+
+### Option 1: `createEffectDeclarations()` (零运行时成本)
+
+```ts
+import { createEffectDeclarations } from "<runtime-package>";
+
+const effects = createEffectDeclarations<AppEffectParams>()([
+  { kind: "app.surface", opacity: 0.82 },       // ✅ type-safe
+  { kind: "app.pointerTilt", strength: 0.6 },   // ✅ type-safe
+  // { kind: "app.surface", opcity: 0.82 },     // ❌ TS error: unknown property "opcity"
+  // { kind: "app.unknown" },                    // ❌ TS error: kind not in AppEffectParams
+]);
+
+<WebGLTarget webgl={{ key: "card", effects }} />
+```
+
+### Option 2: `satisfies` + `WebGLEffectsDeclarationOf`（JSX 内联）
+
+```tsx
+import type { WebGLEffectsDeclarationOf } from "<runtime-package>";
+
+const cardEffects = [
+  { kind: "app.surface", opacity: 0.82 },
+  { kind: "app.pointerTilt", strength: 0.6 },
+] as const satisfies WebGLEffectsDeclarationOf<AppEffectParams>;
+
+<WebGLTarget webgl={{ key: "card", effects: cardEffects }} />
+```
+
+### Rules
+
+- Keep the type map (`AppEffectParams` above) in a shared module so effect
+  definitions and target declarations share the same contract.
+- The helper is zero-cost at runtime — it only adds a TypeScript type guard.
+- For effects without params, use `Record<string, never>`:
+  ```ts
+  interface AppEffectParams {
+    "app.toggle": Record<string, never>;
+  }
+  ```
+- The type map approach does not eliminate the need for runtime `kind` matching.
+  Unregistered effects still throw at runtime.
+
 ## Effect Context
 
 Use context fields as the single runtime truth:

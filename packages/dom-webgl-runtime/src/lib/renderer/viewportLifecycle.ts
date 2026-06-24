@@ -45,12 +45,12 @@ export function createViewportLifecycle(
         return "active";
       }
 
-      if (distance <= preloadMargin) {
-        return "preloading";
-      }
-
       if (distance <= mountMargin) {
         return "mounted";
+      }
+
+      if (distance <= preloadMargin) {
+        return "preloading";
       }
 
       if (distance <= unloadMargin) {

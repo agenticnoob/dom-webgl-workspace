@@ -224,6 +224,72 @@ export type WebGLEffectDefinition<
   ): void;
 };
 
+/**
+ * Consumer-maintained mapping of effect kind string → params shape.
+ *
+ * @example
+ * ```ts
+ * interface AppEffectParams {
+ *   "app.surface": { opacity?: number };
+ *   "app.pointerTilt": { strength?: number; maxDegrees?: number };
+ * }
+ * ```
+ */
+export type EffectDeclarationMap = Record<string, Record<string, unknown>>;
+
+/**
+ * Given a `EffectDeclarationMap` and a specific kind key,
+ * produce the typed effect declaration for that kind.
+ */
+export type TypedEffectDeclaration<
+  TMap,
+  TKind extends keyof TMap,
+> = { kind: TKind } & TMap[TKind];
+
+/**
+ * A `WebGLEffectsDeclaration` constrained by a `EffectDeclarationMap`.
+ * Use this in JSX with `satisfies`:
+ *
+ * ```tsx
+ * const effects = [
+ *   { kind: "app.surface", opacity: 0.82 },
+ * ] satisfies WebGLEffectsDeclarationOf<AppEffectParams>;
+ *
+ * <WebGLTarget webgl={{ key: "x", effects }} />
+ * ```
+ */
+export type WebGLEffectsDeclarationOf<TMap> = Array<
+  { [K in keyof TMap]: { kind: K } & TMap[K] }[keyof TMap]
+>;
+
+/**
+ * Zero-cost compile-time guard for effect declaration arrays.
+ *
+ * Returns the input array unchanged — the runtime behavior is identical
+ * to a plain array literal.
+ *
+ * @example
+ * ```ts
+ * interface MyEffects {
+ *   "app.surface": { opacity?: number };
+ * }
+ *
+ * const effects = createEffectDeclarations<MyEffects>()([
+ *   { kind: "app.surface", opacity: 0.82 },  // ✅ type-safe
+ *   { kind: "app.surface", opcity: 0.82 },    // ❌ TS error
+ * ]);
+ * ```
+ */
+export function createEffectDeclarations<TMap>(): <
+  TDeclarations extends Array<{
+    [K in keyof TMap]: { kind: K } & TMap[K];
+  }[keyof TMap]>,
+>(
+  declarations: TDeclarations,
+) => TDeclarations {
+  return (declarations) => declarations;
+}
+
 export function defineWebGLEffect<
   TParams extends WebGLEffectDeclaration,
   TState = void,
