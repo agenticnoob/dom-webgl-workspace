@@ -18,6 +18,7 @@ export type TargetRuntimeState = {
   renderables: Set<DisposableRenderable>;
   retiredRenderables: WeakSet<Renderable>;
   renderablesByTargetKey: Map<string, Renderable>;
+  failedTargetKeys: Set<string>;
   parkedAtByTargetKey: Map<string, number>;
   parkedVisibilityByTargetKey: Map<string, boolean>;
   effectVisibilityByTargetKey: Map<string, boolean>;
@@ -34,6 +35,7 @@ export function createTargetRuntimeState(
     renderables: new Set<DisposableRenderable>(initialRenderables),
     retiredRenderables: new WeakSet<Renderable>(),
     renderablesByTargetKey: new Map<string, Renderable>(),
+    failedTargetKeys: new Set<string>(),
     parkedAtByTargetKey: new Map<string, number>(),
     parkedVisibilityByTargetKey: new Map<string, boolean>(),
     effectVisibilityByTargetKey: new Map<string, boolean>(),
@@ -59,6 +61,7 @@ export function disposeTargetRuntimeState(state: TargetRuntimeState): void {
     }
     state.effectControllersByTargetKey.clear();
     state.renderablesByTargetKey.clear();
+    state.failedTargetKeys.clear();
     state.parkedAtByTargetKey.clear();
     state.parkedVisibilityByTargetKey.clear();
     state.effectVisibilityByTargetKey.clear();
@@ -77,6 +80,7 @@ export function disposeTargetRenderable(
   const renderable = state.renderablesByTargetKey.get(key);
   const effectController = state.effectControllersByTargetKey.get(key);
 
+  state.failedTargetKeys.delete(key);
   state.parkedAtByTargetKey.delete(key);
   state.parkedVisibilityByTargetKey.delete(key);
   state.lifecycleVersionByTargetKey.delete(key);

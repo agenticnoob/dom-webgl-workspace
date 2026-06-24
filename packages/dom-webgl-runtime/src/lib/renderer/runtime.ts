@@ -169,6 +169,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );
+  // Created once at init. Margins stay with the lifecycle object;
+  // viewportHeight is refreshed each frame through classify().
+  // Future: allow margin overrides via WebGLRuntimeOptions.
+  const viewportLifecycle = createViewportLifecycle();
   const renderableFactoryContext: PipelineRenderableContext = {
     resourceManager,
     sceneAdapter: rendererHost.sceneAdapter,
@@ -180,28 +184,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   };
   let nextScanOrder = 0;
   let disposed = false;
-  let loopSyncPending = false;
+  const pendingAsyncTargets = new Set<string>();
+  let lastDebugEmit = 0;
 
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
     beforeRender() {
-      if (loopSyncPending) {
-        return;
-      }
-
       try {
-        const result = syncFrame();
-
-        if (result.pendingUpdate) {
-          loopSyncPending = true;
-          result.pendingUpdate
-            .catch((error: unknown) => {
-              console.error("WebGL runtime frame sync failed.", error);
-            })
-            .finally(() => {
-              loopSyncPending = false;
-            });
-        }
+        syncFrame();
       } catch (error: unknown) {
         console.error("WebGL runtime frame sync failed.", error);
       }
@@ -228,7 +218,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         key: descriptor.key,
         element: descriptor.element,
       });
-      emitDebugState();
+      emitDebugState(true);
 
       return;
     },
@@ -242,7 +232,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       restoreFallbackVisibility(targetState, targetKey);
       targetState.fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(targetState, targetKey);
-      emitDebugState();
+      emitDebugState(true);
     },
     sync() {
       if (disposed) {
@@ -286,7 +276,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         pointerController.dispose();
         rendererLoop.dispose();
         rendererHost.dispose();
-        emitDebugState();
+        emitDebugState(true);
       }
     },
   };
@@ -318,7 +308,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     });
   }
 
-  function emitDebugState(): void {
+  function emitDebugState(force = false): void {
+    if (!force) {
+      const now = performance.now();
+      if (now - lastDebugEmit < 100) { // throttle to ~10fps
+        return;
+      }
+      lastDebugEmit = now;
+    }
     internalOptions.onDebugStateChange?.(createCurrentDebugState());
   }
 
@@ -359,11 +356,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         );
       }
       releaseActiveGate(scrollState);
-      emitDebugState();
+      emitDebugState(true);
       throw error;
     }
 
-    const viewportLifecycle = createCurrentViewportLifecycle();
     const pendingUpdates: Array<Promise<void>> = [];
     let didSynchronousUpdate = false;
 
@@ -371,7 +367,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       let debugRecord = readTargetDebugRecord(descriptor, targetState);
       const layoutMeasurement = layoutMeasurements.get(descriptor.key);
       const viewportState = layoutMeasurement
-        ? viewportLifecycle.classify(layoutMeasurement)
+        ? viewportLifecycle.classify(layoutMeasurement, window.innerHeight || 600)
         : "active";
       let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
@@ -443,6 +439,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       if (!renderable) {
+        if (targetState.failedTargetKeys.has(descriptor.key)) {
+          debugRecord.lifecycleState = "error";
+          continue;
+        }
+
         let pipeline: ReturnType<typeof createPipelineRenderable>;
 
         try {
@@ -454,9 +455,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         } catch (error: unknown) {
           markDebugRecordError(debugRecord, error);
           restoreFallbackVisibility(targetState, descriptor.key);
-          releaseActiveGate(scrollState);
-          emitDebugState();
-          throw error;
+          targetState.failedTargetKeys.add(descriptor.key);
+          if (isGateTarget(descriptor)) {
+            releaseActiveGate(scrollState);
+          }
+          emitDebugState(true);
+          throw error;    // propagate configuration errors to sync() caller
         }
 
         renderable = pipeline.renderable;
@@ -494,17 +498,22 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       } catch (error: unknown) {
         markDebugRecordError(debugRecord, error);
         restoreFallbackVisibility(targetState, descriptor.key);
-        releaseActiveGate(scrollState);
-        emitDebugState();
-        throw error;
-      }
+        if (isGateTarget(descriptor)) {
+          releaseActiveGate(scrollState);
+        }
+          emitDebugState(true);
+          throw error;
+        }
 
       if (isPromiseLike(result)) {
         markDebugRecordLoading(debugRecord);
         restoreFallbackVisibility(targetState, descriptor.key);
+        pendingAsyncTargets.add(descriptor.key);
         pendingUpdates.push(
           result
             .then(() => {
+              pendingAsyncTargets.delete(descriptor.key);
+
               if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
                 return;
               }
@@ -522,9 +531,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
               if (layoutMeasurement) {
                 renderable.updateLayout?.(layoutMeasurement);
+                const currentInput = frameInputSource.getState();
                 targetState.effectControllersByTargetKey
                   .get(descriptor.key)
-                  ?.update(frameInput, layoutMeasurement);
+                  ?.update(currentInput, layoutMeasurement);
               }
               syncDebugRecordFromRenderable(debugRecord, renderable);
               syncFallbackVisibility(
@@ -534,6 +544,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
               );
             })
             .catch((error: unknown) => {
+              pendingAsyncTargets.delete(descriptor.key);
+
               if (targetState.renderablesByTargetKey.get(descriptor.key) !== renderable) {
                 if (targetState.retiredRenderables.has(renderable)) {
                   return;
@@ -554,7 +566,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
               markDebugRecordError(debugRecord, error);
               restoreFallbackVisibility(targetState, descriptor.key);
-              releaseActiveGate(scrollState);
+              if (isGateTarget(descriptor)) {
+                releaseActiveGate(scrollState);
+              }
               throw error;
             }),
         );
@@ -585,10 +599,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       didSynchronousUpdate,
       pendingUpdate: Promise.all(pendingUpdates).then(
         () => {
-          emitDebugState();
+          emitDebugState(true);
         },
         (error: unknown) => {
-          emitDebugState();
+          emitDebugState(true);
           throw error;
         },
       ),
@@ -601,18 +615,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
 
     releaseActiveGate(scrollState);
-    emitDebugState();
+    emitDebugState(true);
   }
 
-  function createCurrentViewportLifecycle() {
-    return createViewportLifecycle({
-      viewportHeight: window.innerHeight || 600,
-      activeMargin: "50vh",
-      preloadMargin: "150vh",
-      mountMargin: "100vh",
-      unloadMargin: "250vh",
-    });
-  }
+  // Placeholder for future WebGLRuntimeOptions.viewportLifecycle margin overrides
 }
 
 function readDebugScrollState(
@@ -826,8 +832,16 @@ function readRenderableLifecycleState(renderable: Renderable): WebGLLifecycleSta
   }
 }
 
+function readVisibleLifecycleState(renderable: Renderable): WebGLLifecycleState {
+  return renderable.sceneObjectController?.visible === false ? "inactive" : "active";
+}
+
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {
   return registry.list().sort((left, right) => left.scanOrder - right.scanOrder);
+}
+
+function isGateTarget(descriptor: TargetDescriptor): boolean {
+  return descriptor.declaration.scroll?.type === "gate";
 }
 
 function registerGateTarget(

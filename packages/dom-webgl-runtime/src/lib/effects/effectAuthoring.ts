@@ -3,7 +3,19 @@ import type {
   WebGLEffectDeclaration,
   WebGLFrameInput,
 } from "../types";
-import type { WebGLEffectSourceKind } from "./effectPlugin";
+
+// Maps to public source declarations:
+//   "snapshot/element" ← { kind: "snapshot", mode: "element" }
+//   "snapshot/text"    ← { kind: "snapshot", mode: "text" }
+//   "image"            ← { kind: "image" }
+//   "video"            ← { kind: "video" }
+//   "model/glb"        ← { kind: "model", format: "glb" }
+export type WebGLEffectSourceKind =
+  | "snapshot/element"
+  | "snapshot/text"
+  | "image"
+  | "video"
+  | "model/glb";
 
 export type WebGLEffectResourceScope = {
   addDisposable(dispose: () => void): void;

@@ -5,11 +5,11 @@ import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
   WebGLEffectSourceHandle,
+  WebGLEffectSourceKind,
 } from "./effectAuthoring";
-import { createWebGLEffectContext } from "./effectContext";
+import { createWebGLEffectContext, readScrollProgress } from "./effectContext";
 import { compileWebGLEffectDeclarations } from "./effectDeclaration";
 import { assertEffectCompatibility } from "./effectCompatibility";
-import type { WebGLEffectSourceKind } from "./effectPlugin";
 import {
   createWebGLEffectRegistry,
   type WebGLEffectRegistry,
@@ -39,7 +39,7 @@ type RunningEffect = {
   resources: ReturnType<typeof createWebGLEffectResourceScope>;
   state: unknown;
   initialized: boolean;
-  lastContext?: WebGLEffectContext;
+  reusableContext: WebGLEffectContext | null;
 };
 
 export function createWebGLEffectController(
@@ -70,6 +70,7 @@ export function createWebGLEffectController(
         resources: createWebGLEffectResourceScope(),
         state: undefined,
         initialized: false,
+        reusableContext: null,
       };
     },
   );
@@ -92,15 +93,31 @@ export function createWebGLEffectController(
       const target = readEffectTarget(options);
 
       for (const effect of effects) {
-        const context = createWebGLEffectContext({
-          key: options.key,
-          sourceKind,
-          input,
-          layout,
-          source,
-          target,
-          resources: effect.resources,
-        });
+        let context: WebGLEffectContext;
+
+        if (effect.reusableContext) {
+          context = effect.reusableContext;
+          context.layout = layout;
+          context.input = input;
+          context.pointer = input.pointer;
+          context.scroll = input.scroll;
+          context.scrollProgress = readScrollProgress(input.scroll);
+          context.time = input.time;
+          context.delta = input.delta;
+          context.source = source;
+          context.target = target ?? undefined;
+        } else {
+          context = createWebGLEffectContext({
+            key: options.key,
+            sourceKind,
+            input,
+            layout,
+            source,
+            target,
+            resources: effect.resources,
+          });
+          effect.reusableContext = context;
+        }
 
         if (!effect.initialized) {
           effect.state = effect.definition.setup?.(
@@ -110,7 +127,6 @@ export function createWebGLEffectController(
           effect.initialized = true;
         }
 
-        effect.lastContext = context;
         effect.definition.update(
           context,
           effect.state as never,
@@ -125,9 +141,9 @@ export function createWebGLEffectController(
 
       disposed = true;
       for (const effect of effects) {
-        if (effect.initialized && effect.lastContext) {
+        if (effect.initialized && effect.reusableContext) {
           effect.definition.dispose?.(
-            effect.lastContext,
+            effect.reusableContext,
             effect.state as never,
             effect.params as never,
           );

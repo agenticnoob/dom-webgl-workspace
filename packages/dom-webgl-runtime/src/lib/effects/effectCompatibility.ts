@@ -1,5 +1,4 @@
-import type { WebGLEffectDefinition } from "./effectAuthoring";
-import type { WebGLEffectSourceKind } from "./effectPlugin";
+import type { WebGLEffectDefinition, WebGLEffectSourceKind } from "./effectAuthoring";
 
 export function assertEffectCompatibility(
   key: string,

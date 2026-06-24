@@ -4,9 +4,9 @@ import type {
   WebGLEffectContext,
   WebGLEffectResourceScope,
   WebGLEffectSourceHandle,
+  WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
 } from "./effectAuthoring";
-import type { WebGLEffectSourceKind } from "./effectPlugin";
 
 export type WebGLEffectContextOptions = {
   key: string;
@@ -37,6 +37,6 @@ export function createWebGLEffectContext(
   };
 }
 
-function readScrollProgress(input: WebGLFrameInput["scroll"]): number {
+export function readScrollProgress(input: WebGLFrameInput["scroll"]): number {
   return input.mode === "gate" ? input.sceneProgress : input.pageProgress;
 }
