@@ -63,6 +63,11 @@ export function createThreeRendererHost(
     objects.camera,
   );
 
+  // Throttle renderer.setSize to avoid GL_INVALID_VALUE spam from Chrome's
+  // GL_CHROMIUM_copy_texture during continuous window resize (~12fps cap).
+  let lastApplyMs = 0;
+  const RESIZE_COOLDOWN_MS = 80;
+
   return {
     canvas,
     renderer: objects.renderer,
@@ -85,8 +90,14 @@ export function createThreeRendererHost(
         return;
       }
 
+      const now = performance.now();
+      if (now - lastApplyMs < RESIZE_COOLDOWN_MS) {
+        return;
+      }
+
       applyCSSPixelViewport(objects.renderer, objects.camera, nextViewport);
       viewport = nextViewport;
+      lastApplyMs = now;
     },
     dispose(): void {
       if (disposed) {
