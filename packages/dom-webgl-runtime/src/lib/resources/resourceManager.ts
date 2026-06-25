@@ -186,15 +186,14 @@ function readSnapshotKey(
 function normalizeResourceUrl(src: string): string {
   if (src.startsWith("//")) {
     const url = new URL(`https:${src}`);
-    return url.pathname;
+    return `${url.pathname}${url.search}${url.hash}`;
   }
 
   if (src.startsWith("http://") || src.startsWith("https://")) {
     const url = new URL(src);
-    return url.pathname;
+    return `${url.pathname}${url.search}${url.hash}`;
   }
 
-  // For relative or absolute paths, resolve ./ and ../ segments
-  const resolved = new URL(src, "https://normalize.local").pathname;
-  return resolved;
+  const url = new URL(src, "https://dom-webgl.local");
+  return `${url.pathname}${url.search}${url.hash}`;
 }

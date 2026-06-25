@@ -1,5 +1,4 @@
 export { createWebGLRuntime } from "./lib/renderer/runtime";
-export { createInitialPointerState } from "./lib/input/pointerController";
 export {
   defineWebGLEffect,
   createEffectDeclarations,

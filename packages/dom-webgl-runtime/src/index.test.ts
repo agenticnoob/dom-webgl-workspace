@@ -3,6 +3,12 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
 describe("runtime package public exports", () => {
+  test("keeps pointer state helpers internal to the package", async () => {
+    const rootApi = await import("./index");
+
+    expect(rootApi).not.toHaveProperty("createInitialPointerState");
+  });
+
   test("exposes root and React entrypoints without concrete effect presets", () => {
     const packageJsonPath = resolve(
       process.cwd(),

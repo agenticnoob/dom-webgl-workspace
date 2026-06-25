@@ -184,7 +184,6 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   };
   let nextScanOrder = 0;
   let disposed = false;
-  const pendingAsyncTargets = new Set<string>();
   let lastDebugEmit = 0;
 
   // Tracks position + consecutive disposed frames per target.
@@ -500,11 +499,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   ): void {
     markDebugRecordLoading(debugRecord);
     restoreFallbackVisibility(targetState, descriptor.key);
-    pendingAsyncTargets.add(descriptor.key);
     pendingUpdates.push(
       resultPromise
         .then(() => {
-          pendingAsyncTargets.delete(descriptor.key);
           if (isStaleAsyncCompletion(descriptor, renderable, lifecycleVersion)) return;
 
           if (layoutMeasurement) {
@@ -518,7 +515,6 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           syncFallbackVisibility(targetState, descriptor, renderable);
         })
         .catch((error: unknown) => {
-          pendingAsyncTargets.delete(descriptor.key);
           if (isStaleAsyncReject(descriptor, renderable, lifecycleVersion)) return;
 
           markDebugRecordError(debugRecord, error);
@@ -910,10 +906,6 @@ function readRenderableLifecycleState(renderable: Renderable): WebGLLifecycleSta
     case "idle":
       return "mounted";
   }
-}
-
-function readVisibleLifecycleState(renderable: Renderable): WebGLLifecycleState {
-  return renderable.sceneObjectController?.visible === false ? "inactive" : "active";
 }
 
 function listTargetsInScanOrder(registry: TargetRegistry): TargetDescriptor[] {

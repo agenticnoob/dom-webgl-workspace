@@ -42,6 +42,31 @@ describe("createResourceManager", () => {
     expect(manager.inspect("model:glb:/models/hero.glb")).toBeUndefined();
   });
 
+  test("keeps query and hash variants in separate resource records", () => {
+    const manager = createResourceManager();
+
+    const first = manager.acquire(
+      createModelDescriptor("/models/hero.glb?tenant=a"),
+    );
+    const second = manager.acquire(
+      createModelDescriptor("/models/hero.glb?tenant=b"),
+    );
+    const third = manager.acquire(
+      createModelDescriptor("/models/hero.glb#preview"),
+    );
+
+    expect(second.record).not.toBe(first.record);
+    expect(third.record).not.toBe(first.record);
+    expect(third.record).not.toBe(second.record);
+    expect(manager.inspect("model:glb:/models/hero.glb?tenant=a")).toBe(
+      first.record,
+    );
+    expect(manager.inspect("model:glb:/models/hero.glb?tenant=b")).toBe(
+      second.record,
+    );
+    expect(manager.inspect("model:glb:/models/hero.glb#preview")).toBe(third.record);
+  });
+
   test("keeps anonymous snapshot elements in separate resource records", () => {
     const manager = createResourceManager();
     const first = manager.acquire(createAnonymousSnapshotDescriptor());

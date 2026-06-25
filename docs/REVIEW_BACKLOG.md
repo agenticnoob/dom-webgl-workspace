@@ -24,6 +24,23 @@ None.
 - Fix applied: Test helper return types were narrowed to concrete descriptor variants, so `.element` access is type-safe for image and video descriptors.
 - Verification command: `npm run typecheck && npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check`
 
+## Resolved Non-blocking Issues
+
+- ID: R-003
+- Severity: resolved
+- Related task: Task 13: Resource Record Lifecycle
+- Files:
+  - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
+  - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+- Problem: Resource URL normalization collapsed query-string and hash variants
+  onto the same resource record, so `/models/hero.glb?tenant=a`,
+  `/models/hero.glb?tenant=b`, and `/models/hero.glb#preview` could share one
+  cache entry.
+- Fix applied: URL normalization now preserves `pathname + search + hash` for
+  protocol-relative, absolute HTTP(S), and relative/app-local URLs. Regression
+  coverage proves query and hash variants acquire separate resource records.
+- Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && npm run check && npm run build && npm run check:imports && git diff --check`
+
 ## Non-blocking Issues
 
 - ID: R-002

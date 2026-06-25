@@ -32,7 +32,9 @@ Use:
 ```ts
 import {
   createWebGLRuntime,
+  createEffectDeclarations,
   defineWebGLEffect,
+  type WebGLEffectsDeclarationOf,
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
@@ -58,7 +60,11 @@ import ... from "<runtime-package>/effects";
 import ... from "<runtime-package>/src";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "packages/dom-webgl-scroll-adapters/src";
+import { createInitialPointerState } from "<runtime-package>";
 ```
+
+`createInitialPointerState` is a package-internal helper. Consumers receive
+pointer state through `ctx.pointer`, `ctx.input.pointer`, or debug state.
 
 ## Runtime Setup
 
