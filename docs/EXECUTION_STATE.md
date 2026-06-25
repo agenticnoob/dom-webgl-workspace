@@ -65,12 +65,15 @@ serves as the React-only downstream consumer example for effect authoring. It
 uses only public runtime, React, and optional scroll-adapter entrypoints, creates
 an app-owned Lenis instance through `useExampleSmoothScrollStack(...)`, passes
 only `smoothScroll.scrollAdapter` to `<WebGLRuntime />` when available, defines
-a vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
+a full-width vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
 `example.textWave`, `example.textReveal`, `example.imagePan`,
 `example.imageZoom`, `example.videoPlayback`, `example.videoDrift`,
 `example.modelSpin`, and `example.modelFloat` effects, presents the example
 page with Chinese visible copy while keeping source/effect identifiers in
-English as API data, uses `/example/bg.png` for the element surface-fill
+English as API data, keeps each effect in one viewport-wide row with a reusable
+click-to-expand explanation overlay on the effect surface and no outer catalog
+shell padding, uses `/example/bg.png` for
+the element surface-fill
 example without applying opacity to the whole target, keeps surface-pulse
 visibility in surface-layer drawing without changing target or DOM child
 opacity, and does not rely on app CSS to keep real DOM children above WebGL
@@ -169,9 +172,12 @@ authoring/runtime primitives and runtime-owned output handles; concrete effects
 remain owned by applications, demos, or documentation examples. `apps/example`
 must stay separate from `apps/demo`: demo remains the package validation surface,
 while example is the package usage surface. The current example layout is a
-vertical effect catalog where each effect occupies one row. Phase 6.3 remains a
-decision gate only and should not start unless a specific surface detail such as
-border, shadow, texture quality, or cache tuning is explicitly approved.
+full-width vertical effect catalog where each effect occupies one viewport-wide
+row with a reusable click-to-expand explanation overlay on the effect surface
+and no outer catalog shell padding. Phase 6.3
+remains a decision gate only and should not start unless a specific surface
+detail such as border, shadow, texture quality, or cache tuning is explicitly
+approved.
 
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package

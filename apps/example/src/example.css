@@ -1,6 +1,30 @@
 :root {
-  color: #172124;
-  background: #e9e4d6;
+  --color-surface-primary: #e9e4d6;
+  --color-surface-raised: rgba(255, 255, 255, 0.34);
+  --color-surface-gold: rgba(246, 196, 83, 0.24);
+  --color-surface-coral: rgba(217, 95, 66, 0.18);
+  --color-surface-model: #d7e1d6;
+  --color-surface-model-alt: #cdd6e8;
+  --color-surface-media: #1d2a2e;
+  --color-overlay-bg: rgba(0, 0, 0, 0.68);
+  --color-overlay-panel-bg: rgba(0, 0, 0, 0.82);
+  --color-overlay-text: #f4f4f5;
+  --color-overlay-muted: #a1a1aa;
+  --color-text-primary: #172124;
+  --color-border-default: rgba(23, 33, 36, 0.32);
+  --color-border-subtle: rgba(23, 33, 36, 0.18);
+  --color-border-overlay: rgba(255, 255, 255, 0.12);
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-14: 56px;
+
+  color: var(--color-text-primary);
+  background: var(--color-surface-primary);
   font-family: Georgia, "Times New Roman", serif;
 }
 
@@ -19,16 +43,16 @@ body {
 
 .example-shell {
   min-height: 100vh;
-  padding: 56px clamp(20px, 5vw, 72px);
+  padding: 0;
 }
 
 .example-intro {
   max-width: 980px;
-  margin-bottom: 40px;
+  padding: var(--space-14) var(--space-10) var(--space-10);
 }
 
 .example-kicker {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-4);
   font: 700 12px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -45,67 +69,112 @@ body {
 .example-stack {
   display: flex;
   flex-direction: column;
-  gap: 22px;
 }
 
 .example-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 360px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.example-effect-pill,
+.example-effect-panel {
+  position: absolute;
+  z-index: 20;
+  top: var(--space-4);
+  left: var(--space-4);
+  color: var(--color-overlay-text);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+.example-effect-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--color-overlay-bg);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  font: 700 11px/1.5 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.example-effect-pill span:first-child {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-overlay-muted);
+  color: var(--color-surface-media);
+  font-size: 10px;
+}
+
+.example-effect-panel {
   display: grid;
-  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 0.66fr);
-  gap: 18px;
-  align-items: stretch;
-  min-height: 300px;
-  padding-block: 18px;
-  border-top: 1px solid rgba(23, 33, 36, 0.18);
+  width: min(360px, calc(100% - var(--space-8)));
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: 10px;
+  background: var(--color-overlay-panel-bg);
+  backdrop-filter: blur(10px);
 }
 
-.example-row-copy {
+.example-effect-panel-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding-block: 8px;
-}
-
-.example-row-copy span {
+  gap: var(--space-4);
+  padding: 0 0 var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-overlay);
+  background: transparent;
+  color: var(--color-overlay-muted);
+  cursor: pointer;
   font: 700 12px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace;
-  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.example-row-copy h2 {
-  margin: auto 0 0;
-  font-size: clamp(30px, 4vw, 56px);
+.example-effect-panel h2 {
+  margin: 0;
+  color: var(--color-overlay-text);
+  font-size: clamp(28px, 3vw, 42px);
   line-height: 0.95;
   letter-spacing: 0;
 }
 
-.example-row-copy p {
+.example-effect-panel p {
   max-width: 24rem;
   margin: 0;
+  color: var(--color-overlay-text);
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 18px;
   line-height: 1.35;
+  text-wrap: pretty;
 }
 
 .example-panel,
 .example-text,
 .example-media {
+  display: block;
+  width: 100%;
   min-height: 220px;
-  border: 1px solid rgba(23, 33, 36, 0.32);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 0;
 }
 
 .example-panel {
   display: flex;
-  min-height: 260px;
+  min-height: 360px;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 22px;
-  background: rgba(255, 255, 255, 0.34);
-}
-
-.example-panel span {
-  font: 700 12px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace;
-  text-transform: uppercase;
+  justify-content: flex-end;
+  padding: var(--space-6);
+  background: var(--color-surface-raised);
 }
 
 .example-panel strong {
@@ -116,21 +185,23 @@ body {
 }
 
 .example-panel-gold {
-  background: rgba(246, 196, 83, 0.24);
+  background: var(--color-surface-gold);
 }
 
 .example-panel-coral {
-  background: rgba(217, 95, 66, 0.18);
+  background: var(--color-surface-coral);
 }
 
 .example-text {
   display: flex;
   align-items: center;
-  padding: 28px;
+  min-height: 360px;
+  margin: 0;
+  padding: 128px var(--space-8) var(--space-8);
   font-size: clamp(34px, 5vw, 78px);
   line-height: 0.95;
   letter-spacing: 0;
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--color-surface-raised);
 }
 
 .example-text-compact {
@@ -138,37 +209,51 @@ body {
 }
 
 .example-media {
-  display: block;
-  width: 100%;
-  height: 360px;
+  height: 480px;
+  min-height: 360px;
   object-fit: cover;
-  background: #1d2a2e;
+  background: var(--color-surface-media);
 }
 
 .example-panel-model {
-  min-height: 320px;
-  background: #d7e1d6;
+  background: var(--color-surface-model);
 }
 
 .example-panel-model-float {
-  background: #cdd6e8;
+  background: var(--color-surface-model-alt);
 }
 
 @media (max-width: 760px) {
-  .example-shell {
-    padding: 32px 16px;
+  .example-intro {
+    padding: var(--space-8) var(--space-4);
   }
 
   .example-row {
-    grid-template-columns: 1fr;
-    min-height: auto;
+    min-height: 420px;
   }
 
-  .example-row-copy {
-    min-height: 180px;
+  .example-effect-pill,
+  .example-effect-panel {
+    top: var(--space-3);
+    left: var(--space-3);
+  }
+
+  .example-effect-panel {
+    width: calc(100% - var(--space-6));
+    padding: var(--space-4);
+  }
+
+  .example-panel,
+  .example-text {
+    min-height: 420px;
+  }
+
+  .example-text {
+    padding: 168px var(--space-4) var(--space-4);
   }
 
   .example-media {
-    height: 280px;
+    height: 420px;
+    min-height: 420px;
   }
 }

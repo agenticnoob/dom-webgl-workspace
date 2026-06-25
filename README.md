@@ -102,10 +102,11 @@ Current example behavior:
   optional `@project/dom-webgl-scroll-adapters` package through public
   entrypoints only.
 - The example registers a stable module-scope `exampleEffects` array and
-  declares a vertical catalog of targets across the public source kinds:
-  `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
-- The example page uses Chinese visible copy for its effect explanations while
-  keeping source kinds and effect kind identifiers in English as API data.
+  declares a full-width vertical catalog of targets across the public source
+  kinds: `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
+- The example page uses Chinese visible copy in reusable click-to-expand
+  explanation overlays while keeping source kinds and effect kind identifiers in
+  English as API data.
 - The example creates an app-owned Lenis instance, drives it through GSAP via
   `createLenisGsapScrollStack(...)`, passes only `smoothScroll.scrollAdapter` to
   `<WebGLRuntime />`, and destroys Lenis from the example hook cleanup.

@@ -12,8 +12,9 @@ Create a React-only downstream example app that validates the public DOM WebGL p
   `@project/dom-webgl-scroll-adapters` package.
 - Implement small application-owned effects that cover the public source handles:
   `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
-- Present the example page as a Chinese vertical effect catalog, one effect row
-  per example, while keeping API identifiers such as effect kinds in English.
+- Present the example page as a Chinese full-width vertical effect catalog, one
+  viewport-wide effect row per example, while keeping API identifiers such as
+  effect kinds in English.
 - Write a friction report after building the example, listing documentation gaps,
   counterintuitive API behavior, missing effect capabilities, and boundaries that
   should remain strict.
@@ -36,8 +37,10 @@ The runtime package remains primitive-only. The example effects use `defineWebGL
 The example app is a compact working page, not a marketing landing page. It
 uses Chinese visible copy so local readers can scan the effect intent quickly,
 while keeping public API identifiers and source kinds unchanged in code. The
-page is a vertical catalog: each effect occupies one row with short explanatory
-copy and one `WebGLTarget`.
+page is a full-width vertical catalog: each effect occupies one viewport-wide
+row with a short click-to-expand explanation component over one `WebGLTarget`.
+The catalog shell does not add outer padding; each row owns its own overlay
+control spacing.
 
 - Element snapshot rows: `example.surfaceFill` and `example.surfacePulse`.
 - Text snapshot rows: `example.textWave` and `example.textReveal`.

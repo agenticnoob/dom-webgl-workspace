@@ -8,9 +8,10 @@ Date: 2026-06-22
 `@project/dom-webgl-runtime`. It imports only public package entrypoints,
 defines application-owned effects locally, exercises `snapshot/element`,
 `snapshot/text`, `image`, `video`, and `model/glb` source handles through a
-vertical one-effect-per-row catalog, presents user-facing explanations in
-Chinese while keeping API identifiers in English, and applies the optional Lenis
-+ GSAP + ScrollTrigger stack through `@project/dom-webgl-scroll-adapters`.
+full-width vertical one-effect-per-row catalog, places user-facing explanations
+in a reusable click-to-expand overlay component on each Chinese effect row while
+keeping API identifiers in English, and applies the optional Lenis + GSAP +
+ScrollTrigger stack through `@project/dom-webgl-scroll-adapters`.
 
 ## What Worked
 
@@ -21,8 +22,8 @@ Chinese while keeping API identifiers in English, and applies the optional Lenis
 - Source handle narrowing is explicit and testable.
 - `snapshot/text`, `image`, `video`, and `model/glb` handles expose enough basic
   controls for small examples.
-- A vertical catalog makes it easier to compare multiple effects for the same
-  source kind without mixing them into the package validation demo.
+- A full-width vertical catalog makes it easier to compare multiple effects for
+  the same source kind without mixing them into the package validation demo.
 - The package boundary remains understandable when `apps/example` is treated as
   downstream app code and `apps/demo` remains package validation code.
 - Copying static assets into `apps/example/public` keeps the example runnable as

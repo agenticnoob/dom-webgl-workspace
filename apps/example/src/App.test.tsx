@@ -87,6 +87,26 @@ describe("effect authoring example app", () => {
     expect(runtimeProps.at(-1)?.scrollAdapter).toBeDefined();
     expect(runtimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
     expect(host.querySelector('[data-testid="example-runtime"]')).not.toBeNull();
+    expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(10);
+    expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
+
+    const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
+    expect(firstDescriptionToggle).not.toBeNull();
+    await act(async () => {
+      firstDescriptionToggle?.click();
+    });
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(9);
+    expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
+    expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
+
+    const expandedDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-panel-header");
+    expect(expandedDescriptionToggle).not.toBeNull();
+    await act(async () => {
+      expandedDescriptionToggle?.click();
+    });
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(10);
+    expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
     const finalTargetProps = targetProps.slice(-10);
 

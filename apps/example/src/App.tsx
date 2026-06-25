@@ -9,6 +9,12 @@ import {
 import { exampleEffects } from "./exampleEffects";
 import { useExampleSmoothScrollStack } from "./useExampleSmoothScrollStack";
 
+type EffectDescriptionProps = {
+  readonly children: React.ReactNode;
+  readonly source: string;
+  readonly title: string;
+};
+
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
   const smoothScroll = useExampleSmoothScrollStack();
@@ -28,11 +34,9 @@ export default function App() {
 
         <div className="example-stack">
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>snapshot/element</span>
-              <h2>表面填充</h2>
-              <p>用 bg.png 填充元素快照表面，并只控制表面层透明度。</p>
-            </div>
+            <EffectDescription source="snapshot/element" title="表面填充">
+              用 bg.png 填充元素快照表面，并只控制表面层透明度。
+            </EffectDescription>
             <WebGLTarget
               as="section"
               className="example-panel example-panel-gold"
@@ -49,17 +53,14 @@ export default function App() {
                 ],
               }}
             >
-              <span>surface</span>
               <strong>把元素快照绘制到 WebGL 表面。</strong>
             </WebGLTarget>
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>snapshot/element</span>
-              <h2>表面脉冲</h2>
-              <p>保留声明式 DOM 来源，同时在 WebGL 表面层绘制可见脉冲。</p>
-            </div>
+            <EffectDescription source="snapshot/element" title="表面脉冲">
+              保留声明式 DOM 来源，同时在 WebGL 表面层绘制可见脉冲。
+            </EffectDescription>
             <WebGLTarget
               as="section"
               className="example-panel example-panel-coral"
@@ -70,17 +71,14 @@ export default function App() {
                 effects: [{ kind: "example.surfacePulse", scale: 1.36, opacity: 0.92 }],
               }}
             >
-              <span>target</span>
               <strong>真实 DOM 文案盖在 WebGL 脉冲表面之上。</strong>
             </WebGLTarget>
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>snapshot/text</span>
-              <h2>文字波浪</h2>
-              <p>文本仍写在 JSX 里，effect 只改写 WebGL 字形绘制命令。</p>
-            </div>
+            <EffectDescription source="snapshot/text" title="文字波浪">
+              文本仍写在 JSX 里，effect 只改写 WebGL 字形绘制命令。
+            </EffectDescription>
             <WebGLTarget
               as="p"
               className="example-text"
@@ -96,11 +94,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>snapshot/text</span>
-              <h2>文字显现</h2>
-              <p>把滚动进度映射到每个字形的透明度和缩放。</p>
-            </div>
+            <EffectDescription source="snapshot/text" title="文字显现">
+              把滚动进度映射到每个字形的透明度和缩放。
+            </EffectDescription>
             <WebGLTarget
               as="p"
               className="example-text example-text-compact"
@@ -116,11 +112,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>image</span>
-              <h2>图片平移</h2>
-              <p>不修改 DOM 图片元素，只移动 WebGL 纹理采样。</p>
-            </div>
+            <EffectDescription source="image" title="图片平移">
+              不修改 DOM 图片元素，只移动 WebGL 纹理采样。
+            </EffectDescription>
             <WebGLTarget
               as="img"
               className="example-media"
@@ -135,11 +129,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>image</span>
-              <h2>图片缩放</h2>
-              <p>从 image source 创建渲染对象，再由 effect 驱动 target 缩放。</p>
-            </div>
+            <EffectDescription source="image" title="图片缩放">
+              从 image source 创建渲染对象，再由 effect 驱动 target 缩放。
+            </EffectDescription>
             <WebGLTarget
               as="img"
               className="example-media"
@@ -154,11 +146,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>video</span>
-              <h2>视频播放</h2>
-              <p>通过 video capability handle 配置静音、播放和播放速度。</p>
-            </div>
+            <EffectDescription source="video" title="视频播放">
+              通过 video capability handle 配置静音、播放和播放速度。
+            </EffectDescription>
             <WebGLTarget
               as="video"
               className="example-media"
@@ -175,11 +165,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>video</span>
-              <h2>视频漂移</h2>
-              <p>对同一种 video source 叠加实时纹理漂移。</p>
-            </div>
+            <EffectDescription source="video" title="视频漂移">
+              对同一种 video source 叠加实时纹理漂移。
+            </EffectDescription>
             <WebGLTarget
               as="video"
               className="example-media"
@@ -199,11 +187,9 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>model/glb</span>
-              <h2>模型旋转</h2>
-              <p>通过公开 target controls 旋转 runtime 持有的 GLB。</p>
-            </div>
+            <EffectDescription source="model/glb" title="模型旋转">
+              通过公开 target controls 旋转 runtime 持有的 GLB。
+            </EffectDescription>
             <WebGLTarget
               as="section"
               className="example-panel example-panel-model"
@@ -214,17 +200,14 @@ export default function App() {
                 effects: [{ kind: "example.modelSpin", speed: 0.25 }],
               }}
             >
-              <span>model/glb</span>
               <strong>用 target controls 旋转 runtime 持有的模型。</strong>
             </WebGLTarget>
           </section>
 
           <section className="example-row">
-            <div className="example-row-copy">
-              <span>model/glb</span>
-              <h2>模型浮动</h2>
-              <p>结合布局数据和 runtime time 移动、旋转 GLB。</p>
-            </div>
+            <EffectDescription source="model/glb" title="模型浮动">
+              结合布局数据和 runtime time 移动、旋转 GLB。
+            </EffectDescription>
             <WebGLTarget
               as="section"
               className="example-panel example-panel-model example-panel-model-float"
@@ -235,7 +218,6 @@ export default function App() {
                 effects: [{ kind: "example.modelFloat", amplitude: 24 }],
               }}
             >
-              <span>layout + time</span>
               <strong>根据布局位置让模型持续浮动。</strong>
             </WebGLTarget>
           </section>
@@ -243,5 +225,47 @@ export default function App() {
       </main>
       <WebGLDebugPanel state={debugState} />
     </WebGLRuntime>
+  );
+}
+
+function EffectDescription({ children, source, title }: EffectDescriptionProps) {
+  const [expanded, setExpanded] = React.useState(false);
+  const panelId = React.useId();
+
+  const toggleExpanded = () => {
+    setExpanded((current) => !current);
+  };
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        className="example-effect-pill"
+        aria-expanded={false}
+        aria-controls={panelId}
+        aria-label={`展开 ${title} 说明`}
+        onClick={toggleExpanded}
+      >
+        <span aria-hidden="true">i</span>
+        <span>{source}</span>
+      </button>
+    );
+  }
+
+  return (
+    <aside className="example-effect-panel" id={panelId} aria-label={`${title} 说明`}>
+      <button
+        type="button"
+        className="example-effect-panel-header"
+        aria-expanded={true}
+        aria-controls={panelId}
+        onClick={toggleExpanded}
+      >
+        <span>{source}</span>
+        <span aria-hidden="true">-</span>
+      </button>
+      <h2>{title}</h2>
+      <p>{children}</p>
+    </aside>
   );
 }

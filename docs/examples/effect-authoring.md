@@ -26,6 +26,14 @@ the demo asset set for convenience. The React app references
 `/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
 example public directory.
 
+## Layout Contract
+
+The example page is a full-width vertical catalog. Each effect occupies one row
+that spans the viewport width, with no outer shell padding around the catalog.
+The explanatory copy is a reusable collapsible component over the row's WebGL
+effect surface: it starts as a compact debug-panel-style pill and expands on
+click to show the source kind, effect name, and explanation.
+
 ## Imports
 
 Use public package entrypoints only:

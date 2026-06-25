@@ -4,7 +4,7 @@
 
 **Goal:** Build React-only package-consumer effect authoring examples in `apps/example`, backed by documentation and a friction report.
 
-**Architecture:** Keep package core primitive-only and example-owned. `apps/example` uses only public runtime and React entrypoints, defines local effects with `defineWebGLEffect(...)`, and exercises each source handle through a Chinese vertical effect catalog built from React `WebGLRuntime` and `WebGLTarget`.
+**Architecture:** Keep package core primitive-only and example-owned. `apps/example` uses only public runtime and React entrypoints, defines local effects with `defineWebGLEffect(...)`, and exercises each source handle through a Chinese full-width vertical effect catalog built from React `WebGLRuntime` and `WebGLTarget`, with reusable click-to-expand explanation overlays on each row.
 
 **Tech Stack:** TypeScript, React, Vite, Vitest, jsdom, `@project/dom-webgl-runtime`.
 
@@ -50,7 +50,7 @@
 - [x] Write failing tests for local effects covering source-kind matching and no-op behavior.
 - [x] Implement the local catalog effects: `example.surfaceFill`, `example.surfacePulse`, `example.textWave`, `example.textReveal`, `example.imagePan`, `example.imageZoom`, `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and `example.modelFloat`.
 - [x] Register a stable module-scope effect array in the React app.
-- [x] Declare a vertical one-effect-per-row catalog across `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` sources through `<WebGLTarget />`.
+- [x] Declare a full-width vertical one-effect-per-row catalog across `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` sources through `<WebGLTarget />`, with a reusable click-to-expand explanation overlay per row.
 - [x] Run `npm test -- --run apps/example/src`.
 
 ## Task 4: Add Friction Report
