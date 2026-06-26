@@ -31,23 +31,21 @@ describe("WebGLDeclaration public types", () => {
 	          WebGLSourceDeclaration,
         } from "${importPath}";
 
-        const source = {
-          kind: "model",
-          format: "glb",
-          src: "/models/hero.glb",
-        } satisfies WebGLSourceDeclaration;
-        const imageSequenceDeclaration = {
-          key: "sequence.hero",
-          source: {
-            kind: "image-sequence",
-            frameCount: 454,
-            frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
-            progressKey: "example.video.scrub",
-            preloadBefore: 6,
-            preloadAfter: 18,
-            maxCachedFrames: 72,
-          },
-        } satisfies WebGLDeclaration;
+	        const source = {
+	          kind: "model",
+	          format: "glb",
+	          src: "/models/hero.glb",
+	        } satisfies WebGLSourceDeclaration;
+	        declare const imageSequenceFrames: readonly HTMLImageElement[];
+	        const imageSequenceDeclaration = {
+	          key: "sequence.hero",
+	          source: {
+	            kind: "image-sequence",
+	            frameCount: 454,
+	            frames: imageSequenceFrames,
+	            progressKey: "example.video.scrub",
+	          },
+	        } satisfies WebGLDeclaration;
 
         const renderRole = "model" satisfies WebGLRenderRole;
         const pageScroll = { type: "page" } satisfies WebGLScrollBehavior;

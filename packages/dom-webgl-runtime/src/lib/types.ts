@@ -35,15 +35,17 @@ export type WebGLModelSourceDeclaration = {
   src: string;
 };
 
+export type WebGLImageSequenceFrame =
+  | HTMLImageElement
+  | HTMLCanvasElement
+  | ImageBitmap;
+
 export type WebGLImageSequenceSourceDeclaration = {
   kind: "image-sequence";
   frameCount: number;
-  frameSrc: string | ((frame: number) => string);
+  frames: readonly WebGLImageSequenceFrame[];
   progressKey?: string;
   startFrame?: number;
-  preloadBefore?: number;
-  preloadAfter?: number;
-  maxCachedFrames?: number;
 };
 
 export type WebGLPageScrollBehavior = {

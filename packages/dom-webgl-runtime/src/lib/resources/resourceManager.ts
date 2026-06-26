@@ -156,9 +156,7 @@ function createResourceKey(
         descriptor.src,
       )}`;
     case "image-sequence":
-      return `image-sequence:${readElementKey(descriptor.anchor)}:${
-        descriptor.frameCount
-      }:${String(descriptor.frameSrc)}`;
+      return `image-sequence:${readElementKey(descriptor.anchor)}:${descriptor.frameCount}`;
     case "model":
       return `model:${descriptor.format}:${normalizeResourceUrl(descriptor.src)}`;
   }

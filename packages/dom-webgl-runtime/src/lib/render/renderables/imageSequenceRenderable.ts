@@ -9,26 +9,18 @@ import {
   type RenderableContext,
 } from "../renderable";
 import { toSceneObjectOrdering } from "../renderPolicy";
-import {
-  createImageSequenceFrameCache,
-  type ImageSequenceFrameCache,
-  type ImageSequenceTextureSource,
-  formatImageSequenceFrameSrc,
-} from "./imageSequenceFrameCache";
 import type { SceneRenderableController } from "./sceneRenderableController";
 import { createTexturePlaneSceneRenderableController } from "./sceneRenderableObject";
+import type { WebGLImageSequenceFrame } from "../../types";
 
 type ImageSequenceRenderableOptions = {
   readonly sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   readonly progressSignals?: WebGLProgressSignalSource;
-  readonly createFrameCache?: (
-    source: WebGLImageSequenceSourceDescriptor,
-  ) => ImageSequenceFrameCache;
   readonly createSceneController?: (options: {
     readonly source: WebGLImageSequenceSourceDescriptor;
-    readonly textureSource: ImageSequenceTextureSource;
+    readonly textureSource: WebGLImageSequenceFrame;
   }) => SceneRenderableController;
 };
 
@@ -37,15 +29,6 @@ export function createImageSequenceRenderable(
   options: ImageSequenceRenderableOptions,
 ): Renderable {
   const source = readImageSequenceSource(context.source);
-  const cache =
-    options.createFrameCache?.(source) ??
-    createImageSequenceFrameCache({
-      frameCount: source.frameCount + source.startFrame - 1,
-      frameSrc: source.frameSrc,
-      preloadBefore: source.preloadBefore,
-      preloadAfter: source.preloadAfter,
-      maxCachedFrames: source.maxCachedFrames,
-    });
   const state = {
     frame: 0,
     scene: undefined as SceneRenderableController | undefined,
@@ -56,7 +39,7 @@ export function createImageSequenceRenderable(
     options.createSceneController ??
     ((sceneOptions: {
       readonly source: WebGLImageSequenceSourceDescriptor;
-      readonly textureSource: ImageSequenceTextureSource;
+      readonly textureSource: WebGLImageSequenceFrame;
     }) =>
       createTexturePlaneSceneRenderableController({
         key: context.descriptor.key,
@@ -70,19 +53,18 @@ export function createImageSequenceRenderable(
       }));
 
   return createRenderable(context, {
-    async update(_context, _lifecycle, input) {
+    update(_context, _lifecycle, input) {
       const frame = selectFrame(source, input, options.progressSignals);
-      const decodedFrame = await cache.read(frame);
-      await cache.preloadAround(frame);
+      const textureSource = readFrame(source, frame);
 
-      state.scene ??= createScene({
-        source,
-        textureSource: decodedFrame.image,
-      });
-      state.scene.attach();
-      state.scene.object.updateTextureSource?.(decodedFrame.image);
-      state.frame = frame;
-      state.src = formatImageSequenceFrameSrc(source.frameSrc, frame);
+      if (!state.scene) {
+        applyFrame(frame, textureSource);
+        return;
+      }
+
+      if (frame !== state.frame) {
+        applyFrame(frame, textureSource);
+      }
     },
     updateLayout(_context, _lifecycle, measurement) {
       state.scene?.updateLayout(measurement);
@@ -110,9 +92,19 @@ export function createImageSequenceRenderable(
     },
     dispose() {
       state.scene?.controller.dispose();
-      cache.dispose();
     },
   });
+
+  function applyFrame(frame: number, image: WebGLImageSequenceFrame): void {
+    state.scene ??= createScene({
+      source,
+      textureSource: image,
+    });
+    state.scene.attach();
+    state.scene.object.updateTextureSource?.(image);
+    state.frame = frame;
+    state.src = readFrameSrc(image);
+  }
 }
 
 function readImageSequenceSource(
@@ -135,6 +127,21 @@ function selectFrame(
     : readScrollProgress(input);
 
   return source.startFrame + Math.round(clampProgress(progress) * (source.frameCount - 1));
+}
+
+function readFrame(
+  source: WebGLImageSequenceSourceDescriptor,
+  frame: number,
+): WebGLImageSequenceFrame {
+  return source.frames[frame - source.startFrame] ?? source.frames[0];
+}
+
+function readFrameSrc(frame: WebGLImageSequenceFrame): string {
+  if (frame instanceof HTMLImageElement) {
+    return frame.currentSrc || frame.src;
+  }
+
+  return "";
 }
 
 function readScrollProgress(input: WebGLFrameInput): number {

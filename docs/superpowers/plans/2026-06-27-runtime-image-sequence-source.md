@@ -1,5 +1,16 @@
 # Runtime Image Sequence Source Implementation Plan
 
+> **Current contract note (2026-06-27):** this plan records the original
+> implementation path and is superseded as current API truth. The shipped
+> `image-sequence` source consumes a consumer-owned full-length `frames` array
+> (`HTMLImageElement | HTMLCanvasElement | ImageBitmap`) plus `frameCount` and
+> optional `progressKey`. Runtime selects frames and updates its WebGL texture;
+> apps own URL ordering, loading, concurrency, preview-frame fallback, and
+> backfill. Do not use the older `frameSrc`, `preloadBefore`, `preloadAfter`,
+> `maxCachedFrames`, or `ImageSequenceFrameCache` notes below as current
+> package contract. Use `README.md` and `docs/agent/package-usage.md` for the
+> active usage contract.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a small public `image-sequence` source to the DOM WebGL runtime so scroll progress can drive frame-addressable WebGL texture rendering without app-owned canvas code.

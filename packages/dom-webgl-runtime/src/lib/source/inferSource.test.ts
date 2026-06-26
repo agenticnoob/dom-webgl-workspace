@@ -68,6 +68,7 @@ describe("inferSourceDescriptor", () => {
 
   test("accepts declared image sequence sources on any element anchor", () => {
     const element = document.createElement("section");
+    const frames = createFrames(454);
     const target = createTargetDescriptor(
       element,
       {
@@ -75,7 +76,7 @@ describe("inferSourceDescriptor", () => {
         source: {
           kind: "image-sequence",
           frameCount: 454,
-          frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+          frames,
           progressKey: "example.video.scrub",
         },
       },
@@ -86,12 +87,9 @@ describe("inferSourceDescriptor", () => {
       kind: "image-sequence",
       anchor: element,
       frameCount: 454,
-      frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+      frames,
       progressKey: "example.video.scrub",
       startFrame: 1,
-      preloadBefore: 6,
-      preloadAfter: 18,
-      maxCachedFrames: 72,
     });
   });
 
@@ -104,7 +102,7 @@ describe("inferSourceDescriptor", () => {
         source: {
           kind: "image-sequence",
           frameCount: 0,
-          frameSrc: "/frames/frame_{frame:0000}.webp",
+          frames: [],
         },
       },
       0,
@@ -112,6 +110,26 @@ describe("inferSourceDescriptor", () => {
 
     expect(() => inferSourceDescriptor(target)).toThrow(
       'WebGL target "sequence.bad" declares an image sequence with frameCount 0.',
+    );
+  });
+
+  test("rejects image sequence sources that are not fully initialized", () => {
+    const element = document.createElement("section");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "sequence.partial",
+        source: {
+          kind: "image-sequence",
+          frameCount: 10,
+          frames: createFrames(2),
+        },
+      },
+      0,
+    );
+
+    expect(() => inferSourceDescriptor(target)).toThrow(
+      'WebGL target "sequence.partial" declares an image sequence with 2 frames for frameCount 10.',
     );
   });
 
@@ -178,3 +196,11 @@ describe("inferSourceDescriptor", () => {
     });
   });
 });
+
+function createFrames(count: number): readonly HTMLImageElement[] {
+  return Array.from({ length: count }, (_entry, index) => {
+    const image = document.createElement("img");
+    image.src = `/frames/frame_${String(index + 1).padStart(4, "0")}.webp`;
+    return image;
+  });
+}

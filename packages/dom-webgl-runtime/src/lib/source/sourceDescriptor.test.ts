@@ -28,9 +28,10 @@ describe("WebGLSourceDescriptor internal types", () => {
       `
         import type { WebGLSourceDescriptor } from "${importPath}";
 
-        const element = document.createElement("section");
-        const image = document.createElement("img");
-        const video = document.createElement("video");
+	        const element = document.createElement("section");
+	        const image = document.createElement("img");
+	        const video = document.createElement("video");
+	        declare const imageSequenceFrames: readonly HTMLImageElement[];
 
         const descriptors = [
           {
@@ -60,16 +61,13 @@ describe("WebGLSourceDescriptor internal types", () => {
             src: "/models/hero.glb",
           },
           {
-            kind: "image-sequence",
-            anchor: element,
-            frameCount: 454,
-            frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
-            progressKey: "example.video.scrub",
-            startFrame: 1,
-            preloadBefore: 6,
-            preloadAfter: 18,
-            maxCachedFrames: 72,
-          },
+	            kind: "image-sequence",
+	            anchor: element,
+	            frameCount: 454,
+	            frames: imageSequenceFrames,
+	            progressKey: "example.video.scrub",
+	            startFrame: 1,
+	          },
         ] satisfies WebGLSourceDescriptor[];
 
         descriptors[0] satisfies WebGLSourceDescriptor;

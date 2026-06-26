@@ -327,16 +327,17 @@ describe("public package exports", () => {
           kind: "snapshot",
           mode: "text",
         } satisfies WebGLSnapshotSourceDeclaration;
-        const imageSource = {
-          kind: "image",
-          src: "/textures/card.png",
-        } satisfies WebGLImageSourceDeclaration;
-        const imageSequenceSource = {
-          kind: "image-sequence",
-          frameCount: 454,
-          frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
-          progressKey: "example.video.scrub",
-        } satisfies WebGLImageSequenceSourceDeclaration;
+	        const imageSource = {
+	          kind: "image",
+	          src: "/textures/card.png",
+	        } satisfies WebGLImageSourceDeclaration;
+	        declare const imageSequenceFrames: readonly HTMLImageElement[];
+	        const imageSequenceSource = {
+	          kind: "image-sequence",
+	          frameCount: 454,
+	          frames: imageSequenceFrames,
+	          progressKey: "example.video.scrub",
+	        } satisfies WebGLImageSequenceSourceDeclaration;
         const videoSource = {
           kind: "video",
           src: "/media/loop.mp4",
@@ -572,12 +573,12 @@ describe("public package exports", () => {
 	              });
 	            }
 
-	            if (ctx.source.kind === "image-sequence") {
-	              ctx.source.image satisfies
-	                | WebGLEffectImageSequenceLayerHandle
-	                | undefined;
-	              ctx.source.frame satisfies number;
-	              ctx.source.src satisfies string;
+		            if (ctx.source.kind === "image-sequence") {
+		              ctx.source.image satisfies
+		                | WebGLEffectImageSequenceLayerHandle
+		                | undefined;
+		              ctx.source.frame satisfies number;
+		              ctx.source.src satisfies string;
 	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
 	            }
 

@@ -331,7 +331,7 @@ Supported source declarations:
 - `{ kind: "snapshot", mode?: "element" | "text" }`
 - `{ kind: "image", src?: string }` on an actual `img` target only.
 - `{ kind: "video", src?: string }` on an actual `video` target only.
-- `{ kind: "image-sequence", frameCount: number, frameSrc: string | ((frame: number) => string), progressKey?: string }` on any HTMLElement anchor.
+- `{ kind: "image-sequence", frameCount: number, frames: readonly (HTMLImageElement | HTMLCanvasElement | ImageBitmap)[], progressKey?: string }` on any HTMLElement anchor.
 - `{ kind: "model", format: "glb", src: string }`
 
 Do not declare image/video sources on non-media elements. A `div`, `section`,
@@ -340,17 +340,26 @@ or text node target should use `snapshot` or `model`; explicit `image` and
 when used on non-media elements.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
-sources remain the better fit for continuous playback:
+sources remain the better fit for continuous playback. The consumer must
+provide a full-length frame array before registering the target; entries can
+initially point to a ready preview frame and be replaced in place as real frames
+finish loading. The runtime reads those consumer-owned resources and does not
+own an image-sequence loader. If a page needs deterministic load order, keep
+that policy in application code: kick off assets in DOM or business-priority
+order, limit heavy sequence concurrency, then pass the usable `frames` into the
+runtime:
 
 ```tsx
+const frames = await loadFirstFrameThenBackfillSequence();
+
 <WebGLTarget
   as="section"
   webgl={{
     key: "sequence.hero",
     source: {
       kind: "image-sequence",
-      frameCount: 454,
-      frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+      frameCount: frames.length,
+      frames,
       progressKey: "example.video.scrub",
     },
   }}
@@ -602,7 +611,7 @@ Available source handles:
 | `snapshot/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
 | `image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
 | `video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
-| `image-sequence` | `ctx.source.image` | current frame/src metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
+| `image-sequence` | `ctx.source.image` | current frame metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
 | `model/glb` | `ctx.source.model` | object controls, controlled mesh handles, material restore, vertex samples, managed point layers |
 
 DOM text remains the source of content, accessibility, and fallback.

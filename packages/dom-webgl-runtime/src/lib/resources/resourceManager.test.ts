@@ -103,15 +103,11 @@ describe("createResourceManager", () => {
     expect(second.record.element).toBe(secondDescriptor.element);
   });
 
-  test("keys image sequence resources by frame source and count", () => {
+  test("keys image sequence resources by anchor and count", () => {
     const manager = createResourceManager();
     const anchor = document.createElement("section");
-    const first = manager.acquire(
-      createImageSequenceDescriptor(anchor, 10, "/frames/a_{frame:0000}.webp"),
-    );
-    const second = manager.acquire(
-      createImageSequenceDescriptor(anchor, 20, "/frames/a_{frame:0000}.webp"),
-    );
+    const first = manager.acquire(createImageSequenceDescriptor(anchor, 10));
+    const second = manager.acquire(createImageSequenceDescriptor(anchor, 20));
 
     expect(first.record.key).not.toBe(second.record.key);
     expect(first.record.kind).toBe("image-sequence");
@@ -236,16 +232,20 @@ function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
 function createImageSequenceDescriptor(
   anchor: HTMLElement,
   frameCount: number,
-  frameSrc: string,
 ): WebGLImageSequenceSourceDescriptor {
   return {
     kind: "image-sequence",
     anchor,
     frameCount,
-    frameSrc,
+    frames: createFrames(frameCount),
     startFrame: 1,
-    preloadBefore: 6,
-    preloadAfter: 18,
-    maxCachedFrames: 72,
   };
+}
+
+function createFrames(count: number): readonly HTMLImageElement[] {
+  return Array.from({ length: count }, (_entry, index) => {
+    const image = document.createElement("img");
+    image.src = `/frames/frame_${String(index + 1).padStart(4, "0")}.webp`;
+    return image;
+  });
 }

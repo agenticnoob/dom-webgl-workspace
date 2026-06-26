@@ -255,8 +255,8 @@ definition is missing, the target declaration has no executable effect.
 
 The pinned scrub row now dogfoods runtime `source.kind: "image-sequence"`.
 `ScrollEffectSection` owns the progress key, and the WebGL target declares
-`frameCount`, `frameSrc`, and `progressKey` so the runtime selects frames,
-updates the texture plane, and disposes decoded frames.
+`frameCount`, consumer-owned `frames`, and `progressKey` so the runtime selects
+usable frames and updates the texture plane without owning the sequence loader.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

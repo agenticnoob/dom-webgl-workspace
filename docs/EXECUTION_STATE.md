@@ -98,7 +98,8 @@ vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
 `example.textSpotlight`, `example.imagePan`, `example.imageZoom`,
 `example.imageKenBurns`, `example.videoPlayback`, `example.videoDrift`,
 `example.modelSpin`, `example.modelFloat`, and `example.pinnedReveal` effects,
-plus a pinned runtime `image-sequence` source specimen,
+plus a pinned runtime `image-sequence` source specimen backed by app-owned
+frame resources,
 presents the example
 page with Chinese visible copy while keeping source/effect identifiers in
 English as API data, keeps each effect in one viewport-wide row with a reusable
@@ -122,10 +123,12 @@ layer above the canvas.
 The text, image, and video buckets now include richer app-owned examples:
 `example.textSpotlight` uses target-local pointer distance for glyph color,
 opacity, and scale, `example.imageKenBurns` combines image texture drift with
-target scale, and the pinned scrub specimen declares runtime
-`source.kind: "image-sequence"` to map keyed pinned-section progress to
-`/example/bg-sequence/frame_*.webp` WebGL texture frames, holding the row fixed
-until scrub progress reaches the end and the page can continue scrolling.
+target scale, and the pinned scrub specimen uses an app-local resource scheduler
+to kick off static assets in DOM order, provide a full-length consumer-owned
+`frames` array to runtime `source.kind: "image-sequence"`, and let keyed
+pinned-section progress select the active WebGL texture frame while the row
+stays fixed until scrub progress reaches the end and the page can continue
+scrolling.
 It also records current authoring friction in
 `docs/agent/effect-authoring-example-report.md`.
 

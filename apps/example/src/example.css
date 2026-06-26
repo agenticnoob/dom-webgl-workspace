@@ -72,8 +72,7 @@ body {
 }
 
 .example-stack {
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .example-row {
@@ -261,12 +260,20 @@ body {
 
 .example-media-sequence {
   display: block;
+  background: transparent;
+}
+
+.example-media-sequence-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .example-video-scrub-row {
   z-index: 30;
   min-height: 100vh;
-  background: var(--color-surface-video-bg);
+  background: transparent;
 }
 
 .example-video-scrub-row .example-media {

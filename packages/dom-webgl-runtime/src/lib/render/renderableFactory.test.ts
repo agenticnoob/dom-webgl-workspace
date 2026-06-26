@@ -385,13 +385,18 @@ function createImageSequenceDescriptor(): WebGLImageSequenceSourceDescriptor {
     kind: "image-sequence",
     anchor: document.createElement("section"),
     frameCount: 10,
-    frameSrc: "/frames/frame_{frame:0000}.webp",
+    frames: createFrames(10),
     progressKey: "scrub",
     startFrame: 1,
-    preloadBefore: 1,
-    preloadAfter: 2,
-    maxCachedFrames: 4,
   };
+}
+
+function createFrames(count: number): readonly HTMLImageElement[] {
+  return Array.from({ length: count }, (_entry, index) => {
+    const image = document.createElement("img");
+    image.src = `/frames/frame_${String(index + 1).padStart(4, "0")}.webp`;
+    return image;
+  });
 }
 
 type TestSceneObject = {

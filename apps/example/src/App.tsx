@@ -12,6 +12,7 @@ import {
 import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
+import { useExampleResources } from "./exampleResourceScheduler";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
@@ -19,6 +20,7 @@ const videoScrubProgressKey = "example.video.scrub";
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
+  const exampleResources = useExampleResources();
 
   return (
     <WebGLScrollRuntime
@@ -193,59 +195,78 @@ export default function App() {
             <EffectDescription source="image-sequence" title="滚动控制图片序列">
               这个区域固定在视口中，滚动进度由 runtime 映射到 WebGL 图片序列帧。
             </EffectDescription>
-            <WebGLTarget
-              as="section"
-              className="example-media example-media-video-bg example-media-sequence"
-              webgl={{
-                key: "example.image-sequence.scrub",
-                source: {
-                  kind: "image-sequence",
-                  frameCount: 454,
-                  frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
-                  progressKey: videoScrubProgressKey,
-                  preloadBefore: 6,
-                  preloadAfter: 18,
-                  maxCachedFrames: 72,
-                },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-              }}
-            />
+            {exampleResources.imageSequenceReady ? (
+              <WebGLTarget
+                as="section"
+                className="example-media example-media-video-bg example-media-sequence"
+                webgl={{
+                  key: "example.image-sequence.scrub",
+                  source: {
+                    kind: "image-sequence",
+                    frameCount: exampleResources.imageSequenceFrames.length,
+                    frames: exampleResources.imageSequenceFrames,
+                    progressKey: videoScrubProgressKey,
+                  },
+                  lifecycle: { hideWhenReady: true, hideMode: "self" },
+                }}
+              />
+            ) : (
+              <section
+                aria-busy="true"
+                className="example-media example-media-video-bg example-media-sequence"
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  className="example-media-sequence-fallback"
+                  src="/example/bg-sequence/frame_0001.webp"
+                />
+              </section>
+            )}
           </ScrollEffectSection>
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型旋转">
               通过公开 target controls 旋转 runtime 持有的 GLB。
             </EffectDescription>
-            <WebGLTarget
-              as="section"
-              className="example-panel example-panel-model"
-              webgl={{
-                key: "example.model.spin",
-                source: { kind: "model", format: "glb", src: "/models/hero.glb" },
-                lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                effects: [{ kind: "example.modelSpin", speed: 0.25 }],
-              }}
-            >
-              <strong>用 target controls 旋转 runtime 持有的模型。</strong>
-            </WebGLTarget>
+            {exampleResources.modelReady ? (
+              <WebGLTarget
+                as="section"
+                className="example-panel example-panel-model"
+                webgl={{
+                  key: "example.model.spin",
+                  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                  effects: [{ kind: "example.modelSpin", speed: 0.25 }],
+                }}
+              >
+                <strong>用 target controls 旋转 runtime 持有的模型。</strong>
+              </WebGLTarget>
+            ) : (
+              <section className="example-panel example-panel-model" />
+            )}
           </section>
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型浮动">
               结合布局数据和 runtime time 移动、旋转 GLB。
             </EffectDescription>
-            <WebGLTarget
-              as="section"
-              className="example-panel example-panel-model example-panel-model-float"
-              webgl={{
-                key: "example.model.float",
-                source: { kind: "model", format: "glb", src: "/models/hero.glb" },
-                lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                effects: [{ kind: "example.modelFloat", amplitude: 24 }],
-              }}
-            >
-              <strong>根据布局位置让模型持续浮动。</strong>
-            </WebGLTarget>
+            {exampleResources.modelReady ? (
+              <WebGLTarget
+                as="section"
+                className="example-panel example-panel-model example-panel-model-float"
+                webgl={{
+                  key: "example.model.float",
+                  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                  effects: [{ kind: "example.modelFloat", amplitude: 24 }],
+                }}
+              >
+                <strong>根据布局位置让模型持续浮动。</strong>
+              </WebGLTarget>
+            ) : (
+              <section className="example-panel example-panel-model example-panel-model-float" />
+            )}
           </section>
 
           <PinnedScrollExample />

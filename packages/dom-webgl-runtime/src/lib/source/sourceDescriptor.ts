@@ -1,3 +1,5 @@
+import type { WebGLImageSequenceFrame } from "../types";
+
 export type WebGLSourceDescriptor =
   | WebGLSnapshotSourceDescriptor
   | WebGLImageSourceDescriptor
@@ -34,10 +36,7 @@ export type WebGLImageSequenceSourceDescriptor = {
   kind: "image-sequence";
   anchor: HTMLElement;
   frameCount: number;
-  frameSrc: string | ((frame: number) => string);
+  frames: readonly WebGLImageSequenceFrame[];
   progressKey?: string;
   startFrame: number;
-  preloadBefore: number;
-  preloadAfter: number;
-  maxCachedFrames: number;
 };

@@ -117,6 +117,14 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
   },
 }));
 
+vi.mock("./exampleResourceScheduler", () => ({
+  useExampleResources: () => ({
+    imageSequenceFrames: Array.from({ length: 454 }, () => document.createElement("img")),
+    imageSequenceReady: true,
+    modelReady: true,
+  }),
+}));
+
 describe("effect authoring example app", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -147,6 +155,9 @@ describe("effect authoring example app", () => {
 
     await act(async () => {
       root.render(createElement(App));
+    });
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(scrollRuntimeProps.length).toBeGreaterThanOrEqual(1);
@@ -238,11 +249,8 @@ describe("effect authoring example app", () => {
       {
         kind: "image-sequence",
         frameCount: 454,
-        frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+        frames: expect.arrayContaining([expect.any(HTMLImageElement)]),
         progressKey: "example.video.scrub",
-        preloadBefore: 6,
-        preloadAfter: 18,
-        maxCachedFrames: 72,
       },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
@@ -276,17 +284,17 @@ describe("effect authoring example app", () => {
     expect(
       finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),
     ).toBe(true);
-    expect(scrollSectionProps.map(({ progressKey }) => progressKey)).toEqual([
+    expect(scrollSectionProps.slice(-2).map(({ progressKey }) => progressKey)).toEqual([
       "example.video.scrub",
       "example.pinned.reveal",
     ]);
-    expect(scrollSectionProps[0]).toMatchObject({
+    expect(scrollSectionProps.at(-2)).toMatchObject({
       className: "example-row example-video-scrub-row",
       end: "+=900%",
       pin: true,
       progressKey: "example.video.scrub",
     });
-    expect(scrollSectionProps[1]).toMatchObject({
+    expect(scrollSectionProps.at(-1)).toMatchObject({
       className: "example-row example-pinned-row",
       pin: true,
       progressKey: "example.pinned.reveal",

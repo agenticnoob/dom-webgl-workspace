@@ -10,16 +10,8 @@ import type { SceneRenderableController } from "./sceneRenderableController";
 describe("createImageSequenceRenderable", () => {
   test("selects a frame from keyed progress and updates the texture plane", async () => {
     const anchor = document.createElement("section");
+    const frames = createFrames(10);
     const updateTextureSource = vi.fn();
-    const read = vi.fn(() =>
-      Promise.resolve({
-        close: vi.fn(),
-        height: 900,
-        image: document.createElement("img"),
-        width: 1600,
-      }),
-    );
-    const preloadAround = vi.fn(() => Promise.resolve());
     const renderable = createImageSequenceRenderable(
       {
         descriptor: createTargetDescriptor(
@@ -29,7 +21,7 @@ describe("createImageSequenceRenderable", () => {
             source: {
               kind: "image-sequence",
               frameCount: 10,
-              frameSrc: "/frames/frame_{frame:0000}.webp",
+              frames,
               progressKey: "scrub",
             },
           },
@@ -43,44 +35,142 @@ describe("createImageSequenceRenderable", () => {
         sceneAdapter: createSceneAdapter(),
         measureElement: () => createMeasurement(),
         progressSignals: { get: () => 0.5 },
-        createFrameCache: () => ({
-          preloadAround,
-          read,
-          dispose: vi.fn(),
-        }),
         createSceneController: () => createSceneController({ updateTextureSource }),
       },
     );
 
     await renderable.update();
 
-    expect(read).toHaveBeenCalledWith(6);
-    expect(preloadAround).toHaveBeenCalledWith(6);
+    expect(updateTextureSource).toHaveBeenCalledWith(frames[5]);
     expect(updateTextureSource).toHaveBeenCalledTimes(1);
     expect(renderable.status).toBe("ready");
-    expect(renderable.effectSource).toMatchObject({
+    const effectSource = renderable.effectSource;
+    expect(effectSource).toMatchObject({
       kind: "image-sequence",
       element: anchor,
       frame: 6,
-      src: "/frames/frame_0006.webp",
     });
+    if (effectSource?.kind !== "image-sequence") {
+      throw new Error("Expected image-sequence effect source.");
+    }
+    expect(effectSource.src).toContain("/frames/frame_0006.webp");
+  });
+
+  test("switches scrubbed frames synchronously from consumer-owned resources", async () => {
+    const anchor = document.createElement("section");
+    const frames = createFrames(10);
+    const updateTextureSource = vi.fn();
+    let progress = 0;
+    const renderable = createImageSequenceRenderable(
+      {
+        descriptor: createTargetDescriptor(
+          anchor,
+          {
+            key: "sequence.hero",
+            source: {
+              kind: "image-sequence",
+              frameCount: 10,
+              frames,
+              progressKey: "scrub",
+            },
+          },
+          0,
+        ),
+        source: createImageSequenceSource(anchor),
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(),
+        progressSignals: { get: () => progress },
+        createSceneController: () => createSceneController({ updateTextureSource }),
+      },
+    );
+
+    await renderable.update();
+    expect(updateTextureSource).toHaveBeenCalledWith(frames[0]);
+
+    progress = 1;
+    renderable.update();
+
+    expect(updateTextureSource).toHaveBeenLastCalledWith(frames[9]);
+    const effectSource = renderable.effectSource;
+    expect(effectSource).toMatchObject({
+      frame: 10,
+    });
+    if (effectSource?.kind !== "image-sequence") {
+      throw new Error("Expected image-sequence effect source.");
+    }
+    expect(effectSource.src).toContain("/frames/frame_0010.webp");
+  });
+
+  test("does not dispose consumer-owned image sequence frames", async () => {
+    const anchor = document.createElement("section");
+    const frames = createFrames(10);
+    const close = vi.fn();
+    const imageBitmap = {
+      close,
+      height: 900,
+      width: 1600,
+    } satisfies ImageBitmap;
+    const mixedFrames = [imageBitmap, ...frames.slice(1)];
+    const updateTextureSource = vi.fn();
+    const renderable = createImageSequenceRenderable(
+      {
+        descriptor: createTargetDescriptor(
+          anchor,
+          {
+            key: "sequence.hero",
+            source: {
+              kind: "image-sequence",
+              frameCount: 10,
+              frames: mixedFrames,
+              progressKey: "scrub",
+            },
+          },
+          0,
+        ),
+        source: createImageSequenceSource(anchor, mixedFrames),
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(),
+        progressSignals: { get: () => 0 },
+        createSceneController: () => createSceneController({ updateTextureSource }),
+      },
+    );
+
+    await renderable.update();
+    renderable.dispose();
+
+    expect(updateTextureSource).toHaveBeenCalledWith(imageBitmap);
+    expect(close).not.toHaveBeenCalled();
   });
 });
 
 function createImageSequenceSource(
   anchor: HTMLElement,
+  frames: readonly (HTMLImageElement | ImageBitmap)[] = createFrames(10),
 ): WebGLImageSequenceSourceDescriptor {
   return {
     kind: "image-sequence",
     anchor,
-    frameCount: 10,
-    frameSrc: "/frames/frame_{frame:0000}.webp",
+    frameCount: frames.length,
+    frames,
     progressKey: "scrub",
     startFrame: 1,
-    preloadBefore: 1,
-    preloadAfter: 2,
-    maxCachedFrames: 4,
   };
+}
+
+function createFrames(count: number): readonly HTMLImageElement[] {
+  return Array.from({ length: count }, (_entry, index) => {
+    const image = document.createElement("img");
+    image.src = `/frames/frame_${String(index + 1).padStart(4, "0")}.webp`;
+    return image;
+  });
 }
 
 function createSceneController(options: {

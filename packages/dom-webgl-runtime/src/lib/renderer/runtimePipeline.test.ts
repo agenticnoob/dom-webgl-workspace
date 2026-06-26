@@ -169,7 +169,7 @@ describe("runtime pipeline sync", () => {
       source: {
         kind: "image-sequence",
         frameCount: 10,
-        frameSrc: "/frames/frame_{frame:0000}.webp",
+        frames: createFrames(10),
       },
     });
 
@@ -1776,6 +1776,14 @@ function countRoles(renderables: Renderable[]): Partial<Record<string, number>> 
     },
     {},
   );
+}
+
+function createFrames(count: number): readonly HTMLImageElement[] {
+  return Array.from({ length: count }, (_entry, index) => {
+    const image = document.createElement("img");
+    image.src = `/frames/frame_${String(index + 1).padStart(4, "0")}.webp`;
+    return image;
+  });
 }
 
 function createScrollStateController(): ScrollStateController {

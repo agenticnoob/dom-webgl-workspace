@@ -113,11 +113,22 @@ describe("pinned scroll example section", () => {
     expect(targetProps.at(-1)?.webgl.effects).toBe(firstEffects);
   });
 
-  test("keeps the pinned section background transparent so WebGL text is visible", () => {
+  test("keeps pinned WebGL rows transparent so runtime-rendered content is visible", () => {
     const css = readFileSync("apps/example/src/example.css", "utf8");
 
     expect(css).toContain(".example-pinned-row");
-    expect(css).toContain("background: transparent;");
+    expect(css).toMatch(
+      /\.example-pinned-row \{\n  min-height: 100vh;\n  background: transparent;\n\}/,
+    );
+    expect(css).toMatch(
+      /\.example-video-scrub-row \{\n  z-index: 30;\n  min-height: 100vh;\n  background: transparent;\n\}/,
+    );
+    expect(css).toMatch(
+      /\.example-media-sequence \{\n  display: block;\n  background: transparent;\n\}/,
+    );
+    expect(css).toMatch(/\.example-stack \{\n  display: block;\n\}/);
     expect(css).not.toContain(".example-pinned-row {\n  min-height: 100vh;\n  background: var(--color-surface-primary);");
+    expect(css).not.toContain(".example-video-scrub-row {\n  z-index: 30;\n  min-height: 100vh;\n  background: var(--color-surface-video-bg);");
+    expect(css).not.toContain(".example-stack {\n  display: flex;");
   });
 });

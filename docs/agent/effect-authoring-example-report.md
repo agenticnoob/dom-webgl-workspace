@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-06-27 for taller rows, added text/image/video specimens, and the runtime image-sequence scrub row.
+Updated: 2026-06-27 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, and app-owned resource scheduling notes.
 
 ## Summary
 
@@ -21,8 +21,9 @@ The current `snapshot/element` bucket also includes app-owned video background,
 ghost cursor, and waves examples implemented through `ctx.source.surface`
 instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
-`example.textSpotlight`, `example.imageKenBurns`, and
-a runtime `image-sequence` pinned scrub row.
+`example.textSpotlight`, `example.imageKenBurns`, and a runtime
+`image-sequence` pinned scrub row that consumes frames loaded by the example
+app.
 
 ## What Worked
 
@@ -40,6 +41,11 @@ a runtime `image-sequence` pinned scrub row.
   package API: `example.imageKenBurns` combines sampling drift with target scale,
   while the pinned scrub row uses runtime `source.kind: "image-sequence"` to
   drive WebGL texture frames from adapter progress.
+- Image-sequence resource ownership is clearer when kept at the consumer
+  boundary: the example loads static assets from app code, registers the target
+  after the first usable frame, passes a full-length `frames` array, and
+  backfills real frames in place while the runtime only selects and renders the
+  current frame.
 - `snapshot/element` is flexible enough for richer surface drawing: the example
   can paint a muted looping `/example/bg.mp4` background and ReactBits-inspired
   pointer/wave visuals without relaxing the strict media-source contract.
@@ -80,8 +86,12 @@ a runtime `image-sequence` pinned scrub row.
   scroll update.
 - Scroll-scrubbed video is better modeled as frame-addressable media, not
   repeated video `currentTime` seeking: the pinned section owns the progress key,
-  and runtime `image-sequence` maps that progress into
-  `/example/bg-sequence/frame_*.webp` texture updates while the page remains pinned.
+  the app owns sequence loading/backfill, and runtime `image-sequence` maps that
+  progress into texture updates while the page remains pinned.
+- Image-sequence targets need a full-length `frames` array before registration.
+  If the whole sequence is not ready yet, consumers can temporarily point later
+  indexes at a decoded preview frame and replace those entries in place as real
+  frames finish loading.
 - Pinned examples must keep the pinned section background transparent when DOM
   fallback is hidden, otherwise the content layer can cover the fixed WebGL
   canvas and make a valid text renderable look blank.
