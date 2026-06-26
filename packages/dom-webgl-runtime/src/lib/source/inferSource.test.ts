@@ -66,6 +66,55 @@ describe("inferSourceDescriptor", () => {
     });
   });
 
+  test("accepts declared image sequence sources on any element anchor", () => {
+    const element = document.createElement("section");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "sequence.hero",
+        source: {
+          kind: "image-sequence",
+          frameCount: 454,
+          frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+          progressKey: "example.video.scrub",
+        },
+      },
+      0,
+    );
+
+    expect(inferSourceDescriptor(target)).toEqual({
+      kind: "image-sequence",
+      anchor: element,
+      frameCount: 454,
+      frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+      progressKey: "example.video.scrub",
+      startFrame: 1,
+      preloadBefore: 6,
+      preloadAfter: 18,
+      maxCachedFrames: 72,
+    });
+  });
+
+  test("rejects image sequence sources with empty frame counts", () => {
+    const element = document.createElement("section");
+    const target = createTargetDescriptor(
+      element,
+      {
+        key: "sequence.bad",
+        source: {
+          kind: "image-sequence",
+          frameCount: 0,
+          frameSrc: "/frames/frame_{frame:0000}.webp",
+        },
+      },
+      0,
+    );
+
+    expect(() => inferSourceDescriptor(target)).toThrow(
+      'WebGL target "sequence.bad" declares an image sequence with frameCount 0.',
+    );
+  });
+
   test("rejects unsupported explicit model formats", () => {
     const element = document.createElement("div");
     const target = createTargetDescriptor(

@@ -11,7 +11,8 @@ export type WebGLSourceDeclaration =
   | WebGLSnapshotSourceDeclaration
   | WebGLImageSourceDeclaration
   | WebGLVideoSourceDeclaration
-  | WebGLModelSourceDeclaration;
+  | WebGLModelSourceDeclaration
+  | WebGLImageSequenceSourceDeclaration;
 
 export type WebGLSnapshotSourceDeclaration = {
   kind: "snapshot";
@@ -32,6 +33,17 @@ export type WebGLModelSourceDeclaration = {
   kind: "model";
   format: "glb";
   src: string;
+};
+
+export type WebGLImageSequenceSourceDeclaration = {
+  kind: "image-sequence";
+  frameCount: number;
+  frameSrc: string | ((frame: number) => string);
+  progressKey?: string;
+  startFrame?: number;
+  preloadBefore?: number;
+  preloadAfter?: number;
+  maxCachedFrames?: number;
 };
 
 export type WebGLPageScrollBehavior = {

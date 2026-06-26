@@ -156,6 +156,34 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("reports image sequence source kind and media role in debug state", async () => {
+    const runtime = await createPipelineRuntime({
+      onRenderableCreated(renderable) {
+        renderable.update = () => undefined;
+      },
+    });
+    const anchor = document.createElement("section");
+
+    runtime.registerTarget(anchor, {
+      key: "sequence.hero",
+      source: {
+        kind: "image-sequence",
+        frameCount: 10,
+        frameSrc: "/frames/frame_{frame:0000}.webp",
+      },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "sequence.hero",
+      sourceKind: "image-sequence",
+      renderRole: "media",
+    });
+
+    runtime.dispose();
+  });
+
   test("model declarations use the default GLB loader when no loader is injected", async () => {
     const loadAsync = vi.fn(async () => ({ scene: "loaded model" }));
     const GLTFLoader = vi.fn(() => ({ loadAsync }));

@@ -5,18 +5,13 @@ import type {
   WebGLProgressSignalSource,
 } from "../types";
 
-// Maps to public source declarations:
-//   "snapshot/element" ← { kind: "snapshot", mode: "element" }
-//   "snapshot/text"    ← { kind: "snapshot", mode: "text" }
-//   "image"            ← { kind: "image" }
-//   "video"            ← { kind: "video" }
-//   "model/glb"        ← { kind: "model", format: "glb" }
 export type WebGLEffectSourceKind =
   | "snapshot/element"
   | "snapshot/text"
   | "image"
   | "video"
-  | "model/glb";
+  | "model/glb"
+  | "image-sequence";
 
 export type WebGLEffectResourceScope = {
   addDisposable(dispose: () => void): void;
@@ -227,6 +222,13 @@ export type WebGLEffectVideoLayerHandle =
     setPlaybackRate(rate: number): void;
   };
 
+export type WebGLEffectImageSequenceLayerHandle = Omit<
+  WebGLEffectTextureLayerHandle,
+  "source"
+> & {
+  readonly source: HTMLImageElement | HTMLCanvasElement | ImageBitmap;
+};
+
 export type WebGLEffectTargetHandle = {
   setVisible(visible: boolean): void;
   setPosition(x: number, y: number, z?: number): void;
@@ -319,6 +321,13 @@ export type WebGLEffectSourceHandle =
       element: HTMLVideoElement;
       src: string;
       video?: WebGLEffectVideoLayerHandle;
+    }
+  | {
+      kind: "image-sequence";
+      element: HTMLElement;
+      frame: number;
+      src: string;
+      image?: WebGLEffectImageSequenceLayerHandle;
     }
   | {
       kind: "model/glb";

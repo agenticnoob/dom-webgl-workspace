@@ -180,6 +180,15 @@ function createStaticEffectSource(
     return { kind: "video", element: source.element, src: source.src };
   }
 
+  if (source.kind === "image-sequence") {
+    return {
+      kind: "image-sequence",
+      element: source.anchor,
+      frame: source.startFrame,
+      src: "",
+    };
+  }
+
   return undefined;
 }
 

@@ -33,6 +33,26 @@ export function inferSourceDescriptor(
     };
   }
 
+  if (declaredSource?.kind === "image-sequence") {
+    if (!Number.isInteger(declaredSource.frameCount) || declaredSource.frameCount < 1) {
+      throw new Error(
+        `WebGL target "${targetDescriptor.key}" declares an image sequence with frameCount ${declaredSource.frameCount}.`,
+      );
+    }
+
+    return {
+      kind: "image-sequence",
+      anchor: element,
+      frameCount: declaredSource.frameCount,
+      frameSrc: declaredSource.frameSrc,
+      progressKey: declaredSource.progressKey,
+      startFrame: declaredSource.startFrame ?? 1,
+      preloadBefore: declaredSource.preloadBefore ?? 6,
+      preloadAfter: declaredSource.preloadAfter ?? 18,
+      maxCachedFrames: declaredSource.maxCachedFrames ?? 72,
+    };
+  }
+
   if (declaredSource?.kind === "image") {
     if (!isImageElement(element)) {
       throw new Error(

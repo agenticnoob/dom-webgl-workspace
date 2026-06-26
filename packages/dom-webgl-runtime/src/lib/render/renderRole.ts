@@ -14,6 +14,7 @@ export function inferRenderRole(
       return sourceDescriptor.mode === "text" ? "content" : "surface";
     case "image":
     case "video":
+    case "image-sequence":
       return "media";
     case "model":
       return "model";

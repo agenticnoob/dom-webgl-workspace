@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type {
+  WebGLImageSequenceSourceDescriptor,
   WebGLImageSourceDescriptor,
   WebGLModelSourceDescriptor,
   WebGLSnapshotSourceDescriptor,
@@ -100,6 +101,21 @@ describe("createResourceManager", () => {
     expect(second.record).not.toBe(first.record);
     expect(first.record.element).toBe(firstDescriptor.element);
     expect(second.record.element).toBe(secondDescriptor.element);
+  });
+
+  test("keys image sequence resources by frame source and count", () => {
+    const manager = createResourceManager();
+    const anchor = document.createElement("section");
+    const first = manager.acquire(
+      createImageSequenceDescriptor(anchor, 10, "/frames/a_{frame:0000}.webp"),
+    );
+    const second = manager.acquire(
+      createImageSequenceDescriptor(anchor, 20, "/frames/a_{frame:0000}.webp"),
+    );
+
+    expect(first.record.key).not.toBe(second.record.key);
+    expect(first.record.kind).toBe("image-sequence");
+    expect(second.record.kind).toBe("image-sequence");
   });
 
   test("loads records through loading to ready", async () => {
@@ -214,5 +230,22 @@ function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
     kind: "video",
     element,
     src,
+  };
+}
+
+function createImageSequenceDescriptor(
+  anchor: HTMLElement,
+  frameCount: number,
+  frameSrc: string,
+): WebGLImageSequenceSourceDescriptor {
+  return {
+    kind: "image-sequence",
+    anchor,
+    frameCount,
+    frameSrc,
+    startFrame: 1,
+    preloadBefore: 6,
+    preloadAfter: 18,
+    maxCachedFrames: 72,
   };
 }

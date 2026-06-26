@@ -12,7 +12,6 @@ import {
 import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
-import { ImageSequenceScrub } from "./ImageSequenceScrub";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
@@ -191,14 +190,25 @@ export default function App() {
             pin
             scrub
           >
-            <EffectDescription source="video" title="滚动控制视频">
-              这个区域固定在视口中，滚动进度会逐帧绘制图片序列；序列结束后才释放页面继续下滚。
+            <EffectDescription source="image-sequence" title="滚动控制图片序列">
+              这个区域固定在视口中，滚动进度由 runtime 映射到 WebGL 图片序列帧。
             </EffectDescription>
-            <ImageSequenceScrub
+            <WebGLTarget
+              as="section"
               className="example-media example-media-video-bg example-media-sequence"
-              frameCount={454}
-              framePathPrefix="/example/bg-sequence"
-              progressKey={videoScrubProgressKey}
+              webgl={{
+                key: "example.image-sequence.scrub",
+                source: {
+                  kind: "image-sequence",
+                  frameCount: 454,
+                  frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+                  progressKey: videoScrubProgressKey,
+                  preloadBefore: 6,
+                  preloadAfter: 18,
+                  maxCachedFrames: 72,
+                },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+              }}
             />
           </ScrollEffectSection>
 

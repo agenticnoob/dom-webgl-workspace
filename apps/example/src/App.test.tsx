@@ -181,7 +181,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(17);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-16);
+    const finalTargetProps = targetProps.slice(-17);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -197,6 +197,7 @@ describe("effect authoring example app", () => {
       "example.image.ken-burns",
       "example.video.playback",
       "example.video.drift",
+      "example.image-sequence.scrub",
       "example.model.spin",
       "example.model.float",
       "example.pinned.reveal",
@@ -217,6 +218,7 @@ describe("effect authoring example app", () => {
       "video",
       "section",
       "section",
+      "section",
       "p",
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.source)).toEqual([
@@ -233,6 +235,15 @@ describe("effect authoring example app", () => {
       { kind: "image", src: "/example/bg.png" },
       { kind: "video", src: "/example/video.mp4" },
       { kind: "video", src: "/example/video.mp4" },
+      {
+        kind: "image-sequence",
+        frameCount: 454,
+        frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+        progressKey: "example.video.scrub",
+        preloadBefore: 6,
+        preloadAfter: 18,
+        maxCachedFrames: 72,
+      },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
       { kind: "snapshot", mode: "text" },
@@ -251,12 +262,17 @@ describe("effect authoring example app", () => {
       "example.imageKenBurns",
       "example.videoPlayback",
       "example.videoPlayback",
+      undefined,
       "example.modelSpin",
       "example.modelFloat",
       "example.pinnedReveal",
     ]);
     expect(finalTargetProps[12]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
-    expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLCanvasElement);
+    expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
+    expect(finalTargetProps[13]?.webgl.lifecycle).toEqual({
+      hideWhenReady: true,
+      hideMode: "self",
+    });
     expect(
       finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),
     ).toBe(true);
@@ -280,7 +296,7 @@ describe("effect authoring example app", () => {
     expect(pinnedSection).not.toBeNull();
     expect(postPinnedRunway).not.toBeNull();
     expect(pinnedSection?.nextElementSibling).toBe(postPinnedRunway);
-    expect(finalTargetProps[15]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[16]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
@@ -289,7 +305,7 @@ describe("effect authoring example app", () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[15];
+    const firstPinnedTarget = finalTargetProps[16];
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");
     expect(secondPinnedTarget?.webgl.effects).toBe(firstPinnedTarget?.webgl.effects);

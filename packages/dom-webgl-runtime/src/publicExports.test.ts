@@ -187,6 +187,7 @@ describe("public package exports", () => {
 				          WebGLEffectCanvasSurfaceHandle,
 				          WebGLEffectContext,
 				          WebGLEffectDefinition,
+				          WebGLEffectImageSequenceLayerHandle,
 				          WebGLEffectBlendMode,
 				          WebGLEffectMaterialLayerHandle,
 				          WebGLEffectMaterialLayerHost,
@@ -218,6 +219,7 @@ describe("public package exports", () => {
 	          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
+	          WebGLImageSequenceSourceDeclaration,
 	          WebGLImageSourceDeclaration,
 	          WebGLModelSourceDeclaration,
 	          WebGLPointerDeclaration,
@@ -329,6 +331,12 @@ describe("public package exports", () => {
           kind: "image",
           src: "/textures/card.png",
         } satisfies WebGLImageSourceDeclaration;
+        const imageSequenceSource = {
+          kind: "image-sequence",
+          frameCount: 454,
+          frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+          progressKey: "example.video.scrub",
+        } satisfies WebGLImageSequenceSourceDeclaration;
         const videoSource = {
           kind: "video",
           src: "/media/loop.mp4",
@@ -341,6 +349,7 @@ describe("public package exports", () => {
 
         snapshotSource satisfies WebGLSourceDeclaration;
         imageSource satisfies WebGLSourceDeclaration;
+        imageSequenceSource satisfies WebGLSourceDeclaration;
         videoSource satisfies WebGLSourceDeclaration;
         modelSource satisfies WebGLSourceDeclaration;
 
@@ -561,6 +570,15 @@ describe("public package exports", () => {
 	                  },
 	                },
 	              });
+	            }
+
+	            if (ctx.source.kind === "image-sequence") {
+	              ctx.source.image satisfies
+	                | WebGLEffectImageSequenceLayerHandle
+	                | undefined;
+	              ctx.source.frame satisfies number;
+	              ctx.source.src satisfies string;
+	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
 	            }
 
             if (ctx.source.kind === "model/glb") {

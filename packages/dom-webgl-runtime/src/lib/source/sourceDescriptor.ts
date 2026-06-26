@@ -2,7 +2,8 @@ export type WebGLSourceDescriptor =
   | WebGLSnapshotSourceDescriptor
   | WebGLImageSourceDescriptor
   | WebGLVideoSourceDescriptor
-  | WebGLModelSourceDescriptor;
+  | WebGLModelSourceDescriptor
+  | WebGLImageSequenceSourceDescriptor;
 
 export type WebGLSnapshotSourceDescriptor = {
   kind: "snapshot";
@@ -27,4 +28,16 @@ export type WebGLModelSourceDescriptor = {
   format: "glb";
   anchor: HTMLElement;
   src: string;
+};
+
+export type WebGLImageSequenceSourceDescriptor = {
+  kind: "image-sequence";
+  anchor: HTMLElement;
+  frameCount: number;
+  frameSrc: string | ((frame: number) => string);
+  progressKey?: string;
+  startFrame: number;
+  preloadBefore: number;
+  preloadAfter: number;
+  maxCachedFrames: number;
 };

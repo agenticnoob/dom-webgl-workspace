@@ -59,6 +59,17 @@ describe("WebGLSourceDescriptor internal types", () => {
             anchor: element,
             src: "/models/hero.glb",
           },
+          {
+            kind: "image-sequence",
+            anchor: element,
+            frameCount: 454,
+            frameSrc: "/example/bg-sequence/frame_{frame:0000}.webp",
+            progressKey: "example.video.scrub",
+            startFrame: 1,
+            preloadBefore: 6,
+            preloadAfter: 18,
+            maxCachedFrames: 72,
+          },
         ] satisfies WebGLSourceDescriptor[];
 
         descriptors[0] satisfies WebGLSourceDescriptor;

@@ -11,7 +11,12 @@ export type ResourceRecord<T = unknown> = {
   error?: unknown;
 };
 
-export type WebGLResourceKind = "snapshot" | "image" | "video" | "model/glb";
+export type WebGLResourceKind =
+  | "snapshot"
+  | "image"
+  | "video"
+  | "model/glb"
+  | "image-sequence";
 
 export type ResourceHandle<T = unknown> = {
   record: ResourceRecord<T>;
@@ -77,6 +82,8 @@ function readResourceKind(descriptor: WebGLSourceDescriptor): WebGLResourceKind 
     case "image":
     case "video":
       return descriptor.kind;
+    case "image-sequence":
+      return "image-sequence";
     case "model":
       return `model/${descriptor.format}`;
   }
@@ -148,6 +155,10 @@ function createResourceKey(
       return `video:${readElementKey(descriptor.element)}:${normalizeResourceUrl(
         descriptor.src,
       )}`;
+    case "image-sequence":
+      return `image-sequence:${readElementKey(descriptor.anchor)}:${
+        descriptor.frameCount
+      }:${String(descriptor.frameSrc)}`;
     case "model":
       return `model:${descriptor.format}:${normalizeResourceUrl(descriptor.src)}`;
   }
@@ -162,6 +173,7 @@ function readAdoptedElement(
       return descriptor.element;
     case "snapshot":
     case "model":
+    case "image-sequence":
       return undefined;
   }
 }

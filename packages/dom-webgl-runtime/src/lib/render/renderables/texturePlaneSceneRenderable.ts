@@ -37,9 +37,10 @@ import {
 export function createTexturePlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources"> & {
     textureKind: "image" | "video";
-    textureSource: HTMLImageElement | HTMLVideoElement;
+    textureSource: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | ImageBitmap;
   },
 ): SceneRenderableController {
+  let currentTextureSource = options.textureSource;
   const texture =
     options.textureKind === "video"
       ? new VideoTexture(options.textureSource as HTMLVideoElement)
@@ -75,7 +76,7 @@ export function createTexturePlaneSceneRenderableController(
     measurement: ElementMeasurement,
     force = false,
   ) => {
-    const mediaSize = readMediaSize(options.textureSource);
+    const mediaSize = readMediaSize(currentTextureSource);
     const textureGeometrySignature = JSON.stringify([
       measurement.width,
       measurement.height,
@@ -133,6 +134,13 @@ export function createTexturePlaneSceneRenderableController(
   controller.object.invalidateContent = () => {
     lastTextureTransformSignature = "";
   };
+  controller.object.updateTextureSource = (nextSource) => {
+    currentTextureSource = nextSource;
+    controller.object.textureSource = nextSource;
+    texture.image = nextSource;
+    texture.needsUpdate = true;
+    lastTextureTransformSignature = "";
+  };
   if (options.textureKind === "video") {
     controller.object.videoLayerCapability = createVideoLayerCapabilityHandle({
       object3D: group,
@@ -145,7 +153,7 @@ export function createTexturePlaneSceneRenderableController(
         applyTextureLayerTransform();
       },
       getShaderInputs() {
-        return shaderInputs ?? createFallbackShaderInputs(options.textureSource);
+        return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
       },
       invalidate() {
         controller.object.invalidateContent?.();
@@ -163,7 +171,7 @@ export function createTexturePlaneSceneRenderableController(
         applyTextureLayerTransform();
       },
       getShaderInputs() {
-        return shaderInputs ?? createFallbackShaderInputs(options.textureSource);
+        return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
       },
       invalidate() {
         controller.object.invalidateContent?.();
@@ -189,16 +197,17 @@ export function createTexturePlaneSceneRenderableController(
 }
 
 function createFallbackShaderInputs(
-  source: HTMLImageElement | HTMLVideoElement,
+  source: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | ImageBitmap,
 ): WebGLEffectMediaShaderInputs {
   const naturalSize = readMediaSize(source);
+  const style = "style" in source ? source.style : undefined;
 
   return {
     naturalSize,
     contentBox: { x: 0, y: 0, width: naturalSize.width, height: naturalSize.height },
     uvTransform: { repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0 },
-    objectFit: source.style.objectFit || "fill",
-    objectPosition: source.style.objectPosition || "50% 50%",
+    objectFit: style?.objectFit || "fill",
+    objectPosition: style?.objectPosition || "50% 50%",
     sourceTexture: {
       available: true,
       uniform: "source-texture",
@@ -208,7 +217,9 @@ function createFallbackShaderInputs(
   };
 }
 
-function readMediaSize(source: HTMLImageElement | HTMLVideoElement): {
+function readMediaSize(
+  source: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | ImageBitmap,
+): {
   width: number;
   height: number;
 } {
@@ -220,9 +231,13 @@ function readMediaSize(source: HTMLImageElement | HTMLVideoElement): {
     return { width: source.videoWidth, height: source.videoHeight };
   }
 
+  if ("width" in source && "height" in source && source.width && source.height) {
+    return { width: source.width, height: source.height };
+  }
+
   return {
-    width: source.width || source.clientWidth || 1,
-    height: source.height || source.clientHeight || 1,
+    width: 1,
+    height: 1,
   };
 }
 

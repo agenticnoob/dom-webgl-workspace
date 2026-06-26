@@ -26,8 +26,9 @@ the demo asset set for convenience. The React app references
 `/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
 `/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
 example public directory. `/example/bg-sequence` is the compressed image
-sequence used by the pinned video scrub canvas; the current checked-in sequence
-is 454 WebP frames at 1600x900, 12fps extraction, and about 141MB total.
+sequence used by the pinned runtime `image-sequence` source; the current
+checked-in sequence is 454 WebP frames at 1600x900, 12fps extraction, and
+about 141MB total.
 
 ## Layout Contract
 
@@ -252,10 +253,10 @@ definition is missing, the target declaration has no executable effect.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
 
-The pinned scrub row is intentionally not a WebGL video effect. It uses
-`ImageSequenceScrub` to read the same `ScrollEffectSection` progress store and
-draw `/example/bg-sequence/frame_*.webp` to a DOM canvas for frame-addressable
-scroll playback.
+The pinned scrub row now dogfoods runtime `source.kind: "image-sequence"`.
+`ScrollEffectSection` owns the progress key, and the WebGL target declares
+`frameCount`, `frameSrc`, and `progressKey` so the runtime selects frames,
+updates the texture plane, and disposes decoded frames.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

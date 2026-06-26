@@ -47,6 +47,7 @@ export type SceneRenderableObject = WebGLSceneObject & {
   videoLayerCapability?: WebGLEffectVideoLayerHandle;
   updateTextContent?(textContent: string): void;
   updateTextLayout?(measurement: ElementMeasurement): void;
+  updateTextureSource?(source: HTMLImageElement | HTMLCanvasElement | ImageBitmap): void;
   invalidateContent?(): void;
 };
 

@@ -175,6 +175,35 @@ describe("element plane scene renderable", () => {
 
     controller.controller.dispose();
   });
+
+  test("texture plane can replace an image texture source without recreating layout", () => {
+    const first = document.createElement("img");
+    Object.defineProperties(first, {
+      naturalWidth: { value: 1600 },
+      naturalHeight: { value: 900 },
+    });
+    const second = document.createElement("img");
+    Object.defineProperties(second, {
+      naturalWidth: { value: 1600 },
+      naturalHeight: { value: 900 },
+    });
+
+    const controller = createTexturePlaneSceneRenderableController({
+      key: "sequence.hero",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: document.createElement("section"),
+      textureKind: "image",
+      textureSource: first,
+    });
+
+    controller.object.updateTextureSource?.(second);
+
+    expect(controller.object.textureSource).toBe(second);
+
+    controller.controller.dispose();
+  });
 });
 
 function createSceneAdapter() {

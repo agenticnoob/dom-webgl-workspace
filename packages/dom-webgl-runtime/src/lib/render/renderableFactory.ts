@@ -7,11 +7,12 @@ import type {
   WebGLSourceDescriptor,
   WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
-import type { WebGLRenderRole } from "../types";
+import type { WebGLProgressSignalSource, WebGLRenderRole } from "../types";
 import type { Renderable } from "./renderable";
 import type { RenderPolicy } from "./renderPolicy";
 import { createElementSnapshotRenderable } from "./renderables/elementSnapshotRenderable";
 import { createImageRenderable } from "./renderables/imageRenderable";
+import { createImageSequenceRenderable } from "./renderables/imageSequenceRenderable";
 import { createModelRenderable } from "./renderables/modelRenderable";
 import { createTextSnapshotRenderable } from "./renderables/textSnapshotRenderable";
 import { createVideoRenderable } from "./renderables/videoRenderable";
@@ -34,6 +35,7 @@ export type RenderableFactoryContext = {
   getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
+  progressSignals?: WebGLProgressSignalSource;
 };
 
 export function createRenderable(
@@ -83,6 +85,13 @@ export function createRenderable(
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
         loadVideo: context.loadVideo,
+      });
+    case "image-sequence":
+      return createImageSequenceRenderable(renderableContext, {
+        sceneAdapter: context.sceneAdapter,
+        measureElement: context.measureElement,
+        getViewportSize: context.getViewportSize,
+        progressSignals: context.progressSignals,
       });
     case "model":
       if (sourceDescriptor.format === "glb") {

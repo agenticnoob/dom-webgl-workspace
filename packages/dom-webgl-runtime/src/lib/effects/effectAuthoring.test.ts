@@ -13,4 +13,22 @@ describe("defineWebGLEffect", () => {
 
     expect(defineWebGLEffect(definition)).toBe(definition);
   });
+
+  test("narrows image sequence sources to a texture-capable handle", () => {
+    const definition = defineWebGLEffect({
+      kind: "custom.sequenceProbe",
+      source: "image-sequence",
+      update(ctx) {
+        if (ctx.source.kind !== "image-sequence") {
+          throw new Error("Expected image sequence source.");
+        }
+
+        ctx.source.frame satisfies number;
+        ctx.source.src satisfies string;
+        ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
+      },
+    });
+
+    expect(definition.source).toBe("image-sequence");
+  });
 });

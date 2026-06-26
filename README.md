@@ -150,10 +150,13 @@ Current example behavior:
 - The text, image, and video buckets include taller specimen rows for richer
   motion examples: `example.textSpotlight` uses target-local pointer distance
   to recolor glyph output, `example.imageKenBurns` combines image texture
-  sampling drift with target scale, and the pinned video scrub specimen uses
-  `ImageSequenceScrub` plus `/example/bg-sequence/frame_*.webp` so scroll
-  progress draws decoded frames to a canvas before the page is released to keep
-  scrolling.
+  sampling drift with target scale, and the pinned scrub specimen dogfoods
+  runtime `source.kind: "image-sequence"` with
+  `/example/bg-sequence/frame_*.webp` so scroll progress selects WebGL texture
+  frames before the page is released to keep scrolling.
+- Runtime supports `source.kind: "image-sequence"` for frame-addressable media:
+  a target declares `frameCount`, `frameSrc`, and optional `progressKey`;
+  runtime owns decoded-frame caching, WebGL texture updates, and disposal.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while

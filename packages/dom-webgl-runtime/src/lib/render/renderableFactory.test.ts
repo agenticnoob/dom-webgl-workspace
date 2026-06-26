@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { createTargetDescriptor } from "../dom/targetDescriptor";
 import { createResourceManager } from "../resources/resourceManager";
 import type {
+  WebGLImageSequenceSourceDescriptor,
   WebGLImageSourceDescriptor,
   WebGLModelSourceDescriptor,
   WebGLSnapshotSourceDescriptor,
@@ -180,6 +181,32 @@ describe("createRenderable factory", () => {
     });
   });
 
+  test("creates an image sequence renderable for image-sequence sources", () => {
+    const source = createImageSequenceDescriptor();
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.sequence" },
+      0,
+    );
+
+    const renderable = createRenderable(
+      descriptor,
+      source,
+      "media",
+      compileRenderPolicy("media"),
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+        progressSignals: { get: () => 0.5 },
+      },
+    );
+
+    expect(renderable.key).toBe("hero.sequence");
+    expect(renderable.role).toBe("media");
+    expect(renderable.policy).toEqual(compileRenderPolicy("media"));
+  });
+
   test("creates a model renderable for model/glb sources", async () => {
     const source = createModelDescriptor("/assets/product.glb");
     const descriptor = createTargetDescriptor(source.anchor, { key: "hero.model" }, 0);
@@ -350,6 +377,20 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
     format: "glb",
     anchor: document.createElement("div"),
     src,
+  };
+}
+
+function createImageSequenceDescriptor(): WebGLImageSequenceSourceDescriptor {
+  return {
+    kind: "image-sequence",
+    anchor: document.createElement("section"),
+    frameCount: 10,
+    frameSrc: "/frames/frame_{frame:0000}.webp",
+    progressKey: "scrub",
+    startFrame: 1,
+    preloadBefore: 1,
+    preloadAfter: 2,
+    maxCachedFrames: 4,
   };
 }
 
