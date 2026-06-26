@@ -70,9 +70,11 @@ dogfoods the high-level pinned scroll React adapter surface with
 `WebGLScrollRuntime`, `ScrollEffectSection`, stable `progressKey` data, and
 effect reads through `ctx.progress.get(progressKey)`, defines a full-width
 vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
-`example.textWave`, `example.textReveal`, `example.imagePan`,
-`example.imageZoom`, `example.videoPlayback`, `example.videoDrift`,
-`example.modelSpin`, `example.modelFloat`, and `example.pinnedReveal` effects,
+`example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
+`example.surfaceWaves`, `example.textWave`, `example.textReveal`,
+`example.imagePan`, `example.imageZoom`, `example.videoPlayback`,
+`example.videoDrift`, `example.modelSpin`, `example.modelFloat`, and
+`example.pinnedReveal` effects,
 presents the example
 page with Chinese visible copy while keeping source/effect identifiers in
 English as API data, keeps each effect in one viewport-wide row with a reusable
@@ -81,8 +83,13 @@ shell padding, uses `/example/bg.png` for
 the element surface-fill
 example without applying opacity to the whole target, keeps surface-pulse
 visibility in surface-layer drawing without changing target or DOM child
-opacity, and does not rely on app CSS to keep real DOM children above WebGL
-surfaces because the React adapter owns the DOM content layer above the canvas.
+opacity, draws `/example/bg.mp4` as a muted looping effect-owned
+`snapshot/element` background texture, implements a ReactBits-inspired Ghost
+Cursor as a dark time-animated smoke surface whose target-local pointer only
+acts as the purple spotlight and fade source, implements Waves through the same
+`ctx.source.surface` path, and does not rely on app CSS to keep real DOM
+children above WebGL surfaces because the React adapter owns the DOM content
+layer above the canvas.
 It also records current authoring friction in
 `docs/agent/effect-authoring-example-report.md`.
 

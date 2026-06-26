@@ -23,8 +23,9 @@ npm run build --workspace @project/dom-webgl-example
 
 The example ships its own static assets under `apps/example/public`, copied from
 the demo asset set for convenience. The React app references
-`/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
-example public directory.
+`/example/bg.png`, `/example/bg.mp4`, `/example/image.png`,
+`/example/video.mp4`, and `/models/hero.glb` from that example public
+directory.
 
 ## Layout Contract
 
@@ -185,6 +186,15 @@ definition is missing, the target declaration has no executable effect.
   surface and applies opacity only to that surface layer.
 - `example.surfacePulse`: draws a visible pulse on the element snapshot surface
   without changing the target or DOM child opacity.
+- `example.surfaceVideoBackground`: draws `/example/bg.mp4` onto the element
+  snapshot surface as a muted looping effect-owned background texture.
+- `example.surfaceGhostCursor`: draws a ReactBits-inspired dark smoke stage on
+  the element snapshot surface. The smoke field exists by default and moves on
+  runtime time; the current target's local pointer only controls the purple
+  spotlight, which fades at the last local position after leaving the target.
+- `example.surfaceWaves`: draws a ReactBits-inspired pointer-reactive line wave
+  background on the element snapshot surface. Pointer displacement applies only
+  while the pointer is inside that target rect.
 - `example.textWave`: rewrites text glyph output.
 - `example.textReveal`: maps scroll progress into per-glyph opacity and scale.
 - `example.imagePan`: applies an image texture transform.

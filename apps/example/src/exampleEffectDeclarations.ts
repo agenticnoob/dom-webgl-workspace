@@ -3,6 +3,9 @@ import { createEffectDeclarations } from "@project/dom-webgl-runtime";
 export type ExampleEffectParams = {
   "example.surfaceFill": { imageSrc?: string; opacity?: number };
   "example.surfacePulse": { scale?: number; opacity?: number };
+  "example.surfaceVideoBackground": { videoSrc?: string; opacity?: number };
+  "example.surfaceGhostCursor": { trailLength?: number; color?: string; opacity?: number };
+  "example.surfaceWaves": { lineColor?: string; opacity?: number };
   "example.textWave": { amplitude?: number };
   "example.textReveal": { color?: string };
   "example.pinnedReveal": { progressKey: string; color?: string };
@@ -17,6 +20,9 @@ export type ExampleEffectParams = {
 export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams>()([
   { kind: "example.surfaceFill", imageSrc: "/example/bg.png", opacity: 0.72 },
   { kind: "example.surfacePulse", scale: 1.36, opacity: 0.92 },
+  { kind: "example.surfaceVideoBackground", videoSrc: "/example/bg.mp4", opacity: 0.84 },
+  { kind: "example.surfaceGhostCursor", trailLength: 32, color: "#b497cf", opacity: 0.9 },
+  { kind: "example.surfaceWaves", lineColor: "#172124", opacity: 0.82 },
   { kind: "example.textWave", amplitude: 7 },
   { kind: "example.textReveal", color: "#d95f42" },
   { kind: "example.pinnedReveal", progressKey: "example.pinned.reveal", color: "#172124" },

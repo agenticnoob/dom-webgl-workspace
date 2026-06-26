@@ -4,6 +4,13 @@
 
 **Goal:** Build React-only package-consumer effect authoring examples in `apps/example`, backed by documentation and a friction report.
 
+**Current truth note (2026-06-26):** The original plan shipped the first
+catalog. The current `apps/example` surface bucket has since grown to include
+`example.surfaceVideoBackground`, `example.surfaceGhostCursor`, and
+`example.surfaceWaves` alongside `example.surfaceFill` and
+`example.surfacePulse`; see `docs/examples/effect-authoring.md` for the current
+catalog.
+
 **Architecture:** Keep package core primitive-only and example-owned. `apps/example` uses only public runtime and React entrypoints, defines local effects with `defineWebGLEffect(...)`, and exercises each source handle through a Chinese full-width vertical effect catalog built from React `WebGLRuntime` and `WebGLTarget`, with reusable click-to-expand explanation overlays on each row.
 
 **Tech Stack:** TypeScript, React, Vite, Vitest, jsdom, `@project/dom-webgl-runtime`.

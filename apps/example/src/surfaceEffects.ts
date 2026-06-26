@@ -1,6 +1,30 @@
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import {
+  defineWebGLEffect,
+  type WebGLEffectUpdateContext,
+} from "@project/dom-webgl-runtime";
 
 import { clampNumber } from "./effectMath";
+import {
+  createSurfaceGhostCursorState,
+  updateSurfaceGhostCursorState,
+  type SurfaceGhostCursorState,
+} from "./ghostCursorState";
+import {
+  drawCoverImage,
+  drawGhostCursorSurface,
+  drawPulseSurface,
+  drawWavesSurface,
+} from "./surfaceEffectRenderers";
+import {
+  createSurfaceVideoBackgroundState,
+  disposeSurfaceVideo,
+  prepareSurfaceVideo,
+  type SurfaceVideoBackgroundState,
+} from "./surfaceVideo";
+import {
+  readTargetLocalPointer,
+  type TargetLocalPointer,
+} from "./surfacePointer";
 
 type SurfaceFillParams = {
   kind: "example.surfaceFill";
@@ -11,6 +35,25 @@ type SurfaceFillParams = {
 type SurfacePulseParams = {
   kind: "example.surfacePulse";
   scale?: number;
+  opacity?: number;
+};
+
+type SurfaceVideoBackgroundParams = {
+  kind: "example.surfaceVideoBackground";
+  videoSrc?: string;
+  opacity?: number;
+};
+
+type SurfaceGhostCursorParams = {
+  kind: "example.surfaceGhostCursor";
+  trailLength?: number;
+  color?: string;
+  opacity?: number;
+};
+
+type SurfaceWavesParams = {
+  kind: "example.surfaceWaves";
+  lineColor?: string;
   opacity?: number;
 };
 
@@ -57,6 +100,84 @@ export const exampleSurfacePulseEffect = defineWebGLEffect<SurfacePulseParams>({
   },
 });
 
+export const exampleSurfaceVideoBackgroundEffect = defineWebGLEffect<
+  SurfaceVideoBackgroundParams,
+  SurfaceVideoBackgroundState
+>({
+  kind: "example.surfaceVideoBackground",
+  source: "snapshot/element",
+  setup(ctx, params) {
+    const state = createSurfaceVideoBackgroundState();
+    drawVideoBackgroundSurface(ctx, params, state);
+    return state;
+  },
+  update(ctx, state, params) {
+    drawVideoBackgroundSurface(ctx, params, state);
+  },
+  dispose(_ctx, state) {
+    disposeSurfaceVideo(state);
+  },
+});
+
+export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
+  SurfaceGhostCursorParams,
+  SurfaceGhostCursorState
+>({
+  kind: "example.surfaceGhostCursor",
+  source: "snapshot/element",
+  setup(ctx) {
+    return createSurfaceGhostCursorState(ctx);
+  },
+  update(ctx, state, params) {
+    if (ctx.source.kind !== "snapshot/element") {
+      return;
+    }
+
+    const pointer = readLocalPointer(ctx);
+    updateSurfaceGhostCursorState(state, pointer);
+    ctx.target?.setVisible(true);
+    ctx.source.surface?.draw(({ context, width, height }) => {
+      drawGhostCursorSurface(context, width, height, {
+        color: params.color ?? "#b497cf",
+        opacity: clampNumber(params.opacity, 0.1, 1, 0.9),
+        pointerActive: pointer.active,
+        pointerIntensity: state.intensity,
+        pointerX: state.pointerX,
+        pointerY: state.pointerY,
+        time: ctx.time,
+        trailLength: clampNumber(params.trailLength, 6, 64, 32),
+      });
+    });
+    ctx.source.surface?.setVisible?.(true);
+    ctx.source.surface?.setOpacity?.(1);
+  },
+});
+
+export const exampleSurfaceWavesEffect = defineWebGLEffect<SurfaceWavesParams>({
+  kind: "example.surfaceWaves",
+  source: "snapshot/element",
+  update(ctx, _state, params) {
+    if (ctx.source.kind !== "snapshot/element") {
+      return;
+    }
+
+    const pointer = readLocalPointer(ctx);
+    ctx.target?.setVisible(true);
+    ctx.source.surface?.draw(({ context, width, height }) => {
+      drawWavesSurface(context, width, height, {
+        lineColor: params.lineColor ?? "#172124",
+        opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
+        pointerActive: pointer.active,
+        pointerX: pointer.x,
+        pointerY: pointer.y,
+        time: ctx.time,
+      });
+    });
+    ctx.source.surface?.setVisible?.(true);
+    ctx.source.surface?.setOpacity?.(1);
+  },
+});
+
 function createSurfaceFillState(): SurfaceFillState {
   return {
     drawn: false,
@@ -66,7 +187,7 @@ function createSurfaceFillState(): SurfaceFillState {
 }
 
 function drawSurface(
-  ctx: Parameters<typeof exampleSurfaceFillEffect.update>[0],
+  ctx: WebGLEffectUpdateContext,
   params: SurfaceFillParams,
   state: SurfaceFillState,
 ): void {
@@ -92,7 +213,7 @@ function drawSurface(
 }
 
 function prepareSurfaceImage(
-  ctx: Parameters<typeof exampleSurfaceFillEffect.update>[0],
+  ctx: WebGLEffectUpdateContext,
   state: SurfaceFillState,
   imageSrc: string,
 ): void {
@@ -117,74 +238,31 @@ function prepareSurfaceImage(
   image.src = imageSrc;
 }
 
-function drawCoverImage(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement | undefined,
-  width: number,
-  height: number,
+function drawVideoBackgroundSurface(
+  ctx: WebGLEffectUpdateContext,
+  params: SurfaceVideoBackgroundParams,
+  state: SurfaceVideoBackgroundState,
 ): void {
-  if (!image || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+  if (ctx.source.kind !== "snapshot/element") {
     return;
   }
 
-  const sourceRatio = image.naturalWidth / image.naturalHeight;
-  const targetRatio = width / height;
-  let sourceX = 0;
-  let sourceY = 0;
-  let sourceWidth = image.naturalWidth;
-  let sourceHeight = image.naturalHeight;
+  const videoSrc = params.videoSrc ?? "/example/bg.mp4";
+  prepareSurfaceVideo(ctx, state, videoSrc);
+  const opacity = clampNumber(params.opacity, 0, 1, 0.84);
 
-  if (sourceRatio > targetRatio) {
-    sourceWidth = image.naturalHeight * targetRatio;
-    sourceX = (image.naturalWidth - sourceWidth) / 2;
-  } else {
-    sourceHeight = image.naturalWidth / targetRatio;
-    sourceY = (image.naturalHeight - sourceHeight) / 2;
-  }
-
-  context.drawImage(
-    image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    0,
-    width,
-    height,
-  );
+  ctx.source.surface?.draw(({ context, width, height }) => {
+    context.clearRect(0, 0, width, height);
+    drawCoverImage(context, state.video, width, height);
+  });
+  ctx.source.surface?.setVisible?.(true);
+  ctx.source.surface?.setOpacity?.(opacity);
+  ctx.target?.setVisible(true);
 }
 
-function drawPulseSurface(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  pulse: number,
-  opacity: number,
-  expansion: number,
-): void {
-  context.clearRect(0, 0, width, height);
-  const inset = Math.max(
-    8,
-    Math.min(width, height) * (0.035 + pulse * (0.04 + expansion * 0.12)),
-  );
-  const lineWidth = Math.max(3, Math.min(width, height) * 0.018);
-
-  context.save();
-  context.globalAlpha = (0.58 + pulse * 0.28) * opacity;
-  context.fillStyle = "#d95f42";
-  context.fillRect(0, 0, width, height);
-  context.globalAlpha = 1;
-  context.strokeStyle = "#fff1b8";
-  context.lineWidth = lineWidth;
-  context.strokeRect(
-    inset,
-    inset,
-    Math.max(1, width - inset * 2),
-    Math.max(1, height - inset * 2),
-  );
-  context.globalAlpha = (0.64 + pulse * 0.36) * opacity;
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, height * (0.18 + pulse * 0.5), width, lineWidth * 1.8);
-  context.restore();
+function readLocalPointer(ctx: WebGLEffectUpdateContext): TargetLocalPointer {
+  return readTargetLocalPointer({
+    layout: ctx.layout,
+    pointer: ctx.pointer,
+  });
 }

@@ -7,6 +7,9 @@ describe("example effect catalog", () => {
     expect(exampleEffects.map((effect) => effect.kind)).toEqual([
       "example.surfaceFill",
       "example.surfacePulse",
+      "example.surfaceVideoBackground",
+      "example.surfaceGhostCursor",
+      "example.surfaceWaves",
       "example.textWave",
       "example.textReveal",
       "example.pinnedReveal",
@@ -27,6 +30,11 @@ describe("example effect catalog", () => {
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
       color: "#172124",
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.surfaceVideoBackground",
+      videoSrc: "/example/bg.mp4",
+      opacity: 0.84,
     });
   });
 });

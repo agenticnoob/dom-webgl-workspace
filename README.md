@@ -118,14 +118,21 @@ Current example behavior:
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
-  `example.surfaceFill`, `example.surfacePulse`, `example.textWave`,
-  `example.textReveal`, `example.imagePan`, `example.imageZoom`,
-  `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
-  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
+  `example.surfaceFill`, `example.surfacePulse`,
+  `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
+  `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
+  `example.imagePan`, `example.imageZoom`, `example.videoPlayback`,
+  `example.videoDrift`, `example.modelSpin`, and `example.modelFloat`, plus the
+  pinned-scroll `example.pinnedReveal`.
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing
-  the target or DOM child opacity.
+  the target or DOM child opacity. The same `snapshot/element` surface bucket
+  also includes `example.surfaceVideoBackground`, which draws `/example/bg.mp4`
+  as a muted looping effect-owned background texture, plus ReactBits-inspired
+  `example.surfaceGhostCursor` and `example.surfaceWaves` effects implemented
+  through the runtime effect surface rather than separate ReactBits canvases or
+  renderers.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while

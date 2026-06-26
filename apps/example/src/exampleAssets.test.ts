@@ -9,6 +9,7 @@ describe("example static assets", () => {
   test("ships every static asset referenced by the React example", async () => {
     await expectAsset("example/image.png");
     await expectAsset("example/video.mp4");
+    await expectAsset("example/bg.mp4");
     await expectAsset("models/hero.glb");
   });
 });
@@ -16,4 +17,3 @@ describe("example static assets", () => {
 async function expectAsset(relativePath: string): Promise<void> {
   await expect(access(path.join(examplePublicDir, relativePath))).resolves.toBeUndefined();
 }
-

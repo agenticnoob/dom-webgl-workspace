@@ -287,8 +287,10 @@ Rules:
 
 The current downstream-style React example lives in `apps/example`.
 
-- Source code: `apps/example/src/App.tsx` and
-  `apps/example/src/exampleEffects.ts`.
+- Source code: `apps/example/src/App.tsx`,
+  `apps/example/src/SnapshotElementExamples.tsx`,
+  `apps/example/src/exampleEffects.ts`, and
+  `apps/example/src/surfaceEffects.ts`.
 - Visible page explanations are Chinese; source kinds and effect kind strings
   remain English API data.
 - The example is the dogfood surface for package usage and effect authoring,

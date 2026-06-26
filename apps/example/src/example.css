@@ -3,6 +3,10 @@
   --color-surface-raised: rgba(255, 255, 255, 0.34);
   --color-surface-gold: rgba(246, 196, 83, 0.24);
   --color-surface-coral: rgba(217, 95, 66, 0.18);
+  --color-surface-video-bg: #172124;
+  --color-surface-ghost: #07050c;
+  --color-surface-ghost-border: rgba(92, 72, 118, 0.5);
+  --color-surface-waves: #dbe5df;
   --color-surface-model: #d7e1d6;
   --color-surface-model-alt: #cdd6e8;
   --color-surface-media: #1d2a2e;
@@ -11,6 +15,7 @@
   --color-overlay-text: #f4f4f5;
   --color-overlay-muted: #a1a1aa;
   --color-text-primary: #172124;
+  --color-text-ghost: #05030a;
   --color-border-default: rgba(23, 33, 36, 0.32);
   --color-border-subtle: rgba(23, 33, 36, 0.18);
   --color-border-overlay: rgba(255, 255, 255, 0.12);
@@ -190,6 +195,30 @@ body {
 
 .example-panel-coral {
   background: var(--color-surface-coral);
+}
+
+.example-panel-video-bg {
+  background: var(--color-surface-video-bg);
+  color: var(--color-overlay-text);
+}
+
+.example-panel-ghost {
+  align-items: center;
+  min-height: 460px;
+  justify-content: center;
+  border: 2px solid var(--color-surface-ghost-border);
+  background: var(--color-surface-ghost);
+  color: var(--color-text-ghost);
+}
+
+.example-panel-ghost .example-ghost-copy {
+  max-width: none;
+  font-size: clamp(72px, 18vw, 180px);
+  line-height: 0.9;
+}
+
+.example-panel-waves {
+  background: var(--color-surface-waves);
 }
 
 .example-text {

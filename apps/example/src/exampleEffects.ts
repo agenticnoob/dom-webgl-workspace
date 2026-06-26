@@ -1,6 +1,9 @@
 export {
   exampleSurfaceFillEffect,
+  exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
+  exampleSurfaceVideoBackgroundEffect,
+  exampleSurfaceWavesEffect,
 } from "./surfaceEffects";
 export {
   exampleTextRevealEffect,
@@ -30,12 +33,21 @@ import {
 } from "./mediaEffects";
 import { exampleModelFloatEffect, exampleModelSpinEffect } from "./modelEffects";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
-import { exampleSurfaceFillEffect, exampleSurfacePulseEffect } from "./surfaceEffects";
+import {
+  exampleSurfaceFillEffect,
+  exampleSurfaceGhostCursorEffect,
+  exampleSurfacePulseEffect,
+  exampleSurfaceVideoBackgroundEffect,
+  exampleSurfaceWavesEffect,
+} from "./surfaceEffects";
 import { exampleTextRevealEffect, exampleTextWaveEffect } from "./textEffects";
 
 export const exampleEffects = [
   exampleSurfaceFillEffect,
   exampleSurfacePulseEffect,
+  exampleSurfaceVideoBackgroundEffect,
+  exampleSurfaceGhostCursorEffect,
+  exampleSurfaceWavesEffect,
   exampleTextWaveEffect,
   exampleTextRevealEffect,
   examplePinnedRevealEffect,

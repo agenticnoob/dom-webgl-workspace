@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-06-25 for the pinned scroll effect consumer API.
+Updated: 2026-06-26 for additional `snapshot/element` effect examples.
 
 ## Summary
 
@@ -17,6 +17,9 @@ ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
 `exampleSmoothScrollOptions`, while `ScrollEffectSection` owns bounded pinned
 section progress. This makes `apps/example` the dogfood surface for the
 higher-level pinned scroll React adapter rather than `apps/demo`.
+The current `snapshot/element` bucket also includes app-owned video background,
+ghost cursor, and waves examples implemented through `ctx.source.surface`
+instead of ReactBits-owned canvases or secondary renderers.
 
 ## What Worked
 
@@ -27,6 +30,11 @@ higher-level pinned scroll React adapter rather than `apps/demo`.
 - Source handle narrowing is explicit and testable.
 - `snapshot/text`, `image`, `video`, and `model/glb` handles expose enough basic
   controls for small examples.
+- `snapshot/element` is flexible enough for richer surface drawing: the example
+  can paint a muted looping `/example/bg.mp4` background and ReactBits-inspired
+  pointer/wave visuals without relaxing the strict media-source contract.
+- Runtime pointer state is shared input, so target-scoped pointer effects need
+  an explicit `ctx.layout` hit test and target-local coordinate conversion.
 - A full-width vertical catalog makes it easier to compare multiple effects for
   the same source kind without mixing them into the package validation demo.
 - The package boundary remains understandable when `apps/example` is treated as
@@ -64,6 +72,14 @@ higher-level pinned scroll React adapter rather than `apps/demo`.
   registration crashes.
 - Media source declarations are stricter than a new user may expect:
   `image` requires `img`, and `video` requires `video`.
+- The video-background example is a useful distinction: a non-video element
+  still cannot declare `source: { kind: "video" }`, but a `snapshot/element`
+  effect may own a hidden `HTMLVideoElement` and draw it into
+  `ctx.source.surface`.
+- Pointer effects can look subtly wrong if they use only `ctx.pointer.isInside`:
+  that flag belongs to the runtime canvas. Example effects that should respond
+  only inside one target must subtract `ctx.layout.left/top` and reject pointers
+  outside the current target rect.
 - Text effects need careful language: `textLayer.setGlyphs(...)` changes only
   the WebGL output, not DOM content or accessibility text.
 - Model examples can rotate via `ctx.target`, but advanced model effects still

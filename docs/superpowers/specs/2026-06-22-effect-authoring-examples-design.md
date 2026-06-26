@@ -1,5 +1,12 @@
 # Effect Authoring Examples Design
 
+Current truth note (2026-06-26): this design spec records the initial
+React-only example shape. The current `apps/example` catalog keeps the same
+one-row-per-effect layout and adds `example.surfaceVideoBackground`,
+`example.surfaceGhostCursor`, and `example.surfaceWaves` to the
+`snapshot/element` group; use `docs/examples/effect-authoring.md` as the current
+source list.
+
 ## Goal
 
 Create a React-only downstream example app that validates the public DOM WebGL package documentation from a consumer perspective, without adding concrete effects to the runtime package or expanding `apps/demo`.

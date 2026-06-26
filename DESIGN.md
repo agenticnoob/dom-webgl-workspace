@@ -18,6 +18,11 @@ expands on click when the user wants details.
 | Surface/raised | --color-surface-raised | rgba(255, 255, 255, 0.34) | rgba(255, 255, 255, 0.12) | Neutral example panels |
 | Surface/gold | --color-surface-gold | rgba(246, 196, 83, 0.24) | rgba(246, 196, 83, 0.18) | Element snapshot example |
 | Surface/coral | --color-surface-coral | rgba(217, 95, 66, 0.18) | rgba(217, 95, 66, 0.16) | Pulse/text accent example |
+| Surface/video-bg | --color-surface-video-bg | #172124 | #172124 | Element snapshot video background example |
+| Surface/ghost | --color-surface-ghost | #07050c | #07050c | Ghost cursor element snapshot example |
+| Surface/ghost border | --color-surface-ghost-border | rgba(92, 72, 118, 0.5) | rgba(92, 72, 118, 0.5) | Ghost cursor card edge |
+| Text/ghost | --color-text-ghost | #05030a | #05030a | Ghost cursor Boo text |
+| Surface/waves | --color-surface-waves | #dbe5df | #26342f | Waves element snapshot example |
 | Surface/model | --color-surface-model | #d7e1d6 | #27362d | GLB spin panel |
 | Surface/model-alt | --color-surface-model-alt | #cdd6e8 | #283447 | GLB float panel |
 | Surface/media | --color-surface-media | #1d2a2e | #1d2a2e | Media fallback background |

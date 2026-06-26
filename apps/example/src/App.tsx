@@ -10,6 +10,7 @@ import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
 import { PinnedScrollExample } from "./PinnedScrollExample";
+import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
@@ -28,47 +29,7 @@ export default function App() {
         </section>
 
         <div className="example-stack">
-          <section className="example-row">
-            <EffectDescription source="snapshot/element" title="表面填充">
-              用 bg.png 填充元素快照表面，并只控制表面层透明度。
-            </EffectDescription>
-            <WebGLTarget
-              as="section"
-              className="example-panel example-panel-gold"
-              webgl={{
-                key: "example.surface.fill",
-                source: { kind: "snapshot", mode: "element" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [
-                  {
-                    kind: "example.surfaceFill",
-                    imageSrc: "/example/bg.png",
-                    opacity: 0.72,
-                  },
-                ],
-              }}
-            >
-              <strong>把元素快照绘制到 WebGL 表面。</strong>
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="snapshot/element" title="表面脉冲">
-              保留声明式 DOM 来源，同时在 WebGL 表面层绘制可见脉冲。
-            </EffectDescription>
-            <WebGLTarget
-              as="section"
-              className="example-panel example-panel-coral"
-              webgl={{
-                key: "example.surface.pulse",
-                source: { kind: "snapshot", mode: "element" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [{ kind: "example.surfacePulse", scale: 1.36, opacity: 0.92 }],
-              }}
-            >
-              <strong>真实 DOM 文案盖在 WebGL 脉冲表面之上。</strong>
-            </WebGLTarget>
-          </section>
+          <SnapshotElementExamples />
 
           <section className="example-row">
             <EffectDescription source="snapshot/text" title="文字波浪">
