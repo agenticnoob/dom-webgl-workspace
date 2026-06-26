@@ -42,8 +42,9 @@ Unified source capability handles are implemented in
 custom effects can now control runtime-owned output handles for
 `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` without
 mutating source DOM or reaching into renderer internals.
-Agent-facing package usage rules live in `docs/agent/package-usage.md`; agents
-should read that file before integrating the package or authoring custom effects.
+Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
+should read that file first when integrating the package from zero.
+Detailed package usage rules live in `docs/agent/package-usage.md`.
 React-only effect authoring examples live in `apps/example` and
 `docs/examples/effect-authoring.md`; they are downstream consumer examples, not
 runtime package exports.

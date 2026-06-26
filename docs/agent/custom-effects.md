@@ -1,8 +1,9 @@
 # Agent Contract: Custom Effects
 
 Custom effect authoring is the public extension model for visual behavior.
-Read `docs/agent/package-usage.md` first; this file focuses on decisions agents
-must make while writing effect definitions.
+Read `docs/agent/package-onboarding.md` first when starting from zero, then use
+`docs/agent/package-usage.md` for the full package contract. This file focuses
+on decisions agents must make while writing effect definitions.
 
 ## Boundary
 
