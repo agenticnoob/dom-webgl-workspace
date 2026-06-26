@@ -63,6 +63,10 @@ import {
   createThreeRendererHost,
   type ThreeRendererHost,
 } from "./threeRenderer";
+import {
+  createPostprocessController,
+  type PostprocessController,
+} from "./postprocessController";
 import { createRendererLoop } from "./rendererLoop";
 import {
   createViewportLifecycle,
@@ -97,6 +101,7 @@ type RuntimeInternalOptions = WebGLRuntimeOptions & {
   pointerController?: PointerController;
   clock?: FrameClock;
   invalidationController?: DOMInvalidationController;
+  postprocessController?: PostprocessController;
 };
 
 type RuntimeScrollController = ScrollStateController &
@@ -113,6 +118,7 @@ type RuntimeScrollController = ScrollStateController &
 type PipelineRenderableContext = RenderableFactoryContext & {
   effectRegistry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
+  postprocessController?: PostprocessController;
 };
 
 type SyncFrameResult = {
@@ -168,6 +174,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   });
   const invalidationController =
     internalOptions.invalidationController ?? createDOMInvalidationController();
+  const postprocessController =
+    internalOptions.postprocessController ?? createPostprocessController();
   const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );
@@ -184,6 +192,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     loadModel: internalOptions.loadModel,
     effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
     progressSignals: options.progressSignals,
+    postprocessController,
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -283,6 +292,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         scrollState.dispose?.();
         pointerController.dispose();
         rendererLoop.dispose();
+        postprocessController.dispose();
         rendererHost.dispose();
         emitDebugState(true);
       }
@@ -332,7 +342,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    rendererHost.sceneAdapter.render();
+    postprocessController.render(() => {
+      rendererHost.sceneAdapter.render();
+    });
   }
 
   function measureTargetLayouts(
@@ -766,6 +778,7 @@ function createPipelineRenderable(
     },
     registry: context.effectRegistry,
     progressSignals: context.progressSignals,
+    visual: context.postprocessController,
   });
 
   return {

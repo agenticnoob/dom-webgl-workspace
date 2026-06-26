@@ -1,3 +1,6 @@
+import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
+import { ShaderMaterial } from "three/src/materials/ShaderMaterial.js";
+import { Texture } from "three/src/textures/Texture.js";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -58,6 +61,50 @@ describe("source capability handles", () => {
       transparent: true,
       needsUpdate: true,
     });
+    expect(handle.shaderInputs).toMatchObject({
+      size: { width: 120, height: 40, devicePixelRatio: 1.5 },
+      contentBox: { x: 0, y: 0, width: 120, height: 40 },
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture",
+        width: 120,
+        height: 40,
+        devicePixelRatio: 1.5,
+      },
+    });
+  });
+
+  test("canvas surface material layer binds source texture and restores on dispose", () => {
+    const context = createCanvasContextStub();
+    const material = new MeshBasicMaterial();
+    const mesh = { material };
+    const texture = new Texture();
+    const handle = createCanvasSurfaceCapabilityHandle({
+      object3D: createObject3D(),
+      mesh,
+      material,
+      canvas: createCanvasStub(context),
+      context,
+      texture,
+      getSize: () => ({ width: 120, height: 40, devicePixelRatio: 1 }),
+      invalidate: vi.fn(),
+    });
+
+    const layer = handle.createMaterialLayer({
+      key: "surface.layer",
+      sourceTextureUniform: "sourceMap",
+      program: {
+        fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+      },
+    });
+
+    expect(mesh.material).toBeInstanceOf(ShaderMaterial);
+    expect(readShaderMaterial(mesh.material).uniforms.sourceMap?.value).toBe(texture);
+
+    layer.dispose();
+    layer.dispose();
+
+    expect(mesh.material).toBe(material);
   });
 
   test("text layer handle exposes glyph layout and draws glyph commands without mutating DOM text", () => {
@@ -124,6 +171,20 @@ describe("source capability handles", () => {
     expect(context.scale).toHaveBeenCalledWith(1.2, 0.8);
     expect(context.fillText).toHaveBeenCalledWith("X", 0, 0);
     expect(texture.needsUpdate).toBe(true);
+    expect(handle.shaderInputs).toMatchObject({
+      text: "WebGL override",
+      size: { width: 200, height: 80, devicePixelRatio: 1 },
+      glyphs: [
+        {
+          index: 0,
+          char: "V",
+          x: 10,
+          y: 20,
+          width: 8,
+          height: 20,
+        },
+      ],
+    });
   });
 
   test("text layer glyph commands clear the full DPR canvas and draw in CSS coordinates", () => {
@@ -267,6 +328,55 @@ describe("source capability handles", () => {
     expect(texture.offset.set).toHaveBeenCalledWith(0.1, 0.2);
     expect(texture.needsUpdate).toBe(true);
     expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(handle.shaderInputs).toMatchObject({
+      naturalSize: { width: 1, height: 1 },
+      contentBox: { x: 0, y: 0, width: 1, height: 1 },
+      uvTransform: {
+        repeatX: 1,
+        repeatY: 1,
+        offsetX: 0,
+        offsetY: 0,
+      },
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture",
+      },
+    });
+  });
+
+  test("texture layer material layer preserves texture transform controls", () => {
+    const texture = new Texture();
+    const material = new MeshBasicMaterial({ map: texture });
+    const mesh = { material };
+    const image = document.createElement("img");
+    const invalidate = vi.fn();
+    const handle = createTextureLayerCapabilityHandle({
+      object3D: createObject3D(),
+      mesh,
+      material,
+      texture,
+      source: image,
+      invalidate,
+    });
+
+    const layer = handle.createMaterialLayer({
+      key: "image.layer",
+      sourceTextureUniform: "sourceMap",
+      program: {
+        fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+      },
+    });
+
+    handle.setTextureTransform({ repeatX: 0.5, repeatY: 0.25 });
+
+    expect(mesh.material).toBeInstanceOf(ShaderMaterial);
+    expect(readShaderMaterial(mesh.material).uniforms.sourceMap?.value).toBe(texture);
+    expect(texture.repeat).toMatchObject({ x: 0.5, y: 0.25 });
+    expect(invalidate).toHaveBeenCalledTimes(1);
+
+    layer.clear();
+
+    expect(mesh.material).toBe(material);
   });
 
   test("video layer handle controls playback state", () => {
@@ -300,6 +410,14 @@ function createObject3D() {
     rotation: { set: vi.fn() },
     scale: { set: vi.fn() },
   };
+}
+
+function readShaderMaterial(material: unknown): ShaderMaterial {
+  if (!(material instanceof ShaderMaterial)) {
+    throw new Error("Expected ShaderMaterial.");
+  }
+
+  return material;
 }
 
 function createMaterial() {

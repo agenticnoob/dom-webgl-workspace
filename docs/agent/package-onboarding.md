@@ -214,6 +214,20 @@ Available handles:
 - `video`: `ctx.source.video`
 - `model/glb`: `ctx.source.model`
 
+Current visual capability surface:
+
+- Element and text snapshot handles can draw to their canvas surface and create
+  runtime-owned material layers over the source texture.
+- Text, image, and video handles expose shader input metadata such as size,
+  glyph layout, natural media size, content box, source texture availability,
+  and object-fit UV transform.
+- Image/video handles keep object-fit and playback controls public without
+  exposing raw Three textures.
+- GLB handles expose controlled mesh handles, material restore, vertex samples,
+  and managed point layers.
+- `ctx.visual.requestPostprocess(...)` submits named bloom/grain/blur requests
+  owned by the runtime.
+
 DOM text remains the source of content and accessibility. Text-layer methods
 change WebGL output only.
 
@@ -232,6 +246,9 @@ Effect ownership rules:
   restoration cleanup into `ctx.resources`.
 - Never own the renderer, runtime, runtime canvas, main animation loop, global
   scroll/pointer systems, or package-internal registries.
+- Never expose or depend on raw Three renderer, scene, camera, `ShaderMaterial`,
+  `Texture`, `EffectComposer`, `WebGLRenderTarget`, render-loop, pass ordering,
+  or renderer-state mutation.
 - If an effect mutates a source model or generated object, restore or dispose it
   on cleanup unless the effect explicitly owns it for the target lifetime.
 

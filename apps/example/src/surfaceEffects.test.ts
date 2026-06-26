@@ -194,7 +194,14 @@ describe("surface example effects", () => {
   });
 
   test("surface ghost cursor and waves redraw element snapshot surfaces", () => {
+    const ghostLayer = {
+      setProgram: vi.fn(),
+      setUniforms: vi.fn(),
+      clear: vi.fn(),
+      dispose: vi.fn(),
+    };
     const surface = {
+      createMaterialLayer: vi.fn(() => ghostLayer),
       draw: vi.fn(),
       setOpacity: vi.fn(),
       setVisible: vi.fn(),
@@ -246,7 +253,21 @@ describe("surface example effects", () => {
 
     expect(exampleSurfaceGhostCursorEffect.source).toBe("snapshot/element");
     expect(exampleSurfaceWavesEffect.source).toBe("snapshot/element");
-    expect(surface.draw).toHaveBeenCalledTimes(2);
+    expect(surface.createMaterialLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "example.surfaceGhostCursor",
+        mode: "replace-source",
+        sourceTextureUniform: "uSource",
+      }),
+    );
+    expect(ghostLayer.setUniforms).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uPointer: expect.any(Array),
+        uPointerIntensity: expect.any(Number),
+        uTime: 960,
+      }),
+    );
+    expect(surface.draw).toHaveBeenCalledTimes(1);
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenCalledWith(1);
   });

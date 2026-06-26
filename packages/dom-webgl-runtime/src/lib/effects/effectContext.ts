@@ -2,10 +2,12 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../types";
 import type {
   WebGLEffectContext,
+  WebGLEffectPostprocessRequest,
   WebGLEffectResourceScope,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
+  WebGLEffectVisualContext,
 } from "./effectAuthoring";
 
 export type WebGLEffectContextOptions = {
@@ -17,11 +19,21 @@ export type WebGLEffectContextOptions = {
   target?: WebGLEffectTargetHandle;
   resources: WebGLEffectResourceScope;
   progressSignals?: WebGLProgressSignalSource;
+  visual?: WebGLEffectVisualContext;
 };
 
 const emptyProgressSignals: WebGLProgressSignalSource = {
   get() {
     return 0;
+  },
+};
+
+const emptyVisualContext: WebGLEffectVisualContext = {
+  requestPostprocess(_request: WebGLEffectPostprocessRequest) {
+    return {
+      update() {},
+      dispose() {},
+    };
   },
 };
 
@@ -37,11 +49,30 @@ export function createWebGLEffectContext(
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
     progress: createProgressSignals(options.progressSignals),
+    visual: createResourceManagedVisualContext(
+      options.visual ?? emptyVisualContext,
+      options.resources,
+    ),
     time: options.input.time,
     delta: options.input.delta,
     source: options.source,
     target: options.target,
     resources: options.resources,
+  };
+}
+
+function createResourceManagedVisualContext(
+  visual: WebGLEffectVisualContext,
+  resources: WebGLEffectResourceScope,
+): WebGLEffectVisualContext {
+  return {
+    requestPostprocess(request) {
+      const handle = visual.requestPostprocess(request);
+      resources.addDisposable(() => {
+        handle.dispose();
+      });
+      return handle;
+    },
   };
 }
 

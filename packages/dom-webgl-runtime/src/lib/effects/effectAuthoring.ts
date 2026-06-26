@@ -44,12 +44,64 @@ export type WebGLEffectCanvasDrawer = (context: {
   devicePixelRatio: number;
 }) => void;
 
-export type WebGLEffectCanvasSurfaceHandle = WebGLEffectRenderableHandle & {
+export type WebGLEffectTextureUniform =
+  | { kind: "source-texture" }
+  | { kind: "canvas-texture"; source: HTMLCanvasElement }
+  | { kind: "image-texture"; source: HTMLImageElement }
+  | { kind: "video-texture"; source: HTMLVideoElement };
+
+export type WebGLEffectUniformValue =
+  | number
+  | boolean
+  | string
+  | readonly [number, number]
+  | readonly [number, number, number]
+  | readonly [number, number, number, number]
+  | readonly (readonly [number, number])[]
+  | WebGLEffectTextureUniform;
+
+export type WebGLEffectBlendMode =
+  | "normal"
+  | "additive"
+  | "multiply"
+  | "screen";
+
+export type WebGLEffectMaterialProgram = {
+  vertexShader?: string;
+  fragmentShader: string;
+  uniforms?: Record<string, WebGLEffectUniformValue>;
+  defines?: Record<string, string | number | boolean>;
+  blend?: WebGLEffectBlendMode;
+  transparent?: boolean;
+  depthWrite?: boolean;
+  depthTest?: boolean;
+  toneMapped?: boolean;
+};
+
+export type WebGLEffectMaterialLayerHandle = {
+  setProgram(program: WebGLEffectMaterialProgram): void;
+  setUniforms(uniforms: Record<string, WebGLEffectUniformValue>): void;
+  clear(): void;
+  dispose(): void;
+};
+
+export type WebGLEffectMaterialLayerHost = {
+  createMaterialLayer(options: {
+    key: string;
+    program: WebGLEffectMaterialProgram;
+    sourceTextureUniform?: string;
+    mode?: "replace-source" | "overlay";
+  }): WebGLEffectMaterialLayerHandle;
+};
+
+export type WebGLEffectCanvasSurfaceHandle = WebGLEffectRenderableHandle &
+  WebGLEffectMaterialLayerHost & {
   readonly canvas: HTMLCanvasElement;
   readonly context: CanvasRenderingContext2D | null;
   readonly texture: unknown;
   readonly mesh: unknown;
   readonly material: unknown;
+  readonly shaderInputs: WebGLEffectSurfaceShaderInputs;
   clear(): void;
   draw(drawer: WebGLEffectCanvasDrawer): void;
   invalidate(): void;
@@ -86,9 +138,13 @@ export type WebGLTextLayerStyle = {
   color: string;
 };
 
-export type WebGLEffectTextLayerHandle = WebGLEffectCanvasSurfaceHandle & {
+export type WebGLEffectTextLayerHandle = Omit<
+  WebGLEffectCanvasSurfaceHandle,
+  "shaderInputs"
+> & {
   readonly text: string;
   readonly style: WebGLTextLayerStyle;
+  readonly shaderInputs: WebGLEffectTextShaderInputs;
   getGlyphs(): readonly WebGLTextGlyph[];
   setText(text: string): void;
   setGlyphs(
@@ -105,15 +161,60 @@ export type WebGLEffectTextureTransform = {
   offsetY?: number;
 };
 
+export type WebGLEffectContentBoxShaderInput = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type WebGLEffectObjectFitShaderInput = {
+  repeatX: number;
+  repeatY: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+export type WebGLEffectSourceTextureShaderInput = {
+  available: boolean;
+  uniform: "source-texture";
+  width: number;
+  height: number;
+  devicePixelRatio?: number;
+};
+
+export type WebGLEffectSurfaceShaderInputs = {
+  size: { width: number; height: number; devicePixelRatio: number };
+  contentBox: WebGLEffectContentBoxShaderInput;
+  sourceTexture: WebGLEffectSourceTextureShaderInput;
+};
+
+export type WebGLEffectTextShaderInputs = WebGLEffectSurfaceShaderInputs & {
+  text: string;
+  style: WebGLTextLayerStyle;
+  glyphs: readonly WebGLTextGlyph[];
+};
+
+export type WebGLEffectMediaShaderInputs = {
+  naturalSize: { width: number; height: number };
+  contentBox: WebGLEffectContentBoxShaderInput;
+  uvTransform: WebGLEffectObjectFitShaderInput;
+  objectFit: string;
+  objectPosition: string;
+  sourceTexture: WebGLEffectSourceTextureShaderInput;
+};
+
 export type WebGLEffectTextureLayerHandle<
   TSource extends HTMLImageElement | HTMLVideoElement =
     | HTMLImageElement
     | HTMLVideoElement,
-> = WebGLEffectRenderableHandle & {
+> = WebGLEffectRenderableHandle &
+  WebGLEffectMaterialLayerHost & {
   readonly source: TSource;
   readonly texture: unknown;
   readonly mesh: unknown;
   readonly material: unknown;
+  readonly shaderInputs: WebGLEffectMediaShaderInputs;
   setTextureTransform(transform: WebGLEffectTextureTransform): void;
   invalidate(): void;
 };
@@ -146,15 +247,53 @@ export type WebGLEffectManagedObjectHandle = {
   setPointer?(x: number, y: number): void;
 };
 
+export type WebGLModelMeshHandle = WebGLEffectRenderableHandle &
+  WebGLEffectMaterialLayerHost & {
+    readonly index: number;
+    readonly name?: string;
+    readonly materialName?: string;
+    restoreMaterial(): void;
+  };
+
+export type WebGLEffectPointLayerOptions = {
+  positions: Float32Array;
+  color?: number | string;
+  size?: number;
+  material?: WebGLEffectMaterialProgram;
+};
+
 export type WebGLModelEffectHandle = WebGLEffectRenderableHandle & {
   readonly object3D: unknown;
   traverseMeshes(visitor: (mesh: unknown) => void): void;
+  getMeshes(): readonly WebGLModelMeshHandle[];
+  forEachMesh(visitor: (mesh: WebGLModelMeshHandle) => void): void;
   sampleVertices(options?: { maxPoints?: number }): Float32Array;
   createPointCloud(options: {
     density?: number;
     color?: number | string;
     size?: number;
   }): unknown;
+  createPointLayer(
+    options: WebGLEffectPointLayerOptions,
+  ): WebGLEffectManagedObjectHandle;
+};
+
+export type WebGLEffectPostprocessRequest = {
+  key: string;
+  bloom?: { strength?: number; radius?: number; threshold?: number };
+  grain?: { amount?: number };
+  blur?: { radius?: number };
+};
+
+export type WebGLEffectPostprocessHandle = {
+  update(request: WebGLEffectPostprocessRequest): void;
+  dispose(): void;
+};
+
+export type WebGLEffectVisualContext = {
+  requestPostprocess(
+    request: WebGLEffectPostprocessRequest,
+  ): WebGLEffectPostprocessHandle;
 };
 
 export type WebGLEffectSourceHandle =
@@ -197,6 +336,7 @@ export type WebGLEffectContext = {
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
   progress: WebGLProgressSignalSource;
+  visual: WebGLEffectVisualContext;
   time: number;
   delta: number;
   source: WebGLEffectSourceHandle;

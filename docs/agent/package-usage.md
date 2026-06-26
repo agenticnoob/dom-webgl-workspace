@@ -553,6 +553,7 @@ Use context fields as the single runtime truth:
 - `ctx.source`: source handle.
 - `ctx.target`: runtime target controls, if available.
 - `ctx.resources`: effect-owned resource scope.
+- `ctx.visual`: runtime-scoped visual requests such as named postprocess.
 
 Pointer rule:
 
@@ -578,11 +579,11 @@ Available source handles:
 
 | Source kind | Public output handle | Main controls |
 | --- | --- | --- |
-| `snapshot/element` | `ctx.source.surface` | canvas draw, clear, invalidate, object/material controls |
-| `snapshot/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, object/material controls |
-| `image` | `ctx.source.image` | texture, material, mesh, texture transform, invalidate |
-| `video` | `ctx.source.video` | texture controls plus play, pause, muted, playback rate |
-| `model/glb` | `ctx.source.model` | object controls, mesh traversal, vertex samples, point cloud creation |
+| `snapshot/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, object/material controls |
+| `snapshot/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
+| `image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
+| `video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
+| `model/glb` | `ctx.source.model` | object controls, controlled mesh handles, material restore, vertex samples, managed point layers |
 
 DOM text remains the source of content, accessibility, and fallback.
 `textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
@@ -605,17 +606,51 @@ The package core does not include scrambled text, text pressure, image
 distortion, media playback, or model particle effects. Those are application
 effects built on these primitives.
 
+Material layer rules:
+
+- Use `createMaterialLayer(...)` on source handles or model mesh handles.
+- Programs are data declarations: shader strings, public uniform values,
+  defines, blend mode, and depth/tone flags.
+- `{ kind: "source-texture" }` binds the runtime-owned source texture. DOM
+  backed texture uniforms create runtime-owned Three textures internally.
+- `setUniforms(...)` updates public uniform values; `clear()` restores the
+  original material; `dispose()` is idempotent and releases runtime-owned
+  material/texture resources.
+- Effects never receive raw `ShaderMaterial`, `Texture`, renderer, scene,
+  camera, composer, render target, render loop, pass ordering, or renderer-state
+  handles.
+
 Model helper rules:
 
 - `model.object3D` is the loaded model object exposed as `unknown`.
 - `model.setVisible`, `model.setPosition`, `model.setRotation`,
   `model.setScale`, and `model.setOpacity` provide common object controls.
 - `model.traverseMeshes(visitor)` visits model meshes.
+- `model.getMeshes()` and `model.forEachMesh(...)` expose controlled mesh
+  handles with `createMaterialLayer(...)` and `restoreMaterial()`.
 - `model.sampleVertices({ maxPoints })` returns model-root local vertex samples.
 - `model.createPointCloud({ density, color, size })` returns a point cloud object.
+- `model.createPointLayer({ positions, color, size, material })` returns a
+  managed handle whose generated geometry/material lifecycle is runtime-owned.
 - Child mesh transforms are applied when sampling vertices.
 - `color` accepts numeric Three.js color values and CSS color strings such as
   `"rgb(255, 0, 0)"`.
+
+Runtime-scoped visual requests:
+
+```ts
+const handle = ctx.visual.requestPostprocess({
+  key: "app.softGlow",
+  bloom: { strength: 0.45, radius: 0.2, threshold: 0.8 },
+  grain: { amount: 0.04 },
+});
+
+ctx.resources.addDisposable(() => handle.dispose());
+```
+
+Duplicate request keys update the current named request. Disposing the handle
+removes that request. The runtime owns any postprocess pass/render-target
+resources and falls back to the normal render path when no requests are active.
 
 ## Target Handles
 
@@ -658,6 +693,7 @@ Effects may own:
 - temporary Three.js objects created by the effect;
 - event listeners created by the effect;
 - generated geometries/materials/textures;
+- material layer handles and postprocess request handles;
 - per-effect mutable state.
 
 Effects must not own:
@@ -668,6 +704,8 @@ Effects must not own:
 - the main animation loop;
 - global scroll/pointer systems;
 - package-internal registries.
+- raw Three.js renderer, scene, camera, shader material, texture, composer,
+  render target, render-loop, pass ordering, or renderer-state mutation.
 
 If an effect mutates a source model's mesh visibility, material, rotation, scale,
 or position, store previous values and restore them on dispose unless the effect

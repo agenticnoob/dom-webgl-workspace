@@ -5,7 +5,14 @@ import { Vector3 } from "three/src/math/Vector3.js";
 import { PointsMaterial } from "three/src/materials/PointsMaterial.js";
 import { Points } from "three/src/objects/Points.js";
 
-import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
+import type {
+  WebGLEffectManagedObjectHandle,
+  WebGLEffectMaterialLayerHandle,
+  WebGLEffectPointLayerOptions,
+  WebGLModelEffectHandle,
+  WebGLModelMeshHandle,
+} from "../../effects/effectAuthoring";
+import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
 
 export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHandle {
@@ -20,6 +27,14 @@ export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHand
           visitor(candidate);
         }
       });
+    },
+    getMeshes() {
+      return collectMeshHandles(object3D);
+    },
+    forEachMesh(visitor) {
+      for (const mesh of collectMeshHandles(object3D)) {
+        visitor(mesh);
+      }
     },
     sampleVertices(options = {}) {
       return sampleModelVertices(object3D, options.maxPoints ?? 2048);
@@ -37,6 +52,93 @@ export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHand
       });
 
       return new Points(geometry, material);
+    },
+    createPointLayer(options) {
+      return createPointLayer(object3D, options);
+    },
+  };
+}
+
+function collectMeshHandles(object3D: unknown): readonly WebGLModelMeshHandle[] {
+  const meshes: WebGLModelMeshHandle[] = [];
+
+  traverseObject(object3D, (candidate) => {
+    if (isMeshLike(candidate)) {
+      meshes.push(createModelMeshHandle(candidate, meshes.length));
+    }
+  });
+
+  return meshes;
+}
+
+function createModelMeshHandle(mesh: unknown, index: number): WebGLModelMeshHandle {
+  const materialName = readMaterialName(mesh);
+  const activeLayers: WebGLEffectMaterialLayerHandle[] = [];
+
+  return {
+    ...createObject3DControls(mesh, {
+      scaleZ: "x",
+      opacity: { kind: "object" },
+    }),
+    object3D: mesh,
+    index,
+    name: readStringProperty(mesh, "name"),
+    materialName,
+    createMaterialLayer(options) {
+      const layer = createMaterialLayer({
+        ...options,
+        target: createMaterialTarget(mesh),
+      });
+      activeLayers.push(layer);
+      return layer;
+    },
+    restoreMaterial() {
+      for (const layer of activeLayers.splice(0)) {
+        layer.dispose();
+      }
+    },
+  };
+}
+
+function createPointLayer(
+  object3D: unknown,
+  options: WebGLEffectPointLayerOptions,
+): WebGLEffectManagedObjectHandle {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(options.positions, 3));
+  const material = new PointsMaterial({
+    color: options.color ?? 0xffffff,
+    size: options.size ?? 0.02,
+  });
+  const points = new Points(geometry, material);
+  const materialLayer = options.material
+    ? createMaterialLayer({
+        key: "model.pointLayer",
+        target: points,
+        program: options.material,
+      })
+    : undefined;
+  let disposed = false;
+
+  addChild(object3D, points);
+
+  return {
+    setVisible(visible) {
+      points.visible = visible;
+    },
+    remove() {
+      removeChild(object3D, points);
+    },
+    dispose() {
+      if (disposed) {
+        return;
+      }
+
+      disposed = true;
+      removeChild(object3D, points);
+      materialLayer?.dispose();
+      geometry.dispose();
+      material.dispose();
     },
   };
 }
@@ -63,6 +165,54 @@ function isMeshLike(object: unknown): boolean {
       "geometry" in object &&
       (object as { geometry?: unknown }).geometry,
   );
+}
+
+function readStringProperty(object: unknown, key: string): string | undefined {
+  if (!object || typeof object !== "object" || !(key in object)) {
+    return undefined;
+  }
+
+  const value = (object as Record<string, unknown>)[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readMaterialName(object: unknown): string | undefined {
+  if (!object || typeof object !== "object" || !("material" in object)) {
+    return undefined;
+  }
+
+  const material = (object as { material?: unknown }).material;
+  if (Array.isArray(material)) {
+    for (const entry of material) {
+      const name = readStringProperty(entry, "name");
+      if (name) {
+        return name;
+      }
+    }
+    return undefined;
+  }
+
+  return readStringProperty(material, "name");
+}
+
+function addChild(parent: unknown, child: unknown): void {
+  if (parent && typeof parent === "object" && "add" in parent) {
+    (parent as { add: (child: unknown) => void }).add(child);
+  }
+}
+
+function removeChild(parent: unknown, child: unknown): void {
+  if (parent && typeof parent === "object" && "remove" in parent) {
+    (parent as { remove: (child: unknown) => void }).remove(child);
+  }
+}
+
+function createMaterialTarget(mesh: unknown): { material: unknown } {
+  if (mesh && typeof mesh === "object" && "material" in mesh) {
+    return mesh as { material: unknown };
+  }
+
+  return { material: undefined };
 }
 
 function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array {

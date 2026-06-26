@@ -1303,12 +1303,32 @@ Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
 - The internal registry remains dispatch machinery. `effectRegistry` is not the
   public authoring API, and the root/React public entrypoints do not expose
   registry construction as the preferred consumer path.
-- Concrete text effects, shader authoring, particles, picking, multiple
-  canvases, concrete third-party scroll behavior, and CSS paint cloning remain
-  outside core scope. Generic source capability handles now cover text/glyph
-  output, media texture transforms, video playback, and model controls; the
-  optional scroll adapters package covers Lenis, GSAP ticker, and ScrollTrigger
-  glue without adding those libraries to core.
+- Concrete text effects, package-owned shader presets, raw Three material
+  access, picking, multiple canvases, concrete third-party scroll behavior, and
+  CSS paint cloning remain outside core scope. Generic source capability handles
+  now cover text/glyph output, media texture transforms, video playback, model
+  controls, controlled material layers, managed point layers, and named
+  postprocess requests; the optional scroll adapters package covers Lenis, GSAP
+  ticker, and ScrollTrigger glue without adding those libraries to core.
+
+Current controlled visual capability API, delivered after Phase 8:
+
+- `defineWebGLEffect(...)` remains the only effect authoring model.
+- Source handles expose `createMaterialLayer(...)` for `snapshot/element`,
+  `snapshot/text`, `image`, and `video` sources. The runtime compiles public
+  material program declarations into internal Three material/texture state,
+  restores original materials, and disposes runtime-owned resources.
+- Text/image/video handles expose shader input metadata such as source texture
+  availability, size, DPR, glyph coordinates, media natural size, content box,
+  and object-fit UV transform.
+- GLB model handles expose controlled mesh handles, material restore, sampled
+  vertices, and managed point layers.
+- `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
+  The runtime owns postprocess resources and falls back to the existing render
+  path when no requests are active.
+- Public APIs still do not expose renderer, scene, camera, raw `ShaderMaterial`,
+  raw `Texture`, raw `EffectComposer`, raw `WebGLRenderTarget`, render-loop,
+  arbitrary pass ordering, or renderer-state mutation.
 
 Delivered Phase 8 behavior:
 
@@ -1322,7 +1342,9 @@ Delivered Phase 8 behavior:
   handles, target handles, and managed resources.
 - GLB effects receive a model source handle after the model source is loaded;
   effects do not load GLB assets themselves.
-- Raw renderer, camera, and scene mutation remain outside the default API.
+- Raw renderer, camera, scene, material, texture, composer, render-target,
+  render-loop, pass ordering, and renderer-state mutation remain outside the
+  public API.
 
 Text animation effects such as scrambled text and text pressure should use the
 public `snapshot/text` text-layer handle. They should not run by mutating native

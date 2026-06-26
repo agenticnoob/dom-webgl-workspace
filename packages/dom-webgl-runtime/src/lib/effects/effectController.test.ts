@@ -405,11 +405,30 @@ function createModelEffectSource() {
       traverseMeshes() {
         return;
       },
+      getMeshes() {
+        return [];
+      },
+      forEachMesh() {
+        return;
+      },
       sampleVertices() {
         return new Float32Array();
       },
       createPointCloud() {
         return {};
+      },
+      createPointLayer() {
+        return {
+          setVisible() {
+            return;
+          },
+          remove() {
+            return;
+          },
+          dispose() {
+            return;
+          },
+        };
       },
     },
   };
@@ -423,6 +442,33 @@ function createCanvasSurfaceHandle() {
     texture: {},
     mesh: {},
     material: {},
+    shaderInputs: {
+      size: { width: 1, height: 1, devicePixelRatio: 1 },
+      contentBox: { x: 0, y: 0, width: 1, height: 1 },
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture" as const,
+        width: 1,
+        height: 1,
+        devicePixelRatio: 1,
+      },
+    },
+    createMaterialLayer() {
+      return {
+        setProgram() {
+          return;
+        },
+        setUniforms() {
+          return;
+        },
+        clear() {
+          return;
+        },
+        dispose() {
+          return;
+        },
+      };
+    },
     clear() {
       return;
     },
@@ -450,6 +496,27 @@ function createTextLayerHandle() {
       textAlign: "left" as const,
       color: "#000000",
     },
+    shaderInputs: {
+      size: { width: 1, height: 1, devicePixelRatio: 1 },
+      contentBox: { x: 0, y: 0, width: 1, height: 1 },
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture" as const,
+        width: 1,
+        height: 1,
+        devicePixelRatio: 1,
+      },
+      text: "Hello",
+      style: {
+        font: "16px sans-serif",
+        lineHeight: 20,
+        letterSpacing: 0,
+        wordSpacing: 0,
+        textAlign: "left" as const,
+        color: "#000000",
+      },
+      glyphs: [],
+    },
     getGlyphs() {
       return [];
     },
@@ -471,6 +538,35 @@ function createTextureLayerHandle<TSource extends HTMLImageElement | HTMLVideoEl
     texture: {},
     mesh: {},
     material: {},
+    shaderInputs: {
+      naturalSize: { width: 1, height: 1 },
+      contentBox: { x: 0, y: 0, width: 1, height: 1 },
+      uvTransform: { repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0 },
+      objectFit: "fill",
+      objectPosition: "50% 50%",
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture" as const,
+        width: 1,
+        height: 1,
+      },
+    },
+    createMaterialLayer() {
+      return {
+        setProgram() {
+          return;
+        },
+        setUniforms() {
+          return;
+        },
+        clear() {
+          return;
+        },
+        dispose() {
+          return;
+        },
+      };
+    },
     setTextureTransform() {
       return;
     },

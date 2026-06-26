@@ -14,13 +14,36 @@ Phase 8 custom effect authoring API plan file: `docs/superpowers/plans/2026-06-1
 Agent-facing package usage contract: `docs/agent/package-usage.md`.
 React-only effect authoring example plan: `docs/superpowers/plans/2026-06-22-effect-authoring-examples.md`.
 React-only effect authoring example guide: `docs/examples/effect-authoring.md`.
+Controlled visual capability API plan: `docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
+Current visual capability API note: `defineWebGLEffect(...)` remains the single
+effect authoring model. Source handles can create runtime-owned material layers,
+text/image/video handles expose shader input metadata, GLB model handles expose
+controlled mesh material restore plus managed point layers, and
+`ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
+The public API still does not expose renderer, scene, camera, raw shader
+materials, raw textures, composer, render targets, render loop, pass ordering,
+or renderer-state mutation.
+
 ## Last Completed Task
-Package boundary review fixes, documentation alignment, and commit-ready
-verification.
+Controlled visual capability API implementation, Ghost Cursor public-API
+dogfood, documentation alignment, and commit-ready verification.
 
 ## Latest Documentation Note
+Controlled visual capability API is implemented through the existing
+`defineWebGLEffect(...)` authoring model. Public source handles now cover
+runtime-owned material layers, source texture uniforms, text/media shader input
+metadata, GLB controlled mesh handles, managed point layers, and named
+postprocess requests through `ctx.visual.requestPostprocess(...)`. Runtime
+continues to own Three.js material, texture, geometry, render-target,
+postprocess, restore, and dispose lifecycles. The public API does not expose
+renderer, scene, camera, raw shader materials, raw textures, composer, render
+targets, render loop, pass ordering, or renderer-state mutation. `apps/example`
+Ghost Cursor now dogfoods the public material layer/shader API and sends the
+ReactBits-style pointer trail as controlled public uniform data; visual browser
+QA remains user-owned per the latest manual review instruction.
+
 Package boundary review fixes keep pointer-state construction internal:
 `createInitialPointerState` remains available to package internals such as the
 React adapter, but is not exported from the root public API. Resource URL cache
@@ -85,8 +108,9 @@ example without applying opacity to the whole target, keeps surface-pulse
 visibility in surface-layer drawing without changing target or DOM child
 opacity, draws `/example/bg.mp4` as a muted looping effect-owned
 `snapshot/element` background texture, implements a ReactBits-inspired Ghost
-Cursor as a dark time-animated smoke surface whose target-local pointer only
-acts as the purple spotlight and fade source, implements Waves through the same
+Cursor through the public material layer/shader capability as a dark
+time-animated smoke surface whose no-pointer smoke stays nearly invisible and
+whose target-local pointer activates cursor-local emissive smoke, implements Waves through the same
 `ctx.source.surface` path, and does not rely on app CSS to keep real DOM
 children above WebGL surfaces because the React adapter owns the DOM content
 layer above the canvas.

@@ -42,6 +42,13 @@ Unified source capability handles are implemented in
 custom effects can now control runtime-owned output handles for
 `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` without
 mutating source DOM or reaching into renderer internals.
+The visual capability API in
+`docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md` is
+implemented: the same `defineWebGLEffect(...)` model now covers controlled
+material layers, source texture uniforms, text/media shader inputs, GLB mesh
+material handles, managed point layers, and named postprocess requests while
+keeping renderer, scene, camera, composer, render targets, raw textures, and
+raw materials internal.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -131,8 +138,10 @@ Current example behavior:
   also includes `example.surfaceVideoBackground`, which draws `/example/bg.mp4`
   as a muted looping effect-owned background texture, plus ReactBits-inspired
   `example.surfaceGhostCursor` and `example.surfaceWaves` effects implemented
-  through the runtime effect surface rather than separate ReactBits canvases or
-  renderers.
+  through runtime effect handles rather than separate ReactBits canvases or
+  renderers. Ghost Cursor dogfoods the public material layer API: no-pointer
+  smoke stays nearly invisible on the dark stage, and the pointer only activates
+  target-local emissive smoke around the cursor.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while
@@ -294,9 +303,29 @@ asset loading.
 The effect context exposes low-level runtime output handles for every supported
 source kind. Consumers can draw to canvas-backed element surfaces, control
 WebGL text layers and glyph layout, transform image/video texture planes,
-control video playback, and inspect or manipulate GLB model handles through
-public effect context. Target `setPosition(...)` writes runtime scene-space
-coordinates, not DOM `left`/`top`. Concrete effects remain application-owned.
+control video playback, create controlled material layers over source textures,
+read source-specific shader input metadata, inspect or manipulate GLB model
+mesh handles, create managed point layers, and request named runtime-owned
+postprocess passes through public effect context. Target `setPosition(...)`
+writes runtime scene-space coordinates, not DOM `left`/`top`. Concrete effects
+remain application-owned.
+
+Capability matrix:
+
+| Source | Public capability |
+| --- | --- |
+| `snapshot/element` | canvas surface drawing plus `createMaterialLayer(...)` over the source texture |
+| `snapshot/text` | text/glyph controls, text shader inputs, and `createMaterialLayer(...)` over the text texture |
+| `image` | object-fit aware texture controls, media shader inputs, and `createMaterialLayer(...)` |
+| `video` | image capabilities plus playback controls |
+| `model/glb` | controlled mesh handles, material restore, sampled vertices, managed point layers |
+| runtime visual context | `ctx.visual.requestPostprocess(...)` for named bloom/grain/blur requests |
+
+Runtime owns material, texture, geometry, render-target, postprocess, and
+managed-object lifecycle. Effects update public handles/requests and register
+their own cleanup through `ctx.resources`; they do not receive raw renderer,
+scene, camera, `ShaderMaterial`, `Texture`, `EffectComposer`,
+`WebGLRenderTarget`, render-loop, pass ordering, or renderer-state handles.
 
 Source declarations keep media sources tied to their real DOM media element:
 `{ kind: "image" }` is for actual `<img>` targets, and `{ kind: "video" }` is
