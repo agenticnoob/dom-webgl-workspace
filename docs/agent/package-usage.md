@@ -611,6 +611,11 @@ Material layer rules:
 - Use `createMaterialLayer(...)` on source handles or model mesh handles.
 - Programs are data declarations: shader strings, public uniform values,
   defines, blend mode, and depth/tone flags.
+- Uniforms must stay plain serializable data. Use numbers, small numeric tuples,
+  controlled texture uniform declarations, and supported numeric arrays such as
+  `readonly (readonly [number, number])[]` for trail buffers. Do not pass raw
+  Three.js `Uniform`, `Vector2`, `Texture`, material, pass, renderer, scene, or
+  camera objects through public effect params.
 - `{ kind: "source-texture" }` binds the runtime-owned source texture. DOM
   backed texture uniforms create runtime-owned Three textures internally.
 - `setUniforms(...)` updates public uniform values; `clear()` restores the
@@ -619,6 +624,11 @@ Material layer rules:
 - Effects never receive raw `ShaderMaterial`, `Texture`, renderer, scene,
   camera, composer, render target, render loop, pass ordering, or renderer-state
   handles.
+- When porting a visual from a raw Three.js implementation, port the algorithm
+  into public data and shader declarations only. Do not port the source
+  renderer, scene, camera, composer, pass graph, render targets, or animation
+  loop into package public API. If the visual needs a new primitive, add a
+  generic controlled capability with package tests, not a one-off effect hook.
 
 Model helper rules:
 
@@ -768,6 +778,51 @@ pointer is stationary, or whether all glyphs or only nearby glyphs react, belong
 to the consuming effect contract. Do not record those product choices as package
 pitfalls unless they expose a reusable coordinate, lifecycle, or ownership bug.
 
+## Dogfood Notes For Future Skills
+
+Use this checklist when turning package usage experience into a reusable agent
+skill:
+
+- Confirm the target app first. `apps/demo` is the package validation surface;
+  `apps/example` is the downstream consumer/tutorial surface. Do not assume a
+  visual-page issue belongs to demo when the user is looking at example.
+- Count runtime state before removing visuals. A page can register many targets
+  while only a subset is active in the current viewport. Use debug state
+  `targetCount` and `renderableCount` to distinguish "too many declarations"
+  from "too much active per-frame work".
+- Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image
+  assets, effect keys, copy such as `Boo!`, and shader tuning live in
+  `apps/example`; packages should only gain generic capabilities such as
+  controlled material layers or typed uniform data.
+- For third-party visual ports, read the source implementation instead of
+  iterating from screenshots once the user's target is named. Port the stable
+  algorithm, not incidental infrastructure. For ReactBits Ghost Cursor, the
+  reusable idea is pointer trail data plus `fbm`/`blob` shader math; the raw
+  renderer/composer setup remains outside package public API. For ReactBits
+  Waves, the reusable idea is the Canvas2D Perlin point grid plus mouse
+  velocity/tension/friction physics; keep it in `apps/example` surface drawing
+  rather than adding package-owned concrete effects.
+- Shader coordinate systems are easy to invert. DOM pointer coordinates are
+  top-down; shader UV-style coordinates are often bottom-up. Convert `y` at the
+  effect boundary and add a regression test.
+- Match shader uniform names exactly. If the shader reads `iTime`, updating only
+  a legacy `uTime` uniform makes the visual look static even though the runtime
+  is ticking.
+- Avoid making product-taste feedback into package API. "Less light-like",
+  "more smoke-line feel", or "more responsive hover" are example-level tuning
+  unless they reveal a missing generic primitive or coordinate/lifecycle bug.
+- Pointer-heavy effects need idle behavior only when frames become identical.
+  Trail-based material effects can stop uniform updates after decay. Canvas
+  effects like ReactBits Waves still redraw while pointer-out because the Perlin
+  wave field keeps moving; do not cache them static just because the pointer
+  left.
+- If the user says they will do visual QA, do not claim browser visual
+  verification. Run automated tests/typecheck/build as requested, and document
+  visual QA as user-owned.
+- When documenting a completed package capability, say what is controlled and
+  what is intentionally not exposed. A capability is not complete if docs imply
+  raw Three.js access or if examples appear to be package exports.
+
 ## Common Failures
 
 - Unknown effect: target declares `{ kind: "x" }`, but runtime `effects` omits
@@ -779,12 +834,19 @@ pitfalls unless they expose a reusable coordinate, lifecycle, or ownership bug.
 - Runtime recreates in React: `effects` array identity changes on render.
 - Pointer offset: effect compares runtime normalized pointer coordinates directly
   to target-local coordinates.
+- Shader Y-axis inversion: effect passes DOM top-down pointer `y` into a
+  bottom-up shader coordinate without conversion.
+- Static shader after porting: effect updates `uTime` while the ported shader
+  reads `iTime`, or otherwise mismatches public uniform names.
 - Text effect vertical drift: effect treats `glyph.y` as a baseline and uses
   `glyph.y - glyph.height / 2`; glyph `y` is already the top drawing position.
 - Rotating model interaction drift: effect hit-tests unrotated model-local
   vertices while visible model is transformed.
 - Resource leak: effect creates objects/listeners without `ctx.resources`.
 - Boundary violation: app imports package internals or example-only code.
+- Hidden hardcoding: package source includes example/demo effect keys, asset
+  paths, copy, ReactBits/Ghost Cursor constants, or product-specific shader
+  logic instead of a generic controlled primitive.
 
 ## Agent Completion Report
 

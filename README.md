@@ -141,7 +141,11 @@ Current example behavior:
   through runtime effect handles rather than separate ReactBits canvases or
   renderers. Ghost Cursor dogfoods the public material layer API: no-pointer
   smoke stays nearly invisible on the dark stage, and the pointer only activates
-  target-local emissive smoke around the cursor.
+  target-local emissive smoke around the cursor. Ghost Cursor stops uniform
+  updates after its trail decays. Waves uses the snapshot surface path for a
+  ReactBits-style Canvas2D Perlin point grid: the ambient wave stays subtle, and
+  target-local hover applies an immediate pointer impulse without moving the
+  effect into packages.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while

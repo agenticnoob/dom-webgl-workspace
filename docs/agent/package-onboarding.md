@@ -227,6 +227,10 @@ Current visual capability surface:
   and managed point layers.
 - `ctx.visual.requestPostprocess(...)` submits named bloom/grain/blur requests
   owned by the runtime.
+- Material uniforms are controlled data, not raw Three.js objects. Numeric
+  tuples and supported arrays such as pointer-trail `vec2[]` are acceptable;
+  renderer, scene, camera, composer, raw texture, raw material, and pass objects
+  are not public effect inputs.
 
 DOM text remains the source of content and accessibility. Text-layer methods
 change WebGL output only.
@@ -404,8 +408,20 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Text confusion: `textLayer.setGlyphs(...)` changes WebGL output, not DOM text.
 - Pointer offset: an effect compares runtime normalized pointer coordinates
   directly to target-local coordinates.
+- Shader coordinate mismatch: DOM pointer `y` is top-down, while shader
+  coordinates may be bottom-up. Convert at the effect boundary and test it.
+- Shader uniform name mismatch: a visual can look static when the effect updates
+  `uTime` but the ported shader reads `iTime`.
 - Resource leak: an effect creates objects or listeners without `ctx.resources`.
 - Boundary violation: app imports package internals, demo code, or example code.
+- App target confusion: demo is validation; example is downstream dogfood. Check
+  which app the user is looking at before editing.
+- Visual-port boundary drift: do not move Ghost Cursor, Waves, ReactBits
+  constants, effect keys, assets, copy, or product shader/canvas tuning into
+  packages. Packages should only gain generic controlled primitives.
+- Pointer-heavy effects stay hot while idle: add decay/caching only after frames
+  become identical. ReactBits Waves keeps animating through Perlin time even
+  without pointer input, so pointer-out frames should still redraw.
 
 ## Where To Look Next
 

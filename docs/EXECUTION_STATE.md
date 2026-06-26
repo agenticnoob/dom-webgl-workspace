@@ -110,8 +110,11 @@ opacity, draws `/example/bg.mp4` as a muted looping effect-owned
 `snapshot/element` background texture, implements a ReactBits-inspired Ghost
 Cursor through the public material layer/shader capability as a dark
 time-animated smoke surface whose no-pointer smoke stays nearly invisible and
-whose target-local pointer activates cursor-local emissive smoke, implements Waves through the same
-`ctx.source.surface` path, and does not rely on app CSS to keep real DOM
+whose target-local pointer activates cursor-local emissive smoke, stops Ghost
+Cursor uniform updates after trail decay, implements Waves through the same
+`ctx.source.surface` path as a ReactBits-style Canvas2D Perlin point grid with
+subtle ambient motion and immediate target-local hover impulse, and does not
+rely on app CSS to keep real DOM
 children above WebGL surfaces because the React adapter owns the DOM content
 layer above the canvas.
 It also records current authoring friction in

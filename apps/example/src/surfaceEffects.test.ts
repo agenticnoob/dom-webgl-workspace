@@ -245,7 +245,16 @@ describe("surface example effects", () => {
       color: "#b497cf",
       opacity: 0.88,
     });
-    exampleSurfaceWavesEffect.update(context, undefined, {
+    const state = exampleSurfaceWavesEffect.setup?.(context, {
+      kind: "example.surfaceWaves",
+      lineColor: "#172124",
+      opacity: 0.82,
+    });
+    if (!state) {
+      throw new Error("Expected example.surfaceWaves setup state");
+    }
+
+    exampleSurfaceWavesEffect.update(context, state, {
       kind: "example.surfaceWaves",
       lineColor: "#172124",
       opacity: 0.82,
@@ -270,6 +279,178 @@ describe("surface example effects", () => {
     expect(surface.draw).toHaveBeenCalledTimes(1);
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenCalledWith(1);
+  });
+
+  test("surface waves redraws while pointer is outside because Perlin waves keep moving", () => {
+    const surface = {
+      draw: vi.fn(),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "snapshot/element",
+        element: document.createElement("section"),
+        surface,
+      },
+      layout: {
+        left: 10,
+        top: 20,
+        width: 320,
+        height: 180,
+      },
+      pointer: {
+        x: 0,
+        y: 0,
+        isInside: true,
+      },
+      target: {
+        setVisible: vi.fn(),
+      },
+      time: 960,
+    });
+
+    const state = exampleSurfaceWavesEffect.setup?.(context, {
+      kind: "example.surfaceWaves",
+      lineColor: "#172124",
+      opacity: 0.82,
+    });
+    if (!state) {
+      throw new Error("Expected example.surfaceWaves setup state");
+    }
+
+    exampleSurfaceWavesEffect.update(context, state, {
+      kind: "example.surfaceWaves",
+      lineColor: "#172124",
+      opacity: 0.82,
+    });
+    exampleSurfaceWavesEffect.update(
+      createEffectContext({
+        source: {
+          kind: "snapshot/element",
+          element: document.createElement("section"),
+          surface,
+        },
+        layout: {
+          left: 10,
+          top: 20,
+          width: 320,
+          height: 180,
+        },
+        pointer: {
+          x: 0,
+          y: 0,
+          isInside: true,
+        },
+        target: {
+          setVisible: vi.fn(),
+        },
+        time: 976,
+      }),
+      state,
+      {
+        kind: "example.surfaceWaves",
+        lineColor: "#172124",
+        opacity: 0.82,
+      },
+    );
+
+    expect(surface.draw).toHaveBeenCalledTimes(2);
+    expect(surface.setVisible).toHaveBeenCalledWith(true);
+    expect(surface.setOpacity).toHaveBeenLastCalledWith(1);
+  });
+
+  test("surface ghost cursor stops uniform updates after inactive trail decay", () => {
+    const ghostLayer = {
+      setProgram: vi.fn(),
+      setUniforms: vi.fn(),
+      clear: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const surface = {
+      createMaterialLayer: vi.fn(() => ghostLayer),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const activeContext = createEffectContext({
+      source: {
+        kind: "snapshot/element",
+        element: document.createElement("section"),
+        surface,
+      },
+      layout: {
+        left: 10,
+        top: 20,
+        width: 320,
+        height: 180,
+      },
+      pointer: {
+        x: 170,
+        y: 92,
+        isInside: true,
+      },
+      target: {
+        setVisible: vi.fn(),
+      },
+      time: 960,
+    });
+    const state = exampleSurfaceGhostCursorEffect.setup?.(activeContext, {
+      kind: "example.surfaceGhostCursor",
+      trailLength: 18,
+      color: "#b497cf",
+      opacity: 0.88,
+    });
+    if (!state) {
+      throw new Error("Expected example.surfaceGhostCursor setup state");
+    }
+    exampleSurfaceGhostCursorEffect.update(activeContext, state, {
+      kind: "example.surfaceGhostCursor",
+      trailLength: 18,
+      color: "#b497cf",
+      opacity: 0.88,
+    });
+    const inactiveContext = createEffectContext({
+      source: {
+        kind: "snapshot/element",
+        element: document.createElement("section"),
+        surface,
+      },
+      layout: {
+        left: 10,
+        top: 20,
+        width: 320,
+        height: 180,
+      },
+      pointer: {
+        x: 0,
+        y: 0,
+        isInside: true,
+      },
+      target: {
+        setVisible: vi.fn(),
+      },
+      time: 976,
+    });
+
+    for (let index = 0; index < 42; index += 1) {
+      exampleSurfaceGhostCursorEffect.update(inactiveContext, state, {
+        kind: "example.surfaceGhostCursor",
+        trailLength: 18,
+        color: "#b497cf",
+        opacity: 0.88,
+      });
+    }
+    ghostLayer.setUniforms.mockClear();
+    exampleSurfaceGhostCursorEffect.update(inactiveContext, state, {
+      kind: "example.surfaceGhostCursor",
+      trailLength: 18,
+      color: "#b497cf",
+      opacity: 0.88,
+    });
+
+    expect(ghostLayer.setUniforms).not.toHaveBeenCalled();
+    expect(surface.setVisible).toHaveBeenLastCalledWith(true);
+    expect(surface.setOpacity).toHaveBeenLastCalledWith(1);
   });
 
 });

@@ -12,7 +12,6 @@ import {
 import {
   drawCoverImage,
   drawPulseSurface,
-  drawWavesSurface,
 } from "./surfaceEffectRenderers";
 import {
   createGhostCursorMaterialProgram,
@@ -28,6 +27,11 @@ import {
   readTargetLocalPointer,
   type TargetLocalPointer,
 } from "./surfacePointer";
+import {
+  createSurfaceWavesState,
+  drawReactBitsWavesSurface,
+  type SurfaceWavesState,
+} from "./wavesSurface";
 
 type SurfaceFillParams = {
   kind: "example.surfaceFill";
@@ -144,24 +148,27 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
     }
 
     const pointer = readLocalPointer(ctx);
-    updateSurfaceGhostCursorState(state, pointer);
+    const shouldUpdate = updateSurfaceGhostCursorState(state, pointer);
+
     prepareGhostCursorLayer(ctx, state, params);
     ctx.target?.setVisible(true);
-    state.layer?.setUniforms(
-      createGhostCursorUniforms({
-        color: params.color ?? "#b497cf",
-        opacity: clampNumber(params.opacity, 0.1, 1, 0.9),
-        pointerActive: pointer.active,
-        pointerIntensity: state.intensity,
-        pointerX: state.pointerX,
-        pointerY: state.pointerY,
-        trailPoints: state.trail,
-        time: ctx.time,
-        trailLength: clampNumber(params.trailLength, 6, 64, 32),
-        width: ctx.layout.width,
-        height: ctx.layout.height,
-      }),
-    );
+    if (shouldUpdate) {
+      state.layer?.setUniforms(
+        createGhostCursorUniforms({
+          color: params.color ?? "#b497cf",
+          opacity: clampNumber(params.opacity, 0.1, 1, 0.9),
+          pointerActive: pointer.active,
+          pointerIntensity: state.intensity,
+          pointerX: state.pointerX,
+          pointerY: state.pointerY,
+          trailPoints: state.trail,
+          time: ctx.time,
+          trailLength: clampNumber(params.trailLength, 6, 64, 32),
+          width: ctx.layout.width,
+          height: ctx.layout.height,
+        }),
+      );
+    }
     ctx.source.surface?.setVisible?.(true);
     ctx.source.surface?.setOpacity?.(1);
   },
@@ -171,25 +178,32 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
   },
 });
 
-export const exampleSurfaceWavesEffect = defineWebGLEffect<SurfaceWavesParams>({
+export const exampleSurfaceWavesEffect = defineWebGLEffect<
+  SurfaceWavesParams,
+  SurfaceWavesState
+>({
   kind: "example.surfaceWaves",
   source: "snapshot/element",
-  update(ctx, _state, params) {
+  setup() {
+    return createSurfaceWavesState();
+  },
+  update(ctx, state, params) {
     if (ctx.source.kind !== "snapshot/element") {
       return;
     }
 
     const pointer = readLocalPointer(ctx);
+    const wavesState = state ?? createSurfaceWavesState();
     ctx.target?.setVisible(true);
     ctx.source.surface?.draw(({ context, width, height }) => {
-      drawWavesSurface(context, width, height, {
+      drawReactBitsWavesSurface(context, width, height, {
         lineColor: params.lineColor ?? "#172124",
         opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
         pointerActive: pointer.active,
         pointerX: pointer.x,
         pointerY: pointer.y,
         time: ctx.time,
-      });
+      }, wavesState);
     });
     ctx.source.surface?.setVisible?.(true);
     ctx.source.surface?.setOpacity?.(1);

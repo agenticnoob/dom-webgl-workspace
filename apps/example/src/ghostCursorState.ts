@@ -28,17 +28,23 @@ export function createSurfaceGhostCursorState(
 export function updateSurfaceGhostCursorState(
   state: SurfaceGhostCursorState,
   pointer: TargetLocalPointer,
-): void {
+): boolean {
   if (pointer.active) {
     state.pointerX += (pointer.x - state.pointerX) * 0.44;
     state.pointerY += (pointer.y - state.pointerY) * 0.44;
     state.intensity += (1 - state.intensity) * 0.36;
     state.trail = pushTrailPoint(state.trail, state.pointerX, state.pointerY);
-    return;
+    return true;
+  }
+
+  if (state.intensity < ghostCursorIdleThreshold) {
+    state.intensity = 0;
+    return false;
   }
 
   state.intensity *= 0.82;
   state.trail = pushTrailPoint(state.trail, state.pointerX, state.pointerY);
+  return true;
 }
 
 function createInitialTrail(x: number, y: number): readonly [number, number][] {
@@ -59,3 +65,4 @@ function pushTrailPoint(
 }
 
 const maxGhostCursorTrailLength = 50;
+const ghostCursorIdleThreshold = 0.0001;

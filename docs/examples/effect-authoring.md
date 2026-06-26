@@ -194,7 +194,9 @@ const ghostCursorEffect = defineWebGLEffect({
 
 `apps/example` uses this pattern for Ghost Cursor: no-pointer smoke stays nearly
 invisible on the dark stage, and pointer input only activates target-local
-emissive smoke around the cursor.
+emissive smoke around the cursor. The example stops sending material uniforms
+after the trail decays to idle, so the effect remains interactive without
+keeping a settled target hot every frame.
 
 ## Declare Targets
 
@@ -233,7 +235,8 @@ definition is missing, the target declaration has no executable effect.
   emissive smoke that fades at the last local position after leaving the target.
 - `example.surfaceWaves`: draws a ReactBits-inspired pointer-reactive line wave
   background on the element snapshot surface. Pointer displacement applies only
-  while the pointer is inside that target rect.
+  while the pointer is inside that target rect; the Perlin wave field keeps
+  animating even after the pointer leaves.
 - `example.textWave`: rewrites text glyph output.
 - `example.textReveal`: maps scroll progress into per-glyph opacity and scale.
 - `example.imagePan`: applies an image texture transform.

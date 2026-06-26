@@ -33,6 +33,13 @@ instead of ReactBits-owned canvases or secondary renderers.
 - `snapshot/element` is flexible enough for richer surface drawing: the example
   can paint a muted looping `/example/bg.mp4` background and ReactBits-inspired
   pointer/wave visuals without relaxing the strict media-source contract.
+- ReactBits-style Ghost Cursor can be ported safely when only the algorithm is
+  moved into app-owned shader data and trail uniforms. The raw ReactBits
+  renderer, scene, camera, composer, passes, and render loop must not become
+  package public API.
+- Pointer-heavy `snapshot/element` examples need per-effect lifecycle decisions:
+  Ghost Cursor can stop uniform updates after trail decay, while ReactBits-style
+  Waves must keep drawing because its ambient Perlin field keeps moving.
 - Runtime pointer state is shared input, so target-scoped pointer effects need
   an explicit `ctx.layout` hit test and target-local coordinate conversion.
 - A full-width vertical catalog makes it easier to compare multiple effects for
@@ -80,6 +87,20 @@ instead of ReactBits-owned canvases or secondary renderers.
   that flag belongs to the runtime canvas. Example effects that should respond
   only inside one target must subtract `ctx.layout.left/top` and reject pointers
   outside the current target rect.
+- Shader ports need explicit coordinate and uniform-name checks. DOM pointer
+  `y` may need conversion before entering shader coordinates, and a shader that
+  reads `iTime` will stay visually static if the effect only updates `uTime`.
+- Named visual references should trigger source-level comparison early. When a
+  user asks for a ReactBits effect, inspect the referenced implementation and
+  port the reusable algorithm instead of hand-tuning an unrelated approximation.
+- Product taste belongs in `apps/example`. Do not promote Ghost Cursor's exact
+  key names, copy, assets, shader constants, trail length, or Waves point-grid
+  tuning into the package unless they are first generalized into a tested public
+  primitive.
+- Hover feedback is separate from ambient animation speed. For Waves, keep the
+  background motion subtle and make target-local hover responsive with pointer
+  follow plus a minimum hover impulse; do not speed up the ambient wave field to
+  compensate for slow hover.
 - Text effects need careful language: `textLayer.setGlyphs(...)` changes only
   the WebGL output, not DOM content or accessibility text.
 - Model examples can rotate via `ctx.target`, but advanced model effects still
