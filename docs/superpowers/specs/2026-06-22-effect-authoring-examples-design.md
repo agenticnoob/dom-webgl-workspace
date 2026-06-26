@@ -1,10 +1,12 @@
 # Effect Authoring Examples Design
 
-Current truth note (2026-06-26): this design spec records the initial
+Current truth note (2026-06-27): this design spec records the initial
 React-only example shape. The current `apps/example` catalog keeps the same
 one-row-per-effect layout and adds `example.surfaceVideoBackground`,
 `example.surfaceGhostCursor`, and `example.surfaceWaves` to the
-`snapshot/element` group; use `docs/examples/effect-authoring.md` as the current
+`snapshot/element` group. It also adds `example.textSpotlight`,
+`example.imageKenBurns`, and a pinned image sequence scrub row to the
+text/image/video groups; use `docs/examples/effect-authoring.md` as the current
 source list.
 
 ## Goal
@@ -50,9 +52,12 @@ The catalog shell does not add outer padding; each row owns its own overlay
 control spacing.
 
 - Element snapshot rows: `example.surfaceFill` and `example.surfacePulse`.
-- Text snapshot rows: `example.textWave` and `example.textReveal`.
-- Image rows: `example.imagePan` and `example.imageZoom`.
-- Video rows: `example.videoPlayback` and `example.videoDrift`.
+- Text snapshot rows: `example.textWave`, `example.textReveal`, and
+  `example.textSpotlight`.
+- Image rows: `example.imagePan`, `example.imageZoom`, and
+  `example.imageKenBurns`.
+- Video rows: `example.videoPlayback`, `example.videoDrift`, and
+  the pinned image sequence scrub specimen.
 - Model rows: `example.modelSpin` and `example.modelFloat`.
 
 The app may copy demo static assets from `apps/demo/public` into

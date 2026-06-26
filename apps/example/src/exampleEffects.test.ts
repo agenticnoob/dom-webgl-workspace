@@ -12,9 +12,11 @@ describe("example effect catalog", () => {
       "example.surfaceWaves",
       "example.textWave",
       "example.textReveal",
+      "example.textSpotlight",
       "example.pinnedReveal",
       "example.imagePan",
       "example.imageZoom",
+      "example.imageKenBurns",
       "example.videoPlayback",
       "example.videoDrift",
       "example.modelSpin",
@@ -35,6 +37,16 @@ describe("example effect catalog", () => {
       kind: "example.surfaceVideoBackground",
       videoSrc: "/example/bg.mp4",
       opacity: 0.84,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.textSpotlight",
+      color: "#f6c453",
+      radius: 180,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.imageKenBurns",
+      distance: 0.16,
+      maxScale: 1.22,
     });
   });
 });

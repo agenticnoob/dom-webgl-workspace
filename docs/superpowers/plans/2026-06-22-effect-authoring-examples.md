@@ -4,11 +4,13 @@
 
 **Goal:** Build React-only package-consumer effect authoring examples in `apps/example`, backed by documentation and a friction report.
 
-**Current truth note (2026-06-26):** The original plan shipped the first
+**Current truth note (2026-06-27):** The original plan shipped the first
 catalog. The current `apps/example` surface bucket has since grown to include
 `example.surfaceVideoBackground`, `example.surfaceGhostCursor`, and
 `example.surfaceWaves` alongside `example.surfaceFill` and
-`example.surfacePulse`; see `docs/examples/effect-authoring.md` for the current
+`example.surfacePulse`. The text/image/video buckets also include
+`example.textSpotlight`, `example.imageKenBurns`, and a pinned canvas image
+sequence scrub specimen; see `docs/examples/effect-authoring.md` for the current
 catalog.
 
 **Architecture:** Keep package core primitive-only and example-owned. `apps/example` uses only public runtime and React entrypoints, defines local effects with `defineWebGLEffect(...)`, and exercises each source handle through a Chinese full-width vertical effect catalog built from React `WebGLRuntime` and `WebGLTarget`, with reusable click-to-expand explanation overlays on each row.
@@ -59,6 +61,9 @@ catalog.
 - [x] Later pinned-scroll API dogfood extends the catalog with
   `example.pinnedReveal`, backed by `ScrollEffectSection` progress and
   `ctx.progress.get(progressKey)`.
+- [x] Later visual tuning extends the text/image/video buckets with
+  `example.textSpotlight`, `example.imageKenBurns`, and a pinned image sequence
+  scrub row, and increases row heights for larger specimens.
 - [x] Register a stable module-scope effect array in the React app.
 - [x] Declare a full-width vertical one-effect-per-row catalog across `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` sources through `<WebGLTarget />`, with a reusable click-to-expand explanation overlay per row.
 - [x] Run `npm test -- --run apps/example/src`.

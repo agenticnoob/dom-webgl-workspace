@@ -4,13 +4,19 @@ import {
   WebGLTarget,
   useWebGLDebugState,
 } from "@project/dom-webgl-runtime/react";
-import { WebGLScrollRuntime } from "@project/dom-webgl-scroll-adapters/react";
+import {
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+} from "@project/dom-webgl-scroll-adapters/react";
 
 import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
+import { ImageSequenceScrub } from "./ImageSequenceScrub";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
+
+const videoScrubProgressKey = "example.video.scrub";
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
@@ -25,7 +31,7 @@ export default function App() {
       <main className="example-shell">
         <section className="example-intro">
           <p className="example-kicker">效果编写示例</p>
-          <h1>应用自己编写 WebGL 效果，包只提供运行时原语。</h1>
+          <h1>应用侧 WebGL 效果，包只提供运行时原语。</h1>
         </section>
 
         <div className="example-stack">
@@ -68,6 +74,24 @@ export default function App() {
           </section>
 
           <section className="example-row">
+            <EffectDescription source="snapshot/text" title="文字聚光">
+              根据 target-local pointer 或 runtime time 计算字形中心距离，只改 WebGL 字形命令。
+            </EffectDescription>
+            <WebGLTarget
+              as="p"
+              className="example-text example-text-spotlight"
+              webgl={{
+                key: "example.text.spotlight",
+                source: { kind: "snapshot", mode: "text" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                effects: [{ kind: "example.textSpotlight", color: "#f6c453", radius: 180 }],
+              }}
+            >
+              指针掠过文字时，WebGL 字形会像被手电扫过一样亮起来。
+            </WebGLTarget>
+          </section>
+
+          <section className="example-row">
             <EffectDescription source="image" title="图片平移">
               不修改 DOM 图片元素，只移动 WebGL 纹理采样。
             </EffectDescription>
@@ -97,6 +121,23 @@ export default function App() {
                 key: "example.image.zoom",
                 source: { kind: "image", src: "/example/image.png" },
                 effects: [{ kind: "example.imageZoom", maxScale: 1.36 }],
+              }}
+            />
+          </section>
+
+          <section className="example-row">
+            <EffectDescription source="image" title="图片镜头推进">
+              对 image source 同时使用纹理采样偏移和 target scale，模拟慢速镜头运动。
+            </EffectDescription>
+            <WebGLTarget
+              as="img"
+              className="example-media example-media-tall"
+              src="/example/bg.png"
+              alt="图片镜头推进示例"
+              webgl={{
+                key: "example.image.ken-burns",
+                source: { kind: "image", src: "/example/bg.png" },
+                effects: [{ kind: "example.imageKenBurns", distance: 0.16, maxScale: 1.22 }],
               }}
             />
           </section>
@@ -141,6 +182,25 @@ export default function App() {
               }}
             />
           </section>
+
+          <ScrollEffectSection
+            className="example-row example-video-scrub-row"
+            progressKey={videoScrubProgressKey}
+            start="top top"
+            end="+=900%"
+            pin
+            scrub
+          >
+            <EffectDescription source="video" title="滚动控制视频">
+              这个区域固定在视口中，滚动进度会逐帧绘制图片序列；序列结束后才释放页面继续下滚。
+            </EffectDescription>
+            <ImageSequenceScrub
+              className="example-media example-media-video-bg example-media-sequence"
+              frameCount={454}
+              framePathPrefix="/example/bg-sequence"
+              progressKey={videoScrubProgressKey}
+            />
+          </ScrollEffectSection>
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型旋转">

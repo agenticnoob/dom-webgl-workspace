@@ -98,6 +98,8 @@ All spacing derives from a base of 4px.
 
 - **Structure**: `section.example-row` with one `.example-effect-pill` or expanded `.example-effect-panel` over one WebGL target.
 - **Variants**: media, text, surface panel, model panel.
+- **Scale**: rows are large live specimens, with a minimum height of 560px;
+  rich media rows can extend taller when the effect benefits from more travel.
 - **Spacing**: expanded description uses `--space-6`; mobile uses `--space-4`.
 - **States**: collapsed pill, expanded description panel, focus, hover.
 - **Accessibility**: DOM copy stays readable and source targets keep alt text when media is meaningful.

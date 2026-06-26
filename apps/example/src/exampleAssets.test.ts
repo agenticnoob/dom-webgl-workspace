@@ -10,6 +10,8 @@ describe("example static assets", () => {
     await expectAsset("example/image.png");
     await expectAsset("example/video.mp4");
     await expectAsset("example/bg.mp4");
+    await expectAsset("example/bg-sequence/frame_0001.webp");
+    await expectAsset("example/bg-sequence/frame_0454.webp");
     await expectAsset("models/hero.glb");
   });
 });

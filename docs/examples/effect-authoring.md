@@ -23,9 +23,11 @@ npm run build --workspace @project/dom-webgl-example
 
 The example ships its own static assets under `apps/example/public`, copied from
 the demo asset set for convenience. The React app references
-`/example/bg.png`, `/example/bg.mp4`, `/example/image.png`,
-`/example/video.mp4`, and `/models/hero.glb` from that example public
-directory.
+`/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
+`/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
+example public directory. `/example/bg-sequence` is the compressed image
+sequence used by the pinned video scrub canvas; the current checked-in sequence
+is 454 WebP frames at 1600x900, 12fps extraction, and about 141MB total.
 
 ## Layout Contract
 
@@ -239,12 +241,21 @@ definition is missing, the target declaration has no executable effect.
   animating even after the pointer leaves.
 - `example.textWave`: rewrites text glyph output.
 - `example.textReveal`: maps scroll progress into per-glyph opacity and scale.
+- `example.textSpotlight`: maps target-local pointer distance into per-glyph
+  color, opacity, and scale.
 - `example.imagePan`: applies an image texture transform.
 - `example.imageZoom`: drives target scale for an image renderable.
+- `example.imageKenBurns`: combines image texture sampling drift with target
+  scale for a slow camera move.
 - `example.videoPlayback`: mutes, slows, and starts a video texture.
 - `example.videoDrift`: applies a live transform to a video texture.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
+
+The pinned scrub row is intentionally not a WebGL video effect. It uses
+`ImageSequenceScrub` to read the same `ScrollEffectSection` progress store and
+draw `/example/bg-sequence/frame_*.webp` to a DOM canvas for frame-addressable
+scroll playback.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

@@ -12,6 +12,12 @@ type ImageZoomParams = {
   maxScale?: number;
 };
 
+type ImageKenBurnsParams = {
+  kind: "example.imageKenBurns";
+  distance?: number;
+  maxScale?: number;
+};
+
 type VideoPlaybackParams = {
   kind: "example.videoPlayback";
   playbackRate?: number;
@@ -58,6 +64,30 @@ export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
 
     ctx.target?.setVisible(true);
     ctx.target?.setScale(scale, scale, 1);
+  },
+});
+
+export const exampleImageKenBurnsEffect = defineWebGLEffect<ImageKenBurnsParams>({
+  kind: "example.imageKenBurns",
+  source: "image",
+  update(ctx, _state, params) {
+    if (ctx.source.kind !== "image") {
+      return;
+    }
+
+    const distance = clampNumber(params.distance, 0, 0.36, 0.14);
+    const maxScale = clampNumber(params.maxScale, 1, 1.8, 1.18);
+    const phase = 0.5 + Math.sin(ctx.time / 1200) * 0.5;
+    const scale = 1 + (maxScale - 1) * (0.35 + phase * 0.65);
+
+    ctx.source.image?.setTextureTransform({
+      repeatX: scale,
+      repeatY: scale,
+      offsetX: distance * phase,
+      offsetY: distance * (1 - phase),
+    });
+    ctx.target?.setVisible(true);
+    ctx.target?.setScale(1 + phase * 0.04, 1 + phase * 0.04, 1);
   },
 });
 

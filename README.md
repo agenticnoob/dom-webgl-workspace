@@ -128,9 +128,10 @@ Current example behavior:
   `example.surfaceFill`, `example.surfacePulse`,
   `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
-  `example.imagePan`, `example.imageZoom`, `example.videoPlayback`,
-  `example.videoDrift`, `example.modelSpin`, and `example.modelFloat`, plus the
-  pinned-scroll `example.pinnedReveal`.
+  `example.textSpotlight`, `example.imagePan`, `example.imageZoom`,
+  `example.imageKenBurns`, `example.videoPlayback`, `example.videoDrift`,
+  `example.modelSpin`, and `example.modelFloat`, plus the pinned-scroll
+  `example.pinnedReveal`.
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing
@@ -146,6 +147,13 @@ Current example behavior:
   ReactBits-style Canvas2D Perlin point grid: the ambient wave stays subtle, and
   target-local hover applies an immediate pointer impulse without moving the
   effect into packages.
+- The text, image, and video buckets include taller specimen rows for richer
+  motion examples: `example.textSpotlight` uses target-local pointer distance
+  to recolor glyph output, `example.imageKenBurns` combines image texture
+  sampling drift with target scale, and the pinned video scrub specimen uses
+  `ImageSequenceScrub` plus `/example/bg-sequence/frame_*.webp` so scroll
+  progress draws decoded frames to a canvas before the page is released to keep
+  scrolling.
 - Example static assets are copied into `apps/example/public`; the example does
   not rely on `apps/demo/public` being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while

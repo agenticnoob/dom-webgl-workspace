@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { createEffectContext, createGlyph } from "../test/effectContext";
 import {
   exampleTextRevealEffect,
+  exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
 
@@ -66,5 +67,49 @@ describe("text example effects", () => {
     ]);
     expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1, color: "#d95f42" });
     expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
+  });
+
+  test("text spotlight highlights glyphs near the local pointer", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Spotlight",
+        textLayer,
+      },
+      layout: { left: 20, top: 10, width: 320, height: 160 },
+      pointer: { x: 68, y: 48, isInside: true },
+    });
+
+    exampleTextSpotlightEffect.update(context, undefined, {
+      kind: "example.textSpotlight",
+      color: "#f6c453",
+      radius: 80,
+    });
+
+    expect(exampleTextSpotlightEffect.source).toBe("snapshot/text");
+    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const nearGlyph = { ...createGlyph(0, "近"), x: 40, y: 30 };
+    const farGlyph = { ...createGlyph(1, "远"), x: 240, y: 30 };
+    const commands = transform?.([nearGlyph, farGlyph]);
+
+    expect(commands?.[0]).toMatchObject({
+      index: 0,
+      char: "近",
+      color: "#f6c453",
+      opacity: expect.any(Number),
+      scaleX: expect.any(Number),
+      scaleY: expect.any(Number),
+    });
+    expect(commands?.[1]).toMatchObject({
+      index: 1,
+      char: "远",
+      color: "#1d2a2e",
+      opacity: 0.28,
+    });
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createEffectContext } from "../test/effectContext";
 import {
+  exampleImageKenBurnsEffect,
   exampleImagePanEffect,
   exampleImageZoomEffect,
   exampleVideoDriftEffect,
@@ -59,6 +60,42 @@ describe("media example effects", () => {
     });
 
     expect(exampleImageZoomEffect.source).toBe("image");
+    expect(target.setVisible).toHaveBeenCalledWith(true);
+    expect(target.setScale).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1);
+  });
+
+  test("image ken burns combines texture transform and target scale", () => {
+    const image = {
+      setTextureTransform: vi.fn(),
+    };
+    const target = {
+      setScale: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "image",
+        element: document.createElement("img"),
+        src: "/example/bg.png",
+        image,
+      },
+      target,
+      time: 1200,
+    });
+
+    exampleImageKenBurnsEffect.update(context, undefined, {
+      kind: "example.imageKenBurns",
+      distance: 0.16,
+      maxScale: 1.22,
+    });
+
+    expect(exampleImageKenBurnsEffect.source).toBe("image");
+    expect(image.setTextureTransform).toHaveBeenCalledWith({
+      repeatX: expect.any(Number),
+      repeatY: expect.any(Number),
+      offsetX: expect.any(Number),
+      offsetY: expect.any(Number),
+    });
     expect(target.setVisible).toHaveBeenCalledWith(true);
     expect(target.setScale).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1);
   });
@@ -123,4 +160,5 @@ describe("media example effects", () => {
       offsetY: expect.any(Number),
     });
   });
+
 });

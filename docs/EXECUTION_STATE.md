@@ -95,14 +95,16 @@ effect reads through `ctx.progress.get(progressKey)`, defines a full-width
 vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
 `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
 `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
-`example.imagePan`, `example.imageZoom`, `example.videoPlayback`,
-`example.videoDrift`, `example.modelSpin`, `example.modelFloat`, and
-`example.pinnedReveal` effects,
+`example.textSpotlight`, `example.imagePan`, `example.imageZoom`,
+`example.imageKenBurns`, `example.videoPlayback`, `example.videoDrift`,
+`example.modelSpin`, `example.modelFloat`, and `example.pinnedReveal` effects,
+plus a non-WebGL `ImageSequenceScrub` pinned canvas specimen,
 presents the example
 page with Chinese visible copy while keeping source/effect identifiers in
 English as API data, keeps each effect in one viewport-wide row with a reusable
 click-to-expand explanation overlay on the effect surface and no outer catalog
-shell padding, uses `/example/bg.png` for
+shell padding, increases example row heights so each target reads as a larger
+visual specimen, uses `/example/bg.png` for
 the element surface-fill
 example without applying opacity to the whole target, keeps surface-pulse
 visibility in surface-layer drawing without changing target or DOM child
@@ -117,6 +119,13 @@ subtle ambient motion and immediate target-local hover impulse, and does not
 rely on app CSS to keep real DOM
 children above WebGL surfaces because the React adapter owns the DOM content
 layer above the canvas.
+The text, image, and video buckets now include richer app-owned examples:
+`example.textSpotlight` uses target-local pointer distance for glyph color,
+opacity, and scale, `example.imageKenBurns` combines image texture drift with
+target scale, and the pinned video scrub specimen uses `ImageSequenceScrub` to
+map keyed pinned-section progress to `/example/bg-sequence/frame_*.webp` canvas
+frames, holding the row fixed until scrub progress reaches the end and the page
+can continue scrolling.
 It also records current authoring friction in
 `docs/agent/effect-authoring-example-report.md`.
 

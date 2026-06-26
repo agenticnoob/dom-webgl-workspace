@@ -7,11 +7,13 @@ export {
 } from "./surfaceEffects";
 export {
   exampleTextRevealEffect,
+  exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
 export { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 export {
   exampleImagePanEffect,
+  exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
@@ -27,6 +29,7 @@ export {
 
 import {
   exampleImagePanEffect,
+  exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
@@ -40,7 +43,11 @@ import {
   exampleSurfaceVideoBackgroundEffect,
   exampleSurfaceWavesEffect,
 } from "./surfaceEffects";
-import { exampleTextRevealEffect, exampleTextWaveEffect } from "./textEffects";
+import {
+  exampleTextRevealEffect,
+  exampleTextSpotlightEffect,
+  exampleTextWaveEffect,
+} from "./textEffects";
 
 export const exampleEffects = [
   exampleSurfaceFillEffect,
@@ -50,9 +57,11 @@ export const exampleEffects = [
   exampleSurfaceWavesEffect,
   exampleTextWaveEffect,
   exampleTextRevealEffect,
+  exampleTextSpotlightEffect,
   examplePinnedRevealEffect,
   exampleImagePanEffect,
   exampleImageZoomEffect,
+  exampleImageKenBurnsEffect,
   exampleVideoPlaybackEffect,
   exampleVideoDriftEffect,
   exampleModelSpinEffect,
