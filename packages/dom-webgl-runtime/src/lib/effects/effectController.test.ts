@@ -6,7 +6,7 @@ import { createWebGLEffectRegistry } from "./effectRegistry";
 import type { WebGLEffectTarget } from "./effectTarget";
 
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
-import type { WebGLFrameInput } from "../types";
+import type { WebGLFrameInput, WebGLProgressSignalSource } from "../types";
 
 describe("createWebGLEffectController", () => {
   test("does not register preset effects by default", () => {
@@ -139,6 +139,106 @@ describe("createWebGLEffectController", () => {
         }),
       }),
     );
+    expect(update.mock.calls[0]?.[0].progress.get("missing")).toBe(0);
+  });
+
+  test("reads keyed progress signals across reusable effect context updates", () => {
+    type ProgressEffectDeclaration = {
+      kind: "custom.progressDriven";
+      progressKey: string;
+    };
+    const declaration = {
+      kind: "custom.progressDriven",
+      progressKey: "section.reveal",
+    } satisfies ProgressEffectDeclaration;
+    let progressValue = 0.25;
+    const progressSignals = {
+      get(key) {
+        return key === "section.reveal" ? progressValue : 0;
+      },
+    } satisfies WebGLProgressSignalSource;
+    const setupProgress: number[] = [];
+    const updateProgress: number[] = [];
+    const missingProgress: number[] = [];
+    const updateParams: ProgressEffectDeclaration[] = [];
+    let disposeProgress = 0;
+    const controller = createWebGLEffectController({
+      key: "custom.progress",
+      declaration: [declaration],
+      source: createElementSnapshotSource(),
+      getSource: () => createElementEffectSource(),
+      target: createEffectTarget(),
+      progressSignals,
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.progressDriven",
+          source: "snapshot/element",
+          setup(ctx) {
+            setupProgress.push(ctx.progress.get("section.reveal"));
+          },
+          update(ctx, _state, params: ProgressEffectDeclaration) {
+            updateParams.push(params);
+            updateProgress.push(ctx.progress.get(params.progressKey));
+            missingProgress.push(ctx.progress.get("missing"));
+          },
+          dispose(ctx) {
+            disposeProgress = ctx.progress.get("section.reveal");
+          },
+        }),
+      ]),
+    });
+
+    controller.update(createFrameInput(), createLayoutSnapshot());
+    progressValue = 0.75;
+    controller.update(createFrameInput(), createLayoutSnapshot());
+    controller.dispose();
+
+    expect(setupProgress).toEqual([0.25]);
+    expect(updateProgress).toEqual([0.25, 0.75]);
+    expect(missingProgress).toEqual([0, 0]);
+    expect(updateParams).toEqual([declaration, declaration]);
+    expect(disposeProgress).toBe(0.75);
+  });
+
+  test("keeps scrollProgress mapped to page and gate scroll modes", () => {
+    const scrollProgress: number[] = [];
+    const controller = createWebGLEffectController({
+      key: "custom.scroll",
+      declaration: [{ kind: "custom.scrollReader" }],
+      source: createElementSnapshotSource(),
+      getSource: () => createElementEffectSource(),
+      target: createEffectTarget(),
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.scrollReader",
+          update(ctx) {
+            scrollProgress.push(ctx.scrollProgress);
+          },
+        }),
+      ]),
+    });
+
+    controller.update(
+      createFrameInputWithScroll({
+        mode: "page",
+        pageProgress: 0.42,
+        direction: 1,
+        velocity: 0.1,
+      }),
+      createLayoutSnapshot(),
+    );
+    controller.update(
+      createFrameInputWithScroll({
+        mode: "gate",
+        sceneProgress: 0.64,
+        activeGateKey: "scene.gate",
+        direction: -1,
+        velocity: -0.2,
+      }),
+      createLayoutSnapshot(),
+    );
+
+    expect(scrollProgress).toEqual([0.42, 0.64]);
   });
 
   test("skips setup and update until the source handle is ready", () => {
@@ -446,6 +546,15 @@ function createFrameInput(
       clickCount: 0,
       ...pointer,
     },
+  };
+}
+
+function createFrameInputWithScroll(
+  scroll: WebGLFrameInput["scroll"],
+): WebGLFrameInput {
+  return {
+    ...createFrameInput(),
+    scroll,
   };
 }
 

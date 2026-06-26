@@ -5,8 +5,45 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { WebGLDebugState } from "@project/dom-webgl-runtime";
 
 const runtimeProps: RuntimeMockProps[] = [];
+const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
+const scrollSectionProps: ScrollEffectSectionMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
 const roots: Root[] = [];
+
+vi.mock("gsap", () => ({
+  default: {
+    registerPlugin: vi.fn(),
+  },
+}));
+
+vi.mock("gsap/ScrollTrigger", () => ({
+  ScrollTrigger: vi.fn(),
+}));
+
+vi.mock("lenis", () => ({
+  default: vi.fn(() => ({
+    destroy: vi.fn(),
+    raf: vi.fn(),
+  })),
+}));
+
+vi.mock("lenis/dist/lenis.css", () => ({}));
+
+type ScrollRuntimeMockProps = RuntimeMockProps & {
+  readonly className?: string;
+  readonly smooth?: unknown;
+};
+
+type ScrollEffectSectionMockProps = {
+  readonly as?: keyof HTMLElementTagNameMap;
+  readonly children?: ReactNode;
+  readonly className?: string;
+  readonly end?: string;
+  readonly pin?: boolean | string | Element;
+  readonly progressKey: string;
+  readonly scrub?: boolean | number;
+  readonly start?: string;
+};
 
 type RuntimeMockProps = {
   children?: ReactNode;
@@ -23,8 +60,26 @@ type TargetMockProps = {
     source?: Record<string, unknown>;
     effects?: readonly Record<string, unknown>[];
     lifecycle?: Record<string, unknown>;
+    scroll?: { readonly type?: unknown };
   };
 };
+
+vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
+  WebGLScrollRuntime: (props: ScrollRuntimeMockProps) => {
+    scrollRuntimeProps.push(props);
+    return createElement("div", { "data-testid": "example-scroll-runtime" }, props.children);
+  },
+  ScrollEffectSection: ({
+    as = "section",
+    children,
+    className,
+    progressKey,
+    ...props
+  }: ScrollEffectSectionMockProps) => {
+    scrollSectionProps.push({ as, children, className, progressKey, ...props });
+    return createElement(as, { className, "data-progress-key": progressKey }, children);
+  },
+}));
 
 vi.mock("@project/dom-webgl-runtime/react", () => ({
   WebGLRuntime: (props: RuntimeMockProps) => {
@@ -61,6 +116,8 @@ describe("effect authoring example app", () => {
 
   afterEach(() => {
     runtimeProps.length = 0;
+    scrollRuntimeProps.length = 0;
+    scrollSectionProps.length = 0;
     targetProps.length = 0;
     for (const root of roots.splice(0)) {
       act(() => {
@@ -82,13 +139,19 @@ describe("effect authoring example app", () => {
       root.render(createElement(App));
     });
 
-    expect(runtimeProps.length).toBeGreaterThanOrEqual(1);
-    expect(runtimeProps.every(({ effects }) => effects === exampleEffects)).toBe(true);
-    expect(runtimeProps.at(-1)?.scrollAdapter).toBeDefined();
-    expect(runtimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
-    expect(host.querySelector('[data-testid="example-runtime"]')).not.toBeNull();
+    expect(scrollRuntimeProps.length).toBeGreaterThanOrEqual(1);
+    expect(scrollRuntimeProps.every(({ effects }) => effects === exampleEffects)).toBe(true);
+    expect(scrollRuntimeProps.at(-1)?.smooth).toMatchObject({
+      gsap: expect.any(Object),
+      ScrollTrigger: expect.any(Function),
+      getViewportHeight: expect.any(Function),
+      createLenis: expect.any(Function),
+    });
+    expect(scrollRuntimeProps.at(-1)?.scrollAdapter).toBeUndefined();
+    expect(scrollRuntimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
+    expect(host.querySelector('[data-testid="example-scroll-runtime"]')).not.toBeNull();
     expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(10);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(11);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
     const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
@@ -96,7 +159,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       firstDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(9);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(10);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
     expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
 
@@ -105,10 +168,10 @@ describe("effect authoring example app", () => {
     await act(async () => {
       expandedDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(10);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(11);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-10);
+    const finalTargetProps = targetProps.slice(-11);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -121,6 +184,7 @@ describe("effect authoring example app", () => {
       "example.video.drift",
       "example.model.spin",
       "example.model.float",
+      "example.pinned.reveal",
     ]);
     expect(finalTargetProps.map(({ as }) => as ?? "div")).toEqual([
       "section",
@@ -133,6 +197,7 @@ describe("effect authoring example app", () => {
       "video",
       "section",
       "section",
+      "p",
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.source)).toEqual([
       { kind: "snapshot", mode: "element" },
@@ -145,6 +210,7 @@ describe("effect authoring example app", () => {
       { kind: "video", src: "/example/video.mp4" },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
       { kind: "model", format: "glb", src: "/models/hero.glb" },
+      { kind: "snapshot", mode: "text" },
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.effects?.[0]?.kind)).toEqual([
       "example.surfaceFill",
@@ -157,7 +223,37 @@ describe("effect authoring example app", () => {
       "example.videoPlayback",
       "example.modelSpin",
       "example.modelFloat",
+      "example.pinnedReveal",
     ]);
     expect(finalTargetProps[7]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(
+      finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),
+    ).toBe(true);
+    expect(scrollSectionProps.map(({ progressKey }) => progressKey)).toEqual([
+      "example.pinned.reveal",
+    ]);
+    expect(scrollSectionProps[0]).toMatchObject({
+      className: "example-row example-pinned-row",
+      pin: true,
+      progressKey: "example.pinned.reveal",
+    });
+    const pinnedSection = host.querySelector(".example-pinned-row");
+    const postPinnedRunway = host.querySelector('[data-scroll-runway="post-pinned"]');
+    expect(pinnedSection).not.toBeNull();
+    expect(postPinnedRunway).not.toBeNull();
+    expect(pinnedSection?.nextElementSibling).toBe(postPinnedRunway);
+    expect(finalTargetProps[10]?.webgl.effects?.[0]).toMatchObject({
+      kind: "example.pinnedReveal",
+      progressKey: "example.pinned.reveal",
+    });
+
+    await act(async () => {
+      root.render(createElement(App));
+    });
+
+    const firstPinnedTarget = finalTargetProps[10];
+    const secondPinnedTarget = targetProps.at(-1);
+    expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");
+    expect(secondPinnedTarget?.webgl.effects).toBe(firstPinnedTarget?.webgl.effects);
   });
 });

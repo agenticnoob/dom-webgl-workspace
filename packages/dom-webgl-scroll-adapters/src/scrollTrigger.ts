@@ -19,6 +19,31 @@ export type ScrollTriggerLike = {
   ): void;
 };
 
+export type ScrollTriggerSectionUpdate = {
+  readonly progress: number;
+};
+
+export type ScrollTriggerSectionVars = {
+  readonly trigger: string | Element;
+  readonly start: string;
+  readonly end: string;
+  readonly pin?: boolean | string | Element;
+  readonly scrub?: boolean | number;
+  readonly onUpdate?: (state: ScrollTriggerSectionUpdate) => void;
+};
+
+export type ScrollTriggerSectionInstance = {
+  kill(): void;
+};
+
+export type ScrollTriggerSectionCreator = ScrollTriggerLike & {
+  create(vars: ScrollTriggerSectionVars): ScrollTriggerSectionInstance;
+};
+
+export type ScrollTriggerSectionOptions = ScrollTriggerSectionVars & {
+  readonly ScrollTrigger: ScrollTriggerSectionCreator;
+};
+
 export type ScrollTriggerBridgeOptions = {
   ScrollTrigger: ScrollTriggerLike;
   scroller?: string | Element;
@@ -49,4 +74,17 @@ export function createScrollTriggerBridge(
       return;
     },
   };
+}
+
+export function createScrollTriggerSection(
+  options: ScrollTriggerSectionOptions,
+): ScrollTriggerSectionInstance {
+  return options.ScrollTrigger.create({
+    trigger: options.trigger,
+    start: options.start,
+    end: options.end,
+    pin: options.pin,
+    scrub: options.scrub,
+    onUpdate: options.onUpdate,
+  });
 }

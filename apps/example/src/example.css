@@ -223,6 +223,35 @@ body {
   background: var(--color-surface-model-alt);
 }
 
+.example-pinned-row {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.example-pinned-text {
+  min-height: 100vh;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: clamp(48px, 8vw, 112px);
+  font-weight: 700;
+  line-height: 0.92;
+}
+
+.example-scroll-runway {
+  display: flex;
+  min-height: 160vh;
+  align-items: flex-start;
+  padding: var(--space-10) var(--space-8);
+  background: var(--color-surface-primary);
+}
+
+.example-scroll-runway p {
+  max-width: 24rem;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
 @media (max-width: 760px) {
   .example-intro {
     padding: var(--space-8) var(--space-4);
@@ -246,6 +275,11 @@ body {
   .example-panel,
   .example-text {
     min-height: 420px;
+  }
+
+  .example-pinned-row,
+  .example-pinned-text {
+    min-height: 100vh;
   }
 
   .example-text {

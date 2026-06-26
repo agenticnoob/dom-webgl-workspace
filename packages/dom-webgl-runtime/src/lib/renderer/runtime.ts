@@ -7,6 +7,7 @@ import type {
   WebGLDeclaration,
   WebGLFrameInput,
   WebGLLifecycleState,
+  WebGLProgressSignalSource,
   WebGLResourceStatus,
   WebGLRuntime,
   WebGLRuntimeOptions,
@@ -111,6 +112,7 @@ type RuntimeScrollController = ScrollStateController &
 
 type PipelineRenderableContext = RenderableFactoryContext & {
   effectRegistry?: WebGLEffectRegistry;
+  progressSignals?: WebGLProgressSignalSource;
 };
 
 type SyncFrameResult = {
@@ -181,6 +183,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
     effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
+    progressSignals: options.progressSignals,
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -762,6 +765,7 @@ function createPipelineRenderable(
       return trackedEffectTarget;
     },
     registry: context.effectRegistry,
+    progressSignals: context.progressSignals,
   });
 
   return {

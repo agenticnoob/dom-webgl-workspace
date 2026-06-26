@@ -37,6 +37,7 @@ export type {
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,
+  WebGLProgressSignalSource,
   WebGLRenderRole,
   WebGLResourceStatus,
   WebGLRuntime,

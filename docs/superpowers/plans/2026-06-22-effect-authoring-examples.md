@@ -49,6 +49,9 @@
 
 - [x] Write failing tests for local effects covering source-kind matching and no-op behavior.
 - [x] Implement the local catalog effects: `example.surfaceFill`, `example.surfacePulse`, `example.textWave`, `example.textReveal`, `example.imagePan`, `example.imageZoom`, `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and `example.modelFloat`.
+- [x] Later pinned-scroll API dogfood extends the catalog with
+  `example.pinnedReveal`, backed by `ScrollEffectSection` progress and
+  `ctx.progress.get(progressKey)`.
 - [x] Register a stable module-scope effect array in the React app.
 - [x] Declare a full-width vertical one-effect-per-row catalog across `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` sources through `<WebGLTarget />`, with a reusable click-to-expand explanation overlay per row.
 - [x] Run `npm test -- --run apps/example/src`.

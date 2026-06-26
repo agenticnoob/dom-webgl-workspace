@@ -1,0 +1,54 @@
+import * as React from "react";
+import { WebGLTarget } from "@project/dom-webgl-runtime/react";
+import { ScrollEffectSection } from "@project/dom-webgl-scroll-adapters/react";
+
+import { EffectDescription } from "./EffectDescription";
+
+export const pinnedRevealProgressKey = "example.pinned.reveal";
+
+const pinnedRevealEffects = [
+  {
+    kind: "example.pinnedReveal",
+    color: "#172124",
+    progressKey: pinnedRevealProgressKey,
+  },
+] as const;
+
+export function PinnedScrollExample() {
+  return (
+    <>
+      <ScrollEffectSection
+        className="example-row example-pinned-row"
+        progressKey={pinnedRevealProgressKey}
+        start="top top"
+        end="+=140%"
+        pin
+        scrub
+      >
+        <EffectDescription source="snapshot/text" title="固定滚动显现">
+          页面继续真实滚动，但这个区域的滚动进度会直接控制 WebGL 文字显现。
+        </EffectDescription>
+        <WebGLTarget
+          as="p"
+          className="example-text example-pinned-text"
+          webgl={{
+            key: pinnedRevealProgressKey,
+            source: { kind: "snapshot", mode: "text" },
+            lifecycle: { hideWhenReady: true, hideMode: "self" },
+            effects: pinnedRevealEffects,
+          }}
+        >
+          滚动控制文字
+        </WebGLTarget>
+      </ScrollEffectSection>
+
+      <section
+        className="example-row example-scroll-runway"
+        data-scroll-runway="post-pinned"
+        aria-label="固定滚动显现后的页面滚动余量"
+      >
+        <p>继续向下滚动，页面滚动权仍由浏览器持有。</p>
+      </section>
+    </>
+  );
+}

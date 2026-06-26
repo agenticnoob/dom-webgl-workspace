@@ -75,9 +75,10 @@ describe("public package exports", () => {
 		        WebGLRuntime satisfies unknown;
 		        WebGLTarget satisfies unknown;
 		        declare const effects: WebGLRuntimeProps["effects"];
+		        declare const progressSignals: WebGLRuntimeProps["progressSignals"];
 
 		        const runtimeElement = (
-		          <WebGLRuntime effects={effects}>
+		          <WebGLRuntime effects={effects} progressSignals={progressSignals}>
 		            <WebGLTarget
 		              webgl={{
 		                key: "react.custom-effect",
@@ -204,6 +205,7 @@ describe("public package exports", () => {
 	          WebGLModelSourceDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLPointerState,
+	          WebGLProgressSignalSource,
 	          WebGLRenderRole,
           WebGLResourceStatus,
           WebGLRuntime,
@@ -279,9 +281,15 @@ describe("public package exports", () => {
           },
           dispose() {},
         } satisfies WebGLScrollAdapter;
+        const progressSignals = {
+          get(key) {
+            return key === "section.reveal" ? 0.5 : 0;
+          },
+        } satisfies WebGLProgressSignalSource;
         const runtimeOptionsWithScrollAdapter = {
           container: document.createElement("div"),
           scrollAdapter,
+          progressSignals,
         } satisfies WebGLRuntimeOptions;
         runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
 
@@ -371,6 +379,7 @@ describe("public package exports", () => {
 			          update(ctx, state) {
 			            ctx satisfies WebGLEffectContext;
 			            state.density satisfies number;
+			            ctx.progress.get("section.reveal") satisfies number;
 			            ctx.target?.setPosition(0, 0, 0);
 			            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
 			          },
@@ -462,6 +471,7 @@ describe("public package exports", () => {
 		        const runtimeOptions = {
 		          container: element,
 		          effects: [customModelEffect],
+		          progressSignals,
 		        } satisfies WebGLRuntimeOptions;
 		        const customRuntime = createWebGLRuntime(runtimeOptions);
 		        customRuntime.registerTarget(element, {

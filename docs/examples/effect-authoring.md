@@ -41,7 +41,11 @@ Use public package entrypoints only:
 ```tsx
 import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
-import { createLenisGsapScrollStack } from "@project/dom-webgl-scroll-adapters";
+import {
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+} from "@project/dom-webgl-scroll-adapters/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 ```
 
 Do not import:
@@ -52,32 +56,67 @@ import ... from "packages/dom-webgl-runtime/src";
 import ... from "../demo/src/demoEffects";
 ```
 
-## Optional Smooth Scroll Stack
+## Pinned Scroll Effect Path
 
-`apps/example` also applies the optional Lenis + GSAP + ScrollTrigger stack so
-the example validates the package's downstream scroll adapter path:
+For the normal "pinned section drives a WebGL effect" path, use the optional
+React adapter from `@project/dom-webgl-scroll-adapters/react`. It hides the
+bounded trigger lifecycle from ordinary example code, owns one trigger per
+`ScrollEffectSection`, and exposes progress to effects through a stable key:
 
 ```tsx
-const smoothScroll = useExampleSmoothScrollStack();
-
-<WebGLRuntime
-  effects={exampleEffects}
-  scrollAdapter={smoothScroll?.scrollAdapter}
->
-  {children}
-</WebGLRuntime>
+<WebGLScrollRuntime effects={exampleEffects} smooth={false}>
+  <ScrollEffectSection
+    progressKey="example.pinned.reveal"
+    ScrollTrigger={ScrollTrigger}
+    pin
+    scrub
+  >
+    <WebGLTarget
+      webgl={{
+        key: "example.pinned.surface",
+        source: { kind: "snapshot", mode: "element" },
+        effects: [
+          {
+            kind: "example.pinnedReveal",
+            progressKey: "example.pinned.reveal",
+          },
+        ],
+      }}
+    >
+      滚动这一屏时，进度会驱动 WebGL 效果。
+    </WebGLTarget>
+  </ScrollEffectSection>
+</WebGLScrollRuntime>
 ```
 
-The example owns the Lenis instance. Core receives only the public
-`WebGLScrollAdapter`, not raw Lenis, GSAP, or ScrollTrigger objects.
+The effect reads the progress key rather than mutating the target declaration on
+every scroll update:
+
+```ts
+const progress = ctx.progress.get(params.progressKey);
+```
+
+This path is not a scene gate. The page remains in normal page scroll mode while
+ScrollTrigger handles pin/scrub behavior for its own section.
+The current `apps/example` app centralizes Lenis/GSAP/ScrollTrigger setup in
+`exampleSmoothScrollOptions` and passes it through
+`<WebGLScrollRuntime smooth={exampleSmoothScrollOptions}>`, so child
+`ScrollEffectSection` components can inherit `ScrollTrigger` instead of passing
+it repeatedly.
+
+Use a manual `scrollAdapter` only for advanced integrations where the
+application intentionally owns a third-party scroll instance lifecycle. Core
+still receives only the public `WebGLScrollAdapter`, not raw Lenis, GSAP, or
+ScrollTrigger objects.
 
 Rules:
 
-- Configure Lenis with `autoRaf: false` when GSAP drives `lenis.raf(...)`.
-- Keep `manageLenis: false` when the app creates Lenis.
-- Call `smoothScroll.dispose()` and `lenis.destroy()` in the same app cleanup.
+- Keep `progressKey` stable and pass it as target effect data.
+- Do not drive pinned effect progress with `scroll: { type: "gate" }`; gates are
+  for advanced scroll-locking scenes.
 - Do not read Lenis directly from effects; effects keep using `ctx.scroll` and
-  `ctx.scrollProgress`.
+  `ctx.scrollProgress`, or `ctx.progress.get(progressKey)` for keyed section
+  progress.
 
 ## Register Effects Once
 

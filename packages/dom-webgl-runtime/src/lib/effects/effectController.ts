@@ -1,6 +1,10 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
-import type { WebGLEffectsDeclaration, WebGLFrameInput } from "../types";
+import type {
+  WebGLEffectsDeclaration,
+  WebGLFrameInput,
+  WebGLProgressSignalSource,
+} from "../types";
 import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
@@ -31,6 +35,7 @@ export type WebGLEffectControllerOptions = {
   getSource?(): WebGLEffectSourceHandle | undefined;
   getTarget?(): WebGLEffectTarget | undefined;
   registry?: WebGLEffectRegistry;
+  progressSignals?: WebGLProgressSignalSource;
 };
 
 type RunningEffect = {
@@ -115,23 +120,12 @@ export function createWebGLEffectController(
             source,
             target,
             resources: effect.resources,
+            progressSignals: options.progressSignals,
           });
           effect.reusableContext = context;
         }
 
-        if (!effect.initialized) {
-          effect.state = effect.definition.setup?.(
-            context,
-            effect.params as never,
-          );
-          effect.initialized = true;
-        }
-
-        effect.definition.update(
-          context,
-          effect.state as never,
-          effect.params as never,
-        );
+        updateRunningEffect(effect, context);
       }
     },
     dispose(): void {
@@ -141,15 +135,7 @@ export function createWebGLEffectController(
 
       disposed = true;
       for (const effect of effects) {
-        if (effect.initialized && effect.reusableContext) {
-          effect.definition.dispose?.(
-            effect.reusableContext,
-            effect.state as never,
-            effect.params as never,
-          );
-        }
-
-        effect.resources.dispose();
+        disposeRunningEffect(effect);
       }
       readEffectTarget(options)?.disposeEffects?.();
     },
@@ -206,4 +192,28 @@ function readEffectSourceKind(
   }
 
   return source.kind;
+}
+
+function updateRunningEffect(
+  effect: RunningEffect,
+  context: WebGLEffectContext,
+): void {
+  if (!effect.initialized) {
+    effect.state = effect.definition.setup?.(context, effect.params);
+    effect.initialized = true;
+  }
+
+  effect.definition.update(context, effect.state, effect.params);
+}
+
+function disposeRunningEffect(effect: RunningEffect): void {
+  if (effect.initialized && effect.reusableContext) {
+    effect.definition.dispose?.(
+      effect.reusableContext,
+      effect.state,
+      effect.params,
+    );
+  }
+
+  effect.resources.dispose();
 }

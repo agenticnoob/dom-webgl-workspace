@@ -2,6 +2,7 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type {
   WebGLEffectDeclaration,
   WebGLFrameInput,
+  WebGLProgressSignalSource,
 } from "../types";
 
 // Maps to public source declarations:
@@ -195,6 +196,7 @@ export type WebGLEffectContext = {
   pointer: WebGLFrameInput["pointer"];
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
+  progress: WebGLProgressSignalSource;
   time: number;
   delta: number;
   source: WebGLEffectSourceHandle;

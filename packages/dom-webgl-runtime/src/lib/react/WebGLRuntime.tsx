@@ -28,6 +28,7 @@ export type WebGLRuntimeProps = {
   className?: string;
   style?: CSSProperties;
   effects?: WebGLRuntimeOptions["effects"];
+  progressSignals?: WebGLRuntimeOptions["progressSignals"];
   scrollAdapter?: WebGLRuntimeOptions["scrollAdapter"];
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
@@ -37,6 +38,7 @@ export function WebGLRuntime({
   className,
   style,
   effects,
+  progressSignals,
   scrollAdapter,
   onDebugStateChange,
 }: WebGLRuntimeProps) {
@@ -70,6 +72,7 @@ export function WebGLRuntime({
       nextRuntime = createWebGLRuntime({
         container,
         effects,
+        progressSignals,
         scrollAdapter,
         onDebugStateChange(state) {
           onDebugStateChangeRef.current?.(state);
@@ -95,7 +98,7 @@ export function WebGLRuntime({
     if (previousRuntime) {
       scheduleRuntimeDisposal(previousRuntime);
     }
-  }, [effects, scrollAdapter]);
+  }, [effects, progressSignals, scrollAdapter]);
 
   useLayoutEffect(() => {
     return () => {

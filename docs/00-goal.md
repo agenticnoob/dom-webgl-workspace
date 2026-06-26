@@ -283,7 +283,9 @@ The runtime should infer defaults for:
 Users should only configure advanced fields when they need to override a real behavior:
 
 - Set `renderRole` only when source inference is insufficient.
-- Set `scroll` only when using scene gates or custom scroll ranges.
+- Set `scroll` only when using advanced scene gates or custom scroll ranges.
+  Do not use scene gates as the normal pinned-scroll effect story; use a keyed
+  progress signal from the optional scroll adapter React layer instead.
 - Set `pointer` only when an interaction requires click, press, long press, or drag semantics.
 - Set `lifecycle` only when fallback behavior differs from the default.
 
@@ -1130,9 +1132,14 @@ Delivered third-party adapter boundary:
 - Core exposes `WebGLScrollAdapter` for applications that already own Lenis,
   GSAP ScrollTrigger, or another scroll system.
 - Optional third-party glue lives in `@project/dom-webgl-scroll-adapters`.
-- `@project/dom-webgl-scroll-adapters` provides
-  `createLenisGsapScrollStack(...)` as the recommended opt-in stack for
-  applications that want Lenis + GSAP ticker + ScrollTrigger wiring.
+- `@project/dom-webgl-scroll-adapters/react` provides the recommended
+  high-level pinned scroll effect path: `WebGLScrollRuntime` owns a runtime
+  progress store, `ScrollEffectSection` owns one bounded trigger instance, and
+  effects read section progress through `ctx.progress.get(progressKey)`.
+- `@project/dom-webgl-scroll-adapters` still provides
+  `createLenisGsapScrollStack(...)` as the advanced manual stack for
+  applications that want to own Lenis + GSAP ticker + ScrollTrigger wiring
+  directly.
 - Applications that create their own Lenis instance should pass it with
   `manageLenis: false` and destroy Lenis from the same application lifecycle
   cleanup that disposes the adapter stack.
@@ -1140,7 +1147,9 @@ Delivered third-party adapter boundary:
   browser scroll.
 - Core must not import Lenis, GSAP, or ScrollTrigger directly.
 - Effects continue to consume normalized `ctx.scroll` / `ctx.scrollProgress`,
-  not third-party scroll instances.
+  or keyed `ctx.progress.get(progressKey)`, not third-party scroll instances.
+- Scene gates remain scroll-locking advanced behavior; they are not the
+  recommended pinned-scroll section path.
 
 ## Debug And Validation Contract
 
@@ -1285,15 +1294,12 @@ Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
 
 - Legacy object-form declarations such as `effects.material: { kind: "solid" }`,
   `effects.material: { kind: "surface" }`, and
-  `effects.motion: { kind: "pointer-tilt" }` remain public type compatibility
-  input.
-- The legacy declaration compiler still maps those object forms into ordered
-  effect entries such as `material.solid`, `surface.basic`, and
-  `motion.pointerTilt`.
-- The package no longer registers or exports concrete definitions for those
-  kinds. A target using those declarations needs matching user-provided
-  `defineWebGLEffect(...)` definitions through runtime-level `effects`, or it
-  reports an unknown effect configuration error.
+  `effects.motion: { kind: "pointer-tilt" }` were removed from the public
+  contract. They no longer type-check and are not compiled by the runtime.
+- Target effects now use array-form declarations only, for example
+  `effects: [{ kind: "app.effect" }]`.
+- The package no longer registers or exports concrete definitions for legacy
+  built-in material or motion kinds.
 - The internal registry remains dispatch machinery. `effectRegistry` is not the
   public authoring API, and the root/React public entrypoints do not expose
   registry construction as the preferred consumer path.

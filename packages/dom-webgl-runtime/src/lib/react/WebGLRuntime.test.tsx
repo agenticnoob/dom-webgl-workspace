@@ -169,6 +169,50 @@ describe("WebGLRuntime", () => {
     );
   });
 
+  test("passes progress signals to the runtime on mount", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const progressSignals = createTestProgressSignals();
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { progressSignals }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        progressSignals,
+      }),
+    );
+  });
+
+  test("recreates the runtime when progress signals change", async () => {
+    const { WebGLRuntime } = await import("../../react");
+    const { root } = createTestRoot();
+    const firstProgressSignals = createTestProgressSignals(0.25);
+    const secondProgressSignals = createTestProgressSignals(0.75);
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { progressSignals: firstProgressSignals }));
+    });
+
+    const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { progressSignals: secondProgressSignals }));
+    });
+    await flushRuntimeDisposal();
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
+    expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        progressSignals: secondProgressSignals,
+      }),
+    );
+  });
+
   test("recreates the runtime when effect definitions change", async () => {
     const { WebGLRuntime } = await import("../../react");
     const { root } = createTestRoot();
@@ -542,6 +586,16 @@ function createTestScrollAdapter(
         scrollHeight: 1000,
         viewportHeight: 500,
       };
+    },
+  };
+}
+
+function createTestProgressSignals(
+  progress = 0,
+): WebGLRuntimeOptions["progressSignals"] {
+  return {
+    get() {
+      return progress;
     },
   };
 }

@@ -16,6 +16,9 @@ implementation policy.
 - Native page/gate scroll is the default. Third-party smooth-scroll systems use
   `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
   core in `<scroll-adapters-package>`.
+- Pinned scroll effects are not authored with scene gates. Use the optional
+  `<scroll-adapters-package>/react` layer when a React consumer wants bounded
+  pinned sections that feed stable keys into `ctx.progress.get(key)`.
 - The package does not provide default visual effects or an official
   `effects` preset subpath.
 - Target effects use array-form declarations only:
@@ -53,6 +56,15 @@ import {
 } from "<runtime-package>/react";
 ```
 
+Use for the high-level pinned scroll React adapter:
+
+```tsx
+import {
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+} from "<scroll-adapters-package>/react";
+```
+
 Do not use:
 
 ```ts
@@ -68,17 +80,20 @@ pointer state through `ctx.pointer`, `ctx.input.pointer`, or debug state.
 
 ## Runtime Setup
 
+There are three supported consumer levels.
+
+### 1. Plain Runtime
+
 React:
 
 ```tsx
 import { WebGLRuntime, WebGLTarget } from "<runtime-package>/react";
 
 const runtimeEffects = [appSurfaceEffect, appPointerEffect] as const;
-const scrollAdapter: WebGLScrollAdapter | undefined = undefined;
 
 export function App() {
   return (
-    <WebGLRuntime effects={runtimeEffects} scrollAdapter={scrollAdapter}>
+    <WebGLRuntime effects={runtimeEffects}>
       <WebGLTarget
         webgl={{
           key: "hero.surface",
@@ -101,7 +116,6 @@ import { createWebGLRuntime } from "<runtime-package>";
 const runtime = createWebGLRuntime({
   container,
   effects: [appSurfaceEffect, appPointerEffect],
-  scrollAdapter,
 });
 
 runtime.registerTarget(element, {
@@ -117,11 +131,6 @@ Rules:
 
 - Keep the runtime-level `effects` array reference stable. In React, define it at
   module scope or memoize it.
-- Keep `scrollAdapter` reference stable. In React, define the adapter at module
-  scope, in a stable ref, or in a memoized integration component that owns the
-  third-party instance lifecycle.
-- Changing `scrollAdapter` recreates the runtime. Keep it stable once ready to
-  avoid unnecessary runtime churn.
 - Every target key must be stable and unique inside one runtime.
 - Treat each target `webgl` declaration as registration-time static. Do not
   dynamically change `source`, `effects`, `scroll`, `pointer`, or `lifecycle`
@@ -135,28 +144,79 @@ Rules:
 - Do not create nested runtimes unless the application intentionally needs
   independent canvases and lifecycle ownership.
 
-## React Effect Authoring Example
+### 2. High-Level Pinned Scroll React Adapter
 
-The current downstream-style React example lives in `apps/example`.
-
-- Source code: `apps/example/src/App.tsx` and
-  `apps/example/src/exampleEffects.ts`.
-- Visible page explanations are Chinese; source kinds and effect kind strings
-  remain English API data.
-- Smooth-scroll setup: `apps/example/src/useExampleSmoothScrollStack.ts`.
-- Tutorial: `docs/examples/effect-authoring.md`.
-- Friction report: `docs/agent/effect-authoring-example-report.md`.
-
-Treat this example as consumer application code. Do not import it from package
-source, and do not promote its effects into runtime package exports.
-
-## Scroll Adapter Setup
-
-Use no adapter for normal browser scroll:
+For the normal "pinned section drives an effect" story, use
+`<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
+each `ScrollEffectSection` owns one bounded trigger instance and clears only its
+own progress key during cleanup.
 
 ```tsx
-<WebGLRuntime effects={runtimeEffects}>{children}</WebGLRuntime>
+import { defineWebGLEffect } from "<runtime-package>";
+import { WebGLTarget } from "<runtime-package>/react";
+import {
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+} from "<scroll-adapters-package>/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+const pinnedRevealEffect = defineWebGLEffect<{
+  kind: "app.pinnedReveal";
+  progressKey: string;
+}>({
+  kind: "app.pinnedReveal",
+  update(ctx, _state, params) {
+    const progress = ctx.progress.get(params.progressKey);
+    ctx.target?.setOpacity(progress);
+  },
+});
+
+const runtimeEffects = [pinnedRevealEffect] as const;
+
+export function App() {
+  return (
+    <WebGLScrollRuntime effects={runtimeEffects} smooth={false}>
+      <ScrollEffectSection
+        progressKey="article.hero.reveal"
+        ScrollTrigger={ScrollTrigger}
+        pin
+        scrub
+      >
+        <WebGLTarget
+          webgl={{
+            key: "article.hero",
+            source: { kind: "snapshot", mode: "element" },
+            effects: [
+              {
+                kind: "app.pinnedReveal",
+                progressKey: "article.hero.reveal",
+              },
+            ],
+          }}
+        >
+          章节滚动驱动 WebGL 效果
+        </WebGLTarget>
+      </ScrollEffectSection>
+    </WebGLScrollRuntime>
+  );
+}
 ```
+
+Rules:
+
+- Effects read section progress with `ctx.progress.get(progressKey)`.
+- Missing progress keys read as `0`.
+- Keep `progressKey` stable and pass it as target effect data; do not mutate
+  mounted `webgl.effects` on every scroll update.
+- This is not a scene gate. The runtime should remain in page scroll mode while
+  ScrollTrigger handles pin/scrub behavior.
+- If `WebGLScrollRuntime smooth={...}` includes `ScrollTrigger`, child
+  `ScrollEffectSection` components inherit it from context and do not need a
+  repeated `ScrollTrigger` prop.
+- If `WebGLScrollRuntime` receives an advanced `scrollAdapter`, it bypasses its
+  built-in smooth-stack creation and forwards that adapter to the runtime.
+
+### 3. Advanced Manual `scrollAdapter`
 
 Use a scroll adapter only when the application already owns a third-party
 scroll system:
@@ -178,6 +238,13 @@ Rules:
   GSAP, or ScrollTrigger instance.
 - Effects keep reading `ctx.scroll` and `ctx.scrollProgress`; they should not
   read third-party scroll instances directly.
+- Pinned scroll effects should read `ctx.progress.get(progressKey)`, not
+  `sceneProgress`, unless the product intentionally uses a scroll-locking gate.
+- Keep `scrollAdapter` reference stable. In React, define the adapter at module
+  scope, in a stable ref, or in a memoized integration component that owns the
+  third-party instance lifecycle.
+- Changing `scrollAdapter` recreates the runtime. Keep it stable once ready to
+  avoid unnecessary runtime churn.
 - Adapter cleanup owns only listeners, ticker callbacks, and proxy hooks created
   by the adapter. Destroying a consumer-owned Lenis instance must be explicit.
 - See `docs/agent/scroll-adapters.md` for optional Lenis, GSAP ticker, and
@@ -185,8 +252,9 @@ Rules:
 
 ### Official Smooth Scroll Stack
 
-The recommended third-party route is the opt-in Lenis + GSAP ticker +
-ScrollTrigger stack from `<scroll-adapters-package>`.
+The advanced manual third-party route is the opt-in Lenis + GSAP ticker +
+ScrollTrigger stack from `<scroll-adapters-package>`. Prefer the React adapter
+subpath above for ordinary pinned section progress.
 
 ```ts
 import { createLenisGsapScrollStack } from "<scroll-adapters-package>";
@@ -214,6 +282,22 @@ Rules:
   `lenis.destroy()` from that same cleanup.
 - Use `smoothScroll.refresh(true)` after layout changes that should force
   ScrollTrigger to recalculate positions.
+
+## React Effect Authoring Example
+
+The current downstream-style React example lives in `apps/example`.
+
+- Source code: `apps/example/src/App.tsx` and
+  `apps/example/src/exampleEffects.ts`.
+- Visible page explanations are Chinese; source kinds and effect kind strings
+  remain English API data.
+- The example is the dogfood surface for package usage and effect authoring,
+  including high-level pinned scroll adapter usage as it lands.
+- Tutorial: `docs/examples/effect-authoring.md`.
+- Friction report: `docs/agent/effect-authoring-example-report.md`.
+
+Treat this example as consumer application code. Do not import it from package
+source, and do not promote its effects into runtime package exports.
 
 ## Target Declaration
 

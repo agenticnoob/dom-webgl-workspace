@@ -1,0 +1,70 @@
+import { describe, expect, test, vi } from "vitest";
+
+import { createEffectContext, createGlyph } from "../test/effectContext";
+import {
+  exampleTextRevealEffect,
+  exampleTextWaveEffect,
+} from "./textEffects";
+
+describe("text example effects", () => {
+  test("text wave rewrites glyph commands using elapsed runtime time", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Wave",
+        textLayer,
+      },
+      time: 1000,
+    });
+
+    exampleTextWaveEffect.update(context, undefined, {
+      kind: "example.textWave",
+      amplitude: 8,
+    });
+
+    expect(exampleTextWaveEffect.source).toBe("snapshot/text");
+    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const commands = transform?.([
+      createGlyph(0, "W"),
+      createGlyph(1, "a"),
+    ]);
+    expect(commands?.[0]).toMatchObject({ index: 0, char: "W" });
+    expect(commands?.[0]?.y).not.toBe(0);
+  });
+
+  test("text reveal maps scroll progress to glyph opacity and scale", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "snapshot/text",
+        element: document.createElement("p"),
+        text: "Reveal",
+        textLayer,
+      },
+      scrollProgress: 0.5,
+    });
+
+    exampleTextRevealEffect.update(context, undefined, {
+      kind: "example.textReveal",
+      color: "#d95f42",
+    });
+
+    expect(exampleTextRevealEffect.source).toBe("snapshot/text");
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const commands = transform?.([
+      createGlyph(0, "R"),
+      createGlyph(1, "e"),
+      createGlyph(2, "v"),
+      createGlyph(3, "e"),
+    ]);
+    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1, color: "#d95f42" });
+    expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
+  });
+});

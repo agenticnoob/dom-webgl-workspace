@@ -77,6 +77,10 @@ export type WebGLEffectDeclaration = WebGLCustomEffectDeclaration;
 
 export type WebGLEffectsDeclaration = readonly WebGLEffectDeclaration[];
 
+export type WebGLProgressSignalSource = {
+  get(key: string): number;
+};
+
 export type WebGLDeclaration = {
   key: string;
   source?: WebGLSourceDeclaration;
@@ -90,6 +94,7 @@ export type WebGLDeclaration = {
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
   effects?: readonly WebGLEffectDefinition[];
+  progressSignals?: WebGLProgressSignalSource;
   scrollAdapter?: WebGLScrollAdapter;
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };

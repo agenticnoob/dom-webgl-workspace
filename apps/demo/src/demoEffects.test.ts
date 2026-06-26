@@ -985,6 +985,9 @@ function createCapabilityContext(options: {
     },
     scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
     scrollProgress: 0,
+    progress: {
+      get: () => 0,
+    },
     time: options.time ?? 0,
     delta: 16,
     source: options.source,
@@ -1161,6 +1164,9 @@ function createEffectContext(
     },
     scroll: { mode: "page", pageProgress: 0, direction: 0, velocity: 0 },
     scrollProgress: 0,
+    progress: {
+      get: () => 0,
+    },
     time: options.time ?? 0,
     delta: 16,
     source: {

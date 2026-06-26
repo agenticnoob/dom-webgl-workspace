@@ -107,14 +107,20 @@ Current example behavior:
 - The example page uses Chinese visible copy in reusable click-to-expand
   explanation overlays while keeping source kinds and effect kind identifiers in
   English as API data.
-- The example creates an app-owned Lenis instance, drives it through GSAP via
-  `createLenisGsapScrollStack(...)`, passes only `smoothScroll.scrollAdapter` to
-  `<WebGLRuntime />`, and destroys Lenis from the example hook cleanup.
+- The example is the dogfood surface for the high-level pinned scroll React
+  adapter: ordinary pinned sections use `WebGLScrollRuntime`,
+  `ScrollEffectSection`, stable `progressKey` data, and
+  `ctx.progress.get(progressKey)` instead of manual per-scroll target mutation
+  or scene gates. The current pinned example renders the visible
+  `example.pinnedReveal` text effect and keeps the section background
+  transparent so the WebGL canvas remains visible.
+- Advanced examples can still pass a stable manual `scrollAdapter` when the app
+  intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
   `example.surfaceFill`, `example.surfacePulse`, `example.textWave`,
   `example.textReveal`, `example.imagePan`, `example.imageZoom`,
   `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
-  `example.modelFloat`.
+  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing
@@ -224,8 +230,12 @@ Current visual behavior:
   public `WebGLScrollAdapter` protocol in core plus the optional
   `@project/dom-webgl-scroll-adapters` package for Lenis, GSAP ticker, and
   ScrollTrigger glue. The optional scroll adapters package also exposes
-  `createLenisGsapScrollStack(...)` as the official opt-in convenience entry for
-  that wiring; omitting `scrollAdapter` still uses native browser scroll.
+  `@project/dom-webgl-scroll-adapters/react` for the recommended pinned scroll
+  effect path, where `WebGLScrollRuntime` owns the progress store and
+  `ScrollEffectSection` owns a bounded trigger instance. The lower-level
+  `createLenisGsapScrollStack(...)` remains the advanced manual entry for apps
+  that own third-party scroll lifecycle directly; omitting `scrollAdapter` still
+  uses native browser scroll.
   Offscreen resource policy is target-scoped: active targets own renderables;
   near-offscreen parked targets pause effects and hide WebGL scene objects;
   far-offscreen targets restore native DOM fallback and dispose WebGL resources,
@@ -537,6 +547,11 @@ Behavior:
 - Runtime disposal and target unregister restore previous fallback visibility.
 
 ## Scene Gates
+
+Scene gates are the advanced scroll-locking behavior. They are not the
+recommended way to build a pinned section that drives an effect; use
+`@project/dom-webgl-scroll-adapters/react`, `ScrollEffectSection`, and
+`ctx.progress.get(progressKey)` for that story.
 
 Declare a scene gate through the same public `webgl` object used by regular
 targets:

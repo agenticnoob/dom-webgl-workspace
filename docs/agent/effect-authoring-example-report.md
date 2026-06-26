@@ -1,6 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
+Updated: 2026-06-25 for the pinned scroll effect consumer API.
 
 ## Summary
 
@@ -10,8 +11,12 @@ defines application-owned effects locally, exercises `snapshot/element`,
 `snapshot/text`, `image`, `video`, and `model/glb` source handles through a
 full-width vertical one-effect-per-row catalog, places user-facing explanations
 in a reusable click-to-expand overlay component on each Chinese effect row while
-keeping API identifiers in English, and applies the optional Lenis + GSAP +
-ScrollTrigger stack through `@project/dom-webgl-scroll-adapters`.
+keeping API identifiers in English. It applies optional Lenis + GSAP +
+ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
+`WebGLScrollRuntime` owns the built-in smooth stack from
+`exampleSmoothScrollOptions`, while `ScrollEffectSection` owns bounded pinned
+section progress. This makes `apps/example` the dogfood surface for the
+higher-level pinned scroll React adapter rather than `apps/demo`.
 
 ## What Worked
 
@@ -28,9 +33,10 @@ ScrollTrigger stack through `@project/dom-webgl-scroll-adapters`.
   downstream app code and `apps/demo` remains package validation code.
 - Copying static assets into `apps/example/public` keeps the example runnable as
   an isolated downstream app instead of depending on `apps/demo/public`.
-- The optional smooth-scroll stack fits the same boundary: the app owns Lenis
-  and cleanup, the adapter package owns ticker/proxy wiring, and core receives
-  only `scrollAdapter`.
+- The scroll boundary now has two valid consumer levels: low-level helpers where
+  the app owns Lenis and cleanup, and the high-level React adapter where
+  `WebGLScrollRuntime` owns a progress store and `ScrollEffectSection` owns one
+  bounded trigger instance.
 
 ## Friction And Counterintuitive Points
 
@@ -39,9 +45,19 @@ ScrollTrigger stack through `@project/dom-webgl-scroll-adapters`.
   declarations execute by themselves.
 - React runtime recreation from changing `effects` array identity is easy to
   miss. The docs need to keep showing module-scope effect arrays.
-- Smooth scrolling adds another stable-reference concern: the app must pass only
-  `smoothScroll.scrollAdapter` and avoid constructing Lenis/GSAP bridges during
-  render.
+- Smooth scrolling adds another stable-reference concern. Use the high-level
+  `smooth` prop for the common example path, or pass only a stable
+  `smoothScroll.scrollAdapter` when the app intentionally owns a manual stack.
+  Avoid constructing Lenis/GSAP bridges during render.
+- Pinned scroll effects need an explicit `progressKey` mental model. The target
+  effect declaration carries the stable key, while the effect reads progress via
+  `ctx.progress.get(progressKey)` instead of changing `webgl.effects` on every
+  scroll update.
+- Pinned examples must keep the pinned section background transparent when DOM
+  fallback is hidden, otherwise the content layer can cover the fixed WebGL
+  canvas and make a valid text renderable look blank.
+- Scene gates are easy to over-apply because they also expose progress. They
+  lock page scroll and are not the recommended pinned-scroll story path.
 - Runtime replacement from a late-arriving `scrollAdapter` is handled inside the
   React adapter. Consumers should still avoid unnecessary adapter identity churn
   for performance, but they do not need a guard to prevent disposed-runtime

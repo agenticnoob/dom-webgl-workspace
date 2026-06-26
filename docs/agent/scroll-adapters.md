@@ -6,23 +6,32 @@ WebGL runtime. This document is package-consumer policy, not a demo tutorial.
 ## Boundary
 
 - `@project/dom-webgl-runtime` owns the public `WebGLScrollAdapter` protocol,
-  native page scroll, scene gates, scroll lock, frame input, and effect context.
+  native page scroll, scene gates, scroll lock, frame input, progress signal
+  reads, and effect context.
 - `@project/dom-webgl-scroll-adapters` owns optional glue for Lenis, GSAP ticker,
   and ScrollTrigger.
-- Applications own third-party scroll instances, trigger timelines, animation
-  products, route-level lifecycle, and DOM layout decisions.
-- Effects consume normalized `ctx.scroll` / `ctx.scrollProgress`. They do not
-  consume Lenis, GSAP, or ScrollTrigger instances.
+- The low-level adapter helpers leave third-party scroll instances, trigger
+  timelines, animation products, route-level lifecycle, and DOM layout decisions
+  in application code.
+- `@project/dom-webgl-scroll-adapters/react` is the high-level exception: it
+  intentionally owns bounded `ScrollTrigger` section instances for
+  `ScrollEffectSection`, writes keyed progress into the runtime, and kills only
+  its own trigger on cleanup.
+- Effects consume normalized `ctx.scroll`, `ctx.scrollProgress`, and
+  `ctx.progress.get(key)`. They do not consume Lenis, GSAP, or ScrollTrigger
+  instances.
 
 Core must not import `lenis`, `gsap`, or `ScrollTrigger`.
 
 ## Runtime Integration
 
-There are three supported routes.
+There are three supported routes. Prefer the simplest route that matches the
+product behavior.
 
-### 1. Native Default
+### 1. Plain Runtime
 
-Native browser scroll needs no adapter:
+Use plain runtime for normal page scroll and ordinary effects. Native browser
+scroll needs no adapter:
 
 ```tsx
 <WebGLRuntime effects={runtimeEffects}>{children}</WebGLRuntime>
@@ -30,10 +39,67 @@ Native browser scroll needs no adapter:
 
 This remains the default for `@project/dom-webgl-runtime`.
 
-### 2. Official Smooth Scroll Stack
+### 2. High-Level Pinned Scroll React Adapter
 
-Use `createLenisGsapScrollStack(...)` when the application wants the recommended
-Lenis + GSAP ticker + ScrollTrigger bridge.
+Use `@project/dom-webgl-scroll-adapters/react` when the product story is
+"scroll a section, keep a region pinned, and drive a WebGL effect by section
+progress." This is the recommended pinned-scroll story path.
+
+```tsx
+import {
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+} from "@project/dom-webgl-scroll-adapters/react";
+import { WebGLTarget } from "@project/dom-webgl-runtime/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+const runtimeEffects = [pinnedRevealEffect] as const;
+
+<WebGLScrollRuntime effects={runtimeEffects} smooth={false}>
+  <ScrollEffectSection
+    progressKey="article.hero.reveal"
+    ScrollTrigger={ScrollTrigger}
+    pin
+    scrub
+  >
+    <WebGLTarget
+      webgl={{
+        key: "article.hero",
+        source: { kind: "snapshot", mode: "element" },
+        effects: [
+          {
+            kind: "app.pinnedReveal",
+            progressKey: "article.hero.reveal",
+          },
+        ],
+      }}
+    >
+      章节滚动驱动 WebGL 效果
+    </WebGLTarget>
+  </ScrollEffectSection>
+</WebGLScrollRuntime>;
+```
+
+The matching effect reads the stable key:
+
+```ts
+const progress = ctx.progress.get(params.progressKey);
+```
+
+`ScrollEffectSection` creates one bounded trigger for its own element, writes
+that trigger's progress into the nearest `WebGLScrollRuntime` store, and clears
+the key on unmount. This is not a scene gate and should keep runtime scroll mode
+as ordinary page mode.
+
+When the wrapper is also responsible for the official smooth-scroll stack, pass
+`smooth` options with `ScrollTrigger`; child sections can inherit it from
+context. If an advanced `scrollAdapter` prop is supplied, that adapter is used
+instead of creating the built-in smooth stack.
+
+### 3. Advanced Manual `scrollAdapter`
+
+Use `createLenisGsapScrollStack(...)` or a custom `WebGLScrollAdapter` when the
+application needs to own the third-party lifecycle directly.
 
 ```tsx
 import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
@@ -51,15 +117,15 @@ const smoothScroll = createLenisGsapScrollStack({
 ```
 
 When Lenis is manually driven by the GSAP ticker, configure Lenis with
-`autoRaf: false` in the application-owned Lenis setup. The demo imports
-`lenis/dist/lenis.css`, creates the Lenis instance inside
-`useDemoSmoothScrollStack(...)`, passes it to `createLenisGsapScrollStack(...)`
-with `manageLenis: false`, and destroys Lenis from the same hook cleanup. This
-keeps ownership simple: the app owns Lenis, while the adapter stack owns only
-runtime adapter subscriptions, GSAP ticker wiring, and optional ScrollTrigger
-updates.
-
-### 3. Custom Adapter
+`autoRaf: false` in the application-owned Lenis setup. `apps/demo` uses this
+manual route: it imports `lenis/dist/lenis.css`, creates the Lenis instance
+inside `useDemoSmoothScrollStack(...)`, passes it to
+`createLenisGsapScrollStack(...)` with `manageLenis: false`, and destroys Lenis
+from the same hook cleanup. `apps/example` uses the higher-level route instead:
+`WebGLScrollRuntime smooth={exampleSmoothScrollOptions}` creates and owns the
+built-in stack while `ScrollEffectSection` owns pinned progress. This keeps the
+consumer choice explicit: manual ownership for advanced integration, high-level
+React ownership for ordinary pinned scroll effects.
 
 Use a custom `WebGLScrollAdapter` when the application owns another scroll
 system or needs a different lifecycle.
@@ -114,10 +180,20 @@ Rules:
 - `scrollerProxy(...)` is only configured when both `scroller` and `proxy` are
   provided.
 - `update()` and `refresh(safe?)` delegate to ScrollTrigger.
-- Trigger creation, pinning strategy, scrub timelines, and animation semantics
-  stay in application code.
+- With the low-level bridge, trigger creation, pinning strategy, scrub
+  timelines, and animation semantics stay in application code.
+- With `@project/dom-webgl-scroll-adapters/react`, `ScrollEffectSection` owns a
+  bounded trigger instance and maps its progress to a keyed runtime signal.
 - Cleanup must not call global `killAll()` from a reusable adapter unless the
   application explicitly asks for global teardown.
+
+## Scene Gates Are Different
+
+`scroll: { type: "gate", ... }` is a runtime scene-gate feature. It locks page
+scroll while active and emits `sceneProgress` in gate mode. Use it for advanced
+scroll-locking scenes, not for the recommended pinned-scroll section story. A
+pinned section should use `ScrollEffectSection` plus `ctx.progress.get(key)` so
+the page remains in page scroll mode.
 
 ## Common Failures
 
