@@ -988,6 +988,12 @@ function createCapabilityContext(options: {
     progress: {
       get: () => 0,
     },
+    visual: {
+      requestPostprocess: vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
+    },
     time: options.time ?? 0,
     delta: 16,
     source: options.source,
@@ -1167,6 +1173,12 @@ function createEffectContext(
     progress: {
       get: () => 0,
     },
+    visual: {
+      requestPostprocess: vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
+    },
     time: options.time ?? 0,
     delta: 16,
     source: {
@@ -1180,8 +1192,15 @@ function createEffectContext(
             visitor(mesh);
           }
         }),
+        getMeshes: vi.fn(() => []),
+        forEachMesh: vi.fn(),
         sampleVertices: vi.fn(() => new Float32Array()),
         createPointCloud: vi.fn(() => options.pointCloud ?? createPointCloud()),
+        createPointLayer: vi.fn(() => ({
+          setVisible: vi.fn(),
+          remove: vi.fn(),
+          dispose: vi.fn(),
+        })),
       },
     },
     target: undefined,

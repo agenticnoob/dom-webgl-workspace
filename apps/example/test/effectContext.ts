@@ -55,6 +55,12 @@ export function createEffectContext(
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
     progress: overrides.progress ?? { get: () => 0 },
+    visual: overrides.visual ?? {
+      requestPostprocess: vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
+    },
     time,
     delta,
     source,

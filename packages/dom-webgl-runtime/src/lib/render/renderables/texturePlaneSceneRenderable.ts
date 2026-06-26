@@ -11,7 +11,10 @@ import {
   type ProjectedDOMRect,
 } from "../../renderer/domProjection";
 import type { ElementLayoutSnapshot } from "../../renderer/layoutPass";
-import type { WebGLEffectTextureTransform } from "../../effects/effectAuthoring";
+import type {
+  WebGLEffectMediaShaderInputs,
+  WebGLEffectTextureTransform,
+} from "../../effects/effectAuthoring";
 import {
   computeObjectFitContentBox,
   computeObjectFitTextureTransform,
@@ -51,6 +54,7 @@ export function createTexturePlaneSceneRenderableController(
   const initialStyle = readDOMStyleSnapshot(options.element);
   let lastTextureTransformSignature = "";
   let textureLayerTransform: WebGLEffectTextureTransform | undefined;
+  let shaderInputs: WebGLEffectMediaShaderInputs | undefined;
 
   group.add(mediaMesh);
   texture.needsUpdate = true;
@@ -97,6 +101,24 @@ export function createTexturePlaneSceneRenderableController(
       box,
       media: mediaSize,
     });
+    shaderInputs = {
+      naturalSize: mediaSize,
+      contentBox: {
+        x: mediaBox.x,
+        y: mediaBox.y,
+        width: mediaBox.width,
+        height: mediaBox.height,
+      },
+      uvTransform: transform,
+      objectFit: initialStyle.media.objectFit,
+      objectPosition: initialStyle.media.objectPosition,
+      sourceTexture: {
+        available: true,
+        uniform: "source-texture",
+        width: mediaSize.width,
+        height: mediaSize.height,
+      },
+    };
 
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
@@ -122,6 +144,9 @@ export function createTexturePlaneSceneRenderableController(
         textureLayerTransform = transform;
         applyTextureLayerTransform();
       },
+      getShaderInputs() {
+        return shaderInputs ?? createFallbackShaderInputs(options.textureSource);
+      },
       invalidate() {
         controller.object.invalidateContent?.();
       },
@@ -137,11 +162,15 @@ export function createTexturePlaneSceneRenderableController(
         textureLayerTransform = transform;
         applyTextureLayerTransform();
       },
+      getShaderInputs() {
+        return shaderInputs ?? createFallbackShaderInputs(options.textureSource);
+      },
       invalidate() {
         controller.object.invalidateContent?.();
       },
     });
   }
+  updateTextureTransform(options.measureElement(options.element), true);
 
   return controller;
 
@@ -157,6 +186,26 @@ export function createTexturePlaneSceneRenderableController(
       offsetY: textureLayerTransform.offsetY ?? 0,
     });
   }
+}
+
+function createFallbackShaderInputs(
+  source: HTMLImageElement | HTMLVideoElement,
+): WebGLEffectMediaShaderInputs {
+  const naturalSize = readMediaSize(source);
+
+  return {
+    naturalSize,
+    contentBox: { x: 0, y: 0, width: naturalSize.width, height: naturalSize.height },
+    uvTransform: { repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0 },
+    objectFit: source.style.objectFit || "fill",
+    objectPosition: source.style.objectPosition || "50% 50%",
+    sourceTexture: {
+      available: true,
+      uniform: "source-texture",
+      width: naturalSize.width,
+      height: naturalSize.height,
+    },
+  };
 }
 
 function readMediaSize(source: HTMLImageElement | HTMLVideoElement): {

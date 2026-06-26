@@ -45,7 +45,7 @@ describe("surface effect renderers", () => {
     );
   });
 
-  test("adds local ghost cursor spotlight and noisy smoke when pointer is active", () => {
+  test("adds local ghost cursor glow and noisy smoke when pointer is active", () => {
     const context = createRecordingContext();
 
     drawGhostCursorSurface(context, 320, 180, {
@@ -66,6 +66,7 @@ describe("surface effect renderers", () => {
         call.startsWith("gradient:172:96:0:172:96:"),
       ),
     ).toBe(true);
+    expect(context.gradientCalls).not.toContain("gradient:172:96:0:172:96:86.4");
     expect(context.calls.some((call) => call.startsWith("fillText:Boo!:160:"))).toBe(
       true,
     );

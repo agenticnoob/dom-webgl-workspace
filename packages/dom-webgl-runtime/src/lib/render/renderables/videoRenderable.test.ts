@@ -145,9 +145,29 @@ describe("createVideoRenderable", () => {
     renderable.updateLayout?.(createMeasurement(40, 60, 320, 180));
 
     const mediaMesh = readMediaMesh(sceneAdapter.objects[0]?.object3D);
+    const effectSource = renderable.effectSource;
+    if (effectSource?.kind !== "video") {
+      throw new Error("Expected video effect source.");
+    }
+    const videoInputs = effectSource.video?.shaderInputs;
 
     expect(mediaMesh?.scale).toMatchObject({ x: 320, y: 180, z: 1 });
     expect(mediaMesh?.position).toMatchObject({ x: 0, y: 0, z: 1 });
+    expect(videoInputs).toMatchObject({
+      naturalSize: { width: 720, height: 1280 },
+      contentBox: { x: 0, y: 0, width: 320, height: 180 },
+      objectFit: "cover",
+      objectPosition: "50% 50%",
+      sourceTexture: {
+        available: true,
+        uniform: "source-texture",
+        width: 720,
+        height: 1280,
+      },
+    });
+    expect(videoInputs?.uvTransform.repeatX).toBe(1);
+    expect(videoInputs?.uvTransform.repeatY).toBeCloseTo(0.3164, 4);
+    expect(videoInputs?.uvTransform.offsetY).toBeCloseTo(0.3418, 4);
   });
 
   test("sizes the video mesh to the CSS content box inside padding and border", async () => {

@@ -11,10 +11,13 @@ import {
 } from "./ghostCursorState";
 import {
   drawCoverImage,
-  drawGhostCursorSurface,
   drawPulseSurface,
   drawWavesSurface,
 } from "./surfaceEffectRenderers";
+import {
+  createGhostCursorMaterialProgram,
+  createGhostCursorUniforms,
+} from "./ghostCursorSurface";
 import {
   createSurfaceVideoBackgroundState,
   disposeSurfaceVideo,
@@ -126,7 +129,14 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
   kind: "example.surfaceGhostCursor",
   source: "snapshot/element",
   setup(ctx) {
-    return createSurfaceGhostCursorState(ctx);
+    const state = createSurfaceGhostCursorState(ctx);
+    prepareGhostCursorLayer(ctx, state, {
+      kind: "example.surfaceGhostCursor",
+      trailLength: 32,
+      color: "#b497cf",
+      opacity: 0.9,
+    });
+    return state;
   },
   update(ctx, state, params) {
     if (ctx.source.kind !== "snapshot/element") {
@@ -135,21 +145,29 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
 
     const pointer = readLocalPointer(ctx);
     updateSurfaceGhostCursorState(state, pointer);
+    prepareGhostCursorLayer(ctx, state, params);
     ctx.target?.setVisible(true);
-    ctx.source.surface?.draw(({ context, width, height }) => {
-      drawGhostCursorSurface(context, width, height, {
+    state.layer?.setUniforms(
+      createGhostCursorUniforms({
         color: params.color ?? "#b497cf",
         opacity: clampNumber(params.opacity, 0.1, 1, 0.9),
         pointerActive: pointer.active,
         pointerIntensity: state.intensity,
         pointerX: state.pointerX,
         pointerY: state.pointerY,
+        trailPoints: state.trail,
         time: ctx.time,
         trailLength: clampNumber(params.trailLength, 6, 64, 32),
-      });
-    });
+        width: ctx.layout.width,
+        height: ctx.layout.height,
+      }),
+    );
     ctx.source.surface?.setVisible?.(true);
     ctx.source.surface?.setOpacity?.(1);
+  },
+  dispose(_ctx, state) {
+    state.layer?.dispose();
+    state.layer = undefined;
   },
 });
 
@@ -264,5 +282,34 @@ function readLocalPointer(ctx: WebGLEffectUpdateContext): TargetLocalPointer {
   return readTargetLocalPointer({
     layout: ctx.layout,
     pointer: ctx.pointer,
+  });
+}
+
+function prepareGhostCursorLayer(
+  ctx: WebGLEffectUpdateContext,
+  state: SurfaceGhostCursorState,
+  params: SurfaceGhostCursorParams,
+): void {
+  if (ctx.source.kind !== "snapshot/element" || state.layer) {
+    return;
+  }
+
+  state.layer = ctx.source.surface?.createMaterialLayer({
+    key: "example.surfaceGhostCursor",
+    mode: "replace-source",
+    sourceTextureUniform: "uSource",
+    program: createGhostCursorMaterialProgram({
+      color: params.color ?? "#b497cf",
+      opacity: clampNumber(params.opacity, 0.1, 1, 0.9),
+      pointerActive: false,
+      pointerIntensity: 0,
+      pointerX: ctx.layout.width * 0.5,
+      pointerY: ctx.layout.height * 0.5,
+      trailPoints: state.trail,
+      time: ctx.time,
+      trailLength: clampNumber(params.trailLength, 6, 64, 32),
+      width: ctx.layout.width,
+      height: ctx.layout.height,
+    }),
   });
 }

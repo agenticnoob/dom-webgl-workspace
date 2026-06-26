@@ -183,19 +183,36 @@ describe("public package exports", () => {
 			        import type {
 			          WebGLDebugState,
 			          WebGLDeclaration,
-			          WebGLEffectCanvasDrawer,
-			          WebGLEffectCanvasSurfaceHandle,
-			          WebGLEffectContext,
-			          WebGLEffectDefinition,
-			          WebGLEffectRenderableHandle,
-			          WebGLEffectResourceScope,
-			          WebGLEffectSourceHandle,
-			          WebGLEffectTargetHandle,
-			          WebGLEffectTextLayerHandle,
-			          WebGLEffectTextureLayerHandle,
-			          WebGLEffectTextureTransform,
-			          WebGLEffectVideoLayerHandle,
-			          WebGLEffectsDeclaration,
+				          WebGLEffectCanvasDrawer,
+				          WebGLEffectCanvasSurfaceHandle,
+				          WebGLEffectContext,
+				          WebGLEffectDefinition,
+				          WebGLEffectBlendMode,
+				          WebGLEffectMaterialLayerHandle,
+				          WebGLEffectMaterialLayerHost,
+				          WebGLEffectMaterialProgram,
+				          WebGLEffectPointLayerOptions,
+				          WebGLEffectPostprocessHandle,
+				          WebGLEffectPostprocessRequest,
+				          WebGLEffectRenderableHandle,
+				          WebGLEffectResourceScope,
+				          WebGLEffectContentBoxShaderInput,
+				          WebGLEffectMediaShaderInputs,
+				          WebGLEffectObjectFitShaderInput,
+				          WebGLEffectSourceTextureShaderInput,
+				          WebGLEffectSourceHandle,
+				          WebGLEffectSurfaceShaderInputs,
+				          WebGLEffectTargetHandle,
+				          WebGLEffectTextLayerHandle,
+				          WebGLEffectTextShaderInputs,
+				          WebGLEffectTextureUniform,
+				          WebGLEffectTextureLayerHandle,
+				          WebGLEffectTextureTransform,
+				          WebGLEffectUniformValue,
+				          WebGLEffectVisualContext,
+				          WebGLEffectVideoLayerHandle,
+				          WebGLModelMeshHandle,
+				          WebGLEffectsDeclaration,
 			          WebGLFrameInput,
 			          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
@@ -252,8 +269,18 @@ describe("public package exports", () => {
         import type { RenderPolicy } from "${importPath}";
 	        // @ts-expect-error Render policy ordering is internal.
 	        import type { SceneObjectOrdering } from "${importPath}";
-	        // @ts-expect-error Effect targets are internal renderable state.
-	        import type { WebGLEffectTarget } from "${importPath}";
+		        // @ts-expect-error Effect targets are internal renderable state.
+		        import type { WebGLEffectTarget } from "${importPath}";
+	        // @ts-expect-error Three renderer is internal runtime state.
+	        import type { WebGLRenderer } from "${importPath}";
+	        // @ts-expect-error Three scene is internal runtime state.
+	        import type { Scene } from "${importPath}";
+	        // @ts-expect-error Three camera is internal runtime state.
+	        import type { Camera } from "${importPath}";
+	        // @ts-expect-error EffectComposer is internal postprocess state.
+	        import type { EffectComposer } from "${importPath}";
+	        // @ts-expect-error WebGLRenderTarget is internal postprocess state.
+	        import type { WebGLRenderTarget } from "${importPath}";
 
         createWebGLRuntime satisfies (
           options: WebGLRuntimeOptions,
@@ -357,22 +384,57 @@ describe("public package exports", () => {
 			        legacyEffects satisfies WebGLEffectsDeclaration;
 			        arrayEffects satisfies WebGLEffectsDeclaration;
 			        customEffects satisfies WebGLEffectsDeclaration;
-			        const customModelEffect = defineWebGLEffect({
-			          kind: "custom.glbParticles",
-			          source: "model/glb",
-			          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
-			            ctx.source satisfies WebGLEffectSourceHandle;
-			            ctx.target satisfies WebGLEffectTargetHandle | undefined;
-			            ctx.resources satisfies WebGLEffectResourceScope;
-			            if (ctx.source.kind === "model/glb") {
-			              ctx.source.model.createPointCloud({
-			                density: params.density,
-			                color: "rgb(125, 211, 252)",
-			                size: 0.026,
-			              });
-			            }
-			            return {
-			              density: params.density ?? 0.5,
+				        const customModelEffect = defineWebGLEffect({
+				          kind: "custom.glbParticles",
+				          source: "model/glb",
+				          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
+				            ctx.source satisfies WebGLEffectSourceHandle;
+				            ctx.target satisfies WebGLEffectTargetHandle | undefined;
+				            ctx.resources satisfies WebGLEffectResourceScope;
+				            ctx.visual satisfies WebGLEffectVisualContext;
+				            const postprocess = ctx.visual.requestPostprocess({
+				              key: "custom.glow",
+				              bloom: { strength: 0.6, radius: 0.2, threshold: 0.8 },
+				              grain: { amount: 0.05 },
+				              blur: { radius: 0.25 },
+				            } satisfies WebGLEffectPostprocessRequest);
+				            postprocess satisfies WebGLEffectPostprocessHandle;
+				            if (ctx.source.kind === "model/glb") {
+				              ctx.source.model.createPointCloud({
+				                density: params.density,
+				                color: "rgb(125, 211, 252)",
+				                size: 0.026,
+				              });
+				              ctx.source.model.createPointLayer({
+				                positions: new Float32Array([0, 0, 0]),
+				                color: "#7dd3fc",
+				                size: 0.026,
+				                material: {
+				                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+				                  uniforms: {
+				                    sourceMap: { kind: "source-texture" },
+				                  },
+				                },
+				              } satisfies WebGLEffectPointLayerOptions);
+				              ctx.source.model.forEachMesh((mesh) => {
+				                mesh satisfies WebGLModelMeshHandle;
+				                mesh.index satisfies number;
+				                mesh.name satisfies string | undefined;
+				                mesh.materialName satisfies string | undefined;
+				                mesh.createMaterialLayer({
+				                  key: "custom.mesh",
+				                  mode: "replace-source",
+				                  sourceTextureUniform: "sourceMap",
+				                  program: {
+				                    fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+				                    blend: "normal" satisfies WebGLEffectBlendMode,
+				                  },
+				                }).clear();
+				                mesh.restoreMaterial();
+				              });
+				            }
+				            return {
+				              density: params.density ?? 0.5,
 			              scrollAtSetup: ctx.scrollProgress,
 			            };
 			          },
@@ -391,16 +453,54 @@ describe("public package exports", () => {
         const sourceCapabilityEffect = defineWebGLEffect({
           kind: "custom.sourceCapabilities",
           update(ctx) {
-            if (ctx.source.kind === "snapshot/element") {
-              ctx.source.surface satisfies WebGLEffectCanvasSurfaceHandle | undefined;
-              ctx.source.surface?.draw(({ context }) => {
-                context.fillRect(0, 0, 10, 10);
-              });
-            }
+	            if (ctx.source.kind === "snapshot/element") {
+	              ctx.source.surface satisfies WebGLEffectCanvasSurfaceHandle | undefined;
+	              ctx.source.surface?.shaderInputs satisfies WebGLEffectSurfaceShaderInputs | undefined;
+	              ctx.source.surface?.shaderInputs.size.width satisfies number | undefined;
+	              ctx.source.surface?.shaderInputs.sourceTexture satisfies
+	                | WebGLEffectSourceTextureShaderInput
+	                | undefined;
+	              ctx.source.surface?.shaderInputs.contentBox satisfies
+	                | WebGLEffectContentBoxShaderInput
+	                | undefined;
+	              ctx.source.surface?.draw(({ context }) => {
+	                context.fillRect(0, 0, 10, 10);
+	              });
+	              const layer = ctx.source.surface?.createMaterialLayer({
+	                key: "custom.surfaceShader",
+	                sourceTextureUniform: "sourceMap",
+	                mode: "replace-source",
+	                program: {
+	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+	                  uniforms: {
+	                    strength: 0.5,
+	                    enabled: true,
+	                    label: "surface",
+	                    uvScale: [1, 1],
+	                    tint: [1, 1, 1],
+	                    color: [1, 1, 1, 1],
+	                    sourceMap: { kind: "source-texture" },
+	                  },
+	                  defines: { USE_SOURCE: true },
+	                  blend: "screen",
+	                  transparent: true,
+	                  depthWrite: false,
+	                  depthTest: true,
+	                  toneMapped: false,
+	                } satisfies WebGLEffectMaterialProgram,
+	              });
+	              layer satisfies WebGLEffectMaterialLayerHandle | undefined;
+	            }
 
-            if (ctx.source.kind === "snapshot/text") {
-              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
-              const glyphs = ctx.source.textLayer?.getGlyphs() ?? [];
+	            if (ctx.source.kind === "snapshot/text") {
+	              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
+	              ctx.source.textLayer?.shaderInputs satisfies
+	                | WebGLEffectTextShaderInputs
+	                | undefined;
+	              ctx.source.textLayer?.shaderInputs.glyphs satisfies
+	                | readonly WebGLTextGlyph[]
+	                | undefined;
+	              const glyphs = ctx.source.textLayer?.getGlyphs() ?? [];
               glyphs satisfies readonly WebGLTextGlyph[];
               ctx.source.textLayer?.setGlyphs((entries) =>
                 entries.map((glyph) => ({
@@ -408,23 +508,60 @@ describe("public package exports", () => {
                   char: glyph.char,
                   scaleX: 1,
                   scaleY: 1,
-                  opacity: 1,
-                })),
-              );
-            }
+	                  opacity: 1,
+	                })),
+	              );
+	              ctx.source.textLayer satisfies WebGLEffectMaterialLayerHost | undefined;
+	            }
 
-            if (ctx.source.kind === "image") {
-              ctx.source.image satisfies
-                | WebGLEffectTextureLayerHandle<HTMLImageElement>
-                | undefined;
-              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
-            }
+	            if (ctx.source.kind === "image") {
+	              ctx.source.image satisfies
+	                | WebGLEffectTextureLayerHandle<HTMLImageElement>
+	                | undefined;
+	              ctx.source.image?.shaderInputs satisfies
+	                | WebGLEffectMediaShaderInputs
+	                | undefined;
+	              ctx.source.image?.shaderInputs.naturalSize.width satisfies
+	                | number
+	                | undefined;
+	              ctx.source.image?.shaderInputs.uvTransform satisfies
+	                | WebGLEffectObjectFitShaderInput
+	                | undefined;
+	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
+	              ctx.source.image?.createMaterialLayer({
+	                key: "custom.imageShader",
+	                program: {
+	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+	                  uniforms: {
+	                    imageMap: {
+	                      kind: "image-texture",
+	                      source: ctx.source.element,
+	                    } satisfies WebGLEffectTextureUniform,
+	                  },
+	                },
+	              });
+	            }
 
-            if (ctx.source.kind === "video") {
-              ctx.source.video satisfies WebGLEffectVideoLayerHandle | undefined;
-              ctx.source.video?.setMuted(true);
-              ctx.source.video?.setPlaybackRate(1);
-            }
+	            if (ctx.source.kind === "video") {
+	              ctx.source.video satisfies WebGLEffectVideoLayerHandle | undefined;
+	              ctx.source.video?.shaderInputs satisfies
+	                | WebGLEffectMediaShaderInputs
+	                | undefined;
+	              ctx.source.video?.setMuted(true);
+	              ctx.source.video?.setPlaybackRate(1);
+	              ctx.source.video?.createMaterialLayer({
+	                key: "custom.videoShader",
+	                program: {
+	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+	                  uniforms: {
+	                    videoMap: {
+	                      kind: "video-texture",
+	                      source: ctx.source.element,
+	                    },
+	                  },
+	                },
+	              });
+	            }
 
             if (ctx.source.kind === "model/glb") {
               ctx.source.model satisfies WebGLEffectRenderableHandle;
@@ -434,8 +571,9 @@ describe("public package exports", () => {
         });
 
         sourceCapabilityEffect satisfies WebGLEffectDefinition;
-        ({ repeatX: 1, offsetY: 0 }) satisfies WebGLEffectTextureTransform;
-        ({ index: 0, char: "A" }) satisfies WebGLTextGlyphRenderCommand;
+	        ({ repeatX: 1, offsetY: 0 }) satisfies WebGLEffectTextureTransform;
+	        ({ kind: "canvas-texture", source: document.createElement("canvas") }) satisfies WebGLEffectUniformValue;
+	        ({ index: 0, char: "A" }) satisfies WebGLTextGlyphRenderCommand;
         declare const drawer: WebGLEffectCanvasDrawer;
         drawer satisfies WebGLEffectCanvasDrawer;
         declare const style: WebGLTextLayerStyle;

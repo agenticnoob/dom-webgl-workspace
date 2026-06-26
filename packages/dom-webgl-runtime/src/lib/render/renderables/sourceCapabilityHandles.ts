@@ -1,6 +1,10 @@
 import type {
   WebGLEffectCanvasDrawer,
   WebGLEffectCanvasSurfaceHandle,
+  WebGLEffectContentBoxShaderInput,
+  WebGLEffectMediaShaderInputs,
+  WebGLEffectObjectFitShaderInput,
+  WebGLEffectSourceTextureShaderInput,
   WebGLEffectTextLayerHandle,
   WebGLEffectTextureLayerHandle,
   WebGLEffectTextureTransform,
@@ -9,7 +13,9 @@ import type {
   WebGLTextGlyphRenderCommand,
   WebGLTextLayerStyle,
 } from "../../effects/effectAuthoring";
+import { Texture } from "three/src/textures/Texture.js";
 
+import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
 
 export type CanvasSurfaceCapabilityOptions = {
@@ -20,13 +26,18 @@ export type CanvasSurfaceCapabilityOptions = {
   context: CanvasRenderingContext2D | null;
   texture: unknown;
   getSize(): { width: number; height: number; devicePixelRatio: number };
+  getShaderInputs?(): WebGLEffectCanvasSurfaceHandle["shaderInputs"];
   invalidate(): void;
 };
 
-export type TextLayerCapabilityOptions = CanvasSurfaceCapabilityOptions & {
+export type TextLayerCapabilityOptions = Omit<
+  CanvasSurfaceCapabilityOptions,
+  "getShaderInputs"
+> & {
   getText(): string;
   getStyle(): WebGLTextLayerStyle;
   getGlyphs(): readonly WebGLTextGlyph[];
+  getShaderInputs?(): WebGLEffectTextLayerHandle["shaderInputs"];
   setText(text: string): void;
   setGlyphs?(
     transform: (
@@ -44,6 +55,7 @@ export type TextureLayerCapabilityOptions<
   texture: unknown;
   source: TSource;
   setTextureTransform?(transform: WebGLEffectTextureTransform): void;
+  getShaderInputs?(): WebGLEffectMediaShaderInputs;
   invalidate(): void;
 };
 
@@ -60,6 +72,19 @@ export function createCanvasSurfaceCapabilityHandle(
     texture: options.texture,
     mesh: options.mesh,
     material: options.material,
+    get shaderInputs() {
+      return (
+        options.getShaderInputs?.() ??
+        createSurfaceShaderInputs(options.getSize(), options.texture)
+      );
+    },
+    createMaterialLayer(layerOptions) {
+      return createMaterialLayer({
+        ...layerOptions,
+        target: createMaterialTarget(options.mesh, options.material),
+        sourceTexture: readSourceTexture(options.texture),
+      });
+    },
     clear() {
       clearCanvas(options);
       markTextureDirty(options.texture, options.invalidate);
@@ -86,6 +111,16 @@ export function createTextLayerCapabilityHandle(
     },
     get style() {
       return options.getStyle();
+    },
+    get shaderInputs() {
+      return (
+        options.getShaderInputs?.() ?? {
+          ...createSurfaceShaderInputs(options.getSize(), options.texture),
+          text: options.getText(),
+          style: options.getStyle(),
+          glyphs: options.getGlyphs(),
+        }
+      );
     },
     getGlyphs() {
       return options.getGlyphs();
@@ -118,6 +153,16 @@ export function createTextureLayerCapabilityHandle<
     texture: options.texture,
     mesh: options.mesh,
     material: options.material,
+    get shaderInputs() {
+      return options.getShaderInputs?.() ?? createMediaShaderInputs(options);
+    },
+    createMaterialLayer(layerOptions) {
+      return createMaterialLayer({
+        ...layerOptions,
+        target: createMaterialTarget(options.mesh, options.material),
+        sourceTexture: readSourceTexture(options.texture),
+      });
+    },
     setTextureTransform(transform) {
       if (options.setTextureTransform) {
         options.setTextureTransform(transform);
@@ -136,9 +181,14 @@ export function createTextureLayerCapabilityHandle<
 export function createVideoLayerCapabilityHandle(
   options: TextureLayerCapabilityOptions<HTMLVideoElement>,
 ): WebGLEffectVideoLayerHandle {
+  const textureHandle = createTextureLayerCapabilityHandle(options);
+
   return {
-    ...createTextureLayerCapabilityHandle(options),
+    ...textureHandle,
     source: options.source,
+    get shaderInputs() {
+      return textureHandle.shaderInputs;
+    },
     play() {
       return options.source.play();
     },
@@ -268,4 +318,108 @@ function markTextureDirty(texture: unknown, invalidate: () => void): void {
     (texture as { needsUpdate?: boolean }).needsUpdate = true;
   }
   invalidate();
+}
+
+function createMaterialTarget(
+  mesh: unknown,
+  material: unknown,
+): { material: unknown } {
+  if (mesh && typeof mesh === "object" && "material" in mesh) {
+    return mesh as { material: unknown };
+  }
+
+  return { material };
+}
+
+function readSourceTexture(texture: unknown): Texture | undefined {
+  return texture instanceof Texture ? texture : undefined;
+}
+
+function createSurfaceShaderInputs(
+  size: { width: number; height: number; devicePixelRatio: number },
+  texture: unknown,
+): WebGLEffectCanvasSurfaceHandle["shaderInputs"] {
+  return {
+    size,
+    contentBox: createContentBox(size.width, size.height),
+    sourceTexture: createSourceTextureShaderInput(
+      readSourceTexture(texture) !== undefined,
+      size.width,
+      size.height,
+      size.devicePixelRatio,
+    ),
+  };
+}
+
+function createMediaShaderInputs<
+  TSource extends HTMLImageElement | HTMLVideoElement,
+>(
+  options: TextureLayerCapabilityOptions<TSource>,
+): WebGLEffectMediaShaderInputs {
+  const naturalSize = readNaturalSize(options.source);
+  const style = options.source.style;
+
+  return {
+    naturalSize,
+    contentBox: createContentBox(naturalSize.width, naturalSize.height),
+    uvTransform: createObjectFitShaderInput(),
+    objectFit: style.objectFit || "fill",
+    objectPosition: style.objectPosition || "50% 50%",
+    sourceTexture: createSourceTextureShaderInput(
+      readSourceTexture(options.texture) !== undefined,
+      naturalSize.width,
+      naturalSize.height,
+    ),
+  };
+}
+
+function createContentBox(
+  width: number,
+  height: number,
+): WebGLEffectContentBoxShaderInput {
+  return { x: 0, y: 0, width, height };
+}
+
+function createObjectFitShaderInput(
+  transform: WebGLEffectTextureTransform = {},
+): WebGLEffectObjectFitShaderInput {
+  return {
+    repeatX: transform.repeatX ?? 1,
+    repeatY: transform.repeatY ?? 1,
+    offsetX: transform.offsetX ?? 0,
+    offsetY: transform.offsetY ?? 0,
+  };
+}
+
+function createSourceTextureShaderInput(
+  available: boolean,
+  width: number,
+  height: number,
+  devicePixelRatio?: number,
+): WebGLEffectSourceTextureShaderInput {
+  return {
+    available,
+    uniform: "source-texture",
+    width,
+    height,
+    ...(devicePixelRatio === undefined ? {} : { devicePixelRatio }),
+  };
+}
+
+function readNaturalSize(source: HTMLImageElement | HTMLVideoElement): {
+  width: number;
+  height: number;
+} {
+  if ("naturalWidth" in source && source.naturalWidth && source.naturalHeight) {
+    return { width: source.naturalWidth, height: source.naturalHeight };
+  }
+
+  if ("videoWidth" in source && source.videoWidth && source.videoHeight) {
+    return { width: source.videoWidth, height: source.videoHeight };
+  }
+
+  return {
+    width: source.width || source.clientWidth || 1,
+    height: source.height || source.clientHeight || 1,
+  };
 }

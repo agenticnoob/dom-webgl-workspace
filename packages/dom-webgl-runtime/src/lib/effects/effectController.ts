@@ -10,6 +10,7 @@ import type {
   WebGLEffectDefinition,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
+  WebGLEffectVisualContext,
 } from "./effectAuthoring";
 import { createWebGLEffectContext, readScrollProgress } from "./effectContext";
 import { compileWebGLEffectDeclarations } from "./effectDeclaration";
@@ -36,6 +37,7 @@ export type WebGLEffectControllerOptions = {
   getTarget?(): WebGLEffectTarget | undefined;
   registry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
+  visual?: WebGLEffectVisualContext;
 };
 
 type RunningEffect = {
@@ -121,6 +123,7 @@ export function createWebGLEffectController(
             target,
             resources: effect.resources,
             progressSignals: options.progressSignals,
+            visual: options.visual,
           });
           effect.reusableContext = context;
         }

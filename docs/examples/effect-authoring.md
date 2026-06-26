@@ -52,7 +52,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 Do not import:
 
 ```ts
-import ... from "@project/dom-webgl-runtime/effects";
+import ... from "<runtime-package>/effects";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "../demo/src/demoEffects";
 ```
@@ -157,6 +157,45 @@ Then pass the stable array to React:
 <WebGLRuntime effects={exampleEffects}>{children}</WebGLRuntime>
 ```
 
+For shader/material effects, keep the same authoring model and use public
+handles:
+
+```ts
+const ghostCursorEffect = defineWebGLEffect({
+  kind: "example.surfaceGhostCursor",
+  source: "snapshot/element",
+  setup(ctx) {
+    if (ctx.source.kind !== "snapshot/element") return;
+
+    return ctx.source.surface?.createMaterialLayer({
+      key: "example.surfaceGhostCursor",
+      mode: "replace-source",
+      sourceTextureUniform: "uSource",
+      program: {
+        fragmentShader: "...",
+        uniforms: {
+          uSource: { kind: "source-texture" },
+          uPointer: [ctx.layout.width / 2, ctx.layout.height / 2],
+        },
+      },
+    });
+  },
+  update(ctx, layer) {
+    layer?.setUniforms({
+      uPointer: [ctx.pointer.x - ctx.layout.left, ctx.pointer.y - ctx.layout.top],
+      uTime: ctx.time,
+    });
+  },
+  dispose(_ctx, layer) {
+    layer?.dispose();
+  },
+});
+```
+
+`apps/example` uses this pattern for Ghost Cursor: no-pointer smoke stays nearly
+invisible on the dark stage, and pointer input only activates target-local
+emissive smoke around the cursor.
+
 ## Declare Targets
 
 Target declarations carry data only:
@@ -189,9 +228,9 @@ definition is missing, the target declaration has no executable effect.
 - `example.surfaceVideoBackground`: draws `/example/bg.mp4` onto the element
   snapshot surface as a muted looping effect-owned background texture.
 - `example.surfaceGhostCursor`: draws a ReactBits-inspired dark smoke stage on
-  the element snapshot surface. The smoke field exists by default and moves on
-  runtime time; the current target's local pointer only controls the purple
-  spotlight, which fades at the last local position after leaving the target.
+  the element snapshot surface. The no-pointer smoke field is intentionally
+  nearly invisible; the current target's local pointer activates cursor-local
+  emissive smoke that fades at the last local position after leaving the target.
 - `example.surfaceWaves`: draws a ReactBits-inspired pointer-reactive line wave
   background on the element snapshot surface. Pointer displacement applies only
   while the pointer is inside that target rect.

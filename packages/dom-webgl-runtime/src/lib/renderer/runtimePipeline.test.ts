@@ -13,6 +13,7 @@ import type {
 import type { WebGLFrameInput, WebGLScrollAdapter } from "../types";
 import type { createWebGLRuntime, WebGLRuntime } from "./runtime";
 import type { ThreeRendererHost } from "./threeRenderer";
+import { createPostprocessController, type PostprocessController } from "./postprocessController";
 
 type ElementMeasurement = {
   x: number;
@@ -42,6 +43,7 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
     consumeDirtyKeys(): Set<string>;
     dispose(): void;
   };
+  postprocessController?: PostprocessController;
 };
 
 type RuntimeWithPipelineSurface = WebGLRuntime & {
@@ -474,6 +476,55 @@ describe("runtime pipeline sync", () => {
     expect(mesh.material?.opacity).toBe(0.84);
     expect(mesh.rotation?.x).toBeCloseTo(0.0436332313);
     expect(mesh.rotation?.y).toBeCloseTo(0.0872664626);
+
+    runtime.dispose();
+  });
+
+  test("passes controlled postprocess requests through the effect visual context", async () => {
+    const postprocessController = createPostprocessController();
+    const runtime = await createPipelineRuntime({
+      postprocessController,
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.postprocess",
+          source: "snapshot/element",
+          setup(ctx) {
+            return ctx.visual.requestPostprocess({
+              key: "custom.glow",
+              bloom: { strength: 0.4 },
+            });
+          },
+          update(_ctx, handle) {
+            handle.update({
+              key: "custom.glow",
+              bloom: { strength: 0.8 },
+              blur: { radius: 0.2 },
+            });
+          },
+        }),
+      ],
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "postprocess.surface",
+      source: { kind: "snapshot", mode: "element" },
+      effects: [{ kind: "custom.postprocess" }],
+    });
+
+    await runtime.sync();
+
+    expect(postprocessController.inspectRequests()).toEqual([
+      {
+        key: "custom.glow",
+        bloom: { strength: 0.8 },
+        blur: { radius: 0.2 },
+      },
+    ]);
+
+    runtime.unregisterTarget("postprocess.surface");
+
+    expect(postprocessController.inspectRequests()).toEqual([]);
 
     runtime.dispose();
   });
