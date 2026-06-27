@@ -24,11 +24,11 @@ npm run build --workspace @project/dom-webgl-example
 The example ships its own static assets under `apps/example/public`. The React
 app references
 `/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
-`/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
-example public directory. `/example/bg-sequence` is the compressed image
-sequence used by the pinned runtime `image-sequence` source; the current
-checked-in sequence is 454 WebP frames at 1600x900, 12fps extraction, and
-about 141MB total.
+`/example/image.png`, `/example/show.png`, `/example/mask.png`,
+`/example/video.mp4`, and `/models/hero.glb` from that example public
+directory. `/example/bg-sequence` is the compressed image sequence used by the
+pinned runtime `image-sequence` source; the current checked-in sequence is 454
+WebP frames at 1600x900, 12fps extraction, and about 141MB total.
 
 ## Layout Contract
 
@@ -248,10 +248,45 @@ definition is missing, the target declaration has no executable effect.
 - `example.imageZoom`: drives target scale for an image renderable.
 - `example.imageKenBurns`: combines image texture sampling drift with target
   scale for a slow camera move.
+- `example.imageHoverReveal`: creates a media image material layer that samples
+  the current source texture and a second image texture at matching UVs, then
+  leaves a short-lived irregular eraser trail that reveals the second image
+  before the whole trail fades back to the base texture together. The example
+  stores the brush result in an app-owned mask canvas texture instead of a
+  finite point-uniform trail, so long strokes do not lose their oldest segment.
+  It only restarts the fade timer after real pointer movement, not merely while
+  the pointer is stationary inside the target, and it bakes the current fade
+  into the mask before drawing a resumed stroke so old reveal areas do not snap
+  back to full opacity.
 - `example.videoPlayback`: mutes, slows, and starts a video texture.
 - `example.videoDrift`: applies a live transform to a video texture.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
+
+### Image Hover Reveal Implementation Notes
+
+`example.imageHoverReveal` is intentionally consumer-owned. It uses only the
+public `media/image` source handle, `createMaterialLayer(...)`, and texture
+uniform declarations:
+
+- `uBaseTexture` is the runtime-owned source image texture.
+- `uRevealTexture` is a second app image (`/example/mask.png`).
+- `uMaskTexture` is an app-owned canvas texture updated by the effect.
+
+The mask canvas records pointer strokes in target-local coordinates. The shader
+does not receive `uTrailPoints`/`uTrailCount`, because a bounded point array
+acts like a sliding window and makes long strokes disappear from the tail. The
+canvas brush draws layered irregular polygons instead of a radial circle
+gradient, which keeps the eraser edge from reading as a perfect round cursor.
+
+Fade behavior is part of the consuming effect contract:
+
+- the fade starts when pointer movement stops, even if the pointer remains
+  inside the target;
+- when movement resumes during a fade, the effect first applies the current
+  opacity to the existing mask with `destination-in`, then draws the new full
+  strength stroke;
+- once the fade reaches zero, the mask canvas is cleared.
 
 The pinned scrub row now dogfoods runtime `source: { kind: "media", type: "image-sequence" }`.
 `ScrollEffectSection` owns the progress key, and the WebGL target declares

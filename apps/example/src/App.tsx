@@ -144,6 +144,32 @@ export default function App() {
           </section>
 
           <section className="example-row">
+            <EffectDescription source="media/image" title="图片悬停叠层">
+              像橡皮擦一样划开秋景，经过的位置短暂显露绿景纹理后慢慢恢复。
+            </EffectDescription>
+            <WebGLTarget
+              as="img"
+              className="example-media example-media-wide"
+              src="/example/show.png"
+              alt="图片悬停叠层示例"
+              webgl={{
+                key: "example.image.hover-reveal",
+                source: { kind: "media", type: "image", src: "/example/show.png" },
+                effects: [
+                  {
+                    kind: "example.imageHoverReveal",
+                    revealSrc: "/example/mask.png",
+                    radius: 132,
+                    feather: 42,
+                    restoreMs: 2200,
+                    roughness: 0.26,
+                  },
+                ],
+              }}
+            />
+          </section>
+
+          <section className="example-row">
             <EffectDescription source="media/video" title="视频播放">
               通过 video capability handle 配置静音、播放和播放速度。
             </EffectDescription>

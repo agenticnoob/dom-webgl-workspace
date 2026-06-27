@@ -117,6 +117,10 @@ Effect tests should cover:
 - `setup` creates resources once;
 - `update` uses `ctx.delta` or `ctx.time`, not frame counts;
 - target-local pointer math maps through `ctx.layout`;
+- pointer-driven effects specify idle behavior separately from pointer-inside
+  state, especially when the pointer stops moving inside the target;
+- resumed interactions during fade-out do not unintentionally reset old effect
+  state to full strength;
 - `dispose` releases effect-owned resources and restores source mutations.
 
 Repository verification:

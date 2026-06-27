@@ -290,7 +290,9 @@ The current downstream-style React example lives in `apps/example`.
 - Source code: `apps/example/src/App.tsx`,
   `apps/example/src/SnapshotElementExamples.tsx`,
   `apps/example/src/exampleEffects.ts`, and
-  `apps/example/src/surfaceEffects.ts`.
+  `apps/example/src/surfaceEffects.ts`,
+  `apps/example/src/textEffects.ts`, `apps/example/src/mediaEffects.ts`, and
+  `apps/example/src/modelEffects.ts`.
 - Visible page explanations are Chinese; source kinds and effect kind strings
   remain English API data.
 - The example is the dogfood surface for package usage and effect authoring,
@@ -847,6 +849,13 @@ skill:
   effects like ReactBits Waves still redraw while pointer-out because the Perlin
   wave field keeps moving; do not cache them static just because the pointer
   left.
+- Pointer-driven reveal effects that must preserve long strokes should keep
+  accumulated shape in consumer-owned state such as a mask canvas texture rather
+  than a bounded point-uniform window. Define stationary-hover semantics
+  explicitly: if the pointer stops moving inside the target, decide whether the
+  fade timer advances. When a user resumes movement during fade-out, bake the
+  current fade into old mask content before drawing new full-strength strokes so
+  partially restored areas do not snap back.
 - If the user says they will do visual QA, do not claim browser visual
   verification. Run automated tests/typecheck/build as requested, and document
   visual QA as user-owned.

@@ -111,9 +111,9 @@ Current example behavior:
   `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.imagePan`, `example.imageZoom`,
-  `example.imageKenBurns`, `example.videoPlayback`, `example.videoDrift`,
-  `example.modelSpin`, and `example.modelFloat`, plus the pinned-scroll
-  `example.pinnedReveal`.
+  `example.imageKenBurns`, `example.imageHoverReveal`,
+  `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
+  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing
@@ -132,7 +132,13 @@ Current example behavior:
 - The text, image, video, and image-sequence buckets include taller specimen rows for richer
   motion examples: `example.textSpotlight` uses target-local pointer distance
   to recolor glyph output, `example.imageKenBurns` combines image texture
-  sampling drift with target scale, and the pinned scrub specimen dogfoods
+  sampling drift with target scale, `example.imageHoverReveal` uses a media
+  image material layer and an app-owned mask canvas texture as an irregular
+  eraser trail that reveals `/example/mask.png` over `/example/show.png`.
+  The trail fades after pointer movement stops, even while the pointer remains
+  inside the target, and resumed movement bakes the current fade into the mask
+  before drawing the next stroke so older restored regions do not snap back to
+  full reveal. The pinned scrub specimen dogfoods
   runtime `source: { kind: "media", type: "image-sequence" }` with
   consumer-preloaded `/example/bg-sequence/frame_*.webp` resources so scroll
   progress selects already-ready WebGL texture frames.

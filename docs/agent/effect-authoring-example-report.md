@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-06-27 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, and app-owned resource scheduling notes.
+Updated: 2026-06-28 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, app-owned resource scheduling notes, and the image hover reveal mask-canvas implementation.
 
 ## Summary
 
@@ -22,9 +22,9 @@ The current `dom/element` bucket also includes app-owned video background,
 ghost cursor, and waves examples implemented through `ctx.source.surface`
 instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
-`example.textSpotlight`, `example.imageKenBurns`, and a runtime
-`media/image-sequence` pinned scrub row that consumes frames loaded by the
-example app.
+`example.textSpotlight`, `example.imageKenBurns`, `example.imageHoverReveal`,
+and a runtime `media/image-sequence` pinned scrub row that consumes frames
+loaded by the example app.
 
 ## What Worked
 
@@ -41,7 +41,14 @@ example app.
   target-local pointer data and alter only color, opacity, and scale.
 - The image/video texture handles cover richer media examples without new
   package API: `example.imageKenBurns` combines sampling drift with target scale,
-  while the pinned scrub row uses runtime
+  and `example.imageHoverReveal` uses the public media image material-layer host
+  to mix the source texture with a consumer-owned second image texture through
+  a target-local irregular eraser trail. The final hover reveal implementation
+  keeps stroke shape in an app-owned mask canvas texture rather than a bounded
+  `vec2[]` point trail, starts fading when pointer movement stops even if the
+  pointer remains inside the target, and bakes partially faded mask opacity
+  before drawing resumed strokes so old areas do not jump back to full reveal.
+  The pinned scrub row uses runtime
   `source: { kind: "media", type: "image-sequence" }` to
   drive WebGL texture frames from adapter progress.
 - Image-sequence resource ownership is clearer when kept at the consumer

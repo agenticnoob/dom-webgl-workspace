@@ -17,6 +17,7 @@ describe("example effect catalog", () => {
       "example.imagePan",
       "example.imageZoom",
       "example.imageKenBurns",
+      "example.imageHoverReveal",
       "example.videoPlayback",
       "example.videoDrift",
       "example.modelSpin",
@@ -47,6 +48,14 @@ describe("example effect catalog", () => {
       kind: "example.imageKenBurns",
       distance: 0.16,
       maxScale: 1.22,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.imageHoverReveal",
+      revealSrc: "/example/mask.png",
+      radius: 132,
+      feather: 42,
+      restoreMs: 2200,
+      roughness: 0.26,
     });
   });
 });

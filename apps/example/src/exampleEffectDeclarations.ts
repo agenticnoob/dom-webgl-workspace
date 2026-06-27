@@ -13,6 +13,13 @@ export type ExampleEffectParams = {
   "example.imagePan": { distance?: number };
   "example.imageZoom": { maxScale?: number };
   "example.imageKenBurns": { distance?: number; maxScale?: number };
+  "example.imageHoverReveal": {
+    revealSrc?: string;
+    radius?: number;
+    feather?: number;
+    restoreMs?: number;
+    roughness?: number;
+  };
   "example.videoPlayback": { playbackRate?: number };
   "example.videoDrift": { distance?: number };
   "example.modelSpin": { speed?: number };
@@ -32,6 +39,14 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.imagePan", distance: 0.2 },
   { kind: "example.imageZoom", maxScale: 1.36 },
   { kind: "example.imageKenBurns", distance: 0.16, maxScale: 1.22 },
+  {
+    kind: "example.imageHoverReveal",
+    revealSrc: "/example/mask.png",
+    radius: 132,
+    feather: 42,
+    restoreMs: 2200,
+    roughness: 0.26,
+  },
   { kind: "example.videoPlayback", playbackRate: 0.8 },
   { kind: "example.videoDrift", distance: 0.12 },
   { kind: "example.modelSpin", speed: 0.25 },

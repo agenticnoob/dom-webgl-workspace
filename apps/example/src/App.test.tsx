@@ -172,7 +172,7 @@ describe("effect authoring example app", () => {
     expect(scrollRuntimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
     expect(host.querySelector('[data-testid="example-scroll-runtime"]')).not.toBeNull();
     expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(17);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(18);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
     const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
@@ -180,7 +180,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       firstDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(16);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(17);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
     expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
 
@@ -189,10 +189,10 @@ describe("effect authoring example app", () => {
     await act(async () => {
       expandedDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(17);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(18);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-17);
+    const finalTargetProps = targetProps.slice(-18);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -206,6 +206,7 @@ describe("effect authoring example app", () => {
       "example.image.pan",
       "example.image.zoom",
       "example.image.ken-burns",
+      "example.image.hover-reveal",
       "example.video.playback",
       "example.video.drift",
       "example.image-sequence.scrub",
@@ -222,6 +223,7 @@ describe("effect authoring example app", () => {
       "p",
       "p",
       "p",
+      "img",
       "img",
       "img",
       "img",
@@ -244,6 +246,7 @@ describe("effect authoring example app", () => {
       { kind: "media", type: "image", src: "/example/image.png" },
       { kind: "media", type: "image", src: "/example/image.png" },
       { kind: "media", type: "image", src: "/example/bg.png" },
+      { kind: "media", type: "image", src: "/example/show.png" },
       { kind: "media", type: "video", src: "/example/video.mp4" },
       { kind: "media", type: "video", src: "/example/video.mp4" },
       {
@@ -269,6 +272,7 @@ describe("effect authoring example app", () => {
       "example.imagePan",
       "example.imageZoom",
       "example.imageKenBurns",
+      "example.imageHoverReveal",
       "example.videoPlayback",
       "example.videoPlayback",
       undefined,
@@ -276,9 +280,9 @@ describe("effect authoring example app", () => {
       "example.modelFloat",
       "example.pinnedReveal",
     ]);
-    expect(finalTargetProps[12]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[13]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
-    expect(finalTargetProps[13]?.webgl.lifecycle).toEqual({
+    expect(finalTargetProps[14]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
@@ -305,7 +309,7 @@ describe("effect authoring example app", () => {
     expect(pinnedSection).not.toBeNull();
     expect(postPinnedRunway).not.toBeNull();
     expect(pinnedSection?.nextElementSibling).toBe(postPinnedRunway);
-    expect(finalTargetProps[16]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
@@ -314,7 +318,7 @@ describe("effect authoring example app", () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[16];
+    const firstPinnedTarget = finalTargetProps[17];
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");
     expect(secondPinnedTarget?.webgl.effects).toBe(firstPinnedTarget?.webgl.effects);

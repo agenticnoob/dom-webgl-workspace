@@ -67,10 +67,14 @@ runtime, React, and optional scroll-adapter entrypoints; dogfoods
 `WebGLScrollRuntime`, `ScrollEffectSection`, stable `progressKey` data, and
 effect reads through `ctx.progress.get(progressKey)`; and defines local
 consumer-owned effects for surfaces, text, media, models, and pinned progress.
-The pinned scrub specimen passes a full-length consumer-owned `frames` array to
-`source: { kind: "media", type: "image-sequence" }`, while the runtime only
-selects the active texture frame. The example records current authoring friction
-in `docs/agent/effect-authoring-example-report.md`.
+The `example.imageHoverReveal` media image specimen dogfoods material layers
+with an app-owned mask canvas texture: the effect reveals `/example/mask.png`
+over `/example/show.png`, fades after pointer movement stops even if the pointer
+remains inside the target, and bakes old fade opacity before drawing resumed
+strokes. The pinned scrub specimen passes a full-length consumer-owned `frames`
+array to `source: { kind: "media", type: "image-sequence" }`, while the runtime
+only selects the active texture frame. The example records current authoring
+friction in `docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.

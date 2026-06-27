@@ -12,6 +12,7 @@ export {
 } from "./textEffects";
 export { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 export {
+  exampleImageHoverRevealEffect,
   exampleImagePanEffect,
   exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
@@ -28,6 +29,7 @@ export {
 } from "./exampleEffectDeclarations";
 
 import {
+  exampleImageHoverRevealEffect,
   exampleImagePanEffect,
   exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
@@ -62,6 +64,7 @@ export const exampleEffects = [
   exampleImagePanEffect,
   exampleImageZoomEffect,
   exampleImageKenBurnsEffect,
+  exampleImageHoverRevealEffect,
   exampleVideoPlaybackEffect,
   exampleVideoDriftEffect,
   exampleModelSpinEffect,
