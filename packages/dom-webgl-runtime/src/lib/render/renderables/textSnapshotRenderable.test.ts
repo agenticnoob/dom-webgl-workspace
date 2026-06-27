@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLSnapshotSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLDOMSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createTextSnapshotRenderable } from "./textSnapshotRenderable";
 
@@ -53,7 +53,8 @@ describe("createTextSnapshotRenderable", () => {
     });
     expect(renderable.status).toBe("ready");
     expect(renderable.effectSource).toMatchObject({
-      kind: "snapshot/text",
+      kind: "dom",
+      type: "text",
       text: "Hello WebGL text",
       textLayer: expect.objectContaining({
         canvas: expect.any(HTMLCanvasElement),
@@ -349,10 +350,10 @@ function createCanvasContextStub({
 
 function createTextSnapshotDescriptor(
   element: HTMLElement,
-): WebGLSnapshotSourceDescriptor {
+): WebGLDOMSourceDescriptor {
   return {
-    kind: "snapshot",
-    mode: "text",
+    kind: "dom",
+    type: "text",
     element,
   };
 }

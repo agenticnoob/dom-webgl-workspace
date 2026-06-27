@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLVideoSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaVideoSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createVideoRenderable } from "./videoRenderable";
 
@@ -62,7 +62,9 @@ describe("createVideoRenderable", () => {
     expect(renderable.resourceReady).toBe(true);
     expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.effectSource).toMatchObject({
-      kind: "video",
+      kind: "media",
+      type: "video",
+      element: source.anchor,
       src: "/assets/hero.mp4",
       video: expect.objectContaining({
         source: source.element,
@@ -146,7 +148,7 @@ describe("createVideoRenderable", () => {
 
     const mediaMesh = readMediaMesh(sceneAdapter.objects[0]?.object3D);
     const effectSource = renderable.effectSource;
-    if (effectSource?.kind !== "video") {
+    if (effectSource?.kind !== "media" || effectSource.type !== "video") {
       throw new Error("Expected video effect source.");
     }
     const videoInputs = effectSource.video?.shaderInputs;
@@ -250,7 +252,7 @@ describe("createVideoRenderable", () => {
     expect(mediaMesh?.position).toMatchObject({ x: 0, y: 0, z: 1 });
   });
 
-  test("pauses video playback when inactive and when disposed", () => {
+  test("pauses loaded video playback when inactive and when disposed", async () => {
     const source = createVideoDescriptor("/assets/hero.mp4");
     const descriptor = createTargetDescriptor(
       source.element,
@@ -274,10 +276,14 @@ describe("createVideoRenderable", () => {
       },
     );
 
+    const update = renderable.update();
+    source.element.dispatchEvent(new Event("loadeddata"));
+    await update;
+
     renderable.setVisible(false);
 
     expect(pause).toHaveBeenCalledTimes(1);
-    expect(sceneAdapter.objects[0]?.visible).toBeUndefined();
+    expect(sceneAdapter.objects[0]?.visible).toBe(false);
 
     renderable.dispose();
     renderable.dispose();
@@ -285,6 +291,50 @@ describe("createVideoRenderable", () => {
     expect(pause).toHaveBeenCalledTimes(2);
     expect(renderable.status).toBe("disposed");
     expect(resourceManager.inspect("video:element-1:/assets/hero.mp4")).toBeUndefined();
+  });
+
+  test("uses the anchor element for layout and an off-DOM video for media texture", async () => {
+    const anchor = document.createElement("section");
+    const source = {
+      kind: "media",
+      type: "video",
+      anchor,
+      src: "/hero.mp4",
+      playback: { muted: true, loop: true, playsInline: true },
+    } satisfies WebGLMediaVideoSourceDescriptor;
+    const descriptor = createTargetDescriptor(anchor, { key: "hero.video" }, 0);
+    const sceneAdapter = createSceneAdapter();
+
+    const renderable = createVideoRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+        loadVideo: async () => {
+          const video = document.createElement("video");
+          video.src = "/hero.mp4";
+          return video;
+        },
+      },
+    );
+
+    await renderable.update();
+
+    expect(sceneAdapter.objects[0]?.textureSource).toBeInstanceOf(HTMLVideoElement);
+    expect(sceneAdapter.objects[0]?.lastLayout).toBeUndefined();
+    renderable.updateLayout?.(createMeasurement(0, 0, 100, 50));
+    expect(sceneAdapter.objects[0]?.lastLayout).toEqual({
+      x: 50,
+      y: 575,
+      width: 100,
+      height: 50,
+    });
   });
 
   test("keeps fallback visible when the video resource fails", async () => {
@@ -453,12 +503,19 @@ function createMeasurement(
   };
 }
 
-function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
+type TestVideoSourceDescriptor = WebGLMediaVideoSourceDescriptor & {
+  anchor: HTMLVideoElement;
+  element: HTMLVideoElement;
+};
+
+function createVideoDescriptor(src: string): TestVideoSourceDescriptor {
   const element = document.createElement("video");
   element.src = src;
 
   return {
-    kind: "video",
+    kind: "media",
+    type: "video",
+    anchor: element,
     element,
     src,
   };

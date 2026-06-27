@@ -27,7 +27,7 @@ describe("WebGLTarget", () => {
     const runtime = createRuntimeStub();
     const webgl: WebGLDeclaration = {
       key: "hero.title",
-      source: { kind: "snapshot", mode: "text" },
+      source: { kind: "dom", type: "text" },
     };
     const { root, host } = createTestRoot();
 
@@ -133,7 +133,7 @@ describe("WebGLTarget", () => {
     const runtime = createRuntimeStub();
     const webgl: WebGLDeclaration = {
       key: "story.surface",
-      source: { kind: "snapshot", mode: "element" },
+      source: { kind: "dom", type: "element" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
     };
     const { root, host } = createTestRoot();

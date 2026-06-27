@@ -36,11 +36,12 @@ Phase 8 is implemented in
 `docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`:
 `defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
 API. Core registers no default visual effects, the package exports no concrete
-effect implementations, and demo/example effects are consumer-owned code.
+effect implementations, and example effects are consumer-owned code.
 Unified source capability handles are implemented in
 `docs/superpowers/plans/2026-06-21-unified-source-capability-handles.md`:
 custom effects can now control runtime-owned output handles for
-`snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` without
+`dom/element`, `dom/text`, `media/image`, `media/video`, `media/image-sequence`,
+and `model/glb` without
 mutating source DOM or reaching into renderer internals.
 The visual capability API in
 `docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md` is
@@ -61,47 +62,27 @@ in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 Project boundary:
 
 - This workspace implements a reusable open-source DOM WebGL runtime.
-- `apps/demo` is a public API consumer and validation surface, not a privileged
-  runtime input.
 - `apps/example` is a downstream consumer-style example for package usage and
-  effect authoring. It must not import demo source code or runtime internals.
-- Runtime/package implementation code must not hardcode demo target keys, demo
-  asset paths, demo DOM structure, demo layout, or demo copy.
+  effect authoring. It must not import runtime internals.
+- Runtime/package implementation code must not hardcode example target keys,
+  example asset paths, example DOM structure, example layout, or example copy.
 - `packages/dom-webgl-runtime/src/open-source-boundary.test.ts` guards runtime
-  source against demo-only literals.
+  source against app-specific coupling.
 
-Current demo behavior:
+Current runtime behavior:
 
-- React demo declares five base target categories through public APIs: element
-  snapshot, text snapshot, image, video, and GLB model. It also includes a
-  layout/content harness for transparent anchors, multiline text, object-fit
-  media, narrow viewport layout, a Phase 8 effect authoring harness, and extra
-  scroll-event marker targets for testing effect behavior across longer page
-  travel.
-- The first scroll marker uses a demo-owned `ScrollZoomImage` component:
-  `/demo/bg.png` is rendered as a full-bleed sticky image target, the demo's
-  opt-in Lenis + GSAP ticker stack feeds normalized page progress through the
-  local `useDemoSmoothScrollStack(...)` hook, and an overlaid gallery moves
-  horizontally while its image and caption items are declared as WebGL targets.
-  The demo owns the Lenis instance lifecycle, passes it to
-  `createLenisGsapScrollStack(...)` with `manageLenis: false`, and keeps the
-  optional adapter stack responsible only for runtime adapter subscriptions,
-  GSAP ticker wiring, and ScrollTrigger updates.
-- The default demo does not enable scene gates, so normal page scrolling cannot
-  be trapped by a demo gate lock. Scene-gate declarations remain covered by
-  dedicated runtime, React adapter, and public type tests.
 - Runtime registration, source inference, render role inference, renderable
   creation, resource lifecycle, debug state, page scroll state, scene gate state,
   scroll lock, and pointer state are wired.
 - The runtime owns one renderer-driven frame loop through the renderer host;
   React creates and disposes the runtime but does not own an animation-frame
   sync loop.
-- Element snapshots, text snapshots, images, videos, and GLB models now create
+- DOM element surfaces, DOM text surfaces, media images/videos/image sequences,
+  and GLB models now create
   runtime-owned visible scene objects in the single internal Three.js scene.
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
-- Demo assets are loaded from `apps/demo/public`.
 
 Current example behavior:
 
@@ -111,7 +92,8 @@ Current example behavior:
   entrypoints only.
 - The example registers a stable module-scope `exampleEffects` array and
   declares a full-width vertical catalog of targets across the public source
-  kinds: `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb`.
+  handles: `dom/element`, `dom/text`, `media/image`, `media/video`,
+  `media/image-sequence`, and `model/glb`.
 - The example page uses Chinese visible copy in reusable click-to-expand
   explanation overlays while keeping source kinds and effect kind identifiers in
   English as API data.
@@ -135,7 +117,7 @@ Current example behavior:
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing
-  the target or DOM child opacity. The same `snapshot/element` surface bucket
+  the target or DOM child opacity. The same `dom/element` surface bucket
   also includes `example.surfaceVideoBackground`, which draws `/example/bg.mp4`
   as a muted looping effect-owned background texture, plus ReactBits-inspired
   `example.surfaceGhostCursor` and `example.surfaceWaves` effects implemented
@@ -147,14 +129,14 @@ Current example behavior:
   ReactBits-style Canvas2D Perlin point grid: the ambient wave stays subtle, and
   target-local hover applies an immediate pointer impulse without moving the
   effect into packages.
-- The text, image, and video buckets include taller specimen rows for richer
+- The text, image, video, and image-sequence buckets include taller specimen rows for richer
   motion examples: `example.textSpotlight` uses target-local pointer distance
   to recolor glyph output, `example.imageKenBurns` combines image texture
   sampling drift with target scale, and the pinned scrub specimen dogfoods
-  runtime `source.kind: "image-sequence"` with
+  runtime `source: { kind: "media", type: "image-sequence" }` with
   consumer-preloaded `/example/bg-sequence/frame_*.webp` resources so scroll
   progress selects already-ready WebGL texture frames.
-- Runtime supports `source.kind: "image-sequence"` for frame-addressable media:
+- Runtime supports `source: { kind: "media", type: "image-sequence" }` for frame-addressable media:
   a target declares `frameCount`, `frames`, and optional `progressKey`.
   Consumers pass a full-length frame array; early frames may initially point to
   a ready preview frame while the app backfills real frames in place. Runtime
@@ -163,7 +145,7 @@ Current example behavior:
   assets in DOM order, limit image-sequence concurrency, then register the
   image-sequence target after the first usable frame is ready.
 - Example static assets are copied into `apps/example/public`; the example does
-  not rely on `apps/demo/public` being served at runtime.
+  not rely on any other app's public assets being served at runtime.
 - `docs/agent/effect-authoring-example-report.md` records friction found while
   using the public docs as a downstream consumer.
 
@@ -175,19 +157,17 @@ Current visual behavior:
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
 - Declared targets can request ordered effect declarations such as
-  `effects: [{ kind: "demo.surface" }, { kind: "demo.pointerTilt" }]` or a
-  demo-local GLB stack such as `{ kind: "demo.glbRotate" }` plus
-  `{ kind: "demo.glbVertexParticles" }`.
+  `effects: [{ kind: "example.surfaceFill" }, { kind: "example.textWave" }]`.
   Effects only run when the runtime receives matching definitions through
   runtime-level `effects`.
-- The demo-local GLB vertex particle effect hides the original GLB meshes after
-  sampling their vertices, renders only the point cloud, and uses pointer motion
-  to scatter particles only after the pointer hits a particle-sized local radius,
-  then springs them back to their source vertices. Pointer hits are mapped through
-  the current model target layout, so scrolling or a non-centered model rect does
-  not shift interaction toward the viewport center. The hit projection and
-  horizontal scatter impulse also account for the model's current y-axis
-  rotation, so interaction follows the visible rotating particle model.
+- The example-local GLB vertex particle effect hides the original GLB meshes
+  after sampling their vertices, renders only the point cloud, and uses pointer
+  motion to scatter particles only after the pointer hits a particle-sized local
+  radius, then springs them back to their source vertices. Pointer hits are
+  mapped through the current model target layout, so scrolling or a non-centered
+  model rect does not shift interaction toward the viewport center. The hit
+  projection and horizontal scatter impulse also account for the model's current
+  y-axis rotation, so interaction follows the visible rotating particle model.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -199,7 +179,8 @@ Current visual behavior:
 - DOM rects are measured in a batched runtime layout pass and projected into
   scene layout before renderables receive layout updates.
 - The internal canvas is a fixed viewport WebGL stage layer, not document-flow
-  content below the DOM scene or a layer constrained by the demo content width.
+  content below the DOM scene or a layer constrained by application content
+  width.
 - The runtime inserts the fixed canvas as the first child of its container and
   leaves author DOM after it, so `hideWhenReady: false` and undeclared DOM can
   remain visually native without an extra global DOM layer.
@@ -228,9 +209,9 @@ Current visual behavior:
   transforms.
 - Element snapshots remain transparent layout anchors unless an application or
   consumer-owned effect makes the target visibly WebGL-owned.
-- The demo's local `demoSurfaceEffect` renders a WebGL-owned surface from
-  declaration-owned opacity, and `demoPointerTiltEffect` consumes shared runtime
-  pointer frame input. They are examples in `apps/demo`, not package exports.
+- Example effects render WebGL-owned surfaces, text, media, and models through
+  public effect handles. They are examples in `apps/example`, not package
+  exports.
 - Text snapshots consume only the style information required to place and render
   text content, such as font, line height, padding, alignment, text spacing,
   white-space handling, and DPR.
@@ -256,7 +237,7 @@ Current visual behavior:
   visibility state.
 - WebGL-owned text should not sit behind a native semi-transparent DOM panel.
   For a WebGL-owned card or marker, make the parent an element snapshot surface
-  target with `hideMode: "self"` and put `snapshot/text` on the actual
+  target with `hideMode: "self"` and put `dom/text` on the actual
   text-bearing child element so the surface and text render in the same WebGL
   canvas ownership layer.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
@@ -285,8 +266,8 @@ Current visual behavior:
   and a DPR cap, batched layout reads, and separated layout, content, resource,
   and lifecycle boundaries before effect or animation work starts.
 - Phase 4 now keeps the foundation focused on cached resize/DPR adaptation,
-  geometry/layout alignment, placement-only style snapshots, transparent DOM
-  anchors, media content-box object-fit mapping, and a responsive demo harness.
+  geometry/layout alignment, placement-only DOM snapshots, transparent DOM
+  anchors, media content-box object-fit mapping, and the example harness.
   Do not expand this into full CSS fidelity; the next architecture step is an
   effect/material layer consuming DOM layout, content, scroll, pointer, and
   lifecycle state.
@@ -334,10 +315,11 @@ Capability matrix:
 
 | Source | Public capability |
 | --- | --- |
-| `snapshot/element` | canvas surface drawing plus `createMaterialLayer(...)` over the source texture |
-| `snapshot/text` | text/glyph controls, text shader inputs, and `createMaterialLayer(...)` over the text texture |
-| `image` | object-fit aware texture controls, media shader inputs, and `createMaterialLayer(...)` |
-| `video` | image capabilities plus playback controls |
+| `dom/element` | canvas surface drawing plus `createMaterialLayer(...)` over the source texture |
+| `dom/text` | text/glyph controls, text shader inputs, and `createMaterialLayer(...)` over the text texture |
+| `media/image` | object-fit aware texture controls, media shader inputs, and `createMaterialLayer(...)` |
+| `media/video` | image capabilities plus playback controls |
+| `media/image-sequence` | frame-addressable media texture controls |
 | `model/glb` | controlled mesh handles, material restore, sampled vertices, managed point layers |
 | runtime visual context | `ctx.visual.requestPostprocess(...)` for named bloom/grain/blur requests |
 
@@ -347,11 +329,12 @@ their own cleanup through `ctx.resources`; they do not receive raw renderer,
 scene, camera, `ShaderMaterial`, `Texture`, `EffectComposer`,
 `WebGLRenderTarget`, render-loop, pass ordering, or renderer-state handles.
 
-Source declarations keep media sources tied to their real DOM media element:
-`{ kind: "image" }` is for actual `<img>` targets, and `{ kind: "video" }` is
-for actual `<video>` targets. Non-media elements should use `snapshot`,
-`snapshot/text`, or `model/glb`; explicitly declaring `image` or `video` on a
-non-media element throws instead of falling back to a snapshot.
+Source declarations use one top-level source family plus a subtype:
+`{ kind: "dom", type: "element" | "text" }`,
+`{ kind: "media", type: "image" | "video" | "image-sequence" }`, or
+`{ kind: "model", type: "glb", src }`. Old explicit declarations
+(`snapshot/mode`, `image`, `video`, `image-sequence`, `model/format`) are not
+supported.
 
 Preferred declaration form:
 
@@ -372,7 +355,7 @@ import { createWebGLRuntime, defineWebGLEffect } from "@project/dom-webgl-runtim
 
 const appSurfaceEffect = defineWebGLEffect({
   kind: "app.surface",
-  source: "snapshot/element",
+  source: "dom/element",
   update(context, _state, params) {
     context.target?.setVisible(true);
     context.target?.setOpacity(params.opacity ?? 1);
@@ -443,7 +426,7 @@ const modelVertexParticlesEffect = defineWebGLEffect({
   kind: "modelVertexParticles",
   source: "model/glb",
   setup(context) {
-    if (context.source.kind !== "model/glb") {
+    if (context.source.kind !== "model" || context.source.type !== "glb") {
       return;
     }
 
@@ -487,49 +470,22 @@ npm run check:imports
 git diff --check
 ```
 
-## Demo
+## Example
 
 Run locally:
 
 ```bash
-npm run dev -w @project/dom-webgl-demo
+npm run dev -w @project/dom-webgl-example
 ```
 
 Run for LAN access:
 
 ```bash
-npm run dev -w @project/dom-webgl-demo -- --host 0.0.0.0
+npm run dev -w @project/dom-webgl-example -- --host 0.0.0.0
 ```
 
-Demo assets must exist at:
-
-```txt
-apps/demo/public/demo/image.png
-apps/demo/public/demo/layout-cover.png
-apps/demo/public/demo/video.mp4
-apps/demo/public/models/hero.glb
-```
-
-The demo references them as:
-
-```txt
-/demo/image.png
-/demo/layout-cover.png
-/demo/video.mp4
-/models/hero.glb
-```
-
-The GLB demo target hides its DOM fallback subtree after the model is ready.
-Runtime model layout contains the loaded model bounds inside the target DOM rect
-with a uniform XYZ scale so model depth is not flattened or stretched
-independently. The local demo effect then hides the original GLB meshes and
-renders the model as vertex particles. Pointer movement scatters particles near
-the cursor only when the pointer is over a particle hit radius, using the mouse
-movement direction, damping, and spring return to pull them back to the sampled
-vertices. The default runtime scene includes a low-cost ambient plus directional
-light rig so GLB/PBR materials are not rendered unlit by default.
-The demo also reserves a stable scrollbar gutter so DOM anchor rects do not
-reflow horizontally while the runtime tracks page scroll.
+Example assets live under `apps/example/public` and are referenced through
+`/example/...`.
 
 ## Public API Imports
 
@@ -548,11 +504,11 @@ import {
 } from "@project/dom-webgl-runtime/react";
 ```
 
-`apps/demo` must not import from `packages/dom-webgl-runtime/src/*`.
+`apps/example` must not import from `packages/dom-webgl-runtime/src/*`.
 
-Runtime source must not import demo code or branch on demo-only keys/assets.
-Demo-specific content belongs under `apps/demo` and should reach the package only
-through public declarations.
+Runtime source must not import app code or branch on app-only keys/assets.
+Example-specific content belongs under `apps/example` and should reach the
+package only through public declarations.
 
 ## Lifecycle And Fallback Visibility
 
@@ -617,7 +573,7 @@ targets:
 <WebGLTarget
   as="section"
   webgl={{
-    key: "demo.surface",
+    key: "app.surface",
     scroll: {
       type: "gate",
       start: "top top",
@@ -656,5 +612,6 @@ npm run check:imports
 git diff --check
 ```
 
-Current non-blocking build note: the demo production build emits Vite's default
-chunk-size warning for the demo bundle. This is not a Phase 3 runtime failure.
+Current non-blocking build note: the example production build may emit Vite's
+default chunk-size warning for the example bundle because the app intentionally
+dogfoods rich media/model specimens. This is not a runtime package failure.

@@ -6,12 +6,12 @@ import type {
 } from "../types";
 
 export type WebGLEffectSourceKind =
-  | "snapshot/element"
-  | "snapshot/text"
-  | "image"
-  | "video"
-  | "model/glb"
-  | "image-sequence";
+  | "dom/element"
+  | "dom/text"
+  | "media/image"
+  | "media/video"
+  | "media/image-sequence"
+  | "model/glb";
 
 export type WebGLEffectResourceScope = {
   addDisposable(dispose: () => void): void;
@@ -300,37 +300,43 @@ export type WebGLEffectVisualContext = {
 
 export type WebGLEffectSourceHandle =
   | {
-      kind: "snapshot/element";
+      kind: "dom";
+      type: "element";
       element: HTMLElement;
       surface?: WebGLEffectCanvasSurfaceHandle;
     }
   | {
-      kind: "snapshot/text";
+      kind: "dom";
+      type: "text";
       element: HTMLElement;
       text: string;
       textLayer?: WebGLEffectTextLayerHandle;
     }
   | {
-      kind: "image";
-      element: HTMLImageElement;
+      kind: "media";
+      type: "image";
+      element: HTMLElement;
       src: string;
       image?: WebGLEffectTextureLayerHandle<HTMLImageElement>;
     }
   | {
-      kind: "video";
-      element: HTMLVideoElement;
+      kind: "media";
+      type: "video";
+      element: HTMLElement;
       src: string;
       video?: WebGLEffectVideoLayerHandle;
     }
   | {
-      kind: "image-sequence";
+      kind: "media";
+      type: "image-sequence";
       element: HTMLElement;
       frame: number;
       src: string;
       image?: WebGLEffectImageSequenceLayerHandle;
     }
   | {
-      kind: "model/glb";
+      kind: "model";
+      type: "glb";
       anchor: HTMLElement;
       src: string;
       model: WebGLModelEffectHandle;

@@ -7,8 +7,9 @@ Updated: 2026-06-27 for taller rows, added text/image/video specimens, the runti
 
 `apps/example` was created as a React-only downstream consumer of
 `@project/dom-webgl-runtime`. It imports only public package entrypoints,
-defines application-owned effects locally, exercises `snapshot/element`,
-`snapshot/text`, `image`, `video`, and `model/glb` source handles through a
+defines application-owned effects locally, exercises `dom/element`,
+`dom/text`, `media/image`, `media/video`, `media/image-sequence`, and
+`model/glb` source handles through a
 full-width vertical one-effect-per-row catalog, places user-facing explanations
 in a reusable click-to-expand overlay component on each Chinese effect row while
 keeping API identifiers in English. It applies optional Lenis + GSAP +
@@ -16,14 +17,14 @@ ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
 `WebGLScrollRuntime` owns the built-in smooth stack from
 `exampleSmoothScrollOptions`, while `ScrollEffectSection` owns bounded pinned
 section progress. This makes `apps/example` the dogfood surface for the
-higher-level pinned scroll React adapter rather than `apps/demo`.
-The current `snapshot/element` bucket also includes app-owned video background,
+higher-level pinned scroll React adapter.
+The current `dom/element` bucket also includes app-owned video background,
 ghost cursor, and waves examples implemented through `ctx.source.surface`
 instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
 `example.textSpotlight`, `example.imageKenBurns`, and a runtime
-`image-sequence` pinned scrub row that consumes frames loaded by the example
-app.
+`media/image-sequence` pinned scrub row that consumes frames loaded by the
+example app.
 
 ## What Worked
 
@@ -32,38 +33,40 @@ app.
 - React integration is straightforward once the runtime-level `effects` array is
   kept stable at module scope.
 - Source handle narrowing is explicit and testable.
-- `snapshot/text`, `image`, `video`, and `model/glb` handles expose enough basic
+- `dom/text`, `media/image`, `media/video`, `media/image-sequence`, and
+  `model/glb` handles expose enough basic
   controls for small examples.
-- `snapshot/text` glyph commands are expressive enough for pointer-driven text
+- `dom/text` glyph commands are expressive enough for pointer-driven text
   output: `example.textSpotlight` can compute glyph-center distance from
   target-local pointer data and alter only color, opacity, and scale.
 - The image/video texture handles cover richer media examples without new
   package API: `example.imageKenBurns` combines sampling drift with target scale,
-  while the pinned scrub row uses runtime `source.kind: "image-sequence"` to
+  while the pinned scrub row uses runtime
+  `source: { kind: "media", type: "image-sequence" }` to
   drive WebGL texture frames from adapter progress.
 - Image-sequence resource ownership is clearer when kept at the consumer
   boundary: the example loads static assets from app code, registers the target
   after the first usable frame, passes a full-length `frames` array, and
   backfills real frames in place while the runtime only selects and renders the
   current frame.
-- `snapshot/element` is flexible enough for richer surface drawing: the example
+- `dom/element` is flexible enough for richer surface drawing: the example
   can paint a muted looping `/example/bg.mp4` background and ReactBits-inspired
   pointer/wave visuals without relaxing the strict media-source contract.
 - ReactBits-style Ghost Cursor can be ported safely when only the algorithm is
   moved into app-owned shader data and trail uniforms. The raw ReactBits
   renderer, scene, camera, composer, passes, and render loop must not become
   package public API.
-- Pointer-heavy `snapshot/element` examples need per-effect lifecycle decisions:
+- Pointer-heavy `dom/element` examples need per-effect lifecycle decisions:
   Ghost Cursor can stop uniform updates after trail decay, while ReactBits-style
   Waves must keep drawing because its ambient Perlin field keeps moving.
 - Runtime pointer state is shared input, so target-scoped pointer effects need
   an explicit `ctx.layout` hit test and target-local coordinate conversion.
 - A full-width vertical catalog makes it easier to compare multiple effects for
-  the same source kind without mixing them into the package validation demo.
+  the same source kind without mixing them into package implementation code.
 - The package boundary remains understandable when `apps/example` is treated as
-  downstream app code and `apps/demo` remains package validation code.
+  downstream app code.
 - Copying static assets into `apps/example/public` keeps the example runnable as
-  an isolated downstream app instead of depending on `apps/demo/public`.
+  an isolated downstream app.
 - The scroll boundary now has two valid consumer levels: low-level helpers where
   the app owns Lenis and cleanup, and the high-level React adapter where
   `WebGLScrollRuntime` owns a progress store and `ScrollEffectSection` owns one
@@ -101,10 +104,10 @@ app.
   React adapter. Consumers should still avoid unnecessary adapter identity churn
   for performance, but they do not need a guard to prevent disposed-runtime
   registration crashes.
-- Media source declarations are stricter than a new user may expect:
-  `image` requires `img`, and `video` requires `video`.
+- Media source declarations now use `kind: "media"` plus `type`; old
+  top-level `image`, `video`, and `image-sequence` declarations are removed.
 - The video-background example is a useful distinction: a non-video element
-  still cannot declare `source: { kind: "video" }`, but a `snapshot/element`
+  should not use a top-level video source declaration, but a `dom/element`
   effect may own a hidden `HTMLVideoElement` and draw it into
   `ctx.source.surface`.
 - Pointer effects can look subtly wrong if they use only `ctx.pointer.isInside`:
@@ -144,9 +147,8 @@ app.
 
 - Do not export concrete example effects from the runtime package.
 - Do not add an `effects` package subpath.
-- Do not make `apps/demo` the consumer tutorial surface.
 - Do not let downstream examples import package internals.
-- Do not relax media declarations to silently accept non-media elements.
+- Do not reintroduce legacy source declarations or silent compatibility paths.
 
 ## Follow-Up Candidates
 

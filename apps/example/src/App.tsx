@@ -39,7 +39,7 @@ export default function App() {
           <SnapshotElementExamples />
 
           <section className="example-row">
-            <EffectDescription source="snapshot/text" title="文字波浪">
+            <EffectDescription source="dom/text" title="文字波浪">
               文本仍写在 JSX 里，effect 只改写 WebGL 字形绘制命令。
             </EffectDescription>
             <WebGLTarget
@@ -47,7 +47,7 @@ export default function App() {
               className="example-text"
               webgl={{
                 key: "example.text.wave",
-                source: { kind: "snapshot", mode: "text" },
+                source: { kind: "dom", type: "text" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
                 effects: [{ kind: "example.textWave", amplitude: 7 }],
               }}
@@ -57,15 +57,15 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <EffectDescription source="snapshot/text" title="文字显现">
-              把滚动进度映射到每个字形的透明度和缩放。
+            <EffectDescription source="dom/text" title="文字显现">
+              把当前视口位置和滚动进度映射到每个字形的透明度和缩放。
             </EffectDescription>
             <WebGLTarget
               as="p"
               className="example-text example-text-compact"
               webgl={{
                 key: "example.text.reveal",
-                source: { kind: "snapshot", mode: "text" },
+                source: { kind: "dom", type: "text" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
                 effects: [{ kind: "example.textReveal", color: "#d95f42" }],
               }}
@@ -75,7 +75,7 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <EffectDescription source="snapshot/text" title="文字聚光">
+            <EffectDescription source="dom/text" title="文字聚光">
               根据 target-local pointer 或 runtime time 计算字形中心距离，只改 WebGL 字形命令。
             </EffectDescription>
             <WebGLTarget
@@ -83,7 +83,7 @@ export default function App() {
               className="example-text example-text-spotlight"
               webgl={{
                 key: "example.text.spotlight",
-                source: { kind: "snapshot", mode: "text" },
+                source: { kind: "dom", type: "text" },
                 lifecycle: { hideWhenReady: true, hideMode: "self" },
                 effects: [{ kind: "example.textSpotlight", color: "#f6c453", radius: 180 }],
               }}
@@ -93,8 +93,8 @@ export default function App() {
           </section>
 
           <section className="example-row">
-            <EffectDescription source="image" title="图片平移">
-              不修改 DOM 图片元素，只移动 WebGL 纹理采样。
+            <EffectDescription source="media/image" title="图片平移">
+              不修改 DOM 图片元素，按当前视口位置移动 WebGL 纹理采样。
             </EffectDescription>
             <WebGLTarget
               as="img"
@@ -103,14 +103,14 @@ export default function App() {
               alt="图片纹理平移示例"
               webgl={{
                 key: "example.image.pan",
-                source: { kind: "image", src: "/example/image.png" },
+                source: { kind: "media", type: "image", src: "/example/image.png" },
                 effects: [{ kind: "example.imagePan", distance: 0.2 }],
               }}
             />
           </section>
 
           <section className="example-row">
-            <EffectDescription source="image" title="图片缩放">
+            <EffectDescription source="media/image" title="图片缩放">
               从 image source 创建渲染对象，再由 effect 驱动 target 缩放。
             </EffectDescription>
             <WebGLTarget
@@ -120,14 +120,14 @@ export default function App() {
               alt="图片缩放示例"
               webgl={{
                 key: "example.image.zoom",
-                source: { kind: "image", src: "/example/image.png" },
+                source: { kind: "media", type: "image", src: "/example/image.png" },
                 effects: [{ kind: "example.imageZoom", maxScale: 1.36 }],
               }}
             />
           </section>
 
           <section className="example-row">
-            <EffectDescription source="image" title="图片镜头推进">
+            <EffectDescription source="media/image" title="图片镜头推进">
               对 image source 同时使用纹理采样偏移和 target scale，模拟慢速镜头运动。
             </EffectDescription>
             <WebGLTarget
@@ -137,14 +137,14 @@ export default function App() {
               alt="图片镜头推进示例"
               webgl={{
                 key: "example.image.ken-burns",
-                source: { kind: "image", src: "/example/bg.png" },
+                source: { kind: "media", type: "image", src: "/example/bg.png" },
                 effects: [{ kind: "example.imageKenBurns", distance: 0.16, maxScale: 1.22 }],
               }}
             />
           </section>
 
           <section className="example-row">
-            <EffectDescription source="video" title="视频播放">
+            <EffectDescription source="media/video" title="视频播放">
               通过 video capability handle 配置静音、播放和播放速度。
             </EffectDescription>
             <WebGLTarget
@@ -156,14 +156,14 @@ export default function App() {
               loop
               webgl={{
                 key: "example.video.playback",
-                source: { kind: "video", src: "/example/video.mp4" },
+                source: { kind: "media", type: "video", src: "/example/video.mp4" },
                 effects: [{ kind: "example.videoPlayback", playbackRate: 0.8 }],
               }}
             />
           </section>
 
           <section className="example-row">
-            <EffectDescription source="video" title="视频漂移">
+            <EffectDescription source="media/video" title="视频漂移">
               对同一种 video source 叠加实时纹理漂移。
             </EffectDescription>
             <WebGLTarget
@@ -175,7 +175,7 @@ export default function App() {
               loop
               webgl={{
                 key: "example.video.drift",
-                source: { kind: "video", src: "/example/video.mp4" },
+                source: { kind: "media", type: "video", src: "/example/video.mp4" },
                 effects: [
                   { kind: "example.videoPlayback", playbackRate: 1.05 },
                   { kind: "example.videoDrift", distance: 0.12 },
@@ -192,7 +192,7 @@ export default function App() {
             pin
             scrub
           >
-            <EffectDescription source="image-sequence" title="滚动控制图片序列">
+            <EffectDescription source="media/image-sequence" title="滚动控制图片序列">
               这个区域固定在视口中，滚动进度由 runtime 映射到 WebGL 图片序列帧。
             </EffectDescription>
             {exampleResources.imageSequenceReady ? (
@@ -202,7 +202,8 @@ export default function App() {
                 webgl={{
                   key: "example.image-sequence.scrub",
                   source: {
-                    kind: "image-sequence",
+                    kind: "media",
+                    type: "image-sequence",
                     frameCount: exampleResources.imageSequenceFrames.length,
                     frames: exampleResources.imageSequenceFrames,
                     progressKey: videoScrubProgressKey,
@@ -235,7 +236,7 @@ export default function App() {
                 className="example-panel example-panel-model"
                 webgl={{
                   key: "example.model.spin",
-                  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+                  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
                   lifecycle: { hideWhenReady: true, hideMode: "subtree" },
                   effects: [{ kind: "example.modelSpin", speed: 0.25 }],
                 }}
@@ -257,7 +258,7 @@ export default function App() {
                 className="example-panel example-panel-model example-panel-model-float"
                 webgl={{
                   key: "example.model.float",
-                  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+                  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
                   lifecycle: { hideWhenReady: true, hideMode: "subtree" },
                   effects: [{ kind: "example.modelFloat", amplitude: 24 }],
                 }}

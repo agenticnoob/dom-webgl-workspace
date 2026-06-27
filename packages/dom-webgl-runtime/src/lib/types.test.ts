@@ -31,21 +31,63 @@ describe("WebGLDeclaration public types", () => {
 	          WebGLSourceDeclaration,
         } from "${importPath}";
 
-	        const source = {
-	          kind: "model",
-	          format: "glb",
-	          src: "/models/hero.glb",
-	        } satisfies WebGLSourceDeclaration;
-	        declare const imageSequenceFrames: readonly HTMLImageElement[];
-	        const imageSequenceDeclaration = {
-	          key: "sequence.hero",
-	          source: {
-	            kind: "image-sequence",
-	            frameCount: 454,
-	            frames: imageSequenceFrames,
-	            progressKey: "example.video.scrub",
-	          },
-	        } satisfies WebGLDeclaration;
+		        const source = {
+		          kind: "model",
+		          type: "glb",
+		          src: "/models/hero.glb",
+		        } satisfies WebGLSourceDeclaration;
+		        declare const imageSequenceFrames: readonly HTMLImageElement[];
+		        const declarations = [
+		          {
+		            key: "dom.element",
+		            source: { kind: "dom", type: "element" },
+		          },
+		          {
+		            key: "dom.text",
+		            source: { kind: "dom", type: "text" },
+		          },
+		          {
+		            key: "media.image",
+		            source: { kind: "media", type: "image", src: "/image.png" },
+		          },
+		          {
+		            key: "media.video",
+		            source: { kind: "media", type: "video", src: "/video.mp4" },
+		          },
+		          {
+		            key: "media.sequence",
+		            source: {
+		              kind: "media",
+		              type: "image-sequence",
+		              frameCount: 1,
+		              frames: [document.createElement("canvas")],
+		              progressKey: "scrub",
+		              startFrame: 1,
+		            },
+		          },
+		          {
+		            key: "model.glb",
+		            source: { kind: "model", type: "glb", src: "/model.glb" },
+		          },
+		        ] satisfies WebGLDeclaration[];
+
+		        const image = {
+		          key: "old.image",
+		          // @ts-expect-error old explicit image source declarations are removed
+		          source: { kind: "image", src: "/image.png" },
+		        } satisfies WebGLDeclaration;
+
+		        const snapshot = {
+		          key: "old.snapshot",
+		          // @ts-expect-error snapshot/mode has been replaced by dom/type
+		          source: { kind: "snapshot", mode: "element" },
+		        } satisfies WebGLDeclaration;
+
+		        const model = {
+		          key: "old.model",
+		          // @ts-expect-error model/format has been replaced by model/type
+		          source: { kind: "model", format: "glb", src: "/model.glb" },
+		        } satisfies WebGLDeclaration;
 
         const renderRole = "model" satisfies WebGLRenderRole;
         const pageScroll = { type: "page" } satisfies WebGLScrollBehavior;
@@ -118,7 +160,7 @@ describe("WebGLDeclaration public types", () => {
         };
 
         declaration.key satisfies string;
-        imageSequenceDeclaration.source.kind satisfies "image-sequence";
+	        declarations[4]?.source satisfies WebGLSourceDeclaration | undefined;
         gateDeclaration.scroll satisfies WebGLScrollBehavior | undefined;
         // @ts-expect-error legacy object-form effects are no longer public contract.
         legacyDeclaration satisfies WebGLDeclaration;

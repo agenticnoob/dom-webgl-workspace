@@ -2,7 +2,7 @@ import type { ResourceManager } from "../../resources/resourceManager";
 import type { DOMViewportSize } from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLImageSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaImageSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
@@ -58,7 +58,7 @@ export function createImageRenderable(
           sceneAdapter: options.sceneAdapter,
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
-          element: source.element,
+          element: source.anchor,
           ordering: toSceneObjectOrdering(context.policy),
           textureKind: "image",
           textureSource: image,
@@ -84,8 +84,9 @@ export function createImageRenderable(
       },
       effectSource() {
         return {
-          kind: "image",
-          element: source.element,
+          kind: "media",
+          type: "image",
+          element: source.anchor,
           src: source.src,
           image: state.scene?.object.textureLayerCapability,
         };
@@ -106,20 +107,33 @@ export function createImageRenderable(
 
 function readImageSource(
   source: RenderableContext["source"],
-): WebGLImageSourceDescriptor {
-  if (source.kind !== "image") {
-    throw new Error(`Expected image source descriptor, received ${source.kind}`);
+): WebGLMediaImageSourceDescriptor {
+  if (source.kind !== "media" || source.type !== "image") {
+    throw new Error(
+      `Expected media/image source descriptor, received ${readSourceKind(source)}`,
+    );
   }
 
   return source;
 }
 
+function readSourceKind(source: RenderableContext["source"]): string {
+  return `${source.kind}/${source.type}`;
+}
+
 async function loadDomImage(
-  source: WebGLImageSourceDescriptor,
+  source: WebGLMediaImageSourceDescriptor,
 ): Promise<HTMLImageElement> {
-  if (typeof source.element.decode === "function") {
-    await source.element.decode();
+  const image = source.element ?? new Image();
+
+  if (!source.element) {
+    image.decoding = "async";
+    image.src = source.src;
   }
 
-  return source.element;
+  if (typeof image.decode === "function") {
+    await image.decode();
+  }
+
+  return image;
 }

@@ -184,7 +184,7 @@ describe("WebGLDebugPanel", () => {
 
     expect(container.textContent).toContain("demo.surface");
     expect(container.textContent).toContain("demo.model");
-    expect(container.textContent).toContain("snap");
+    expect(container.textContent).toContain("elem");
     expect(container.textContent).toContain("mdl");
     expect(container.textContent).toContain("surf");
     expect(container.textContent).toContain("medi");
@@ -404,7 +404,7 @@ function createFullState(): WebGLDebugState {
     targets: [
       {
         key: "demo.surface",
-        sourceKind: "snapshot",
+        sourceKind: "dom/element",
         renderRole: "surface",
         resourceStatus: "ready",
         lifecycleState: "active",
@@ -412,7 +412,7 @@ function createFullState(): WebGLDebugState {
       },
       {
         key: "demo.image",
-        sourceKind: "image",
+        sourceKind: "media/image",
         renderRole: "media",
         resourceStatus: "loading",
         lifecycleState: "preloading",
@@ -420,7 +420,7 @@ function createFullState(): WebGLDebugState {
       },
       {
         key: "demo.text",
-        sourceKind: "snapshot/text",
+        sourceKind: "dom/text",
         renderRole: "content",
         resourceStatus: "ready",
         lifecycleState: "active",
@@ -428,7 +428,7 @@ function createFullState(): WebGLDebugState {
       },
       {
         key: "demo.video",
-        sourceKind: "video",
+        sourceKind: "media/video",
         renderRole: "media",
         resourceStatus: "idle",
         lifecycleState: "declared",
@@ -436,7 +436,7 @@ function createFullState(): WebGLDebugState {
       },
       {
         key: "demo.model",
-        sourceKind: "model",
+        sourceKind: "model/glb",
         renderRole: "model",
         resourceStatus: "error",
         lifecycleState: "error",

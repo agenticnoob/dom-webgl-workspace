@@ -31,44 +31,49 @@ describe("WebGLSourceDescriptor internal types", () => {
 	        const element = document.createElement("section");
 	        const image = document.createElement("img");
 	        const video = document.createElement("video");
-	        declare const imageSequenceFrames: readonly HTMLImageElement[];
+		        const frame = document.createElement("canvas");
 
-        const descriptors = [
-          {
-            kind: "snapshot",
-            mode: "element",
-            element,
-          },
-          {
-            kind: "snapshot",
-            mode: "text",
-            element,
-          },
-          {
-            kind: "image",
-            element: image,
-            src: "/images/hero.png",
-          },
-          {
-            kind: "video",
-            element: video,
-            src: "/videos/intro.mp4",
-          },
-          {
-            kind: "model",
-            format: "glb",
-            anchor: element,
-            src: "/models/hero.glb",
-          },
-          {
-	            kind: "image-sequence",
-	            anchor: element,
-	            frameCount: 454,
-	            frames: imageSequenceFrames,
-	            progressKey: "example.video.scrub",
-	            startFrame: 1,
+	        const descriptors = [
+	          {
+	            kind: "dom",
+	            type: "element",
+	            element,
 	          },
-        ] satisfies WebGLSourceDescriptor[];
+	          {
+	            kind: "dom",
+	            type: "text",
+	            element,
+	          },
+	          {
+	            kind: "media",
+	            type: "image",
+	            anchor: image,
+	            element: image,
+	            src: "/images/hero.png",
+	          },
+	          {
+	            kind: "media",
+	            type: "video",
+	            anchor: video,
+	            element: video,
+	            src: "/videos/intro.mp4",
+	          },
+	          {
+		            kind: "media",
+		            type: "image-sequence",
+		            anchor: element,
+		            frameCount: 1,
+		            frames: [frame],
+		            progressKey: "example.video.scrub",
+		            startFrame: 1,
+		          },
+	          {
+	            kind: "model",
+	            type: "glb",
+	            anchor: element,
+	            src: "/models/hero.glb",
+	          },
+	        ] satisfies WebGLSourceDescriptor[];
 
         descriptors[0] satisfies WebGLSourceDescriptor;
       `,

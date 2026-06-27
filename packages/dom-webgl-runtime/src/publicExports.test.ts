@@ -219,9 +219,13 @@ describe("public package exports", () => {
 	          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
-	          WebGLImageSequenceSourceDeclaration,
-	          WebGLImageSourceDeclaration,
-	          WebGLModelSourceDeclaration,
+		          WebGLDOMSourceDeclaration,
+		          WebGLMediaImageSequenceSourceDeclaration,
+		          WebGLMediaImageSourceDeclaration,
+		          WebGLMediaSourceDeclaration,
+		          WebGLMediaVideoPlaybackDeclaration,
+		          WebGLMediaVideoSourceDeclaration,
+		          WebGLModelSourceDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLPointerState,
 	          WebGLProgressSignalSource,
@@ -234,13 +238,11 @@ describe("public package exports", () => {
           WebGLScrollDeltaRouter,
           WebGLScrollGateState,
           WebGLScrollMetrics,
-	          WebGLSnapshotSourceDeclaration,
-	          WebGLSourceDeclaration,
+		          WebGLSourceDeclaration,
 	          WebGLTextGlyph,
 	          WebGLTextGlyphRenderCommand,
 	          WebGLTextLayerStyle,
-	          WebGLVideoSourceDeclaration,
-	        } from "${importPath}";
+		        } from "${importPath}";
 
         // @ts-expect-error legacy material declarations are no longer public exports.
         import type { WebGLMaterialDeclaration } from "${importPath}";
@@ -323,36 +325,67 @@ describe("public package exports", () => {
         runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
 
         const renderRole = "model" satisfies WebGLRenderRole;
-        const snapshotSource = {
-          kind: "snapshot",
-          mode: "text",
-        } satisfies WebGLSnapshotSourceDeclaration;
-	        const imageSource = {
-	          kind: "image",
-	          src: "/textures/card.png",
-	        } satisfies WebGLImageSourceDeclaration;
-	        declare const imageSequenceFrames: readonly HTMLImageElement[];
-	        const imageSequenceSource = {
-	          kind: "image-sequence",
-	          frameCount: 454,
-	          frames: imageSequenceFrames,
-	          progressKey: "example.video.scrub",
-	        } satisfies WebGLImageSequenceSourceDeclaration;
-        const videoSource = {
-          kind: "video",
-          src: "/media/loop.mp4",
-        } satisfies WebGLVideoSourceDeclaration;
-        const modelSource = {
-          kind: "model",
-          format: "glb",
-          src: "/models/hero.glb",
-        } satisfies WebGLModelSourceDeclaration;
+	        const domSource = {
+	          kind: "dom",
+	          type: "text",
+	        } satisfies WebGLDOMSourceDeclaration;
+		        const imageSource = {
+		          kind: "media",
+		          type: "image",
+		          src: "/textures/card.png",
+		        } satisfies WebGLMediaImageSourceDeclaration;
+		        declare const imageSequenceFrames: readonly HTMLImageElement[];
+		        const imageSequenceSource = {
+		          kind: "media",
+		          type: "image-sequence",
+		          frameCount: 454,
+		          frames: imageSequenceFrames,
+		          progressKey: "example.video.scrub",
+		        } satisfies WebGLMediaImageSequenceSourceDeclaration;
+		        const playback = {
+		          muted: true,
+		          loop: true,
+		          autoplay: true,
+		          playsInline: true,
+		          playbackRate: 1,
+		          visibility: "pause-resume",
+		        } satisfies WebGLMediaVideoPlaybackDeclaration;
+	        const videoSource = {
+	          kind: "media",
+	          type: "video",
+	          src: "/media/loop.mp4",
+	          playback,
+	        } satisfies WebGLMediaVideoSourceDeclaration;
+	        const modelSource = {
+	          kind: "model",
+	          type: "glb",
+	          src: "/models/hero.glb",
+	        } satisfies WebGLModelSourceDeclaration;
+	        const mediaSource = videoSource satisfies WebGLMediaSourceDeclaration;
 
-        snapshotSource satisfies WebGLSourceDeclaration;
-        imageSource satisfies WebGLSourceDeclaration;
-        imageSequenceSource satisfies WebGLSourceDeclaration;
-        videoSource satisfies WebGLSourceDeclaration;
-        modelSource satisfies WebGLSourceDeclaration;
+	        domSource satisfies WebGLSourceDeclaration;
+	        imageSource satisfies WebGLSourceDeclaration;
+	        imageSequenceSource satisfies WebGLSourceDeclaration;
+	        videoSource satisfies WebGLSourceDeclaration;
+	        modelSource satisfies WebGLSourceDeclaration;
+	        mediaSource satisfies WebGLMediaSourceDeclaration;
+	        const declarations = [
+	          { key: "surface", source: { kind: "dom", type: "element" } },
+	          { key: "text", source: { kind: "dom", type: "text" } },
+	          { key: "image", source: { kind: "media", type: "image", src: "/image.png" } },
+	          { key: "video", source: { kind: "media", type: "video", src: "/video.mp4" } },
+	          {
+	            key: "sequence",
+	            source: {
+	              kind: "media",
+	              type: "image-sequence",
+	              frameCount: 1,
+	              frames: [document.createElement("canvas")],
+	            },
+	          },
+	          { key: "model", source: { kind: "model", type: "glb", src: "/product.glb" } },
+	        ] satisfies WebGLDeclaration[];
+	        declarations satisfies WebGLDeclaration[];
 
         const pointerDeclaration = {
           move: true,
@@ -409,7 +442,7 @@ describe("public package exports", () => {
 				              blur: { radius: 0.25 },
 				            } satisfies WebGLEffectPostprocessRequest);
 				            postprocess satisfies WebGLEffectPostprocessHandle;
-				            if (ctx.source.kind === "model/glb") {
+				            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
 				              ctx.source.model.createPointCloud({
 				                density: params.density,
 				                color: "rgb(125, 211, 252)",
@@ -463,7 +496,7 @@ describe("public package exports", () => {
         const sourceCapabilityEffect = defineWebGLEffect({
           kind: "custom.sourceCapabilities",
           update(ctx) {
-	            if (ctx.source.kind === "snapshot/element") {
+	            if (ctx.source.kind === "dom" && ctx.source.type === "element") {
 	              ctx.source.surface satisfies WebGLEffectCanvasSurfaceHandle | undefined;
 	              ctx.source.surface?.shaderInputs satisfies WebGLEffectSurfaceShaderInputs | undefined;
 	              ctx.source.surface?.shaderInputs.size.width satisfies number | undefined;
@@ -502,7 +535,7 @@ describe("public package exports", () => {
 	              layer satisfies WebGLEffectMaterialLayerHandle | undefined;
 	            }
 
-	            if (ctx.source.kind === "snapshot/text") {
+	            if (ctx.source.kind === "dom" && ctx.source.type === "text") {
 	              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
 	              ctx.source.textLayer?.shaderInputs satisfies
 	                | WebGLEffectTextShaderInputs
@@ -524,7 +557,7 @@ describe("public package exports", () => {
 	              ctx.source.textLayer satisfies WebGLEffectMaterialLayerHost | undefined;
 	            }
 
-	            if (ctx.source.kind === "image") {
+	            if (ctx.source.kind === "media" && ctx.source.type === "image") {
 	              ctx.source.image satisfies
 	                | WebGLEffectTextureLayerHandle<HTMLImageElement>
 	                | undefined;
@@ -537,43 +570,45 @@ describe("public package exports", () => {
 	              ctx.source.image?.shaderInputs.uvTransform satisfies
 	                | WebGLEffectObjectFitShaderInput
 	                | undefined;
-	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
-	              ctx.source.image?.createMaterialLayer({
+	              const imageLayer = ctx.source.image;
+	              imageLayer?.setTextureTransform({ repeatX: 1, repeatY: 1 });
+	              imageLayer?.createMaterialLayer({
 	                key: "custom.imageShader",
 	                program: {
 	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
 	                  uniforms: {
 	                    imageMap: {
 	                      kind: "image-texture",
-	                      source: ctx.source.element,
+	                      source: imageLayer.source,
 	                    } satisfies WebGLEffectTextureUniform,
 	                  },
 	                },
 	              });
 	            }
 
-	            if (ctx.source.kind === "video") {
+	            if (ctx.source.kind === "media" && ctx.source.type === "video") {
 	              ctx.source.video satisfies WebGLEffectVideoLayerHandle | undefined;
 	              ctx.source.video?.shaderInputs satisfies
 	                | WebGLEffectMediaShaderInputs
 	                | undefined;
-	              ctx.source.video?.setMuted(true);
-	              ctx.source.video?.setPlaybackRate(1);
-	              ctx.source.video?.createMaterialLayer({
+	              const videoLayer = ctx.source.video;
+	              videoLayer?.setMuted(true);
+	              videoLayer?.setPlaybackRate(1);
+	              videoLayer?.createMaterialLayer({
 	                key: "custom.videoShader",
 	                program: {
 	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
 	                  uniforms: {
 	                    videoMap: {
 	                      kind: "video-texture",
-	                      source: ctx.source.element,
+	                      source: videoLayer.source,
 	                    },
 	                  },
 	                },
 	              });
 	            }
 
-		            if (ctx.source.kind === "image-sequence") {
+		            if (ctx.source.kind === "media" && ctx.source.type === "image-sequence") {
 		              ctx.source.image satisfies
 		                | WebGLEffectImageSequenceLayerHandle
 		                | undefined;
@@ -582,7 +617,7 @@ describe("public package exports", () => {
 	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
 	            }
 
-            if (ctx.source.kind === "model/glb") {
+            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
               ctx.source.model satisfies WebGLEffectRenderableHandle;
               ctx.source.model.sampleVertices({ maxPoints: 64 });
             }
@@ -630,12 +665,12 @@ describe("public package exports", () => {
 		          effects: [customModelEffect],
 		          progressSignals,
 		        } satisfies WebGLRuntimeOptions;
-		        const customRuntime = createWebGLRuntime(runtimeOptions);
-		        customRuntime.registerTarget(element, {
-		          key: "product.model",
-		          source: { kind: "model", format: "glb", src: "/product.glb" },
-		          effects: [{ kind: "custom.glbParticles", density: 0.6 }],
-		        });
+			        const customRuntime = createWebGLRuntime(runtimeOptions);
+			        customRuntime.registerTarget(element, {
+			          key: "product.model",
+			          source: { kind: "model", type: "glb", src: "/product.glb" },
+			          effects: [{ kind: "custom.glbParticles", density: 0.6 }],
+			        });
 		        customRuntime.registerTarget(element, arrayEffectDeclaration);
 	        registeredTarget satisfies void;
         // @ts-expect-error public registration does not expose internal target descriptor state.
@@ -705,7 +740,7 @@ describe("public package exports", () => {
           targets: [
             {
               key: declaration.key,
-              sourceKind: "model",
+              sourceKind: "model/glb",
               renderRole: declaration.renderRole,
               resourceStatus,
               lifecycleState: "declared",

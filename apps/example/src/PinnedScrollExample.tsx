@@ -25,7 +25,7 @@ export function PinnedScrollExample() {
         pin
         scrub
       >
-        <EffectDescription source="snapshot/text" title="固定滚动显现">
+        <EffectDescription source="dom/text" title="固定滚动显现">
           页面继续真实滚动，但这个区域的滚动进度会直接控制 WebGL 文字显现。
         </EffectDescription>
         <WebGLTarget
@@ -33,7 +33,7 @@ export function PinnedScrollExample() {
           className="example-text example-pinned-text"
           webgl={{
             key: pinnedRevealProgressKey,
-            source: { kind: "snapshot", mode: "text" },
+            source: { kind: "dom", type: "text" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: pinnedRevealEffects,
           }}

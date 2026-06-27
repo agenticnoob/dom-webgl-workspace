@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../dom/targetDescriptor";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
-import type { WebGLSnapshotSourceDescriptor } from "../source/sourceDescriptor";
+import type { WebGLDOMSourceDescriptor } from "../source/sourceDescriptor";
 import { compileRenderPolicy } from "./renderPolicy";
 import { createRenderable } from "./renderable";
 
@@ -105,10 +105,10 @@ describe("createRenderable", () => {
 
 function createSnapshotDescriptor(
   element: HTMLElement,
-): WebGLSnapshotSourceDescriptor {
+): WebGLDOMSourceDescriptor {
   return {
-    kind: "snapshot",
-    mode: "element",
+    kind: "dom",
+    type: "element",
     element,
   };
 }

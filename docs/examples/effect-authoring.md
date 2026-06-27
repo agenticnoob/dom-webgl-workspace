@@ -1,8 +1,8 @@
 # Effect Authoring Example
 
 This example shows the recommended React-only downstream usage pattern for the
-DOM WebGL runtime. It deliberately lives in `apps/example`, not `apps/demo`, so
-it behaves like consumer application code. The page uses Chinese visible copy
+DOM WebGL runtime. It lives in `apps/example`, so it behaves like consumer
+application code. The page uses Chinese visible copy
 for effect explanations while keeping source kinds and effect kind strings in
 English as API data.
 
@@ -21,8 +21,8 @@ Build the example:
 npm run build --workspace @project/dom-webgl-example
 ```
 
-The example ships its own static assets under `apps/example/public`, copied from
-the demo asset set for convenience. The React app references
+The example ships its own static assets under `apps/example/public`. The React
+app references
 `/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
 `/example/image.png`, `/example/video.mp4`, and `/models/hero.glb` from that
 example public directory. `/example/bg-sequence` is the compressed image
@@ -57,7 +57,7 @@ Do not import:
 ```ts
 import ... from "<runtime-package>/effects";
 import ... from "packages/dom-webgl-runtime/src";
-import ... from "../demo/src/demoEffects";
+import ... from "../example/src/someEffect";
 ```
 
 ## Pinned Scroll Effect Path
@@ -78,7 +78,7 @@ bounded trigger lifecycle from ordinary example code, owns one trigger per
     <WebGLTarget
       webgl={{
         key: "example.pinned.surface",
-        source: { kind: "snapshot", mode: "element" },
+        source: { kind: "dom", type: "element" },
         effects: [
           {
             kind: "example.pinnedReveal",
@@ -134,9 +134,9 @@ export const textWaveEffect = defineWebGLEffect<{
   amplitude?: number;
 }>({
   kind: "example.textWave",
-  source: "snapshot/text",
+  source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/text") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
       return;
     }
 
@@ -166,9 +166,9 @@ handles:
 ```ts
 const ghostCursorEffect = defineWebGLEffect({
   kind: "example.surfaceGhostCursor",
-  source: "snapshot/element",
+  source: "dom/element",
   setup(ctx) {
-    if (ctx.source.kind !== "snapshot/element") return;
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") return;
 
     return ctx.source.surface?.createMaterialLayer({
       key: "example.surfaceGhostCursor",
@@ -210,7 +210,7 @@ Target declarations carry data only:
   as="p"
   webgl={{
     key: "example.text",
-    source: { kind: "snapshot", mode: "text" },
+    source: { kind: "dom", type: "text" },
     lifecycle: { hideWhenReady: true, hideMode: "self" },
     effects: [{ kind: "example.textWave", amplitude: 7 }],
   }}
@@ -241,10 +241,10 @@ definition is missing, the target declaration has no executable effect.
   while the pointer is inside that target rect; the Perlin wave field keeps
   animating even after the pointer leaves.
 - `example.textWave`: rewrites text glyph output.
-- `example.textReveal`: maps scroll progress into per-glyph opacity and scale.
+- `example.textReveal`: maps target viewport progress into per-glyph opacity and scale, with page scroll progress as an additional driver.
 - `example.textSpotlight`: maps target-local pointer distance into per-glyph
   color, opacity, and scale.
-- `example.imagePan`: applies an image texture transform.
+- `example.imagePan`: applies an image texture transform from target viewport/page progress.
 - `example.imageZoom`: drives target scale for an image renderable.
 - `example.imageKenBurns`: combines image texture sampling drift with target
   scale for a slow camera move.
@@ -253,7 +253,7 @@ definition is missing, the target declaration has no executable effect.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
 
-The pinned scrub row now dogfoods runtime `source.kind: "image-sequence"`.
+The pinned scrub row now dogfoods runtime `source: { kind: "media", type: "image-sequence" }`.
 `ScrollEffectSection` owns the progress key, and the WebGL target declares
 `frameCount`, consumer-owned `frames`, and `progressKey` so the runtime selects
 usable frames and updates the texture plane without owning the sequence loader.
@@ -265,8 +265,8 @@ package effects.
 
 - Recreating the `effects` array inside a React component can recreate the
   runtime.
-- Declaring `{ kind: "image" }` on a `div` is invalid; use a real `img`.
-- Declaring `{ kind: "video" }` on a `div` is invalid; use a real `video`.
+- Old explicit declarations such as top-level media kinds and `snapshot/mode`
+  are removed.
 - `ctx.source.textLayer` affects WebGL output only; it does not mutate DOM text.
-- Effects should no-op when `ctx.source.kind` is not compatible.
+- Effects should no-op when `ctx.source.kind` or `ctx.source.type` is not compatible.
 - Effect-owned objects and listeners need `ctx.resources` disposal.

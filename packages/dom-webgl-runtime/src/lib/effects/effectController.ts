@@ -160,29 +160,41 @@ function readEffectSource(
 function createStaticEffectSource(
   source: WebGLSourceDescriptor,
 ): WebGLEffectSourceHandle | undefined {
-  if (source.kind === "snapshot") {
-    if (source.mode === "text") {
+  if (source.kind === "dom") {
+    if (source.type === "text") {
       return {
-        kind: "snapshot/text",
+        kind: "dom",
+        type: "text",
         element: source.element,
         text: source.element.textContent ?? "",
       };
     }
 
-    return { kind: "snapshot/element", element: source.element };
+    return { kind: "dom", type: "element", element: source.element };
   }
 
-  if (source.kind === "image") {
-    return { kind: "image", element: source.element, src: source.src };
-  }
+  if (source.kind === "media") {
+    if (source.type === "image") {
+      return {
+        kind: "media",
+        type: "image",
+        element: source.anchor,
+        src: source.src,
+      };
+    }
 
-  if (source.kind === "video") {
-    return { kind: "video", element: source.element, src: source.src };
-  }
+    if (source.type === "video") {
+      return {
+        kind: "media",
+        type: "video",
+        element: source.anchor,
+        src: source.src,
+      };
+    }
 
-  if (source.kind === "image-sequence") {
     return {
-      kind: "image-sequence",
+      kind: "media",
+      type: "image-sequence",
       element: source.anchor,
       frame: source.startFrame,
       src: "",
@@ -195,15 +207,7 @@ function createStaticEffectSource(
 function readEffectSourceKind(
   source: WebGLSourceDescriptor,
 ): WebGLEffectSourceKind {
-  if (source.kind === "snapshot") {
-    return source.mode === "text" ? "snapshot/text" : "snapshot/element";
-  }
-
-  if (source.kind === "model") {
-    return "model/glb";
-  }
-
-  return source.kind;
+  return `${source.kind}/${source.type}` as WebGLEffectSourceKind;
 }
 
 function updateRunningEffect(

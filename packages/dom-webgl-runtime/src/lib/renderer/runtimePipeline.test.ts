@@ -7,8 +7,8 @@ import { defineWebGLEffect } from "../effects/effectAuthoring";
 import type { Renderable } from "../render/renderable";
 import type { WebGLSceneAdapter } from "./sceneObject";
 import type {
+  WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
-  WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLScrollAdapter } from "../types";
 import type { createWebGLRuntime, WebGLRuntime } from "./runtime";
@@ -30,7 +30,7 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
   rendererHostFactory?: (container: HTMLElement) => ThreeRendererHost;
   measureElement?: (element: HTMLElement) => ElementMeasurement;
   loadVideo?: (
-    source: WebGLVideoSourceDescriptor,
+    source: WebGLMediaVideoSourceDescriptor,
   ) => Promise<HTMLVideoElement>;
   loadModel?: (source: WebGLModelSourceDescriptor) => Promise<unknown>;
   onRenderableCreated?: (renderable: Renderable) => void;
@@ -56,7 +56,7 @@ const testSurfaceEffect = defineWebGLEffect<{
   opacity?: number;
 }>({
   kind: "test.surface",
-  source: "snapshot/element",
+  source: "dom/element",
   update(ctx, _state, params) {
     ctx.target?.setVisible(true);
     ctx.target?.setOpacity(params.opacity ?? 1);
@@ -118,7 +118,7 @@ describe("runtime pipeline sync", () => {
   test("registering image video and model declarations creates renderables with inferred roles", async () => {
     const createdRenderables: Renderable[] = [];
     const runtime = await createPipelineRuntime({
-      loadVideo: async (source) => source.element,
+      loadVideo: async (source) => source.element ?? document.createElement("video"),
       loadModel: async (source) => ({ src: source.src }),
       onRenderableCreated(renderable) {
         createdRenderables.push(renderable);
@@ -143,7 +143,7 @@ describe("runtime pipeline sync", () => {
     runtime.registerTarget(video, { key: "clip" });
     runtime.registerTarget(modelAnchor, {
       key: "product",
-      source: { kind: "model", format: "glb", src: "/product.glb" },
+      source: { kind: "model", type: "glb", src: "/product.glb" },
     });
 
     await runtime.sync();
@@ -167,7 +167,8 @@ describe("runtime pipeline sync", () => {
     runtime.registerTarget(anchor, {
       key: "sequence.hero",
       source: {
-        kind: "image-sequence",
+        kind: "media",
+        type: "image-sequence",
         frameCount: 10,
         frames: createFrames(10),
       },
@@ -177,7 +178,7 @@ describe("runtime pipeline sync", () => {
 
     expect(runtime.getDebugState().targets[0]).toMatchObject({
       key: "sequence.hero",
-      sourceKind: "image-sequence",
+      sourceKind: "media/image-sequence",
       renderRole: "media",
     });
 
@@ -202,7 +203,7 @@ describe("runtime pipeline sync", () => {
 
     runtime.registerTarget(modelAnchor, {
       key: "product",
-      source: { kind: "model", format: "glb", src: "/product.glb" },
+      source: { kind: "model", type: "glb", src: "/product.glb" },
     });
 
     await runtime.sync();
@@ -244,7 +245,7 @@ describe("runtime pipeline sync", () => {
 
     runtime.registerTarget(anchor, {
       key: "product",
-      source: { kind: "model", format: "glb", src: "/product.glb" },
+      source: { kind: "model", type: "glb", src: "/product.glb" },
       effects: [{ kind: "custom.modelProbe" }],
     });
 
@@ -252,7 +253,8 @@ describe("runtime pipeline sync", () => {
 
     expect(updateEffect).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: "model/glb",
+        kind: "model",
+        type: "glb",
         src: "/product.glb",
         model: expect.objectContaining({
           sampleVertices: expect.any(Function),
@@ -423,7 +425,7 @@ describe("runtime pipeline sync", () => {
       effects: [
         defineWebGLEffect({
           kind: "custom.visibleTilt",
-          source: "snapshot/element",
+          source: "dom/element",
           setup,
           update,
         }),
@@ -441,7 +443,7 @@ describe("runtime pipeline sync", () => {
 
     runtime.registerTarget(element, {
       key: "custom.surface",
-      source: { kind: "snapshot", mode: "element" },
+      source: { kind: "dom", type: "element" },
       effects: [{ kind: "custom.visibleTilt" }],
     });
 
@@ -452,7 +454,7 @@ describe("runtime pipeline sync", () => {
     expect(update).toHaveBeenCalledTimes(2);
     expect(update.mock.calls[0]?.[0]).toMatchObject({
       key: "custom.surface",
-      sourceKind: "snapshot/element",
+      sourceKind: "dom/element",
       pointer: { normalizedX: 1 },
       target: {
         setVisible: expect.any(Function),
@@ -483,7 +485,7 @@ describe("runtime pipeline sync", () => {
 
     runtime.registerTarget(element, {
       key: "consumer.surface",
-      source: { kind: "snapshot", mode: "element" },
+      source: { kind: "dom", type: "element" },
       effects: [
         { kind: "test.surface", opacity: 0.84 },
         { kind: "test.pointerTilt", strength: 0.5, maxDegrees: 10 },
@@ -515,7 +517,7 @@ describe("runtime pipeline sync", () => {
       effects: [
         defineWebGLEffect({
           kind: "custom.postprocess",
-          source: "snapshot/element",
+          source: "dom/element",
           setup(ctx) {
             return ctx.visual.requestPostprocess({
               key: "custom.glow",
@@ -536,7 +538,7 @@ describe("runtime pipeline sync", () => {
 
     runtime.registerTarget(element, {
       key: "postprocess.surface",
-      source: { kind: "snapshot", mode: "element" },
+      source: { kind: "dom", type: "element" },
       effects: [{ kind: "custom.postprocess" }],
     });
 
@@ -1108,7 +1110,7 @@ describe("runtime pipeline sync", () => {
       effects: [
         defineWebGLEffect({
           kind: "custom.hideTarget",
-          source: "snapshot/element",
+          source: "dom/element",
           update(ctx) {
             effectUpdate();
             ctx.target?.setVisible(false);
@@ -1193,7 +1195,7 @@ describe("runtime pipeline sync", () => {
       effects: [
         defineWebGLEffect({
           kind: "custom.disposeVisibilityLeak",
-          source: "snapshot/element",
+          source: "dom/element",
           update(ctx) {
             effectUpdate();
             void ctx;
@@ -1277,7 +1279,7 @@ describe("runtime pipeline sync", () => {
       effects: [
         defineWebGLEffect({
           kind: "custom.asyncProbe",
-          source: "snapshot/element",
+          source: "dom/element",
           update: effectUpdate,
         }),
       ],

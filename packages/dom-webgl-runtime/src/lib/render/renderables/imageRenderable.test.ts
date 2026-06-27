@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLImageSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaImageSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createImageRenderable } from "./imageRenderable";
 
@@ -57,7 +57,9 @@ describe("createImageRenderable", () => {
     expect(renderable.fallbackVisible).toBe(false);
     expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.effectSource).toMatchObject({
-      kind: "image",
+      kind: "media",
+      type: "image",
+      element: source.anchor,
       src: "/assets/hero.png",
       image: expect.objectContaining({
         source: source.element,
@@ -233,6 +235,51 @@ describe("createImageRenderable", () => {
     expect(first.status).toBe("ready");
     expect(second.status).toBe("ready");
   });
+
+  test("uses the anchor element for layout and an off-DOM image for media texture", async () => {
+    const anchor = document.createElement("section");
+    const source = {
+      kind: "media",
+      type: "image",
+      anchor,
+      src: "/hero.png",
+    } satisfies WebGLMediaImageSourceDescriptor;
+    const descriptor = createTargetDescriptor(anchor, { key: "hero.image" }, 0);
+    const sceneAdapter = createSceneAdapter();
+    const image = document.createElement("img");
+    const imageConstructor = vi
+      .spyOn(globalThis, "Image")
+      .mockImplementation(() => image);
+    stubDecode(image);
+
+    const renderable = createImageRenderable(
+      {
+        descriptor,
+        source,
+        role: "media",
+        policy: compileRenderPolicy("media"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter,
+        measureElement: () => createMeasurement(0, 0, 100, 50),
+      },
+    );
+
+    await renderable.update();
+
+    expect(imageConstructor).toHaveBeenCalledTimes(1);
+    expect(image.src).toContain("/hero.png");
+    expect(sceneAdapter.objects[0]?.textureSource).toBe(image);
+    expect(sceneAdapter.objects[0]?.lastLayout).toBeUndefined();
+    renderable.updateLayout?.(createMeasurement(0, 0, 100, 50));
+    expect(sceneAdapter.objects[0]?.lastLayout).toEqual({
+      x: 50,
+      y: 575,
+      width: 100,
+      height: 50,
+    });
+  });
 });
 
 type TestSceneObject = {
@@ -286,12 +333,19 @@ function createMeasurement(
   };
 }
 
-function createImageDescriptor(src: string): WebGLImageSourceDescriptor {
+type TestImageSourceDescriptor = WebGLMediaImageSourceDescriptor & {
+  anchor: HTMLImageElement;
+  element: HTMLImageElement;
+};
+
+function createImageDescriptor(src: string): TestImageSourceDescriptor {
   const element = document.createElement("img");
   element.src = src;
 
   return {
-    kind: "image",
+    kind: "media",
+    type: "image",
+    anchor: element,
     element,
     src,
   };

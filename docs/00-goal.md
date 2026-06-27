@@ -21,7 +21,7 @@ resource/render-target disposal contracts are covered. Phase 4 is now narrowed
 to DOM layout/content mapping: layout snapshots, cached renderer resize, dirty
 DOM invalidation, placement-only style snapshots, transparent element anchors,
 text placement/raster sizing, media content-box object-fit mapping, and a
-public-API-only responsive demo harness are in place. The forward direction is
+public-API-only responsive example harness are in place. The forward direction is
 not to expand CSS fidelity. DOM supplies layout, content, accessibility, and
 interaction state; WebGL effects/materials should own final visual styling.
 Phase 5/6 historically added legacy `effects.material` and `effects.motion`
@@ -29,8 +29,8 @@ declaration shapes plus concrete package-owned effect implementations. Phase 7
 historically moved those declarations through registry primitives. Phase 8 and
 the package effect boundary cleanup supersede that concrete-effect model:
 `defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
-target handles, and managed effect resources are the public authoring API, while
-all concrete effect implementations live in application, demo, or documentation
+ target handles, and managed effect resources are the public authoring API, while
+ all concrete effect implementations live in application, example, or documentation
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
 
@@ -189,9 +189,8 @@ effects: [
 ```
 
 Matching executable definitions are registered once through runtime-level
-`effects` with `defineWebGLEffect(...)`. The legacy object form remains
-compatibility input, but the package does not provide matching concrete visual
-effects by default.
+`effects` with `defineWebGLEffect(...)`. Legacy object-form target effects are
+removed from the contract and do not compile.
 
 React usage:
 
@@ -200,7 +199,7 @@ React usage:
   as="div"
   webgl={{
     key: "hero.model",
-    source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+    source: { kind: "model", type: "glb", src: "/models/hero.glb" },
     renderRole: "model",
     scroll: { type: "gate", start: "top top", duration: 1 },
     pointer: { move: true, click: true, drag: true }
@@ -213,7 +212,7 @@ Vanilla usage:
 ```ts
 registerWebGLTarget(element, {
   key: "hero.model",
-  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
   renderRole: "model",
   scroll: { type: "gate", start: "top top", duration: 1 },
   pointer: { drag: true }
@@ -266,7 +265,7 @@ Minimal model target:
   as="div"
   webgl={{
     key: "hero.model",
-    source: { kind: "model", format: "glb", src: "/models/hero.glb" }
+    source: { kind: "model", type: "glb", src: "/models/hero.glb" }
   }}
 />
 ```
@@ -330,15 +329,16 @@ It should include:
 
 A source descriptor describes what visual source the DOM element contributes.
 
-Initial source kinds:
+Current source descriptor families:
 
 ```ts
 type WebGLSourceDescriptor =
-  | { kind: "snapshot"; mode: "element"; element: HTMLElement }
-  | { kind: "snapshot"; mode: "text"; element: HTMLElement }
-  | { kind: "image"; element: HTMLImageElement; src: string }
-  | { kind: "video"; element: HTMLVideoElement; src: string }
-  | { kind: "model"; format: "glb"; anchor: HTMLElement; src: string };
+  | { kind: "dom"; type: "element"; element: HTMLElement }
+  | { kind: "dom"; type: "text"; element: HTMLElement }
+  | { kind: "media"; type: "image"; anchor: HTMLElement; src: string }
+  | { kind: "media"; type: "video"; anchor: HTMLElement; src: string }
+  | { kind: "media"; type: "image-sequence"; anchor: HTMLElement; frameCount: number }
+  | { kind: "model"; type: "glb"; anchor: HTMLElement; src: string };
 ```
 
 The runtime may infer these from DOM tag, explicit source props, or explicit source type. The explicit declaration should override inference.
@@ -369,11 +369,11 @@ Role meanings:
 Default role inference:
 
 ```txt
-snapshot/element -> surface
-snapshot/text    -> content
-image/video      -> media
-model/glb        -> model
-explicit effect  -> overlay
+dom/element -> surface
+dom/text    -> content
+media/*     -> media
+model/glb   -> model
+explicit effect -> overlay
 ```
 
 `renderRole` compiles to Three.js policy. Page code should not set low-level Three.js ordering flags.
@@ -400,7 +400,7 @@ Delivered Phase 3 behavior:
   layout reads the loaded `Object3D` bounds once and contains those bounds inside
   the DOM anchor rect with a uniform XYZ scale.
 - The default renderer scene includes a small ambient plus directional light rig
-  so lit GLB/PBR materials have baseline visibility without demo-specific
+  so lit GLB/PBR materials have baseline visibility without app-specific
   branches.
 - DOM rects are projected into scene coordinates internally.
 - Ordering comes from `renderRole` through internal render policy, not public
@@ -413,9 +413,8 @@ Delivered Phase 3 behavior:
   rendered CSS box as their shared CSS-pixel coordinate space, so scrollbar
   gutters and fixed-stage sizing do not drift away from
   `getBoundingClientRect()` anchors.
-- The default demo keeps ordinary page scroll and does not enable a scene gate;
-  gate behavior is covered by dedicated runtime, React adapter, and public type
-  tests.
+- The example keeps ordinary page scroll by default; gate behavior is covered by
+  dedicated runtime, React adapter, and public type tests.
 - Layout reads are batched before renderables receive layout updates.
 - Async resource completion requests a render after the visual scene object is
   ready.
@@ -635,9 +634,11 @@ The page owns:
 
 ## Package Boundary
 
-The core runtime should be built as a reusable library first, with the demo project consuming only exported APIs.
+The core runtime should be built as a reusable library first, with example and
+consumer projects using only exported APIs.
 
-Use a monorepo workspace so the runtime package and demo app can evolve together while keeping package boundaries explicit.
+Use a monorepo workspace so the runtime package, optional scroll adapters, and
+example app can evolve together while keeping package boundaries explicit.
 
 Project shape:
 
@@ -656,9 +657,8 @@ packages/dom-webgl-runtime/
       index.ts
   package.json
 
-apps/demo/
-  app/
-  components/
+apps/example/
+  src/
   public/
 ```
 
@@ -674,7 +674,9 @@ Root workspace direction:
 }
 ```
 
-All core capabilities live under the package `src/lib/` tree. Demo code must not import package internals by file path. It should import only from public package exports.
+All core capabilities live under the package `src/lib/` tree. Example code must
+not import package internals by file path. It should import only from public
+package exports.
 
 Public API examples:
 
@@ -704,36 +706,37 @@ The library owns:
 - React adapters.
 - Public types.
 
-The demo owns:
+The example app owns:
 
 - Example DOM structure.
 - Content and assets.
-- Demo-specific styling.
-- Demo scenes that exercise the public API.
+- Example-specific styling.
+- Example scenes that exercise the public API.
 
 Boundary rules:
 
-- `apps/demo/*` may import from `@project/dom-webgl-runtime`.
-- `apps/demo/*` must not import from `@project/dom-webgl-runtime/src/lib/*`.
-- `packages/dom-webgl-runtime/src/lib/*` must not import app/demo code.
-- Runtime/package implementation must not hardcode demo-only keys, asset paths,
-  DOM structure, layout, or copy. Demo needs must be expressed as reusable
+- `apps/example/*` may import from `@project/dom-webgl-runtime`.
+- `apps/example/*` must not import from `@project/dom-webgl-runtime/src/lib/*`.
+- `packages/dom-webgl-runtime/src/lib/*` must not import app code.
+- Runtime/package implementation must not hardcode example-only keys, asset paths,
+  DOM structure, layout, or copy. Example needs must be expressed as reusable
   declarations, public API, or generic internal pipeline behavior.
 - Public exports should be intentionally small and stable.
 - Internal modules can change freely as long as public API tests pass.
 
 ## Package Consumption Sketch
 
-Develop the runtime as a workspace package first. The demo should consume it the same way a real app would.
+Develop the runtime as a workspace package first. The example should consume it
+the same way a real app would.
 
 Workspace shape:
 
 ```txt
 packages/dom-webgl-runtime
-apps/demo
+apps/example
 ```
 
-React demo import:
+React example import:
 
 ```ts
 import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
@@ -794,7 +797,7 @@ Rules:
 - Do not touch `window`, `document`, `HTMLElement`, canvas, or WebGL at module import time.
 - React runtime components that mount WebGL should be client components.
 - The package should fail visibly if a client-only runtime API is executed without a browser environment.
-- Demo code should keep runtime mounting behind a client boundary.
+- Example code should keep runtime mounting behind a client boundary.
 
 ## Error, Loading, And Fallback Contract
 
@@ -854,7 +857,7 @@ Delivered fallback visibility behavior:
   targets that already own fallback visibility.
 - For WebGL-owned text on a card or marker, the panel surface and text should
   share WebGL visual ownership. Use an element snapshot parent with
-  `hideMode: "self"` for the surface, then put `snapshot/text` on the actual
+  `hideMode: "self"` for the surface, then put `dom/text` on the actual
   text-bearing child element so native semi-transparent DOM backgrounds do not
   cover the WebGL text.
 - Target unregister and runtime disposal restore fallback visibility.
@@ -1178,7 +1181,7 @@ type WebGLDebugState = {
 
 Validation should prove:
 
-- Demo imports only public package exports.
+- Example imports only public package exports.
 - Browser-only runtime APIs are not executed during SSR.
 - Failed assets keep DOM fallback visible.
 - Surface/content/media/model roles render in stable order.
@@ -1229,7 +1232,7 @@ Keep the first implementation small. The initial runtime should prove the straig
 
 ## First Milestone
 
-Build the base runtime package with no effect system, then build a demo that consumes the package exports.
+Build the base runtime package with no effect system, then build an example that consumes the package exports.
 
 Must support:
 
@@ -1255,7 +1258,7 @@ Success criteria:
 - Surface/content/media/model roles render in predictable order.
 - A GLB anchored to a DOM element is not hidden by an element surface snapshot.
 - Renderables update from DOM measurements and dispose cleanly.
-- The demo imports only from the package public API.
+- The example imports only from the package public API.
 
 ## Second Milestone
 
@@ -1314,11 +1317,12 @@ Historical Phase 5/6/7 behavior, superseded by Phase 8 package boundary cleanup:
 Current controlled visual capability API, delivered after Phase 8:
 
 - `defineWebGLEffect(...)` remains the only effect authoring model.
-- Source handles expose `createMaterialLayer(...)` for `snapshot/element`,
-  `snapshot/text`, `image`, and `video` sources. The runtime compiles public
+- Source handles expose `createMaterialLayer(...)` for `dom/element`,
+  `dom/text`, `media/image`, `media/video`, and `media/image-sequence` sources.
+  The runtime compiles public
   material program declarations into internal Three material/texture state,
   restores original materials, and disposes runtime-owned resources.
-- Text/image/video handles expose shader input metadata such as source texture
+- Text/media handles expose shader input metadata such as source texture
   availability, size, DPR, glyph coordinates, media natural size, content box,
   and object-fit UV transform.
 - GLB model handles expose controlled mesh handles, material restore, sampled
@@ -1336,7 +1340,7 @@ Delivered Phase 8 behavior:
   runtime-level `effects`.
 - Core runtime registers no default visual effects and the package exports no
   concrete effects or official presets.
-- Demo and documentation examples may define local effects with the public
+- Example and documentation snippets may define local effects with the public
   authoring API, but those examples are consumer-owned code.
 - Effect context exposes layout, frame input, pointer, scroll, time, source
   handles, target handles, and managed resources.
@@ -1347,7 +1351,7 @@ Delivered Phase 8 behavior:
   public API.
 
 Text animation effects such as scrambled text and text pressure should use the
-public `snapshot/text` text-layer handle. They should not run by mutating native
+public `dom/text` text-layer handle. They should not run by mutating native
 DOM and waiting for snapshot refresh, because that couples effect timing to
 browser paint and snapshot cadence. `textLayer.setText(...)` and
 `textLayer.setGlyphs(...)` update only the WebGL output layer; DOM text remains
@@ -1365,8 +1369,8 @@ the source for content, accessibility, and fallback.
 - Do not let every renderable or effect own its own pointer listeners.
 - Do not let scroll behavior, render role, and pointer behavior collapse into one mixed abstraction.
 - Do not build a full CSS-to-WebGL engine as the primary visual styling path.
-- Do not fix visual differences by hardcoding demo CSS, demo class names, or
-  demo asset paths into runtime code.
+- Do not fix visual differences by hardcoding example/app CSS, class names, or
+  asset paths into runtime code.
 
 ## Architecture Principles
 

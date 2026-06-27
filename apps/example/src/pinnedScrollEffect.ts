@@ -10,9 +10,9 @@ type PinnedRevealParams = {
 
 export const examplePinnedRevealEffect = defineWebGLEffect<PinnedRevealParams>({
   kind: "example.pinnedReveal",
-  source: "snapshot/text",
+  source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/text") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
       return;
     }
 

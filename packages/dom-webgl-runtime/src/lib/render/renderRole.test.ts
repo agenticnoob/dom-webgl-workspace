@@ -10,20 +10,36 @@ describe("inferRenderRole", () => {
   const video = document.createElement("video");
 
   test.each([
+    ["dom element", { kind: "dom", type: "element", element }, "surface"],
+    ["dom text", { kind: "dom", type: "text", element }, "content"],
     [
-      "element snapshot",
-      { kind: "snapshot", mode: "element", element },
-      "surface",
+      "media image",
+      { kind: "media", type: "image", anchor: image, element: image, src: "/image.png" },
+      "media",
     ],
-    ["text snapshot", { kind: "snapshot", mode: "text", element }, "content"],
-    ["image", { kind: "image", element: image, src: "/image.png" }, "media"],
-    ["video", { kind: "video", element: video, src: "/video.mp4" }, "media"],
     [
-      "GLB model",
-      { kind: "model", format: "glb", anchor: element, src: "/model.glb" },
+      "media video",
+      { kind: "media", type: "video", anchor: video, element: video, src: "/video.mp4" },
+      "media",
+    ],
+    [
+      "media image-sequence",
+      {
+        kind: "media",
+        type: "image-sequence",
+        anchor: element,
+        frameCount: 1,
+        frames: [document.createElement("canvas")],
+        startFrame: 1,
+      },
+      "media",
+    ],
+    [
+      "model glb",
+      { kind: "model", type: "glb", anchor: element, src: "/model.glb" },
       "model",
     ],
-  ] as const)(
+  ] satisfies Array<[string, WebGLSourceDescriptor, "surface" | "content" | "media" | "model"]>)(
     "infers %s source as %s",
     (_name, sourceDescriptor, expectedRole) => {
       expect(inferRenderRole(sourceDescriptor, { key: "hero.target" })).toBe(
@@ -34,7 +50,9 @@ describe("inferRenderRole", () => {
 
   test("prefers an explicit declaration render role", () => {
     const sourceDescriptor = {
-      kind: "image",
+      kind: "media",
+      type: "image",
+      anchor: image,
       element: image,
       src: "/image.png",
     } satisfies WebGLSourceDescriptor;

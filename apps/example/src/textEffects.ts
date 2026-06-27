@@ -1,6 +1,6 @@
 import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 
-import { clampNumber } from "./effectMath";
+import { clampNumber, readTargetViewportProgress } from "./effectMath";
 import { readTargetLocalPointer } from "./surfacePointer";
 
 type TextWaveParams = {
@@ -21,9 +21,9 @@ type TextSpotlightParams = {
 
 export const exampleTextWaveEffect = defineWebGLEffect<TextWaveParams>({
   kind: "example.textWave",
-  source: "snapshot/text",
+  source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/text") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
       return;
     }
 
@@ -42,13 +42,16 @@ export const exampleTextWaveEffect = defineWebGLEffect<TextWaveParams>({
 
 export const exampleTextRevealEffect = defineWebGLEffect<TextRevealParams>({
   kind: "example.textReveal",
-  source: "snapshot/text",
+  source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/text") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
       return;
     }
 
-    const progress = clampNumber(ctx.scrollProgress, 0, 1, 0);
+    const progress = Math.max(
+      clampNumber(ctx.scrollProgress, 0, 1, 0),
+      readTargetViewportProgress(ctx.layout),
+    );
     const color = params.color ?? "#f6c453";
 
     ctx.source.textLayer?.setGlyphs((glyphs) => {
@@ -68,9 +71,9 @@ export const exampleTextRevealEffect = defineWebGLEffect<TextRevealParams>({
 
 export const exampleTextSpotlightEffect = defineWebGLEffect<TextSpotlightParams>({
   kind: "example.textSpotlight",
-  source: "snapshot/text",
+  source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/text") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
       return;
     }
 

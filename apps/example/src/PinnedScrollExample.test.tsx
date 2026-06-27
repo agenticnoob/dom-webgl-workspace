@@ -89,7 +89,7 @@ describe("pinned scroll example section", () => {
     expect(targetProps).toHaveLength(1);
     expect(targetProps[0]?.webgl).toMatchObject({
       key: "example.pinned.reveal",
-      source: { kind: "snapshot", mode: "text" },
+      source: { kind: "dom", type: "text" },
       effects: [
         {
           kind: "example.pinnedReveal",

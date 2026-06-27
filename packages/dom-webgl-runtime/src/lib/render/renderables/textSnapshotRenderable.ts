@@ -72,7 +72,8 @@ export function createTextSnapshotRenderable(
       },
       effectSource() {
         return {
-          kind: "snapshot/text",
+          kind: "dom",
+          type: "text",
           element: context.descriptor.element,
           text: state.textContent,
           textLayer: state.scene?.object.textLayerCapability,

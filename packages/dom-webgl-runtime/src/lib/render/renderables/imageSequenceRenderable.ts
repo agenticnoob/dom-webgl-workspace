@@ -2,7 +2,7 @@ import type { WebGLFrameInput, WebGLProgressSignalSource } from "../../types";
 import type { DOMViewportSize } from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLImageSequenceSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaImageSequenceSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
@@ -19,7 +19,7 @@ type ImageSequenceRenderableOptions = {
   getViewportSize?(): DOMViewportSize;
   readonly progressSignals?: WebGLProgressSignalSource;
   readonly createSceneController?: (options: {
-    readonly source: WebGLImageSequenceSourceDescriptor;
+    readonly source: WebGLMediaImageSequenceSourceDescriptor;
     readonly textureSource: WebGLImageSequenceFrame;
   }) => SceneRenderableController;
 };
@@ -38,7 +38,7 @@ export function createImageSequenceRenderable(
   const createScene =
     options.createSceneController ??
     ((sceneOptions: {
-      readonly source: WebGLImageSequenceSourceDescriptor;
+      readonly source: WebGLMediaImageSequenceSourceDescriptor;
       readonly textureSource: WebGLImageSequenceFrame;
     }) =>
       createTexturePlaneSceneRenderableController({
@@ -83,7 +83,8 @@ export function createImageSequenceRenderable(
     },
     effectSource() {
       return {
-        kind: "image-sequence",
+        kind: "media",
+        type: "image-sequence",
         element: source.anchor,
         frame: state.frame,
         src: state.src,
@@ -109,16 +110,18 @@ export function createImageSequenceRenderable(
 
 function readImageSequenceSource(
   source: RenderableContext["source"],
-): WebGLImageSequenceSourceDescriptor {
-  if (source.kind !== "image-sequence") {
-    throw new Error(`Expected image-sequence source descriptor, received ${source.kind}`);
+): WebGLMediaImageSequenceSourceDescriptor {
+  if (source.kind !== "media" || source.type !== "image-sequence") {
+    throw new Error(
+      `Expected media/image-sequence source descriptor, received ${source.kind}/${source.type}`,
+    );
   }
 
   return source;
 }
 
 function selectFrame(
-  source: WebGLImageSequenceSourceDescriptor,
+  source: WebGLMediaImageSequenceSourceDescriptor,
   input: WebGLFrameInput,
   progressSignals?: WebGLProgressSignalSource,
 ): number {
@@ -130,7 +133,7 @@ function selectFrame(
 }
 
 function readFrame(
-  source: WebGLImageSequenceSourceDescriptor,
+  source: WebGLMediaImageSequenceSourceDescriptor,
   frame: number,
 ): WebGLImageSequenceFrame {
   return source.frames[frame - source.startFrame] ?? source.frames[0];

@@ -80,7 +80,7 @@ describe("runtime state public types", () => {
           targets: [
             {
               key: "hero.media",
-              sourceKind: "image",
+	              sourceKind: "media/image",
               renderRole: "media",
               resourceStatus,
               lifecycleState: "active",

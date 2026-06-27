@@ -357,7 +357,7 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
 
   return {
     kind: "model",
-    format: "glb",
+    type: "glb",
     anchor,
     src,
   };

@@ -8,31 +8,40 @@ export type WebGLRenderRole =
   | "overlay";
 
 export type WebGLSourceDeclaration =
-  | WebGLSnapshotSourceDeclaration
-  | WebGLImageSourceDeclaration
-  | WebGLVideoSourceDeclaration
-  | WebGLModelSourceDeclaration
-  | WebGLImageSequenceSourceDeclaration;
+  | WebGLDOMSourceDeclaration
+  | WebGLMediaSourceDeclaration
+  | WebGLModelSourceDeclaration;
 
-export type WebGLSnapshotSourceDeclaration = {
-  kind: "snapshot";
-  mode?: "element" | "text";
+export type WebGLDOMSourceDeclaration = {
+  kind: "dom";
+  type?: "element" | "text";
 };
 
-export type WebGLImageSourceDeclaration = {
-  kind: "image";
+export type WebGLMediaSourceDeclaration =
+  | WebGLMediaImageSourceDeclaration
+  | WebGLMediaVideoSourceDeclaration
+  | WebGLMediaImageSequenceSourceDeclaration;
+
+export type WebGLMediaImageSourceDeclaration = {
+  kind: "media";
+  type: "image";
   src?: string;
 };
 
-export type WebGLVideoSourceDeclaration = {
-  kind: "video";
-  src?: string;
+export type WebGLMediaVideoPlaybackDeclaration = {
+  muted?: boolean;
+  loop?: boolean;
+  autoplay?: boolean;
+  playsInline?: boolean;
+  playbackRate?: number;
+  visibility?: "pause-resume" | "continue";
 };
 
-export type WebGLModelSourceDeclaration = {
-  kind: "model";
-  format: "glb";
-  src: string;
+export type WebGLMediaVideoSourceDeclaration = {
+  kind: "media";
+  type: "video";
+  src?: string;
+  playback?: WebGLMediaVideoPlaybackDeclaration;
 };
 
 export type WebGLImageSequenceFrame =
@@ -40,12 +49,19 @@ export type WebGLImageSequenceFrame =
   | HTMLCanvasElement
   | ImageBitmap;
 
-export type WebGLImageSequenceSourceDeclaration = {
-  kind: "image-sequence";
+export type WebGLMediaImageSequenceSourceDeclaration = {
+  kind: "media";
+  type: "image-sequence";
   frameCount: number;
   frames: readonly WebGLImageSequenceFrame[];
   progressKey?: string;
   startFrame?: number;
+};
+
+export type WebGLModelSourceDeclaration = {
+  kind: "model";
+  type: "glb";
+  src: string;
 };
 
 export type WebGLPageScrollBehavior = {

@@ -3,27 +3,27 @@ import { describe, expect, test, vi } from "vitest";
 import { createTargetDescriptor } from "../dom/targetDescriptor";
 import { createResourceManager } from "../resources/resourceManager";
 import type {
-  WebGLImageSequenceSourceDescriptor,
-  WebGLImageSourceDescriptor,
+  WebGLDOMSourceDescriptor,
+  WebGLMediaImageSequenceSourceDescriptor,
+  WebGLMediaImageSourceDescriptor,
+  WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
-  WebGLSnapshotSourceDescriptor,
   WebGLSourceDescriptor,
-  WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
 import { compileRenderPolicy, toSceneObjectOrdering } from "./renderPolicy";
 import { createRenderable } from "./renderableFactory";
 
 describe("createRenderable factory", () => {
-  test("creates an element snapshot renderable for snapshot/element sources", () => {
+  test("creates an element snapshot renderable for dom/element sources", () => {
     const element = document.createElement("section");
     const descriptor = createTargetDescriptor(
       element,
       { key: "hero.snapshot" },
       0,
     );
-    const source: WebGLSnapshotSourceDescriptor = {
-      kind: "snapshot",
-      mode: "element",
+    const source: WebGLDOMSourceDescriptor = {
+      kind: "dom",
+      type: "element",
       element,
     };
     const measureElement = vi.fn(() => ({
@@ -69,13 +69,13 @@ describe("createRenderable factory", () => {
     expect(getViewportSize).toHaveBeenCalledTimes(1);
   });
 
-  test("creates a text snapshot renderable for snapshot/text sources", () => {
+  test("creates a text snapshot renderable for dom/text sources", () => {
     const element = document.createElement("p");
     element.textContent = "Readable overlay copy";
     const descriptor = createTargetDescriptor(element, { key: "hero.copy" }, 0);
-    const source: WebGLSnapshotSourceDescriptor = {
-      kind: "snapshot",
-      mode: "text",
+    const source: WebGLDOMSourceDescriptor = {
+      kind: "dom",
+      type: "text",
       element,
     };
     const sceneAdapter = createSceneAdapter();
@@ -295,31 +295,7 @@ describe("createRenderable factory", () => {
           measureElement: () => element.getBoundingClientRect(),
         },
       ),
-    ).toThrow("Unsupported WebGL source descriptor kind: canvas");
-  });
-
-  test("throws a clear runtime error for unsupported snapshot modes", () => {
-    const element = document.createElement("section");
-    const descriptor = createTargetDescriptor(element, { key: "hero.snapshot" }, 0);
-    const source = {
-      kind: "snapshot",
-      mode: "canvas",
-      element,
-    } as unknown as WebGLSourceDescriptor;
-
-    expect(() =>
-      createRenderable(
-        descriptor,
-        source,
-        "surface",
-        compileRenderPolicy("surface"),
-        {
-          resourceManager: createResourceManager(),
-          sceneAdapter: createSceneAdapter(),
-          measureElement: () => element.getBoundingClientRect(),
-        },
-      ),
-    ).toThrow("Unsupported WebGL source descriptor kind: snapshot/canvas");
+    ).toThrow("Unsupported WebGL source descriptor kind: canvas/undefined");
   });
 
   test("throws a clear runtime error for unsupported model formats", () => {
@@ -327,7 +303,7 @@ describe("createRenderable factory", () => {
     const descriptor = createTargetDescriptor(anchor, { key: "hero.model" }, 0);
     const source = {
       kind: "model",
-      format: "gltf",
+      type: "gltf",
       anchor,
       src: "/assets/product.gltf",
     } as unknown as WebGLSourceDescriptor;
@@ -344,28 +320,36 @@ describe("createRenderable factory", () => {
           measureElement: () => anchor.getBoundingClientRect(),
         },
       ),
-    ).toThrow("Unsupported WebGL source descriptor kind: model/gltf");
+    ).toThrow("Expected model/glb source descriptor, received model/gltf");
   });
 });
 
-function createImageDescriptor(src: string): WebGLImageSourceDescriptor {
+function createImageDescriptor(
+  src: string,
+): WebGLMediaImageSourceDescriptor & { element: HTMLImageElement } {
   const element = document.createElement("img");
   element.src = src;
 
   return {
-    kind: "image",
+    kind: "media",
+    type: "image",
+    anchor: element,
     element,
     src,
   };
 }
 
-function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
+function createVideoDescriptor(
+  src: string,
+): WebGLMediaVideoSourceDescriptor & { element: HTMLVideoElement } {
   const element = document.createElement("video");
   element.src = src;
   element.pause = vi.fn();
 
   return {
-    kind: "video",
+    kind: "media",
+    type: "video",
+    anchor: element,
     element,
     src,
   };
@@ -374,15 +358,16 @@ function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
 function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
   return {
     kind: "model",
-    format: "glb",
+    type: "glb",
     anchor: document.createElement("div"),
     src,
   };
 }
 
-function createImageSequenceDescriptor(): WebGLImageSequenceSourceDescriptor {
+function createImageSequenceDescriptor(): WebGLMediaImageSequenceSourceDescriptor {
   return {
-    kind: "image-sequence",
+    kind: "media",
+    type: "image-sequence",
     anchor: document.createElement("section"),
     frameCount: 10,
     frames: createFrames(10),

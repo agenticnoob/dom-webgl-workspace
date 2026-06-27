@@ -75,7 +75,7 @@ export const exampleSurfaceFillEffect = defineWebGLEffect<
   SurfaceFillState
 >({
   kind: "example.surfaceFill",
-  source: "snapshot/element",
+  source: "dom/element",
   setup(ctx, params) {
     const state = createSurfaceFillState();
     drawSurface(ctx, params, state);
@@ -88,9 +88,9 @@ export const exampleSurfaceFillEffect = defineWebGLEffect<
 
 export const exampleSurfacePulseEffect = defineWebGLEffect<SurfacePulseParams>({
   kind: "example.surfacePulse",
-  source: "snapshot/element",
+  source: "dom/element",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "snapshot/element") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
       return;
     }
 
@@ -112,7 +112,7 @@ export const exampleSurfaceVideoBackgroundEffect = defineWebGLEffect<
   SurfaceVideoBackgroundState
 >({
   kind: "example.surfaceVideoBackground",
-  source: "snapshot/element",
+  source: "dom/element",
   setup(ctx, params) {
     const state = createSurfaceVideoBackgroundState();
     drawVideoBackgroundSurface(ctx, params, state);
@@ -131,7 +131,7 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
   SurfaceGhostCursorState
 >({
   kind: "example.surfaceGhostCursor",
-  source: "snapshot/element",
+  source: "dom/element",
   setup(ctx) {
     const state = createSurfaceGhostCursorState(ctx);
     prepareGhostCursorLayer(ctx, state, {
@@ -143,7 +143,7 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
     return state;
   },
   update(ctx, state, params) {
-    if (ctx.source.kind !== "snapshot/element") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
       return;
     }
 
@@ -183,12 +183,12 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
   SurfaceWavesState
 >({
   kind: "example.surfaceWaves",
-  source: "snapshot/element",
+  source: "dom/element",
   setup() {
     return createSurfaceWavesState();
   },
   update(ctx, state, params) {
-    if (ctx.source.kind !== "snapshot/element") {
+    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
       return;
     }
 
@@ -223,7 +223,7 @@ function drawSurface(
   params: SurfaceFillParams,
   state: SurfaceFillState,
 ): void {
-  if (ctx.source.kind !== "snapshot/element") {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
     return;
   }
 
@@ -249,7 +249,7 @@ function prepareSurfaceImage(
   state: SurfaceFillState,
   imageSrc: string,
 ): void {
-  if (ctx.source.kind !== "snapshot/element") {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
     return;
   }
 
@@ -275,7 +275,7 @@ function drawVideoBackgroundSurface(
   params: SurfaceVideoBackgroundParams,
   state: SurfaceVideoBackgroundState,
 ): void {
-  if (ctx.source.kind !== "snapshot/element") {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
     return;
   }
 
@@ -304,7 +304,7 @@ function prepareGhostCursorLayer(
   state: SurfaceGhostCursorState,
   params: SurfaceGhostCursorParams,
 ): void {
-  if (ctx.source.kind !== "snapshot/element" || state.layer) {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element" || state.layer) {
     return;
   }
 

@@ -14,8 +14,6 @@ on decisions agents must make while writing effect definitions.
   `@project/dom-webgl-runtime/effects`.
 - Example app effects live under `apps/example` and are copyable examples, not
   package API.
-- Demo effects live under `apps/demo` and are demo validation code, not a
-  downstream integration guide.
 
 ## React Registration Pattern
 
@@ -32,7 +30,7 @@ export function App() {
       <WebGLTarget
         webgl={{
           key: "example.text",
-          source: { kind: "snapshot", mode: "text" },
+          source: { kind: "dom", type: "text" },
           effects: [{ kind: "example.textWave", amplitude: 7 }],
         }}
       >
@@ -55,10 +53,11 @@ Rules:
 
 ## Source Handles
 
-Always narrow `ctx.source.kind` before using a source-specific handle:
+Always narrow `ctx.source.kind` and `ctx.source.type` before using a
+source-specific handle:
 
 ```ts
-if (ctx.source.kind !== "snapshot/text") {
+if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
   return;
 }
 
@@ -73,11 +72,12 @@ ctx.source.textLayer?.setGlyphs((glyphs) =>
 
 Current handles:
 
-- `snapshot/element`: draw or clear a canvas-backed surface.
-- `snapshot/text`: rewrite WebGL output text or glyph commands.
-- `image`: control image texture transform and invalidation.
-- `video`: control texture transform, play/pause, muted state, and playback
+- `dom/element`: draw or clear a canvas-backed surface.
+- `dom/text`: rewrite WebGL output text or glyph commands.
+- `media/image`: control image texture transform and invalidation.
+- `media/video`: control texture transform, play/pause, muted state, and playback
   rate.
+- `media/image-sequence`: control the current frame texture transform and invalidation.
 - `model/glb`: inspect and control the runtime-owned model handle.
 
 ## Resource Ownership
@@ -98,11 +98,11 @@ Do not dispose or mutate:
 
 ## Media And Target Rules
 
-- Declare `image` only on real `img` targets.
-- Declare `video` only on real `video` targets.
-- Use `snapshot` for `div`, `section`, `p`, `span`, and other normal DOM
+- Use `source: { kind: "media", type: "image" }` for image media.
+- Use `source: { kind: "media", type: "video" }` for video media.
+- Use `source: { kind: "dom", type: "element" | "text" }` for normal DOM
   targets.
-- Put `snapshot/text` on the actual text-bearing element.
+- Put `dom/text` on the actual text-bearing element.
 - Use `hideMode: "self"` for mixed DOM/WebGL panels.
 - Use `hideMode: "subtree"` only when the entire subtree should be replaced by
   WebGL output.

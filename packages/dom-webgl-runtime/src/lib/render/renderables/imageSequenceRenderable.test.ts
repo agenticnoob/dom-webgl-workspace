@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import type { WebGLSceneObjectController } from "../../renderer/sceneObject";
-import type { WebGLImageSequenceSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaImageSequenceSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createImageSequenceRenderable } from "./imageSequenceRenderable";
 import type { SceneRenderableController } from "./sceneRenderableController";
@@ -19,7 +19,8 @@ describe("createImageSequenceRenderable", () => {
           {
             key: "sequence.hero",
             source: {
-              kind: "image-sequence",
+              kind: "media",
+              type: "image-sequence",
               frameCount: 10,
               frames,
               progressKey: "scrub",
@@ -46,11 +47,12 @@ describe("createImageSequenceRenderable", () => {
     expect(renderable.status).toBe("ready");
     const effectSource = renderable.effectSource;
     expect(effectSource).toMatchObject({
-      kind: "image-sequence",
+      kind: "media",
+      type: "image-sequence",
       element: anchor,
       frame: 6,
     });
-    if (effectSource?.kind !== "image-sequence") {
+    if (effectSource?.kind !== "media" || effectSource.type !== "image-sequence") {
       throw new Error("Expected image-sequence effect source.");
     }
     expect(effectSource.src).toContain("/frames/frame_0006.webp");
@@ -68,7 +70,8 @@ describe("createImageSequenceRenderable", () => {
           {
             key: "sequence.hero",
             source: {
-              kind: "image-sequence",
+              kind: "media",
+              type: "image-sequence",
               frameCount: 10,
               frames,
               progressKey: "scrub",
@@ -99,7 +102,7 @@ describe("createImageSequenceRenderable", () => {
     expect(effectSource).toMatchObject({
       frame: 10,
     });
-    if (effectSource?.kind !== "image-sequence") {
+    if (effectSource?.kind !== "media" || effectSource.type !== "image-sequence") {
       throw new Error("Expected image-sequence effect source.");
     }
     expect(effectSource.src).toContain("/frames/frame_0010.webp");
@@ -123,7 +126,8 @@ describe("createImageSequenceRenderable", () => {
           {
             key: "sequence.hero",
             source: {
-              kind: "image-sequence",
+              kind: "media",
+              type: "image-sequence",
               frameCount: 10,
               frames: mixedFrames,
               progressKey: "scrub",
@@ -154,9 +158,10 @@ describe("createImageSequenceRenderable", () => {
 function createImageSequenceSource(
   anchor: HTMLElement,
   frames: readonly (HTMLImageElement | ImageBitmap)[] = createFrames(10),
-): WebGLImageSequenceSourceDescriptor {
+): WebGLMediaImageSequenceSourceDescriptor {
   return {
-    kind: "image-sequence",
+    kind: "media",
+    type: "image-sequence",
     anchor,
     frameCount: frames.length,
     frames,

@@ -16,7 +16,7 @@ export const exampleModelSpinEffect = defineWebGLEffect<ModelSpinParams>({
   kind: "example.modelSpin",
   source: "model/glb",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "model/glb") {
+    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
       return;
     }
 
@@ -30,7 +30,7 @@ export const exampleModelFloatEffect = defineWebGLEffect<ModelFloatParams>({
   kind: "example.modelFloat",
   source: "model/glb",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "model/glb") {
+    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
       return;
     }
 

@@ -225,17 +225,16 @@ function createInitialDebugState(): WebGLDebugState {
 
 function sourceKindAbbr(kind: string): string {
   switch (kind) {
-    case "snapshot":
-      return "snap";
-    case "snapshot/element":
+    case "dom/element":
       return "elem";
-    case "snapshot/text":
+    case "dom/text":
       return "text";
-    case "image":
+    case "media/image":
       return "img";
-    case "video":
+    case "media/video":
       return "vid";
-    case "model":
+    case "media/image-sequence":
+      return "seq";
     case "model/glb":
       return "mdl";
     default:

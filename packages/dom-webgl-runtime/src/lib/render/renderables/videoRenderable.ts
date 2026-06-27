@@ -2,7 +2,7 @@ import type { ResourceManager } from "../../resources/resourceManager";
 import type { DOMViewportSize } from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLVideoSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLMediaVideoSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
   type Renderable,
@@ -24,7 +24,7 @@ type VideoRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
-  loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
+  loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
 };
 
 export function createVideoRenderable(
@@ -38,18 +38,20 @@ export function createVideoRenderable(
     fallbackVisible: true,
     resourceReady: false,
     scene: undefined as SceneRenderableController | undefined,
+    video: undefined as HTMLVideoElement | undefined,
   };
   const renderable = createRenderable(
     context,
     {
       async update() {
         const video = await resource.load(async () => loadVideo(source));
+        state.video = video;
         state.scene ??= createTexturePlaneSceneRenderableController({
           key: context.descriptor.key,
           sceneAdapter: options.sceneAdapter,
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
-          element: source.element,
+          element: source.anchor,
           ordering: toSceneObjectOrdering(context.policy),
           textureKind: "video",
           textureSource: video,
@@ -66,7 +68,7 @@ export function createVideoRenderable(
       },
       setVisible(visible) {
         if (!visible) {
-          source.element.pause();
+          state.video?.pause();
         }
         state.scene?.controller.setVisible(visible);
       },
@@ -78,14 +80,15 @@ export function createVideoRenderable(
       },
       effectSource() {
         return {
-          kind: "video",
-          element: source.element,
+          kind: "media",
+          type: "video",
+          element: source.anchor,
           src: source.src,
           video: state.scene?.object.videoLayerCapability,
         };
       },
       dispose() {
-        source.element.pause();
+        state.video?.pause();
         state.scene?.controller.dispose();
         resource.dispose();
       },
@@ -108,49 +111,89 @@ export function createVideoRenderable(
 
 function readVideoSource(
   source: RenderableContext["source"],
-): WebGLVideoSourceDescriptor {
-  if (source.kind !== "video") {
-    throw new Error(`Expected video source descriptor, received ${source.kind}`);
+): WebGLMediaVideoSourceDescriptor {
+  if (source.kind !== "media" || source.type !== "video") {
+    throw new Error(
+      `Expected media/video source descriptor, received ${readSourceKind(source)}`,
+    );
   }
 
   return source;
 }
 
-async function loadDomVideo(
-  source: WebGLVideoSourceDescriptor,
-): Promise<HTMLVideoElement> {
-  if (source.element.error) {
-    throw new Error(readVideoErrorMessage(source.element.error));
+function readSourceKind(source: RenderableContext["source"]): string {
+  return `${source.kind}/${source.type}`;
+}
+
+function createVideoElement(source: WebGLMediaVideoSourceDescriptor): HTMLVideoElement {
+  const video = source.element ?? document.createElement("video");
+
+  if (!source.element) {
+    video.src = source.src;
   }
 
-  if (source.element.readyState >= 2) {
-    return source.element;
+  const playback = source.playback;
+  if (playback) {
+    if (typeof playback.muted === "boolean") {
+      video.muted = playback.muted;
+    }
+    if (typeof playback.loop === "boolean") {
+      video.loop = playback.loop;
+    }
+    if (typeof playback.autoplay === "boolean") {
+      video.autoplay = playback.autoplay;
+    }
+    if (typeof playback.playsInline === "boolean") {
+      video.playsInline = playback.playsInline;
+    }
+    if (typeof playback.playbackRate === "number") {
+      video.playbackRate = playback.playbackRate;
+    }
+  }
+
+  return video;
+}
+
+async function loadDomVideo(
+  source: WebGLMediaVideoSourceDescriptor,
+): Promise<HTMLVideoElement> {
+  const video = createVideoElement(source);
+
+  if (video.error) {
+    throw new Error(readVideoErrorMessage(video.error));
+  }
+
+  if (video.readyState >= 2) {
+    return video;
   }
 
   return new Promise<HTMLVideoElement>((resolve, reject) => {
     const cleanup = () => {
-      source.element.removeEventListener("loadeddata", handleReady);
-      source.element.removeEventListener("canplay", handleReady);
-      source.element.removeEventListener("error", handleError);
+      video.removeEventListener("loadeddata", handleReady);
+      video.removeEventListener("canplay", handleReady);
+      video.removeEventListener("error", handleError);
     };
     const handleReady = () => {
       cleanup();
-      resolve(source.element);
+      resolve(video);
     };
     const handleError = () => {
       cleanup();
       reject(
         new Error(
-          source.element.error
-            ? readVideoErrorMessage(source.element.error)
+          video.error
+            ? readVideoErrorMessage(video.error)
             : "Video resource failed",
         ),
       );
     };
 
-    source.element.addEventListener("loadeddata", handleReady, { once: true });
-    source.element.addEventListener("canplay", handleReady, { once: true });
-    source.element.addEventListener("error", handleError, { once: true });
+    video.addEventListener("loadeddata", handleReady, { once: true });
+    video.addEventListener("canplay", handleReady, { once: true });
+    video.addEventListener("error", handleError, { once: true });
+    if (!source.element) {
+      video.load();
+    }
   });
 }
 

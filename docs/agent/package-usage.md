@@ -97,7 +97,7 @@ export function App() {
       <WebGLTarget
         webgl={{
           key: "hero.surface",
-          source: { kind: "snapshot", mode: "element" },
+          source: { kind: "dom", type: "element" },
           effects: [{ kind: "app.surface", opacity: 0.82 }],
         }}
       >
@@ -120,7 +120,7 @@ const runtime = createWebGLRuntime({
 
 runtime.registerTarget(element, {
   key: "hero.surface",
-  source: { kind: "snapshot", mode: "element" },
+  source: { kind: "dom", type: "element" },
   effects: [{ kind: "app.surface", opacity: 0.82 }],
 });
 
@@ -185,7 +185,7 @@ export function App() {
         <WebGLTarget
           webgl={{
             key: "article.hero",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             effects: [
               {
                 kind: "app.pinnedReveal",
@@ -308,7 +308,7 @@ Minimum target:
 ```ts
 const declaration: WebGLDeclaration = {
   key: "card.primary",
-  source: { kind: "snapshot", mode: "element" },
+  source: { kind: "dom", type: "element" },
 };
 ```
 
@@ -317,7 +317,7 @@ Effect target:
 ```ts
 const declaration: WebGLDeclaration = {
   key: "model.hero",
-  source: { kind: "model", format: "glb", src: "/models/hero.glb" },
+  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
   lifecycle: { hideWhenReady: true, hideMode: "subtree" },
   effects: [
     { kind: "app.modelRotate", speed: 0.15 },
@@ -328,16 +328,16 @@ const declaration: WebGLDeclaration = {
 
 Supported source declarations:
 
-- `{ kind: "snapshot", mode?: "element" | "text" }`
-- `{ kind: "image", src?: string }` on an actual `img` target only.
-- `{ kind: "video", src?: string }` on an actual `video` target only.
-- `{ kind: "image-sequence", frameCount: number, frames: readonly (HTMLImageElement | HTMLCanvasElement | ImageBitmap)[], progressKey?: string }` on any HTMLElement anchor.
-- `{ kind: "model", format: "glb", src: string }`
+- `{ kind: "dom", type?: "element" | "text" }`
+- `{ kind: "media", type: "image", src?: string }`
+- `{ kind: "media", type: "video", src?: string }`
+- `{ kind: "media", type: "image-sequence", frameCount: number, frames: readonly (HTMLImageElement | HTMLCanvasElement | ImageBitmap)[], progressKey?: string }`
+- `{ kind: "model", type: "glb", src: string }`
 
-Do not declare image/video sources on non-media elements. A `div`, `section`,
-or text node target should use `snapshot` or `model`; explicit `image` and
-`video` declarations are reserved for real `img` and `video` elements and throw
-when used on non-media elements.
+Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
+top-level `video`, top-level `image-sequence`, and `model/format` are removed.
+Media declarations can infer from real `img` / `video` elements, or use an
+arbitrary HTMLElement anchor when `src` is provided.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must
@@ -357,7 +357,8 @@ const frames = await loadFirstFrameThenBackfillSequence();
   webgl={{
     key: "sequence.hero",
     source: {
-      kind: "image-sequence",
+      kind: "media",
+      type: "image-sequence",
       frameCount: frames.length,
       frames,
       progressKey: "example.video.scrub",
@@ -394,7 +395,7 @@ Preferred pattern for a WebGL-owned panel:
   className="marker"
   webgl={{
     key: "marker.surface",
-    source: { kind: "snapshot", mode: "element" },
+    source: { kind: "dom", type: "element" },
     lifecycle: { hideWhenReady: true, hideMode: "self" },
     effects: [{ kind: "app.surface", opacity: 0.72 }],
   }}
@@ -405,7 +406,7 @@ Preferred pattern for a WebGL-owned panel:
     className="marker-copy"
     webgl={{
       key: "marker.copy",
-      source: { kind: "snapshot", mode: "text" },
+      source: { kind: "dom", type: "text" },
     }}
   >
     Text that should be rendered in the same WebGL canvas as the surface.
@@ -415,7 +416,7 @@ Preferred pattern for a WebGL-owned panel:
 
 Rules:
 
-- Put `snapshot/text` on the actual text-bearing element, such as `p`, `span`,
+- Put `dom/text` on the actual text-bearing element, such as `p`, `span`,
   `h1`, or `h2`; do not put it on a complex container just because the container
   contains text somewhere inside.
 - If text and its panel background should both be WebGL-owned, make the parent
@@ -443,7 +444,7 @@ type AppSurfaceParams = {
 
 export const appSurfaceEffect = defineWebGLEffect<AppSurfaceParams>({
   kind: "app.surface",
-  source: "snapshot/element",
+  source: "dom/element",
   update(ctx, _state, params) {
     ctx.target?.setVisible(true);
     ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
@@ -501,7 +502,8 @@ Rules:
 - Do not use generic global names such as `fade`, `rotate`, or `particles`.
 - Use `source` on the definition to restrict compatible source handles.
 - Always tolerate `ctx.target === undefined`.
-- Always narrow `ctx.source.kind` before using source-specific fields.
+- Always narrow `ctx.source.kind` and `ctx.source.type` before using
+  source-specific fields.
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
@@ -593,10 +595,10 @@ Pointer rule:
 
 ## Source Handles
 
-Narrow by `ctx.source.kind`:
+Narrow by `ctx.source.kind` and `ctx.source.type`:
 
 ```ts
-if (ctx.source.kind !== "model/glb") {
+if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
   return;
 }
 
@@ -607,11 +609,11 @@ Available source handles:
 
 | Source kind | Public output handle | Main controls |
 | --- | --- | --- |
-| `snapshot/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, object/material controls |
-| `snapshot/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
-| `image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
-| `video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
-| `image-sequence` | `ctx.source.image` | current frame metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
+| `dom/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, object/material controls |
+| `dom/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
+| `media/image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
+| `media/video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
+| `media/image-sequence` | `ctx.source.image` | current frame metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
 | `model/glb` | `ctx.source.model` | object controls, controlled mesh handles, material restore, vertex samples, managed point layers |
 
 DOM text remains the source of content, accessibility, and fallback.
@@ -793,7 +795,7 @@ Effect-specific tests should cover:
 
 - unknown effect kind fails at registration or is caught by tests;
 - definition `kind` matches declaration `kind`;
-- unsupported `ctx.source.kind` no-ops safely;
+- unsupported `ctx.source.kind` / `ctx.source.type` no-ops safely;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` for motion;
 - target-local pointer math maps through `ctx.layout`;
@@ -812,9 +814,9 @@ pitfalls unless they expose a reusable coordinate, lifecycle, or ownership bug.
 Use this checklist when turning package usage experience into a reusable agent
 skill:
 
-- Confirm the target app first. `apps/demo` is the package validation surface;
-  `apps/example` is the downstream consumer/tutorial surface. Do not assume a
-  visual-page issue belongs to demo when the user is looking at example.
+- Confirm the target app first. `apps/example` is the downstream
+  consumer/tutorial surface and the only app workspace. Do not add package API
+  for an example-only visual tuning issue.
 - Count runtime state before removing visuals. A page can register many targets
   while only a subset is active in the current viewport. Use debug state
   `targetCount` and `renderableCount` to distinguish "too many declarations"
@@ -858,8 +860,8 @@ skill:
   `defineWebGLEffect({ kind: "x" })`.
 - Legacy object-form effects: use `effects: [{ kind: "app.effect" }]`, not
   `effects: { material, motion }`.
-- Invalid media source: target declares `{ kind: "image" }` or
-  `{ kind: "video" }` on a non-`img` / non-`video` element.
+- Removed source declaration shape: target uses old top-level media kinds,
+  `snapshot/mode`, or `model/format` instead of `kind` plus `type`.
 - Runtime recreates in React: `effects` array identity changes on render.
 - Pointer offset: effect compares runtime normalized pointer coordinates directly
   to target-local coordinates.
@@ -873,7 +875,7 @@ skill:
   vertices while visible model is transformed.
 - Resource leak: effect creates objects/listeners without `ctx.resources`.
 - Boundary violation: app imports package internals or example-only code.
-- Hidden hardcoding: package source includes example/demo effect keys, asset
+- Hidden hardcoding: package source includes example/app effect keys, asset
   paths, copy, ReactBits/Ghost Cursor constants, or product-specific shader
   logic instead of a generic controlled primitive.
 

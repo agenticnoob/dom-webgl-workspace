@@ -1,6 +1,6 @@
 import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 
-import { clampNumber } from "./effectMath";
+import { clampNumber, readTargetViewportProgress } from "./effectMath";
 
 type ImagePanParams = {
   kind: "example.imagePan";
@@ -34,17 +34,21 @@ type VideoPlaybackState = {
 
 export const exampleImagePanEffect = defineWebGLEffect<ImagePanParams>({
   kind: "example.imagePan",
-  source: "image",
+  source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "image") {
+    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
       return;
     }
 
     const distance = clampNumber(params.distance, 0, 0.5, 0.16);
+    const progress = Math.max(
+      clampNumber(ctx.scrollProgress, 0, 1, 0),
+      readTargetViewportProgress(ctx.layout),
+    );
     ctx.source.image?.setTextureTransform({
       repeatX: 1.12,
       repeatY: 1.12,
-      offsetX: distance * ctx.scrollProgress,
+      offsetX: distance * progress,
       offsetY: 0,
     });
   },
@@ -52,9 +56,9 @@ export const exampleImagePanEffect = defineWebGLEffect<ImagePanParams>({
 
 export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
   kind: "example.imageZoom",
-  source: "image",
+  source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "image") {
+    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
       return;
     }
 
@@ -69,9 +73,9 @@ export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
 
 export const exampleImageKenBurnsEffect = defineWebGLEffect<ImageKenBurnsParams>({
   kind: "example.imageKenBurns",
-  source: "image",
+  source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "image") {
+    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
       return;
     }
 
@@ -96,7 +100,7 @@ export const exampleVideoPlaybackEffect = defineWebGLEffect<
   VideoPlaybackState
 >({
   kind: "example.videoPlayback",
-  source: "video",
+  source: "media/video",
   setup(ctx, params) {
     const state = { configured: false };
     configureVideo(ctx, params, state);
@@ -109,9 +113,9 @@ export const exampleVideoPlaybackEffect = defineWebGLEffect<
 
 export const exampleVideoDriftEffect = defineWebGLEffect<VideoDriftParams>({
   kind: "example.videoDrift",
-  source: "video",
+  source: "media/video",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "video") {
+    if (ctx.source.kind !== "media" || ctx.source.type !== "video") {
       return;
     }
 
@@ -132,7 +136,7 @@ function configureVideo(
   params: VideoPlaybackParams,
   state: VideoPlaybackState,
 ): void {
-  if (ctx.source.kind !== "video" || state.configured) {
+  if (ctx.source.kind !== "media" || ctx.source.type !== "video" || state.configured) {
     return;
   }
 

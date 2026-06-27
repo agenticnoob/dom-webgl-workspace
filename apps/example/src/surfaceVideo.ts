@@ -20,7 +20,7 @@ export function prepareSurfaceVideo(
   state: SurfaceVideoBackgroundState,
   videoSrc: string,
 ): void {
-  if (ctx.source.kind !== "snapshot/element") {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
     return;
   }
 

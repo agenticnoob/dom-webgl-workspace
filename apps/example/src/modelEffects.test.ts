@@ -14,7 +14,8 @@ describe("model example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "model/glb",
+        kind: "model",
+          type: "glb",
         anchor: document.createElement("section"),
         src: "/models/hero.glb",
         model: {
@@ -46,7 +47,8 @@ describe("model example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "model/glb",
+        kind: "model",
+          type: "glb",
         anchor: document.createElement("section"),
         src: "/models/hero.glb",
         model: {

@@ -742,7 +742,7 @@ function createPipelineRenderable(
   const role = inferRenderRole(source, descriptor.declaration);
   const policy = compileRenderPolicy(role);
   const debugRecord: TargetDebugRecord = {
-    sourceKind: source.kind,
+    sourceKind: readSourceKind(source),
     renderRole: role,
     resourceStatus: "idle",
     lifecycleState: "declared",
@@ -800,7 +800,7 @@ function readTargetDebugRecord(
 
   const source = inferSourceDescriptor(descriptor);
   const record: TargetDebugRecord = {
-    sourceKind: source.kind,
+    sourceKind: readSourceKind(source),
     renderRole: inferRenderRole(source, descriptor.declaration),
     resourceStatus: "idle",
     lifecycleState: "declared",
@@ -810,6 +810,10 @@ function readTargetDebugRecord(
   targetState.debugRecordsByTargetKey.set(descriptor.key, record);
 
   return record;
+}
+
+function readSourceKind(source: ReturnType<typeof inferSourceDescriptor>): string {
+  return `${source.kind}/${source.type}`;
 }
 
 function attachDebugBookkeeping(

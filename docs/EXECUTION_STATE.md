@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37. Phase 2 is complete through Task 56: scene-gated scroll, scroll lock, `sceneProgress`, explicit reverse gate behavior, full verification, and final documentation alignment. Phase 3 is complete through Task 72: element snapshots, text snapshots, images, videos, and GLB models create runtime-owned visible scene objects; fallback visibility is tied to scene object readiness; demo coverage, public import boundaries, and final documentation alignment are complete. Phase 3.5 runtime performance and stage correction is implemented: the canvas is a fixed transparent internal WebGL viewport stage layer, the renderer owns the loop, layout reads are batched, snapshot/resource updates follow dirty/lifecycle boundaries, viewport lifecycle classification skips non-active work, and render target pooling is available behind an internal resource boundary. Phase 4 is now narrowed to DOM layout/content mapping: layout snapshots carry viewport/DPR signatures, renderer resize is cached, DOM invalidation observes target resize and viewport changes, placement-only style snapshots feed text/media layout, element snapshots are transparent anchors, media renderables use content-box texture placement with object-fit mapping, and the demo includes a public-API-only responsive harness. Phase 4.1 mapping takeover semantics are implemented: registered WebGL targets default to `hideWhenReady: true` plus `hideMode: "self"`, `hideWhenReady: false` is the opt-out, `hideMode: "subtree"` is an explicit subtree replacement request, and the fixed pointer-transparent canvas is inserted before author DOM with explicit canvas-below-DOM stacking instead of using a global DOM wrapper layer. Runtime viewport lifecycle disposal now restores fallback visibility before releasing a ready offscreen renderable, so hidden fallback DOM is not left invisible when WebGL resources are unloaded. Phase 5/6 historically added legacy effect/material declaration shapes and concrete package-owned visuals. Phase 7 historically introduced registry primitives. Phase 8 custom effect authoring and package boundary cleanup supersede those concrete package effects: user-authored effects are defined with `defineWebGLEffect(...)`, passed to the vanilla runtime or React adapter through runtime-level `effects`, receive managed layout/input/source/target/resource context, and core no longer auto-registers default visual effects. The 2026-06-22 runtime contract and modularity optimization is implemented: target effects are array-form only, legacy object-form `effects.material` / `effects.motion` compatibility is removed, image/video declarations are tied to real `<img>` / `<video>` targets, and explicit image/video declarations on non-media elements throw instead of silently falling back to snapshots. The same pass globally caps model vertex sampling, indexes text glyph command lookup by glyph id, extracts shared object3D controls, splits source-kind scene renderable controllers behind the existing compatibility export path, and moves per-target runtime bookkeeping into `targetRuntimeState.ts`. Unified source capability handles expose runtime-owned output handles for `snapshot/element`, `snapshot/text`, `image`, `video`, and `model/glb` while keeping concrete effects application-owned. Public target/model/common renderable handles include `setPosition(...)` scene-space control alongside visibility, rotation, scale, and opacity. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath; demo effects are local validation examples, while `apps/example` is the isolated React-only downstream consumer example for effect authoring. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. The runtime should not expand CSS-to-WebGL paint fidelity. Offscreen resource policy is target-scoped. Far-offscreen targets restore native DOM fallback and dispose WebGL resources by default; near-offscreen parking is available through lifecycle offscreen policy for short warm resumes. Third-party scroll support now exposes a public adapter protocol in core and optional Lenis/GSAP/ScrollTrigger glue in `@project/dom-webgl-scroll-adapters`, while core keeps native scroll as the default and owns no direct third-party scroll dependency. `apps/demo` keeps its demo-local `useDemoSmoothScrollStack(...)` hook for the scroll gallery. `apps/example` dogfoods the high-level React adapter instead: `WebGLScrollRuntime` receives `exampleSmoothScrollOptions`, owns the built-in smooth stack, and `ScrollEffectSection` writes keyed pinned-section progress for `example.pinnedReveal`. The package boundary review fix keeps `createInitialPointerState` internal to the package rather than exporting it from the root public API, preserves query-string and hash variants in resource cache keys, and removes unused async/lifecycle helper state from `runtime.ts`.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, and Phase 8 custom effect authoring is the current public extension model. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -19,7 +19,7 @@ Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
 effect authoring model. Source handles can create runtime-owned material layers,
-text/image/video handles expose shader input metadata, GLB model handles expose
+text/media handles expose shader input metadata, GLB model handles expose
 controlled mesh material restore plus managed point layers, and
 `ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
 The public API still does not expose renderer, scene, camera, raw shader
@@ -27,8 +27,8 @@ materials, raw textures, composer, render targets, render loop, pass ordering,
 or renderer-state mutation.
 
 ## Last Completed Task
-Controlled visual capability API implementation, Ghost Cursor public-API
-dogfood, documentation alignment, and commit-ready verification.
+Source kind/type unification, demo workspace removal, example migration,
+documentation alignment, and verification.
 
 ## Latest Documentation Note
 Controlled visual capability API is implemented through the existing
@@ -42,95 +42,35 @@ renderer, scene, camera, raw shader materials, raw textures, composer, render
 targets, render loop, pass ordering, or renderer-state mutation. `apps/example`
 Ghost Cursor now dogfoods the public material layer/shader API and sends the
 ReactBits-style pointer trail as controlled public uniform data; visual browser
-QA remains user-owned per the latest manual review instruction.
+	QA remains user-owned per the latest manual review instruction.
+
+Source declarations are now `kind + type` only. Use
+`{ kind: "dom", type: "element" | "text" }`,
+`{ kind: "media", type: "image" | "video" | "image-sequence" }`, or
+`{ kind: "model", type: "glb", src }`. Effect context source handles expose
+`ctx.source.kind` and `ctx.source.type`; old checks such as
+`ctx.source.kind === "image"` or `ctx.source.kind === "model/glb"` are stale.
+`apps/example` is the sole app workspace and imports runtime packages only
+through public entrypoints. `npm run check:imports` now runs
+`scripts/assert-example-public-imports.mjs`.
 
 Package boundary review fixes keep pointer-state construction internal:
 `createInitialPointerState` remains available to package internals such as the
 React adapter, but is not exported from the root public API. Resource URL cache
-keys now preserve query-string and hash variants, so app-local URLs such as
-`/models/hero.glb?tenant=a`, `/models/hero.glb?tenant=b`, and
-`/models/hero.glb#preview` acquire distinct records. The older absolute-origin
-cache-key ambiguity remains tracked separately in `docs/REVIEW_BACKLOG.md`.
-Runtime cleanup also removed unused async/lifecycle helper state that did not
-participate in scheduling, debug state, or lifecycle decisions. Phase 8 makes
-user-authored effects the public model. Core does not register
-default visual effects; consumers pass `defineWebGLEffect(...)` definitions
-through runtime-level `effects`. The package exports no concrete effect
-implementations or effect preset subpath. The internal registry remains an
-implementation detail. `docs/agent/package-usage.md` is the agent-first entry
-for downstream package integration and custom effect authoring. Source
-capability handles expose stable WebGL output controls for `snapshot/element`,
-`snapshot/text`, `image`, `video`, and `model/glb`; target/model/common
-renderable handles include scene-space `setPosition(...)`. Concrete visual
-effects remain consumer-owned. Target effects use array-form declarations only;
-legacy object-form `effects.material` / `effects.motion` is removed from the
-public contract and runtime compiler. Explicit `image` and `video` source
-declarations are reserved for real `img` and `video` targets; non-media elements
-should use snapshot or model sources, and invalid media declarations now throw
-clearly. Third-party scroll integration now uses the
-public `WebGLScrollAdapter` protocol plus the optional
-`@project/dom-webgl-scroll-adapters` package. Core keeps native page/gate scroll
-as the default and does not import Lenis, GSAP, or ScrollTrigger. The optional
-adapter package now exposes `createLenisGsapScrollStack(...)` to compose Lenis
-metrics, GSAP ticker driving, and ScrollTrigger update/refresh/proxy bridging
-behind one opt-in lifecycle object. `apps/demo` still uses that manual route for
-`ScrollZoomImage` through `useDemoSmoothScrollStack(...)`, where the demo owns
-the Lenis instance lifecycle and passes it to the adapter stack with
-`manageLenis: false`; the hook currently uses `lerp: 0.055` and
-`wheelMultiplier: 0.85` for a more responsive smooth-scroll feel. `apps/example`
-uses the high-level `WebGLScrollRuntime smooth={exampleSmoothScrollOptions}`
-route instead, so the React adapter owns the built-in smooth stack and each
-`ScrollEffectSection` owns only its bounded pinned trigger. The gallery moves
-through the local `demo.scrollGallery` effect rather than CSS transform
-animation or CSS progress variables. Runtime lifecycle disposal
-restores fallback visibility before unloading ready offscreen renderables.
-Offscreen resource policy is target-scoped: far-offscreen targets restore native
-DOM fallback and dispose resources by default; near-offscreen parking enables
-short warm resumes before fallback restore or disposal. `apps/example` now
-serves as the React-only downstream consumer example for effect authoring. It
-uses only public runtime, React, and optional scroll-adapter entrypoints,
-dogfoods the high-level pinned scroll React adapter surface with
+keys preserve query-string and hash variants. Runtime cleanup removed unused
+async/lifecycle helper state that did not participate in scheduling, debug
+state, or lifecycle decisions.
+
+`docs/agent/package-usage.md` is the agent-first entry for downstream package
+integration and custom effect authoring. `apps/example` uses only public
+runtime, React, and optional scroll-adapter entrypoints; dogfoods
 `WebGLScrollRuntime`, `ScrollEffectSection`, stable `progressKey` data, and
-effect reads through `ctx.progress.get(progressKey)`, defines a full-width
-vertical catalog of local `example.surfaceFill`, `example.surfacePulse`,
-`example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
-`example.surfaceWaves`, `example.textWave`, `example.textReveal`,
-`example.textSpotlight`, `example.imagePan`, `example.imageZoom`,
-`example.imageKenBurns`, `example.videoPlayback`, `example.videoDrift`,
-`example.modelSpin`, `example.modelFloat`, and `example.pinnedReveal` effects,
-plus a pinned runtime `image-sequence` source specimen backed by app-owned
-frame resources,
-presents the example
-page with Chinese visible copy while keeping source/effect identifiers in
-English as API data, keeps each effect in one viewport-wide row with a reusable
-click-to-expand explanation overlay on the effect surface and no outer catalog
-shell padding, increases example row heights so each target reads as a larger
-visual specimen, uses `/example/bg.png` for
-the element surface-fill
-example without applying opacity to the whole target, keeps surface-pulse
-visibility in surface-layer drawing without changing target or DOM child
-opacity, draws `/example/bg.mp4` as a muted looping effect-owned
-`snapshot/element` background texture, implements a ReactBits-inspired Ghost
-Cursor through the public material layer/shader capability as a dark
-time-animated smoke surface whose no-pointer smoke stays nearly invisible and
-whose target-local pointer activates cursor-local emissive smoke, stops Ghost
-Cursor uniform updates after trail decay, implements Waves through the same
-`ctx.source.surface` path as a ReactBits-style Canvas2D Perlin point grid with
-subtle ambient motion and immediate target-local hover impulse, and does not
-rely on app CSS to keep real DOM
-children above WebGL surfaces because the React adapter owns the DOM content
-layer above the canvas.
-The text, image, and video buckets now include richer app-owned examples:
-`example.textSpotlight` uses target-local pointer distance for glyph color,
-opacity, and scale, `example.imageKenBurns` combines image texture drift with
-target scale, and the pinned scrub specimen uses an app-local resource scheduler
-to kick off static assets in DOM order, provide a full-length consumer-owned
-`frames` array to runtime `source.kind: "image-sequence"`, and let keyed
-pinned-section progress select the active WebGL texture frame while the row
-stays fixed until scrub progress reaches the end and the page can continue
-scrolling.
-It also records current authoring friction in
-`docs/agent/effect-authoring-example-report.md`.
+effect reads through `ctx.progress.get(progressKey)`; and defines local
+consumer-owned effects for surfaces, text, media, models, and pinned progress.
+The pinned scrub specimen passes a full-length consumer-owned `frames` array to
+`source: { kind: "media", type: "image-sequence" }`, while the runtime only
+selects the active texture frame. The example records current authoring friction
+in `docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -217,18 +157,15 @@ It also records current authoring friction in
 - Task 82: Phase 8 Package Effect Boundary Cleanup.
 
 ## Current Task
-React-only effect authoring examples are implemented as an isolated downstream
-consumer pass in `apps/example`. Package exports still provide only
-authoring/runtime primitives and runtime-owned output handles; concrete effects
-remain owned by applications, demos, or documentation examples. `apps/example`
-must stay separate from `apps/demo`: demo remains the package validation surface,
-while example is the package usage surface. The current example layout is a
+Source kind/type unification is implemented across runtime, public types, effect
+context handles, debug state, `apps/example`, and active docs. Package exports
+still provide only authoring/runtime primitives and runtime-owned output
+handles; concrete effects remain owned by applications or documentation
+examples. `apps/demo` has been removed, and `apps/example` is now the only app
+workspace plus the package usage surface. The current example layout is a
 full-width vertical effect catalog where each effect occupies one viewport-wide
 row with a reusable click-to-expand explanation overlay on the effect surface
-and no outer catalog shell padding. Phase 6.3
-remains a decision gate only and should not start unless a specific surface
-detail such as border, shadow, texture quality, or cache tuning is explicitly
-approved.
+and no outer catalog shell padding.
 
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package
@@ -421,7 +358,7 @@ approved.
   override nested WebGL targets that already manage fallback visibility.
 - WebGL-owned text should not be placed behind native semi-transparent DOM
   surfaces. A WebGL-owned marker or card should use an element snapshot parent
-  with `hideMode: "self"` for the surface and put `snapshot/text` on the actual
+  with `hideMode: "self"` for the surface and put `dom/text` on the actual
   text-bearing child element so surface and text share the same WebGL ownership
   layer.
 - Demo layout/content targets use only public `WebGLTarget` declarations.
@@ -819,7 +756,7 @@ as R-002 in `docs/REVIEW_BACKLOG.md`.
   authoring model.
 - Core must not auto-register visual effects and the package must not export
   concrete effect implementations. Consumers define effects in application,
-  demo, or docs example code.
+  example, or docs example code.
 - Effects must use managed context, source handles, target handles, and
   resources. They must not create their own renderer, scan DOM, install global
   pointer listeners, or own independent source loading.
@@ -834,9 +771,11 @@ as R-002 in `docs/REVIEW_BACKLOG.md`.
 - Do not expose Three.js renderOrder, transparent, or depthWrite in the public API.
 - Public package imports must be SSR-safe.
 - Runtime/package implementation must stay reusable for an open-source package
-  and must not hardcode demo-only keys, assets, DOM structure, layout, or copy.
-- apps/demo must import only public package APIs:
-  `@project/dom-webgl-runtime` and `@project/dom-webgl-runtime/react`.
+  and must not hardcode example/app-only keys, assets, DOM structure, layout, or
+  copy.
+- `apps/example` must import only public package APIs:
+  `@project/dom-webgl-runtime`, `@project/dom-webgl-runtime/react`, and optional
+  adapter packages.
 - Phase 3 visible renderables must keep scene object and render policy details internal.
 - `lifecycle.hideWhenReady` may hide DOM fallback only after the WebGL renderable is visually ready.
 - Phase 3 must support child-preserving fallback hiding for container targets.

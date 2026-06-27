@@ -17,9 +17,9 @@ describe("defineWebGLEffect", () => {
   test("narrows image sequence sources to a texture-capable handle", () => {
     const definition = defineWebGLEffect({
       kind: "custom.sequenceProbe",
-      source: "image-sequence",
+      source: "media/image-sequence",
       update(ctx) {
-        if (ctx.source.kind !== "image-sequence") {
+        if (ctx.source.kind !== "media" || ctx.source.type !== "image-sequence") {
           throw new Error("Expected image sequence source.");
         }
 
@@ -29,6 +29,6 @@ describe("defineWebGLEffect", () => {
       },
     });
 
-    expect(definition.source).toBe("image-sequence");
+    expect(definition.source).toBe("media/image-sequence");
   });
 });

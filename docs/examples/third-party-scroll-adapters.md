@@ -53,7 +53,7 @@ export function PinnedRuntime({
         <WebGLTarget
           webgl={{
             key: "example.pinned.surface",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             effects: [
               {
                 kind: "example.pinnedReveal",
@@ -79,8 +79,8 @@ per-section `ScrollTrigger` prop. `apps/example` uses that centralized path.
 ## Advanced Manual `scrollAdapter`
 
 Use the low-level adapter stack when the app intentionally owns Lenis, GSAP, or
-ScrollTrigger lifecycle details. This example shows the package boundary used by
-the demo when it opts into the official Lenis + GSAP ticker + ScrollTrigger
+ScrollTrigger lifecycle details. This example shows the package boundary for an
+application that opts into the official Lenis + GSAP ticker + ScrollTrigger
 stack.
 
 ```tsx

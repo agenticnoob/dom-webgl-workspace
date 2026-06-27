@@ -11,30 +11,35 @@ import type {
 
 export type TestEffectSource =
   | {
-      kind: "snapshot/element";
+      kind: "dom";
+      type: "element";
       element: HTMLElement;
       surface?: Partial<WebGLEffectCanvasSurfaceHandle>;
     }
   | {
-      kind: "snapshot/text";
+      kind: "dom";
+      type: "text";
       element: HTMLElement;
       text: string;
       textLayer?: Partial<WebGLEffectTextLayerHandle>;
     }
   | {
-      kind: "image";
+      kind: "media";
+      type: "image";
       element: HTMLImageElement;
       src: string;
       image?: Partial<WebGLEffectTextureLayerHandle<HTMLImageElement>>;
     }
   | {
-      kind: "video";
+      kind: "media";
+      type: "video";
       element: HTMLVideoElement;
       src: string;
       video?: Partial<WebGLEffectVideoLayerHandle>;
     }
   | {
-      kind: "model/glb";
+      kind: "model";
+      type: "glb";
       anchor: HTMLElement;
       src: string;
       model: Partial<WebGLModelEffectHandle>;
@@ -45,35 +50,54 @@ export function createEffectSource(
 ): WebGLEffectSourceHandle {
   if (source === undefined) {
     return {
-      kind: "snapshot/element",
+      kind: "dom",
+      type: "element",
       element: document.createElement("section"),
       surface: createCanvasSurface(),
     };
   }
 
   switch (source.kind) {
-    case "snapshot/element":
+    case "dom":
+      if (source.type === "text") {
+        return {
+          kind: "dom",
+          type: "text",
+          element: source.element,
+          text: source.text,
+          textLayer:
+            source.textLayer === undefined
+              ? undefined
+              : createTextLayer(source.text, source.textLayer),
+        };
+      }
+
       return {
-        kind: "snapshot/element",
+        kind: "dom",
+        type: "element",
         element: source.element,
         surface:
           source.surface === undefined
             ? undefined
             : createCanvasSurface(source.surface),
       };
-    case "snapshot/text":
+    case "media":
+      if (source.type === "video") {
+        return {
+          kind: "media",
+          type: "video",
+          element: source.element,
+          src: source.src,
+          video:
+            source.video === undefined
+              ? undefined
+              : createVideoLayer(source.element, source.video),
+        };
+      }
+
       return {
-        kind: "snapshot/text",
-        element: source.element,
-        text: source.text,
-        textLayer:
-          source.textLayer === undefined
-            ? undefined
-            : createTextLayer(source.text, source.textLayer),
-      };
-    case "image":
-      return {
-        kind: "image",
+        kind: "media",
+        type: "image",
         element: source.element,
         src: source.src,
         image:
@@ -81,19 +105,10 @@ export function createEffectSource(
             ? undefined
             : createTextureLayer(source.element, source.image),
       };
-    case "video":
+    case "model":
       return {
-        kind: "video",
-        element: source.element,
-        src: source.src,
-        video:
-          source.video === undefined
-            ? undefined
-            : createVideoLayer(source.element, source.video),
-      };
-    case "model/glb":
-      return {
-        kind: "model/glb",
+        kind: "model",
+        type: "glb",
         anchor: source.anchor,
         src: source.src,
         model: createModelHandle(source.model),

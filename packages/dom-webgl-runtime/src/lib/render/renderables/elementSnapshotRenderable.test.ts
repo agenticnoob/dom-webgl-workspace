@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
-import type { WebGLSnapshotSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLDOMSourceDescriptor } from "../../source/sourceDescriptor";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createElementSnapshotRenderable } from "./elementSnapshotRenderable";
 
@@ -49,7 +49,8 @@ describe("createElementSnapshotRenderable", () => {
     expect(renderable.hasSceneObject).toBe(true);
     expect(renderable.status).toBe("ready");
     expect(renderable.effectSource).toMatchObject({
-      kind: "snapshot/element",
+      kind: "dom",
+      type: "element",
       surface: expect.objectContaining({
         canvas: expect.any(HTMLCanvasElement),
         texture: expect.anything(),
@@ -205,10 +206,10 @@ function createSceneAdapter(): WebGLSceneAdapter & {
 
 function createSnapshotDescriptor(
   element: HTMLElement,
-): WebGLSnapshotSourceDescriptor {
+): WebGLDOMSourceDescriptor {
   return {
-    kind: "snapshot",
-    mode: "element",
+    kind: "dom",
+    type: "element",
     element,
   };
 }

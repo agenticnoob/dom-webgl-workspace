@@ -10,11 +10,9 @@ export function inferRenderRole(
   }
 
   switch (sourceDescriptor.kind) {
-    case "snapshot":
-      return sourceDescriptor.mode === "text" ? "content" : "surface";
-    case "image":
-    case "video":
-    case "image-sequence":
+    case "dom":
+      return sourceDescriptor.type === "text" ? "content" : "surface";
+    case "media":
       return "media";
     case "model":
       return "model";

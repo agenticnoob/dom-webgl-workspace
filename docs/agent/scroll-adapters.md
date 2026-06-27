@@ -65,7 +65,7 @@ const runtimeEffects = [pinnedRevealEffect] as const;
     <WebGLTarget
       webgl={{
         key: "article.hero",
-        source: { kind: "snapshot", mode: "element" },
+        source: { kind: "dom", type: "element" },
         effects: [
           {
             kind: "app.pinnedReveal",
@@ -117,11 +117,8 @@ const smoothScroll = createLenisGsapScrollStack({
 ```
 
 When Lenis is manually driven by the GSAP ticker, configure Lenis with
-`autoRaf: false` in the application-owned Lenis setup. `apps/demo` uses this
-manual route: it imports `lenis/dist/lenis.css`, creates the Lenis instance
-inside `useDemoSmoothScrollStack(...)`, passes it to
-`createLenisGsapScrollStack(...)` with `manageLenis: false`, and destroys Lenis
-from the same hook cleanup. `apps/example` uses the higher-level route instead:
+`autoRaf: false` in the application-owned Lenis setup. `apps/example` uses the
+higher-level route by default:
 `WebGLScrollRuntime smooth={exampleSmoothScrollOptions}` creates and owns the
 built-in stack while `ScrollEffectSection` owns pinned progress. This keeps the
 consumer choice explicit: manual ownership for advanced integration, high-level

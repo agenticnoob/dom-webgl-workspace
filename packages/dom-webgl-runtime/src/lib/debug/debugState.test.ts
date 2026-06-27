@@ -34,7 +34,7 @@ describe("debug state", () => {
       targets: [
         {
           key: "poster",
-          sourceKind: "image",
+          sourceKind: "media/image",
           renderRole: "media",
           resourceStatus: "error",
           lifecycleState: "error",
@@ -56,7 +56,7 @@ describe("debug state", () => {
       targets: [
         {
           key: "poster",
-          sourceKind: "image",
+          sourceKind: "media/image",
           renderRole: "media",
           resourceStatus: "error",
           lifecycleState: "error",
@@ -121,7 +121,7 @@ describe("debug state", () => {
       targets: [
         {
           key: "poster",
-            sourceKind: "image",
+            sourceKind: "media/image",
             renderRole: "media",
             resourceStatus: "idle",
             lifecycleState: "declared",
@@ -143,7 +143,7 @@ describe("debug state", () => {
       targets: [
         {
           key: "poster",
-          sourceKind: "image",
+          sourceKind: "media/image",
             renderRole: "media",
             resourceStatus: "ready",
             lifecycleState: "active",
@@ -191,7 +191,7 @@ describe("debug state", () => {
         targets: [
           expect.objectContaining({
             key: "hero",
-            sourceKind: "snapshot",
+	          sourceKind: "dom/element",
             renderRole: "surface",
             resourceStatus: "ready",
             lifecycleState: "active",

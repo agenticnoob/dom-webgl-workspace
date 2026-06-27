@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 
 import type {
-  WebGLImageSequenceSourceDescriptor,
-  WebGLImageSourceDescriptor,
+  WebGLDOMSourceDescriptor,
+  WebGLMediaImageSequenceSourceDescriptor,
+  WebGLMediaImageSourceDescriptor,
+  WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
-  WebGLSnapshotSourceDescriptor,
-  WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
 import { createResourceManager } from "./resourceManager";
 
@@ -17,12 +17,12 @@ describe("createResourceManager", () => {
     const handle = manager.acquire(snapshot);
 
     expect(handle.record).toMatchObject({
-      key: "snapshot:element:hero.surface",
-      kind: "snapshot",
+      key: "dom:element:hero.surface",
+      kind: "dom",
       status: "idle",
       refCount: 1,
     });
-    expect(manager.inspect("snapshot:element:hero.surface")).toBe(handle.record);
+    expect(manager.inspect("dom:element:hero.surface")).toBe(handle.record);
   });
 
   test("shares records by normalized resource key and reference counts handles", () => {
@@ -175,33 +175,35 @@ describe("createResourceManager", () => {
   });
 });
 
-function createSnapshotDescriptor(key: string): WebGLSnapshotSourceDescriptor {
+function createSnapshotDescriptor(key: string): WebGLDOMSourceDescriptor {
   const element = document.createElement("section");
   element.setAttribute("data-webgl-key", key);
 
   return {
-    kind: "snapshot",
-    mode: "element",
+    kind: "dom",
+    type: "element",
     element,
   };
 }
 
-function createAnonymousSnapshotDescriptor(): WebGLSnapshotSourceDescriptor {
+function createAnonymousSnapshotDescriptor(): WebGLDOMSourceDescriptor {
   const element = document.createElement("section");
 
   return {
-    kind: "snapshot",
-    mode: "element",
+    kind: "dom",
+    type: "element",
     element,
   };
 }
 
-function createImageDescriptor(src: string): WebGLImageSourceDescriptor {
+function createImageDescriptor(src: string): WebGLMediaImageSourceDescriptor {
   const element = document.createElement("img");
   element.src = src;
 
   return {
-    kind: "image",
+    kind: "media",
+    type: "image",
+    anchor: element,
     element,
     src,
   };
@@ -212,18 +214,20 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
 
   return {
     kind: "model",
-    format: "glb",
+    type: "glb",
     anchor,
     src,
   };
 }
 
-function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
+function createVideoDescriptor(src: string): WebGLMediaVideoSourceDescriptor {
   const element = document.createElement("video");
   element.src = src;
 
   return {
-    kind: "video",
+    kind: "media",
+    type: "video",
+    anchor: element,
     element,
     src,
   };
@@ -232,9 +236,10 @@ function createVideoDescriptor(src: string): WebGLVideoSourceDescriptor {
 function createImageSequenceDescriptor(
   anchor: HTMLElement,
   frameCount: number,
-): WebGLImageSequenceSourceDescriptor {
+): WebGLMediaImageSequenceSourceDescriptor {
   return {
-    kind: "image-sequence",
+    kind: "media",
+    type: "image-sequence",
     anchor,
     frameCount,
     frames: createFrames(frameCount),

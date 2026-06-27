@@ -12,7 +12,7 @@ export type ResourceRecord<T = unknown> = {
 };
 
 export type WebGLResourceKind =
-  | "snapshot"
+  | "dom"
   | "image"
   | "video"
   | "model/glb"
@@ -78,14 +78,12 @@ export function createResourceManager(): ResourceManager {
 
 function readResourceKind(descriptor: WebGLSourceDescriptor): WebGLResourceKind {
   switch (descriptor.kind) {
-    case "snapshot":
-    case "image":
-    case "video":
-      return descriptor.kind;
-    case "image-sequence":
-      return "image-sequence";
+    case "dom":
+      return "dom";
+    case "media":
+      return descriptor.type;
     case "model":
-      return `model/${descriptor.format}`;
+      return `model/${descriptor.type}`;
   }
 }
 
@@ -142,23 +140,21 @@ function createResourceKey(
   readElementKey: (element: Element) => string,
 ): string {
   switch (descriptor.kind) {
-    case "snapshot":
-      return `snapshot:${descriptor.mode}:${readSnapshotKey(
+    case "dom":
+      return `dom:${descriptor.type}:${readSnapshotKey(
         descriptor.element,
         readElementKey,
       )}`;
-    case "image":
-      return `image:${readElementKey(descriptor.element)}:${normalizeResourceUrl(
-        descriptor.src,
-      )}`;
-    case "video":
-      return `video:${readElementKey(descriptor.element)}:${normalizeResourceUrl(
-        descriptor.src,
-      )}`;
-    case "image-sequence":
-      return `image-sequence:${readElementKey(descriptor.anchor)}:${descriptor.frameCount}`;
+    case "media":
+      if (descriptor.type === "image-sequence") {
+        return `image-sequence:${readElementKey(descriptor.anchor)}:${descriptor.frameCount}`;
+      }
+
+      return `${descriptor.type}:${readElementKey(
+        descriptor.element ?? descriptor.anchor,
+      )}:${normalizeResourceUrl(descriptor.src)}`;
     case "model":
-      return `model:${descriptor.format}:${normalizeResourceUrl(descriptor.src)}`;
+      return `model:${descriptor.type}:${normalizeResourceUrl(descriptor.src)}`;
   }
 }
 
@@ -166,12 +162,13 @@ function readAdoptedElement(
   descriptor: WebGLSourceDescriptor,
 ): HTMLImageElement | HTMLVideoElement | undefined {
   switch (descriptor.kind) {
-    case "image":
-    case "video":
+    case "media":
+      if (descriptor.type === "image-sequence") {
+        return undefined;
+      }
       return descriptor.element;
-    case "snapshot":
+    case "dom":
     case "model":
-    case "image-sequence":
       return undefined;
   }
 }

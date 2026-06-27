@@ -80,11 +80,11 @@ import ... from "<runtime-package>/effects";
 import ... from "<runtime-package>/src";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "packages/dom-webgl-scroll-adapters/src";
-import ... from "../demo/src/demoEffects";
+import ... from "../example/src/someEffect";
 ```
 
 The runtime package does not export concrete effects or an `effects` preset
-subpath. Demo/example effects are consumer examples, not package API.
+subpath. Example effects are consumer examples, not package API.
 
 ## Minimal React Integration
 
@@ -102,7 +102,7 @@ type AppSurfaceParams = {
 
 const appSurfaceEffect = defineWebGLEffect<AppSurfaceParams>({
   kind: "app.surface",
-  source: "snapshot/element",
+  source: "dom/element",
   update(ctx, _state, params) {
     ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
   },
@@ -116,7 +116,7 @@ export function App() {
       <WebGLTarget
         webgl={{
           key: "hero.surface",
-          source: { kind: "snapshot", mode: "element" },
+          source: { kind: "dom", type: "element" },
           lifecycle: { hideWhenReady: true, hideMode: "self" },
           effects: [{ kind: "app.surface", opacity: 0.82 }],
         }}
@@ -165,7 +165,7 @@ const runtime = createWebGLRuntime({
 
 runtime.registerTarget(element, {
   key: "hero.surface",
-  source: { kind: "snapshot", mode: "element" },
+  source: { kind: "dom", type: "element" },
   lifecycle: { hideWhenReady: true, hideMode: "self" },
   effects: [{ kind: "app.surface", opacity: 0.82 }],
 });
@@ -181,19 +181,21 @@ Choose the source from the actual DOM element:
 
 | DOM target | Declaration |
 | --- | --- |
-| `div`, `section`, `article`, card, panel | `{ kind: "snapshot", mode: "element" }` |
-| text-bearing `p`, `span`, `h1`, `h2` | `{ kind: "snapshot", mode: "text" }` |
-| real `img` element | `{ kind: "image" }` or `{ kind: "image", src }` |
-| real `video` element | `{ kind: "video" }` or `{ kind: "video", src }` |
-| GLB model target | `{ kind: "model", format: "glb", src }` |
+| `div`, `section`, `article`, card, panel | `{ kind: "dom", type: "element" }` |
+| text-bearing `p`, `span`, `h1`, `h2` | `{ kind: "dom", type: "text" }` |
+| real `img` element or media anchor | `{ kind: "media", type: "image" }` or `{ kind: "media", type: "image", src }` |
+| real `video` element or media anchor | `{ kind: "media", type: "video" }` or `{ kind: "media", type: "video", src }` |
+| frame-addressable media anchor | `{ kind: "media", type: "image-sequence", frameCount, frames }` |
+| GLB model target | `{ kind: "model", type: "glb", src }` |
 
-Do not declare `image` or `video` on non-media elements. Use `snapshot` for
-normal DOM.
+Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
+top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 
-Effect code must narrow `ctx.source.kind` before using source-specific handles:
+Effect code must narrow `ctx.source.kind` and `ctx.source.type` before using
+source-specific handles:
 
 ```ts
-if (ctx.source.kind !== "snapshot/text") {
+if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
   return;
 }
 
@@ -208,10 +210,11 @@ ctx.source.textLayer?.setGlyphs((glyphs) =>
 
 Available handles:
 
-- `snapshot/element`: `ctx.source.surface`
-- `snapshot/text`: `ctx.source.textLayer`
-- `image`: `ctx.source.image`
-- `video`: `ctx.source.video`
+- `dom/element`: `ctx.source.surface`
+- `dom/text`: `ctx.source.textLayer`
+- `media/image`: `ctx.source.image`
+- `media/video`: `ctx.source.video`
+- `media/image-sequence`: `ctx.source.image`
 - `model/glb`: `ctx.source.model`
 
 Current visual capability surface:
@@ -294,7 +297,7 @@ export function App() {
         <WebGLTarget
           webgl={{
             key: "article.hero",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             effects: [
               {
                 kind: "app.pinnedReveal",
@@ -413,9 +416,10 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Shader uniform name mismatch: a visual can look static when the effect updates
   `uTime` but the ported shader reads `iTime`.
 - Resource leak: an effect creates objects or listeners without `ctx.resources`.
-- Boundary violation: app imports package internals, demo code, or example code.
-- App target confusion: demo is validation; example is downstream dogfood. Check
-  which app the user is looking at before editing.
+- Boundary violation: app imports package internals or example-only code.
+- App target confusion: `apps/example` is the downstream dogfood surface and the
+  only app workspace. Do not add package API for an example-only visual tuning
+  issue.
 - Visual-port boundary drift: do not move Ghost Cursor, Waves, ReactBits
   constants, effect keys, assets, copy, or product shader/canvas tuning into
   packages. Packages should only gain generic controlled primitives.

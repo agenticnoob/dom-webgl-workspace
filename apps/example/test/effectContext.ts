@@ -43,7 +43,7 @@ export function createEffectContext(
 
   return {
     key: overrides.key ?? "example.test",
-    sourceKind: overrides.sourceKind ?? source.kind,
+    sourceKind: overrides.sourceKind ?? readEffectSourceKind(source),
     layout: createLayoutSnapshot(overrides.layout),
     input: {
       time,
@@ -73,6 +73,26 @@ export function createEffectContext(
       ...overrides.resources,
     },
   } satisfies WebGLEffectContext;
+}
+
+function readEffectSourceKind(
+  source: WebGLEffectContext["source"],
+): WebGLEffectContext["sourceKind"] {
+  switch (source.kind) {
+    case "dom":
+      return source.type === "text" ? "dom/text" : "dom/element";
+    case "media":
+      switch (source.type) {
+        case "image":
+          return "media/image";
+        case "video":
+          return "media/video";
+        case "image-sequence":
+          return "media/image-sequence";
+      }
+    case "model":
+      return "model/glb";
+  }
 }
 
 function createLayoutSnapshot(

@@ -11,7 +11,8 @@ describe("pinned scroll reveal effect", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/text",
+        kind: "dom",
+          type: "text",
         element: document.createElement("p"),
         text: "Pinned",
         textLayer,
@@ -28,7 +29,7 @@ describe("pinned scroll reveal effect", () => {
       progressKey: "example.pinned.reveal",
     });
 
-    expect(examplePinnedRevealEffect.source).toBe("snapshot/text");
+    expect(examplePinnedRevealEffect.source).toBe("dom/text");
     expect(progressGet).toHaveBeenCalledWith("example.pinned.reveal");
     const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
     const commands = transform?.([

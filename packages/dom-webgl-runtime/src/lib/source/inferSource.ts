@@ -1,5 +1,5 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
-
+import type { WebGLSourceDeclaration } from "../types";
 import type { WebGLSourceDescriptor } from "./sourceDescriptor";
 
 export function inferSourceDescriptor(
@@ -8,102 +8,151 @@ export function inferSourceDescriptor(
   const { declaration, element } = targetDescriptor;
   const declaredSource = declaration.source;
 
-  if (declaredSource?.kind === "snapshot") {
+  if (!declaredSource) {
+    if (isImageElement(element)) {
+      return {
+        kind: "media",
+        type: "image",
+        anchor: element,
+        element,
+        src: readElementSrc(element),
+      };
+    }
+
+    if (isVideoElement(element)) {
+      return {
+        kind: "media",
+        type: "video",
+        anchor: element,
+        element,
+        src: readElementSrc(element),
+        playback: undefined,
+      };
+    }
+
     return {
-      kind: "snapshot",
-      mode: declaredSource.mode ?? "element",
+      kind: "dom",
+      type: "element",
       element,
     };
   }
 
-  if (declaredSource?.kind === "model") {
-    const modelFormat = declaredSource.format as string;
+  switch (declaredSource.kind) {
+    case "dom":
+      return {
+        kind: "dom",
+        type: declaredSource.type ?? "element",
+        element,
+      };
+    case "media":
+      return inferMediaSource(targetDescriptor, declaredSource);
+    case "model": {
+      const modelType = readDeclarationType(declaredSource);
+      if (modelType !== "glb") {
+        throw new Error(
+          `Unsupported model source type "${modelType}". Only "glb" is supported.`,
+        );
+      }
 
-    if (modelFormat !== "glb") {
-      throw new Error(
-        `Unsupported model source format "${modelFormat}". Only "glb" is supported.`,
-      );
+      return {
+        kind: "model",
+        type: "glb",
+        anchor: element,
+        src: declaredSource.src,
+      };
     }
-
-    return {
-      kind: "model",
-      format: "glb",
-      anchor: element,
-      src: declaredSource.src,
-    };
   }
 
-  if (declaredSource?.kind === "image-sequence") {
-    if (!Number.isInteger(declaredSource.frameCount) || declaredSource.frameCount < 1) {
-      throw new Error(
-        `WebGL target "${targetDescriptor.key}" declares an image sequence with frameCount ${declaredSource.frameCount}.`,
-      );
+  throw new Error(
+    `Unsupported WebGL source declaration kind "${readDeclarationKind(
+      declaredSource,
+    )}" on target "${targetDescriptor.key}".`,
+  );
+}
+
+function inferMediaSource(
+  targetDescriptor: TargetDescriptor,
+  declaredSource: Extract<WebGLSourceDeclaration, { kind: "media" }>,
+): WebGLSourceDescriptor {
+  const element = targetDescriptor.element;
+
+  switch (declaredSource.type) {
+    case "image": {
+      if (isImageElement(element)) {
+        return {
+          kind: "media",
+          type: "image",
+          anchor: element,
+          element,
+          src: declaredSource.src ?? readElementSrc(element),
+        };
+      }
+
+      if (!declaredSource.src) {
+        throw new Error(
+          `WebGL target "${targetDescriptor.key}" declares media/image on a non-IMG element without src.`,
+        );
+      }
+
+      return {
+        kind: "media",
+        type: "image",
+        anchor: element,
+        src: declaredSource.src,
+      };
     }
-    if (declaredSource.frames.length !== declaredSource.frameCount) {
-      throw new Error(
-        `WebGL target "${targetDescriptor.key}" declares an image sequence with ${declaredSource.frames.length} frames for frameCount ${declaredSource.frameCount}.`,
-      );
+    case "video": {
+      if (isVideoElement(element)) {
+        return {
+          kind: "media",
+          type: "video",
+          anchor: element,
+          element,
+          src: declaredSource.src ?? readElementSrc(element),
+          playback: declaredSource.playback,
+        };
+      }
+
+      if (!declaredSource.src) {
+        throw new Error(
+          `WebGL target "${targetDescriptor.key}" declares media/video on a non-VIDEO element without src.`,
+        );
+      }
+
+      return {
+        kind: "media",
+        type: "video",
+        anchor: element,
+        src: declaredSource.src,
+        playback: declaredSource.playback,
+      };
     }
+    case "image-sequence": {
+      if (
+        !Number.isInteger(declaredSource.frameCount) ||
+        declaredSource.frameCount < 1
+      ) {
+        throw new Error(
+          `WebGL target "${targetDescriptor.key}" declares media/image-sequence with frameCount ${declaredSource.frameCount}.`,
+        );
+      }
+      if (declaredSource.frames.length !== declaredSource.frameCount) {
+        throw new Error(
+          `WebGL target "${targetDescriptor.key}" declares media/image-sequence with ${declaredSource.frames.length} frames for frameCount ${declaredSource.frameCount}.`,
+        );
+      }
 
-    return {
-      kind: "image-sequence",
-      anchor: element,
-      frameCount: declaredSource.frameCount,
-      frames: declaredSource.frames,
-      progressKey: declaredSource.progressKey,
-      startFrame: declaredSource.startFrame ?? 1,
-    };
-  }
-
-  if (declaredSource?.kind === "image") {
-    if (!isImageElement(element)) {
-      throw new Error(
-        `WebGL target "${targetDescriptor.key}" declares an image source but is not an IMG element.`,
-      );
+      return {
+        kind: "media",
+        type: "image-sequence",
+        anchor: element,
+        frameCount: declaredSource.frameCount,
+        frames: declaredSource.frames,
+        progressKey: declaredSource.progressKey,
+        startFrame: declaredSource.startFrame ?? 1,
+      };
     }
-
-    return {
-      kind: "image",
-      element,
-      src: declaredSource.src ?? readElementSrc(element),
-    };
   }
-
-  if (declaredSource?.kind === "video") {
-    if (!isVideoElement(element)) {
-      throw new Error(
-        `WebGL target "${targetDescriptor.key}" declares a video source but is not a VIDEO element.`,
-      );
-    }
-
-    return {
-      kind: "video",
-      element,
-      src: declaredSource.src ?? readElementSrc(element),
-    };
-  }
-
-  if (isImageElement(element)) {
-    return {
-      kind: "image",
-      element,
-      src: readElementSrc(element),
-    };
-  }
-
-  if (isVideoElement(element)) {
-    return {
-      kind: "video",
-      element,
-      src: readElementSrc(element),
-    };
-  }
-
-  return {
-    kind: "snapshot",
-    mode: "element",
-    element,
-  };
 }
 
 function isImageElement(element: HTMLElement): element is HTMLImageElement {
@@ -116,4 +165,20 @@ function isVideoElement(element: HTMLElement): element is HTMLVideoElement {
 
 function readElementSrc(element: HTMLImageElement | HTMLVideoElement): string {
   return element.getAttribute("src") ?? element.src;
+}
+
+function readDeclarationKind(source: unknown): string {
+  if (source && typeof source === "object" && "kind" in source) {
+    return String(source.kind);
+  }
+
+  return String(source);
+}
+
+function readDeclarationType(source: unknown): string {
+  if (source && typeof source === "object" && "type" in source) {
+    return String(source.type);
+  }
+
+  return String(source);
 }

@@ -32,7 +32,7 @@ describe("createWebGLEffectController", () => {
         registry: createWebGLEffectRegistry([
           defineWebGLEffect({
             kind: "custom.elementOnly",
-            source: "snapshot/element",
+            source: "dom/element",
             update() {
               return;
             },
@@ -40,7 +40,7 @@ describe("createWebGLEffectController", () => {
         ]),
       }),
     ).toThrow(
-      'WebGL effect "custom.elementOnly" cannot be used with source "image" on target "hero.image".',
+      'WebGL effect "custom.elementOnly" cannot be used with source "media/image" on target "hero.image".',
     );
   });
 
@@ -60,7 +60,7 @@ describe("createWebGLEffectController", () => {
       registry: createWebGLEffectRegistry([
         defineWebGLEffect({
           kind: "custom.counter",
-          source: "snapshot/element",
+          source: "dom/element",
           setup,
           update,
           dispose,
@@ -78,8 +78,8 @@ describe("createWebGLEffectController", () => {
     expect(dispose).toHaveBeenCalledTimes(1);
     expect(dispose.mock.calls[0]?.[0]).toMatchObject({
       key: "hero",
-      sourceKind: "snapshot/element",
-      source: { kind: "snapshot/element" },
+      sourceKind: "dom/element",
+      source: { kind: "dom", type: "element" },
       target,
     });
   });
@@ -125,7 +125,7 @@ describe("createWebGLEffectController", () => {
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         key: "custom.surface",
-        sourceKind: "snapshot/element",
+        sourceKind: "dom/element",
         input,
         layout,
         pointer: input.pointer,
@@ -172,7 +172,7 @@ describe("createWebGLEffectController", () => {
       registry: createWebGLEffectRegistry([
         defineWebGLEffect({
           kind: "custom.progressDriven",
-          source: "snapshot/element",
+          source: "dom/element",
           setup(ctx) {
             setupProgress.push(ctx.progress.get("section.reveal"));
           },
@@ -250,7 +250,7 @@ describe("createWebGLEffectController", () => {
       declaration: [{ kind: "custom.model" }],
       source: {
         kind: "model",
-        format: "glb",
+        type: "glb",
         src: "/product.glb",
         anchor: document.createElement("div"),
       },
@@ -276,48 +276,54 @@ describe("createWebGLEffectController", () => {
 
   test.each([
     [
-      "snapshot/element",
+      "dom/element",
       createElementSnapshotSource(),
       {
-        kind: "snapshot/element" as const,
+        kind: "dom" as const,
+        type: "element" as const,
         element: document.createElement("section"),
         surface: createCanvasSurfaceHandle(),
       },
     ],
     [
-      "snapshot/text",
+      "dom/text",
       {
-        kind: "snapshot" as const,
-        mode: "text" as const,
+        kind: "dom" as const,
+        type: "text" as const,
         element: document.createElement("p"),
       },
       {
-        kind: "snapshot/text" as const,
+        kind: "dom" as const,
+        type: "text" as const,
         element: document.createElement("p"),
         text: "Hello",
         textLayer: createTextLayerHandle(),
       },
     ],
     [
-      "image",
+      "media/image",
       createImageSource(),
       {
-        kind: "image" as const,
-        element: document.createElement("img"),
+        kind: "media" as const,
+        type: "image" as const,
+        element: document.createElement("section"),
         src: "/hero.png",
         image: createTextureLayerHandle(document.createElement("img")),
       },
     ],
     [
-      "video",
+      "media/video",
       {
-        kind: "video" as const,
+        kind: "media" as const,
+        type: "video" as const,
+        anchor: document.createElement("section"),
         element: document.createElement("video"),
         src: "/intro.mp4",
       },
       {
-        kind: "video" as const,
-        element: document.createElement("video"),
+        kind: "media" as const,
+        type: "video" as const,
+        element: document.createElement("section"),
         src: "/intro.mp4",
         video: createVideoLayerHandle(document.createElement("video")),
       },
@@ -326,8 +332,7 @@ describe("createWebGLEffectController", () => {
       "model/glb",
       {
         kind: "model" as const,
-        format: "glb" as const,
-        element: document.createElement("div"),
+        type: "glb" as const,
         anchor: document.createElement("div"),
         src: "/model.glb",
       },
@@ -390,14 +395,16 @@ function createEffectTarget(): WebGLEffectTarget & {
 
 function createElementEffectSource() {
   return {
-    kind: "snapshot/element" as const,
+    kind: "dom" as const,
+    type: "element" as const,
     element: document.createElement("section"),
   };
 }
 
 function createModelEffectSource() {
   return {
-    kind: "model/glb" as const,
+    kind: "model" as const,
+    type: "glb" as const,
     anchor: document.createElement("div"),
     src: "/product.glb",
     model: {
@@ -597,8 +604,8 @@ function createVideoLayerHandle(source: HTMLVideoElement) {
 
 function createElementSnapshotSource(): WebGLSourceDescriptor {
   return {
-    kind: "snapshot",
-    mode: "element",
+    kind: "dom",
+    type: "element",
     element: document.createElement("section"),
   };
 }
@@ -607,7 +614,9 @@ function createImageSource(): WebGLSourceDescriptor {
   const element = document.createElement("img");
 
   return {
-    kind: "image",
+    kind: "media",
+    type: "image",
+    anchor: element,
     element,
     src: "/hero.png",
   };

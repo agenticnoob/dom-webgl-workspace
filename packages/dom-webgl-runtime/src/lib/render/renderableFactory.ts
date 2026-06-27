@@ -3,9 +3,9 @@ import type { ResourceManager } from "../resources/resourceManager";
 import type { DOMViewportSize } from "../renderer/domProjection";
 import type { WebGLSceneAdapter } from "../renderer/sceneObject";
 import type {
+  WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
   WebGLSourceDescriptor,
-  WebGLVideoSourceDescriptor,
 } from "../source/sourceDescriptor";
 import type { WebGLProgressSignalSource, WebGLRenderRole } from "../types";
 import type { Renderable } from "./renderable";
@@ -33,7 +33,7 @@ export type RenderableFactoryContext = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
-  loadVideo?(source: WebGLVideoSourceDescriptor): Promise<HTMLVideoElement>;
+  loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
   progressSignals?: WebGLProgressSignalSource;
 };
@@ -53,8 +53,8 @@ export function createRenderable(
   };
 
   switch (sourceDescriptor.kind) {
-    case "snapshot":
-      if (sourceDescriptor.mode === "element") {
+    case "dom":
+      if (sourceDescriptor.type === "element") {
         return createElementSnapshotRenderable(renderableContext, {
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
@@ -62,31 +62,31 @@ export function createRenderable(
         });
       }
 
-      if (sourceDescriptor.mode === "text") {
-        return createTextSnapshotRenderable(renderableContext, {
+      return createTextSnapshotRenderable(renderableContext, {
+        sceneAdapter: context.sceneAdapter,
+        measureElement: context.measureElement,
+        getViewportSize: context.getViewportSize,
+      });
+    case "media":
+      if (sourceDescriptor.type === "image") {
+        return createImageRenderable(renderableContext, {
+          resourceManager: context.resourceManager,
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
         });
       }
 
-      throwUnsupportedSourceDescriptor(sourceDescriptor);
-    case "image":
-      return createImageRenderable(renderableContext, {
-        resourceManager: context.resourceManager,
-        sceneAdapter: context.sceneAdapter,
-        measureElement: context.measureElement,
-        getViewportSize: context.getViewportSize,
-      });
-    case "video":
-      return createVideoRenderable(renderableContext, {
-        resourceManager: context.resourceManager,
-        sceneAdapter: context.sceneAdapter,
-        measureElement: context.measureElement,
-        getViewportSize: context.getViewportSize,
-        loadVideo: context.loadVideo,
-      });
-    case "image-sequence":
+      if (sourceDescriptor.type === "video") {
+        return createVideoRenderable(renderableContext, {
+          resourceManager: context.resourceManager,
+          sceneAdapter: context.sceneAdapter,
+          measureElement: context.measureElement,
+          getViewportSize: context.getViewportSize,
+          loadVideo: context.loadVideo,
+        });
+      }
+
       return createImageSequenceRenderable(renderableContext, {
         sceneAdapter: context.sceneAdapter,
         measureElement: context.measureElement,
@@ -94,17 +94,13 @@ export function createRenderable(
         progressSignals: context.progressSignals,
       });
     case "model":
-      if (sourceDescriptor.format === "glb") {
-        return createModelRenderable(renderableContext, {
-          resourceManager: context.resourceManager,
-          sceneAdapter: context.sceneAdapter,
-          measureElement: context.measureElement,
-          getViewportSize: context.getViewportSize,
-          loadModel: context.loadModel,
-        });
-      }
-
-      throwUnsupportedSourceDescriptor(sourceDescriptor);
+      return createModelRenderable(renderableContext, {
+        resourceManager: context.resourceManager,
+        sceneAdapter: context.sceneAdapter,
+        measureElement: context.measureElement,
+        getViewportSize: context.getViewportSize,
+        loadModel: context.loadModel,
+      });
   }
 
   throwUnsupportedSourceDescriptor(sourceDescriptor);
@@ -121,13 +117,5 @@ function throwUnsupportedSourceDescriptor(
 }
 
 function readSourceDescriptorKind(sourceDescriptor: WebGLSourceDescriptor): string {
-  if (sourceDescriptor.kind === "snapshot") {
-    return `snapshot/${sourceDescriptor.mode}`;
-  }
-
-  if (sourceDescriptor.kind === "model") {
-    return `model/${sourceDescriptor.format}`;
-  }
-
-  return sourceDescriptor.kind;
+  return `${sourceDescriptor.kind}/${sourceDescriptor.type}`;
 }

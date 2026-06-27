@@ -351,7 +351,7 @@ describe("WebGLRuntime", () => {
         createElement(WebGLTarget, {
           webgl: {
             key: "example.target",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
           },
         }),
       );

@@ -21,15 +21,16 @@ const forbiddenDemoLiterals = [
 ] as const;
 
 describe("open source implementation boundary", () => {
-  test("records that the runtime is an open source implementation, not a demo-specific build", async () => {
+  test("records that the runtime is an open source implementation, not an app-specific build", async () => {
     const agents = await readFile(path.join(workspaceRoot, "AGENTS.md"), "utf8");
 
     expect(agents).toContain("开源");
-    expect(agents).toContain("demo");
+    expect(agents).toContain("example");
+    expect(agents).toContain("app");
     expect(agents).toContain("硬编码");
   });
 
-  test("keeps demo-only literals out of runtime implementation source", async () => {
+  test("keeps removed demo-only literals out of runtime implementation source", async () => {
     const files = await collectImplementationFiles(runtimeSourceRoot);
     const violations: string[] = [];
 

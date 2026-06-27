@@ -5,7 +5,7 @@ import { assertEffectCompatibility } from "./effectCompatibility";
 
 const elementOnlyEffect = defineWebGLEffect({
   kind: "custom.elementOnly",
-  source: "snapshot/element",
+  source: "dom/element",
   update() {
     return;
   },
@@ -13,7 +13,7 @@ const elementOnlyEffect = defineWebGLEffect({
 
 const mediaEffect = defineWebGLEffect({
   kind: "custom.media",
-  source: ["image", "video"],
+  source: ["media/image", "media/video"],
   update() {
     return;
   },
@@ -26,7 +26,7 @@ describe("assertEffectCompatibility", () => {
         "card.surface",
         "custom.elementOnly",
         elementOnlyEffect,
-        "snapshot/element",
+        "dom/element",
       ),
     ).not.toThrow();
   });
@@ -37,10 +37,10 @@ describe("assertEffectCompatibility", () => {
         "card.image",
         "custom.elementOnly",
         elementOnlyEffect,
-        "image",
+        "media/image",
       ),
     ).toThrow(
-      'WebGL effect "custom.elementOnly" cannot be used with source "image" on target "card.image".',
+      'WebGL effect "custom.elementOnly" cannot be used with source "media/image" on target "card.image".',
     );
   });
 
@@ -50,7 +50,7 @@ describe("assertEffectCompatibility", () => {
         "card.image",
         "custom.media",
         mediaEffect,
-        "image",
+        "media/image",
       ),
     ).not.toThrow();
   });

@@ -14,7 +14,8 @@ describe("text example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/text",
+        kind: "dom",
+        type: "text",
         element: document.createElement("p"),
         text: "Wave",
         textLayer,
@@ -27,7 +28,7 @@ describe("text example effects", () => {
       amplitude: 8,
     });
 
-    expect(exampleTextWaveEffect.source).toBe("snapshot/text");
+    expect(exampleTextWaveEffect.source).toBe("dom/text");
     expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
     const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
     const commands = transform?.([
@@ -44,11 +45,13 @@ describe("text example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/text",
+        kind: "dom",
+        type: "text",
         element: document.createElement("p"),
         text: "Reveal",
         textLayer,
       },
+      layout: { top: 354, height: 60, viewport: { width: 1024, height: 768 } },
       scrollProgress: 0.5,
     });
 
@@ -57,7 +60,7 @@ describe("text example effects", () => {
       color: "#d95f42",
     });
 
-    expect(exampleTextRevealEffect.source).toBe("snapshot/text");
+    expect(exampleTextRevealEffect.source).toBe("dom/text");
     const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
     const commands = transform?.([
       createGlyph(0, "R"),
@@ -69,13 +72,47 @@ describe("text example effects", () => {
     expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
   });
 
+  test("text reveal uses target viewport position when global scroll progress is still low", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "dom",
+        type: "text",
+        element: document.createElement("p"),
+        text: "Reveal",
+        textLayer,
+      },
+      layout: { top: 120, height: 240, viewport: { width: 1024, height: 768 } },
+      scrollProgress: 0,
+    });
+
+    exampleTextRevealEffect.update(context, undefined, {
+      kind: "example.textReveal",
+      color: "#d95f42",
+    });
+
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const commands = transform?.([
+      createGlyph(0, "R"),
+      createGlyph(1, "e"),
+      createGlyph(2, "v"),
+      createGlyph(3, "e"),
+    ]);
+
+    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1 });
+    expect(commands?.[1]).toMatchObject({ index: 1, opacity: 1 });
+  });
+
   test("text spotlight highlights glyphs near the local pointer", () => {
     const textLayer = {
       setGlyphs: vi.fn(),
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/text",
+        kind: "dom",
+        type: "text",
         element: document.createElement("p"),
         text: "Spotlight",
         textLayer,
@@ -90,7 +127,7 @@ describe("text example effects", () => {
       radius: 80,
     });
 
-    expect(exampleTextSpotlightEffect.source).toBe("snapshot/text");
+    expect(exampleTextSpotlightEffect.source).toBe("dom/text");
     expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
     const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
     const nearGlyph = { ...createGlyph(0, "近"), x: 40, y: 30 };

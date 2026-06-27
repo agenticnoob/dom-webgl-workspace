@@ -89,7 +89,8 @@ export function createModelRenderable(
         }
 
         return {
-          kind: "model/glb",
+          kind: "model",
+          type: "glb",
           anchor: source.anchor,
           src: source.src,
           model: state.modelHandle,
@@ -148,14 +149,30 @@ function readModelSource(
   source: RenderableContext["source"],
 ): WebGLModelSourceDescriptor {
   if (source.kind !== "model") {
-    throw new Error(`Expected model source descriptor, received ${source.kind}`);
+    throw new Error(
+      `Expected model/glb source descriptor, received ${readSourceKind(source)}`,
+    );
   }
 
-  if (source.format !== "glb") {
-    throw new Error(`Expected GLB model source descriptor, received ${source.format}`);
+  if (readSourceType(source) !== "glb") {
+    throw new Error(
+      `Expected model/glb source descriptor, received ${readSourceKind(source)}`,
+    );
   }
 
   return source;
+}
+
+function readSourceKind(source: RenderableContext["source"]): string {
+  return `${source.kind}/${readSourceType(source)}`;
+}
+
+function readSourceType(source: RenderableContext["source"]): string {
+  if (source && typeof source === "object" && "type" in source) {
+    return String(source.type);
+  }
+
+  return String(source);
 }
 
 async function loadModelWithDefaultAdapter(

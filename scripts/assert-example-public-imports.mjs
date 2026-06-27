@@ -13,12 +13,11 @@ const ALLOWED_PUBLIC_IMPORTS = new Set([
 
 const SOURCE_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]);
 
-export async function findDemoImportViolations({
-  forbiddenSourceDirs = [],
+export async function findExampleImportViolations({
   workspaceRoot = defaultWorkspaceRoot(),
-  demoSourceDir = path.join(workspaceRoot, "apps", "demo", "src"),
+  exampleSourceDir = path.join(workspaceRoot, "apps", "example", "src"),
 } = {}) {
-  const files = await collectSourceFiles(demoSourceDir);
+  const files = await collectSourceFiles(exampleSourceDir);
   const runtimeSourceDir = path.resolve(
     workspaceRoot,
     "packages",
@@ -33,8 +32,7 @@ export async function findDemoImportViolations({
       const violationReason = getViolationReason({
         specifier,
         file,
-        forbiddenSourceDirs: forbiddenSourceDirs.map((directory) => path.resolve(directory)),
-        demoSourceDir,
+        exampleSourceDir,
         runtimeSourceDir,
       });
       if (!violationReason) {
@@ -87,8 +85,7 @@ function collectImportSpecifiers(source) {
 function getViolationReason({
   specifier,
   file,
-  forbiddenSourceDirs,
-  demoSourceDir,
+  exampleSourceDir,
   runtimeSourceDir,
 }) {
   if (specifier.startsWith("@project/dom-webgl-runtime/")) {
@@ -110,10 +107,7 @@ function getViolationReason({
   if (isInside(resolved, runtimeSourceDir)) {
     return "relative import reaches runtime source";
   }
-  if (forbiddenSourceDirs.some((directory) => isInside(resolved, directory))) {
-    return "relative import reaches forbidden app source";
-  }
-  if (isInside(resolved, demoSourceDir)) {
+  if (isInside(resolved, exampleSourceDir)) {
     return null;
   }
 
@@ -139,26 +133,14 @@ function formatViolations(violations, workspaceRoot) {
 
 async function main() {
   const workspaceRoot = defaultWorkspaceRoot();
-  const demoSourceDir = path.join(workspaceRoot, "apps", "demo", "src");
-  const exampleSourceDir = path.join(workspaceRoot, "apps", "example", "src");
-  const violations = [
-    ...(await findDemoImportViolations({
-      workspaceRoot,
-      demoSourceDir,
-    })),
-    ...(await findDemoImportViolations({
-      workspaceRoot,
-      demoSourceDir: exampleSourceDir,
-      forbiddenSourceDirs: [demoSourceDir],
-    })),
-  ];
+  const violations = await findExampleImportViolations({ workspaceRoot });
 
   if (violations.length === 0) {
-    process.stdout.write("Demo and example import boundaries OK\n");
+    process.stdout.write("Example import boundary OK\n");
     return;
   }
 
-  process.stderr.write("Demo/example import boundary violations:\n");
+  process.stderr.write("Example import boundary violations:\n");
   for (const line of formatViolations(violations, workspaceRoot)) {
     process.stderr.write(`- ${line}\n`);
   }

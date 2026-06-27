@@ -22,7 +22,8 @@ describe("surface example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -45,7 +46,8 @@ describe("surface example effects", () => {
     exampleSurfaceFillEffect.update(
       createEffectContext({
         source: {
-          kind: "snapshot/text",
+          kind: "dom",
+          type: "text",
           element: document.createElement("p"),
           text: "Wrong source",
         },
@@ -54,7 +56,7 @@ describe("surface example effects", () => {
       { kind: "example.surfaceFill", imageSrc: "/example/bg.png", opacity: 1 },
     );
 
-    expect(exampleSurfaceFillEffect.source).toBe("snapshot/element");
+    expect(exampleSurfaceFillEffect.source).toBe("dom/element");
     expect(surface.draw).toHaveBeenCalledTimes(1);
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenCalledWith(0.72);
@@ -83,7 +85,8 @@ describe("surface example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -100,7 +103,8 @@ describe("surface example effects", () => {
     exampleSurfacePulseEffect.update(
       createEffectContext({
         source: {
-          kind: "snapshot/element",
+          kind: "dom",
+          type: "element",
           element: document.createElement("section"),
           surface,
         },
@@ -115,7 +119,7 @@ describe("surface example effects", () => {
       },
     );
 
-    expect(exampleSurfacePulseEffect.source).toBe("snapshot/element");
+    expect(exampleSurfacePulseEffect.source).toBe("dom/element");
     expect(target.setVisible).toHaveBeenCalledWith(true);
     expect(target.setScale).not.toHaveBeenCalled();
     expect(target.setOpacity).not.toHaveBeenCalled();
@@ -143,7 +147,8 @@ describe("surface example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -168,7 +173,7 @@ describe("surface example effects", () => {
         opacity: 0.84,
       });
 
-      expect(exampleSurfaceVideoBackgroundEffect.source).toBe("snapshot/element");
+      expect(exampleSurfaceVideoBackgroundEffect.source).toBe("dom/element");
       expect(state.video?.src).toContain("/example/bg.mp4");
       expect(state.video?.loop).toBe(true);
       expect(state.video?.muted).toBe(true);
@@ -208,7 +213,8 @@ describe("surface example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -260,8 +266,8 @@ describe("surface example effects", () => {
       opacity: 0.82,
     });
 
-    expect(exampleSurfaceGhostCursorEffect.source).toBe("snapshot/element");
-    expect(exampleSurfaceWavesEffect.source).toBe("snapshot/element");
+    expect(exampleSurfaceGhostCursorEffect.source).toBe("dom/element");
+    expect(exampleSurfaceWavesEffect.source).toBe("dom/element");
     expect(surface.createMaterialLayer).toHaveBeenCalledWith(
       expect.objectContaining({
         key: "example.surfaceGhostCursor",
@@ -289,7 +295,8 @@ describe("surface example effects", () => {
     };
     const context = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -327,7 +334,8 @@ describe("surface example effects", () => {
     exampleSurfaceWavesEffect.update(
       createEffectContext({
         source: {
-          kind: "snapshot/element",
+          kind: "dom",
+          type: "element",
           element: document.createElement("section"),
           surface,
         },
@@ -374,7 +382,8 @@ describe("surface example effects", () => {
     };
     const activeContext = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },
@@ -411,7 +420,8 @@ describe("surface example effects", () => {
     });
     const inactiveContext = createEffectContext({
       source: {
-        kind: "snapshot/element",
+        kind: "dom",
+          type: "element",
         element: document.createElement("section"),
         surface,
       },

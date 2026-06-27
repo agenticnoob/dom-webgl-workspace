@@ -4,91 +4,200 @@ import { createTargetDescriptor } from "../dom/targetDescriptor";
 import { inferSourceDescriptor } from "./inferSource";
 
 describe("inferSourceDescriptor", () => {
-  test("infers an image source from an IMG element", () => {
-    const image = document.createElement("img");
-    image.setAttribute("src", "/images/hero.png");
-    const target = createTargetDescriptor(image, { key: "hero.image" }, 0);
+  test("infers media/image for IMG targets without explicit source", () => {
+    const element = document.createElement("img");
+    element.setAttribute("src", "/image.png");
 
-    expect(inferSourceDescriptor(target)).toEqual({
-      kind: "image",
-      element: image,
-      src: "/images/hero.png",
+    expect(
+      inferSourceDescriptor(createTargetDescriptor(element, { key: "image" }, 0)),
+    ).toEqual({
+      kind: "media",
+      type: "image",
+      anchor: element,
+      element,
+      src: "/image.png",
     });
   });
 
-  test("infers a video source from a VIDEO element", () => {
-    const video = document.createElement("video");
-    video.setAttribute("src", "/videos/intro.mp4");
-    const target = createTargetDescriptor(video, { key: "hero.video" }, 0);
+  test("infers media/video for VIDEO targets without explicit source", () => {
+    const element = document.createElement("video");
+    element.setAttribute("src", "/video.mp4");
 
-    expect(inferSourceDescriptor(target)).toEqual({
-      kind: "video",
-      element: video,
-      src: "/videos/intro.mp4",
+    expect(
+      inferSourceDescriptor(createTargetDescriptor(element, { key: "video" }, 0)),
+    ).toEqual({
+      kind: "media",
+      type: "video",
+      anchor: element,
+      element,
+      src: "/video.mp4",
+      playback: undefined,
     });
   });
 
-  test("uses requested text snapshot before DOM-native inference", () => {
-    const image = document.createElement("img");
-    image.setAttribute("src", "/images/hero.png");
-    const target = createTargetDescriptor(
-      image,
-      {
-        key: "hero.text",
-        source: { kind: "snapshot", mode: "text" },
-      },
-      0,
+  test("uses requested dom/text before DOM-native inference", () => {
+    const element = document.createElement("img");
+    element.setAttribute("src", "/image.png");
+
+    expect(
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero.text",
+            source: { kind: "dom", type: "text" },
+          },
+          0,
+        ),
+      ),
+    ).toEqual({
+      kind: "dom",
+      type: "text",
+      element,
+    });
+  });
+
+  test("uses a section as an anchored media/image source when src is declared", () => {
+    const element = document.createElement("section");
+
+    expect(
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero",
+            source: { kind: "media", type: "image", src: "/hero.png" },
+          },
+          0,
+        ),
+      ),
+    ).toEqual({
+      kind: "media",
+      type: "image",
+      anchor: element,
+      element: undefined,
+      src: "/hero.png",
+    });
+  });
+
+  test("rejects anchored media/image without a src", () => {
+    const element = document.createElement("section");
+
+    expect(() =>
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero",
+            source: { kind: "media", type: "image" },
+          },
+          0,
+        ),
+      ),
+    ).toThrow(
+      'WebGL target "hero" declares media/image on a non-IMG element without src.',
     );
+  });
 
-    expect(inferSourceDescriptor(target)).toEqual({
-      kind: "snapshot",
-      mode: "text",
-      element: image,
+  test("uses a section as an anchored media/video source when src is declared", () => {
+    const element = document.createElement("section");
+    const playback = { muted: true, loop: true };
+
+    expect(
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero.video",
+            source: {
+              kind: "media",
+              type: "video",
+              src: "/hero.mp4",
+              playback,
+            },
+          },
+          0,
+        ),
+      ),
+    ).toEqual({
+      kind: "media",
+      type: "video",
+      anchor: element,
+      element: undefined,
+      src: "/hero.mp4",
+      playback,
     });
+  });
+
+  test("rejects anchored media/video without a src", () => {
+    const element = document.createElement("section");
+
+    expect(() =>
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero.video",
+            source: { kind: "media", type: "video" },
+          },
+          0,
+        ),
+      ),
+    ).toThrow(
+      'WebGL target "hero.video" declares media/video on a non-VIDEO element without src.',
+    );
   });
 
   test("creates a model source from an explicit GLB declaration", () => {
     const element = document.createElement("div");
-    const target = createTargetDescriptor(
-      element,
-      {
-        key: "hero.model",
-        source: { kind: "model", format: "glb", src: "/models/hero.glb" },
-      },
-      0,
-    );
 
-    expect(inferSourceDescriptor(target)).toEqual({
+    expect(
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "hero.model",
+            source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+          },
+          0,
+        ),
+      ),
+    ).toEqual({
       kind: "model",
-      format: "glb",
+      type: "glb",
       anchor: element,
       src: "/models/hero.glb",
     });
   });
 
-  test("accepts declared image sequence sources on any element anchor", () => {
+  test("normalizes media/image-sequence to an anchored descriptor", () => {
     const element = document.createElement("section");
-    const frames = createFrames(454);
-    const target = createTargetDescriptor(
-      element,
-      {
-        key: "sequence.hero",
-        source: {
-          kind: "image-sequence",
-          frameCount: 454,
-          frames,
-          progressKey: "example.video.scrub",
-        },
-      },
-      0,
-    );
+    const frame = document.createElement("canvas");
 
-    expect(inferSourceDescriptor(target)).toEqual({
-      kind: "image-sequence",
+    expect(
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "sequence",
+            source: {
+              kind: "media",
+              type: "image-sequence",
+              frameCount: 1,
+              frames: [frame],
+              progressKey: "scrub",
+            },
+          },
+          0,
+        ),
+      ),
+    ).toEqual({
+      kind: "media",
+      type: "image-sequence",
       anchor: element,
-      frameCount: 454,
-      frames,
-      progressKey: "example.video.scrub",
+      frameCount: 1,
+      frames: [frame],
+      progressKey: "scrub",
       startFrame: 1,
     });
   });
@@ -100,7 +209,8 @@ describe("inferSourceDescriptor", () => {
       {
         key: "sequence.bad",
         source: {
-          kind: "image-sequence",
+          kind: "media",
+          type: "image-sequence",
           frameCount: 0,
           frames: [],
         },
@@ -109,7 +219,7 @@ describe("inferSourceDescriptor", () => {
     );
 
     expect(() => inferSourceDescriptor(target)).toThrow(
-      'WebGL target "sequence.bad" declares an image sequence with frameCount 0.',
+      'WebGL target "sequence.bad" declares media/image-sequence with frameCount 0.',
     );
   });
 
@@ -120,7 +230,8 @@ describe("inferSourceDescriptor", () => {
       {
         key: "sequence.partial",
         source: {
-          kind: "image-sequence",
+          kind: "media",
+          type: "image-sequence",
           frameCount: 10,
           frames: createFrames(2),
         },
@@ -129,69 +240,34 @@ describe("inferSourceDescriptor", () => {
     );
 
     expect(() => inferSourceDescriptor(target)).toThrow(
-      'WebGL target "sequence.partial" declares an image sequence with 2 frames for frameCount 10.',
+      'WebGL target "sequence.partial" declares media/image-sequence with 2 frames for frameCount 10.',
     );
   });
 
-  test("rejects unsupported explicit model formats", () => {
-    const element = document.createElement("div");
-    const target = createTargetDescriptor(
-      element,
-      {
-        key: "hero.model",
-        source: {
-          kind: "model",
-          format: "obj" as "glb",
-          src: "/models/hero.obj",
-        },
-      },
-      0,
-    );
-
-    expect(() => inferSourceDescriptor(target)).toThrow(
-      'Unsupported model source format "obj". Only "glb" is supported.',
-    );
-  });
-
-  test("rejects explicit image declarations on non-image elements", () => {
-    const element = document.createElement("div");
-    const target = createTargetDescriptor(
-      element,
-      {
-        key: "hero.image",
-        source: { kind: "image", src: "/images/hero.png" },
-      },
-      0,
-    );
-
-    expect(() => inferSourceDescriptor(target)).toThrow(
-      'WebGL target "hero.image" declares an image source but is not an IMG element.',
-    );
-  });
-
-  test("rejects explicit video declarations on non-video elements", () => {
+  test("rejects old explicit source kinds at runtime", () => {
     const element = document.createElement("section");
-    const target = createTargetDescriptor(
-      element,
-      {
-        key: "hero.video",
-        source: { kind: "video", src: "/videos/intro.mp4" },
-      },
-      0,
-    );
 
-    expect(() => inferSourceDescriptor(target)).toThrow(
-      'WebGL target "hero.video" declares a video source but is not a VIDEO element.',
-    );
+    expect(() =>
+      inferSourceDescriptor(
+        createTargetDescriptor(
+          element,
+          {
+            key: "old",
+            source: { kind: "image", src: "/legacy.png" } as never,
+          },
+          0,
+        ),
+      ),
+    ).toThrow('Unsupported WebGL source declaration kind "image" on target "old".');
   });
 
-  test("falls back to an element snapshot", () => {
+  test("falls back to a dom/element source", () => {
     const element = document.createElement("section");
     const target = createTargetDescriptor(element, { key: "hero.surface" }, 0);
 
     expect(inferSourceDescriptor(target)).toEqual({
-      kind: "snapshot",
-      mode: "element",
+      kind: "dom",
+      type: "element",
       element,
     });
   });

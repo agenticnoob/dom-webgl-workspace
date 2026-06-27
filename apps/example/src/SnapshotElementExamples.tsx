@@ -7,7 +7,7 @@ export function SnapshotElementExamples() {
   return (
     <>
       <section className="example-row">
-        <EffectDescription source="snapshot/element" title="表面填充">
+        <EffectDescription source="dom/element" title="表面填充">
           用 bg.png 填充元素快照表面，并只控制表面层透明度。
         </EffectDescription>
         <WebGLTarget
@@ -15,7 +15,7 @@ export function SnapshotElementExamples() {
           className="example-panel example-panel-gold"
           webgl={{
             key: "example.surface.fill",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: [
               {
@@ -31,7 +31,7 @@ export function SnapshotElementExamples() {
       </section>
 
       <section className="example-row">
-        <EffectDescription source="snapshot/element" title="表面脉冲">
+        <EffectDescription source="dom/element" title="表面脉冲">
           保留声明式 DOM 来源，同时在 WebGL 表面层绘制可见脉冲。
         </EffectDescription>
         <WebGLTarget
@@ -39,7 +39,7 @@ export function SnapshotElementExamples() {
           className="example-panel example-panel-coral"
           webgl={{
             key: "example.surface.pulse",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: [{ kind: "example.surfacePulse", scale: 1.36, opacity: 0.92 }],
           }}
@@ -49,7 +49,7 @@ export function SnapshotElementExamples() {
       </section>
 
       <section className="example-row">
-        <EffectDescription source="snapshot/element" title="视频背景纹理">
+        <EffectDescription source="dom/element" title="视频背景纹理">
           把 bg.mp4 作为 element snapshot 的 effect 背景纹理，render 后静音循环播放。
         </EffectDescription>
         <WebGLTarget
@@ -57,7 +57,7 @@ export function SnapshotElementExamples() {
           className="example-panel example-panel-video-bg"
           webgl={{
             key: "example.surface.video-background",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: [
               {
@@ -73,7 +73,7 @@ export function SnapshotElementExamples() {
       </section>
 
       <section className="example-row">
-        <EffectDescription source="snapshot/element" title="Ghost Cursor">
+        <EffectDescription source="dom/element" title="Ghost Cursor">
           黑色 element surface 上绘制烟雾，当前 target 内的 pointer 只作为局部照明源。
         </EffectDescription>
         <WebGLTarget
@@ -81,7 +81,7 @@ export function SnapshotElementExamples() {
           className="example-panel example-panel-ghost"
           webgl={{
             key: "example.surface.ghost-cursor",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: [
               {
@@ -98,7 +98,7 @@ export function SnapshotElementExamples() {
       </section>
 
       <section className="example-row">
-        <EffectDescription source="snapshot/element" title="Waves">
+        <EffectDescription source="dom/element" title="Waves">
           用同一个 element snapshot surface 生成线网波浪，只接受当前目标内的 pointer 扰动。
         </EffectDescription>
         <WebGLTarget
@@ -106,7 +106,7 @@ export function SnapshotElementExamples() {
           className="example-panel example-panel-waves"
           webgl={{
             key: "example.surface.waves",
-            source: { kind: "snapshot", mode: "element" },
+            source: { kind: "dom", type: "element" },
             lifecycle: { hideWhenReady: true, hideMode: "self" },
             effects: [
               {
