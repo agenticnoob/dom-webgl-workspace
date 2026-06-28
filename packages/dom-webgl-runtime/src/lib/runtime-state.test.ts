@@ -80,11 +80,13 @@ describe("runtime state public types", () => {
           targets: [
             {
               key: "hero.media",
-	              sourceKind: "media/image",
+              sourceKind: "media/image",
               renderRole: "media",
               resourceStatus,
               lifecycleState: "active",
               visible: true,
+              layerDepth: 0,
+              siblingIndex: 0,
             },
           ],
         } satisfies WebGLDebugState;

@@ -745,6 +745,8 @@ describe("public package exports", () => {
               resourceStatus,
               lifecycleState: "declared",
               visible: true,
+              layerDepth: 0,
+              siblingIndex: 0,
             },
           ],
         } satisfies WebGLDebugState;
