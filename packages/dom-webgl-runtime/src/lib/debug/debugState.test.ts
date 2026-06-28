@@ -503,6 +503,9 @@ function createVisibleSceneObjectController(): WebGLSceneObjectController {
     setVisible(nextVisible) {
       visible = nextVisible;
     },
+    setOrdering() {
+      return;
+    },
     updateLayout() {
       return;
     },

@@ -25,6 +25,7 @@ import {
   createFallbackVisibilityController,
 } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
+import { createTargetLayerTree } from "../dom/targetTree";
 import {
   createWebGLEffectController,
   type WebGLEffectController,
@@ -54,7 +55,11 @@ import {
   type RenderableFactoryContext,
 } from "../render/renderableFactory";
 import type { Renderable } from "../render/renderable";
-import { compileRenderPolicy } from "../render/renderPolicy";
+import { compileRenderPolicy, toSceneObjectOrdering } from "../render/renderPolicy";
+import {
+  toScopedManagedObjectOrdering,
+  toScopedSceneObjectOrdering,
+} from "../render/layerOrdering";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
@@ -195,6 +200,18 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
     progressSignals: options.progressSignals,
     postprocessController,
+    getOrdering(descriptor, policy) {
+      return (
+        targetState.orderingsByTargetKey.get(descriptor.key) ??
+        toSceneObjectOrdering(policy)
+      );
+    },
+    getManagedObjectOrdering(descriptor) {
+      return (
+        targetState.managedOrderingsByTargetKey.get(descriptor.key) ??
+        toSceneObjectOrdering(compileRenderPolicy("overlay"))
+      );
+    },
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -604,6 +621,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.update();
 
+    syncTargetLayerOrdering(descriptors);
     rendererHost.resizeIfNeeded();
     const dirtyKeys = invalidationController.consumeDirtyKeys();
 
@@ -668,6 +686,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         debugRecord = readTargetDebugRecord(descriptor, targetState);
       }
 
+      applyCurrentSceneOrdering(descriptor, renderable);
+
       if (dirtyKeys.has(descriptor.key)) {
         renderable.invalidateContent?.();
       }
@@ -722,6 +742,46 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   }
 
   // Placeholder for future WebGLRuntimeOptions.viewportLifecycle margin overrides
+
+  function syncTargetLayerOrdering(descriptors: TargetDescriptor[]): void {
+    const targetTree = createTargetLayerTree(descriptors);
+
+    for (const descriptor of descriptors) {
+      const layer = targetTree.recordsByKey.get(descriptor.key);
+
+      if (!layer) {
+        continue;
+      }
+
+      const source = inferSourceDescriptor(descriptor);
+      const role = inferRenderRole(source, descriptor.declaration);
+      const policy = compileRenderPolicy(role);
+
+      targetState.targetLayersByTargetKey.set(descriptor.key, layer);
+      targetState.orderingsByTargetKey.set(
+        descriptor.key,
+        toScopedSceneObjectOrdering(policy, layer),
+      );
+      targetState.managedOrderingsByTargetKey.set(
+        descriptor.key,
+        toScopedManagedObjectOrdering(layer),
+      );
+    }
+  }
+
+  function applyCurrentSceneOrdering(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): void {
+    const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
+
+    if (!ordering) {
+      return;
+    }
+
+    const setOrdering = renderable.sceneObjectController?.setOrdering;
+    setOrdering?.(ordering);
+  }
 
   function unmarkFallbackRoot(key: string): void {
     fallbackRootUnmarkersByTargetKey.get(key)?.();

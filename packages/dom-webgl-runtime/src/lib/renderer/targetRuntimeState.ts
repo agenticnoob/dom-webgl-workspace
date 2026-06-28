@@ -1,12 +1,14 @@
 import type { DebugTargetState } from "../debug/debugState";
 import type { FallbackVisibilityController } from "../dom/fallbackVisibility";
 import type { TargetDescriptor } from "../dom/targetDescriptor";
+import type { TargetLayerRecord } from "../dom/targetTree";
 import type { WebGLEffectController } from "../effects/effectController";
 import type { WebGLEffectTarget } from "../effects/effectTarget";
 import {
   isRenderableVisuallyReady,
   type Renderable,
 } from "../render/renderable";
+import type { WebGLSceneObjectOrdering } from "./sceneObject";
 
 export type DisposableRenderable = {
   dispose(): void;
@@ -26,6 +28,9 @@ export type TargetRuntimeState = {
   effectControllersByTargetKey: Map<string, WebGLEffectController>;
   debugRecordsByTargetKey: Map<string, TargetDebugRecord>;
   fallbackControllersByTargetKey: Map<string, FallbackVisibilityController>;
+  targetLayersByTargetKey: Map<string, TargetLayerRecord>;
+  orderingsByTargetKey: Map<string, WebGLSceneObjectOrdering>;
+  managedOrderingsByTargetKey: Map<string, WebGLSceneObjectOrdering>;
 };
 
 export function createTargetRuntimeState(
@@ -43,6 +48,9 @@ export function createTargetRuntimeState(
     effectControllersByTargetKey: new Map<string, WebGLEffectController>(),
     debugRecordsByTargetKey: new Map<string, TargetDebugRecord>(),
     fallbackControllersByTargetKey: new Map<string, FallbackVisibilityController>(),
+    targetLayersByTargetKey: new Map<string, TargetLayerRecord>(),
+    orderingsByTargetKey: new Map<string, WebGLSceneObjectOrdering>(),
+    managedOrderingsByTargetKey: new Map<string, WebGLSceneObjectOrdering>(),
   };
 }
 
@@ -66,6 +74,9 @@ export function disposeTargetRuntimeState(state: TargetRuntimeState): void {
     state.parkedVisibilityByTargetKey.clear();
     state.effectVisibilityByTargetKey.clear();
     state.lifecycleVersionByTargetKey.clear();
+    state.targetLayersByTargetKey.clear();
+    state.orderingsByTargetKey.clear();
+    state.managedOrderingsByTargetKey.clear();
     state.renderables.clear();
     state.debugRecordsByTargetKey.clear();
     restoreAllFallbackVisibility(state);
@@ -84,6 +95,9 @@ export function disposeTargetRenderable(
   state.parkedAtByTargetKey.delete(key);
   state.parkedVisibilityByTargetKey.delete(key);
   state.lifecycleVersionByTargetKey.delete(key);
+  state.targetLayersByTargetKey.delete(key);
+  state.orderingsByTargetKey.delete(key);
+  state.managedOrderingsByTargetKey.delete(key);
   effectController?.dispose();
   state.effectControllersByTargetKey.delete(key);
   state.effectVisibilityByTargetKey.delete(key);
@@ -162,6 +176,9 @@ export function disposeOffscreenRenderable(
   state.parkedAtByTargetKey.delete(input.key);
   state.parkedVisibilityByTargetKey.delete(input.key);
   state.lifecycleVersionByTargetKey.delete(input.key);
+  state.targetLayersByTargetKey.delete(input.key);
+  state.orderingsByTargetKey.delete(input.key);
+  state.managedOrderingsByTargetKey.delete(input.key);
 }
 
 export function createTrackedEffectTarget(

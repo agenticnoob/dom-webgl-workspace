@@ -27,6 +27,7 @@ export type WebGLSceneObjectController = {
   readonly visible: boolean;
   attach(): void;
   setVisible(visible: boolean): void;
+  setOrdering(ordering: WebGLSceneObjectOrdering): void;
   updateLayout(layout: ProjectedDOMRect): void;
   render(): void;
   dispose(): void;
@@ -40,6 +41,7 @@ export function createSceneObjectController(
   let attached = false;
   let disposed = false;
   let visible = true;
+  let currentOrdering = ordering;
 
   return {
     get attached() {
@@ -56,7 +58,7 @@ export function createSceneObjectController(
         return;
       }
 
-      applySceneObjectOrdering(object, ordering);
+      applySceneObjectOrdering(object, currentOrdering);
       adapter.addObject(object);
       attached = true;
     },
@@ -67,6 +69,14 @@ export function createSceneObjectController(
 
       visible = nextVisible;
       object.setVisible(nextVisible);
+    },
+    setOrdering(nextOrdering): void {
+      if (disposed) {
+        return;
+      }
+
+      currentOrdering = nextOrdering;
+      applySceneObjectOrdering(object, currentOrdering);
     },
     updateLayout(layout): void {
       if (disposed) {
@@ -99,7 +109,7 @@ export function createSceneObjectController(
   };
 }
 
-function applySceneObjectOrdering(
+export function applySceneObjectOrdering(
   object: WebGLSceneObject,
   ordering: WebGLSceneObjectOrdering | undefined,
 ): void {

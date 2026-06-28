@@ -5,10 +5,11 @@ import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLMediaImageSourceDescriptor } from "../../source/sourceDescriptor";
 import {
   createRenderable,
+  readManagedObjectOrdering,
+  readRenderableOrdering,
   type Renderable,
   type RenderableContext,
 } from "../renderable";
-import { toSceneObjectOrdering } from "../renderPolicy";
 import {
   createTexturePlaneSceneRenderableController,
   type SceneRenderableController,
@@ -59,7 +60,8 @@ export function createImageRenderable(
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
           element: source.anchor,
-          ordering: toSceneObjectOrdering(context.policy),
+          ordering: readRenderableOrdering(context),
+          getManagedObjectOrdering: () => readManagedObjectOrdering(context),
           textureKind: "image",
           textureSource: image,
         });

@@ -9,7 +9,12 @@ import type {
 } from "../source/sourceDescriptor";
 import type { WebGLProgressSignalSource, WebGLRenderRole } from "../types";
 import type { Renderable } from "./renderable";
-import type { RenderPolicy } from "./renderPolicy";
+import {
+  compileRenderPolicy,
+  type RenderPolicy,
+  type SceneObjectOrdering,
+  toSceneObjectOrdering,
+} from "./renderPolicy";
 import { createElementSnapshotRenderable } from "./renderables/elementSnapshotRenderable";
 import { createImageRenderable } from "./renderables/imageRenderable";
 import { createImageSequenceRenderable } from "./renderables/imageSequenceRenderable";
@@ -36,6 +41,13 @@ export type RenderableFactoryContext = {
   loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
   progressSignals?: WebGLProgressSignalSource;
+  getOrdering?(
+    descriptor: TargetDescriptor,
+    policy: RenderPolicy,
+  ): SceneObjectOrdering;
+  getManagedObjectOrdering?(
+    descriptor: TargetDescriptor,
+  ): SceneObjectOrdering;
 };
 
 export function createRenderable(
@@ -50,6 +62,12 @@ export function createRenderable(
     source: sourceDescriptor,
     role,
     policy,
+    getOrdering: () =>
+      context.getOrdering?.(targetDescriptor, policy) ??
+      toSceneObjectOrdering(policy),
+    getManagedObjectOrdering: () =>
+      context.getManagedObjectOrdering?.(targetDescriptor) ??
+      toSceneObjectOrdering(compileRenderPolicy("overlay")),
   };
 
   switch (sourceDescriptor.kind) {

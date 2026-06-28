@@ -5,7 +5,12 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLRenderRole } from "../types";
-import type { RenderPolicy } from "./renderPolicy";
+import {
+  compileRenderPolicy,
+  type RenderPolicy,
+  type SceneObjectOrdering,
+  toSceneObjectOrdering,
+} from "./renderPolicy";
 
 export type RenderableStatus = "idle" | "ready" | "error" | "disposed";
 
@@ -14,6 +19,8 @@ export type RenderableContext = {
   source: WebGLSourceDescriptor;
   role: WebGLRenderRole;
   policy: RenderPolicy;
+  getOrdering?(): SceneObjectOrdering;
+  getManagedObjectOrdering?(): SceneObjectOrdering;
 };
 
 export type Renderable = {
@@ -189,6 +196,21 @@ export function createRenderable(
       hooks.dispose?.();
     },
   };
+}
+
+export function readRenderableOrdering(
+  context: RenderableContext,
+): SceneObjectOrdering {
+  return context.getOrdering?.() ?? toSceneObjectOrdering(context.policy);
+}
+
+export function readManagedObjectOrdering(
+  context: RenderableContext,
+): SceneObjectOrdering {
+  return (
+    context.getManagedObjectOrdering?.() ??
+    toSceneObjectOrdering(compileRenderPolicy("overlay"))
+  );
 }
 
 export function isRenderableVisuallyReady(renderable: Renderable): boolean {

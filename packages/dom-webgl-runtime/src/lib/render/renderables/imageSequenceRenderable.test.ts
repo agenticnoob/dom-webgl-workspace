@@ -203,6 +203,9 @@ function createSceneController(options: {
     setVisible(nextVisible) {
       visible = nextVisible;
     },
+    setOrdering() {
+      return;
+    },
     render() {
       return;
     },

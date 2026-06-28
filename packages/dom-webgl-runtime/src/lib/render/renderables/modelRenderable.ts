@@ -6,10 +6,11 @@ import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
 import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
 import {
   createRenderable,
+  readManagedObjectOrdering,
+  readRenderableOrdering,
   type Renderable,
   type RenderableContext,
 } from "../renderable";
-import { toSceneObjectOrdering } from "../renderPolicy";
 import {
   createModelSceneRenderableController,
   type SceneRenderableController,
@@ -62,7 +63,8 @@ export function createModelRenderable(
             getViewportSize: options.getViewportSize,
             element: source.anchor,
             object3D,
-            ordering: toSceneObjectOrdering(context.policy),
+            ordering: readRenderableOrdering(context),
+            getManagedObjectOrdering: () => readManagedObjectOrdering(context),
             disposeObject3D: true,
           });
         }

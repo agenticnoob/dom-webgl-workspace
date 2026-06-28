@@ -4,6 +4,7 @@ import {
   type ProjectedDOMRect,
 } from "../../renderer/domProjection";
 import {
+  applySceneObjectOrdering,
   createSceneObjectController,
   type WebGLSceneAdapter,
   type WebGLSceneObject,
@@ -64,6 +65,7 @@ export type SceneRenderableControllerOptions = {
   effectTarget?: WebGLEffectTarget;
   disposeObject3D?: boolean;
   disposeResources?(): void;
+  getManagedObjectOrdering?(): WebGLSceneObjectOrdering;
   layoutObject3D?(object3D: unknown, layout: ProjectedDOMRect): void;
 };
 
@@ -145,7 +147,10 @@ export function createSceneRenderableController(
 }
 
 export function createManagedObject3DFactory(
-  options: Pick<SceneRenderableControllerOptions, "key" | "sceneAdapter">,
+  options: Pick<
+    SceneRenderableControllerOptions,
+    "key" | "sceneAdapter" | "getManagedObjectOrdering"
+  >,
 ): NonNullable<WebGLEffectTarget["addObject3D"]> {
   let nextManagedObjectId = 0;
 
@@ -170,6 +175,7 @@ export function createManagedObject3DFactory(
     };
 
     nextManagedObjectId += 1;
+    applySceneObjectOrdering(sceneObject, options.getManagedObjectOrdering?.());
     options.sceneAdapter.addObject(sceneObject);
 
     return {

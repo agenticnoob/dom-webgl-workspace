@@ -163,6 +163,7 @@ function createSceneObjectControllerStub(): WebGLSceneObjectController {
     setVisible: vi.fn((nextVisible: boolean) => {
       visible = nextVisible;
     }),
+    setOrdering: vi.fn(),
     updateLayout: vi.fn(),
     render: vi.fn(),
     dispose() {

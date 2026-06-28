@@ -5,7 +5,7 @@ import type { PointerController } from "../input/pointerController";
 import type { ScrollControllerGateTarget } from "../input/scrollController";
 import { defineWebGLEffect } from "../effects/effectAuthoring";
 import type { Renderable } from "../render/renderable";
-import type { WebGLSceneAdapter } from "./sceneObject";
+import type { WebGLSceneAdapter, WebGLSceneObject } from "./sceneObject";
 import type {
   WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
@@ -203,6 +203,48 @@ describe("runtime pipeline sync", () => {
       sourceKind: "media/image-sequence",
       renderRole: "media",
     });
+
+    runtime.dispose();
+  });
+
+  test("orders nested child target scene objects above parent media scene object", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: () => createLayoutMeasurement(0, 0, 240, 160),
+    });
+    const parent = document.createElement("section");
+    const child = document.createElement("p");
+    child.textContent = "Nested card copy";
+    parent.append(child);
+
+    runtime.registerTarget(parent, {
+      key: "sequence",
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        frameCount: 1,
+        frames: [document.createElement("canvas")],
+      },
+    });
+    runtime.registerTarget(child, {
+      key: "sequence.copy",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    const parentOrder = sceneAdapter.objects.find(
+      (object) => object.key === "sequence",
+    )?.ordering?.renderOrder;
+    const childOrder = sceneAdapter.objects.find(
+      (object) => object.key === "sequence.copy",
+    )?.ordering?.renderOrder;
+
+    expect(parentOrder).toBeTypeOf("number");
+    expect(childOrder).toBeTypeOf("number");
+    expect(childOrder!).toBeGreaterThan(parentOrder!);
 
     runtime.dispose();
   });
@@ -1719,10 +1761,10 @@ function createRecordingSceneAdapter(): WebGLSceneAdapter & {
 }
 
 function createObjectRecordingSceneAdapter(): WebGLSceneAdapter & {
-  objects: Array<{ object3D?: unknown }>;
+  objects: WebGLSceneObject[];
   render: ReturnType<typeof vi.fn>;
 } {
-  const objects: Array<{ object3D?: unknown }> = [];
+  const objects: WebGLSceneObject[] = [];
 
   return {
     objects,
