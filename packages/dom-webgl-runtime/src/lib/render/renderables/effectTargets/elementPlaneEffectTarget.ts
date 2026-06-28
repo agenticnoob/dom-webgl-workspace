@@ -1,16 +1,14 @@
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
-import { Mesh } from "three/src/objects/Mesh.js";
-
 import type { WebGLEffectTarget } from "../../../effects/effectTarget";
 import { createObject3DControls } from "../object3DControls";
 
 export function createElementPlaneEffectTarget(
-  mesh: Mesh,
+  object3D: unknown,
   material: MeshBasicMaterial,
   addObject3D?: WebGLEffectTarget["addObject3D"],
 ): WebGLEffectTarget {
   return {
-    ...createObject3DControls(mesh, {
+    ...createObject3DControls(object3D, {
       positionZ: "current",
       rotationZ: "current",
       scaleZ: 1,

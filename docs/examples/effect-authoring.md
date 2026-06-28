@@ -305,7 +305,10 @@ usable frames and updates the texture plane without owning the sequence loader.
 The same target contains a nested WebGL card target using `dom/element` plus
 `example.sequenceCard`. This validates DOM-derived child layer ordering and
 fallback boundaries; the image-sequence parent does not manually add card
-objects through an effect.
+objects through an effect, and the card does not declare `renderRole: "overlay"`.
+DOM supplies the card's layout anchor and layer relationship. The card pixels
+come from `ctx.source.surface.draw(...)`; runtime core does not clone the DOM
+card's CSS background, border, shadow, or other decorative paint.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

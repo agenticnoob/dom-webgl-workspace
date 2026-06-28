@@ -21,6 +21,7 @@ export function toScopedSceneObjectOrdering(
       layer.paintIndex * targetLayerStride + localRoleOffsets[policy.role],
     transparent: policy.opacityMode !== "opaque",
     depthWrite: policy.depthMode === "model",
+    depthTest: policy.depthMode === "model",
   };
 }
 
@@ -31,5 +32,6 @@ export function toScopedManagedObjectOrdering(
     renderOrder: layer.paintIndex * targetLayerStride + localRoleOffsets.overlay,
     transparent: true,
     depthWrite: false,
+    depthTest: false,
   };
 }

@@ -83,7 +83,10 @@ Current runtime behavior:
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
-  and sibling order before applying local `renderRole` policy.
+  and sibling order before applying local `renderRole` policy. This applies to
+  runtime-owned layers from `dom/element`, `dom/text`, `media/image`,
+  `media/video`, `media/image-sequence`, and `model/glb`; ordinary nested
+  targets do not need `renderRole: "overlay"` to paint above their parent.
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active, plus per-target layer diagnostics.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
@@ -260,6 +263,10 @@ Current visual behavior:
   WebGL-owned child layer. The parent owns its source layer; each child owns its
   own source layer and fallback lifecycle. Do not add child Object3D instances
   from a parent effect to simulate target children.
+- DOM supplies layout and layer semantics. Effect code supplies pixels:
+  `dom/element` is a transparent layout surface until an effect draws to
+  `ctx.source.surface`, and the runtime does not clone CSS backgrounds,
+  borders, shadows, or other decorative paint into WebGL.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
 - Concrete text animation effects, shader authoring APIs, core-provided

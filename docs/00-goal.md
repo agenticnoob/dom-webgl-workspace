@@ -104,6 +104,10 @@ app-authored `z-index` rules.
 Nested `WebGLTarget` elements are first-class WebGL target children. The runtime
 derives a target layer tree from DOM ancestry and sibling order; `renderRole`
 still provides local source policy, but it is not the global stacking model.
+Runtime-owned layers from `dom/element`, `dom/text`, `media/image`,
+`media/video`, `media/image-sequence`, and `model/glb` share this DOM-derived
+target order, so ordinary nested targets do not need `renderRole: "overlay"` to
+paint above their parent.
 
 Package consumers should think about:
 
@@ -386,11 +390,11 @@ global z-index bands for WebGL scene objects.
 Example policy direction:
 
 ```txt
-surface -> lower render band, opaque when possible, no depth write for flat planes
-content -> above surface, transparent only when needed
-media   -> media band, source-specific transparency
-model   -> model band, normal 3D depth within the model
-overlay -> highest controlled band
+surface -> flat DOM-ordered transparent queue, no depth test/write
+content -> flat DOM-ordered transparent queue, no depth test/write
+media   -> flat DOM-ordered transparent queue, no depth test/write
+model   -> DOM-ordered target root, depth test/write preserved inside the model
+overlay -> advanced local policy offset, not required for ordinary child layers
 ```
 
 Delivered Phase 3 behavior:
@@ -411,7 +415,11 @@ Delivered Phase 3 behavior:
 - Ordering comes from the DOM-derived target layer tree first: parent/child
   ancestry and DOM sibling order scope the layer. `renderRole` then selects the
   target's local policy offset inside that scope. Page code still does not set
-  public Three.js flags or public layer numbers.
+  public Three.js flags or public layer numbers. DOM supplies layout anchors and
+  layer semantics; effect code supplies final pixels. `dom/element` remains a
+  transparent layout surface until an effect draws to `ctx.source.surface`, and
+  runtime core does not clone CSS backgrounds, borders, shadows, or decorative
+  paint into WebGL.
 - Mounted React runtimes create and dispose the runtime but do not own a frame
   loop.
 - The runtime owns a renderer-driven loop through the renderer host and renders
@@ -1197,8 +1205,9 @@ Validation should prove:
 - Example imports only public package exports.
 - Browser-only runtime APIs are not executed during SSR.
 - Failed assets keep DOM fallback visible.
-- DOM-derived target layers render in stable parent/child and sibling order,
-  with `renderRole` acting as a local policy hint.
+- DOM-derived target layers render in stable parent/child and sibling order
+  across `dom/*`, `media/*`, and `model/glb`, with `renderRole` acting as a
+  local policy hint.
 - Scene gates release page scroll.
 - Pointer drag/click state can be inspected through debug state.
 

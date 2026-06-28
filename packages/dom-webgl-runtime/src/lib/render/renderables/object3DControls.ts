@@ -131,9 +131,11 @@ function setMaterialOpacity(material: unknown, opacity: number): void {
     if (entry && typeof entry === "object") {
       Object.assign(entry, {
         opacity,
-        transparent: opacity < 1,
         needsUpdate: true,
       });
+      if (opacity < 1) {
+        Object.assign(entry, { transparent: true });
+      }
     }
   }
 }

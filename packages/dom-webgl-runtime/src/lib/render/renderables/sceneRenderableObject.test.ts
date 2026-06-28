@@ -74,27 +74,74 @@ describe("element plane scene renderable", () => {
       getViewportSize: () => ({ width: 800, height: 600 }),
       element,
     });
-    const mesh = controller.object.object3D as {
+    const group = controller.object.object3D as {
       visible?: boolean;
       rotation?: { x?: number; y?: number };
-      material?: {
-        opacity?: number;
-        transparent?: boolean;
-      };
+      children?: Array<{
+        material?: {
+          opacity?: number;
+          transparent?: boolean;
+        };
+      }>;
     };
+    const mesh = group.children?.[0];
 
     controller.object.effectTarget?.setVisible(true);
     controller.object.effectTarget?.setRotation(0.1, -0.2, 0.3);
     controller.object.effectTarget?.setScale(1.2, 0.9, 1);
     controller.object.effectTarget?.setOpacity(0.42);
 
-    expect(mesh.visible).toBe(true);
+    expect(group.visible).toBe(true);
+    expect(mesh).toBeDefined();
+    if (!mesh) {
+      throw new Error("Expected element plane group to contain a mesh child.");
+    }
     expect(mesh.material?.transparent).toBe(true);
     expect(mesh.material?.opacity).toBe(0.42);
-    expect(mesh.rotation?.x).toBe(0.1);
-    expect(mesh.rotation?.y).toBe(-0.2);
+    expect(group.rotation?.x).toBe(0.1);
+    expect(group.rotation?.y).toBe(-0.2);
 
     controller.controller.dispose();
+  });
+
+  test("uses group target roots for plane-like layer renderables", () => {
+    const element = createElementPlaneSceneRenderableController({
+      key: "root.element",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: document.createElement("section"),
+    });
+    const text = createTextPlaneSceneRenderableController({
+      key: "root.text",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: document.createElement("p"),
+      textContent: "Layer text",
+    });
+    const image = document.createElement("img");
+    Object.defineProperties(image, {
+      naturalWidth: { value: 200 },
+      naturalHeight: { value: 100 },
+    });
+    const texture = createTexturePlaneSceneRenderableController({
+      key: "root.texture",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: image,
+      textureKind: "image",
+      textureSource: image,
+    });
+
+    expectGroupRootWithChild(element.object.object3D);
+    expectGroupRootWithChild(text.object.object3D);
+    expectGroupRootWithChild(texture.object.object3D);
+
+    element.controller.dispose();
+    text.controller.dispose();
+    texture.controller.dispose();
   });
 
   test("keeps text layer glyph overrides after text layout rerenders", () => {
@@ -225,6 +272,13 @@ function createMeasurement() {
     width: 400,
     height: 300,
   };
+}
+
+function expectGroupRootWithChild(object3D: unknown): void {
+  expect(object3D).toMatchObject({
+    children: expect.any(Array),
+  });
+  expect((object3D as { children: unknown[] }).children.length).toBeGreaterThan(0);
 }
 
 function createCanvasContextStub(): CanvasRenderingContext2D & {

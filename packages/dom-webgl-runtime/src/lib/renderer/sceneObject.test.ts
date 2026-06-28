@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import type { WebGLRenderRole } from "../types";
 import { compileRenderPolicy, toSceneObjectOrdering } from "../render/renderPolicy";
 import {
+  applySceneObjectOrdering,
   createSceneObjectController,
   type WebGLSceneAdapter,
   type WebGLSceneObject,
@@ -37,28 +38,33 @@ describe("createSceneObjectController", () => {
     const expectedByRole = {
       surface: {
         renderOrder: 0,
-        transparent: false,
+        transparent: true,
         depthWrite: false,
+        depthTest: false,
       },
       content: {
         renderOrder: 100,
         transparent: true,
         depthWrite: false,
+        depthTest: false,
       },
       media: {
         renderOrder: 200,
         transparent: true,
         depthWrite: false,
+        depthTest: false,
       },
       model: {
         renderOrder: 300,
         transparent: true,
         depthWrite: true,
+        depthTest: true,
       },
       overlay: {
         renderOrder: 400,
         transparent: true,
         depthWrite: false,
+        depthTest: false,
       },
     } satisfies Record<WebGLRenderRole, ReturnType<typeof toSceneObjectOrdering>>;
 
@@ -83,9 +89,47 @@ describe("createSceneObjectController", () => {
         material: {
           transparent: expected.transparent,
           depthWrite: expected.depthWrite,
+          depthTest: expected.depthTest,
         },
       });
     }
+  });
+
+  test("applies ordering to object3D descendants", () => {
+    const childMaterial = {};
+    const object = {
+      key: "layer",
+      object3D: {
+        renderOrder: 0,
+        children: [
+          {
+            renderOrder: 0,
+            material: childMaterial,
+            children: [],
+          },
+        ],
+      },
+      setVisible: vi.fn(),
+      updateLayout: vi.fn(),
+      dispose: vi.fn(),
+    };
+
+    applySceneObjectOrdering(object, {
+      renderOrder: 320,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+
+    expect((object.object3D as { renderOrder: number }).renderOrder).toBe(320);
+    expect(
+      (object.object3D.children[0] as { renderOrder: number }).renderOrder,
+    ).toBe(320);
+    expect(childMaterial).toMatchObject({
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
   });
 });
 

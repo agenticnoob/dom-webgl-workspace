@@ -421,10 +421,17 @@ Preferred pattern:
 
 Rules:
 
-- Runtime orders nested targets from DOM ancestry and sibling order. `renderRole`
-  remains a local source-policy hint; it is not a substitute for the layer tree.
+- Runtime orders nested targets from DOM ancestry and sibling order across
+  `dom/element`, `dom/text`, `media/image`, `media/video`,
+  `media/image-sequence`, and `model/glb`. `renderRole` remains a local
+  source-policy hint; it is not a substitute for the layer tree and is not
+  required to make an ordinary child target paint above its parent.
 - The parent target owns only its own source layer and fallback lifecycle.
   Nested child targets own their own source layer and fallback lifecycle.
+- DOM supplies layout anchors and layer semantics. Effect code supplies pixels:
+  `dom/element` is a transparent layout surface until an effect draws to
+  `ctx.source.surface`. Runtime core does not clone CSS backgrounds, borders,
+  shadows, or other decorative paint into WebGL.
 - Do not call an effect resource helper from the parent to create child card or
   caption scene objects just to simulate target children.
 - Put `dom/text` on the actual text-bearing element, such as `p`, `span`,

@@ -28,7 +28,7 @@ describe("compileRenderPolicy", () => {
       role: "surface",
       band: 0,
       depthMode: "flat",
-      opacityMode: "opaque",
+      opacityMode: "alpha",
     });
     expect(compileRenderPolicy("content")).toEqual({
       role: "content",
@@ -46,7 +46,7 @@ describe("compileRenderPolicy", () => {
       role: "model",
       band: 3,
       depthMode: "model",
-      opacityMode: "source",
+      opacityMode: "alpha",
     });
     expect(compileRenderPolicy("overlay")).toEqual({
       role: "overlay",
@@ -59,29 +59,52 @@ describe("compileRenderPolicy", () => {
   test("maps policies to deterministic internal scene object ordering", () => {
     expect(toSceneObjectOrdering(compileRenderPolicy("surface"))).toEqual({
       renderOrder: 0,
-      transparent: false,
+      transparent: true,
       depthWrite: false,
+      depthTest: false,
     });
     expect(toSceneObjectOrdering(compileRenderPolicy("content"))).toEqual({
       renderOrder: 100,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
     });
     expect(toSceneObjectOrdering(compileRenderPolicy("media"))).toEqual({
       renderOrder: 200,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
     });
     expect(toSceneObjectOrdering(compileRenderPolicy("model"))).toEqual({
       renderOrder: 300,
       transparent: true,
       depthWrite: true,
+      depthTest: true,
     });
     expect(toSceneObjectOrdering(compileRenderPolicy("overlay"))).toEqual({
       renderOrder: 400,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
     });
+  });
+
+  test("keeps flat DOM and media roles in the DOM-ordered transparent queue", () => {
+    for (const role of ["surface", "content", "media", "overlay"] as const) {
+      const ordering = toSceneObjectOrdering(compileRenderPolicy(role));
+
+      expect(ordering.transparent).toBe(true);
+      expect(ordering.depthWrite).toBe(false);
+      expect(ordering.depthTest).toBe(false);
+    }
+  });
+
+  test("keeps model role depth-enabled while still receiving render ordering", () => {
+    const ordering = toSceneObjectOrdering(compileRenderPolicy("model"));
+
+    expect(ordering.transparent).toBe(true);
+    expect(ordering.depthWrite).toBe(true);
+    expect(ordering.depthTest).toBe(true);
   });
 
   test("keeps render policy fields out of the public declaration", () => {
@@ -147,6 +170,12 @@ describe("compileRenderPolicy", () => {
           key: "hero.surface",
           // @ts-expect-error depthWrite is a Three.js policy detail.
           depthWrite: false,
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error depthTest is a Three.js policy detail.
+          depthTest: false,
         } satisfies WebGLDeclaration);
       `,
     );

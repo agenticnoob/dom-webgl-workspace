@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { BoxGeometry } from "three/src/geometries/BoxGeometry.js";
+import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 
 import { createTargetDescriptor } from "../../dom/targetDescriptor";
@@ -55,15 +56,16 @@ describe("createModelRenderable", () => {
     expect(renderable.fallbackVisible).toBe(false);
     expect(renderable.resourceReady).toBe(true);
     expect(renderable.hasSceneObject).toBe(true);
-    const attachedModel = sceneAdapter.objects[0]?.object3D as TestModelObject;
+    const attachedRoot = sceneAdapter.objects[0]?.object3D as TestModelRoot;
+    const attachedModel = readModelRootChild(attachedRoot);
 
     expect(attachedModel).not.toBe(modelScene);
     expect(attachedModel.name).toBe("source-scene.clone");
-    expect(attachedModel.position.set).toHaveBeenCalledWith(130, 490, 0);
-    expect(attachedModel.scale.set).toHaveBeenCalledWith(240, 160, 1);
+    expect(attachedRoot.position.toArray()).toEqual([130, 490, 0]);
+    expect(attachedRoot.scale.toArray()).toEqual([240, 160, 1]);
     expect(sceneAdapter.objects[0]).toMatchObject({
       key: "hero.model",
-      object3D: attachedModel,
+      object3D: attachedRoot,
       visible: true,
       lastLayout: { x: 130, y: 490, width: 240, height: 160 },
     });
@@ -75,7 +77,7 @@ describe("createModelRenderable", () => {
 
     renderable.setVisible(false);
     expect(sceneAdapter.objects[0]?.visible).toBe(false);
-    expect(attachedModel.visible).toBe(false);
+    expect(attachedRoot.visible).toBe(false);
 
     renderable.dispose();
 
@@ -111,10 +113,11 @@ describe("createModelRenderable", () => {
 
     await renderable.update();
 
-    expect(sceneAdapter.objects[0]?.object3D).not.toBe(directModel);
-    expect((sceneAdapter.objects[0]?.object3D as TestModelObject).name).toBe(
-      "direct-model.clone",
-    );
+    const attachedRoot = sceneAdapter.objects[0]?.object3D as TestModelRoot;
+    const attachedModel = readModelRootChild(attachedRoot);
+
+    expect(attachedModel).not.toBe(directModel);
+    expect(attachedModel.name).toBe("direct-model.clone");
   });
 
   test("contains model bounds inside the anchor without stretching depth", async () => {
@@ -144,10 +147,11 @@ describe("createModelRenderable", () => {
     await renderable.update();
     renderable.updateLayout?.(createMeasurement(10, 30, 240, 160));
 
-    const attachedModel = sceneAdapter.objects[0]?.object3D as Mesh;
+    const attachedRoot = sceneAdapter.objects[0]?.object3D as Group;
 
-    expect(attachedModel.scale.toArray()).toEqual([40, 40, 40]);
-    expect(attachedModel.position.toArray()).toEqual([130, 490, 0]);
+    expect(attachedRoot.children[0]).toBeInstanceOf(Mesh);
+    expect(attachedRoot.scale.toArray()).toEqual([40, 40, 40]);
+    expect(attachedRoot.position.toArray()).toEqual([130, 490, 0]);
   });
 
   test("creates independent scene instances for shared GLB resources", async () => {
@@ -164,7 +168,8 @@ describe("createModelRenderable", () => {
     );
     const resourceManager = createResourceManager();
     const loadedScene = createModelObject("shared-scene");
-    const sharedGeometry = { dispose: vi.fn() };
+    const sharedGeometry = new BoxGeometry(1, 1, 1);
+    const sharedGeometryDispose = vi.spyOn(sharedGeometry, "dispose");
     const sharedMaterial = { dispose: vi.fn() };
 
     loadedScene.geometry = sharedGeometry;
@@ -211,18 +216,18 @@ describe("createModelRenderable", () => {
 
     first.setVisible(false);
 
-    expect((firstSceneAdapter.objects[0]?.object3D as TestModelObject).visible).toBe(
+    expect((firstSceneAdapter.objects[0]?.object3D as TestModelRoot).visible).toBe(
       false,
     );
-    expect((secondSceneAdapter.objects[0]?.object3D as TestModelObject).visible).toBe(
+    expect((secondSceneAdapter.objects[0]?.object3D as TestModelRoot).visible).toBe(
       true,
     );
 
     first.dispose();
 
-    expect(sharedGeometry.dispose).not.toHaveBeenCalled();
+    expect(sharedGeometryDispose).not.toHaveBeenCalled();
     expect(sharedMaterial.dispose).not.toHaveBeenCalled();
-    expect((secondSceneAdapter.objects[0]?.object3D as TestModelObject).visible).toBe(
+    expect((secondSceneAdapter.objects[0]?.object3D as TestModelRoot).visible).toBe(
       true,
     );
   });
@@ -282,21 +287,24 @@ type TestModelObject = {
   visible: boolean;
   position: { set: ReturnType<typeof vi.fn> };
   scale: { set: ReturnType<typeof vi.fn> };
-  geometry?: { dispose: ReturnType<typeof vi.fn> };
-  material?: { dispose: ReturnType<typeof vi.fn> };
+  geometry?: { dispose: () => void };
+  material?: { dispose: () => void };
   clone: ReturnType<typeof vi.fn> & (() => TestModelObject);
   dispose: ReturnType<typeof vi.fn>;
 };
 
+type TestModelRoot = Group & {
+  children: TestModelObject[];
+};
+
 function createModelObject(name: string): TestModelObject {
-  const object = {
-    name,
-    visible: true,
-    position: { set: vi.fn() },
-    scale: { set: vi.fn() },
-    clone: vi.fn(),
-    dispose: vi.fn(),
-  } as TestModelObject;
+  const object = new Group() as unknown as TestModelObject;
+
+  object.name = name;
+  object.position.set = vi.fn(object.position.set.bind(object.position));
+  object.scale.set = vi.fn(object.scale.set.bind(object.scale));
+  object.clone = vi.fn();
+  object.dispose = vi.fn();
 
   object.clone.mockImplementation(() => {
     const clone = createModelObject(`${name}.clone`);
@@ -308,6 +316,16 @@ function createModelObject(name: string): TestModelObject {
   });
 
   return object;
+}
+
+function readModelRootChild(root: TestModelRoot): TestModelObject {
+  const child = root.children[0];
+
+  if (!child) {
+    throw new Error("Expected model target root to contain the loaded model.");
+  }
+
+  return child;
 }
 
 function createSceneAdapter(): WebGLSceneAdapter & {

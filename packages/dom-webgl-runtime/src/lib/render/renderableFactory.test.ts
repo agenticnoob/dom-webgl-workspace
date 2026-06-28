@@ -234,9 +234,10 @@ describe("createRenderable factory", () => {
     expect((renderable as unknown as { resourceReady: boolean }).resourceReady).toBe(
       true,
     );
-    expect(sceneAdapter.objects[0]).toMatchObject({
-      key: "hero.model",
-      object3D: "model",
+    expect(sceneAdapter.objects[0]?.key).toBe("hero.model");
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+      isGroup: true,
+      children: [],
     });
   });
 

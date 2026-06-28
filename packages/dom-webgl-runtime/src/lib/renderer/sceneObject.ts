@@ -13,6 +13,7 @@ export type WebGLSceneObjectOrdering = {
   renderOrder: number;
   transparent: boolean;
   depthWrite: boolean;
+  depthTest: boolean;
 };
 
 export type WebGLSceneAdapter = {
@@ -134,6 +135,12 @@ function applyObject3DOrdering(
     (object3D as { material?: unknown }).material,
     ordering,
   );
+  const children = (object3D as { children?: unknown }).children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      applyObject3DOrdering(child, ordering);
+    }
+  }
 }
 
 function applyMaterialOrdering(
@@ -155,5 +162,6 @@ function applyMaterialOrdering(
   Object.assign(material, {
     transparent: ordering.transparent,
     depthWrite: ordering.depthWrite,
+    depthTest: ordering.depthTest,
   });
 }

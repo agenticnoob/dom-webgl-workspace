@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { Group } from "three/src/objects/Group.js";
 
 import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
@@ -51,6 +52,14 @@ type RuntimeWithPipelineSurface = WebGLRuntime & {
   sync(): void | Promise<void>;
 };
 
+type LayerSourceCase = {
+  name: string;
+  key: string;
+  element: HTMLElement;
+  declaration: Parameters<RuntimeWithPipelineSurface["registerTarget"]>[1];
+  depthMode: "flat" | "model";
+};
+
 const testSurfaceEffect = defineWebGLEffect<{
   kind: "test.surface";
   opacity?: number;
@@ -62,6 +71,96 @@ const testSurfaceEffect = defineWebGLEffect<{
     ctx.target?.setOpacity(params.opacity ?? 1);
   },
 });
+
+function createLayerSourceCases(): LayerSourceCase[] {
+  const domElement = document.createElement("section");
+  const domText = document.createElement("p");
+  const image = document.createElement("img");
+  const video = document.createElement("video");
+  const sequence = document.createElement("section");
+  const model = document.createElement("section");
+
+  domText.textContent = "Layer text";
+  image.src = "/example/image.png";
+  video.src = "/example/video.mp4";
+
+  Object.defineProperty(image, "decode", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+  Object.defineProperty(video, "pause", {
+    configurable: true,
+    value: vi.fn(),
+  });
+
+  return [
+    {
+      name: "dom element",
+      key: "case.dom.element",
+      element: domElement,
+      declaration: {
+        key: "case.dom.element",
+        source: { kind: "dom", type: "element" },
+      },
+      depthMode: "flat",
+    },
+    {
+      name: "dom text",
+      key: "case.dom.text",
+      element: domText,
+      declaration: {
+        key: "case.dom.text",
+        source: { kind: "dom", type: "text" },
+      },
+      depthMode: "flat",
+    },
+    {
+      name: "media image",
+      key: "case.media.image",
+      element: image,
+      declaration: {
+        key: "case.media.image",
+        source: { kind: "media", type: "image", src: "/example/image.png" },
+      },
+      depthMode: "flat",
+    },
+    {
+      name: "media video",
+      key: "case.media.video",
+      element: video,
+      declaration: {
+        key: "case.media.video",
+        source: { kind: "media", type: "video", src: "/example/video.mp4" },
+      },
+      depthMode: "flat",
+    },
+    {
+      name: "media image sequence",
+      key: "case.media.sequence",
+      element: sequence,
+      declaration: {
+        key: "case.media.sequence",
+        source: {
+          kind: "media",
+          type: "image-sequence",
+          frameCount: 1,
+          frames: [document.createElement("canvas")],
+        },
+      },
+      depthMode: "flat",
+    },
+    {
+      name: "model glb",
+      key: "case.model.glb",
+      element: model,
+      declaration: {
+        key: "case.model.glb",
+        source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+      },
+      depthMode: "model",
+    },
+  ];
+}
 
 const testPointerTiltEffect = defineWebGLEffect<{
   kind: "test.pointerTilt";
@@ -263,6 +362,60 @@ describe("runtime pipeline sync", () => {
 
     runtime.dispose();
   });
+
+  test.each(createLayerSourceCases())(
+    "orders nested $name target above parent media without renderRole override",
+    async ({ key, element, declaration, depthMode }) => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const parent = document.createElement("section");
+    parent.append(element);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: () => createLayoutMeasurement(0, 0, 240, 160),
+      loadVideo: async (source) => source.element ?? document.createElement("video"),
+      loadModel: async () => createModelObject3DStub(),
+    });
+
+    runtime.registerTarget(parent, {
+      key: "parent.sequence",
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        frameCount: 1,
+        frames: [document.createElement("canvas")],
+      },
+    });
+    runtime.registerTarget(element, declaration);
+
+    await runtime.sync();
+
+    const parentObject = readSceneObject(sceneAdapter, "parent.sequence");
+    const childObject = readSceneObject(sceneAdapter, key);
+
+    expect(childObject.ordering).toMatchObject({
+      transparent: true,
+      depthWrite: depthMode === "model",
+      depthTest: depthMode === "model",
+    });
+    expect(childObject.ordering?.renderOrder).toBeGreaterThan(
+      parentObject.ordering?.renderOrder ?? -1,
+    );
+    expect(readObject3DRenderOrder(childObject.object3D)).toBe(
+      childObject.ordering?.renderOrder,
+    );
+    expect(readObject3DRenderOrder(parentObject.object3D)).toBe(
+      parentObject.ordering?.renderOrder,
+    );
+    if (depthMode === "model") {
+      expect(
+        (childObject.object3D as { children?: unknown[] }).children?.length,
+      ).toBeGreaterThan(0);
+    }
+
+    runtime.dispose();
+    },
+  );
 
   test("model declarations use the default GLB loader when no loader is injected", async () => {
     const loadAsync = vi.fn(async () => ({ scene: "loaded model" }));
@@ -573,18 +726,25 @@ describe("runtime pipeline sync", () => {
 
     await runtime.sync();
 
-    const mesh = sceneAdapter.objects[0]?.object3D as {
+    const group = sceneAdapter.objects[0]?.object3D as {
       visible?: boolean;
       rotation?: { x?: number; y?: number };
-      material?: { opacity?: number; transparent?: boolean };
+      children?: Array<{
+        material?: { opacity?: number; transparent?: boolean };
+      }>;
     };
+    const mesh = group.children?.[0];
 
     expect(runtime.getDebugState().targets[0]?.error).toBeUndefined();
-    expect(mesh.visible).toBe(true);
+    expect(group.visible).toBe(true);
+    expect(mesh).toBeDefined();
+    if (!mesh) {
+      throw new Error("Expected element plane group to contain a mesh child.");
+    }
     expect(mesh.material?.transparent).toBe(true);
     expect(mesh.material?.opacity).toBe(0.84);
-    expect(mesh.rotation?.x).toBeCloseTo(0.0436332313);
-    expect(mesh.rotation?.y).toBeCloseTo(0.0872664626);
+    expect(group.rotation?.x).toBeCloseTo(0.0436332313);
+    expect(group.rotation?.y).toBeCloseTo(0.0872664626);
 
     runtime.dispose();
   });
@@ -1837,16 +1997,31 @@ function createLayoutMeasurement(
   };
 }
 
-function createCanvasContextStub(): CanvasRenderingContext2D {
+function readSceneObject(
+  sceneAdapter: ReturnType<typeof createObjectRecordingSceneAdapter>,
+  key: string,
+): WebGLSceneObject {
+  const object = sceneAdapter.objects.find((entry) => entry.key === key);
+
+  if (!object) {
+    throw new Error(`Missing scene object ${key}`);
+  }
+
+  return object;
+}
+
+function readObject3DRenderOrder(object3D: unknown): number | undefined {
+  if (!object3D || typeof object3D !== "object") {
+    return undefined;
+  }
+
+  return (object3D as { renderOrder?: number }).renderOrder;
+}
+
+function createModelObject3DStub() {
   return {
-    beginPath: vi.fn(),
-    clearRect: vi.fn(),
-    closePath: vi.fn(),
-    fill: vi.fn(),
-    lineTo: vi.fn(),
-    moveTo: vi.fn(),
-    quadraticCurveTo: vi.fn(),
-  } as unknown as CanvasRenderingContext2D;
+    scene: new Group(),
+  };
 }
 
 function countRoles(renderables: Renderable[]): Partial<Record<string, number>> {

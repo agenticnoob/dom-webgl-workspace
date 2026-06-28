@@ -1,5 +1,6 @@
 import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
+import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 
@@ -30,15 +31,17 @@ export function createElementPlaneSceneRenderableController(
   });
   material.transparent = true;
   const mesh = new Mesh(geometry, material);
+  const group = new Group();
   let lastMeasurement: ElementMeasurement | undefined;
 
-  mesh.visible = false;
+  group.add(mesh);
+  group.visible = false;
 
   const controller = createSceneRenderableController({
     ...options,
-    object3D: mesh,
+    object3D: group,
     effectTarget: createElementPlaneEffectTarget(
-      mesh,
+      group,
       material,
       createManagedObject3DFactory(options),
     ),
@@ -49,7 +52,7 @@ export function createElementPlaneSceneRenderableController(
     },
   });
   controller.object.surfaceCapability = createCanvasSurfaceCapabilityHandle({
-    object3D: mesh,
+    object3D: group,
     mesh,
     material,
     canvas,

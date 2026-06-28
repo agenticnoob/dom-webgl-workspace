@@ -58,6 +58,7 @@ type TargetMockProps = {
   webgl: {
     key: string;
     source?: Record<string, unknown>;
+    renderRole?: string;
     effects?: readonly Record<string, unknown>[];
     lifecycle?: Record<string, unknown>;
     scroll?: { readonly type?: unknown };
@@ -305,7 +306,19 @@ describe("effect authoring example app", () => {
     });
     expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
-      hideMode: "self",
+      hideMode: "subtree",
+    });
+    expect(finalTargetProps[17]?.webgl).toMatchObject({
+      key: "example.image-sequence.card",
+      source: { kind: "dom", type: "element" },
+    });
+    expect(finalTargetProps[17]?.webgl).not.toHaveProperty("renderRole");
+    expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
+      kind: "example.sequenceCard",
+      progressKey: "example.video.scrub",
+      travel: 96,
+      minOpacity: 0.72,
+      maxOpacity: 1,
     });
     expect(
       finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),

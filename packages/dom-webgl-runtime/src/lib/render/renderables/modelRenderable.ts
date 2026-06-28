@@ -1,4 +1,6 @@
 import type { ResourceManager } from "../../resources/resourceManager";
+import type { Object3D } from "three/src/core/Object3D.js";
+import { Group } from "three/src/objects/Group.js";
 import type { DOMViewportSize } from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
@@ -54,15 +56,16 @@ export function createModelRenderable(
         const model = await resource.load(async () => loadModel(source));
 
         if (!state.scene) {
-          const object3D = instantiateModelSceneObject(model);
-          state.modelHandle = createModelEffectHandle(object3D);
+          const modelObject3D = instantiateModelSceneObject(model);
+          const targetRoot = createModelTargetRoot(modelObject3D);
+          state.modelHandle = createModelEffectHandle(modelObject3D);
           state.scene = createModelSceneRenderableController({
             key: context.descriptor.key,
             sceneAdapter: options.sceneAdapter,
             measureElement: options.measureElement,
             getViewportSize: options.getViewportSize,
             element: source.anchor,
-            object3D,
+            object3D: targetRoot,
             ordering: readRenderableOrdering(context),
             getManagedObjectOrdering: () => readManagedObjectOrdering(context),
             disposeObject3D: true,
@@ -119,6 +122,30 @@ export function createModelRenderable(
   }) as ModelRenderable;
 }
 
+function createModelTargetRoot(modelScene: unknown): unknown {
+  const group = new Group() as Group & { dispose?: () => void };
+
+  if (isObject3D(modelScene)) {
+    group.add(modelScene);
+  }
+  group.dispose = () => {
+    disposeModelSceneObject(modelScene);
+  };
+
+  return group;
+}
+
+function disposeModelSceneObject(modelScene: unknown): void {
+  if (!modelScene || typeof modelScene !== "object") {
+    return;
+  }
+
+  const dispose = (modelScene as { dispose?: unknown }).dispose;
+  if (typeof dispose === "function") {
+    dispose.call(modelScene);
+  }
+}
+
 function instantiateModelSceneObject(model: unknown): unknown {
   const sceneObject = readModelSceneObject(model);
 
@@ -132,6 +159,15 @@ function instantiateModelSceneObject(model: unknown): unknown {
   }
 
   return sceneObject;
+}
+
+function isObject3D(object: unknown): object is Object3D {
+  return (
+    !!object &&
+    typeof object === "object" &&
+    "isObject3D" in object &&
+    (object as { isObject3D?: unknown }).isObject3D === true
+  );
 }
 
 function readModelSceneObject(model: unknown): unknown {

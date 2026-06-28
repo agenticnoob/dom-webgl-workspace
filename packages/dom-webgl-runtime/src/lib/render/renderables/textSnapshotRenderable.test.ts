@@ -70,7 +70,14 @@ describe("createTextSnapshotRenderable", () => {
 
     expect(sceneAdapter.objects).toHaveLength(1);
     expect(sceneAdapter.objects[0]?.textContent).toBe("Hello WebGL text");
-    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+    const root = sceneAdapter.objects[0]?.object3D as
+      | {
+          isGroup?: boolean;
+          children?: Array<{ isMesh?: boolean; geometry?: { type?: string } }>;
+        }
+      | undefined;
+    expect(root?.isGroup).toBe(true);
+    expect(root?.children?.[0]).toMatchObject({
       isMesh: true,
       geometry: { type: "PlaneGeometry" },
     });

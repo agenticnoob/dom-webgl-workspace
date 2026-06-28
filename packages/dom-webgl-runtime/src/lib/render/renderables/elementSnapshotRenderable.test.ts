@@ -70,7 +70,14 @@ describe("createElementSnapshotRenderable", () => {
 
     expect(sceneAdapter.removeObject).toHaveBeenCalledTimes(1);
     expect(sceneAdapter.objects[0]?.disposed).toBe(true);
-    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
+    const root = sceneAdapter.objects[0]?.object3D as
+      | {
+          isGroup?: boolean;
+          children?: Array<{ isMesh?: boolean; geometry?: { type?: string } }>;
+        }
+      | undefined;
+    expect(root?.isGroup).toBe(true);
+    expect(root?.children?.[0]).toMatchObject({
       isMesh: true,
       geometry: { type: "PlaneGeometry" },
     });
@@ -144,13 +151,16 @@ describe("createElementSnapshotRenderable", () => {
     renderable.updateLayout?.(createMeasurement(40, 80, 200, 100));
 
     expect(getComputedStyle).not.toHaveBeenCalled();
-    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
-      isMesh: true,
-      visible: false,
-      material: {
-        opacity: 0,
-      },
-    });
+    const root = sceneAdapter.objects[0]?.object3D as
+      | {
+          isGroup?: boolean;
+          visible?: boolean;
+          children?: Array<{ material?: { opacity?: number } }>;
+        }
+      | undefined;
+    expect(root?.isGroup).toBe(true);
+    expect(root?.visible).toBe(false);
+    expect(root?.children?.[0]?.material?.opacity).toBe(0);
   });
 });
 

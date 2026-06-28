@@ -21,9 +21,9 @@ const sequenceCardEffects = [
   {
     kind: "example.sequenceCard",
     progressKey: videoScrubProgressKey,
-    travel: 280,
-    minOpacity: 0.18,
-    maxOpacity: 0.82,
+    travel: 96,
+    minOpacity: 0.72,
+    maxOpacity: 1,
   },
 ] as const;
 
@@ -304,7 +304,7 @@ export default function App() {
                   webgl={{
                     key: "example.image-sequence.card",
                     source: { kind: "dom", type: "element" },
-                    lifecycle: { hideWhenReady: true, hideMode: "self" },
+                    lifecycle: { hideWhenReady: true, hideMode: "subtree" },
                     effects: sequenceCardEffects,
                   }}
                 >

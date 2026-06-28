@@ -11,6 +11,7 @@ export type SceneObjectOrdering = {
   renderOrder: number;
   transparent: boolean;
   depthWrite: boolean;
+  depthTest: boolean;
 };
 
 export function compileRenderPolicy(renderRole: WebGLRenderRole): RenderPolicy {
@@ -20,7 +21,7 @@ export function compileRenderPolicy(renderRole: WebGLRenderRole): RenderPolicy {
         role: renderRole,
         band: 0,
         depthMode: "flat",
-        opacityMode: "opaque",
+        opacityMode: "alpha",
       };
     case "content":
       return {
@@ -41,7 +42,7 @@ export function compileRenderPolicy(renderRole: WebGLRenderRole): RenderPolicy {
         role: renderRole,
         band: 3,
         depthMode: "model",
-        opacityMode: "source",
+        opacityMode: "alpha",
       };
     case "overlay":
       return {
@@ -58,5 +59,6 @@ export function toSceneObjectOrdering(policy: RenderPolicy): SceneObjectOrdering
     renderOrder: policy.band * 100,
     transparent: policy.opacityMode !== "opaque",
     depthWrite: policy.depthMode === "model",
+    depthTest: policy.depthMode === "model",
   };
 }

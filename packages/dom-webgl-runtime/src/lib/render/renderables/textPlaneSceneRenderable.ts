@@ -1,5 +1,6 @@
 import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
+import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 
@@ -43,6 +44,7 @@ export function createTextPlaneSceneRenderableController(
     transparent: true,
   });
   const mesh = new Mesh(geometry, material);
+  const group = new Group();
   let textContent = options.textContent ?? "";
   const initialStyle = readDOMStyleSnapshot(options.element);
   let lastMeasurement: ElementLayoutSnapshot | undefined;
@@ -62,9 +64,10 @@ export function createTextPlaneSceneRenderableController(
       style: initialStyle,
     }),
   );
+  group.add(mesh);
   const controller = createSceneRenderableController({
     ...options,
-    object3D: mesh,
+    object3D: group,
     textureSource: canvas,
     disposeResources() {
       texture.dispose();
@@ -109,7 +112,7 @@ export function createTextPlaneSceneRenderableController(
     glyphs = context ? computeTextGlyphLayout(context, textContent, state) : [];
     textLayerStyle = readTextLayerStyle(state);
     applyGlyphCommandTransform();
-    applyDOMActivityVisibility(mesh, initialStyle);
+    applyDOMActivityVisibility(group, initialStyle);
   };
 
   controller.object.updateTextContent = (nextTextContent) => {
@@ -136,7 +139,7 @@ export function createTextPlaneSceneRenderableController(
     renderTextSnapshot(lastMeasurement, true);
   };
   const textLayerOptions: TextLayerCapabilityOptions = {
-    object3D: mesh,
+    object3D: group,
     mesh,
     material,
     canvas,
