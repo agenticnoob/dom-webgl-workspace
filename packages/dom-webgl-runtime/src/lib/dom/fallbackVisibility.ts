@@ -1,4 +1,10 @@
 import type { WebGLLifecycleDeclaration } from "../types";
+import {
+  isManagedFallbackRoot,
+  isManagedFallbackRootHidden,
+  markManagedFallbackRootHidden,
+  markManagedFallbackRootVisible,
+} from "./fallbackBoundary";
 
 export type FallbackHideMode = NonNullable<
   WebGLLifecycleDeclaration["hideMode"]
@@ -12,6 +18,7 @@ export type FallbackVisibilityController = {
 type FallbackVisibilityOptions = {
   defaultHideWhenReady?: boolean;
   defaultHideMode?: FallbackHideMode;
+  key?: string;
 };
 
 type ElementSnapshot = {
@@ -46,6 +53,7 @@ export function createFallbackVisibilityController(
   }
 
   const hideMode = lifecycle.hideMode ?? options.defaultHideMode ?? "subtree";
+  const ownerKey = options.key?.trim() ?? "";
   let hidden = false;
   let snapshots: ElementSnapshot[] = [];
 
@@ -56,20 +64,19 @@ export function createFallbackVisibilityController(
       }
 
       hidden = true;
-      snapshots = snapshotElements(element, hideMode);
+      snapshots = snapshotElements(element);
       fallbackStyleSnapshots.set(element, {
         visibility:
           element.ownerDocument.defaultView?.getComputedStyle(element).visibility ||
           "visible",
       });
-      element.style.visibility = "hidden";
 
-      for (const child of element.querySelectorAll<HTMLElement>("*")) {
-        if (hideMode === "self" && isManagedFallbackElement(child)) {
-          continue;
-        }
+      if (ownerKey) {
+        markManagedFallbackRootHidden(element, ownerKey);
+      }
 
-        child.style.visibility = hideMode === "self" ? "visible" : "hidden";
+      for (const snapshot of snapshots) {
+        applyHiddenStyle(element, snapshot.element, hideMode);
       }
     },
     restore(): void {
@@ -80,7 +87,8 @@ export function createFallbackVisibilityController(
       for (const snapshot of snapshots) {
         if (
           snapshot.element !== element &&
-          isManagedFallbackElement(snapshot.element)
+          isManagedFallbackRoot(snapshot.element) &&
+          isManagedFallbackRootHidden(snapshot.element)
         ) {
           continue;
         }
@@ -92,6 +100,10 @@ export function createFallbackVisibilityController(
       hidden = false;
       snapshots = [];
       fallbackStyleSnapshots.delete(element);
+
+      if (ownerKey) {
+        markManagedFallbackRootVisible(element, ownerKey);
+      }
     },
   };
 }
@@ -102,18 +114,15 @@ export function readFallbackStyleSnapshot(
   return fallbackStyleSnapshots.get(element);
 }
 
-function isManagedFallbackElement(element: Element): element is HTMLElement {
-  return element instanceof HTMLElement && fallbackStyleSnapshots.has(element);
-}
-
-function snapshotElements(
-  element: HTMLElement,
-  hideMode: FallbackHideMode,
-): ElementSnapshot[] {
+function snapshotElements(element: HTMLElement): ElementSnapshot[] {
   const elements: Element[] = [element];
 
-  if (hideMode === "self" || hideMode === "subtree") {
-    elements.push(...element.querySelectorAll("*"));
+  for (const child of element.querySelectorAll("*")) {
+    if (hasManagedRootAncestorBetween(element, child)) {
+      continue;
+    }
+
+    elements.push(child);
   }
 
   return elements.map((target) => ({
@@ -121,6 +130,61 @@ function snapshotElements(
     className: target.getAttribute("class"),
     style: target.getAttribute("style"),
   }));
+}
+
+function applyHiddenStyle(
+  owner: HTMLElement,
+  target: Element,
+  hideMode: FallbackHideMode,
+): void {
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  if (target === owner) {
+    target.style.visibility = "hidden";
+    return;
+  }
+
+  if (isNestedManagedFallbackBoundary(owner, target)) {
+    if (
+      !isManagedFallbackRootHidden(target) &&
+      !fallbackStyleSnapshots.has(target)
+    ) {
+      target.style.visibility = "visible";
+    }
+    return;
+  }
+
+  target.style.visibility = hideMode === "self" ? "visible" : "hidden";
+}
+
+function isNestedManagedFallbackBoundary(
+  owner: HTMLElement,
+  target: Element,
+): target is HTMLElement {
+  return (
+    target !== owner &&
+    target instanceof HTMLElement &&
+    (isManagedFallbackRoot(target) || fallbackStyleSnapshots.has(target))
+  );
+}
+
+function hasManagedRootAncestorBetween(
+  owner: HTMLElement,
+  target: Element,
+): boolean {
+  let parent = target.parentElement;
+
+  while (parent && parent !== owner) {
+    if (isManagedFallbackRoot(parent) || fallbackStyleSnapshots.has(parent)) {
+      return true;
+    }
+
+    parent = parent.parentElement;
+  }
+
+  return false;
 }
 
 function restoreAttribute(

@@ -115,6 +115,28 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("marks imperative runtime targets as managed fallback roots until unregister or dispose", async () => {
+    const runtime = await createPipelineRuntime();
+    const { isManagedFallbackRoot } = await import("../dom/fallbackBoundary");
+    const element = document.createElement("section");
+    const disposedElement = document.createElement("section");
+
+    runtime.registerTarget(element, { key: "hero" });
+    runtime.registerTarget(disposedElement, { key: "disposed.hero" });
+
+    expect(isManagedFallbackRoot(element)).toBe(true);
+    expect(isManagedFallbackRoot(disposedElement)).toBe(true);
+
+    runtime.unregisterTarget("hero");
+
+    expect(isManagedFallbackRoot(element)).toBe(false);
+    expect(isManagedFallbackRoot(disposedElement)).toBe(true);
+
+    runtime.dispose();
+
+    expect(isManagedFallbackRoot(disposedElement)).toBe(false);
+  });
+
   test("registering image video and model declarations creates renderables with inferred roles", async () => {
     const createdRenderables: Renderable[] = [];
     const runtime = await createPipelineRuntime({

@@ -20,6 +20,7 @@ import {
 } from "../dom/registry";
 import { createDOMInvalidationController } from "../dom/domInvalidation";
 import type { DOMInvalidationController } from "../dom/domInvalidation";
+import { markManagedFallbackRoot } from "../dom/fallbackBoundary";
 import {
   createFallbackVisibilityController,
 } from "../dom/fallbackVisibility";
@@ -179,6 +180,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );
+  const fallbackRootUnmarkersByTargetKey = new Map<string, () => void>();
   // Created once at init. Margins stay with the lifecycle object;
   // viewportHeight is refreshed each frame through classify().
   // Future: allow margin overrides via WebGLRuntimeOptions.
@@ -229,6 +231,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       const descriptor = registry.register(element, declaration, nextScanOrder);
+      fallbackRootUnmarkersByTargetKey.set(
+        descriptor.key,
+        markManagedFallbackRoot(descriptor.element, descriptor.key),
+      );
       nextScanOrder += 1;
       registerGateTarget(scrollState, descriptor);
       invalidationController.observeTarget({
@@ -249,6 +255,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       restoreFallbackVisibility(targetState, targetKey);
       targetState.fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(targetState, targetKey);
+      unmarkFallbackRoot(targetKey);
       emitDebugState(true);
     },
     sync() {
@@ -294,6 +301,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         rendererLoop.dispose();
         postprocessController.dispose();
         rendererHost.dispose();
+        unmarkAllFallbackRoots();
         emitDebugState(true);
       }
     },
@@ -494,7 +502,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       createFallbackVisibilityController(
         descriptor.element,
         descriptor.declaration.lifecycle ?? {},
-        { defaultHideWhenReady: true, defaultHideMode: "self" },
+        {
+          defaultHideWhenReady: true,
+          defaultHideMode: "self",
+          key: descriptor.key,
+        },
       ),
     );
     targetState.renderables.add(renderable);
@@ -710,6 +722,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   }
 
   // Placeholder for future WebGLRuntimeOptions.viewportLifecycle margin overrides
+
+  function unmarkFallbackRoot(key: string): void {
+    fallbackRootUnmarkersByTargetKey.get(key)?.();
+    fallbackRootUnmarkersByTargetKey.delete(key);
+  }
+
+  function unmarkAllFallbackRoots(): void {
+    for (const unmark of fallbackRootUnmarkersByTargetKey.values()) {
+      unmark();
+    }
+
+    fallbackRootUnmarkersByTargetKey.clear();
+  }
 }
 
 function readDebugScrollState(

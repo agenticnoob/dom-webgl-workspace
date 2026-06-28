@@ -1,5 +1,6 @@
 import {
   createElement,
+  useCallback,
   useEffect,
   useRef,
   type ComponentPropsWithoutRef,
@@ -7,6 +8,7 @@ import {
 } from "react";
 
 import type { WebGLDeclaration } from "../types";
+import { markManagedFallbackRoot } from "../dom/fallbackBoundary";
 
 import { useWebGLRuntime } from "./useWebGLRuntime";
 
@@ -27,8 +29,25 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
   const runtime = useWebGLRuntime();
   const elementRef = useRef<HTMLElement | null>(null);
   const webglRef = useRef(webgl);
+  const unmarkFallbackRootRef = useRef<(() => void) | undefined>(undefined);
 
   webglRef.current = webgl;
+
+  const setElementRef = useCallback(
+    (element: HTMLElement | null) => {
+      unmarkFallbackRootRef.current?.();
+      unmarkFallbackRootRef.current = undefined;
+      elementRef.current = element;
+
+      if (element) {
+        unmarkFallbackRootRef.current = markManagedFallbackRoot(
+          element,
+          webgl.key,
+        );
+      }
+    },
+    [webgl.key],
+  );
 
   useEffect(() => {
     const element = elementRef.current;
@@ -41,8 +60,10 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
 
     return () => {
       runtime.unregisterTarget(webgl.key);
+      unmarkFallbackRootRef.current?.();
+      unmarkFallbackRootRef.current = undefined;
     };
   }, [runtime, webgl.key]);
 
-  return createElement(as ?? "div", { ...props, ref: elementRef }, children);
+  return createElement(as ?? "div", { ...props, ref: setElementRef }, children);
 }

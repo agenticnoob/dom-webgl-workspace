@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { markManagedFallbackRoot } from "./fallbackBoundary";
 import { createFallbackVisibilityController } from "./fallbackVisibility";
 
 describe("createFallbackVisibilityController", () => {
@@ -115,6 +116,85 @@ describe("createFallbackVisibilityController", () => {
 
     childController.restore();
     expect(child.getAttribute("style")).toBeNull();
+  });
+
+  test("parent self mode keeps nested target fallback visible before the child is ready", () => {
+    const parent = document.createElement("section");
+    const childRoot = document.createElement("aside");
+    const childCopy = document.createElement("p");
+    childCopy.textContent = "Nested card";
+    childRoot.append(childCopy);
+    parent.append(childRoot);
+    const unmarkChild = markManagedFallbackRoot(childRoot, "card");
+
+    const parentController = createFallbackVisibilityController(parent, {
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+
+    parentController.hide();
+
+    expect(parent.style.visibility).toBe("hidden");
+    expect(childRoot.style.visibility).toBe("visible");
+    expect(childCopy.getAttribute("style")).toBeNull();
+
+    parentController.restore();
+    unmarkChild();
+  });
+
+  test("parent restore does not reveal a nested target hidden by its own controller", () => {
+    const parent = document.createElement("section");
+    const childRoot = document.createElement("aside");
+    parent.append(childRoot);
+    const unmarkChild = markManagedFallbackRoot(childRoot, "card");
+
+    const parentController = createFallbackVisibilityController(parent, {
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+    const childController = createFallbackVisibilityController(
+      childRoot,
+      {
+        hideWhenReady: true,
+        hideMode: "self",
+      },
+      { key: "card" },
+    );
+
+    childController.hide();
+    parentController.hide();
+    parentController.restore();
+
+    expect(childRoot.style.visibility).toBe("hidden");
+
+    childController.restore();
+    expect(childRoot.getAttribute("style")).toBeNull();
+    unmarkChild();
+  });
+
+  test("parent subtree mode hides ordinary descendants without owning nested target descendants", () => {
+    const parent = document.createElement("section");
+    const ordinary = document.createElement("span");
+    const childRoot = document.createElement("aside");
+    const childCopy = document.createElement("p");
+    childRoot.append(childCopy);
+    parent.append(ordinary, childRoot);
+    const unmarkChild = markManagedFallbackRoot(childRoot, "card");
+
+    const parentController = createFallbackVisibilityController(parent, {
+      hideWhenReady: true,
+      hideMode: "subtree",
+    });
+
+    parentController.hide();
+
+    expect(parent.style.visibility).toBe("hidden");
+    expect(ordinary.style.visibility).toBe("hidden");
+    expect(childRoot.style.visibility).toBe("visible");
+    expect(childCopy.getAttribute("style")).toBeNull();
+
+    parentController.restore();
+    unmarkChild();
   });
 
   test("restore returns previous inline styles and classes exactly", () => {

@@ -201,6 +201,33 @@ describe("WebGLTarget", () => {
     expect(runtime.unregisterTarget).not.toHaveBeenCalled();
   });
 
+  test("marks nested target roots before fallback controllers run", async () => {
+    const { isManagedFallbackRoot } = await import("../dom/fallbackBoundary");
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../react");
+    const runtime = createRuntimeStub();
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLTarget,
+            { webgl: { key: "parent" }, id: "parent" },
+            createElement(WebGLTarget, {
+              webgl: { key: "child" },
+              id: "child",
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(isManagedFallbackRoot(host.querySelector("#parent")!)).toBe(true);
+    expect(isManagedFallbackRoot(host.querySelector("#child")!)).toBe(true);
+  });
+
   test("keeps runtime internals out of the React public entrypoint", async () => {
     const reactEntrypoint = await import("../../react");
 
