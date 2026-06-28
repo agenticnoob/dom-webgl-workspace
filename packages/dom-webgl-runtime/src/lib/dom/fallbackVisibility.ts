@@ -162,7 +162,7 @@ function applyHiddenStyle(
 function isNestedManagedFallbackBoundary(
   owner: HTMLElement,
   target: Element,
-): target is HTMLElement {
+): boolean {
   return (
     target !== owner &&
     target instanceof HTMLElement &&

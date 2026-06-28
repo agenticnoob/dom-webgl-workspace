@@ -12,7 +12,12 @@ export function markManagedFallbackRoot(
 
   return () => {
     const current = managedRootCounts.get(element);
-    const count = current?.get(targetKey);
+
+    if (!current) {
+      return;
+    }
+
+    const count = current.get(targetKey);
 
     if (count === undefined) {
       return;
@@ -34,7 +39,7 @@ export function markManagedFallbackRoot(
 
 export function isManagedFallbackRoot(
   element: Element,
-): element is HTMLElement {
+): boolean {
   return element instanceof HTMLElement && managedRootCounts.has(element);
 }
 
