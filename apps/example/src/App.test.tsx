@@ -194,7 +194,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(20);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-20);
+    const finalTargetProps = targetProps.slice(-21);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -214,6 +214,7 @@ describe("effect authoring example app", () => {
       "example.video.playback",
       "example.video.drift",
       "example.image-sequence.scrub",
+      "example.image-sequence.card",
       "example.model.spin",
       "example.model.float",
       "example.pinned.reveal",
@@ -236,6 +237,7 @@ describe("effect authoring example app", () => {
       "video",
       "video",
       "section",
+      "aside",
       "section",
       "section",
       "p",
@@ -264,6 +266,7 @@ describe("effect authoring example app", () => {
         frames: expect.arrayContaining([expect.any(HTMLImageElement)]),
         progressKey: "example.video.scrub",
       },
+      { kind: "dom", type: "element" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "dom", type: "text" },
@@ -286,13 +289,21 @@ describe("effect authoring example app", () => {
       "example.videoPlayback",
       "example.videoPlayback",
       undefined,
+      "example.sequenceCard",
       "example.modelSpin",
       "example.modelFloat",
       "example.pinnedReveal",
     ]);
     expect(finalTargetProps[15]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
+    expect(
+      host.querySelector(".example-media-sequence .example-sequence-card"),
+    ).toBeInstanceOf(HTMLElement);
     expect(finalTargetProps[16]?.webgl.lifecycle).toEqual({
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+    expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
@@ -319,17 +330,22 @@ describe("effect authoring example app", () => {
     expect(pinnedSection).not.toBeNull();
     expect(postPinnedRunway).not.toBeNull();
     expect(pinnedSection?.nextElementSibling).toBe(postPinnedRunway);
-    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[20]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
 
+    const firstSequenceCardEffects = finalTargetProps[17]?.webgl.effects;
     await act(async () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[19];
+    const firstPinnedTarget = finalTargetProps[20];
+    const secondSequenceCardTarget = targetProps
+      .slice(-21)
+      .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondPinnedTarget = targetProps.at(-1);
+    expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);
     expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");
     expect(secondPinnedTarget?.webgl.effects).toBe(firstPinnedTarget?.webgl.effects);
   });

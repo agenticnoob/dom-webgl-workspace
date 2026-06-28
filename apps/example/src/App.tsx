@@ -17,6 +17,15 @@ import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
 const videoScrubProgressKey = "example.video.scrub";
+const sequenceCardEffects = [
+  {
+    kind: "example.sequenceCard",
+    progressKey: videoScrubProgressKey,
+    travel: 280,
+    minOpacity: 0.18,
+    maxOpacity: 0.82,
+  },
+] as const;
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
@@ -288,7 +297,21 @@ export default function App() {
                   },
                   lifecycle: { hideWhenReady: true, hideMode: "self" },
                 }}
-              />
+              >
+                <WebGLTarget
+                  as="aside"
+                  className="example-sequence-card"
+                  webgl={{
+                    key: "example.image-sequence.card",
+                    source: { kind: "dom", type: "element" },
+                    lifecycle: { hideWhenReady: true, hideMode: "self" },
+                    effects: sequenceCardEffects,
+                  }}
+                >
+                  <strong>嵌套 WebGLTarget</strong>
+                  <span>父级是图片序列，卡片是它的 DOM child 和 WebGL 子层。</span>
+                </WebGLTarget>
+              </WebGLTarget>
             ) : (
               <section
                 aria-busy="true"

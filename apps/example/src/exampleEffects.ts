@@ -25,6 +25,7 @@ export {
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
+export { exampleSequenceCardEffect } from "./sequenceCardEffect";
 export {
   type ExampleEffectParams,
   typeSafeDeclarations,
@@ -40,6 +41,7 @@ import {
 } from "./mediaEffects";
 import { exampleModelFloatEffect, exampleModelSpinEffect } from "./modelEffects";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
+import { exampleSequenceCardEffect } from "./sequenceCardEffect";
 import {
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
@@ -67,6 +69,7 @@ export const exampleEffects = [
   exampleTextPressureEffect,
   exampleTextScrambleEffect,
   examplePinnedRevealEffect,
+  exampleSequenceCardEffect,
   exampleImagePanEffect,
   exampleImageZoomEffect,
   exampleImageKenBurnsEffect,

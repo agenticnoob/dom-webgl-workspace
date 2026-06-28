@@ -124,8 +124,9 @@ describe("pinned scroll example section", () => {
       /\.example-video-scrub-row \{\n  z-index: 30;\n  min-height: 100vh;\n  background: transparent;\n\}/,
     );
     expect(css).toMatch(
-      /\.example-media-sequence \{\n  display: block;\n  background: transparent;\n\}/,
+      /\.example-media-sequence \{\n  display: block;\n  position: relative;\n  overflow: hidden;\n  background: transparent;\n\}/,
     );
+    expect(css).toMatch(/\.example-sequence-card \{/);
     expect(css).toMatch(/\.example-stack \{\n  display: block;\n\}/);
     expect(css).not.toContain(".example-pinned-row {\n  min-height: 100vh;\n  background: var(--color-surface-primary);");
     expect(css).not.toContain(".example-video-scrub-row {\n  z-index: 30;\n  min-height: 100vh;\n  background: var(--color-surface-video-bg);");
