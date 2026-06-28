@@ -152,6 +152,8 @@ Rules:
   or remount the target.
 - Target effects are array-form only:
   `effects: [{ kind: "app.effect", ...params }]`.
+- Nested `WebGLTarget` children are valid. Use them when a WebGL-owned panel,
+  card, caption, or marker has its own WebGL child layer.
 
 ## Minimal Vanilla Integration
 
@@ -245,6 +247,9 @@ Default target lifecycle is `hideWhenReady: true`. Use:
 - `hideMode: "self"` for mixed DOM/WebGL panels where children can stay DOM.
 - `hideMode: "subtree"` only when the whole subtree should be replaced by WebGL.
 - `hideWhenReady: false` when fallback DOM must remain visible.
+- A parent target does not own a nested target root's fallback lifecycle. Nested
+  targets hide and restore their own fallback after their own renderable
+  readiness.
 
 Effect ownership rules:
 
@@ -417,6 +422,8 @@ Run a browser smoke check for visual work when the change affects a rendered app
   `uTime` but the ported shader reads `iTime`.
 - Resource leak: an effect creates objects or listeners without `ctx.resources`.
 - Boundary violation: app imports package internals or example-only code.
+- Nested target workaround: a parent effect manually creates child Object3D
+  layers instead of declaring nested `WebGLTarget` children.
 - App target confusion: `apps/example` is the downstream dogfood surface and the
   only app workspace. Do not add package API for an example-only visual tuning
   issue.

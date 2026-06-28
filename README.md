@@ -80,8 +80,12 @@ Current runtime behavior:
 - DOM element surfaces, DOM text surfaces, media images/videos/image sequences,
   and GLB models now create
   runtime-owned visible scene objects in the single internal Three.js scene.
+- Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
+  the nearest registered ancestor target becomes the parent layer, child targets
+  keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
+  and sibling order before applying local `renderRole` policy.
 - The debug panel shows current scroll mode plus active gate key and
-  `sceneProgress` while a gate is active.
+  `sceneProgress` while a gate is active, plus per-target layer diagnostics.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
 
 Current example behavior:
@@ -112,8 +116,9 @@ Current example behavior:
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.textPressure`, `example.textScramble`,
   `example.imagePan`, `example.imageZoom`, `example.imageKenBurns`, `example.imageHoverReveal`,
-  `example.videoPlayback`, `example.videoDrift`, `example.modelSpin`, and
-  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
+  `example.videoPlayback`, `example.videoDrift`, `example.sequenceCard`,
+  `example.modelSpin`, and `example.modelFloat`, plus the pinned-scroll
+  `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
   `ctx.source.textLayer` so the hovered glyphs widen while the rest of the line
@@ -146,7 +151,10 @@ Current example behavior:
   full reveal. The pinned scrub specimen dogfoods
   runtime `source: { kind: "media", type: "image-sequence" }` with
   consumer-preloaded `/example/bg-sequence/frame_*.webp` resources so scroll
-  progress selects already-ready WebGL texture frames.
+  progress selects already-ready WebGL texture frames. The image-sequence target
+  also contains a nested WebGL-owned card target driven by the same
+  `progressKey`, proving child target ordering and fallback boundaries without
+  manually adding card objects from the parent effect.
 - Runtime supports `source: { kind: "media", type: "image-sequence" }` for frame-addressable media:
   a target declares `frameCount`, `frames`, and optional `progressKey`.
   Consumers pass a full-length frame array; early frames may initially point to
@@ -162,8 +170,9 @@ Current example behavior:
 
 Current visual behavior:
 
-- DOM-authored targets compile into source descriptors, render roles, internal
-  render policy ordering, and runtime-owned scene objects.
+- DOM-authored targets compile into source descriptors, render roles, an
+  internal DOM-derived target layer tree, local render policy ordering, and
+  runtime-owned scene objects.
 - DOM is the source for layout, content, accessibility, and interaction state.
   WebGL effects/materials are the source for final visual styling. The runtime
   should not try to clone all browser CSS into WebGL.
@@ -246,11 +255,11 @@ Current visual behavior:
 - `hideMode: "self"` hides only the target's own fallback paint while preserving
   child DOM visibility; nested managed WebGL targets keep their own fallback
   visibility state.
-- WebGL-owned text should not sit behind a native semi-transparent DOM panel.
-  For a WebGL-owned card or marker, make the parent an element snapshot surface
-  target with `hideMode: "self"` and put `dom/text` on the actual
-  text-bearing child element so the surface and text render in the same WebGL
-  canvas ownership layer.
+- Nested `WebGLTarget` children are valid WebGL children, not fallback-only DOM.
+  Use nested targets when a panel, card, marker, or caption needs its own
+  WebGL-owned child layer. The parent owns its source layer; each child owns its
+  own source layer and fallback lifecycle. Do not add child Object3D instances
+  from a parent effect to simulate target children.
 - Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
   explicit reverse gate behavior.
 - Concrete text animation effects, shader authoring APIs, core-provided
@@ -568,6 +577,9 @@ Behavior:
 - `hideMode: "self"` preserves ordinary child DOM visibility for container
   targets without overriding nested WebGL targets that already own fallback
   visibility.
+- A parent target hiding its own fallback does not hide, restore, or otherwise
+  take ownership of a nested managed target root. Nested targets decide their
+  own readiness and fallback visibility.
 - Runtime disposal and target unregister restore previous fallback visibility.
 
 ## Scene Gates
@@ -610,7 +622,9 @@ Gate behavior:
   starts at `sceneProgress: 1`, and releases backward at `sceneProgress: 0`.
 
 The debug panel and public `WebGLDebugState` expose `currentScrollMode`,
-`activeGateKey`, and `sceneProgress`. Gate-only fields are omitted in page mode.
+`activeGateKey`, `sceneProgress`, and per-target layer diagnostics:
+`parentKey`, `layerDepth`, `siblingIndex`, and `computedRenderOrder`.
+Gate-only fields are omitted in page mode.
 
 ## Verification
 

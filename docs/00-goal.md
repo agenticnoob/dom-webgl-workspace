@@ -101,6 +101,10 @@ stays pointer-transparent. The React adapter owns a stable DOM content layer
 above the canvas, so app children stay above the runtime canvas without
 app-authored `z-index` rules.
 
+Nested `WebGLTarget` elements are first-class WebGL target children. The runtime
+derives a target layer tree from DOM ancestry and sibling order; `renderRole`
+still provides local source policy, but it is not the global stacking model.
+
 Package consumers should think about:
 
 - Which DOM element enters WebGL.
@@ -230,7 +234,6 @@ Allowed declarations:
 - Pointer behavior.
 - Lifecycle and fallback behavior.
 - Ordered effect data declarations.
-- Legacy effect/material declarations as compatibility input.
 
 Disallowed declarations:
 
@@ -376,7 +379,9 @@ model/glb   -> model
 explicit effect -> overlay
 ```
 
-`renderRole` compiles to Three.js policy. Page code should not set low-level Three.js ordering flags.
+`renderRole` compiles to local render policy for a target's source kind. Page
+code should not set low-level Three.js ordering flags, public layer numbers, or
+global z-index bands for WebGL scene objects.
 
 Example policy direction:
 
@@ -403,8 +408,10 @@ Delivered Phase 3 behavior:
   so lit GLB/PBR materials have baseline visibility without app-specific
   branches.
 - DOM rects are projected into scene coordinates internally.
-- Ordering comes from `renderRole` through internal render policy, not public
-  Three.js flags.
+- Ordering comes from the DOM-derived target layer tree first: parent/child
+  ancestry and DOM sibling order scope the layer. `renderRole` then selects the
+  target's local policy offset inside that scope. Page code still does not set
+  public Three.js flags or public layer numbers.
 - Mounted React runtimes create and dispose the runtime but do not own a frame
   loop.
 - The runtime owns a renderer-driven loop through the renderer host and renders
@@ -855,11 +862,12 @@ Delivered fallback visibility behavior:
 - `hideMode: "self"` hides only the target element's own fallback paint and
   preserves ordinary child DOM visibility without overriding nested WebGL
   targets that already own fallback visibility.
-- For WebGL-owned text on a card or marker, the panel surface and text should
-  share WebGL visual ownership. Use an element snapshot parent with
-  `hideMode: "self"` for the surface, then put `dom/text` on the actual
-  text-bearing child element so native semi-transparent DOM backgrounds do not
-  cover the WebGL text.
+- Nested managed target roots keep their own fallback lifecycle. A parent
+  target hiding its own fallback must not hide, restore, or override a nested
+  target root.
+- For WebGL-owned cards, markers, and captions, declare nested targets instead
+  of creating child scene objects from the parent effect. The parent owns its
+  source layer; child targets own their own source layer and fallback state.
 - Target unregister and runtime disposal restore fallback visibility.
 
 ## DOM To WebGL Performance Contract
@@ -1173,7 +1181,12 @@ type WebGLDebugState = {
     sourceKind: string;
     renderRole: WebGLRenderRole;
     resourceStatus: WebGLResourceStatus;
+    lifecycleState: WebGLLifecycleState;
     visible: boolean;
+    parentKey?: string;
+    layerDepth: number;
+    siblingIndex: number;
+    computedRenderOrder?: number;
     error?: string;
   }>;
 };
@@ -1184,7 +1197,8 @@ Validation should prove:
 - Example imports only public package exports.
 - Browser-only runtime APIs are not executed during SSR.
 - Failed assets keep DOM fallback visible.
-- Surface/content/media/model roles render in stable order.
+- DOM-derived target layers render in stable parent/child and sibling order,
+  with `renderRole` acting as a local policy hint.
 - Scene gates release page scroll.
 - Pointer drag/click state can be inspected through debug state.
 
@@ -1255,7 +1269,8 @@ Success criteria:
 
 - A page can declare normal DOM elements and sources.
 - The runtime creates renderables through one pipeline.
-- Surface/content/media/model roles render in predictable order.
+- DOM-derived target layers render in predictable parent/child and sibling order,
+  with role policy applied locally.
 - A GLB anchored to a DOM element is not hidden by an element surface snapshot.
 - Renderables update from DOM measurements and dispose cleanly.
 - The example imports only from the package public API.
@@ -1360,7 +1375,7 @@ the source for content, accessibility, and fallback.
 ## Non-Goals For The New Project
 
 - Do not create multiple WebGL canvases to solve ordering.
-- Do not expose Three.js ordering flags as the main page API.
+- Do not expose Three.js ordering flags or public layer numbers as the main page API.
 - Do not start the project with a general-purpose effect registry. Later
   registry work must come from an explicit effect-runtime plan with source and
   target capability boundaries.
@@ -1378,7 +1393,8 @@ the source for content, accessibility, and fallback.
 2. DOM provides layout, content, accessibility, and interaction state.
 3. WebGL effects/materials provide final visual styling.
 4. WebGL is the compiled visual runtime.
-5. `renderRole` is the semantic bridge between source and render policy.
+5. DOM target ancestry and sibling order define WebGL layer scope; `renderRole`
+   is a local semantic bridge between source and render policy.
 6. Public API defaults should cover common cases with minimal configuration.
 7. Scroll input can either move the page or drive a gated scene.
 8. Pointer input is shared runtime state.

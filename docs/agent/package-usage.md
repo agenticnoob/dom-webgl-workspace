@@ -143,6 +143,9 @@ Rules:
   contract.
 - Do not create nested runtimes unless the application intentionally needs
   independent canvases and lifecycle ownership.
+- Nested `WebGLTarget` children are supported inside one runtime. Use them for
+  WebGL-owned panels, cards, captions, or markers with child layers instead of
+  manually adding child Object3D instances from a parent effect.
 
 ### 2. High-Level Pinned Scroll React Adapter
 
@@ -375,6 +378,8 @@ Lifecycle rules:
 - `hideWhenReady: false` keeps DOM fallback visible.
 - `hideMode: "self"` is the safe default for mixed DOM/WebGL targets; children stay native DOM unless they register their own target.
 - `hideMode: "subtree"` hides the target subtree after WebGL readiness and is only for explicitly WebGL-owned subtrees.
+- Parent fallback hiding does not own nested managed target roots. A child
+  `WebGLTarget` hides/restores its own fallback based on its own readiness.
 - Failed or pending renderables keep fallback DOM visible.
 - `lifecycle.offscreen.strategy: "restore-dom"` is the default far-offscreen
   policy: restore native DOM fallback before disposing offscreen renderables.
@@ -383,14 +388,13 @@ Lifecycle rules:
 - `lifecycle.offscreen.warmTtlMs` sets how long parking is retained before the
   runtime restores DOM fallback and disposes resources.
 
-## WebGL-Owned Text And Surface
+## Nested WebGL Targets
 
-Use one visual ownership layer for a card, panel, or marker. If a text target is
-rendered by WebGL but its DOM parent keeps a semi-transparent background above
-the runtime canvas, the WebGL text will be seen through that DOM background and
-can look faded.
+Use nested `WebGLTarget` elements when a card, panel, marker, caption, or
+overlay has WebGL-owned children. The DOM tree stays the authoring model, while
+runtime maps the nearest registered ancestor target to the parent WebGL layer.
 
-Preferred pattern for a WebGL-owned panel:
+Preferred pattern:
 
 ```tsx
 <WebGLTarget
@@ -402,7 +406,6 @@ Preferred pattern for a WebGL-owned panel:
     effects: [{ kind: "app.surface", opacity: 0.72 }],
   }}
 >
-  <strong>Native heading can stay DOM-visible</strong>
   <WebGLTarget
     as="p"
     className="marker-copy"
@@ -411,19 +414,22 @@ Preferred pattern for a WebGL-owned panel:
       source: { kind: "dom", type: "text" },
     }}
   >
-    Text that should be rendered in the same WebGL canvas as the surface.
+    Text that should be ordered as a WebGL child of the marker.
   </WebGLTarget>
 </WebGLTarget>
 ```
 
 Rules:
 
+- Runtime orders nested targets from DOM ancestry and sibling order. `renderRole`
+  remains a local source-policy hint; it is not a substitute for the layer tree.
+- The parent target owns only its own source layer and fallback lifecycle.
+  Nested child targets own their own source layer and fallback lifecycle.
+- Do not call an effect resource helper from the parent to create child card or
+  caption scene objects just to simulate target children.
 - Put `dom/text` on the actual text-bearing element, such as `p`, `span`,
   `h1`, or `h2`; do not put it on a complex container just because the container
   contains text somewhere inside.
-- If text and its panel background should both be WebGL-owned, make the parent
-  an element snapshot surface target and use `hideMode: "self"` so its DOM
-  background does not cover the WebGL text.
 - If the DOM parent background, gradients, opacity, or filters must remain
   visible above the runtime canvas, keep that text as native DOM or make the
   entire visual treatment WebGL-owned.

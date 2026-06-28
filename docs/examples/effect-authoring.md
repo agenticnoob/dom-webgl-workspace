@@ -267,6 +267,9 @@ definition is missing, the target declaration has no executable effect.
   back to full opacity.
 - `example.videoPlayback`: mutes, slows, and starts a video texture.
 - `example.videoDrift`: applies a live transform to a video texture.
+- `example.sequenceCard`: drives a nested `dom/element` card target from the
+  image-sequence pinned progress key, sliding it in from the side and back out
+  without the parent image-sequence effect creating any child objects.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
 
@@ -299,6 +302,10 @@ The pinned scrub row now dogfoods runtime `source: { kind: "media", type: "image
 `ScrollEffectSection` owns the progress key, and the WebGL target declares
 `frameCount`, consumer-owned `frames`, and `progressKey` so the runtime selects
 usable frames and updates the texture plane without owning the sequence loader.
+The same target contains a nested WebGL card target using `dom/element` plus
+`example.sequenceCard`. This validates DOM-derived child layer ordering and
+fallback boundaries; the image-sequence parent does not manually add card
+objects through an effect.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

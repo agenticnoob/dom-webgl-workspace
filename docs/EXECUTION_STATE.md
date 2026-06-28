@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, and Phase 8 custom effect authoring is the current public extension model. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented on `codex/nested-webgl-layer-semantics`. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -27,8 +27,8 @@ materials, raw textures, composer, render targets, render loop, pass ordering,
 or renderer-state mutation.
 
 ## Last Completed Task
-Source kind/type unification, demo workspace removal, example migration,
-documentation alignment, and verification.
+Nested WebGLTarget layer semantics, fallback boundary preservation, debug layer
+diagnostics, example dogfood, and documentation alignment.
 
 ## Latest Documentation Note
 Controlled visual capability API is implemented through the existing
@@ -73,8 +73,11 @@ over `/example/show.png`, fades after pointer movement stops even if the pointer
 remains inside the target, and bakes old fade opacity before drawing resumed
 strokes. The pinned scrub specimen passes a full-length consumer-owned `frames`
 array to `source: { kind: "media", type: "image-sequence" }`, while the runtime
-only selects the active texture frame. The example records current authoring
-friction in `docs/agent/effect-authoring-example-report.md`.
+only selects the active texture frame. It now nests a WebGL-owned `dom/element`
+card target inside the image-sequence target and drives that child with
+`example.sequenceCard` from the same progress key; the parent sequence effect
+does not create child scene objects manually. The example records current
+authoring friction in `docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -159,17 +162,31 @@ friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 80: Phase 7 Effect Runtime Primitives.
 - Task 81: Phase 8 Custom Effect Authoring API.
 - Task 82: Phase 8 Package Effect Boundary Cleanup.
+- Task 83: Nested WebGLTarget Layer Semantics.
 
 ## Current Task
-Source kind/type unification is implemented across runtime, public types, effect
-context handles, debug state, `apps/example`, and active docs. Package exports
-still provide only authoring/runtime primitives and runtime-owned output
-handles; concrete effects remain owned by applications or documentation
-examples. `apps/demo` has been removed, and `apps/example` is now the only app
-workspace plus the package usage surface. The current example layout is a
-full-width vertical effect catalog where each effect occupies one viewport-wide
-row with a reusable click-to-expand explanation overlay on the effect surface
-and no outer catalog shell padding.
+Nested target semantics are implemented. `WebGLTarget` children are no longer
+fallback-only DOM: runtime derives parent/child layer scope from DOM ancestry
+and sibling order, applies `renderRole` only as local source policy, preserves
+nested fallback roots from parent fallback hiding/restoring, and exposes layer
+diagnostics in public debug state. Package exports still provide only
+authoring/runtime primitives and runtime-owned output handles; concrete effects
+remain owned by applications or documentation examples. `apps/example` is the
+only app workspace plus the package usage surface, and it dogfoods nested
+targets with an image-sequence parent and a child card target.
+
+## Nested WebGLTarget Layer Semantics
+- Completed work: Added DOM-derived target layer records, scoped scene-object
+  ordering, fallback boundary ownership for nested managed roots, runtime
+  ordering integration, public debug layer diagnostics, and an `apps/example`
+  dogfood path where `example.image-sequence.scrub` contains the nested
+  `example.image-sequence.card` target.
+- Boundary notes: `renderRole` remains a semantic source-policy hint and no
+  public `zIndex`, public layer number, Three.js render-order flag, nested
+  runtime, or parent-effect child Object3D workaround was added.
+- Example note: `example.sequenceCard` is app-owned consumer code. It reads the
+  pinned section progress key and moves/opacity-drives its own `dom/element`
+  card target; the image-sequence parent only owns the sequence source layer.
 
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package
@@ -360,11 +377,10 @@ and no outer catalog shell padding.
   canvas so unregistered DOM keeps native visual order and pointer interaction.
 - Parent `hideMode: "self"` containers preserve ordinary child DOM but do not
   override nested WebGL targets that already manage fallback visibility.
-- WebGL-owned text should not be placed behind native semi-transparent DOM
-  surfaces. A WebGL-owned marker or card should use an element snapshot parent
-  with `hideMode: "self"` for the surface and put `dom/text` on the actual
-  text-bearing child element so surface and text share the same WebGL ownership
-  layer.
+- WebGL-owned cards, markers, captions, and overlays should use nested
+  `WebGLTarget` elements instead of parent effects creating child scene objects.
+  Parent and child targets each own their own source layer and fallback
+  lifecycle.
 - Demo layout/content targets use only public `WebGLTarget` declarations.
 - Deferred and no longer preferred as the primary roadmap: full DOM subtree
   rasterization, pseudo-elements, gradients, filters, backdrop filters, masks,
