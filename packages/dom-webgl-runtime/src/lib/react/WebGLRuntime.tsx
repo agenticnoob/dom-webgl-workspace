@@ -167,6 +167,8 @@ function createRuntimeCreationErrorState(error: unknown): WebGLDebugState {
         resourceStatus: "error",
         lifecycleState: "error",
         visible: false,
+        layerDepth: 0,
+        siblingIndex: 0,
         error: readErrorMessage(error),
       },
     ],

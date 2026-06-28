@@ -61,10 +61,62 @@ describe("debug state", () => {
           resourceStatus: "error",
           lifecycleState: "error",
           visible: false,
+          layerDepth: 0,
+          siblingIndex: 0,
           error: "Image decode failed",
         },
       ],
     });
+  });
+
+  test("copies target layer diagnostics into public debug state", () => {
+    const state = createDebugState({
+      targetCount: 2,
+      renderableCount: 2,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      targets: [
+        {
+          key: "sequence",
+          sourceKind: "media/image-sequence",
+          renderRole: "media",
+          resourceStatus: "ready",
+          lifecycleState: "active",
+          visible: true,
+          layerDepth: 0,
+          siblingIndex: 0,
+          computedRenderOrder: 10,
+        },
+        {
+          key: "sequence.copy",
+          sourceKind: "dom/text",
+          renderRole: "content",
+          resourceStatus: "ready",
+          lifecycleState: "active",
+          visible: true,
+          parentKey: "sequence",
+          layerDepth: 1,
+          siblingIndex: 0,
+          computedRenderOrder: 130,
+        },
+      ],
+    });
+
+    expect(state.targets).toEqual([
+      expect.objectContaining({
+        key: "sequence",
+        layerDepth: 0,
+        siblingIndex: 0,
+        computedRenderOrder: 10,
+      }),
+      expect.objectContaining({
+        key: "sequence.copy",
+        parentKey: "sequence",
+        layerDepth: 1,
+        siblingIndex: 0,
+        computedRenderOrder: 130,
+      }),
+    ]);
   });
 
   test("reports active gate fields only for gate scroll mode", () => {

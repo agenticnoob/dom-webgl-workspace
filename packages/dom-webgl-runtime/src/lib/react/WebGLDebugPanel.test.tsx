@@ -409,6 +409,8 @@ function createFullState(): WebGLDebugState {
         resourceStatus: "ready",
         lifecycleState: "active",
         visible: true,
+        layerDepth: 0,
+        siblingIndex: 0,
       },
       {
         key: "demo.image",
@@ -417,6 +419,8 @@ function createFullState(): WebGLDebugState {
         resourceStatus: "loading",
         lifecycleState: "preloading",
         visible: false,
+        layerDepth: 0,
+        siblingIndex: 1,
       },
       {
         key: "demo.text",
@@ -425,6 +429,8 @@ function createFullState(): WebGLDebugState {
         resourceStatus: "ready",
         lifecycleState: "active",
         visible: true,
+        layerDepth: 0,
+        siblingIndex: 2,
       },
       {
         key: "demo.video",
@@ -433,6 +439,8 @@ function createFullState(): WebGLDebugState {
         resourceStatus: "idle",
         lifecycleState: "declared",
         visible: false,
+        layerDepth: 0,
+        siblingIndex: 3,
       },
       {
         key: "demo.model",
@@ -441,6 +449,8 @@ function createFullState(): WebGLDebugState {
         resourceStatus: "error",
         lifecycleState: "error",
         visible: false,
+        layerDepth: 0,
+        siblingIndex: 4,
         error: "Image decode failed",
       },
     ],

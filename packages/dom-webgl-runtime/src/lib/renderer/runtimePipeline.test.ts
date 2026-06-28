@@ -245,6 +245,21 @@ describe("runtime pipeline sync", () => {
     expect(parentOrder).toBeTypeOf("number");
     expect(childOrder).toBeTypeOf("number");
     expect(childOrder!).toBeGreaterThan(parentOrder!);
+    expect(runtime.getDebugState().targets).toEqual([
+      expect.objectContaining({
+        key: "sequence",
+        layerDepth: 0,
+        siblingIndex: 0,
+        computedRenderOrder: parentOrder,
+      }),
+      expect.objectContaining({
+        key: "sequence.copy",
+        parentKey: "sequence",
+        layerDepth: 1,
+        siblingIndex: 0,
+        computedRenderOrder: childOrder,
+      }),
+    ]);
 
     runtime.dispose();
   });

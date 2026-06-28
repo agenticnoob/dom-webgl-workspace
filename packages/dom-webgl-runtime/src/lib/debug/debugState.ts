@@ -13,6 +13,10 @@ export type DebugTargetState = {
   resourceStatus: WebGLResourceStatus;
   lifecycleState: WebGLLifecycleState;
   visible: boolean;
+  parentKey?: string;
+  layerDepth?: number;
+  siblingIndex?: number;
+  computedRenderOrder?: number;
   error?: unknown;
 };
 
@@ -43,7 +47,17 @@ export function createDebugState(
         resourceStatus: target.resourceStatus,
         lifecycleState: target.lifecycleState,
         visible: target.visible,
+        layerDepth: target.layerDepth ?? 0,
+        siblingIndex: target.siblingIndex ?? 0,
       };
+
+      if (target.parentKey) {
+        summary.parentKey = target.parentKey;
+      }
+
+      if (target.computedRenderOrder !== undefined) {
+        summary.computedRenderOrder = target.computedRenderOrder;
+      }
 
       if (error) {
         summary.error = error;

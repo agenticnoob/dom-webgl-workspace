@@ -344,10 +344,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       renderableCount: targetState.renderablesByTargetKey.size,
       ...readDebugScrollState(scroll),
       pointer: frameInput.pointer,
-      targets: descriptors.map((descriptor) => ({
-        key: descriptor.key,
-        ...readTargetDebugRecord(descriptor, targetState),
-      })),
+      targets: descriptors.map((descriptor) => {
+        const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
+        const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
+
+        return {
+          key: descriptor.key,
+          ...readTargetDebugRecord(descriptor, targetState),
+          parentKey: layer?.parentKey,
+          layerDepth: layer?.depth ?? 0,
+          siblingIndex: layer?.siblingIndex ?? 0,
+          computedRenderOrder: ordering?.renderOrder,
+        };
+      }),
     });
   }
 

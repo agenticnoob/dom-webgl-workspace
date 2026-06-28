@@ -224,6 +224,10 @@ export type WebGLDebugState = {
     resourceStatus: WebGLResourceStatus;
     lifecycleState: WebGLLifecycleState;
     visible: boolean;
+    parentKey?: string;
+    layerDepth: number;
+    siblingIndex: number;
+    computedRenderOrder?: number;
     error?: string;
   }>;
 };
