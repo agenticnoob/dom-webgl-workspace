@@ -127,6 +127,18 @@ describe("compileRenderPolicy", () => {
 
         ({
           key: "hero.surface",
+          // @ts-expect-error zIndex is not a public WebGL declaration field.
+          zIndex: 1,
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
+          // @ts-expect-error layer is not a public WebGL declaration field.
+          layer: 1,
+        } satisfies WebGLDeclaration);
+
+        ({
+          key: "hero.surface",
           // @ts-expect-error transparent is a Three.js policy detail.
           transparent: true,
         } satisfies WebGLDeclaration);
