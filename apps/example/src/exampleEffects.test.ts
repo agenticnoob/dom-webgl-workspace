@@ -13,6 +13,8 @@ describe("example effect catalog", () => {
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
+      "example.textPressure",
+      "example.textScramble",
       "example.pinnedReveal",
       "example.imagePan",
       "example.imageZoom",
@@ -43,6 +45,18 @@ describe("example effect catalog", () => {
       kind: "example.textSpotlight",
       color: "#f6c453",
       radius: 180,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.textPressure",
+      color: "#f4f4f5",
+      radius: 180,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.textScramble",
+      color: "#172124",
+      scrambleChars: ".:",
+      radius: 148,
+      speed: 0.45,
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.imageKenBurns",

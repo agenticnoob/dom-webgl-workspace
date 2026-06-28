@@ -9,6 +9,8 @@ export type ExampleEffectParams = {
   "example.textWave": { amplitude?: number };
   "example.textReveal": { color?: string };
   "example.textSpotlight": { color?: string; radius?: number };
+  "example.textPressure": { color?: string; radius?: number };
+  "example.textScramble": { color?: string; scrambleChars?: string; radius?: number; speed?: number };
   "example.pinnedReveal": { progressKey: string; color?: string };
   "example.imagePan": { distance?: number };
   "example.imageZoom": { maxScale?: number };
@@ -35,6 +37,8 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.textWave", amplitude: 7 },
   { kind: "example.textReveal", color: "#d95f42" },
   { kind: "example.textSpotlight", color: "#f6c453", radius: 180 },
+  { kind: "example.textPressure", color: "#f4f4f5", radius: 180 },
+  { kind: "example.textScramble", color: "#172124", scrambleChars: ".:", radius: 148, speed: 0.45 },
   { kind: "example.pinnedReveal", progressKey: "example.pinned.reveal", color: "#172124" },
   { kind: "example.imagePan", distance: 0.2 },
   { kind: "example.imageZoom", maxScale: 1.36 },

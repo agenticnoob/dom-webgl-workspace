@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-06-28 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, app-owned resource scheduling notes, and the image hover reveal mask-canvas implementation.
+Updated: 2026-06-28 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, and ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands.
 
 ## Summary
 
@@ -24,7 +24,12 @@ instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
 `example.textSpotlight`, `example.imageKenBurns`, `example.imageHoverReveal`,
 and a runtime `media/image-sequence` pinned scrub row that consumes frames
-loaded by the example app.
+loaded by the example app. It also includes ReactBits Text Pressure and
+Scrambled Text ports as app-owned `dom/text` effects: `example.textPressure`
+and `example.textScramble` rewrite WebGL glyph commands through
+`ctx.source.textLayer` without changing package exports. Text Pressure uses
+glyph scale plus line-level `x` reflow so nearby glyphs expand while the rest of
+the row compresses around them.
 
 ## What Worked
 
@@ -63,6 +68,10 @@ loaded by the example app.
   moved into app-owned shader data and trail uniforms. The raw ReactBits
   renderer, scene, camera, composer, passes, and render loop must not become
   package public API.
+- ReactBits Text Pressure and Scrambled Text can be expressed with the existing
+  text-layer capability when the port focuses on glyph output rather than raw
+  DOM variable-font or GSAP plugin behavior. Keeping them in `apps/example`
+  preserves the distinction between catalog references and package contracts.
 - Pointer-heavy `dom/element` examples need per-effect lifecycle decisions:
   Ghost Cursor can stop uniform updates after trail decay, while ReactBits-style
   Waves must keep drawing because its ambient Perlin field keeps moving.

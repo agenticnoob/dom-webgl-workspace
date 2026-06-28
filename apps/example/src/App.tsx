@@ -92,6 +92,58 @@ export default function App() {
             </WebGLTarget>
           </section>
 
+          <section
+            className="example-row"
+          >
+            <EffectDescription source="dom/text" title="文字压感">
+              用 target-local pointer 距离改写 WebGL 字形缩放、透明度和颜色。
+            </EffectDescription>
+            <WebGLTarget
+              as="p"
+              className="example-text example-text-pressure"
+              webgl={{
+                key: "example.text.pressure",
+                source: { kind: "dom", type: "text" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                effects: [
+                  {
+                    kind: "example.textPressure",
+                    color: "#f4f4f5",
+                    radius: 180,
+                  },
+                ],
+              }}
+            >
+              Pressure
+            </WebGLTarget>
+          </section>
+
+          <section className="example-row">
+            <EffectDescription source="dom/text" title="文字扰码">
+              指针附近的 WebGL 字形会临时替换为扰码字符，离开后回到原文。
+            </EffectDescription>
+            <WebGLTarget
+              as="p"
+              className="example-text example-text-scramble"
+              webgl={{
+                key: "example.text.scramble",
+                source: { kind: "dom", type: "text" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                effects: [
+                  {
+                    kind: "example.textScramble",
+                    color: "#172124",
+                    scrambleChars: ".:",
+                    radius: 148,
+                    speed: 0.45,
+                  },
+                ],
+              }}
+            >
+              指针靠近时，字符会短暂打散，再回到原文。
+            </WebGLTarget>
+          </section>
+
           <section className="example-row">
             <EffectDescription source="media/image" title="图片平移">
               不修改 DOM 图片元素，按当前视口位置移动 WebGL 纹理采样。

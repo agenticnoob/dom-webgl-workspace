@@ -243,6 +243,26 @@ body {
   font-size: clamp(38px, 5.8vw, 88px);
 }
 
+.example-text-pressure {
+  justify-content: center;
+  overflow: hidden;
+  background: #101417;
+  color: var(--color-overlay-text);
+  font-family: "Roboto Flex", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(72px, 18vw, 214px);
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.example-text-scramble {
+  justify-content: center;
+  background: var(--color-surface-model);
+  color: var(--color-text-primary);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: clamp(30px, 5.6vw, 86px);
+}
+
 .example-media {
   height: 680px;
   min-height: 560px;

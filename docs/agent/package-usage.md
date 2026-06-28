@@ -834,7 +834,10 @@ skill:
   renderer/composer setup remains outside package public API. For ReactBits
   Waves, the reusable idea is the Canvas2D Perlin point grid plus mouse
   velocity/tension/friction physics; keep it in `apps/example` surface drawing
-  rather than adding package-owned concrete effects.
+  rather than adding package-owned concrete effects. For ReactBits Text Pressure
+  and Scrambled Text, use `dom/text` and `ctx.source.textLayer.setGlyphs(...)`
+  in `apps/example`; keep the exact behavior app-owned unless a later package
+  feature explicitly needs a generalized text capability.
 - Shader coordinate systems are easy to invert. DOM pointer coordinates are
   top-down; shader UV-style coordinates are often bottom-up. Convert `y` at the
   effect boundary and add a regression test.

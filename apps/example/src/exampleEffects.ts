@@ -6,7 +6,9 @@ export {
   exampleSurfaceWavesEffect,
 } from "./surfaceEffects";
 export {
+  exampleTextPressureEffect,
   exampleTextRevealEffect,
+  exampleTextScrambleEffect,
   exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
@@ -46,7 +48,9 @@ import {
   exampleSurfaceWavesEffect,
 } from "./surfaceEffects";
 import {
+  exampleTextPressureEffect,
   exampleTextRevealEffect,
+  exampleTextScrambleEffect,
   exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
@@ -60,6 +64,8 @@ export const exampleEffects = [
   exampleTextWaveEffect,
   exampleTextRevealEffect,
   exampleTextSpotlightEffect,
+  exampleTextPressureEffect,
+  exampleTextScrambleEffect,
   examplePinnedRevealEffect,
   exampleImagePanEffect,
   exampleImageZoomEffect,

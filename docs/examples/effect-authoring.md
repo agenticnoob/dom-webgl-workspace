@@ -244,6 +244,13 @@ definition is missing, the target declaration has no executable effect.
 - `example.textReveal`: maps target viewport progress into per-glyph opacity and scale, with page scroll progress as an additional driver.
 - `example.textSpotlight`: maps target-local pointer distance into per-glyph
   color, opacity, and scale.
+- `example.textPressure`: ports the ReactBits Text Pressure idea through the
+  runtime text layer by mapping target-local pointer distance into WebGL glyph
+  scale and line reflow: nearby glyphs widen while other glyphs compress and
+  shift into the pressure layout.
+- `example.textScramble`: ports the ReactBits Scrambled Text idea through the
+  runtime text layer by replacing nearby WebGL glyph characters with
+  deterministic scramble characters before returning to the source text.
 - `example.imagePan`: applies an image texture transform from target viewport/page progress.
 - `example.imageZoom`: drives target scale for an image renderable.
 - `example.imageKenBurns`: combines image texture sampling drift with target
