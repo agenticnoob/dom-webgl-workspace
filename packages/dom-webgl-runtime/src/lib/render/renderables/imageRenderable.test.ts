@@ -63,11 +63,22 @@ describe("createImageRenderable", () => {
       src: "/assets/hero.png",
       image: expect.objectContaining({
         source: source.element,
-        texture: expect.anything(),
+        createMaterialLayer: expect.any(Function),
         setTextureTransform: expect.any(Function),
         invalidate: expect.any(Function),
       }),
     });
+    const effectSource = renderable.effectSource;
+    if (
+      effectSource?.kind !== "media" ||
+      effectSource.type !== "image" ||
+      !effectSource.image
+    ) {
+      throw new Error("Expected image effect source.");
+    }
+    expect("texture" in effectSource.image).toBe(false);
+    expect("mesh" in effectSource.image).toBe(false);
+    expect("material" in effectSource.image).toBe(false);
     expect(sceneAdapter.objects).toHaveLength(1);
     expect(sceneAdapter.objects[0]).toMatchObject({
       key: "hero.image",

@@ -58,12 +58,23 @@ describe("createTextSnapshotRenderable", () => {
       text: "Hello WebGL text",
       textLayer: expect.objectContaining({
         canvas: expect.any(HTMLCanvasElement),
-        texture: expect.anything(),
+        createMaterialLayer: expect.any(Function),
         getGlyphs: expect.any(Function),
         setGlyphs: expect.any(Function),
         setText: expect.any(Function),
       }),
     });
+    const effectSource = renderable.effectSource;
+    if (
+      effectSource?.kind !== "dom" ||
+      effectSource.type !== "text" ||
+      !effectSource.textLayer
+    ) {
+      throw new Error("Expected text effect source.");
+    }
+    expect("texture" in effectSource.textLayer).toBe(false);
+    expect("mesh" in effectSource.textLayer).toBe(false);
+    expect("material" in effectSource.textLayer).toBe(false);
 
     element.textContent = "Updated WebGL text";
     renderable.updateLayout?.(createMeasurement(12, 24, 200, 40));

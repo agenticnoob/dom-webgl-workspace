@@ -53,12 +53,23 @@ describe("createElementSnapshotRenderable", () => {
       type: "element",
       surface: expect.objectContaining({
         canvas: expect.any(HTMLCanvasElement),
-        texture: expect.anything(),
         draw: expect.any(Function),
         clear: expect.any(Function),
         invalidate: expect.any(Function),
+        createMaterialLayer: expect.any(Function),
       }),
     });
+    const effectSource = renderable.effectSource;
+    if (
+      effectSource?.kind !== "dom" ||
+      effectSource.type !== "element" ||
+      !effectSource.surface
+    ) {
+      throw new Error("Expected element surface effect source.");
+    }
+    expect("texture" in effectSource.surface).toBe(false);
+    expect("mesh" in effectSource.surface).toBe(false);
+    expect("material" in effectSource.surface).toBe(false);
 
     renderable.setVisible(false);
     expect(sceneAdapter.objects[0]?.visible).toBe(false);

@@ -530,12 +530,15 @@ describe("public package exports", () => {
 		              acceptMaterialProgramKey(("depth" + "Test") as \`depth${"Test"}\`);
 		              // @ts-expect-error material programs do not expose Three.js render-state fields.
 		              acceptMaterialProgramKey(("tone" + "Mapped") as \`tone${"Mapped"}\`);
+		              function acceptSurfaceKey<
+		                TKey extends keyof WebGLEffectCanvasSurfaceHandle,
+		              >(_key: TKey): void {}
 		              // @ts-expect-error surface texture is runtime-owned and not public.
-		              ctx.source.surface?.texture;
+		              acceptSurfaceKey("texture");
 		              // @ts-expect-error surface mesh is runtime-owned and not public.
-		              ctx.source.surface?.mesh;
+		              acceptSurfaceKey("mesh");
 		              // @ts-expect-error surface material is runtime-owned and not public.
-		              ctx.source.surface?.material;
+		              acceptSurfaceKey("material");
 		              const layer = ctx.source.surface?.createMaterialLayer({
 		                key: "custom.surfaceShader",
 		                sourceTextureUniform: "sourceMap",
@@ -581,12 +584,15 @@ describe("public package exports", () => {
 	                | WebGLEffectObjectFitShaderInput
 	                | undefined;
 		              const imageLayer = ctx.source.image;
+		              function acceptImageKey<
+		                TKey extends keyof WebGLEffectTextureLayerHandle<HTMLImageElement>,
+		              >(_key: TKey): void {}
 		              // @ts-expect-error media texture is runtime-owned and not public.
-		              ctx.source.image?.texture;
+		              acceptImageKey("texture");
 		              // @ts-expect-error media mesh is runtime-owned and not public.
-		              ctx.source.image?.mesh;
+		              acceptImageKey("mesh");
 		              // @ts-expect-error media material is runtime-owned and not public.
-		              ctx.source.image?.material;
+		              acceptImageKey("material");
 		              imageLayer?.setTextureTransform({ repeatX: 1, repeatY: 1 });
 		              imageLayer?.createMaterialLayer({
 		                key: "custom.imageShader",

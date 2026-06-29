@@ -490,10 +490,16 @@ describe("runtime pipeline sync", () => {
         src: "/product.glb",
         model: expect.objectContaining({
           sampleVertices: expect.any(Function),
-          createPointCloud: expect.any(Function),
+          getMeshes: expect.any(Function),
+          forEachMesh: expect.any(Function),
+          createPointLayer: expect.any(Function),
         }),
       }),
     );
+    const modelSource = updateEffect.mock.calls[0]?.[0] as
+      | { model?: Record<string, unknown> }
+      | undefined;
+    expect(modelSource?.model).not.toHaveProperty("createPointCloud");
 
     runtime.dispose();
   });
