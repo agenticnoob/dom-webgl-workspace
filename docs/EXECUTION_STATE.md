@@ -15,6 +15,7 @@ Agent-facing package usage contract: `docs/agent/package-usage.md`.
 React-only effect authoring example plan: `docs/superpowers/plans/2026-06-22-effect-authoring-examples.md`.
 React-only effect authoring example guide: `docs/examples/effect-authoring.md`.
 Controlled visual capability API plan: `docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md`.
+AI-first public API boundary tightening plan: `docs/superpowers/plans/2026-06-29-ai-first-public-api-boundary-tightening.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
@@ -35,8 +36,9 @@ objects, raw mesh traversal, raw point-cloud objects, raw target object
 attachment, or renderer-state mutation.
 
 ## Last Completed Task
-Nested WebGLTarget layer semantics, fallback boundary preservation, debug layer
-diagnostics, example dogfood, and documentation alignment.
+AI-first public effect authoring boundary tightening, example controlled-handle
+cleanup, public type fixture coverage, documentation alignment, and final
+verification.
 
 ## Latest Documentation Note
 Controlled visual capability API is implemented through the existing
@@ -176,17 +178,17 @@ authoring friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 81: Phase 8 Custom Effect Authoring API.
 - Task 82: Phase 8 Package Effect Boundary Cleanup.
 - Task 83: Nested WebGLTarget Layer Semantics.
+- Task 84: AI-First Public API Boundary Tightening.
 
 ## Current Task
-Nested target semantics are implemented. `WebGLTarget` children are no longer
-fallback-only DOM: runtime derives parent/child layer scope from DOM ancestry
-and sibling order, applies `renderRole` only as local source policy, preserves
-nested fallback roots from parent fallback hiding/restoring, and exposes layer
-diagnostics in public debug state. Package exports still provide only
-authoring/runtime primitives and runtime-owned output handles; concrete effects
-remain owned by applications or documentation examples. `apps/example` is the
-only app workspace plus the package usage surface, and it dogfoods nested
-targets with an image-sequence parent and a child card target.
+AI-first public effect authoring boundary tightening is implemented. The public
+contract remains capability-first: material programs expose shader declarations
+only (`vertexShader`, `fragmentShader`, `uniforms`, `defines`, `blend`), source
+and model handles expose controlled actions and metadata, and raw Three.js
+object/material/texture handles remain runtime-owned implementation details.
+`apps/example` is the sole app workspace plus the package usage surface and now
+dogfoods controlled handles for sequence cards, shader material layers, media
+effects, Ghost Cursor, and GLB point layers.
 
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object
