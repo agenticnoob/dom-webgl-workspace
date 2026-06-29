@@ -20,7 +20,6 @@ export function createObject3DControls(
   const scaleZ = options.scaleZ ?? "x";
 
   return {
-    object3D,
     setVisible(visible: boolean) {
       if (object3D && typeof object3D === "object") {
         (object3D as { visible?: boolean }).visible = visible;

@@ -69,9 +69,6 @@ export function createCanvasSurfaceCapabilityHandle(
     }),
     canvas: options.canvas,
     context: options.context,
-    texture: options.texture,
-    mesh: options.mesh,
-    material: options.material,
     get shaderInputs() {
       return (
         options.getShaderInputs?.() ??
@@ -150,9 +147,6 @@ export function createTextureLayerCapabilityHandle<
       opacity: { kind: "material", material: options.material },
     }),
     source: options.source,
-    texture: options.texture,
-    mesh: options.mesh,
-    material: options.material,
     get shaderInputs() {
       return options.getShaderInputs?.() ?? createMediaShaderInputs(options);
     },

@@ -34,6 +34,10 @@ describe("source capability handles", () => {
       drawingContext.fillRect(1, 2, 3, 4);
     });
 
+    expect("texture" in handle).toBe(false);
+    expect("mesh" in handle).toBe(false);
+    expect("material" in handle).toBe(false);
+
     handle.draw(drawer);
     handle.setVisible?.(false);
     handle.setRotation?.(1, 2, 3);
@@ -316,6 +320,10 @@ describe("source capability handles", () => {
       source: image,
       invalidate,
     });
+
+    expect("texture" in handle).toBe(false);
+    expect("mesh" in handle).toBe(false);
+    expect("material" in handle).toBe(false);
 
     handle.setTextureTransform({
       repeatX: 0.5,

@@ -29,10 +29,6 @@ describe("material layer", () => {
         },
         defines: { USE_SOURCE: true },
         blend: "additive",
-        transparent: true,
-        depthWrite: false,
-        depthTest: true,
-        toneMapped: false,
       },
     });
 
@@ -50,9 +46,9 @@ describe("material layer", () => {
     });
     expect(shader.uniforms.sourceMap?.value).toBe(sourceTexture);
     expect(shader.transparent).toBe(true);
-    expect(shader.depthWrite).toBe(false);
+    expect(shader.depthWrite).toBe(true);
     expect(shader.depthTest).toBe(true);
-    expect(shader.toneMapped).toBe(false);
+    expect(shader.toneMapped).toBe(true);
 
     layer.setUniforms({ amount: 0.75, uvScale: [3, 4] });
 

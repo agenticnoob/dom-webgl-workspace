@@ -430,9 +430,9 @@ describe("public package exports", () => {
 				        const customModelEffect = defineWebGLEffect({
 				          kind: "custom.glbParticles",
 				          source: "model/glb",
-				          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
-				            ctx.source satisfies WebGLEffectSourceHandle;
-				            ctx.target satisfies WebGLEffectTargetHandle | undefined;
+					          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
+					            ctx.source satisfies WebGLEffectSourceHandle;
+					            ctx.target satisfies WebGLEffectTargetHandle | undefined;
 				            ctx.resources satisfies WebGLEffectResourceScope;
 				            ctx.visual satisfies WebGLEffectVisualContext;
 				            const postprocess = ctx.visual.requestPostprocess({
@@ -441,18 +441,13 @@ describe("public package exports", () => {
 				              grain: { amount: 0.05 },
 				              blur: { radius: 0.25 },
 				            } satisfies WebGLEffectPostprocessRequest);
-				            postprocess satisfies WebGLEffectPostprocessHandle;
-				            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
-				              ctx.source.model.createPointCloud({
-				                density: params.density,
-				                color: "rgb(125, 211, 252)",
-				                size: 0.026,
-				              });
-				              ctx.source.model.createPointLayer({
-				                positions: new Float32Array([0, 0, 0]),
-				                color: "#7dd3fc",
-				                size: 0.026,
-				                material: {
+					            postprocess satisfies WebGLEffectPostprocessHandle;
+					            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
+					              ctx.source.model.createPointLayer({
+					                positions: ctx.source.model.sampleVertices({ maxPoints: 2048 }),
+					                color: "#7dd3fc",
+					                size: 0.026,
+					                material: {
 				                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
 				                  uniforms: {
 				                    sourceMap: { kind: "source-texture" },
@@ -509,31 +504,54 @@ describe("public package exports", () => {
 	              ctx.source.surface?.draw(({ context }) => {
 	                context.fillRect(0, 0, 10, 10);
 	              });
-	              const layer = ctx.source.surface?.createMaterialLayer({
-	                key: "custom.surfaceShader",
-	                sourceTextureUniform: "sourceMap",
-	                mode: "replace-source",
-	                program: {
-	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-	                  uniforms: {
-	                    strength: 0.5,
-	                    enabled: true,
-	                    label: "surface",
-	                    uvScale: [1, 1],
-	                    tint: [1, 1, 1],
-	                    color: [1, 1, 1, 1],
-	                    sourceMap: { kind: "source-texture" },
-	                  },
-	                  defines: { USE_SOURCE: true },
-	                  blend: "screen",
-	                  transparent: true,
-	                  depthWrite: false,
-	                  depthTest: true,
-	                  toneMapped: false,
-	                } satisfies WebGLEffectMaterialProgram,
-	              });
-	              layer satisfies WebGLEffectMaterialLayerHandle | undefined;
-	            }
+		              const publicProgram = {
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                uniforms: {
+		                  strength: 0.5,
+		                  enabled: true,
+		                  label: "surface",
+		                  uvScale: [1, 1],
+		                  tint: [1, 1, 1],
+		                  color: [1, 1, 1, 1],
+		                  sourceMap: { kind: "source-texture" },
+		                },
+		                defines: { USE_SOURCE: true },
+		                blend: "screen",
+		              } satisfies WebGLEffectMaterialProgram;
+		              ({
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                // @ts-expect-error material programs do not expose Three.js render-state fields.
+		                transparent: true,
+		              } satisfies WebGLEffectMaterialProgram);
+		              ({
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                // @ts-expect-error material programs do not expose Three.js render-state fields.
+		                depthWrite: false,
+		              } satisfies WebGLEffectMaterialProgram);
+		              ({
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                // @ts-expect-error material programs do not expose Three.js render-state fields.
+		                depthTest: true,
+		              } satisfies WebGLEffectMaterialProgram);
+		              ({
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                // @ts-expect-error material programs do not expose Three.js render-state fields.
+		                toneMapped: false,
+		              } satisfies WebGLEffectMaterialProgram);
+		              // @ts-expect-error surface texture is runtime-owned and not public.
+		              ctx.source.surface?.texture;
+		              // @ts-expect-error surface mesh is runtime-owned and not public.
+		              ctx.source.surface?.mesh;
+		              // @ts-expect-error surface material is runtime-owned and not public.
+		              ctx.source.surface?.material;
+		              const layer = ctx.source.surface?.createMaterialLayer({
+		                key: "custom.surfaceShader",
+		                sourceTextureUniform: "sourceMap",
+		                mode: "replace-source",
+		                program: publicProgram,
+		              });
+		              layer satisfies WebGLEffectMaterialLayerHandle | undefined;
+		            }
 
 	            if (ctx.source.kind === "dom" && ctx.source.type === "text") {
 	              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
@@ -570,10 +588,16 @@ describe("public package exports", () => {
 	              ctx.source.image?.shaderInputs.uvTransform satisfies
 	                | WebGLEffectObjectFitShaderInput
 	                | undefined;
-	              const imageLayer = ctx.source.image;
-	              imageLayer?.setTextureTransform({ repeatX: 1, repeatY: 1 });
-	              imageLayer?.createMaterialLayer({
-	                key: "custom.imageShader",
+		              const imageLayer = ctx.source.image;
+		              // @ts-expect-error media texture is runtime-owned and not public.
+		              ctx.source.image?.texture;
+		              // @ts-expect-error media mesh is runtime-owned and not public.
+		              ctx.source.image?.mesh;
+		              // @ts-expect-error media material is runtime-owned and not public.
+		              ctx.source.image?.material;
+		              imageLayer?.setTextureTransform({ repeatX: 1, repeatY: 1 });
+		              imageLayer?.createMaterialLayer({
+		                key: "custom.imageShader",
 	                program: {
 	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
 	                  uniforms: {
@@ -617,12 +641,21 @@ describe("public package exports", () => {
 	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
 	            }
 
-            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
-              ctx.source.model satisfies WebGLEffectRenderableHandle;
-              ctx.source.model.sampleVertices({ maxPoints: 64 });
-            }
-          },
-        });
+	            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
+	              ctx.source.model satisfies WebGLEffectRenderableHandle;
+	              ctx.source.model.sampleVertices({ maxPoints: 64 });
+	              // @ts-expect-error model root object is runtime-owned and not public.
+	              ctx.source.model.object3D;
+	              // @ts-expect-error raw mesh traversal is not public.
+	              ctx.source.model.traverseMeshes(() => {});
+	              // @ts-expect-error point-cloud objects are not returned as raw objects.
+	              ctx.source.model.createPointCloud({ density: 1 });
+	            }
+
+	            // @ts-expect-error effect targets do not accept raw Object3D children.
+	            ctx.target?.addObject3D?.({}, {});
+	          },
+	        });
 
         sourceCapabilityEffect satisfies WebGLEffectDefinition;
 	        ({ repeatX: 1, offsetY: 0 }) satisfies WebGLEffectTextureTransform;

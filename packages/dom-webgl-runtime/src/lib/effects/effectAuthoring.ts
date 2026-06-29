@@ -23,7 +23,6 @@ export type WebGLEffectResourceScope = {
 };
 
 export type WebGLEffectRenderableHandle = {
-  readonly object3D: unknown;
   setVisible?(visible: boolean): void;
   setPosition?(x: number, y: number, z?: number): void;
   setRotation?(x: number, y: number, z?: number): void;
@@ -67,10 +66,6 @@ export type WebGLEffectMaterialProgram = {
   uniforms?: Record<string, WebGLEffectUniformValue>;
   defines?: Record<string, string | number | boolean>;
   blend?: WebGLEffectBlendMode;
-  transparent?: boolean;
-  depthWrite?: boolean;
-  depthTest?: boolean;
-  toneMapped?: boolean;
 };
 
 export type WebGLEffectMaterialLayerHandle = {
@@ -93,9 +88,6 @@ export type WebGLEffectCanvasSurfaceHandle = WebGLEffectRenderableHandle &
   WebGLEffectMaterialLayerHost & {
   readonly canvas: HTMLCanvasElement;
   readonly context: CanvasRenderingContext2D | null;
-  readonly texture: unknown;
-  readonly mesh: unknown;
-  readonly material: unknown;
   readonly shaderInputs: WebGLEffectSurfaceShaderInputs;
   clear(): void;
   draw(drawer: WebGLEffectCanvasDrawer): void;
@@ -206,9 +198,6 @@ export type WebGLEffectTextureLayerHandle<
 > = WebGLEffectRenderableHandle &
   WebGLEffectMaterialLayerHost & {
   readonly source: TSource;
-  readonly texture: unknown;
-  readonly mesh: unknown;
-  readonly material: unknown;
   readonly shaderInputs: WebGLEffectMediaShaderInputs;
   setTextureTransform(transform: WebGLEffectTextureTransform): void;
   invalidate(): void;
@@ -235,10 +224,6 @@ export type WebGLEffectTargetHandle = {
   setRotation(x: number, y: number, z?: number): void;
   setScale(x: number, y?: number, z?: number): void;
   setOpacity(opacity: number): void;
-  addObject3D?(
-    object3D: unknown,
-    options?: { dispose?: (object3D: unknown) => void },
-  ): WebGLEffectManagedObjectHandle;
 };
 
 export type WebGLEffectManagedObjectHandle = {
@@ -265,16 +250,9 @@ export type WebGLEffectPointLayerOptions = {
 };
 
 export type WebGLModelEffectHandle = WebGLEffectRenderableHandle & {
-  readonly object3D: unknown;
-  traverseMeshes(visitor: (mesh: unknown) => void): void;
   getMeshes(): readonly WebGLModelMeshHandle[];
   forEachMesh(visitor: (mesh: WebGLModelMeshHandle) => void): void;
   sampleVertices(options?: { maxPoints?: number }): Float32Array;
-  createPointCloud(options: {
-    density?: number;
-    color?: number | string;
-    size?: number;
-  }): unknown;
   createPointLayer(
     options: WebGLEffectPointLayerOptions,
   ): WebGLEffectManagedObjectHandle;

@@ -21,13 +21,6 @@ export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHand
       scaleZ: "x",
       opacity: { kind: "object" },
     }),
-    traverseMeshes(visitor) {
-      traverseObject(object3D, (candidate) => {
-        if (isMeshLike(candidate)) {
-          visitor(candidate);
-        }
-      });
-    },
     getMeshes() {
       return collectMeshHandles(object3D);
     },
@@ -38,20 +31,6 @@ export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHand
     },
     sampleVertices(options = {}) {
       return sampleModelVertices(object3D, options.maxPoints ?? 2048);
-    },
-    createPointCloud(options) {
-      const vertices = sampleModelVertices(
-        object3D,
-        Math.max(1, Math.floor(2048 * (options.density ?? 1))),
-      );
-      const geometry = new BufferGeometry();
-      geometry.setAttribute("position", new BufferAttribute(vertices, 3));
-      const material = new PointsMaterial({
-        color: options.color ?? 0xffffff,
-        size: options.size ?? 0.02,
-      });
-
-      return new Points(geometry, material);
     },
     createPointLayer(options) {
       return createPointLayer(object3D, options);
@@ -80,7 +59,6 @@ function createModelMeshHandle(mesh: unknown, index: number): WebGLModelMeshHand
       scaleZ: "x",
       opacity: { kind: "object" },
     }),
-    object3D: mesh,
     index,
     name: readStringProperty(mesh, "name"),
     materialName,

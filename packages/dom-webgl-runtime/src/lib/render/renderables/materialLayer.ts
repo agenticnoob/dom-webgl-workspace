@@ -46,9 +46,8 @@ export function createMaterialLayer(
   let disposed = false;
   let activeMaterial: ShaderMaterial | undefined;
   const ownedTexturesByUniform = new Map<string, Texture[]>();
-  let currentProgram = options.program;
 
-  applyProgram(currentProgram);
+  applyProgram(options.program);
 
   return {
     setProgram(program) {
@@ -56,7 +55,6 @@ export function createMaterialLayer(
         return;
       }
 
-      currentProgram = program;
       applyProgram(program);
     },
     setUniforms(uniforms) {
@@ -96,7 +94,7 @@ export function createMaterialLayer(
 
   function applyProgram(program: WebGLEffectMaterialProgram): void {
     restoreOriginalMaterial();
-    activeMaterial = compileShaderMaterial(options, program, currentProgram);
+    activeMaterial = compileShaderMaterial(options, program);
     options.target.material = activeMaterial;
   }
 
@@ -113,7 +111,6 @@ export function createMaterialLayer(
   function compileShaderMaterial(
     layerOptions: MaterialLayerOptions,
     program: WebGLEffectMaterialProgram,
-    fallbackProgram: WebGLEffectMaterialProgram,
   ): ShaderMaterial {
     const uniforms = compileUniforms(layerOptions, program, replaceOwnedTextures);
 
@@ -122,10 +119,10 @@ export function createMaterialLayer(
       fragmentShader: program.fragmentShader,
       uniforms,
       blending: mapBlendMode(program.blend),
-      transparent: program.transparent ?? fallbackProgram.transparent ?? true,
-      depthWrite: program.depthWrite ?? fallbackProgram.depthWrite ?? true,
-      depthTest: program.depthTest ?? fallbackProgram.depthTest ?? true,
-      toneMapped: program.toneMapped ?? fallbackProgram.toneMapped ?? true,
+      transparent: true,
+      depthWrite: true,
+      depthTest: true,
+      toneMapped: true,
     };
 
     if (program.defines) {

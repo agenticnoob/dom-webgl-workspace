@@ -36,7 +36,7 @@ describe("createModelEffectHandle", () => {
     });
   });
 
-  test("samples mesh vertices in the model root coordinate space", () => {
+  test("samples vertices and creates managed point layers without exposing raw points", () => {
     const root = new Group();
     const geometry = new BufferGeometry();
     geometry.setAttribute(
@@ -47,12 +47,18 @@ describe("createModelEffectHandle", () => {
     mesh.position.set(10, 20, 30);
     root.add(mesh);
 
-    const pointCloud = createModelEffectHandle(root).createPointCloud({
-      density: 1,
-    }) as Points;
-    const positions = pointCloud.geometry.getAttribute("position").array;
+    const handle = createModelEffectHandle(root);
+    const positions = handle.sampleVertices({ maxPoints: 1 });
+    const layer = handle.createPointLayer({
+      positions,
+      color: "#7dd3fc",
+      size: 0.04,
+    });
 
     expect(Array.from(positions)).toEqual([11, 22, 33]);
+    expect(root.children[1]).toBeInstanceOf(Points);
+    layer.dispose();
+    expect(root.children).toHaveLength(1);
   });
 
   test("caps sampled vertices across multiple meshes", () => {
@@ -104,6 +110,7 @@ describe("createModelEffectHandle", () => {
       name: "product-shell",
       materialName: "first",
     });
+    expect("object3D" in (meshHandle ?? {})).toBe(false);
     expect(mesh.material).toBeInstanceOf(ShaderMaterial);
 
     layer?.dispose();
