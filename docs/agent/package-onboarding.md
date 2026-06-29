@@ -324,6 +324,8 @@ Rules:
 - Keep `progressKey` stable.
 - Effects read progress with `ctx.progress.get(progressKey)`.
 - Do not mutate mounted `webgl.effects` on every scroll update.
+- Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
+  post-pinned runway sibling just to release scroll.
 - Do not read Lenis, GSAP, or ScrollTrigger directly from effects.
 
 ## Manual Scroll Adapter Route

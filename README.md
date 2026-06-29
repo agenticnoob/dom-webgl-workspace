@@ -110,7 +110,9 @@ Current example behavior:
   `ctx.progress.get(progressKey)` instead of manual per-scroll target mutation
   or scene gates. The current pinned example renders the visible
   `example.pinnedReveal` text effect and keeps the section background
-  transparent so the WebGL canvas remains visible.
+  transparent so the WebGL canvas remains visible. The pinned row itself is the
+  whole trigger section; the example no longer appends a synthetic post-pinned
+  runway sibling just to hand scroll control back.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:

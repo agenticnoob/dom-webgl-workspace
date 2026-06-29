@@ -101,9 +101,7 @@ describe("pinned scroll example section", () => {
     expect(host.querySelector(".example-pinned-text")?.textContent).toContain(
       "滚动控制文字",
     );
-    expect(host.querySelector(".example-pinned-row")?.nextElementSibling).toBe(
-      host.querySelector('[data-scroll-runway="post-pinned"]'),
-    );
+    expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
 
     const firstEffects = targetProps[0]?.webgl.effects;
     await act(async () => {

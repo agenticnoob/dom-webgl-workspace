@@ -339,10 +339,8 @@ describe("effect authoring example app", () => {
       progressKey: "example.pinned.reveal",
     });
     const pinnedSection = host.querySelector(".example-pinned-row");
-    const postPinnedRunway = host.querySelector('[data-scroll-runway="post-pinned"]');
     expect(pinnedSection).not.toBeNull();
-    expect(postPinnedRunway).not.toBeNull();
-    expect(pinnedSection?.nextElementSibling).toBe(postPinnedRunway);
+    expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
     expect(finalTargetProps[20]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",

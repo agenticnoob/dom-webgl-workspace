@@ -89,7 +89,8 @@ const progress = ctx.progress.get(params.progressKey);
 `ScrollEffectSection` creates one bounded trigger for its own element, writes
 that trigger's progress into the nearest `WebGLScrollRuntime` store, and clears
 the key on unmount. This is not a scene gate and should keep runtime scroll mode
-as ordinary page mode.
+as ordinary page mode. Let that bounded section be the full pinned row; do not
+append a synthetic post-pinned runway sibling just to hand scroll back.
 
 When the wrapper is also responsible for the official smooth-scroll stack, pass
 `smooth` options with `ScrollTrigger`; child sections can inherit it from

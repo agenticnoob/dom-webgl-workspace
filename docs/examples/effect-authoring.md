@@ -98,6 +98,10 @@ every scroll update:
 
 ```ts
 const progress = ctx.progress.get(params.progressKey);
+
+`ScrollEffectSection` should wrap the full pinned row that owns the effect. Do
+not add an extra post-pinned runway sibling just to release scroll; let the
+bounded section own the pin lifecycle directly.
 ```
 
 This path is not a scene gate. The page remains in normal page scroll mode while

@@ -211,6 +211,8 @@ Rules:
 - Missing progress keys read as `0`.
 - Keep `progressKey` stable and pass it as target effect data; do not mutate
   mounted `webgl.effects` on every scroll update.
+- Let `ScrollEffectSection` own the whole pinned row. Do not add a synthetic
+  post-pinned runway sibling just to hand scroll back to the page.
 - This is not a scene gate. The runtime should remain in page scroll mode while
   ScrollTrigger handles pin/scrub behavior.
 - If `WebGLScrollRuntime smooth={...}` includes `ScrollTrigger`, child
