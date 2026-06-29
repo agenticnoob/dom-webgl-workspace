@@ -80,7 +80,7 @@ describe("sequence card example effect", () => {
     expect(target.setPosition).toHaveBeenCalledWith(50, 398, 0);
   });
 
-  test("offsets from the runtime scene anchor instead of reprojecting pinned DOM layout", () => {
+  test("projects pinned DOM layout without reading runtime scene internals", () => {
     const target = {
       setOpacity: vi.fn(),
       setPosition: vi.fn(),
@@ -99,14 +99,7 @@ describe("sequence card example effect", () => {
         kind: "dom",
         type: "element",
         element: document.createElement("aside"),
-        surface: {
-          object3D: {
-            position: { x: 330, y: 360, z: 0 },
-          },
-          mesh: {
-            position: { x: 0, y: 0, z: 0 },
-          },
-        },
+        surface: {},
       },
       target,
     });
@@ -119,7 +112,7 @@ describe("sequence card example effect", () => {
       maxOpacity: 0.82,
     });
 
-    expect(target.setPosition).toHaveBeenCalledWith(330, 360, 0);
+    expect(target.setPosition).toHaveBeenCalledWith(330, 894, 0);
   });
 
   test("draws the nested card surface instead of moving an empty element plane", () => {

@@ -274,10 +274,6 @@ function prepareImageHoverReveal(
         uUvRepeat: [uvTransform.repeatX, uvTransform.repeatY],
         uUvOffset: [uvTransform.offsetX, uvTransform.offsetY],
       },
-      transparent: true,
-      depthWrite: false,
-      depthTest: true,
-      toneMapped: true,
     },
   });
 }

@@ -104,8 +104,6 @@ export function createGhostCursorMaterialProgram(
     defines: { MAX_TRAIL_LENGTH: ghostCursorTrailLength },
     fragmentShader: ghostCursorFragmentShader,
     uniforms: createGhostCursorUniforms(options),
-    transparent: true,
-    depthWrite: false,
     blend: "screen",
   };
 }

@@ -122,12 +122,8 @@ function createCanvasSurface(
   const canvas = document.createElement("canvas");
 
   return {
-    object3D: {},
     canvas,
     context: null,
-    texture: {},
-    mesh: {},
-    material: {},
     shaderInputs: {
       size: { width: 120, height: 60, devicePixelRatio: 1 },
       contentBox: { x: 0, y: 0, width: 120, height: 60 },
@@ -201,11 +197,7 @@ function createTextureLayer<TSource extends HTMLImageElement | HTMLVideoElement>
   overrides: Partial<WebGLEffectTextureLayerHandle<TSource>> = {},
 ): WebGLEffectTextureLayerHandle<TSource> {
   return {
-    object3D: {},
     source,
-    texture: {},
-    mesh: {},
-    material: {},
     shaderInputs: {
       naturalSize: { width: 1, height: 1 },
       contentBox: { x: 0, y: 0, width: 1, height: 1 },
@@ -249,12 +241,9 @@ function createModelHandle(
   overrides: Partial<WebGLModelEffectHandle>,
 ): WebGLModelEffectHandle {
   return {
-    object3D: {},
-    traverseMeshes: vi.fn(),
     getMeshes: vi.fn(() => []),
     forEachMesh: vi.fn(),
     sampleVertices: vi.fn(() => new Float32Array()),
-    createPointCloud: vi.fn(() => ({})),
     createPointLayer: vi.fn(() => ({
       setVisible: vi.fn(),
       remove: vi.fn(),

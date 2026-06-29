@@ -33,7 +33,7 @@ export const exampleSequenceCardEffect =
         1000,
       );
       const surface = ctx.source.surface;
-      const anchor = readSurfaceSceneAnchor(surface, ctx.layout);
+      const anchor = readSceneAnchor(ctx.layout);
 
       ctx.target?.setVisible(true);
       surface?.draw(({ context, width, height }) => {
@@ -50,47 +50,18 @@ export const exampleSequenceCardEffect =
     },
   });
 
-function readSurfaceSceneAnchor(
-  surface: NonNullable<
-    Extract<
-      Parameters<typeof exampleSequenceCardEffect.update>[0]["source"],
-      { kind: "dom"; type: "element" }
-    >["surface"]
-  > | undefined,
+function readSceneAnchor(
   layout: Parameters<typeof exampleSequenceCardEffect.update>[0]["layout"],
-): { x: number; y: number; z: number } {
-  const position =
-    readScenePosition(surface?.object3D) ?? readScenePosition(surface?.mesh);
-  const x = readFiniteNumber(position?.x);
-  const y = readFiniteNumber(position?.y);
-  const z = readFiniteNumber(position?.z);
-
+): {
+  x: number;
+  y: number;
+  z: number;
+} {
   return {
-    x: x ?? readSceneX(layout),
-    y: y ?? readSceneY(layout),
-    z: z ?? 0,
+    x: readSceneX(layout),
+    y: readSceneY(layout),
+    z: 0,
   };
-}
-
-function readFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function readScenePosition(
-  value: unknown,
-): { x?: unknown; y?: unknown; z?: unknown } | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-
-  const record = value as Record<string, unknown>;
-  const position = record.position;
-
-  if (!position || typeof position !== "object") {
-    return undefined;
-  }
-
-  return position as { x?: unknown; y?: unknown; z?: unknown };
 }
 
 function readSceneX(layout: { left: number; width: number }): number {
