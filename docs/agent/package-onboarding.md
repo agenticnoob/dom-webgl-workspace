@@ -230,12 +230,20 @@ Current visual capability surface:
   exposing raw Three textures.
 - GLB handles expose controlled mesh handles, material restore, vertex samples,
   and managed point layers.
+- Public handles are capability handles: use methods such as `draw`,
+  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
+  `sampleVertices`, and `createPointLayer`; do not rely on `object3D`, `mesh`,
+  `material`, or `texture` fields.
 - `ctx.visual.requestPostprocess(...)` submits named bloom/grain/blur requests
   owned by the runtime.
 - Material uniforms are controlled data, not raw Three.js objects. Numeric
   tuples and supported arrays such as pointer-trail `vec2[]` are acceptable;
   renderer, scene, camera, composer, raw texture, raw material, and pass objects
   are not public effect inputs.
+- Material programs are Three-inspired shader declarations, not raw Three.js
+  materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
+  `defines`, and `blend`; runtime-owned defaults decide transparency, depth,
+  tone mapping, allocation, restoration, and disposal.
 
 DOM text remains the source of content and accessibility. Text-layer methods
 change WebGL output only.

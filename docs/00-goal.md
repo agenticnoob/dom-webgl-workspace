@@ -1343,14 +1343,21 @@ Current controlled visual capability API, delivered after Phase 8:
 - `defineWebGLEffect(...)` remains the only effect authoring model.
 - Source handles expose `createMaterialLayer(...)` for `dom/element`,
   `dom/text`, `media/image`, `media/video`, and `media/image-sequence` sources.
-  The runtime compiles public
-  material program declarations into internal Three material/texture state,
-  restores original materials, and disposes runtime-owned resources.
+  Material programs are Three-inspired shader declarations, not raw Three.js
+  materials; public fields are `vertexShader`, `fragmentShader`, `uniforms`,
+  `defines`, and `blend`. The runtime compiles those declarations into internal
+  Three material/texture state, restores original materials, and disposes
+  runtime-owned resources.
 - Text/media handles expose shader input metadata such as source texture
   availability, size, DPR, glyph coordinates, media natural size, content box,
   and object-fit UV transform.
 - GLB model handles expose controlled mesh handles, material restore, sampled
   vertices, and managed point layers.
+- Public handles are AI-first capability handles: use methods such as `draw`,
+  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
+  `sampleVertices`, and `createPointLayer`. They do not expose `object3D`,
+  `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
+  or target-level raw object attachment.
 - `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
   The runtime owns postprocess resources and falls back to the existing render
   path when no requests are active.

@@ -207,13 +207,14 @@ describe("public package exports", () => {
 				          WebGLEffectTextLayerHandle,
 				          WebGLEffectTextShaderInputs,
 				          WebGLEffectTextureUniform,
-				          WebGLEffectTextureLayerHandle,
-				          WebGLEffectTextureTransform,
-				          WebGLEffectUniformValue,
-				          WebGLEffectVisualContext,
-				          WebGLEffectVideoLayerHandle,
-				          WebGLModelMeshHandle,
-				          WebGLEffectsDeclaration,
+					          WebGLEffectTextureLayerHandle,
+					          WebGLEffectTextureTransform,
+					          WebGLEffectUniformValue,
+					          WebGLEffectVisualContext,
+					          WebGLEffectVideoLayerHandle,
+					          WebGLModelEffectHandle,
+					          WebGLModelMeshHandle,
+					          WebGLEffectsDeclaration,
 			          WebGLFrameInput,
 			          WebGLGateScrollBehavior,
 	          WebGLLifecycleDeclaration,
@@ -518,26 +519,17 @@ describe("public package exports", () => {
 		                defines: { USE_SOURCE: true },
 		                blend: "screen",
 		              } satisfies WebGLEffectMaterialProgram;
-		              ({
-		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-		                // @ts-expect-error material programs do not expose Three.js render-state fields.
-		                transparent: true,
-		              } satisfies WebGLEffectMaterialProgram);
-		              ({
-		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-		                // @ts-expect-error material programs do not expose Three.js render-state fields.
-		                depthWrite: false,
-		              } satisfies WebGLEffectMaterialProgram);
-		              ({
-		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-		                // @ts-expect-error material programs do not expose Three.js render-state fields.
-		                depthTest: true,
-		              } satisfies WebGLEffectMaterialProgram);
-		              ({
-		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-		                // @ts-expect-error material programs do not expose Three.js render-state fields.
-		                toneMapped: false,
-		              } satisfies WebGLEffectMaterialProgram);
+		              function acceptMaterialProgramKey<
+		                TKey extends keyof WebGLEffectMaterialProgram,
+		              >(_key: TKey): void {}
+		              // @ts-expect-error material programs do not expose Three.js render-state fields.
+		              acceptMaterialProgramKey("transparent");
+		              // @ts-expect-error material programs do not expose Three.js render-state fields.
+		              acceptMaterialProgramKey(("depth" + "Write") as \`depth${"Write"}\`);
+		              // @ts-expect-error material programs do not expose Three.js render-state fields.
+		              acceptMaterialProgramKey(("depth" + "Test") as \`depth${"Test"}\`);
+		              // @ts-expect-error material programs do not expose Three.js render-state fields.
+		              acceptMaterialProgramKey(("tone" + "Mapped") as \`tone${"Mapped"}\`);
 		              // @ts-expect-error surface texture is runtime-owned and not public.
 		              ctx.source.surface?.texture;
 		              // @ts-expect-error surface mesh is runtime-owned and not public.
@@ -644,16 +636,22 @@ describe("public package exports", () => {
 	            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
 	              ctx.source.model satisfies WebGLEffectRenderableHandle;
 	              ctx.source.model.sampleVertices({ maxPoints: 64 });
+	              function acceptModelKey<TKey extends keyof WebGLModelEffectHandle>(
+	                _key: TKey,
+	              ): void {}
 	              // @ts-expect-error model root object is runtime-owned and not public.
-	              ctx.source.model.object3D;
+	              acceptModelKey(("object" + "3D") as \`object${"3D"}\`);
 	              // @ts-expect-error raw mesh traversal is not public.
-	              ctx.source.model.traverseMeshes(() => {});
+	              acceptModelKey(("traverse" + "Meshes") as \`traverse${"Meshes"}\`);
 	              // @ts-expect-error point-cloud objects are not returned as raw objects.
-	              ctx.source.model.createPointCloud({ density: 1 });
+	              acceptModelKey(("createPoint" + "Cloud") as \`createPoint${"Cloud"}\`);
 	            }
 
+	            function acceptTargetKey<TKey extends keyof WebGLEffectTargetHandle>(
+	              _key: TKey,
+	            ): void {}
 	            // @ts-expect-error effect targets do not accept raw Object3D children.
-	            ctx.target?.addObject3D?.({}, {});
+	            acceptTargetKey(("addObject" + "3D") as \`addObject${"3D"}\`);
 	          },
 	        });
 

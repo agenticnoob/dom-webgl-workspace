@@ -18,13 +18,21 @@ Controlled visual capability API plan: `docs/superpowers/plans/2026-06-26-visual
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
-effect authoring model. Source handles can create runtime-owned material layers,
-text/media handles expose shader input metadata, GLB model handles expose
-controlled mesh material restore plus managed point layers, and
+effect authoring model. Public handles are AI-first capability handles: use
+methods such as `draw`, `setGlyphs`, `setTextureTransform`,
+`createMaterialLayer`, `forEachMesh`, `sampleVertices`, and
+`createPointLayer`, not `object3D`, `mesh`, `material`, or `texture` fields.
+Source handles can create runtime-owned material layers, text/media handles
+expose shader input metadata, GLB model handles expose controlled mesh material
+restore, vertex samples, and managed point layers, and
 `ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
-The public API still does not expose renderer, scene, camera, raw shader
-materials, raw textures, composer, render targets, render loop, pass ordering,
-or renderer-state mutation.
+Material programs expose only `vertexShader`, `fragmentShader`, `uniforms`,
+`defines`, and `blend`; runtime defaults own transparency, depth, tone mapping,
+render order, material restoration, texture allocation, and disposal. The public
+API still does not expose renderer, scene, camera, raw shader materials, raw
+textures, composer, render targets, render loop, pass ordering, raw model
+objects, raw mesh traversal, raw point-cloud objects, raw target object
+attachment, or renderer-state mutation.
 
 ## Last Completed Task
 Nested WebGLTarget layer semantics, fallback boundary preservation, debug layer
@@ -37,9 +45,14 @@ runtime-owned material layers, source texture uniforms, text/media shader input
 metadata, GLB controlled mesh handles, managed point layers, and named
 postprocess requests through `ctx.visual.requestPostprocess(...)`. Runtime
 continues to own Three.js material, texture, geometry, render-target,
-postprocess, restore, and dispose lifecycles. The public API does not expose
-renderer, scene, camera, raw shader materials, raw textures, composer, render
-targets, render loop, pass ordering, or renderer-state mutation. `apps/example`
+postprocess, restore, and dispose lifecycles. Public handles are controlled
+capability handles and do not expose raw `object3D`, `mesh`, `material`,
+`texture`, raw mesh traversal, raw point-cloud objects, or target-level raw
+object attachment. Material programs expose only `vertexShader`,
+`fragmentShader`, `uniforms`, `defines`, and `blend`. The public API does not
+expose renderer, scene, camera, raw shader materials, raw textures, composer,
+render targets, render loop, pass ordering, or renderer-state mutation.
+`apps/example`
 Ghost Cursor now dogfoods the public material layer/shader API and sends the
 ReactBits-style pointer trail as controlled public uniform data; visual browser
 	QA remains user-owned per the latest manual review instruction.
@@ -203,18 +216,12 @@ targets with an image-sequence parent and a child card target.
   runtime-level `effects`, context/source/target/resource types, and lifecycle
   dispatch. It does not export concrete effect implementations or an official
   effect preset subpath.
-- Demo update: The GLB demo target currently consumes a local
-  `demo.glbRotate` plus `demo.glbVertexParticles` from
-  `apps/demo/src/demoEffects.ts`. The rotate effect rotates the model object on
-  the y axis using seconds-based timing, so the demo avoids a flat screen-plane
-  spin. The vertex particle effect samples the GLB vertices, hides the original
-  source meshes, renders only the attached point cloud, and uses pointer movement
-  to scatter particles only after the pointer hits a particle-sized local radius,
-  then damps and springs them back to their source vertices. Core still does not
-  ship a concrete particle system. The public GLB `createPointCloud(...)` helper
-  now samples mesh vertices in the model root coordinate space, so child mesh
-  transforms are preserved, and accepts numeric Three.js color values plus CSS
-  color strings such as `rgb(125, 211, 252)`.
+- Superseded GLB demo note: that historical `apps/demo` particle implementation
+  has been replaced by `apps/example` as the only app workspace. Core still does
+  not ship a concrete particle system. Current public GLB model handles expose
+  `sampleVertices(...)` plus `createPointLayer(...)`; they do not expose legacy
+  point-cloud creation helpers, raw model objects, raw mesh traversal, or raw
+  point-cloud objects.
 
 ## Phase 8 Custom Effect Authoring API
 - Completed work: Added `defineWebGLEffect(...)`, public effect context/source/
@@ -788,7 +795,9 @@ as R-002 in `docs/REVIEW_BACKLOG.md`.
   third-party scroll integrations through `WebGLScrollAdapter` and the optional
   scroll adapter package.
 - Do not add class-based compatibility layer.
-- Do not expose Three.js renderOrder, transparent, or depthWrite in the public API.
+- Do not expose Three.js renderOrder, transparent, depthWrite, depthTest,
+  toneMapped, raw Object3D, raw mesh, raw material, or raw texture fields in the
+  public API.
 - Public package imports must be SSR-safe.
 - Runtime/package implementation must stay reusable for an open-source package
   and must not hardcode example/app-only keys, assets, DOM structure, layout, or

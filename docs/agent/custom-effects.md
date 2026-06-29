@@ -80,6 +80,15 @@ Current handles:
 - `media/image-sequence`: control the current frame texture transform and invalidation.
 - `model/glb`: inspect and control the runtime-owned model handle.
 
+Public handles are capability handles: use methods such as `draw`, `setGlyphs`,
+`setTextureTransform`, `createMaterialLayer`, `forEachMesh`, `sampleVertices`,
+and `createPointLayer`; do not rely on `object3D`, `mesh`, `material`, or
+`texture` fields.
+Material programs are Three-inspired shader declarations, not raw Three.js
+materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
+`defines`, and `blend`; runtime defaults own transparency, depth, tone mapping,
+allocation, restoration, and disposal.
+
 ## Resource Ownership
 
 Create expensive objects in `setup`, not `update`.

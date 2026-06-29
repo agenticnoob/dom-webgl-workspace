@@ -48,8 +48,8 @@ The visual capability API in
 implemented: the same `defineWebGLEffect(...)` model now covers controlled
 material layers, source texture uniforms, text/media shader inputs, GLB mesh
 material handles, managed point layers, and named postprocess requests while
-keeping renderer, scene, camera, composer, render targets, raw textures, and
-raw materials internal.
+keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
+material/texture fields, and raw materials internal.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -339,6 +339,9 @@ mesh handles, create managed point layers, and request named runtime-owned
 postprocess passes through public effect context. Target `setPosition(...)`
 writes runtime scene-space coordinates, not DOM `left`/`top`. Concrete effects
 remain application-owned.
+Material programs are Three-inspired shader declarations, not raw Three.js
+materials; public fields are `vertexShader`, `fragmentShader`, `uniforms`,
+`defines`, and `blend`.
 
 Capability matrix:
 
@@ -356,7 +359,8 @@ Runtime owns material, texture, geometry, render-target, postprocess, and
 managed-object lifecycle. Effects update public handles/requests and register
 their own cleanup through `ctx.resources`; they do not receive raw renderer,
 scene, camera, `ShaderMaterial`, `Texture`, `EffectComposer`,
-`WebGLRenderTarget`, render-loop, pass ordering, or renderer-state handles.
+`WebGLRenderTarget`, render-loop, pass ordering, raw object3D/mesh/material/
+texture fields, raw point-cloud objects, or renderer-state handles.
 
 Source declarations use one top-level source family plus a subtype:
 `{ kind: "dom", type: "element" | "text" }`,
@@ -421,56 +425,33 @@ Application effects use the same API:
 ```ts
 import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 
-const modelProbeEffect = defineWebGLEffect({
-  kind: "modelProbe",
+const modelParticleEffect = defineWebGLEffect<{
+  kind: "app.modelParticles";
+}>({
+  kind: "app.modelParticles",
   source: "model/glb",
-  update(context) {
-    context.source.model.sampleVertices({ maxPoints: 256 });
-    context.target?.setPosition(
-      context.layout.left + context.layout.width / 2,
-      context.layout.viewport.height - (context.layout.top + context.layout.height / 2),
-      0,
-    );
-    context.target?.setRotation(0, context.pointer.normalizedX * 0.25, 0);
-  },
-});
-
-const modelRotateEffect = defineWebGLEffect({
-  kind: "modelRotate",
-  source: "model/glb",
-  update(context) {
-    const rotation = (context.source.model.object3D as {
-      rotation?: { x?: number; y?: number; z?: number };
-    }).rotation;
-
-    if (rotation) {
-      rotation.x = 0;
-      rotation.y = (context.time / 1000) * 0.015;
-      rotation.z = 0;
+  setup(ctx) {
+    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
+      return undefined;
     }
-  },
-});
 
-const modelVertexParticlesEffect = defineWebGLEffect({
-  kind: "modelVertexParticles",
-  source: "model/glb",
-  setup(context) {
-    if (context.source.kind !== "model" || context.source.type !== "glb") {
+    const points = ctx.source.model.createPointLayer({
+      positions: ctx.source.model.sampleVertices({ maxPoints: 2048 }),
+      color: "#7dd3fc",
+      size: 0.026,
+    });
+
+    return { points };
+  },
+  update(ctx) {
+    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
       return;
     }
 
-    const points = context.source.model.createPointCloud({
-      density: 2.5,
-      color: "rgb(255, 0, 0)",
-      size: 0.026,
-    });
-    const add = (context.source.model.object3D as {
-      add?: (child: unknown) => void;
-    }).add;
-
-    add?.call(context.source.model.object3D, points);
-
-    return { points };
+    ctx.source.model.setRotation?.(0, ctx.time / 1600, 0);
+  },
+  dispose(_ctx, state) {
+    state?.points.dispose();
   },
 });
 ```

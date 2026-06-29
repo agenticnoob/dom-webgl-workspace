@@ -626,12 +626,12 @@ Available source handles:
 
 | Source kind | Public output handle | Main controls |
 | --- | --- | --- |
-| `dom/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, object/material controls |
+| `dom/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, visibility/transform/opacity controls |
 | `dom/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
 | `media/image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
 | `media/video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
 | `media/image-sequence` | `ctx.source.image` | current frame metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
-| `model/glb` | `ctx.source.model` | object controls, controlled mesh handles, material restore, vertex samples, managed point layers |
+| `model/glb` | `ctx.source.model` | visibility/transform/opacity controls, controlled mesh handles, material restore, vertex samples, managed point layers |
 
 DOM text remains the source of content, accessibility, and fallback.
 `textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
@@ -657,8 +657,11 @@ effects built on these primitives.
 Material layer rules:
 
 - Use `createMaterialLayer(...)` on source handles or model mesh handles.
-- Programs are data declarations: shader strings, public uniform values,
-  defines, blend mode, and depth/tone flags.
+- Material programs are Three-inspired shader declarations, not raw Three.js
+  materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
+  `defines`, and `blend`. Runtime-owned defaults decide transparency, depth,
+  tone mapping, render order, material restoration, texture allocation, and
+  disposal.
 - Uniforms must stay plain serializable data. Use numbers, small numeric tuples,
   controlled texture uniform declarations, and supported numeric arrays such as
   `readonly (readonly [number, number])[]` for trail buffers. Do not pass raw
@@ -680,19 +683,17 @@ Material layer rules:
 
 Model helper rules:
 
-- `model.object3D` is the loaded model object exposed as `unknown`.
-- `model.setVisible`, `model.setPosition`, `model.setRotation`,
-  `model.setScale`, and `model.setOpacity` provide common object controls.
-- `model.traverseMeshes(visitor)` visits model meshes.
-- `model.getMeshes()` and `model.forEachMesh(...)` expose controlled mesh
-  handles with `createMaterialLayer(...)` and `restoreMaterial()`.
-- `model.sampleVertices({ maxPoints })` returns model-root local vertex samples.
-- `model.createPointCloud({ density, color, size })` returns a point cloud object.
+Model source handles expose controlled model capabilities:
+
+- `model.getMeshes()` and `model.forEachMesh(...)` expose controlled mesh handles.
+- Mesh handles expose `index`, optional `name`, optional `materialName`,
+  `createMaterialLayer(...)`, and `restoreMaterial()`.
+- `model.sampleVertices({ maxPoints })` returns root-local vertex positions for
+  app-authored particle or point-layer effects.
 - `model.createPointLayer({ positions, color, size, material })` returns a
   managed handle whose generated geometry/material lifecycle is runtime-owned.
-- Child mesh transforms are applied when sampling vertices.
-- `color` accepts numeric Three.js color values and CSS color strings such as
-  `"rgb(255, 0, 0)"`.
+- Effects do not receive raw model root objects, raw mesh traversal, or raw
+  point-cloud objects.
 
 Runtime-scoped visual requests:
 
@@ -730,17 +731,11 @@ ctx.target?.setScale(1.05);
 ctx.target?.setOpacity(0.8);
 ```
 
-When adding object3D content:
-
-```ts
-const handle = ctx.target?.addObject3D?.(object3D, {
-  dispose(object) {
-    // Dispose object-owned geometry/material/texture if this effect owns it.
-  },
-});
-
-ctx.resources.addDisposable(() => handle?.dispose());
-```
+When an effect needs model particles or generated model-local points, prefer
+`ctx.source.model.createPointLayer(...)`. The runtime owns attachment,
+ordering, and disposal through the returned managed handle. A future advanced
+object attachment API must be designed separately instead of using raw Three.js
+objects in the default public contract.
 
 Do not mutate target internals that are not exposed by the handle.
 

@@ -167,6 +167,13 @@ Then pass the stable array to React:
 For shader/material effects, keep the same authoring model and use public
 handles:
 
+Public handles are capability handles: use methods such as `draw`, `setGlyphs`,
+`setTextureTransform`, `createMaterialLayer`, `forEachMesh`, `sampleVertices`,
+and `createPointLayer`; do not rely on `object3D`, `mesh`, `material`, or
+`texture` fields. Material programs are Three-inspired shader declarations, not
+raw Three.js materials; public fields are `vertexShader`, `fragmentShader`,
+`uniforms`, `defines`, and `blend`.
+
 ```ts
 const ghostCursorEffect = defineWebGLEffect({
   kind: "example.surfaceGhostCursor",
