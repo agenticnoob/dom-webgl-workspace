@@ -21,6 +21,7 @@ type TextSnapshotRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  requestTextureFrame?(): void;
 };
 
 export function createTextSnapshotRenderable(
@@ -50,6 +51,7 @@ export function createTextSnapshotRenderable(
           ordering: readRenderableOrdering(context),
           getManagedObjectOrdering: () => readManagedObjectOrdering(context),
           textContent: state.textContent,
+          requestTextureFrame: options.requestTextureFrame,
         });
         if (state.scene.object.textContent !== state.textContent) {
           state.scene.updateTextContent(state.textContent);
@@ -80,6 +82,9 @@ export function createTextSnapshotRenderable(
           text: state.textContent,
           textLayer: state.scene?.object.textLayerCapability,
         };
+      },
+      inspectTextureTelemetry() {
+        return state.scene?.object.inspectTextureTelemetry?.() ?? [];
       },
       dispose() {
         state.textContent = "";

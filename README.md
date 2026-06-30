@@ -63,8 +63,9 @@ entry/exit is not missed; absolute HTTP(S) resource cache keys preserve origin;
 resource loads are capped by `maxConcurrentResourceLoads`; layout measurement
 candidates are reduced for stable offscreen targets; named postprocess requests
 run through bounded internal bloom/grain/blur passes; and
-`docs/performance/profile-notes.md` records that batching is deferred because
-the profile did not show draw calls dominating many compatible planes.
+`docs/performance/profile-notes.md` records that the texture-ownership follow-up
+is implemented while batching is deferred because the profile did not show draw
+calls dominating many compatible planes.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -104,8 +105,8 @@ Current runtime behavior:
   targets do not need `renderRole: "overlay"` to paint above their parent.
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active, plus per-target layer diagnostics and
-  runtime performance budget warnings when active target, snapshot, video, or
-  model counts exceed configured limits.
+  runtime performance budget warnings when active target, snapshot, video,
+  model, or internal texture-size telemetry exceeds configured limits.
 - Image, video, and model resources are cached by normalized resource key.
   Relative/app-local URLs keep path/search/hash normalization; absolute
   HTTP(S) and protocol-relative URLs preserve origin to avoid cross-origin

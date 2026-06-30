@@ -311,6 +311,7 @@ describe("source capability handles", () => {
       needsUpdate: false,
     };
     const invalidate = vi.fn();
+    const markTextureDirty = vi.fn();
     const image = document.createElement("img");
     const handle = createTextureLayerCapabilityHandle({
       object3D: createObject3D(),
@@ -319,6 +320,7 @@ describe("source capability handles", () => {
       texture,
       source: image,
       invalidate,
+      markTextureDirty,
     });
 
     expect("texture" in handle).toBe(false);
@@ -334,7 +336,8 @@ describe("source capability handles", () => {
 
     expect(texture.repeat.set).toHaveBeenCalledWith(0.5, 0.75);
     expect(texture.offset.set).toHaveBeenCalledWith(0.1, 0.2);
-    expect(texture.needsUpdate).toBe(true);
+    expect(markTextureDirty).toHaveBeenCalledWith("texture-transform");
+    expect(texture.needsUpdate).toBe(false);
     expect(invalidate).toHaveBeenCalledTimes(1);
     expect(handle.shaderInputs).toMatchObject({
       naturalSize: { width: 1, height: 1 },

@@ -17,6 +17,7 @@ import { Texture } from "three/src/textures/Texture.js";
 
 import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
+import type { TextureUploadDirtyReason } from "./textureUploadState";
 
 export type CanvasSurfaceCapabilityOptions = {
   object3D: unknown;
@@ -27,6 +28,7 @@ export type CanvasSurfaceCapabilityOptions = {
   texture: unknown;
   getSize(): { width: number; height: number; devicePixelRatio: number };
   getShaderInputs?(): WebGLEffectCanvasSurfaceHandle["shaderInputs"];
+  markTextureDirty?(reason: TextureUploadDirtyReason): void;
   invalidate(): void;
 };
 
@@ -56,6 +58,7 @@ export type TextureLayerCapabilityOptions<
   source: TSource;
   setTextureTransform?(transform: WebGLEffectTextureTransform): void;
   getShaderInputs?(): WebGLEffectMediaShaderInputs;
+  markTextureDirty?(reason: TextureUploadDirtyReason): void;
   invalidate(): void;
 };
 
@@ -84,13 +87,13 @@ export function createCanvasSurfaceCapabilityHandle(
     },
     clear() {
       clearCanvas(options);
-      markTextureDirty(options.texture, options.invalidate);
+      markTextureDirty(options, "effect-invalidate");
     },
     draw(drawer) {
       drawCanvas(options, drawer);
     },
     invalidate() {
-      markTextureDirty(options.texture, options.invalidate);
+      markTextureDirty(options, "effect-invalidate");
     },
     getSize() {
       return options.getSize();
@@ -164,10 +167,10 @@ export function createTextureLayerCapabilityHandle<
       }
 
       applyTextureTransform(options.texture, transform);
-      markTextureDirty(options.texture, options.invalidate);
+      markTextureDirty(options, "texture-transform");
     },
     invalidate() {
-      markTextureDirty(options.texture, options.invalidate);
+      markTextureDirty(options, "effect-invalidate");
     },
   };
 }
@@ -219,7 +222,7 @@ function drawCanvas(
     height: size.height,
     devicePixelRatio: size.devicePixelRatio,
   });
-  markTextureDirty(options.texture, options.invalidate);
+  markTextureDirty(options, "effect-draw");
 }
 
 function clearCanvas(options: CanvasSurfaceCapabilityOptions): void {
@@ -282,7 +285,7 @@ export function drawTextGlyphCommands(
   }
 
   context.globalAlpha = 1;
-  markTextureDirty(options.texture, options.invalidate);
+  markTextureDirty(options, "glyph-commands");
 }
 
 function applyTextureTransform(
@@ -307,11 +310,20 @@ function setVector2(vector: unknown, x: number, y: number): void {
   }
 }
 
-function markTextureDirty(texture: unknown, invalidate: () => void): void {
-  if (texture && typeof texture === "object") {
-    (texture as { needsUpdate?: boolean }).needsUpdate = true;
+function markTextureDirty(
+  options: {
+    texture: unknown;
+    markTextureDirty?(reason: TextureUploadDirtyReason): void;
+    invalidate(): void;
+  },
+  reason: TextureUploadDirtyReason,
+): void {
+  if (options.markTextureDirty) {
+    options.markTextureDirty(reason);
+  } else if (options.texture && typeof options.texture === "object") {
+    (options.texture as { needsUpdate?: boolean }).needsUpdate = true;
   }
-  invalidate();
+  options.invalidate();
 }
 
 function createMaterialTarget(

@@ -104,6 +104,86 @@ describe("element plane scene renderable", () => {
     controller.controller.dispose();
   });
 
+  test("element surface texture telemetry records effect draw invalidation", () => {
+    const context = createCanvasContextStub();
+    const restoreCanvas = stubCanvasContext(context);
+
+    try {
+      const controller = createElementPlaneSceneRenderableController({
+        key: "effect.surface",
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(),
+        getViewportSize: () => ({ width: 800, height: 600 }),
+        element: document.createElement("section"),
+      });
+
+      controller.updateLayout({ ...createMeasurement(), devicePixelRatio: 2 });
+      controller.object.surfaceCapability?.draw(({ context: drawingContext }) => {
+        drawingContext.clearRect(0, 0, 8, 8);
+      });
+
+      expect(controller.object.inspectTextureTelemetry).toEqual(expect.any(Function));
+      expect(controller.object.inspectTextureTelemetry?.()).toEqual([
+        expect.objectContaining({
+          key: "effect.surface",
+          width: 400,
+          height: 300,
+          devicePixelRatio: 2,
+          sourceKind: "canvas",
+          dirty: true,
+          dirtyReason: "effect-draw",
+        }),
+      ]);
+
+      controller.controller.dispose();
+    } finally {
+      restoreCanvas();
+    }
+  });
+
+  test("text texture telemetry records glyph command invalidation", () => {
+    const context = createCanvasContextStub();
+    const restoreCanvas = stubCanvasContext(context);
+    const element = document.createElement("h2");
+    element.textContent = "Hi";
+
+    try {
+      const controller = createTextPlaneSceneRenderableController({
+        key: "effect.text",
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(),
+        getViewportSize: () => ({ width: 800, height: 600 }),
+        element,
+        textContent: "Hi",
+      });
+
+      controller.updateLayout({ ...createMeasurement(), devicePixelRatio: 1.5 });
+      controller.object.textLayerCapability?.setGlyphs((glyphs) =>
+        glyphs.map((glyph) => ({
+          index: glyph.index,
+          char: "X",
+        })),
+      );
+
+      expect(controller.object.inspectTextureTelemetry).toEqual(expect.any(Function));
+      expect(controller.object.inspectTextureTelemetry?.()).toEqual([
+        expect.objectContaining({
+          key: "effect.text",
+          width: 400,
+          height: 300,
+          devicePixelRatio: 1.5,
+          sourceKind: "canvas",
+          dirty: true,
+          dirtyReason: "glyph-commands",
+        }),
+      ]);
+
+      controller.controller.dispose();
+    } finally {
+      restoreCanvas();
+    }
+  });
+
   test("uses group target roots for plane-like layer renderables", () => {
     const element = createElementPlaneSceneRenderableController({
       key: "root.element",
@@ -248,6 +328,45 @@ describe("element plane scene renderable", () => {
     controller.object.updateTextureSource?.(second);
 
     expect(controller.object.textureSource).toBe(second);
+
+    controller.controller.dispose();
+  });
+
+  test("texture plane telemetry records source changes without owning source frames", () => {
+    const first = document.createElement("img");
+    Object.defineProperties(first, {
+      naturalWidth: { value: 1600 },
+      naturalHeight: { value: 900 },
+    });
+    const second = document.createElement("img");
+    Object.defineProperties(second, {
+      naturalWidth: { value: 800 },
+      naturalHeight: { value: 600 },
+    });
+
+    const controller = createTexturePlaneSceneRenderableController({
+      key: "sequence.hero",
+      sceneAdapter: createSceneAdapter(),
+      measureElement: () => createMeasurement(),
+      getViewportSize: () => ({ width: 800, height: 600 }),
+      element: document.createElement("section"),
+      textureKind: "image",
+      textureSource: first,
+    });
+
+    controller.object.updateTextureSource?.(second);
+
+    expect(controller.object.inspectTextureTelemetry).toEqual(expect.any(Function));
+    expect(controller.object.inspectTextureTelemetry?.()).toEqual([
+      expect.objectContaining({
+        key: "sequence.hero",
+        width: 800,
+        height: 600,
+        sourceKind: "image",
+        dirty: true,
+        dirtyReason: "source-change",
+      }),
+    ]);
 
     controller.controller.dispose();
   });

@@ -217,6 +217,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
     progressSignals: options.progressSignals,
     postprocessController,
+    requestTextureFrame() {
+      if (syncingFrame) {
+        return;
+      }
+
+      rendererLoopRequestFrame("dom-invalidation");
+    },
     getOrdering(descriptor, policy) {
       return (
         targetState.orderingsByTargetKey.get(descriptor.key) ??
@@ -233,6 +240,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   let nextScanOrder = 0;
   let disposed = false;
   let lastDebugEmit = 0;
+  let syncingFrame = false;
 
   // Tracks the last measured far/disposed rect per target. Small scroll steps
   // can reuse this state to avoid reading DOM rects for safely distant targets.
@@ -379,6 +387,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       ...readDebugScrollState(scroll),
       pointer: frameInput.pointer,
       performanceBudget: options.performanceBudget,
+      textureTelemetry: Array.from(
+        targetState.renderablesByTargetKey.values(),
+        (renderable) => renderable.inspectTextureTelemetry?.() ?? [],
+      ).flat(),
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
@@ -709,6 +721,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return { didSynchronousUpdate: false, schedulingMode: "on-demand" };
     }
 
+    syncingFrame = true;
+    try {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.update();
     let requiresContinuousRendering = frameInput.scroll.mode === "gate";
@@ -838,6 +852,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
       pendingUpdate,
     };
+    } finally {
+      syncingFrame = false;
+    }
   }
 
   function handleVisibilityChange(): void {

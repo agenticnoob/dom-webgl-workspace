@@ -41,6 +41,7 @@ export type RenderableFactoryContext = {
   loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
   progressSignals?: WebGLProgressSignalSource;
+  requestTextureFrame?(): void;
   getOrdering?(
     descriptor: TargetDescriptor,
     policy: RenderPolicy,
@@ -77,6 +78,7 @@ export function createRenderable(
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
+          requestTextureFrame: context.requestTextureFrame,
         });
       }
 
@@ -84,6 +86,7 @@ export function createRenderable(
         sceneAdapter: context.sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
+        requestTextureFrame: context.requestTextureFrame,
       });
     case "media":
       if (sourceDescriptor.type === "image") {
@@ -92,6 +95,7 @@ export function createRenderable(
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
+          requestTextureFrame: context.requestTextureFrame,
         });
       }
 
@@ -102,6 +106,7 @@ export function createRenderable(
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
           loadVideo: context.loadVideo,
+          requestTextureFrame: context.requestTextureFrame,
         });
       }
 
@@ -110,6 +115,7 @@ export function createRenderable(
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
         progressSignals: context.progressSignals,
+        requestTextureFrame: context.requestTextureFrame,
       });
     case "model":
       return createModelRenderable(renderableContext, {

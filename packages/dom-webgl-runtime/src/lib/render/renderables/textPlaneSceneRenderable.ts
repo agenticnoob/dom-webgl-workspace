@@ -16,6 +16,7 @@ import {
   drawTextGlyphCommands,
   type TextLayerCapabilityOptions,
 } from "./sourceCapabilityHandles";
+import { createTextureUploadState } from "./textureUploadState";
 import {
   computeTextGlyphLayout,
   createTextCanvasRenderSignature,
@@ -38,6 +39,12 @@ export function createTextPlaneSceneRenderableController(
   const canvas = options.element.ownerDocument.createElement("canvas");
   const context = readCanvasContext(canvas);
   const texture = new CanvasTexture(canvas);
+  const textureUpload = createTextureUploadState({
+    key: options.key,
+    texture,
+    source: canvas,
+    requestFrame: options.requestTextureFrame,
+  });
   const geometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
     map: texture,
@@ -65,11 +72,13 @@ export function createTextPlaneSceneRenderableController(
     }),
   );
   group.add(mesh);
+  textureUpload.markDirty("initial");
   const controller = createSceneRenderableController({
     ...options,
     object3D: group,
     textureSource: canvas,
     disposeResources() {
+      textureUpload.dispose();
       texture.dispose();
       geometry.dispose();
       material.dispose();
@@ -108,7 +117,7 @@ export function createTextPlaneSceneRenderableController(
 
     lastRenderSignature = signature;
     lastRasterGeometrySignature = rasterGeometrySignature;
-    updateTextCanvas(canvas, texture, textContent, state);
+    updateTextCanvas(canvas, textContent, state, markCanvasRasterDirty);
     glyphs = context ? computeTextGlyphLayout(context, textContent, state) : [];
     textLayerStyle = readTextLayerStyle(state);
     applyGlyphCommandTransform();
@@ -120,7 +129,6 @@ export function createTextPlaneSceneRenderableController(
     lastRenderSignature = "";
     updateTextCanvas(
       canvas,
-      texture,
       textContent,
       readTextCanvasRenderState(options.element, textContent, {
         width: lastMeasurement?.width ?? 1,
@@ -128,6 +136,7 @@ export function createTextPlaneSceneRenderableController(
         devicePixelRatio: lastMeasurement?.devicePixelRatio ?? 1,
         style: initialStyle,
       }),
+      markCanvasRasterDirty,
     );
   };
   controller.object.updateTextLayout = (measurement) => {
@@ -164,8 +173,11 @@ export function createTextPlaneSceneRenderableController(
       glyphCommandTransform = transform;
       applyGlyphCommandTransform();
     },
+    markTextureDirty(reason) {
+      textureUpload.markDirty(reason);
+    },
     invalidate() {
-      texture.needsUpdate = true;
+      return;
     },
   };
   const applyGlyphCommandTransform = () => {
@@ -177,12 +189,22 @@ export function createTextPlaneSceneRenderableController(
   };
   controller.object.textLayerCapability =
     createTextLayerCapabilityHandle(textLayerOptions);
+  controller.object.inspectTextureTelemetry = () => [textureUpload.inspect()];
 
   if (options.textContent) {
     controller.updateTextContent(options.textContent);
   }
 
   return controller;
+
+  function markCanvasRasterDirty(state: TextCanvasRenderState): void {
+    textureUpload.updateSize({
+      width: state.width,
+      height: state.height,
+      devicePixelRatio: state.devicePixelRatio,
+    });
+    textureUpload.markDirty("canvas-raster");
+  }
 }
 
 function createRasterGeometrySignature(layout: ElementLayoutSnapshot): string {
@@ -206,9 +228,9 @@ function readTextLayerStyle(state: TextCanvasRenderState): WebGLTextLayerStyle {
 
 function updateTextCanvas(
   canvas: HTMLCanvasElement,
-  texture: CanvasTexture,
   textContent: string,
   state: TextCanvasRenderState,
+  markCanvasRasterDirty: (state: TextCanvasRenderState) => void,
 ): void {
   const dpr = Math.min(Math.max(1, state.devicePixelRatio), 1.5);
 
@@ -216,7 +238,7 @@ function updateTextCanvas(
   canvas.height = Math.max(1, Math.ceil(state.height * dpr));
 
   if (!canvas.ownerDocument.defaultView?.CanvasRenderingContext2D) {
-    texture.needsUpdate = true;
+    markCanvasRasterDirty(state);
     return;
   }
 
@@ -230,8 +252,8 @@ function updateTextCanvas(
     context.setTransform?.(1, 0, 0, 1, 0, 0);
     context.scale?.(dpr, dpr);
     drawTextSnapshotToCanvas(canvas, context, textContent, state);
-    texture.needsUpdate = true;
+    markCanvasRasterDirty(state);
   } catch {
-    texture.needsUpdate = true;
+    markCanvasRasterDirty(state);
   }
 }

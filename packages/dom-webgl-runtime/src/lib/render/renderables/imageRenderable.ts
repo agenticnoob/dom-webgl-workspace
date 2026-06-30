@@ -24,6 +24,7 @@ type ImageRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  requestTextureFrame?(): void;
 };
 
 export function createImageRenderable(
@@ -64,6 +65,7 @@ export function createImageRenderable(
           getManagedObjectOrdering: () => readManagedObjectOrdering(context),
           textureKind: "image",
           textureSource: image,
+          requestTextureFrame: options.requestTextureFrame,
         });
         state.scene.attach();
         state.fallbackVisible = false;
@@ -92,6 +94,9 @@ export function createImageRenderable(
           src: source.src,
           image: state.scene?.object.textureLayerCapability,
         };
+      },
+      inspectTextureTelemetry() {
+        return state.scene?.object.inspectTextureTelemetry?.() ?? [];
       },
       dispose() {
         state.scene?.controller.dispose();

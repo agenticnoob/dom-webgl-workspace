@@ -6,6 +6,7 @@ import { CanvasTexture } from "three/src/textures/CanvasTexture.js";
 
 import { createElementPlaneEffectTarget } from "./effectTargets/elementPlaneEffectTarget";
 import { createCanvasSurfaceCapabilityHandle } from "./sourceCapabilityHandles";
+import { createTextureUploadState } from "./textureUploadState";
 import {
   createManagedObject3DFactory,
   createSceneRenderableController,
@@ -23,6 +24,12 @@ export function createElementPlaneSceneRenderableController(
   const canvas = options.element.ownerDocument.createElement("canvas");
   const context = readCanvasContext(canvas);
   const texture = new CanvasTexture(canvas);
+  const textureUpload = createTextureUploadState({
+    key: options.key,
+    texture,
+    source: canvas,
+    requestFrame: options.requestTextureFrame,
+  });
   const geometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
     map: texture,
@@ -36,6 +43,7 @@ export function createElementPlaneSceneRenderableController(
 
   group.add(mesh);
   group.visible = false;
+  textureUpload.markDirty("initial");
 
   const controller = createSceneRenderableController({
     ...options,
@@ -46,6 +54,7 @@ export function createElementPlaneSceneRenderableController(
       createManagedObject3DFactory(options),
     ),
     disposeResources() {
+      textureUpload.dispose();
       texture.dispose();
       geometry.dispose();
       material.dispose();
@@ -58,16 +67,23 @@ export function createElementPlaneSceneRenderableController(
     canvas,
     context,
     texture,
+    markTextureDirty(reason) {
+      textureUpload.markDirty(reason);
+    },
     getSize() {
       return readSurfaceSize(lastMeasurement);
     },
     invalidate() {
-      texture.needsUpdate = true;
+      return;
     },
   });
+  controller.object.inspectTextureTelemetry = () => [textureUpload.inspect()];
   controller.object.updateTextLayout = (measurement) => {
     lastMeasurement = measurement;
-    resizeCanvasToMeasurement(canvas, texture, measurement);
+    textureUpload.updateSize(readSurfaceSize(measurement));
+    resizeCanvasToMeasurement(canvas, texture, measurement, () => {
+      textureUpload.markDirty("canvas-raster");
+    });
   };
 
   return controller;

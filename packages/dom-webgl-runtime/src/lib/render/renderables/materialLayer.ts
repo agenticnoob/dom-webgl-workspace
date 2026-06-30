@@ -25,6 +25,11 @@ import type {
   WebGLEffectTextureUniform,
   WebGLEffectUniformValue,
 } from "../../effects/effectAuthoring";
+import {
+  createTextureUploadState,
+  type TextureUploadSource,
+  type TextureUploadState,
+} from "./textureUploadState";
 
 export type MaterialLayerTarget = {
   material: unknown;
@@ -39,13 +44,18 @@ export type MaterialLayerOptions = {
   mode?: "replace-source" | "overlay";
 };
 
+type OwnedTextureResource = {
+  texture: Texture;
+  upload: TextureUploadState;
+};
+
 export function createMaterialLayer(
   options: MaterialLayerOptions,
 ): WebGLEffectMaterialLayerHandle {
   const originalMaterial = options.target.material;
   let disposed = false;
   let activeMaterial: ShaderMaterial | undefined;
-  const ownedTexturesByUniform = new Map<string, Texture[]>();
+  const ownedTexturesByUniform = new Map<string, OwnedTextureResource[]>();
 
   applyProgram(options.program);
 
@@ -63,7 +73,7 @@ export function createMaterialLayer(
       }
 
       for (const [name, value] of Object.entries(uniforms)) {
-        const nextOwnedTextures: Texture[] = [];
+        const nextOwnedTextures: OwnedTextureResource[] = [];
         activeMaterial.uniforms[name] = {
           value: compileUniformValue(options.key, name, value, {
             sourceTexture: options.sourceTexture,
@@ -137,7 +147,10 @@ export function createMaterialLayer(
     return new ShaderMaterial(parameters);
   }
 
-  function replaceOwnedTextures(name: string, textures: Texture[]): void {
+  function replaceOwnedTextures(
+    name: string,
+    textures: OwnedTextureResource[],
+  ): void {
     disposeTextures(ownedTexturesByUniform.get(name) ?? []);
     if (textures.length > 0) {
       ownedTexturesByUniform.set(name, textures);
@@ -158,12 +171,12 @@ export function createMaterialLayer(
 function compileUniforms(
   options: MaterialLayerOptions,
   program: WebGLEffectMaterialProgram,
-  replaceOwnedTextures: (name: string, textures: Texture[]) => void,
+  replaceOwnedTextures: (name: string, textures: OwnedTextureResource[]) => void,
 ): Record<string, { value: unknown }> {
   const uniforms: Record<string, { value: unknown }> = {};
 
   for (const [name, value] of Object.entries(program.uniforms ?? {})) {
-    const ownedTextures: Texture[] = [];
+    const ownedTextures: OwnedTextureResource[] = [];
     uniforms[name] = {
       value: compileUniformValue(options.key, name, value, {
         sourceTexture: options.sourceTexture,
@@ -190,7 +203,7 @@ function compileUniformValue(
   value: WebGLEffectUniformValue,
   resources: {
     sourceTexture?: Texture;
-    ownedTextures: Texture[];
+    ownedTextures: OwnedTextureResource[];
   },
 ): unknown {
   if (
@@ -232,7 +245,7 @@ function compileTextureUniform(
   value: WebGLEffectTextureUniform,
   resources: {
     sourceTexture?: Texture;
-    ownedTextures: Texture[];
+    ownedTextures: OwnedTextureResource[];
   },
 ): Texture {
   switch (value.kind) {
@@ -240,21 +253,42 @@ function compileTextureUniform(
       return readSourceTexture(key, name, resources);
     case "canvas-texture": {
       const texture = new CanvasTexture(value.source);
-      resources.ownedTextures.push(texture);
+      resources.ownedTextures.push(
+        createOwnedTextureResource(key, name, texture, value.source),
+      );
       return texture;
     }
     case "image-texture": {
       const texture = new Texture(value.source);
-      texture.needsUpdate = true;
-      resources.ownedTextures.push(texture);
+      resources.ownedTextures.push(
+        createOwnedTextureResource(key, name, texture, value.source),
+      );
       return texture;
     }
     case "video-texture": {
       const texture = new VideoTexture(value.source);
-      resources.ownedTextures.push(texture);
+      resources.ownedTextures.push(
+        createOwnedTextureResource(key, name, texture, value.source),
+      );
       return texture;
     }
   }
+}
+
+function createOwnedTextureResource(
+  key: string,
+  name: string,
+  texture: Texture,
+  source: TextureUploadSource,
+): OwnedTextureResource {
+  const upload = createTextureUploadState({
+    key: `${key}.${name}`,
+    texture,
+    source,
+  });
+  upload.markDirty("material-uniform");
+
+  return { texture, upload };
 }
 
 function readSourceTexture(
@@ -285,9 +319,10 @@ function mapBlendMode(blend: WebGLEffectBlendMode | undefined): Material["blendi
   }
 }
 
-function disposeTextures(textures: readonly Texture[]): void {
-  for (const texture of textures) {
-    texture.dispose();
+function disposeTextures(resources: readonly OwnedTextureResource[]): void {
+  for (const resource of resources) {
+    resource.upload.dispose();
+    resource.texture.dispose();
   }
 }
 

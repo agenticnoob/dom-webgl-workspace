@@ -19,6 +19,7 @@ type ImageSequenceRenderableOptions = {
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   readonly progressSignals?: WebGLProgressSignalSource;
+  requestTextureFrame?(): void;
   readonly createSceneController?: (options: {
     readonly source: WebGLMediaImageSequenceSourceDescriptor;
     readonly textureSource: WebGLImageSequenceFrame;
@@ -52,6 +53,7 @@ export function createImageSequenceRenderable(
         getManagedObjectOrdering: () => readManagedObjectOrdering(context),
         textureKind: "image",
         textureSource: sceneOptions.textureSource,
+        requestTextureFrame: options.requestTextureFrame,
       }));
 
   return createRenderable(context, {
@@ -92,6 +94,9 @@ export function createImageSequenceRenderable(
         src: state.src,
         image: state.scene?.object.textureLayerCapability,
       };
+    },
+    inspectTextureTelemetry() {
+      return state.scene?.object.inspectTextureTelemetry?.() ?? [];
     },
     dispose() {
       state.scene?.controller.dispose();

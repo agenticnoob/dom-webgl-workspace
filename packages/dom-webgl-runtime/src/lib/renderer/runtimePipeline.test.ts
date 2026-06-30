@@ -306,6 +306,37 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("aggregates renderable texture telemetry into debug warnings without exposing textures", async () => {
+    const image = document.createElement("img");
+    image.src = "/large-poster.png";
+    Object.defineProperties(image, {
+      naturalWidth: { value: 2048 },
+      naturalHeight: { value: 1024 },
+      decode: {
+        configurable: true,
+        value: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      performanceBudget: { maxTextureSize: 1024 },
+    });
+
+    runtime.registerTarget(image, { key: "large.poster" });
+
+    await runtime.sync();
+    const debugState = runtime.getDebugState();
+
+    expect(debugState.warnings).toContainEqual({
+      code: "performance-budget-exceeded",
+      target: "textureSize",
+      count: 2048,
+      limit: 1024,
+    });
+    expect(debugState).not.toHaveProperty("textures");
+
+    runtime.dispose();
+  });
+
   test("orders nested child target scene objects above parent media scene object", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -2228,6 +2259,36 @@ describe("runtime pipeline sync", () => {
 
     expect(measureElement).toHaveBeenCalledTimes(1);
     expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+  });
+
+  test("texture invalidation requests one additional on-demand frame for a static target", async () => {
+    const loopHost = createLoopRecordingHost();
+    const createdRenderables: Renderable[] = [];
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      onRenderableCreated(renderable) {
+        createdRenderables.push(renderable);
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, { key: "static.texture" });
+
+    loopHost.tick(16);
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    const source = createdRenderables[0]?.effectSource;
+    if (source?.kind !== "dom" || source.type !== "element" || !source.surface) {
+      throw new Error("Expected static DOM element surface source.");
+    }
+
+    source.surface.invalidate();
+    loopHost.tick(32);
+    loopHost.tick(48);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
 
     runtime.dispose();
   });

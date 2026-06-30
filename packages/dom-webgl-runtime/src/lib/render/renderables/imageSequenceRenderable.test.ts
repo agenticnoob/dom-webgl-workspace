@@ -41,6 +41,7 @@ describe("createImageSequenceRenderable", () => {
     );
 
     await renderable.update();
+    await renderable.update();
 
     expect(updateTextureSource).toHaveBeenCalledWith(frames[5]);
     expect(updateTextureSource).toHaveBeenCalledTimes(1);

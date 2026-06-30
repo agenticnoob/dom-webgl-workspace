@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through Task 6: Task 1 budgets/debug warnings, Task 2 demand-driven scheduler state, Task 3 layout measurement candidate reduction, Task 4 absolute-origin resource cache keys and resource-load concurrency control, Task 5 bounded postprocess passes, and Task 6 profile-gated batching decision. Task 6 recorded `no dominant bottleneck` in `docs/performance/profile-notes.md`; batching was not implemented because the profile did not show draw calls dominating many compatible planes.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through Task 6: Task 1 budgets/debug warnings, Task 2 demand-driven scheduler state, Task 3 layout measurement candidate reduction, Task 4 absolute-origin resource cache keys and resource-load concurrency control, Task 5 bounded postprocess passes, and Task 6 profile-gated batching decision. Task 6 recorded `no dominant bottleneck` in `docs/performance/profile-notes.md`; batching was not implemented because the profile did not show draw calls dominating many compatible planes. The follow-up internal texture ownership refactor is now implemented without public API expansion.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -39,9 +39,12 @@ objects, raw mesh traversal, raw point-cloud objects, raw target object
 attachment, or renderer-state mutation.
 
 ## Last Completed Task
-Runtime performance roadmap Tasks 1 through 6 are implemented or decided,
-including the Task 6 profile-gated decision to defer batching because draw
-calls did not dominate the measured scenarios.
+Internal Texture Ownership Refactor is implemented as the profile-selected
+follow-up after runtime performance roadmap Task 6. Texture dirty writes now
+flow through one internal owner for source textures and runtime-created texture
+uniforms; texture-size telemetry feeds existing `"textureSize"` debug warnings;
+and texture invalidation outside the active sync pass wakes the existing
+on-demand renderer loop for one frame.
 
 ## Latest Documentation Note
 Controlled visual capability API is implemented through the existing
@@ -56,7 +59,9 @@ Public handles are controlled capability handles and do not expose raw
 objects, or target-level raw object attachment. Material programs expose only `vertexShader`,
 `fragmentShader`, `uniforms`, `defines`, and `blend`. The public API does not
 expose renderer, scene, camera, raw shader materials, raw textures, composer,
-render targets, render loop, pass ordering, or renderer-state mutation.
+render targets, render loop, pass ordering, or renderer-state mutation. Texture
+ownership telemetry surfaces only as existing performance warning records;
+debug state does not expose raw texture objects or texture lists.
 `apps/example`
 Ghost Cursor now dogfoods the public material layer/shader API and sends the
 ReactBits-style pointer trail as controlled public uniform data; visual browser
@@ -184,15 +189,17 @@ authoring friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 84: AI-First Public API Boundary Tightening.
 
 ## Current Task
-Runtime performance roadmap Tasks 1 through 6 are implemented or decided. The
-runtime now has public performance budgets and debug warnings, demand-driven
-scheduler state, layout measurement candidate reduction, absolute-origin
-resource cache keys, resource-load concurrency control, and bounded internal
-postprocess pass execution. Task 6 recorded the profile-gated batching decision
-in `docs/performance/profile-notes.md`: no dominant bottleneck was proven, draw
+Runtime performance roadmap Tasks 1 through 6 are implemented or decided, and
+the internal texture ownership follow-up is implemented. The runtime now has
+public performance budgets and debug warnings, demand-driven scheduler state,
+layout measurement candidate reduction, absolute-origin resource cache keys,
+resource-load concurrency control, bounded internal postprocess pass execution,
+internal texture dirty/telemetry ownership, and on-demand frame wakeups for
+texture invalidation. Task 6 recorded the profile-gated batching decision in
+`docs/performance/profile-notes.md`: no dominant bottleneck was proven, draw
 calls did not dominate many compatible planes, and batching was deferred. This
-is still not a renderer rewrite, WebGPU rewrite, multi-canvas architecture, or
-raw Three.js public API expansion.
+is still not a renderer rewrite, WebGPU rewrite, multi-canvas architecture,
+effect scheduling redesign, or raw Three.js public API expansion.
 
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object
@@ -759,33 +766,33 @@ raw Three.js public API expansion.
 - `npm run check:imports` (green package-boundary review import-boundary verification: `Demo and example import boundaries OK`)
 
 ## Last Result
-Runtime performance roadmap Tasks 1 through 6 are complete or decided and the
-documentation closeout is aligned. Task 6 remains a profile-gated decision: the
-profile notes record idle page, scroll page, pinned section, GLB model, and
-image-sequence scenarios, including target/renderable counts, frame timings,
-window-total counters, normalized per-frame counters, profiler limitations, and
-verification. The decision is to keep batching deferred unless future profiling
-proves draw calls dominate many compatible same-source/same-material planes.
-Final verification passed with `npm run test -- --run` (88 files / 499 tests),
+Internal Texture Ownership Refactor is implemented. The change centralizes
+texture dirty state, source/size telemetry, dirty reasons, and request-frame
+wakeups for runtime-owned canvas/text/media/material-layer texture paths.
+Texture-size budget warnings use the existing `target: "textureSize"` warning
+shape. Batching remains deferred unless future profiling proves draw calls
+dominate many compatible same-source/same-material planes. Public API shape is
+unchanged: no raw texture list, raw Three.js handle, WebGPU path, multiple
+canvas path, batching API, or effect scheduling API was added. Final
+verification passed with `npm run test -- --run` (89 files / 509 tests),
 `npm run typecheck`, `npm run build` (existing non-blocking Vite chunk-size
 warning only), `npm run check:imports`, and `git diff --check`.
 
 ## Files Changed
 - `README.md`
-- `docs/00-goal.md`
-- `docs/REVIEW_BACKLOG.md`
 - `docs/agent/package-usage.md`
 - `docs/performance/profile-notes.md`
-- `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`
 - `docs/EXECUTION_STATE.md`
-- Runtime roadmap implementation files from Tasks 1 through 5 are already in
-  prior commits; this Task 6 amend only reconciles status/docs truth.
+- `packages/dom-webgl-runtime/src/lib/render/renderables/textureUploadState.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/textureUploadState.test.ts`
+- Texture-producing renderables, source capability handles, material layer,
+  renderable/runtime/debug state plumbing, and focused regression tests.
 
 ## Known Issues
-No blocking runtime performance roadmap Task 6 issue is currently known. The
-existing non-blocking Vite production build chunk-size warning remains. Batching
-is intentionally deferred by profile evidence rather than left as an unchecked
-Task 6 implementation gap.
+No blocking texture ownership refactor issue is currently known. The existing
+non-blocking Vite production build chunk-size warning remains. Batching remains
+intentionally deferred by profile evidence rather than left as an unchecked
+implementation gap.
 
 ## Important Constraints
 - Public effect authoring should stay on `defineWebGLEffect(...)` plus
@@ -820,8 +827,8 @@ Task 6 implementation gap.
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-Use `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` for the
-next implementation sequence. Keep the boundary explicit: no package effect
-presets, no public renderer/camera/scene mutation, no multiple-canvas path, no
-picking path, no core-owned third-party scroll dependency, no CSS paint cloning,
-and no example-specific runtime branch.
+Use `docs/performance/profile-notes.md` before reopening batching or effect
+scheduling. Keep the boundary explicit: no package effect presets, no public
+renderer/camera/scene mutation, no multiple-canvas path, no picking path, no
+core-owned third-party scroll dependency, no CSS paint cloning, no public raw
+texture handles, and no example-specific runtime branch.

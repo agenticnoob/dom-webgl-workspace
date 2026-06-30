@@ -17,6 +17,7 @@ type ElementSnapshotRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  requestTextureFrame?(): void;
 };
 
 export function createElementSnapshotRenderable(
@@ -41,6 +42,7 @@ export function createElementSnapshotRenderable(
         element: context.descriptor.element,
         ordering: readRenderableOrdering(context),
         getManagedObjectOrdering: () => readManagedObjectOrdering(context),
+        requestTextureFrame: options.requestTextureFrame,
       });
       state.scene.attach();
     },
@@ -68,9 +70,12 @@ export function createElementSnapshotRenderable(
           element: context.descriptor.element,
           surface: state.scene?.object.surfaceCapability,
         };
-    },
-    dispose() {
-      state.visible = false;
+      },
+      inspectTextureTelemetry() {
+        return state.scene?.object.inspectTextureTelemetry?.() ?? [];
+      },
+      dispose() {
+        state.visible = false;
       state.measurement = undefined;
       state.scene?.controller.dispose();
     },

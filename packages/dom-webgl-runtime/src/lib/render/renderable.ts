@@ -5,6 +5,7 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLRenderRole } from "../types";
+import type { TextureUploadTelemetry } from "./renderables/textureUploadState";
 import {
   compileRenderPolicy,
   type RenderPolicy,
@@ -36,6 +37,7 @@ export type Renderable = {
   update(input?: WebGLFrameInput): void | Promise<void>;
   updateLayout?(measurement: ElementLayoutSnapshot): void;
   invalidateContent?(): void;
+  inspectTextureTelemetry?(): readonly TextureUploadTelemetry[];
   setVisible(visible: boolean): void;
   dispose(): void;
 };
@@ -67,6 +69,7 @@ type RenderableHooks = {
   sceneObjectController?(): WebGLSceneObjectController | undefined;
   effectTarget?(): WebGLEffectTarget | undefined;
   effectSource?(): WebGLEffectSourceHandle | undefined;
+  inspectTextureTelemetry?(): readonly TextureUploadTelemetry[];
   dispose?(): void;
 };
 
@@ -185,6 +188,13 @@ export function createRenderable(
       }
 
       hooks.invalidateContent?.(context, lifecycle);
+    },
+    inspectTextureTelemetry(): readonly TextureUploadTelemetry[] {
+      if (disposed) {
+        return [];
+      }
+
+      return hooks.inspectTextureTelemetry?.() ?? [];
     },
     dispose(): void {
       if (disposed) {

@@ -22,6 +22,7 @@ import type {
 } from "../../effects/effectAuthoring";
 import type { WebGLEffectTarget } from "../../effects/effectTarget";
 import { createObject3DEffectTarget } from "./effectTargets/elementPlaneEffectTarget";
+import type { TextureUploadTelemetry } from "./textureUploadState";
 
 export type ElementMeasurement = {
   x: number;
@@ -50,6 +51,7 @@ export type SceneRenderableObject = WebGLSceneObject & {
   updateTextLayout?(measurement: ElementMeasurement): void;
   updateTextureSource?(source: HTMLImageElement | HTMLCanvasElement | ImageBitmap): void;
   invalidateContent?(): void;
+  inspectTextureTelemetry?(): readonly TextureUploadTelemetry[];
 };
 
 export type SceneRenderableControllerOptions = {
@@ -65,6 +67,7 @@ export type SceneRenderableControllerOptions = {
   effectTarget?: WebGLEffectTarget;
   disposeObject3D?: boolean;
   disposeResources?(): void;
+  requestTextureFrame?(): void;
   getManagedObjectOrdering?(): WebGLSceneObjectOrdering;
   layoutObject3D?(object3D: unknown, layout: ProjectedDOMRect): void;
 };
@@ -293,6 +296,7 @@ export function resizeCanvasToMeasurement(
   canvas: HTMLCanvasElement,
   texture: CanvasTexture,
   measurement: ElementMeasurement,
+  markTextureDirty?: () => void,
 ): void {
   const size = readSurfaceSize(measurement);
   const dpr = Math.min(Math.max(1, size.devicePixelRatio), 1.5);
@@ -305,7 +309,11 @@ export function resizeCanvasToMeasurement(
   if (canvas.height !== height) {
     canvas.height = height;
   }
-  texture.needsUpdate = true;
+  if (markTextureDirty) {
+    markTextureDirty();
+  } else {
+    texture.needsUpdate = true;
+  }
 }
 
 export function applyDOMActivityVisibility(

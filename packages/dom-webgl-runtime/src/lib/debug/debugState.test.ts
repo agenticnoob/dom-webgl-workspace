@@ -215,6 +215,34 @@ describe("debug state", () => {
     ]);
   });
 
+  test("reports texture size warnings from internal texture telemetry", () => {
+    const state = createDebugState({
+      targetCount: 1,
+      renderableCount: 1,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      performanceBudget: { maxTextureSize: 1024 },
+      textureTelemetry: [
+        {
+          key: "hero.image",
+          width: 2048,
+          height: 1024,
+          sourceKind: "image",
+          dirty: false,
+        },
+      ],
+      targets: [createDebugTargetState("hero.image", "media/image")],
+    });
+
+    expect(state.warnings).toContainEqual({
+      code: "performance-budget-exceeded",
+      target: "textureSize",
+      count: 2048,
+      limit: 1024,
+    });
+    expect(state).not.toHaveProperty("textures");
+  });
+
   test("runtime exposes current target renderable and input summaries", async () => {
     const runtime = await createRuntime({
       pointerController: createPointerController(),

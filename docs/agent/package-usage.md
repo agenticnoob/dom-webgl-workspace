@@ -106,9 +106,11 @@ const runtime = createWebGLRuntime({
 ```
 
 `WebGLDebugState.warnings` currently emits
-`performance-budget-exceeded` records for active target, snapshot, video, and
-model counts. `maxTextureSize` is reserved for a later measured texture-size
-field and should not be treated as implemented telemetry yet.
+`performance-budget-exceeded` records for active target, snapshot, video, model,
+and internal texture-size telemetry. Texture-size records use the existing
+`target: "textureSize"` warning target and the configured `maxTextureSize`
+limit. Debug state does not expose a raw texture list; consumers should react to
+warning records rather than inspecting internal Three.js texture objects.
 
 Resource loading uses `maxConcurrentResourceLoads` as an internal queue limit.
 Do not build a second loader inside effects or renderables to bypass it.

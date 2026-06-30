@@ -86,6 +86,48 @@ describe("material layer", () => {
     expect(textureDispose).toHaveBeenCalledTimes(1);
   });
 
+  test("marks runtime-created texture uniforms dirty without disposing source textures", () => {
+    const target = { material: new MeshBasicMaterial() };
+    const sourceTexture = new Texture();
+    const canvas = document.createElement("canvas");
+    const image = document.createElement("img");
+    const video = document.createElement("video");
+    const layer = createMaterialLayer({
+      key: "test.layer",
+      target,
+      sourceTexture,
+      program: {
+        fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+        uniforms: {
+          sourceMap: { kind: "source-texture" },
+          canvasMap: { kind: "canvas-texture", source: canvas },
+          imageMap: { kind: "image-texture", source: image },
+          videoMap: { kind: "video-texture", source: video },
+        },
+      },
+    });
+    const shader = readShaderMaterial(target.material);
+    const canvasTexture = shader.uniforms.canvasMap?.value as Texture;
+    const imageTexture = shader.uniforms.imageMap?.value as Texture;
+    const videoTexture = shader.uniforms.videoMap?.value as Texture;
+    const sourceDispose = vi.spyOn(sourceTexture, "dispose");
+    const canvasDispose = vi.spyOn(canvasTexture, "dispose");
+    const imageDispose = vi.spyOn(imageTexture, "dispose");
+    const videoDispose = vi.spyOn(videoTexture, "dispose");
+
+    expect(shader.uniforms.sourceMap?.value).toBe(sourceTexture);
+    expect(canvasTexture.version).toBeGreaterThan(0);
+    expect(imageTexture.version).toBeGreaterThan(0);
+    expect(videoTexture.version).toBeGreaterThan(0);
+
+    layer.dispose();
+
+    expect(sourceDispose).not.toHaveBeenCalled();
+    expect(canvasDispose).toHaveBeenCalledTimes(1);
+    expect(imageDispose).toHaveBeenCalledTimes(1);
+    expect(videoDispose).toHaveBeenCalledTimes(1);
+  });
+
   test("setUniforms only replaces owned textures for updated uniforms", () => {
     const target = { material: new MeshBasicMaterial() };
     const firstCanvas = document.createElement("canvas");

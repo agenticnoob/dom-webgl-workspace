@@ -23,6 +23,7 @@ import {
   createTextureLayerCapabilityHandle,
   createVideoLayerCapabilityHandle,
 } from "./sourceCapabilityHandles";
+import { createTextureUploadState } from "./textureUploadState";
 import {
   applyDOMActivityVisibility,
   createSceneRenderableController,
@@ -45,6 +46,12 @@ export function createTexturePlaneSceneRenderableController(
     options.textureKind === "video"
       ? new VideoTexture(options.textureSource as HTMLVideoElement)
       : new Texture(options.textureSource);
+  const textureUpload = createTextureUploadState({
+    key: options.key,
+    texture,
+    source: options.textureSource,
+    requestFrame: options.requestTextureFrame,
+  });
   const mediaGeometry = new PlaneGeometry(1, 1);
   const material = new MeshBasicMaterial({
     map: texture,
@@ -58,11 +65,12 @@ export function createTexturePlaneSceneRenderableController(
   let shaderInputs: WebGLEffectMediaShaderInputs | undefined;
 
   group.add(mediaMesh);
-  texture.needsUpdate = true;
+  textureUpload.markDirty("initial");
   const controller = createSceneRenderableController({
     ...options,
     object3D: group,
     disposeResources() {
+      textureUpload.dispose();
       texture.dispose();
       mediaGeometry.dispose();
       material.dispose();
@@ -123,6 +131,7 @@ export function createTexturePlaneSceneRenderableController(
 
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
+    textureUpload.markDirty("texture-transform");
     applyTextureLayerTransform();
     applyMediaContentBox(mediaMesh, mediaBox, contentBox);
     applyDOMActivityVisibility(group, initialStyle);
@@ -138,9 +147,10 @@ export function createTexturePlaneSceneRenderableController(
     currentTextureSource = nextSource;
     controller.object.textureSource = nextSource;
     texture.image = nextSource;
-    texture.needsUpdate = true;
+    textureUpload.updateSource(nextSource);
     lastTextureTransformSignature = "";
   };
+  controller.object.inspectTextureTelemetry = () => [textureUpload.inspect()];
   if (options.textureKind === "video") {
     controller.object.videoLayerCapability = createVideoLayerCapabilityHandle({
       object3D: group,
@@ -151,12 +161,16 @@ export function createTexturePlaneSceneRenderableController(
       setTextureTransform(transform) {
         textureLayerTransform = transform;
         applyTextureLayerTransform();
+        textureUpload.markDirty("texture-transform");
       },
       getShaderInputs() {
         return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
       },
       invalidate() {
         controller.object.invalidateContent?.();
+      },
+      markTextureDirty(reason) {
+        textureUpload.markDirty(reason);
       },
     });
   } else {
@@ -169,12 +183,16 @@ export function createTexturePlaneSceneRenderableController(
       setTextureTransform(transform) {
         textureLayerTransform = transform;
         applyTextureLayerTransform();
+        textureUpload.markDirty("texture-transform");
       },
       getShaderInputs() {
         return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
       },
       invalidate() {
         controller.object.invalidateContent?.();
+      },
+      markTextureDirty(reason) {
+        textureUpload.markDirty(reason);
       },
     });
   }
@@ -247,7 +265,6 @@ function applyTextureTransform(
 ): void {
   setTextureVector(texture.repeat, transform.repeatX, transform.repeatY);
   setTextureVector(texture.offset, transform.offsetX, transform.offsetY);
-  texture.needsUpdate = true;
 }
 
 function updateMediaGroupLayout(

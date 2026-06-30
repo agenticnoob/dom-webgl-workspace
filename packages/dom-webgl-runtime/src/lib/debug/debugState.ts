@@ -7,6 +7,7 @@ import type {
   WebGLResourceStatus,
   WebGLLifecycleState,
 } from "../types";
+import type { TextureUploadTelemetry } from "../render/renderables/textureUploadState";
 
 export type DebugTargetState = {
   key: string;
@@ -30,6 +31,7 @@ export type DebugRuntimeState = {
   sceneProgress?: number;
   pointer: WebGLPointerState;
   performanceBudget?: WebGLPerformanceBudget;
+  textureTelemetry?: readonly TextureUploadTelemetry[];
   targets: readonly DebugTargetState[];
 };
 
@@ -123,6 +125,7 @@ function createPerformanceWarnings(
     ).length,
   };
   const warnings: WebGLPerformanceWarning[] = [];
+  const maxTextureSize = readMaxTextureSize(runtimeState.textureTelemetry ?? []);
 
   appendWarning(
     warnings,
@@ -148,8 +151,18 @@ function createPerformanceWarnings(
     counts.activeModels,
     budget.maxActiveModels,
   );
+  appendWarning(warnings, "textureSize", maxTextureSize, budget.maxTextureSize);
 
   return warnings;
+}
+
+function readMaxTextureSize(
+  textureTelemetry: readonly TextureUploadTelemetry[],
+): number {
+  return textureTelemetry.reduce(
+    (maxSize, texture) => Math.max(maxSize, texture.width, texture.height),
+    0,
+  );
 }
 
 function appendWarning(

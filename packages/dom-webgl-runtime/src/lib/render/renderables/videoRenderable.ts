@@ -26,6 +26,7 @@ type VideoRenderableOptions = {
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
+  requestTextureFrame?(): void;
 };
 
 export function createVideoRenderable(
@@ -57,6 +58,7 @@ export function createVideoRenderable(
           getManagedObjectOrdering: () => readManagedObjectOrdering(context),
           textureKind: "video",
           textureSource: video,
+          requestTextureFrame: options.requestTextureFrame,
         });
         state.scene.attach();
         state.fallbackVisible = false;
@@ -88,6 +90,9 @@ export function createVideoRenderable(
           src: source.src,
           video: state.scene?.object.videoLayerCapability,
         };
+      },
+      inspectTextureTelemetry() {
+        return state.scene?.object.inspectTextureTelemetry?.() ?? [];
       },
       dispose() {
         state.video?.pause();

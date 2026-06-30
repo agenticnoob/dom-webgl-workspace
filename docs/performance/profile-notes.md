@@ -7,9 +7,16 @@
 - Observed bottleneck: no dominant bottleneck
 
 ## Decision
-- Next optimization: Profile-gate per-frame texture refresh for static DOM/text/media surfaces so `texSubImage2D` only runs when source content or the sampled media frame changes.
+- Implemented follow-up: Internal texture ownership now centralizes texture dirty state, source/size telemetry, dirty reasons, and on-demand frame wakeups for runtime-owned canvas/text/media/material-layer texture paths.
 - Deferred optimization: Plane batching for same-source/same-material renderables.
-- Reason: The profile showed low normalized draw-call volume, higher DOM rect read activity, texture-upload activity, and one scroll/long-task-heavy sample, so batching is not the next justified optimization.
+- Reason: The profile showed low normalized draw-call volume, higher DOM rect read activity, texture-upload activity, and one scroll/long-task-heavy sample, so batching is not the next justified optimization. The implemented response is texture upload ownership and measurement, not a renderer rewrite.
+
+## Texture Ownership Follow-Up
+
+- Texture dirty writes now flow through an internal ownership helper for runtime-created canvas/text/media source textures and material-layer texture uniforms.
+- `WebGLDebugState.warnings` can emit existing `performance-budget-exceeded` records with `target: "textureSize"` when internal texture telemetry exceeds `performanceBudget.maxTextureSize`.
+- Texture invalidation outside the active sync pass wakes the existing on-demand renderer loop for one follow-up frame through the internal dirty-frame path.
+- Public API is unchanged: no raw Three.js textures, texture lists, render targets, renderer info, batching API, WebGPU path, or multiple-canvas path were added.
 
 ## Profiling Method
 
@@ -57,7 +64,7 @@ Batching is not needed for this task. The profile does not show draw calls as th
 
 ## Verification
 
-- `npm run test -- --run`: passed (88 files / 499 tests, from the prior full Task 6 verification).
+- `npm run test -- --run`: passed (89 files / 509 tests).
 - `npm run typecheck`: passed.
 - `npm run build`: passed; existing Vite chunk-size warning only.
 - `npm run check:imports`: passed (`Example import boundary OK`).
