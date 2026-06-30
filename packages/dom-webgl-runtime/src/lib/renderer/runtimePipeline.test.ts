@@ -1864,6 +1864,149 @@ describe("runtime pipeline sync", () => {
 
     runtime.dispose();
   });
+
+  test("static scene renders the first loop frame then idles on demand", async () => {
+    const loopHost = createLoopRecordingHost();
+    const measureElement = vi.fn(readZeroMeasurement);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      measureElement,
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, { key: "static.hero" });
+
+    loopHost.tick(16);
+    loopHost.tick(32);
+
+    expect(measureElement).toHaveBeenCalledTimes(1);
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+  });
+
+  test("resource-ready dirty request renders one additional on-demand frame", async () => {
+    const loopHost = createLoopRecordingHost();
+    let resolveDecode: (() => void) | undefined;
+    const image = document.createElement("img");
+    image.src = "/poster.png";
+    Object.defineProperty(image, "decode", {
+      configurable: true,
+      value: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveDecode = resolve;
+          }),
+      ),
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+    });
+
+    runtime.registerTarget(image, {
+      key: "poster.image",
+      source: { kind: "media", type: "image", src: "/poster.png" },
+    });
+
+    loopHost.tick(16);
+    loopHost.tick(32);
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    resolveDecode?.();
+    await flushAsyncWork();
+
+    loopHost.tick(48);
+    loopHost.tick(64);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+
+    runtime.dispose();
+  });
+
+  test("active effects gates videos and pointer targets keep the loop continuous", async () => {
+    const effectLoopHost = createLoopRecordingHost();
+    let effectUpdates = 0;
+    const continuousEffect = defineWebGLEffect<{ kind: "test.continuous" }>({
+      kind: "test.continuous",
+      update() {
+        effectUpdates += 1;
+      },
+    });
+    const effectRuntime = await createPipelineRuntime({
+      rendererHostFactory: effectLoopHost.createHost,
+      effects: [continuousEffect],
+    });
+    effectRuntime.registerTarget(document.createElement("section"), {
+      key: "effect.hero",
+      effects: [{ kind: "test.continuous" }],
+    });
+
+    effectLoopHost.tick(16);
+    effectLoopHost.tick(32);
+
+    expect(effectLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+    expect(effectUpdates).toBe(2);
+    effectRuntime.dispose();
+
+    const gateLoopHost = createLoopRecordingHost();
+    const scrollController = createGateAwareScrollController();
+    const gateRuntime = await createPipelineRuntime({
+      rendererHostFactory: gateLoopHost.createHost,
+      scrollState: scrollController,
+    });
+    gateRuntime.registerTarget(document.createElement("section"), {
+      key: "gate.hero",
+      scroll: { type: "gate", start: "top top", duration: 1 },
+    });
+    scrollController.enterGate("gate.hero", 0.5);
+
+    gateLoopHost.tick(16);
+    gateLoopHost.tick(32);
+
+    expect(gateLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+    gateRuntime.dispose();
+
+    const videoLoopHost = createLoopRecordingHost();
+    const video = document.createElement("video");
+    video.src = "/clip.mp4";
+    Object.defineProperty(video, "pause", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    const videoRuntime = await createPipelineRuntime({
+      rendererHostFactory: videoLoopHost.createHost,
+      loadVideo: async () => video,
+    });
+    videoRuntime.registerTarget(video, {
+      key: "video.hero",
+      source: { kind: "media", type: "video", src: "/clip.mp4" },
+    });
+
+    videoLoopHost.tick(16);
+    await Promise.resolve();
+    await Promise.resolve();
+    videoLoopHost.tick(32);
+    videoLoopHost.tick(48);
+
+    expect(videoLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(3);
+    videoRuntime.dispose();
+
+    const pointerLoopHost = createLoopRecordingHost();
+    const pointerRuntime = await createPipelineRuntime({
+      rendererHostFactory: pointerLoopHost.createHost,
+      pointerController: createPointerController({ normalizedX: 0.25 }),
+    });
+    pointerRuntime.registerTarget(document.createElement("section"), {
+      key: "pointer.hero",
+      pointer: { move: true },
+    });
+
+    pointerLoopHost.tick(16);
+    pointerLoopHost.tick(32);
+
+    expect(pointerLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+    pointerRuntime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -1925,6 +2068,52 @@ function createRendererHostStub(
       canvas.remove();
     },
   };
+}
+
+function createLoopRecordingHost(
+  sceneAdapter: ReturnType<typeof createRecordingSceneAdapter> =
+    createRecordingSceneAdapter(),
+): {
+  sceneAdapter: ReturnType<typeof createRecordingSceneAdapter>;
+  setAnimationLoop: ReturnType<typeof vi.fn>;
+  createHost(container: HTMLElement): ThreeRendererHost;
+  tick(time: number): void;
+} {
+  let loopCallback: ((time: number) => void) | null = null;
+  const setAnimationLoop = vi.fn(
+    (callback: ((time: number) => void) | null) => {
+      loopCallback = callback;
+    },
+  );
+
+  return {
+    sceneAdapter,
+    setAnimationLoop,
+    createHost(container) {
+      const host = createRendererHostStub(container, sceneAdapter);
+
+      return {
+        ...host,
+        renderer: {
+          ...host.renderer,
+          setAnimationLoop,
+        },
+      };
+    },
+    tick(time) {
+      if (!loopCallback) {
+        throw new Error("Renderer loop has not been started.");
+      }
+
+      loopCallback(time);
+    },
+  };
+}
+
+function flushAsyncWork(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 function createRecordingSceneAdapter(): WebGLSceneAdapter & {

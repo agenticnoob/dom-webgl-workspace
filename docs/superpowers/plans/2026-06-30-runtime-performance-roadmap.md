@@ -109,7 +109,7 @@ Expected: pass.
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
-- [ ] **Step 1: Write failing scheduler tests**
+- [x] **Step 1: Write failing scheduler tests**
 
 Add tests for these contracts:
 
@@ -122,11 +122,11 @@ expect(render).toHaveBeenCalledTimes(2);
 ```
 
 ```ts
-// Active effects, active gates, video, or pointer-driven targets keep continuous mode.
+// Active effects, gate targets, video, or pointer-driven targets keep continuous mode.
 expect(loop.isContinuous()).toBe(true);
 ```
 
-- [ ] **Step 2: Run focused scheduler tests**
+- [x] **Step 2: Run focused scheduler tests**
 
 Run:
 
@@ -136,7 +136,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.
 
 Expected: fail before scheduler APIs exist.
 
-- [ ] **Step 3: Implement scheduler state without React ownership**
+- [x] **Step 3: Implement scheduler state without React ownership**
 
 Keep `setAnimationLoop(...)` in the renderer host. Add internal state for:
 
@@ -144,17 +144,20 @@ Keep `setAnimationLoop(...)` in the renderer host. Add internal state for:
 type RenderSchedulingMode = "continuous" | "on-demand";
 type RenderDirtyReason =
   | "initial"
-  | "layout"
+  | "target-register"
+  | "target-unregister"
+  | "dom-invalidation"
   | "resource-ready"
-  | "effect"
-  | "pointer"
-  | "scroll"
-  | "debug";
+  | "manual-sync";
 ```
 
-Render continuously only while a target has an active per-frame need: gate progress, video playback, pointer-driven effect, explicit animation/effect declaration, pending async resource, or requested postprocess.
+Current implementation renders continuously only while a target has an active
+per-frame need: declared gate target/progress, video playback, pointer-driven
+target, or explicit effect declaration. Pending async resources do not force continuous
+rendering; completion marks `resource-ready` dirty and renders one follow-up
+frame.
 
-- [ ] **Step 4: Verify focused scheduler tests**
+- [x] **Step 4: Verify focused scheduler tests**
 
 Run:
 
@@ -163,6 +166,8 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.
 ```
 
 Expected: pass.
+
+Status: implemented. Verification passed with 2 files / 47 tests.
 
 ## Task 3: Layout Measurement Candidate Reduction
 

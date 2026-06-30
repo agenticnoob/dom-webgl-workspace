@@ -54,9 +54,13 @@ The next implementation roadmap is
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
 and only then targeted batching or real postprocess passes if profiling proves
-they are needed. Task 1 and Task 4 of that roadmap are implemented: public
-performance budgets feed debug warnings, absolute HTTP(S) resource cache keys
-preserve origin, and resource loads are capped by `maxConcurrentResourceLoads`.
+they are needed. Task 1, Task 2, and Task 4 of that roadmap are implemented:
+public performance budgets feed debug warnings; static scenes render the first
+runtime-owned loop frame and then idle on demand; async resource readiness
+requests one follow-up frame; active effects, gates, video, and pointer-driven
+targets stay continuous, with declared gate targets kept continuous so gate
+entry/exit is not missed; absolute HTTP(S) resource cache keys preserve origin;
+and resource loads are capped by `maxConcurrentResourceLoads`.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.

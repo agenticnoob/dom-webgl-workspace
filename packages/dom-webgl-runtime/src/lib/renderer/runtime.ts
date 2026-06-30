@@ -73,7 +73,11 @@ import {
   createPostprocessController,
   type PostprocessController,
 } from "./postprocessController";
-import { createRendererLoop } from "./rendererLoop";
+import {
+  createRendererLoop,
+  type RenderDirtyReason,
+  type RenderSchedulingMode,
+} from "./rendererLoop";
 import {
   createViewportLifecycle,
   type ViewportLifecycleState,
@@ -129,6 +133,7 @@ type PipelineRenderableContext = RenderableFactoryContext & {
 
 type SyncFrameResult = {
   didSynchronousUpdate: boolean;
+  schedulingMode: RenderSchedulingMode;
   pendingUpdate?: Promise<void>;
 };
 
@@ -178,8 +183,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getViewportSize: () => rendererHost.getViewportSize(),
     getDevicePixelRatio: () => window.devicePixelRatio || 1,
   });
+  let requestRenderFrame: ((reason: RenderDirtyReason) => void) | undefined;
   const invalidationController =
-    internalOptions.invalidationController ?? createDOMInvalidationController();
+    internalOptions.invalidationController ??
+    createDOMInvalidationController({
+      onDirtyTarget() {
+        rendererLoopRequestFrame("dom-invalidation");
+      },
+    });
   const postprocessController =
     internalOptions.postprocessController ?? createPostprocessController();
   const targetState = createTargetRuntimeState(
@@ -227,15 +238,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     renderer: rendererHost.renderer,
     beforeRender() {
       try {
-        syncFrame();
+        const result = syncFrame();
+        watchResourceReadyUpdate(result);
+        return { mode: result.schedulingMode };
       } catch (error: unknown) {
         console.error("WebGL runtime frame sync failed.", error);
+        return { mode: "continuous" };
       }
     },
     render() {
       renderScene();
     },
   });
+  requestRenderFrame = rendererLoop.requestFrame;
 
   ownerDocument.addEventListener("visibilitychange", handleVisibilityChange);
   rendererLoop.start();
@@ -258,6 +273,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         key: descriptor.key,
         element: descriptor.element,
       });
+      rendererLoopRequestFrame("target-register");
       emitDebugState(true);
 
       return;
@@ -273,6 +289,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       targetState.fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(targetState, targetKey);
       unmarkFallbackRoot(targetKey);
+      rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
     sync() {
@@ -380,6 +397,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
     postprocessController.render(() => {
       rendererHost.sceneAdapter.render();
+    });
+  }
+
+  function rendererLoopRequestFrame(reason: RenderDirtyReason): void {
+    requestRenderFrame?.(reason);
+  }
+
+  function watchResourceReadyUpdate(result: SyncFrameResult): void {
+    result.pendingUpdate?.catch((error: unknown) => {
+      console.error("WebGL runtime async resource update failed.", error);
     });
   }
 
@@ -551,33 +578,40 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     lifecycleVersion: number,
     pendingUpdates: Array<Promise<void>>,
     frameInput: WebGLFrameInput,
+    requestResourceReadyFrame: boolean,
   ): void {
     markDebugRecordLoading(debugRecord);
     restoreFallbackVisibility(targetState, descriptor.key);
-    pendingUpdates.push(
-      resultPromise
-        .then(() => {
-          if (isStaleAsyncCompletion(descriptor, renderable, lifecycleVersion)) return;
+    const update = resultPromise
+      .then(() => {
+        if (isStaleAsyncCompletion(descriptor, renderable, lifecycleVersion)) return;
 
-          if (layoutMeasurement) {
-            const currentInput = frameInputSource.getState();
-            renderable.updateLayout?.(layoutMeasurement);
-            targetState.effectControllersByTargetKey
-              .get(descriptor.key)
-              ?.update(currentInput, layoutMeasurement);
-          }
-          syncDebugRecordFromRenderable(debugRecord, renderable);
-          syncFallbackVisibility(targetState, descriptor, renderable);
-        })
-        .catch((error: unknown) => {
-          if (isStaleAsyncReject(descriptor, renderable, lifecycleVersion)) return;
+        if (layoutMeasurement) {
+          const currentInput = frameInputSource.getState();
+          renderable.updateLayout?.(layoutMeasurement);
+          targetState.effectControllersByTargetKey
+            .get(descriptor.key)
+            ?.update(currentInput, layoutMeasurement);
+        }
+        syncDebugRecordFromRenderable(debugRecord, renderable);
+        syncFallbackVisibility(targetState, descriptor, renderable);
+        if (requestResourceReadyFrame) {
+          rendererLoopRequestFrame("resource-ready");
+        }
+      })
+      .catch((error: unknown) => {
+        if (isStaleAsyncReject(descriptor, renderable, lifecycleVersion)) return;
 
-          markDebugRecordError(debugRecord, error);
-          restoreFallbackVisibility(targetState, descriptor.key);
-          if (isGateTarget(descriptor)) releaseActiveGate(scrollState);
-          throw error;
-        }),
-    );
+        markDebugRecordError(debugRecord, error);
+        restoreFallbackVisibility(targetState, descriptor.key);
+        if (isGateTarget(descriptor)) releaseActiveGate(scrollState);
+        if (requestResourceReadyFrame) {
+          rendererLoopRequestFrame("resource-ready");
+        }
+        throw error;
+      });
+
+    pendingUpdates.push(update);
   }
 
   function applySyncCompletion(
@@ -626,11 +660,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
   function syncFrame(): SyncFrameResult {
     if (disposed) {
-      return { didSynchronousUpdate: false };
+      return { didSynchronousUpdate: false, schedulingMode: "on-demand" };
     }
 
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.update();
+    let requiresContinuousRendering = frameInput.scroll.mode === "gate";
 
     syncTargetLayerOrdering(descriptors);
     rendererHost.resizeIfNeeded();
@@ -698,12 +733,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       applyCurrentSceneOrdering(descriptor, renderable);
+      if (shouldKeepTargetContinuous(descriptor, renderable)) {
+        requiresContinuousRendering = true;
+      }
 
       if (dirtyKeys.has(descriptor.key)) {
         renderable.invalidateContent?.();
       }
 
       const lifecycleVersion = readLifecycleVersion(targetState, descriptor.key);
+      const requestResourceReadyFrame = renderable.status === "idle";
       let result: void | Promise<void>;
 
       try {
@@ -720,7 +759,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (isPromiseLike(result)) {
         scheduleAsyncCompletion(result, descriptor, renderable, debugRecord,
-          layoutMeasurement, lifecycleVersion, pendingUpdates, frameInput);
+          layoutMeasurement, lifecycleVersion, pendingUpdates,
+          frameInput, requestResourceReadyFrame);
       } else {
         applySyncCompletion(descriptor, renderable, debugRecord,
           layoutMeasurement, frameInput);
@@ -731,15 +771,21 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     emitDebugState();
 
     if (pendingUpdates.length === 0) {
-      return { didSynchronousUpdate };
+      return {
+        didSynchronousUpdate,
+        schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
+      };
     }
+
+    const pendingUpdate = Promise.all(pendingUpdates).then(
+      () => { emitDebugState(true); },
+      (error: unknown) => { emitDebugState(true); throw error; },
+    );
 
     return {
       didSynchronousUpdate,
-      pendingUpdate: Promise.all(pendingUpdates).then(
-        () => { emitDebugState(true); },
-        (error: unknown) => { emitDebugState(true); throw error; },
-      ),
+      schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
+      pendingUpdate,
     };
   }
 
@@ -792,6 +838,40 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
     const setOrdering = renderable.sceneObjectController?.setOrdering;
     setOrdering?.(ordering);
+  }
+
+  function shouldKeepTargetContinuous(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): boolean {
+    const source = inferSourceDescriptor(descriptor);
+
+    if (source.kind === "media" && source.type === "video") {
+      return true;
+    }
+
+    if (isGateTarget(descriptor)) {
+      return true;
+    }
+
+    if (hasPointerDeclaration(descriptor.declaration.pointer)) {
+      return true;
+    }
+
+    return (
+      targetState.effectControllersByTargetKey.get(descriptor.key)
+        ?.hasEffects === true && renderable.status !== "disposed"
+    );
+  }
+
+  function hasPointerDeclaration(
+    pointer: WebGLDeclaration["pointer"],
+  ): boolean {
+    return (
+      pointer?.move === true ||
+      pointer?.click === true ||
+      pointer?.drag === true
+    );
   }
 
   function unmarkFallbackRoot(key: string): void {

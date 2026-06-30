@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The next implementation roadmap is `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: Task 1 and Task 4 are implemented with public performance budgets, debug warnings, absolute-origin resource cache keys, and resource-load concurrency control; remaining roadmap work starts with demand-driven scheduling and only then targeted batching/postprocess if profiling proves need.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The next implementation roadmap is `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: Task 1, Task 2, and Task 4 are implemented with public performance budgets, debug warnings, demand-driven scheduler state, absolute-origin resource cache keys, and resource-load concurrency control; remaining roadmap work should move to measurement-led layout reduction, batching, or postprocess only if profiling proves need.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -184,13 +184,15 @@ authoring friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 84: AI-First Public API Boundary Tightening.
 
 ## Current Task
-Runtime performance roadmap Task 1 and Task 4 are implemented. The runtime now
-accepts public `WebGLPerformanceBudget` options, emits
-`WebGLPerformanceWarning` records through debug state when active
-target/snapshot/video/model counts exceed budgets, preserves absolute HTTP(S)
-origins in resource cache keys, and limits resource loader concurrency through
-`maxConcurrentResourceLoads`. The next roadmap batch is demand-driven
-scheduling; this is still not a renderer rewrite, WebGPU rewrite, multi-canvas
+Runtime performance roadmap Task 2 is implemented without moving loop ownership
+back to React. `rendererLoop` now owns `RenderSchedulingMode` and internal dirty
+reasons while still using `renderer.setAnimationLoop(...)`; runtime registers
+dirty frames for target registration, target unregistration, DOM invalidation,
+manual sync, and async resource readiness. Static scenes render the first loop
+frame and then idle on demand. Active effects, active gates, videos, and
+pointer-driven targets keep continuous rendering; declared gate targets also
+stay continuous so gate entry/exit is not missed while the page is approaching
+the gate. This is still not a renderer rewrite, WebGPU rewrite, multi-canvas
 architecture, or raw Three.js public API expansion.
 
 ## Nested WebGLTarget Layer Semantics
@@ -758,35 +760,32 @@ architecture, or raw Three.js public API expansion.
 - `npm run check:imports` (green package-boundary review import-boundary verification: `Demo and example import boundaries OK`)
 
 ## Last Result
-Runtime performance roadmap Task 1 and Task 4 are implemented. Focused RED
-tests first failed for missing debug warnings, missing public budget types,
-absolute URL origin collisions, and unbounded resource loader concurrency. The
-GREEN implementation adds `WebGLPerformanceBudget`,
-`WebGLPerformanceWarning`, `WebGLDebugState.warnings`, runtime budget plumbing,
-origin-preserving absolute/protocol-relative resource cache keys, and an
-internal resource load queue. R-002 is resolved in `docs/REVIEW_BACKLOG.md`.
+Runtime performance roadmap Task 2 is implemented. Focused RED tests first
+failed because `rendererLoop` had no dirty context/request API and runtime loop
+ticks still synchronized/rendered every RAF. The GREEN implementation adds
+internal `RenderSchedulingMode`, dirty reasons, `requestFrame(...)`, runtime
+dirty requests for resource readiness and DOM/runtime events, and continuous
+mode guards for active effects, declared gate targets, video, and
+pointer-driven targets.
+Focused verification passed with 2 files / 47 tests.
 
 ## Files Changed
 - `docs/REVIEW_BACKLOG.md`
 - `docs/EXECUTION_STATE.md`
 - `docs/00-goal.md`
-- `docs/agent/package-usage.md`
 - `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`
 - `README.md`
-- `packages/dom-webgl-runtime/src/index.ts`
-- `packages/dom-webgl-runtime/src/publicExports.test.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
-- `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.test.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
-- `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
-- `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
 
 ## Known Issues
-No blocking runtime performance roadmap Task 1/4 issue is currently known. The
+No blocking runtime performance roadmap Task 2 issue is currently known. The
 existing non-blocking Vite production build chunk-size warning remains. Roadmap
-R-004 remains non-blocking because demand-driven scheduling, measured texture
-size telemetry, and real postprocess pass execution are not implemented in this
-batch.
+R-004 remains non-blocking because measured texture size telemetry, layout
+candidate reduction, and real postprocess pass execution are not implemented in
+this batch.
 
 ## Important Constraints
 - Public effect authoring should stay on `defineWebGLEffect(...)` plus
