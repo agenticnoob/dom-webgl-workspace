@@ -1,4 +1,3 @@
-import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
@@ -32,6 +31,7 @@ import {
   type SceneRenderableController,
   type SceneRenderableControllerOptions,
 } from "./sceneRenderableController";
+import { acquireSharedPlaneGeometry } from "./sharedPlaneGeometry";
 
 export function createTextPlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
@@ -45,12 +45,12 @@ export function createTextPlaneSceneRenderableController(
     source: canvas,
     requestFrame: options.requestTextureFrame,
   });
-  const geometry = new PlaneGeometry(1, 1);
+  const geometry = acquireSharedPlaneGeometry();
   const material = new MeshBasicMaterial({
     map: texture,
     transparent: true,
   });
-  const mesh = new Mesh(geometry, material);
+  const mesh = new Mesh(geometry.geometry, material);
   const group = new Group();
   let textContent = options.textContent ?? "";
   const initialStyle = readDOMStyleSnapshot(options.element);

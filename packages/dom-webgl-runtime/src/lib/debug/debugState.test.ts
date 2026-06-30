@@ -3,7 +3,11 @@ import { describe, expect, test, vi } from "vitest";
 import type { ScrollStateController } from "../input/frameInput";
 import type { PointerController } from "../input/pointerController";
 import type { WebGLDebugState, WebGLPointerState } from "../types";
-import { createDebugState, type DebugRuntimeState } from "./debugState";
+import {
+  createBatchCandidateSummary,
+  createDebugState,
+  type DebugRuntimeState,
+} from "./debugState";
 import type { Renderable } from "../render/renderable";
 import type { createWebGLRuntime, WebGLRuntime } from "../renderer/runtime";
 import type { WebGLSceneObjectController } from "../renderer/sceneObject";
@@ -310,6 +314,32 @@ describe("debug state", () => {
     ]);
     expect(state).not.toHaveProperty("postprocess");
     expect(state).not.toHaveProperty("renderTarget");
+  });
+
+  test("summarizes internal batching candidates without exposing a public batching API", () => {
+    const targets = [
+      createDebugTargetState("poster.a", "media/image"),
+      createDebugTargetState("poster.b", "media/image"),
+      createDebugTargetState("copy", "dom/text"),
+      createDebugTargetState("model", "model/glb"),
+      {
+        ...createDebugTargetState("offscreen.poster", "media/image"),
+        lifecycleState: "mounted",
+      },
+    ] satisfies DebugRuntimeState["targets"];
+    const state = createDebugState({
+      targetCount: targets.length,
+      renderableCount: targets.length,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      targets,
+    });
+
+    expect(createBatchCandidateSummary(targets)).toEqual({
+      compatiblePlaneCount: 3,
+      largestFamilySize: 2,
+    });
+    expect(state).not.toHaveProperty("batchCandidates");
   });
 
   test("runtime exposes current target renderable and input summaries", async () => {

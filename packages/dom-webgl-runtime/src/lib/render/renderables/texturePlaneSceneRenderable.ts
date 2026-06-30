@@ -1,6 +1,5 @@
 import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
-import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Texture } from "three/src/textures/Texture.js";
 import { VideoTexture } from "three/src/textures/VideoTexture.js";
@@ -34,6 +33,7 @@ import {
   type SceneRenderableController,
   type SceneRenderableControllerOptions,
 } from "./sceneRenderableController";
+import { acquireSharedPlaneGeometry } from "./sharedPlaneGeometry";
 
 export function createTexturePlaneSceneRenderableController(
   options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources"> & {
@@ -52,12 +52,12 @@ export function createTexturePlaneSceneRenderableController(
     source: options.textureSource,
     requestFrame: options.requestTextureFrame,
   });
-  const mediaGeometry = new PlaneGeometry(1, 1);
+  const mediaGeometry = acquireSharedPlaneGeometry();
   const material = new MeshBasicMaterial({
     map: texture,
     transparent: true,
   });
-  const mediaMesh = new Mesh(mediaGeometry, material);
+  const mediaMesh = new Mesh(mediaGeometry.geometry, material);
   const group = new Group();
   const initialStyle = readDOMStyleSnapshot(options.element);
   let lastTextureTransformSignature = "";

@@ -51,6 +51,11 @@ export type DebugPostprocessStats = {
   maxRenderTargetSize: number;
 };
 
+export type BatchCandidateSummary = {
+  compatiblePlaneCount: number;
+  largestFamilySize: number;
+};
+
 const defaultPerformanceBudget: Required<WebGLPerformanceBudget> = {
   maxActiveTargets: 50,
   maxActiveSnapshots: 30,
@@ -112,6 +117,31 @@ export function createDebugState(
   }
 
   return state;
+}
+
+export function createBatchCandidateSummary(
+  targets: readonly DebugTargetState[],
+): BatchCandidateSummary {
+  const familyCounts = new Map<string, number>();
+  let compatiblePlaneCount = 0;
+  let largestFamilySize = 0;
+
+  for (const target of targets) {
+    if (!isBatchCompatiblePlaneTarget(target)) {
+      continue;
+    }
+
+    const family = `${target.sourceKind}:${target.renderRole}`;
+    const count = (familyCounts.get(family) ?? 0) + 1;
+    familyCounts.set(family, count);
+    compatiblePlaneCount += 1;
+    largestFamilySize = Math.max(largestFamilySize, count);
+  }
+
+  return {
+    compatiblePlaneCount,
+    largestFamilySize,
+  };
 }
 
 function readErrorMessage(error: unknown): string | undefined {
@@ -241,4 +271,13 @@ function isSnapshotTarget(target: DebugTargetState): boolean {
 
 function isSourceKind(target: DebugTargetState, sourceKind: string): boolean {
   return target.sourceKind === sourceKind;
+}
+
+function isBatchCompatiblePlaneTarget(target: DebugTargetState): boolean {
+  return (
+    target.lifecycleState === "active" &&
+    target.visible &&
+    target.renderRole !== "model" &&
+    !target.sourceKind.startsWith("model/")
+  );
 }
