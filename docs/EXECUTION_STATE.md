@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -42,15 +42,18 @@ objects, raw mesh traversal, raw point-cloud objects, raw target object
 attachment, or renderer-state mutation.
 
 ## Last Completed Task
-Runtime Performance Ownership V2 is implemented. The runtime now splits texture
-pixel uploads from frame-only dirtiness, updates material uniforms
-incrementally, honors effect scheduling hints, reports renderer and postprocess
-budget pressure through stable warning records, prioritizes resource loads by
-viewport state, shares internal plane geometry, and owns visible-only model
-animation mixer updates. The current profile still gates batching rather than
-implementing it by default.
+Test source separation is implemented. Runtime, scroll-adapter, and example
+tests now live under workspace `test/` directories instead of production `src/`
+directories. Root workspace and structure tests live under root `test/`.
+`test/structure.test.ts` enforces the layout so `.test` and `.spec` files do not
+return to `src/`.
 
 ## Latest Documentation Note
+Test-related docs now point at `packages/*/test`, `apps/example/test`, and root
+`test/` paths. Historical implementation plans and RED/GREEN evidence may still
+quote the old colocated `src/*.test.*` paths because those entries describe past
+execution context rather than current commands to run.
+
 Controlled visual capability API is implemented through the existing
 `defineWebGLEffect(...)` authoring model. Public source handles now cover
 runtime-owned material layers, source texture uniforms, text/media shader input
@@ -195,11 +198,12 @@ authoring friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 83: Nested WebGLTarget Layer Semantics.
 - Task 84: AI-First Public API Boundary Tightening.
 - Task 85: Runtime Performance Ownership V2.
+- Task 86: Test Source Separation.
 
 ## Current Task
-Runtime Performance Ownership V2 is complete and documented. This is still not
-a renderer rewrite, WebGPU rewrite, multi-canvas architecture, default batching
-implementation, or raw Three.js public API expansion.
+Test source separation is complete and documented. This is a repository
+structure cleanup only; it does not change runtime behavior, public package API,
+renderer ownership, or example visual behavior.
 
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object
@@ -766,30 +770,30 @@ implementation, or raw Three.js public API expansion.
 - `npm run check:imports` (green package-boundary review import-boundary verification: `Demo and example import boundaries OK`)
 
 ## Last Result
-Internal Texture Ownership Refactor is implemented. The change centralizes
-texture dirty state, source/size telemetry, dirty reasons, and request-frame
-wakeups for runtime-owned canvas/text/media/material-layer texture paths.
-Texture-size budget warnings use the existing `target: "textureSize"` warning
-shape. Batching remains deferred unless future profiling proves draw calls
-dominate many compatible same-source/same-material planes. Public API shape is
-unchanged: no raw texture list, raw Three.js handle, WebGPU path, multiple
-canvas path, batching API, or effect scheduling API was added. Final
-verification passed with `npm run test -- --run` (89 files / 509 tests),
-`npm run typecheck`, `npm run build` (existing non-blocking Vite chunk-size
-warning only), `npm run check:imports`, and `git diff --check`.
+Test Source Separation is implemented. The change moves package, app, and root
+test files out of production source directories, updates relative imports,
+extends root typecheck coverage to root `test/**/*.ts(x)`, and adds
+`test/structure.test.ts` as a repository guard. Public API shape and runtime
+behavior are unchanged. Final verification passed with
+`npm run test -- --run` (91 files / 529 tests), `npm run typecheck`,
+`npm run build` (existing non-blocking Vite chunk-size warning only),
+`npm run check:imports`, and `git diff --check`.
 
 ## Files Changed
 - `README.md`
-- `docs/agent/package-usage.md`
-- `docs/performance/profile-notes.md`
+- `AGENTS.md`
+- `docs/agent/custom-effects.md`
+- `docs/agent/scroll-adapters.md`
 - `docs/EXECUTION_STATE.md`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/textureUploadState.ts`
-- `packages/dom-webgl-runtime/src/lib/render/renderables/textureUploadState.test.ts`
-- Texture-producing renderables, source capability handles, material layer,
-  renderable/runtime/debug state plumbing, and focused regression tests.
+- `docs/REVIEW_BACKLOG.md`
+- `tsconfig.base.json`
+- `test/structure.test.ts`
+- Root workspace test moved from `workspace.test.ts` to `test/workspace.test.ts`.
+- Runtime, scroll-adapter, and example test files moved from workspace `src/`
+  directories to matching workspace `test/` directories.
 
 ## Known Issues
-No blocking texture ownership refactor issue is currently known. The existing
+No blocking issue is currently known for test source separation. The existing
 non-blocking Vite production build chunk-size warning remains. Batching remains
 intentionally deferred by profile evidence rather than left as an unchecked
 implementation gap.

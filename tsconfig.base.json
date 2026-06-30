@@ -21,7 +21,8 @@
     "noEmit": true
   },
   "include": [
-    "workspace.test.ts",
+    "test/**/*.ts",
+    "test/**/*.tsx",
     "packages/**/*.ts",
     "packages/**/*.tsx",
     "apps/**/*.ts",

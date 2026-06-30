@@ -135,7 +135,7 @@ Effect tests should cover:
 Repository verification:
 
 ```bash
-npm test -- --run apps/example/src
+npm test -- --run apps/example/test
 npm run typecheck
 npm run check:imports
 npm run build

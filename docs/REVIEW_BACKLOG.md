@@ -18,11 +18,11 @@ None.
 - Severity: resolved
 - Related task: Task 14: DOM-Native Resource Adoption
 - Files:
-  - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+  - `packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts`
 - Problem: `npm run typecheck` fails because the test helper functions return `WebGLSourceDescriptor`, then the tests access `.element` on values typed as the full source descriptor union. TypeScript correctly reports that `WebGLModelSourceDescriptor` has no `element` property.
 - Why it violates the plan: Checked tasks should leave the repository type-clean. Task 14's targeted Vitest suite passes, but the workspace typecheck currently fails against the completed-task test file.
 - Fix applied: Test helper return types were narrowed to concrete descriptor variants, so `.element` access is type-safe for image and video descriptors.
-- Verification command: `npm run typecheck && npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check`
+- Verification command: `npm run typecheck && npm test -- --run packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts && git diff --check`
 
 ## Resolved Non-blocking Issues
 
@@ -31,7 +31,7 @@ None.
 - Related task: Task 13: Resource Record Lifecycle
 - Files:
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
-  - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+  - `packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts`
 - Problem: Resource URL normalization collapsed query-string and hash variants
   onto the same resource record, so `/models/hero.glb?tenant=a`,
   `/models/hero.glb?tenant=b`, and `/models/hero.glb#preview` could share one
@@ -39,20 +39,20 @@ None.
 - Fix applied: URL normalization now preserves `pathname + search + hash` for
   protocol-relative, absolute HTTP(S), and relative/app-local URLs. Regression
   coverage proves query and hash variants acquire separate resource records.
-- Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && npm run check && npm run build && npm run check:imports && git diff --check`
+- Verification command: `npm test -- --run packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts && npm run check && npm run build && npm run check:imports && git diff --check`
 
 - ID: R-002
 - Severity: resolved
 - Related task: Task 13: Resource Record Lifecycle
 - Files:
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
-  - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+  - `packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts`
 - Problem: `normalizeResourceUrl()` returns only `pathname + search + hash`, so two absolute URLs with different origins but the same path would share the same model resource key.
 - Fix applied: Absolute HTTP(S) and protocol-relative resource URLs now include
   origin plus `pathname + search + hash` in cache keys. Relative/app-local URLs
   keep path/search/hash normalization. Resource load pressure is also bounded
   by the runtime performance budget's `maxConcurrentResourceLoads`.
-- Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check`
+- Verification command: `npm test -- --run packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts && git diff --check`
 
 ## Resolved Runtime Performance Issues
 
@@ -98,6 +98,6 @@ None currently recorded for the runtime performance roadmap closeout.
 ## Verification Commands To Run After Fixes
 
 - `npm run typecheck`
-- `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
+- `npm test -- --run packages/dom-webgl-runtime/test/lib/resources/resourceManager.test.ts`
 - `npm test -- --run`
 - `git diff --check`

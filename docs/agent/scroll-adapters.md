@@ -210,9 +210,9 @@ the page remains in page scroll mode.
 When changing scroll adapter code:
 
 ```bash
-npm test -- --run packages/dom-webgl-scroll-adapters/src
-npm test -- --run packages/dom-webgl-runtime/src/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/src/lib/input/scrollController.test.ts packages/dom-webgl-runtime/src/lib/input/scrollDelta.test.ts
-npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.test.tsx
+npm test -- --run packages/dom-webgl-scroll-adapters/test
+npm test -- --run packages/dom-webgl-runtime/test/lib/input/pageScroll.test.ts packages/dom-webgl-runtime/test/lib/input/scrollController.test.ts packages/dom-webgl-runtime/test/lib/input/scrollDelta.test.ts
+npm test -- --run packages/dom-webgl-runtime/test/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/test/lib/react/WebGLRuntime.test.tsx
 npm run typecheck
 npm run check:imports
 ```

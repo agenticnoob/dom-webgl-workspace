@@ -80,7 +80,10 @@ Project boundary:
   effect authoring. It must not import runtime internals.
 - Runtime/package implementation code must not hardcode example target keys,
   example asset paths, example DOM structure, example layout, or example copy.
-- `packages/dom-webgl-runtime/src/open-source-boundary.test.ts` guards runtime
+- Tests live outside production source directories: package/app tests use their
+  workspace `test/` directory, and repo-level structure/workspace tests live in
+  the root `test/` directory.
+- `packages/dom-webgl-runtime/test/open-source-boundary.test.ts` guards runtime
   source against app-specific coupling.
 
 Current runtime behavior:

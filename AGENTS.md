@@ -24,7 +24,7 @@
 | 视口生命周期 | `lib/renderer/viewportLifecycle.ts` | 活跃/预加载/卸载状态 |
 | 布局测量 | `lib/renderer/layoutPass.ts` | DOM rect 批量读取 |
 | 导入边界守卫 | `scripts/assert-example-public-imports.mjs` | example 导入检查 |
-| 公开类型守卫 | `publicExports.test.ts` | 程序化 TS 类型检查 |
+| 公开类型守卫 | `packages/dom-webgl-runtime/test/publicExports.test.ts` | 程序化 TS 类型检查 |
 
 ## 项目结构
 
@@ -36,10 +36,12 @@ packages/
   dom-webgl-scroll-adapters/  # 可选：Lenis + GSAP + ScrollTrigger 胶水
 apps/
   example/                # 下游消费者示例（React-only，effect authoring 教学）
+test/                     # repo 级结构/工作区测试
 ```
 
 - `apps/example` 只能通过 `@project/dom-webgl-runtime` / `@project/dom-webgl-runtime/react` 公共入口导入，禁止 `packages/dom-webgl-runtime/src/*` 路径导入。运行时源码不得硬编码 example 的 key、资产路径、DOM 结构、布局或文案。
-- 边界守卫：`packages/dom-webgl-runtime/src/open-source-boundary.test.ts`（应用字面量检查）、`scripts/assert-example-public-imports.mjs`（example 导入边界）、`publicExports.test.ts`（程序化 TS 类型检查确保内部类型不泄漏）。
+- 测试文件不和真实源码混放：package/app 的测试放在对应 workspace 的 `test/` 目录并镜像 `src/` 层级；根级结构/工作区测试放在根 `test/`。
+- 边界守卫：`packages/dom-webgl-runtime/test/open-source-boundary.test.ts`（应用字面量检查）、`scripts/assert-example-public-imports.mjs`（example 导入边界）、`packages/dom-webgl-runtime/test/publicExports.test.ts`（程序化 TS 类型检查确保内部类型不泄漏）、`test/structure.test.ts`（禁止 `src/` 下出现 `.test` / `.spec` 文件）。
 
 ## 关键命令（按顺序）
 
@@ -52,7 +54,7 @@ npm run test -- --run && npm run typecheck && npm run build && npm run check:imp
 ```
 
 - 测试：`npm test`（vitest交互模式）/ `npm run test -- --run`（单次运行）
-- 单包测试：`npm test -- --run packages/dom-webgl-runtime/src/lib/.../xxx.test.ts`
+- 单包测试：`npm test -- --run packages/dom-webgl-runtime/test/lib/.../xxx.test.ts`
 - 类型检查：`npm run typecheck`（根 tsconfig.base.json）/ `npm run typecheck -w @project/dom-webgl-runtime`（单包）
 - 运行 example：`npm run dev -w @project/dom-webgl-example`
 
@@ -123,7 +125,7 @@ createWebGLRuntime({ container, effects: [myEffect] });
 - **无 class**：全部用 `create*()` 工厂函数返回对象字面量，用 `type` 而非 `interface` 声明返回类型。
 - **穷举 switch**：有区分联合类型上用 switch 穷举，不用 `default`。少写分支编译器报错。
 - **`satisfies` 替代 `as`**：类型验证用 `satisfies Type`，不用 `as Type`（as 会强制转换可能隐藏错误）。测试中尤其普遍。
-- **`@ts-expect-error` 用于类型边界测试**：证明某个模式**被正确拒绝**。`publicExports.test.ts` 里有 20+ 处使用。禁止 `@ts-ignore` 和 `as any`。
+- **`@ts-expect-error` 用于类型边界测试**：证明某个模式**被正确拒绝**。`packages/dom-webgl-runtime/test/publicExports.test.ts` 里有 20+ 处使用。禁止 `@ts-ignore` 和 `as any`。
 - **`async/await` 在 runtime core 里不使用**：运行时核心用 `.then()/.catch()` + `isPromiseLike()` 守卫。只有 image/video/model 的 native load 允许 async。
 - **`node:*` 只能在测试和脚本文件中使用**：运行时源码不能 import Node API——SSR 安全要求。
 
@@ -132,7 +134,7 @@ createWebGLRuntime({ container, effects: [myEffect] });
 - **DI 优先**：测试直接调真实实现函数，通过 typed options 注入 stub。不用 `vi.mock()` mock 被测试模块自身。只有 Three.js 构造函数才需要用 `vi.doMock` + 动态 `import()`。
 - **Deferred Promise 控制异步**：用 `let resolve: () => void; await new Promise(r => { resolve = r; })` 精确控制异步完成时序。不用 `vi.useFakeTimers()`。
 - **无 snapshot 测试**：全部显式 `.toEqual()` / `.toMatchObject()`。没有 `.toMatchSnapshot()` 调用。
-- **无共享 test-utils**：每个测试文件自包含 helper 函数（`createSceneAdapter()`、`createFrameInput()` 等），底部定义。不存在共享 `test-utils.ts`。
+- **测试目录独立**：不要把 `.test` / `.spec` 文件放回 `src/`。大多数测试文件自包含 helper 函数（`createSceneAdapter()`、`createFrameInput()` 等），少量 app 级测试夹具放在 `apps/example/test/`。
 - **React 测试用 `createElement`**：不用 JSX。SSR 测试用 `renderToStaticMarkup`。用 `createRoot` + `act` 挂载/卸载。
 - **Three.js 在 jsdom 中**：导入 `three/src/...` 源码路径（非 barrel），不创建真实 GPU context。通过 `rendererHostFactory` 注入 stub。
 
