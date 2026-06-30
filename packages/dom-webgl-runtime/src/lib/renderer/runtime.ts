@@ -399,6 +399,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         (renderable) => renderable.inspectTextureTelemetry?.() ?? [],
       ).flat(),
       rendererStats: rendererHost.readRendererStats(),
+      postprocessStats: postprocessController.inspect(),
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);

@@ -20,9 +20,16 @@ import {
 
 export type PostprocessController = WebGLEffectVisualContext & {
   readonly activeRequestCount: number;
+  inspect(): PostprocessControllerStats;
   inspectRequests(): readonly WebGLEffectPostprocessRequest[];
   render(renderBase: () => void): void;
   dispose(): void;
+};
+
+export type PostprocessControllerStats = {
+  activeRequests: number;
+  passCount: number;
+  maxRenderTargetSize: number;
 };
 
 type StoredPostprocessRequest = {
@@ -86,12 +93,16 @@ export function createPostprocessController(
     get activeRequestCount() {
       return disposed ? 0 : requestsByKey.size;
     },
+    inspect() {
+      return inspectPostprocessState(options, disposed, requestsByKey);
+    },
     requestPostprocess(request) {
       if (disposed) {
         return createDisposedPostprocessHandle();
       }
 
-      const token = Symbol(request.key);
+      const existing = requestsByKey.get(request.key);
+      const token = existing?.token ?? Symbol(request.key);
       let currentKey = request.key;
       requestsByKey.set(currentKey, { token, request: cloneRequest(request) });
       let handleDisposed = false;
@@ -258,6 +269,34 @@ function cloneRequest(
     ...(request.bloom ? { bloom: { ...request.bloom } } : {}),
     ...(request.grain ? { grain: { ...request.grain } } : {}),
     ...(request.blur ? { blur: { ...request.blur } } : {}),
+  };
+}
+
+function inspectPostprocessState(
+  options: PostprocessControllerOptions,
+  disposed: boolean,
+  requestsByKey: ReadonlyMap<string, StoredPostprocessRequest>,
+): PostprocessControllerStats {
+  if (disposed) {
+    return {
+      activeRequests: 0,
+      passCount: 0,
+      maxRenderTargetSize: 0,
+    };
+  }
+
+  const requests = Array.from(requestsByKey.values(), (entry) => entry.request);
+  const compiledRequest = compilePostprocessRequest(requests);
+  const outputSize = options.getViewportSize
+    ? readOutputSize(options.getViewportSize())
+    : { width: 0, height: 0 };
+
+  return {
+    activeRequests: requestsByKey.size,
+    passCount: compiledRequest ? 1 : 0,
+    maxRenderTargetSize: compiledRequest
+      ? Math.max(outputSize.width, outputSize.height)
+      : 0,
   };
 }
 

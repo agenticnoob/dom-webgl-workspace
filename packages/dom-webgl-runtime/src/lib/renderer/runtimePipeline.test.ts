@@ -2833,6 +2833,13 @@ function createStubPostprocessController(
 ): PostprocessController {
   return {
     activeRequestCount: overrides.activeRequestCount ?? 0,
+    inspect:
+      overrides.inspect ??
+      vi.fn(() => ({
+        activeRequests: overrides.activeRequestCount ?? 0,
+        passCount: 0,
+        maxRenderTargetSize: 0,
+      })),
     inspectRequests: vi.fn(() => []),
     requestPostprocess:
       overrides.requestPostprocess ??

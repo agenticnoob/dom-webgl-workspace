@@ -40,10 +40,45 @@ describe("postprocess controller", () => {
     ]);
 
     first.dispose();
-    expect(controller.inspectRequests()).toHaveLength(1);
+    expect(controller.inspectRequests()).toHaveLength(0);
 
     second.dispose();
     expect(controller.inspectRequests()).toHaveLength(0);
+  });
+
+  test("reports active request count and max render target size", () => {
+    const controller = createPostprocessController(
+      createPostprocessOptions({
+        viewport: { width: 1600, height: 900 },
+      }),
+    );
+
+    controller.requestPostprocess({ key: "glow", bloom: { strength: 0.4 } });
+
+    expect(controller.inspect()).toMatchObject({
+      activeRequests: 1,
+      passCount: 1,
+      maxRenderTargetSize: 800,
+    });
+  });
+
+  test("updates duplicate postprocess request keys instead of adding pass count", () => {
+    const controller = createPostprocessController(createPostprocessOptions());
+    const first = controller.requestPostprocess({
+      key: "glow",
+      bloom: { strength: 0.2 },
+    });
+
+    controller.requestPostprocess({
+      key: "glow",
+      bloom: { strength: 0.8 },
+    });
+
+    expect(controller.inspect().activeRequests).toBe(1);
+    expect(controller.inspect().passCount).toBe(1);
+    first.dispose();
+    expect(controller.inspect().activeRequests).toBe(0);
+    expect(controller.inspect().passCount).toBe(0);
   });
 
   test("handle update replaces the current request and dispose is idempotent", () => {
@@ -481,4 +516,29 @@ function createSingleTargetPool(): PostprocessControllerOptions extends {
     release: vi.fn(),
     dispose: vi.fn(),
   };
+}
+
+function createPostprocessOptions(
+  options: { viewport?: { width: number; height: number } } = {},
+): PostprocessControllerOptions {
+  return {
+    renderer: {
+      setRenderTarget: vi.fn(),
+      render: vi.fn(),
+    },
+    scene: {},
+    camera: {},
+    getViewportSize() {
+      return options.viewport ?? { width: 1000, height: 800 };
+    },
+    createRenderTargetPool() {
+      return createSingleTargetPool();
+    },
+    createEffectPass() {
+      return {
+        render: vi.fn(),
+        dispose: vi.fn(),
+      };
+    },
+  } satisfies PostprocessControllerOptions;
 }

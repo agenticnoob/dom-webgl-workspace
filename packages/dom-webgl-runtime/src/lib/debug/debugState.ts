@@ -33,6 +33,7 @@ export type DebugRuntimeState = {
   performanceBudget?: WebGLPerformanceBudget;
   textureTelemetry?: readonly TextureUploadTelemetry[];
   rendererStats?: DebugRendererStats;
+  postprocessStats?: DebugPostprocessStats;
   targets: readonly DebugTargetState[];
 };
 
@@ -42,6 +43,12 @@ export type DebugRendererStats = {
   geometries: number;
   textures: number;
   programs?: number;
+};
+
+export type DebugPostprocessStats = {
+  activeRequests: number;
+  passCount: number;
+  maxRenderTargetSize: number;
 };
 
 const defaultPerformanceBudget: Required<WebGLPerformanceBudget> = {
@@ -176,6 +183,18 @@ function createPerformanceWarnings(
     "textureCount",
     runtimeState.rendererStats?.textures ?? 0,
     budget.maxTextureCount,
+  );
+  appendWarning(
+    warnings,
+    "renderTargetSize",
+    runtimeState.postprocessStats?.maxRenderTargetSize ?? 0,
+    budget.maxRenderTargetSize,
+  );
+  appendWarning(
+    warnings,
+    "postprocessRequests",
+    runtimeState.postprocessStats?.activeRequests ?? 0,
+    budget.maxPostprocessRequests,
   );
 
   return warnings;

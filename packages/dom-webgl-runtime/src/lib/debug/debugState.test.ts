@@ -276,6 +276,42 @@ describe("debug state", () => {
     expect(state).not.toHaveProperty("rendererInfo");
   });
 
+  test("reports postprocess budget warnings without exposing render targets", () => {
+    const state = createDebugState({
+      targetCount: 1,
+      renderableCount: 1,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      performanceBudget: {
+        maxPostprocessRequests: 1,
+        maxRenderTargetSize: 512,
+      },
+      postprocessStats: {
+        activeRequests: 2,
+        passCount: 1,
+        maxRenderTargetSize: 800,
+      },
+      targets: [createDebugTargetState("hero")],
+    });
+
+    expect(state.warnings).toEqual([
+      {
+        code: "performance-budget-exceeded",
+        target: "renderTargetSize",
+        count: 800,
+        limit: 512,
+      },
+      {
+        code: "performance-budget-exceeded",
+        target: "postprocessRequests",
+        count: 2,
+        limit: 1,
+      },
+    ]);
+    expect(state).not.toHaveProperty("postprocess");
+    expect(state).not.toHaveProperty("renderTarget");
+  });
+
   test("runtime exposes current target renderable and input summaries", async () => {
     const runtime = await createRuntime({
       pointerController: createPointerController(),
