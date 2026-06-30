@@ -24,6 +24,30 @@ describe("layout pass", () => {
     expect(measurements.has("inactive")).toBe(false);
   });
 
+  test("does not read viewport or DPR when every target is skipped", () => {
+    const measureElement = vi.fn();
+    const getViewportSize = vi.fn(() => ({ width: 390, height: 844 }));
+    const getDevicePixelRatio = vi.fn(() => 2);
+    const pass = createLayoutPass({
+      measureElement,
+      getViewportSize,
+      getDevicePixelRatio,
+    });
+
+    const measurements = pass.measure([
+      {
+        key: "far.disposed",
+        element: document.createElement("section"),
+        active: false,
+      },
+    ]);
+
+    expect(measurements.size).toBe(0);
+    expect(measureElement).not.toHaveBeenCalled();
+    expect(getViewportSize).not.toHaveBeenCalled();
+    expect(getDevicePixelRatio).not.toHaveBeenCalled();
+  });
+
   test("measures active targets into layout snapshots with viewport and DPR signatures", () => {
     const element = document.createElement("section");
     Object.assign(element.style, {

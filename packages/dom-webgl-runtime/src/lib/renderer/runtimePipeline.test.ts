@@ -1171,6 +1171,228 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("skips far disposed target measurement only after stable small scroll deltas", async () => {
+    const element = document.createElement("section");
+    let scrollY = 0;
+    stubWindowNumberProperty("scrollY", () => scrollY);
+    const measureElement = vi.fn(() =>
+      createLayoutMeasurement(0, 3_600, 200, 120),
+    );
+    const runtime = await createPipelineRuntime({ measureElement });
+
+    runtime.registerTarget(element, { key: "hero.measure-skip" });
+
+    await runtime.sync();
+    scrollY = 24;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(2);
+    scrollY = 48;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+    scrollY = 72;
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(3);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.measure-skip",
+      lifecycleState: "disposed",
+      visible: false,
+    });
+
+    runtime.dispose();
+  });
+
+  test("remeasures a skipped far target after a large scroll jump", async () => {
+    const element = document.createElement("section");
+    let scrollY = 0;
+    stubWindowNumberProperty("scrollY", () => scrollY);
+    const measureElement = vi.fn(() =>
+      createLayoutMeasurement(0, 3_600, 200, 120),
+    );
+    const runtime = await createPipelineRuntime({ measureElement });
+
+    runtime.registerTarget(element, { key: "hero.measure-jump" });
+
+    await runtime.sync();
+    scrollY = 24;
+    await runtime.sync();
+    scrollY = 48;
+    await runtime.sync();
+    scrollY = 72;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+
+    scrollY = 1_200;
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(4);
+
+    runtime.dispose();
+  });
+
+  test("remeasures a skipped far target after viewport resize", async () => {
+    const element = document.createElement("section");
+    let scrollY = 0;
+    let viewport = { width: 800, height: 600 };
+    stubWindowNumberProperty("scrollY", () => scrollY);
+    const measureElement = vi.fn(() =>
+      createLayoutMeasurement(0, 3_600, 200, 120),
+    );
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+
+        return {
+          ...host,
+          getViewportSize() {
+            return viewport;
+          },
+        };
+      },
+      measureElement,
+    });
+
+    runtime.registerTarget(element, { key: "hero.measure-resize" });
+
+    await runtime.sync();
+    scrollY = 24;
+    await runtime.sync();
+    scrollY = 48;
+    await runtime.sync();
+    scrollY = 72;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+
+    viewport = { width: 800, height: 720 };
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(4);
+
+    runtime.dispose();
+  });
+
+  test("remeasures a skipped far target when the target is dirty", async () => {
+    const element = document.createElement("section");
+    let scrollY = 0;
+    let dirty = false;
+    let measurement = createLayoutMeasurement(0, 3_600, 200, 120);
+    const createdRenderables: Renderable[] = [];
+    stubWindowNumberProperty("scrollY", () => scrollY);
+    const measureElement = vi.fn(() => measurement);
+    const runtime = await createPipelineRuntime({
+      measureElement,
+      invalidationController: {
+        observeTarget: vi.fn(),
+        unobserveTarget: vi.fn(),
+        consumeDirtyKeys() {
+          return dirty ? new Set(["hero.measure-dirty"]) : new Set();
+        },
+        dispose: vi.fn(),
+      },
+      onRenderableCreated(renderable) {
+        createdRenderables.push(renderable);
+      },
+    });
+
+    runtime.registerTarget(element, { key: "hero.measure-dirty" });
+
+    await runtime.sync();
+    scrollY = 24;
+    await runtime.sync();
+    scrollY = 48;
+    await runtime.sync();
+    scrollY = 72;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+
+    dirty = true;
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(4);
+    expect(createdRenderables).toHaveLength(1);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.measure-dirty",
+      lifecycleState: "active",
+      visible: true,
+    });
+
+    runtime.dispose();
+  });
+
+  test("uses runtime scroll velocity rather than window scrollY for large adapter jumps", async () => {
+    const element = document.createElement("section");
+    let scrollVelocity = 0;
+    stubWindowNumberProperty("scrollY", () => 0);
+    const measureElement = vi.fn(() =>
+      createLayoutMeasurement(0, 3_600, 200, 120),
+    );
+    const runtime = await createPipelineRuntime({
+      measureElement,
+      scrollState: createMutableScrollStateController(() => scrollVelocity),
+    });
+
+    runtime.registerTarget(element, { key: "hero.measure-adapter-jump" });
+
+    await runtime.sync();
+    scrollVelocity = 24;
+    await runtime.sync();
+    await runtime.sync();
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+
+    scrollVelocity = 1_200;
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(4);
+
+    runtime.dispose();
+  });
+
+  test("periodically revalidates skipped far targets to catch position-only layout shifts", async () => {
+    const element = document.createElement("section");
+    let scrollY = 0;
+    let measurement = createLayoutMeasurement(0, 3_600, 200, 120);
+    const createdRenderables: Renderable[] = [];
+    stubWindowNumberProperty("scrollY", () => scrollY);
+    const measureElement = vi.fn(() => measurement);
+    const runtime = await createPipelineRuntime({
+      measureElement,
+      onRenderableCreated(renderable) {
+        createdRenderables.push(renderable);
+      },
+    });
+
+    runtime.registerTarget(element, { key: "hero.measure-shift" });
+
+    await runtime.sync();
+    scrollY = 24;
+    await runtime.sync();
+    scrollY = 48;
+    await runtime.sync();
+    scrollY = 72;
+    await runtime.sync();
+    expect(measureElement).toHaveBeenCalledTimes(3);
+
+    measurement = createLayoutMeasurement(0, 0, 200, 120);
+    scrollY = 96;
+    await runtime.sync();
+    scrollY = 120;
+    await runtime.sync();
+    scrollY = 144;
+    await runtime.sync();
+
+    expect(measureElement).toHaveBeenCalledTimes(4);
+    expect(createdRenderables).toHaveLength(1);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "hero.measure-shift",
+      lifecycleState: "active",
+      visible: true,
+    });
+
+    runtime.dispose();
+  });
+
   test("parks near-offscreen renderables without restoring DOM fallback", async () => {
     const element = document.createElement("section");
     let measurement = createLayoutMeasurement(0, 0, 200, 120);
@@ -1436,6 +1658,7 @@ describe("runtime pipeline sync", () => {
     const renderableSetVisible: Array<ReturnType<typeof vi.fn>> = [];
     const effectUpdate = vi.fn();
     const effectDispose = vi.fn();
+    let syncCount = 0;
     const runtime = await createPipelineRuntime({
       effects: [
         defineWebGLEffect({
@@ -1452,6 +1675,17 @@ describe("runtime pipeline sync", () => {
         }),
       ],
       measureElement: () => measurement,
+      invalidationController: {
+        observeTarget: vi.fn(),
+        unobserveTarget: vi.fn(),
+        consumeDirtyKeys() {
+          syncCount += 1;
+          return syncCount === 3
+            ? new Set(["hero.dispose-visibility-stale"])
+            : new Set();
+        },
+        dispose: vi.fn(),
+      },
       onRenderableCreated(renderable) {
         const setVisible = vi.fn();
         renderableSetVisible.push(setVisible);
@@ -2192,6 +2426,16 @@ function createLayoutMeasurement(
   };
 }
 
+function stubWindowNumberProperty(
+  key: "innerHeight" | "scrollY",
+  readValue: () => number,
+): void {
+  Object.defineProperty(window, key, {
+    configurable: true,
+    get: readValue,
+  });
+}
+
 function readSceneObject(
   sceneAdapter: ReturnType<typeof createObjectRecordingSceneAdapter>,
   key: string,
@@ -2251,6 +2495,31 @@ function createScrollStateController(): ScrollStateController {
     },
     update() {
       return scroll;
+    },
+  };
+}
+
+function createMutableScrollStateController(
+  readVelocity: () => number,
+): ScrollStateController {
+  return {
+    getState() {
+      return {
+        mode: "page",
+        pageProgress: 0,
+        direction: 0,
+        velocity: 0,
+      };
+    },
+    update() {
+      const velocity = readVelocity();
+
+      return {
+        mode: "page",
+        pageProgress: 0,
+        direction: velocity > 0 ? 1 : velocity < 0 ? -1 : 0,
+        velocity,
+      };
     },
   };
 }

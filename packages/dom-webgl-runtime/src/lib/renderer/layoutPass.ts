@@ -41,6 +41,19 @@ export function createLayoutPass(options: {
   return {
     measure(targets): Map<string, ElementLayoutSnapshot> {
       const measurements = new Map<string, ElementLayoutSnapshot>();
+      let hasActiveTarget = false;
+
+      for (const target of targets) {
+        if (target.active) {
+          hasActiveTarget = true;
+          break;
+        }
+      }
+
+      if (!hasActiveTarget) {
+        return measurements;
+      }
+
       const viewport = options.getViewportSize?.() ?? readViewportSize();
       const devicePixelRatio = capDevicePixelRatio(
         options.getDevicePixelRatio?.() ?? globalThis.window?.devicePixelRatio ?? 1,
