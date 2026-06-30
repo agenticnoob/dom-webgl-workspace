@@ -13,9 +13,9 @@
 ## Current Truth
 
 - The current engine direction is not being replaced. It already has one fixed transparent canvas, `renderer.setAnimationLoop(...)`, capped DPR, batched layout reads, source/resource caching, dirty content invalidation, viewport lifecycle classification, and offscreen `restore-dom` / `park` policy.
-- The remaining performance gap is production control, not a new renderer architecture: the runtime needs measurable budgets, lower idle work, resource concurrency limits, and better profiling hooks.
-- `ctx.visual.requestPostprocess(...)` currently records named requests and returns managed handles. It does not yet execute bloom/grain/blur passes; real postprocess implementation belongs after scheduler and budget work.
-- The "performance optimal solution" for this project is not a WebGPU rewrite. The next best step is: profile -> budget telemetry -> render-on-demand scheduler -> resource/load controls -> targeted batching/postprocess if data justifies it.
+- The runtime performance roadmap tasks are now implemented or decided through Task 6: budgets/debug warnings, demand-driven scheduling, layout measurement candidate reduction, resource cache/load-pressure controls, bounded postprocess passes, and a profile-gated batching decision.
+- `ctx.visual.requestPostprocess(...)` now routes named requests through bounded internal postprocess rendering; raw composer, pass ordering, and render-target internals remain private.
+- The "performance optimal solution" for this project is not a WebGPU rewrite. The implemented path is: budget telemetry -> render-on-demand scheduler -> resource/load controls -> measurement reduction -> bounded postprocess -> targeted batching only if future profiles justify it.
 
 ## File Structure
 
@@ -24,7 +24,7 @@
 - Modify `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`: collect runtime counters, feed scheduler dirty signals, and emit budget warnings.
 - Modify `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.ts`: allow continuous or demand-driven rendering without moving loop ownership back to React.
 - Modify `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`: preserve absolute origin for cache keys and add controlled load concurrency.
-- Modify `packages/dom-webgl-runtime/src/lib/renderer/postprocessController.ts`: after scheduler work, turn stored requests into real low-resolution passes.
+- Modify `packages/dom-webgl-runtime/src/lib/renderer/postprocessController.ts`: execute bounded low-resolution postprocess passes for stored requests.
 - Modify `docs/00-goal.md`, `README.md`, `docs/EXECUTION_STATE.md`, and `docs/agent/package-usage.md`: keep current truth and roadmap status aligned.
 
 ## Task 1: Performance Budgets And Debug Warnings
@@ -177,7 +177,7 @@ Status: implemented. Verification passed with 2 files / 47 tests.
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/layoutPass.test.ts`
 
-- [ ] **Step 1: Write failing measurement tests**
+- [x] **Step 1: Write failing measurement tests**
 
 Lock these cases:
 
@@ -191,7 +191,7 @@ expect(measureElement).toHaveBeenCalledTimes(1);
 expect(measureElement).toHaveBeenCalledTimes(2);
 ```
 
-- [ ] **Step 2: Run focused measurement tests**
+- [x] **Step 2: Run focused measurement tests**
 
 Run:
 
@@ -201,11 +201,11 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.te
 
 Expected: fail where candidate reduction is incomplete.
 
-- [ ] **Step 3: Extend the existing rect skip state**
+- [x] **Step 3: Extend the existing rect skip state**
 
 Use the existing `rectSkipState` as the small-step base. Add explicit invalidation on viewport resize, target dirty keys, and large scroll jumps. Keep computed style reads out of this path.
 
-- [ ] **Step 4: Verify focused measurement tests**
+- [x] **Step 4: Verify focused measurement tests**
 
 Run:
 
@@ -214,6 +214,8 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.te
 ```
 
 Expected: pass.
+
+Status: implemented in `40f6e8a3 perf: reduce layout measurement candidates`.
 
 ## Task 4: Resource Cache Correctness And Load Pressure
 
@@ -272,7 +274,7 @@ Expected: pass. Move R-002 from non-blocking to resolved in `docs/REVIEW_BACKLOG
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/postprocessController.test.ts`
 - Test: `packages/dom-webgl-runtime/src/lib/renderer/runtimePipeline.test.ts`
 
-- [ ] **Step 1: Write failing postprocess tests**
+- [x] **Step 1: Write failing postprocess tests**
 
 Add tests proving:
 
@@ -285,7 +287,7 @@ expect(effectPass.render).toHaveBeenCalled();
 
 Also test `dispose()` releases render targets and handles are idempotent.
 
-- [ ] **Step 2: Run focused postprocess tests**
+- [x] **Step 2: Run focused postprocess tests**
 
 Run:
 
@@ -295,11 +297,11 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/postprocessControl
 
 Expected: fail because the current controller stores requests but renders only the base scene.
 
-- [ ] **Step 3: Implement low-resolution, bounded postprocess**
+- [x] **Step 3: Implement low-resolution, bounded postprocess**
 
 Use the render-target pool and budget defaults. Start with a half-resolution path for blur/grain/bloom requests. Do not expose `EffectComposer`, passes, render targets, or pass ordering publicly.
 
-- [ ] **Step 4: Verify focused postprocess tests**
+- [x] **Step 4: Verify focused postprocess tests**
 
 Run:
 
@@ -309,13 +311,15 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/renderer/postprocessControl
 
 Expected: pass.
 
+Status: implemented in `dffcf0dd feat: add bounded postprocess passes`.
+
 ## Task 6: Profile-Gated Batching Decision
 
 **Files:**
 - Create: `docs/performance/profile-notes.md`
 - Modify only if profiling proves need: renderable files under `packages/dom-webgl-runtime/src/lib/render/renderables/`
 
-- [ ] **Step 1: Capture baseline profile**
+- [x] **Step 1: Capture baseline profile**
 
 Run the example and record target count, active renderables, frame time, draw calls if available, and whether idle pages keep rendering.
 
@@ -329,11 +333,11 @@ Use browser performance tooling to record:
 Scenario: idle page, scroll page, pinned section, GLB model, image sequence.
 ```
 
-- [ ] **Step 2: Decide batching from evidence**
+- [x] **Step 2: Decide batching from evidence**
 
 If draw calls dominate and targets are many identical planes, plan `InstancedMesh` or `BatchedMesh` for matching material/source families. If DOM measurement or texture upload dominates, do not batch yet; finish scheduler/resource work first.
 
-- [ ] **Step 3: Save the decision**
+- [x] **Step 3: Save the decision**
 
 Write the measured result to `docs/performance/profile-notes.md` with this exact structure:
 
@@ -351,6 +355,8 @@ Write the measured result to `docs/performance/profile-notes.md` with this exact
 - Deferred optimization: Name one optimization intentionally not selected.
 - Reason: Write one sentence connecting the measured bottleneck to the decision.
 ```
+
+Status: decided in `docs/performance/profile-notes.md`. The Task 6 profile found no dominant bottleneck and did not justify batching; batching remains deferred unless a future profile shows draw calls dominate with many compatible same-source/same-material planes.
 
 ## Final Verification
 
