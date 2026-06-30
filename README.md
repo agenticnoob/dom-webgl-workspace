@@ -54,18 +54,16 @@ The runtime performance roadmap in
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
 bounded postprocess, and only then targeted batching if profiling proves it is
-needed. Tasks 1 through 6 of that roadmap are implemented or decided:
-public performance budgets feed debug warnings; static scenes render the first
-runtime-owned loop frame and then idle on demand; async resource readiness
-requests one follow-up frame; active effects, gates, video, and pointer-driven
-targets stay continuous, with declared gate targets kept continuous so gate
-entry/exit is not missed; absolute HTTP(S) resource cache keys preserve origin;
-resource loads are capped by `maxConcurrentResourceLoads`; layout measurement
-candidates are reduced for stable offscreen targets; named postprocess requests
-run through bounded internal bloom/grain/blur passes; and
-`docs/performance/profile-notes.md` records that the texture-ownership follow-up
-is implemented while batching is deferred because the profile did not show draw
-calls dominating many compatible planes.
+needed. Runtime Performance Ownership V2 is implemented in
+`docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`:
+texture upload dirtiness is split from frame-only dirtiness; material uniforms
+update incrementally; effects can declare static/reactive/frame scheduling
+intent; renderer draw-call/texture stats, postprocess request count, and
+render-target size feed debug budget warnings without exposing raw renderer
+objects; resource loads are queue-limited and viewport-prioritized; plane
+renderables share internal geometry; animated model mixers are updated only
+while visible; and `docs/performance/profile-notes.md` records that batching
+remains profile-gated rather than implemented by default.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -106,12 +104,16 @@ Current runtime behavior:
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active, plus per-target layer diagnostics and
   runtime performance budget warnings when active target, snapshot, video,
-  model, or internal texture-size telemetry exceeds configured limits.
+  model, internal texture-size telemetry, renderer draw calls, renderer texture
+  count, postprocess request count, or postprocess render-target size exceeds
+  configured limits.
 - Image, video, and model resources are cached by normalized resource key.
   Relative/app-local URLs keep path/search/hash normalization; absolute
   HTTP(S) and protocol-relative URLs preserve origin to avoid cross-origin
   collisions. Resource loading is queue-limited by
-  `performanceBudget.maxConcurrentResourceLoads`.
+  `performanceBudget.maxConcurrentResourceLoads`; loads initiated during active
+  viewport updates carry the highest runtime priority, with lower priority
+  states reserved for future eager preloading paths.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
 
 Current example behavior:

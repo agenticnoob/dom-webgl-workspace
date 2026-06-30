@@ -185,17 +185,16 @@ Current roadmap:
 - The performance direction is scheduler and budget first: instrument runtime
   cost, expose conservative development warnings, and avoid continuous
   rendering for static pages before considering batching or renderer backends.
-- Runtime performance roadmap Tasks 1 through 6 are implemented or decided:
-  debug state can emit performance budget warnings for active
-  targets/snapshots/videos/models; the renderer-owned loop idles static scenes
-  on demand after the first frame; resource readiness requests one follow-up
-  frame; active effects, declared gate targets, video, and pointer-driven
-  targets stay continuous; resource cache keys preserve absolute origins;
-  resource loads are capped by `maxConcurrentResourceLoads`; layout
-  measurement candidates are reduced for stable offscreen targets; named
-  postprocess requests run through bounded internal bloom/grain/blur passes;
-  and `docs/performance/profile-notes.md` records that batching is deferred
-  because profiling did not show draw calls dominating many compatible planes.
+- Runtime Performance Ownership V2 is implemented in
+  `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`.
+  Runtime-owned policy now splits pixel upload dirtiness from frame-only
+  dirtiness, updates material uniforms incrementally, lets effects declare
+  static/reactive/frame scheduling intent, reports renderer/postprocess budget
+  pressure through stable warning records, prioritizes queued resource loads by
+  viewport state, shares internal plane geometry, and updates internal model
+  animation mixers only while visible. `docs/performance/profile-notes.md`
+  records that batching is still deferred because the current profile does not
+  prove draw calls dominate many compatible active planes.
 - WebGPU, multiple canvases, raw Three.js public handles, and a general
   CSS-to-WebGL engine are not the performance roadmap.
 

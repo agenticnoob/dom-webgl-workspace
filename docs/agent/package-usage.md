@@ -41,6 +41,7 @@ import {
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
+  type WebGLEffectSchedule,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
   type WebGLRuntimeOptions,
@@ -92,6 +93,10 @@ const performanceBudget = {
   maxActiveModels: 8,
   maxTextureSize: 4096,
   maxConcurrentResourceLoads: 6,
+  maxDrawCalls: 300,
+  maxTextureCount: 256,
+  maxRenderTargetSize: 4096,
+  maxPostprocessRequests: 4,
 } satisfies WebGLPerformanceBudget;
 
 const runtime = createWebGLRuntime({
@@ -107,13 +112,18 @@ const runtime = createWebGLRuntime({
 
 `WebGLDebugState.warnings` currently emits
 `performance-budget-exceeded` records for active target, snapshot, video, model,
-and internal texture-size telemetry. Texture-size records use the existing
-`target: "textureSize"` warning target and the configured `maxTextureSize`
-limit. Debug state does not expose a raw texture list; consumers should react to
-warning records rather than inspecting internal Three.js texture objects.
+internal texture-size telemetry, renderer draw calls, renderer texture count,
+postprocess request count, and postprocess render-target size. Texture-size
+records use `target: "textureSize"` and the configured `maxTextureSize` limit.
+Debug state does not expose raw renderer info, raw texture lists, render
+targets, or composer passes; consumers should react to warning records rather
+than inspecting internal Three.js objects.
 
 Resource loading uses `maxConcurrentResourceLoads` as an internal queue limit.
-Do not build a second loader inside effects or renderables to bypass it.
+Runtime-owned loads are also prioritized by viewport lifecycle state when they
+are initiated. Active viewport targets carry the highest priority; lower
+priority states are reserved for future eager preloading paths. Do not build a
+second loader inside effects or renderables to bypass this queue.
 Resource cache keys preserve relative/app-local `pathname + search + hash`; for
 absolute HTTP(S) and protocol-relative URLs, cache keys include origin as well.
 
@@ -627,6 +637,24 @@ const cardEffects = [
 - The type map approach does not eliminate the need for runtime `kind` matching.
   Unregistered effects still throw at runtime.
 
+Scheduling hint:
+
+```ts
+const staticEffect = defineWebGLEffect({
+  kind: "app.staticSurface",
+  schedule: "static",
+  update(ctx) {
+    ctx.target?.setOpacity(1);
+  },
+});
+```
+
+Use `schedule: "static"` for one-shot setup-style effects and
+`schedule: "reactive"` for effects that only need layout, pointer, scroll, DOM,
+or resource-ready dirty updates. Omit the field, or use `schedule: "frame"`,
+for effects that must run continuously. Scheduling is a runtime ownership hint;
+it does not expose the render loop or give effects frame-loop ownership.
+
 ## Effect Context
 
 Use context fields as the single runtime truth:
@@ -736,6 +764,9 @@ Model source handles expose controlled model capabilities:
   managed handle whose generated geometry/material lifecycle is runtime-owned.
 - Effects do not receive raw model root objects, raw mesh traversal, or raw
   point-cloud objects.
+- GLB models with an internal loaded shape that includes both `animations` and
+  a runtime/adapter-provided `mixer` are advanced by runtime-owned scheduling
+  while the target is visible. Consumers still do not receive mixer handles.
 
 Runtime-scoped visual requests:
 
@@ -751,9 +782,10 @@ ctx.resources.addDisposable(() => handle.dispose());
 
 Duplicate request keys update the current named request. Disposing the handle
 removes that request. Current runtime truth is request/handle ownership,
-inspection, and bounded internal bloom/grain/blur pass execution. The runtime
-owns pass scheduling, render-target pooling, and resolution budgets; consumers
-do not receive composer, pass-order, or render-target handles.
+inspection, bounded internal bloom/grain/blur pass execution, and budget
+warnings for request count and render-target size. The runtime owns pass
+scheduling, render-target pooling, and resolution budgets; consumers do not
+receive composer, pass-order, pass object, or render-target handles.
 
 ## Target Handles
 
