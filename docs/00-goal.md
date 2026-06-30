@@ -151,6 +151,10 @@ type WebGLDeclaration = {
 type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
   hideMode?: "subtree" | "self";
+  offscreen?: {
+    strategy?: "restore-dom" | "park";
+    warmTtlMs?: number;
+  };
 };
 
 type WebGLCustomEffectDeclaration = {
@@ -158,36 +162,10 @@ type WebGLCustomEffectDeclaration = {
   [property: string]: unknown;
 };
 
-type WebGLEffectsDeclaration =
-  | readonly WebGLCustomEffectDeclaration[]
-  | WebGLLegacyEffectsDeclaration;
-
-type WebGLLegacyEffectsDeclaration = {
-  material?: WebGLMaterialDeclaration;
-  motion?: WebGLMotionDeclaration;
-};
-
-type WebGLMaterialDeclaration =
-  | {
-      kind: "solid";
-      color?: number;
-      opacity?: number;
-    }
-  | {
-      kind: "surface";
-      color?: number;
-      opacity?: number;
-      radius?: number;
-    };
-
-type WebGLMotionDeclaration = {
-  kind: "pointer-tilt";
-  strength?: number;
-  maxDegrees?: number;
-};
+type WebGLEffectsDeclaration = readonly WebGLCustomEffectDeclaration[];
 ```
 
-Current package usage should prefer ordered effect declarations:
+Current package usage must use ordered effect declarations:
 
 ```ts
 effects: [
@@ -199,6 +177,16 @@ effects: [
 Matching executable definitions are registered once through runtime-level
 `effects` with `defineWebGLEffect(...)`. Legacy object-form target effects are
 removed from the contract and do not compile.
+
+Current roadmap:
+
+- The next iteration roadmap lives in
+  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
+- The performance direction is scheduler and budget first: instrument runtime
+  cost, expose conservative development warnings, and avoid continuous
+  rendering for static pages before considering batching or renderer backends.
+- WebGPU, multiple canvases, raw Three.js public handles, and a general
+  CSS-to-WebGL engine are not the performance roadmap.
 
 React usage:
 
@@ -1359,8 +1347,10 @@ Current controlled visual capability API, delivered after Phase 8:
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
 - `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
-  The runtime owns postprocess resources and falls back to the existing render
-  path when no requests are active.
+  Current runtime truth is request/handle ownership and inspection; actual
+  bloom/grain/blur pass execution is deferred to the performance roadmap so the
+  scheduler, render-target ownership, and resolution budget are designed
+  together.
 - Public APIs still do not expose renderer, scene, camera, raw `ShaderMaterial`,
   raw `Texture`, raw `EffectComposer`, raw `WebGLRenderTarget`, render-loop,
   arbitrary pass ordering, or renderer-state mutation.

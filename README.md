@@ -47,9 +47,14 @@ The visual capability API in
 `docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md` is
 implemented: the same `defineWebGLEffect(...)` model now covers controlled
 material layers, source texture uniforms, text/media shader inputs, GLB mesh
-material handles, managed point layers, and named postprocess requests while
-keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
+material handles, managed point layers, and named postprocess request handles
+while keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
 material/texture fields, and raw materials internal.
+The next implementation roadmap is
+`docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
+budget first, then demand-driven scheduling, resource/load pressure controls,
+and only then targeted batching or real postprocess passes if profiling proves
+they are needed.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -336,9 +341,11 @@ WebGL text layers and glyph layout, transform image/video texture planes,
 control video playback, create controlled material layers over source textures,
 read source-specific shader input metadata, inspect or manipulate GLB model
 mesh handles, create managed point layers, and request named runtime-owned
-postprocess passes through public effect context. Target `setPosition(...)`
-writes runtime scene-space coordinates, not DOM `left`/`top`. Concrete effects
-remain application-owned.
+postprocess handles through public effect context. Current postprocess support
+owns request/handle lifecycle; real bloom/grain/blur pass execution is deferred
+to the performance roadmap so scheduling and render-target budgets are designed
+together. Target `setPosition(...)` writes runtime scene-space coordinates, not
+DOM `left`/`top`. Concrete effects remain application-owned.
 Material programs are Three-inspired shader declarations, not raw Three.js
 materials; public fields are `vertexShader`, `fragmentShader`, `uniforms`,
 `defines`, and `blend`.
@@ -353,12 +360,12 @@ Capability matrix:
 | `media/video` | image capabilities plus playback controls |
 | `media/image-sequence` | frame-addressable media texture controls |
 | `model/glb` | controlled mesh handles, material restore, sampled vertices, managed point layers |
-| runtime visual context | `ctx.visual.requestPostprocess(...)` for named bloom/grain/blur requests |
+| runtime visual context | `ctx.visual.requestPostprocess(...)` for named bloom/grain/blur request handles |
 
-Runtime owns material, texture, geometry, render-target, postprocess, and
-managed-object lifecycle. Effects update public handles/requests and register
-their own cleanup through `ctx.resources`; they do not receive raw renderer,
-scene, camera, `ShaderMaterial`, `Texture`, `EffectComposer`,
+Runtime owns material, texture, geometry, render-target, postprocess request,
+and managed-object lifecycle. Effects update public handles/requests and
+register their own cleanup through `ctx.resources`; they do not receive raw
+renderer, scene, camera, `ShaderMaterial`, `Texture`, `EffectComposer`,
 `WebGLRenderTarget`, render-loop, pass ordering, raw object3D/mesh/material/
 texture fields, raw point-cloud objects, or renderer-state handles.
 

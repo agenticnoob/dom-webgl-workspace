@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented on `codex/nested-webgl-layer-semantics`. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The next implementation roadmap is `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and budget first, then demand-driven scheduling, resource/load pressure controls, and targeted batching/postprocess only if profiling proves need.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -16,6 +16,7 @@ React-only effect authoring example plan: `docs/superpowers/plans/2026-06-22-eff
 React-only effect authoring example guide: `docs/examples/effect-authoring.md`.
 Controlled visual capability API plan: `docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md`.
 AI-first public API boundary tightening plan: `docs/superpowers/plans/2026-06-29-ai-first-public-api-boundary-tightening.md`.
+Runtime performance roadmap plan: `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
@@ -27,6 +28,8 @@ Source handles can create runtime-owned material layers, text/media handles
 expose shader input metadata, GLB model handles expose controlled mesh material
 restore, vertex samples, and managed point layers, and
 `ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
+Current postprocess support is request/handle ownership and inspection; actual
+bloom/grain/blur pass execution is deferred to the runtime performance roadmap.
 Material programs expose only `vertexShader`, `fragmentShader`, `uniforms`,
 `defines`, and `blend`; runtime defaults own transparency, depth, tone mapping,
 render order, material restoration, texture allocation, and disposal. The public
@@ -46,11 +49,11 @@ Controlled visual capability API is implemented through the existing
 runtime-owned material layers, source texture uniforms, text/media shader input
 metadata, GLB controlled mesh handles, managed point layers, and named
 postprocess requests through `ctx.visual.requestPostprocess(...)`. Runtime
-continues to own Three.js material, texture, geometry, render-target,
-postprocess, restore, and dispose lifecycles. Public handles are controlled
-capability handles and do not expose raw `object3D`, `mesh`, `material`,
-`texture`, raw mesh traversal, raw point-cloud objects, or target-level raw
-object attachment. Material programs expose only `vertexShader`,
+continues to own Three.js material, texture, geometry, render-target
+infrastructure, postprocess request handles, restore, and dispose lifecycles.
+Public handles are controlled capability handles and do not expose raw
+`object3D`, `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud
+objects, or target-level raw object attachment. Material programs expose only `vertexShader`,
 `fragmentShader`, `uniforms`, `defines`, and `blend`. The public API does not
 expose renderer, scene, camera, raw shader materials, raw textures, composer,
 render targets, render loop, pass ordering, or renderer-state mutation.
@@ -181,14 +184,12 @@ authoring friction in `docs/agent/effect-authoring-example-report.md`.
 - Task 84: AI-First Public API Boundary Tightening.
 
 ## Current Task
-AI-first public effect authoring boundary tightening is implemented. The public
-contract remains capability-first: material programs expose shader declarations
-only (`vertexShader`, `fragmentShader`, `uniforms`, `defines`, `blend`), source
-and model handles expose controlled actions and metadata, and raw Three.js
-object/material/texture handles remain runtime-owned implementation details.
-`apps/example` is the sole app workspace plus the package usage surface and now
-dogfoods controlled handles for sequence cards, shader material layers, media
-effects, Ghost Cursor, and GLB point layers.
+Documentation is aligned to the current public contract and the next iteration
+is the runtime performance roadmap. The selected direction is not a renderer
+rewrite: measure current costs, add budget telemetry, reduce idle continuous
+rendering through a demand-driven scheduler, fix resource cache/load pressure,
+and only then add batching or real postprocess passes when profiling proves the
+need.
 
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object
@@ -206,14 +207,15 @@ effects, Ghost Cursor, and GLB point layers.
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package
   subpath, deleted package-owned concrete effect preset implementations and
-  unused pointer/effect-normalization helpers, moved demo visual effects into
-  local `apps/demo/src/demoEffects.ts` consumer code, updated runtime/demo tests
-  to use inline or demo-owned effect definitions, and tightened the demo import
-  boundary so `@project/dom-webgl-runtime/effects` is rejected.
+  unused pointer/effect-normalization helpers, moved concrete visual effects
+  into consumer-owned app/example code, updated runtime/app tests to use inline
+  or consumer-owned effect definitions, and tightened the import boundary so
+  `@project/dom-webgl-runtime/effects` is rejected.
 - Verification: `npm run typecheck` passed; `npm test -- --run` passed with 60
   test files / 293 tests; `npm run build` passed with the existing non-blocking
   Vite chunk-size warning; `npm run check:imports` passed with `Demo import
-  boundary OK`; `git diff --check` passed.
+  boundary OK`; `git diff --check` passed. Historical command output used the
+  old "Demo" label before `apps/example` became the only app workspace.
 - Boundary notes: `@project/dom-webgl-runtime` keeps `defineWebGLEffect(...)`,
   runtime-level `effects`, context/source/target/resource types, and lifecycle
   dispatch. It does not export concrete effect implementations or an official
@@ -230,8 +232,8 @@ effects, Ghost Cursor, and GLB point layers.
   target/resource types, runtime-level `effects`, React `<WebGLRuntime
   effects={...}>`, definition-based internal registry dispatch, setup/update/
   dispose lifecycle state, renderable source handles, GLB model source handles,
-  managed effect resources, generic target handles, and demo usage through
-  local consumer-owned effect examples. Post-implementation demo hardening made the demo's runtime
+  managed effect resources, generic target handles, and consumer-owned effect
+  examples. Post-implementation app hardening made the runtime
   effect definition array stable across debug-state re-renders, preventing
   `<WebGLTarget />` children from registering against a disposed runtime.
 - Verification: `npm run typecheck` passed; `npm test -- --run` passed with 62
@@ -297,9 +299,10 @@ effects, Ghost Cursor, and GLB point layers.
   definitions through runtime-level `effects`.
 - Effect targets remain internal renderable/scene object state and are not
   exported from root or React public entrypoints.
-- Demo effect usage now goes through local consumer-owned definitions in
-  `apps/demo/src/demoEffects.ts`, including the GLB original-model rotation and
-  pointer-scattered vertex-particle model replacement on `demo.model`.
+- Historical app effect usage now goes through local consumer-owned definitions in
+  historical app-owned effect modules, including GLB original-model rotation and
+  pointer-scattered vertex-particle experiments. Current concrete examples live
+  under `apps/example` and remain consumer-owned.
 - Still out of scope: shader authoring API, core-provided particle systems,
   core-owned Lenis/GSAP/ScrollTrigger integrations, WebGL raycast picking,
   multiple canvases, public Three.js render flags, and CSS-to-WebGL fidelity
@@ -812,9 +815,8 @@ as R-002 in `docs/REVIEW_BACKLOG.md`.
 - Phase 3 must support child-preserving fallback hiding for container targets.
 
 ## Next Step
-If resource cache correctness is revisited, fix R-002 by preserving origin for
-absolute HTTP(S) URLs while keeping stable app-local relative URL
-normalization. Keep the boundary explicit: no package effect presets, no public
-renderer/camera/scene mutation, no multiple-canvas path, no picking path, no
-core-owned third-party scroll dependency, no CSS paint cloning, and no
-demo-specific runtime branch.
+Use `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` for the
+next implementation sequence. Keep the boundary explicit: no package effect
+presets, no public renderer/camera/scene mutation, no multiple-canvas path, no
+picking path, no core-owned third-party scroll dependency, no CSS paint cloning,
+and no example-specific runtime branch.
