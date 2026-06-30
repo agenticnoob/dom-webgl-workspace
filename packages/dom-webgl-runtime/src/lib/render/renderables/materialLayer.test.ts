@@ -60,6 +60,49 @@ describe("material layer", () => {
     expect(target.material).toBe(originalMaterial);
   });
 
+  test("setUniforms updates scalar uniforms without recompiling material", () => {
+    const target = { material: new MeshBasicMaterial() };
+    const layer = createMaterialLayer({
+      key: "test.layer",
+      target,
+      program: {
+        fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+        uniforms: { amount: 0.25 },
+      },
+    });
+    const shader = readShaderMaterial(target.material);
+
+    const version = shader.version;
+    layer.setUniforms({ amount: 0.5 });
+
+    expect(readShaderMaterial(target.material)).toBe(shader);
+    expect(shader.uniforms.amount?.value).toBe(0.5);
+    expect(shader.version).toBe(version);
+  });
+
+  test("setUniforms disposes replaced owned texture uniforms only when source changes", () => {
+    const target = { material: new MeshBasicMaterial() };
+    const first = document.createElement("canvas");
+    const second = document.createElement("canvas");
+    const layer = createMaterialLayer({
+      key: "test.layer",
+      target,
+      program: {
+        fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+        uniforms: { map: { kind: "canvas-texture", source: first } },
+      },
+    });
+    const shader = readShaderMaterial(target.material);
+    const original = shader.uniforms.map?.value as Texture;
+    const dispose = vi.spyOn(original, "dispose");
+
+    layer.setUniforms({ map: { kind: "canvas-texture", source: first } });
+    expect(dispose).not.toHaveBeenCalled();
+
+    layer.setUniforms({ map: { kind: "canvas-texture", source: second } });
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
   test("disposes runtime-created material and DOM texture uniforms idempotently", () => {
     const target = { material: new MeshBasicMaterial() };
     const canvas = document.createElement("canvas");

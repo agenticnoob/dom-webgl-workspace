@@ -27,7 +27,6 @@ import type {
 } from "../../effects/effectAuthoring";
 import {
   createTextureUploadState,
-  type TextureUploadSource,
   type TextureUploadState,
 } from "./textureUploadState";
 
@@ -47,7 +46,11 @@ export type MaterialLayerOptions = {
 type OwnedTextureResource = {
   texture: Texture;
   upload: TextureUploadState;
+  signature: string;
 };
+
+let nextTextureUniformSourceId = 0;
+const textureUniformSourceIds = new WeakMap<object, number>();
 
 export function createMaterialLayer(
   options: MaterialLayerOptions,
@@ -73,6 +76,18 @@ export function createMaterialLayer(
       }
 
       for (const [name, value] of Object.entries(uniforms)) {
+        const uniform = activeMaterial.uniforms[name];
+        if (uniform && reuseTextureUniform(name, uniform.value, value)) {
+          continue;
+        }
+        if (uniform && canUpdateUniformValueInPlace(uniform.value, value)) {
+          const updated = updateUniformValueInPlace(uniform.value, value);
+          if (!updated) {
+            uniform.value = value;
+          }
+          continue;
+        }
+
         const nextOwnedTextures: OwnedTextureResource[] = [];
         activeMaterial.uniforms[name] = {
           value: compileUniformValue(options.key, name, value, {
@@ -82,8 +97,6 @@ export function createMaterialLayer(
         };
         replaceOwnedTextures(name, nextOwnedTextures);
       }
-
-      activeMaterial.needsUpdate = true;
     },
     clear() {
       if (disposed) {
@@ -165,6 +178,34 @@ export function createMaterialLayer(
       disposeTextures(textures);
     }
     ownedTexturesByUniform.clear();
+  }
+
+  function reuseTextureUniform(
+    name: string,
+    current: unknown,
+    next: WebGLEffectUniformValue,
+  ): boolean {
+    const nextSignature = readTextureUniformSignature(next);
+    if (!nextSignature || !(current instanceof Texture)) {
+      return false;
+    }
+
+    if (nextSignature === "source-texture") {
+      return current === options.sourceTexture;
+    }
+
+    const ownedTextures = ownedTexturesByUniform.get(name) ?? [];
+    if (ownedTextures.length !== 1) {
+      return false;
+    }
+
+    const [owned] = ownedTextures;
+    if (owned.texture !== current || owned.signature !== nextSignature) {
+      return false;
+    }
+
+    owned.upload.markUploadDirty("material-uniform");
+    return true;
   }
 }
 
@@ -254,21 +295,21 @@ function compileTextureUniform(
     case "canvas-texture": {
       const texture = new CanvasTexture(value.source);
       resources.ownedTextures.push(
-        createOwnedTextureResource(key, name, texture, value.source),
+        createOwnedTextureResource(key, name, texture, value),
       );
       return texture;
     }
     case "image-texture": {
       const texture = new Texture(value.source);
       resources.ownedTextures.push(
-        createOwnedTextureResource(key, name, texture, value.source),
+        createOwnedTextureResource(key, name, texture, value),
       );
       return texture;
     }
     case "video-texture": {
       const texture = new VideoTexture(value.source);
       resources.ownedTextures.push(
-        createOwnedTextureResource(key, name, texture, value.source),
+        createOwnedTextureResource(key, name, texture, value),
       );
       return texture;
     }
@@ -279,16 +320,20 @@ function createOwnedTextureResource(
   key: string,
   name: string,
   texture: Texture,
-  source: TextureUploadSource,
+  value: WebGLEffectTextureUniform,
 ): OwnedTextureResource {
   const upload = createTextureUploadState({
     key: `${key}.${name}`,
     texture,
-    source,
+    source: "source" in value ? value.source : undefined,
   });
   upload.markUploadDirty("material-uniform");
 
-  return { texture, upload };
+  return {
+    texture,
+    upload,
+    signature: readTextureUniformSignature(value) ?? "",
+  };
 }
 
 function readSourceTexture(
@@ -324,6 +369,123 @@ function disposeTextures(resources: readonly OwnedTextureResource[]): void {
     resource.upload.dispose();
     resource.texture.dispose();
   }
+}
+
+function canUpdateUniformValueInPlace(
+  current: unknown,
+  next: WebGLEffectUniformValue,
+): boolean {
+  if (
+    typeof next === "number" ||
+    typeof next === "boolean" ||
+    typeof next === "string"
+  ) {
+    return typeof current === typeof next;
+  }
+
+  if (!Array.isArray(next)) {
+    return false;
+  }
+
+  if (next.every(isVec2Tuple)) {
+    return isVector2Array(current) && current.length === next.length;
+  }
+
+  if (next.length === 2 && next.every(isFiniteNumber)) {
+    return current instanceof Vector2;
+  }
+
+  if (next.length === 3 && next.every(isFiniteNumber)) {
+    return current instanceof Vector3;
+  }
+
+  if (next.length === 4 && next.every(isFiniteNumber)) {
+    return current instanceof Vector4;
+  }
+
+  return false;
+}
+
+function updateUniformValueInPlace(
+  current: unknown,
+  next: WebGLEffectUniformValue,
+): boolean {
+  if (!Array.isArray(next)) {
+    return false;
+  }
+
+  if (
+    next.every(isVec2Tuple) &&
+    isVector2Array(current) &&
+    current.length === next.length
+  ) {
+    for (let index = 0; index < next.length; index += 1) {
+      current[index].set(next[index][0], next[index][1]);
+    }
+    return true;
+  }
+
+  if (
+    next.length === 2 &&
+    next.every(isFiniteNumber) &&
+    current instanceof Vector2
+  ) {
+    current.set(next[0], next[1]);
+    return true;
+  }
+
+  if (
+    next.length === 3 &&
+    next.every(isFiniteNumber) &&
+    current instanceof Vector3
+  ) {
+    current.set(next[0], next[1], next[2]);
+    return true;
+  }
+
+  if (
+    next.length === 4 &&
+    next.every(isFiniteNumber) &&
+    current instanceof Vector4
+  ) {
+    current.set(next[0], next[1], next[2], next[3]);
+    return true;
+  }
+
+  return false;
+}
+
+function readTextureUniformSignature(
+  value: WebGLEffectUniformValue,
+): string | undefined {
+  if (!isTextureUniform(value)) {
+    return undefined;
+  }
+
+  switch (value.kind) {
+    case "source-texture":
+      return "source-texture";
+    case "canvas-texture":
+    case "image-texture":
+    case "video-texture":
+      return `${value.kind}:${readTextureUniformSourceId(value.source)}`;
+  }
+}
+
+function readTextureUniformSourceId(source: object): number {
+  const existingId = textureUniformSourceIds.get(source);
+  if (existingId !== undefined) {
+    return existingId;
+  }
+
+  const id = nextTextureUniformSourceId;
+  nextTextureUniformSourceId += 1;
+  textureUniformSourceIds.set(source, id);
+  return id;
+}
+
+function isVector2Array(value: unknown): value is Vector2[] {
+  return Array.isArray(value) && value.every((entry) => entry instanceof Vector2);
 }
 
 function isTextureUniform(value: unknown): value is WebGLEffectTextureUniform {
