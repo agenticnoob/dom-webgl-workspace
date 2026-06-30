@@ -2354,6 +2354,58 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("static and reactive effects do not keep the loop continuous without dirty work", async () => {
+    const staticLoopHost = createLoopRecordingHost();
+    let staticUpdates = 0;
+    const staticEffect = defineWebGLEffect<{ kind: "test.staticOnce" }>({
+      kind: "test.staticOnce",
+      schedule: "static",
+      update() {
+        staticUpdates += 1;
+      },
+    });
+    const staticRuntime = await createPipelineRuntime({
+      rendererHostFactory: staticLoopHost.createHost,
+      effects: [staticEffect],
+    });
+    staticRuntime.registerTarget(document.createElement("section"), {
+      key: "effect.static",
+      effects: [{ kind: "test.staticOnce" }],
+    });
+
+    staticLoopHost.tick(16);
+    staticLoopHost.tick(32);
+
+    expect(staticLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(staticUpdates).toBe(1);
+    staticRuntime.dispose();
+
+    const reactiveLoopHost = createLoopRecordingHost();
+    let reactiveUpdates = 0;
+    const reactiveEffect = defineWebGLEffect<{ kind: "test.reactiveOnly" }>({
+      kind: "test.reactiveOnly",
+      schedule: "reactive",
+      update() {
+        reactiveUpdates += 1;
+      },
+    });
+    const reactiveRuntime = await createPipelineRuntime({
+      rendererHostFactory: reactiveLoopHost.createHost,
+      effects: [reactiveEffect],
+    });
+    reactiveRuntime.registerTarget(document.createElement("section"), {
+      key: "effect.reactive",
+      effects: [{ kind: "test.reactiveOnly" }],
+    });
+
+    reactiveLoopHost.tick(16);
+    reactiveLoopHost.tick(32);
+
+    expect(reactiveLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(reactiveUpdates).toBe(1);
+    reactiveRuntime.dispose();
+  });
+
   test("active effects gates videos and pointer targets keep the loop continuous", async () => {
     const effectLoopHost = createLoopRecordingHost();
     let effectUpdates = 0;

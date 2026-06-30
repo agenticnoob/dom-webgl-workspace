@@ -23,6 +23,7 @@ export {
   type WebGLEffectPostprocessRequest,
   type WebGLEffectRenderableHandle,
   type WebGLEffectResourceScope,
+  type WebGLEffectSchedule,
   type WebGLEffectSetupContext,
   type WebGLEffectSourceTextureShaderInput,
   type WebGLEffectSourceHandle,

@@ -6,7 +6,10 @@ export type RenderDirtyReason =
   | "target-unregister"
   | "dom-invalidation"
   | "resource-ready"
-  | "manual-sync";
+  | "manual-sync"
+  | "layout"
+  | "pointer"
+  | "scroll";
 
 export type RenderFrameSchedule = {
   readonly dirtyReasons: readonly RenderDirtyReason[];

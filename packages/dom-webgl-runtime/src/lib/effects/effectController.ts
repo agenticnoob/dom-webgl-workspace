@@ -1,4 +1,5 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
+import type { RenderDirtyReason } from "../renderer/rendererLoop";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
 import type {
   WebGLEffectsDeclaration,
@@ -8,6 +9,7 @@ import type {
 import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
+  WebGLEffectSchedule,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectVisualContext,
@@ -24,6 +26,11 @@ import type { WebGLEffectTarget } from "./effectTarget";
 
 export type WebGLEffectController = {
   readonly hasEffects: boolean;
+  readonly schedulingMode: WebGLEffectSchedule;
+  needsUpdate(
+    input: WebGLFrameInput,
+    dirtyReasons: readonly RenderDirtyReason[],
+  ): boolean;
   update(input: WebGLFrameInput, layout: ElementLayoutSnapshot): void;
   dispose(): void;
 };
@@ -82,10 +89,34 @@ export function createWebGLEffectController(
     },
   );
   let disposed = false;
+  const schedulingMode = readSchedulingMode(effects);
 
   return {
     get hasEffects() {
       return effects.length > 0;
+    },
+    get schedulingMode() {
+      return schedulingMode;
+    },
+    needsUpdate(input, dirtyReasons): boolean {
+      if (disposed || effects.length === 0) {
+        return false;
+      }
+
+      if (effects.some((effect) => !effect.initialized)) {
+        return true;
+      }
+
+      switch (schedulingMode) {
+        case "frame":
+          return true;
+        case "reactive":
+          return (
+            hasReactiveDirtyReason(dirtyReasons) || input.scroll.mode === "gate"
+          );
+        case "static":
+          return hasStaticDirtyReason(dirtyReasons);
+      }
     },
     update(input, layout): void {
       if (disposed) {
@@ -143,6 +174,63 @@ export function createWebGLEffectController(
       readEffectTarget(options)?.disposeEffects?.();
     },
   };
+}
+
+function readSchedulingMode(
+  effects: readonly RunningEffect[],
+): WebGLEffectSchedule {
+  let mode: WebGLEffectSchedule = "static";
+
+  for (const effect of effects) {
+    const schedule = effect.definition.schedule ?? "frame";
+    if (schedule === "frame") {
+      return "frame";
+    }
+    if (schedule === "reactive") {
+      mode = "reactive";
+    }
+  }
+
+  return mode;
+}
+
+function hasReactiveDirtyReason(
+  dirtyReasons: readonly RenderDirtyReason[],
+): boolean {
+  return dirtyReasons.some((reason) => {
+    switch (reason) {
+      case "initial":
+      case "target-register":
+      case "target-unregister":
+      case "dom-invalidation":
+      case "resource-ready":
+      case "manual-sync":
+      case "layout":
+      case "pointer":
+      case "scroll":
+        return true;
+    }
+  });
+}
+
+function hasStaticDirtyReason(
+  dirtyReasons: readonly RenderDirtyReason[],
+): boolean {
+  return dirtyReasons.some((reason) => {
+    switch (reason) {
+      case "target-register":
+      case "target-unregister":
+      case "dom-invalidation":
+      case "resource-ready":
+      case "manual-sync":
+      case "layout":
+        return true;
+      case "initial":
+      case "pointer":
+      case "scroll":
+        return false;
+    }
+  });
 }
 
 function readEffectTarget(

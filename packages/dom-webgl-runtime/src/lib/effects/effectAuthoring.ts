@@ -340,12 +340,15 @@ export type WebGLEffectContext = {
 export type WebGLEffectSetupContext = WebGLEffectContext;
 export type WebGLEffectUpdateContext = WebGLEffectContext;
 
+export type WebGLEffectSchedule = "static" | "reactive" | "frame";
+
 export type WebGLEffectDefinition<
   TParams extends WebGLEffectDeclaration = WebGLEffectDeclaration,
   TState = unknown,
 > = {
   readonly kind: TParams["kind"];
   readonly source?: WebGLEffectSourceKind | readonly WebGLEffectSourceKind[];
+  readonly schedule?: WebGLEffectSchedule;
   setup?(context: WebGLEffectSetupContext, params: TParams): TState;
   update(
     context: WebGLEffectUpdateContext,

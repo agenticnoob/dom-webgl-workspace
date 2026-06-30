@@ -197,6 +197,7 @@ describe("public package exports", () => {
 				          WebGLEffectPostprocessRequest,
 				          WebGLEffectRenderableHandle,
 				          WebGLEffectResourceScope,
+				          WebGLEffectSchedule,
 				          WebGLEffectContentBoxShaderInput,
 				          WebGLEffectMediaShaderInputs,
 				          WebGLEffectObjectFitShaderInput,
@@ -430,6 +431,22 @@ describe("public package exports", () => {
 			        const customEffects = [
 			          { kind: "custom.surfacePulse", opacity: 0.4 },
 			        ] satisfies WebGLEffectsDeclaration;
+			        "static" satisfies WebGLEffectSchedule;
+			        "reactive" satisfies WebGLEffectSchedule;
+			        "frame" satisfies WebGLEffectSchedule;
+			        // @ts-expect-error effect schedules are a closed public union.
+			        "idle" satisfies WebGLEffectSchedule;
+			        defineWebGLEffect({
+			          kind: "custom.reactiveSchedule",
+			          schedule: "reactive",
+			          update() {},
+			        }) satisfies WebGLEffectDefinition<{ kind: "custom.reactiveSchedule" }>;
+			        defineWebGLEffect({
+			          kind: "custom.invalidSchedule",
+			          // @ts-expect-error effect schedule only accepts static/reactive/frame.
+			          schedule: "idle",
+			          update() {},
+			        });
 			        const legacyEffects = {
 			          material: { kind: "solid" as const, color: 0x111827, opacity: 0.82 },
 			          motion: { kind: "pointer-tilt" as const, strength: 0.6, maxDegrees: 8 },

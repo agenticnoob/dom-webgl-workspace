@@ -84,6 +84,43 @@ describe("createWebGLEffectController", () => {
     });
   });
 
+  test("reports static reactive and frame scheduling needs", () => {
+    const registry = createWebGLEffectRegistry([
+      defineWebGLEffect({ kind: "test.static", schedule: "static", update() {} }),
+      defineWebGLEffect({
+        kind: "test.reactive",
+        schedule: "reactive",
+        update() {},
+      }),
+      defineWebGLEffect({ kind: "test.frame", schedule: "frame", update() {} }),
+    ]);
+
+    expect(
+      createWebGLEffectController({
+        key: "static",
+        declaration: [{ kind: "test.static" }],
+        source: createElementSnapshotSource(),
+        registry,
+      }).schedulingMode,
+    ).toBe("static");
+    expect(
+      createWebGLEffectController({
+        key: "reactive",
+        declaration: [{ kind: "test.reactive" }],
+        source: createElementSnapshotSource(),
+        registry,
+      }).schedulingMode,
+    ).toBe("reactive");
+    expect(
+      createWebGLEffectController({
+        key: "frame",
+        declaration: [{ kind: "test.frame" }],
+        source: createElementSnapshotSource(),
+        registry,
+      }).schedulingMode,
+    ).toBe("frame");
+  });
+
   test("reports unknown effect kinds as configuration errors", () => {
     expect(() =>
       createWebGLEffectController({

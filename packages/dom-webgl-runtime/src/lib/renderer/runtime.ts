@@ -254,13 +254,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const rectSkipStabilityFrames = 3;
   const rectSkipMaxSkippedFrames = 3;
   const rectSkipState = new Map<string, RectSkipState>();
+  const layoutSignaturesByTargetKey = new Map<string, string>();
   let layoutScrollOffset = 0;
 
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
-    beforeRender() {
+    beforeRender(_time, frame) {
       try {
-        const result = syncFrame();
+        const result = syncFrame(frame.dirtyReasons);
         watchResourceReadyUpdate(result);
         return { mode: result.schedulingMode };
       } catch (error: unknown) {
@@ -308,6 +309,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rectSkipState.delete(targetKey);
       invalidationController.unobserveTarget(targetKey);
       unregisterGateTarget(scrollState, descriptor);
+      layoutSignaturesByTargetKey.delete(targetKey);
       restoreFallbackVisibility(targetState, targetKey);
       targetState.fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(targetState, targetKey);
@@ -320,7 +322,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         return;
       }
 
-      const result = syncFrame();
+      const result = syncFrame(["manual-sync"]);
 
       if (result.pendingUpdate) {
         if (result.didSynchronousUpdate) {
@@ -353,6 +355,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         );
         invalidationController.dispose();
         rectSkipState.clear();
+        layoutSignaturesByTargetKey.clear();
         releaseActiveGate(scrollState);
         scrollState.dispose?.();
         pointerController.dispose();
@@ -637,6 +640,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     pendingUpdates: Array<Promise<void>>,
     frameInput: WebGLFrameInput,
     requestResourceReadyFrame: boolean,
+    effectDirtyReasons: readonly RenderDirtyReason[],
   ): void {
     markDebugRecordLoading(debugRecord);
     restoreFallbackVisibility(targetState, descriptor.key);
@@ -647,9 +651,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         if (layoutMeasurement) {
           const currentInput = frameInputSource.getState();
           renderable.updateLayout?.(layoutMeasurement);
-          targetState.effectControllersByTargetKey
-            .get(descriptor.key)
-            ?.update(currentInput, layoutMeasurement);
+          updateTargetEffects(
+            descriptor,
+            currentInput,
+            layoutMeasurement,
+            mergeRenderDirtyReasons(effectDirtyReasons, ["resource-ready"]),
+          );
         }
         syncDebugRecordFromRenderable(debugRecord, renderable);
         syncFallbackVisibility(targetState, descriptor, renderable);
@@ -678,12 +685,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     debugRecord: TargetDebugRecord,
     layoutMeasurement: ElementLayoutSnapshot | undefined,
     frameInput: WebGLFrameInput,
+    effectDirtyReasons: readonly RenderDirtyReason[],
   ): void {
     if (layoutMeasurement) {
       renderable.updateLayout?.(layoutMeasurement);
-      targetState.effectControllersByTargetKey
-        .get(descriptor.key)
-        ?.update(frameInput, layoutMeasurement);
+      updateTargetEffects(
+        descriptor,
+        frameInput,
+        layoutMeasurement,
+        effectDirtyReasons,
+      );
     }
     syncDebugRecordFromRenderable(debugRecord, renderable);
     syncFallbackVisibility(targetState, descriptor, renderable);
@@ -716,7 +727,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
   }
 
-  function syncFrame(): SyncFrameResult {
+  function syncFrame(dirtyReasons: readonly RenderDirtyReason[] = ["manual-sync"]): SyncFrameResult {
     if (disposed) {
       return { didSynchronousUpdate: false, schedulingMode: "on-demand" };
     }
@@ -808,10 +819,21 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       const lifecycleVersion = readLifecycleVersion(targetState, descriptor.key);
       const requestResourceReadyFrame = renderable.status === "idle";
+      const effectDirtyReasons = readTargetEffectDirtyReasons(
+        descriptor,
+        layoutMeasurement,
+        dirtyKeys,
+        dirtyReasons,
+        frameInput,
+      );
       let result: void | Promise<void>;
 
       try {
         result = renderable.update(frameInput);
+        layoutSignaturesByTargetKey.set(
+          descriptor.key,
+          layoutMeasurement.layoutSignature,
+        );
       } catch (error: unknown) {
         markDebugRecordError(debugRecord, error);
         restoreFallbackVisibility(targetState, descriptor.key);
@@ -825,10 +847,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       if (isPromiseLike(result)) {
         scheduleAsyncCompletion(result, descriptor, renderable, debugRecord,
           layoutMeasurement, lifecycleVersion, pendingUpdates,
-          frameInput, requestResourceReadyFrame);
+          frameInput, requestResourceReadyFrame, effectDirtyReasons);
       } else {
         applySyncCompletion(descriptor, renderable, debugRecord,
-          layoutMeasurement, frameInput);
+          layoutMeasurement, frameInput, effectDirtyReasons);
         didSynchronousUpdate = true;
       }
     }
@@ -855,6 +877,77 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     } finally {
       syncingFrame = false;
     }
+  }
+
+  function updateTargetEffects(
+    descriptor: TargetDescriptor,
+    frameInput: WebGLFrameInput,
+    layoutMeasurement: ElementLayoutSnapshot,
+    dirtyReasons: readonly RenderDirtyReason[],
+  ): void {
+    const effectController = targetState.effectControllersByTargetKey.get(
+      descriptor.key,
+    );
+    if (!effectController?.needsUpdate(frameInput, dirtyReasons)) {
+      return;
+    }
+
+    effectController.update(frameInput, layoutMeasurement);
+  }
+
+  function readTargetEffectDirtyReasons(
+    descriptor: TargetDescriptor,
+    layoutMeasurement: ElementLayoutSnapshot,
+    dirtyKeys: ReadonlySet<string>,
+    frameDirtyReasons: readonly RenderDirtyReason[],
+    frameInput: WebGLFrameInput,
+  ): readonly RenderDirtyReason[] {
+    const reasons = new Set<RenderDirtyReason>();
+
+    for (const reason of frameDirtyReasons) {
+      switch (reason) {
+        case "initial":
+        case "target-register":
+        case "target-unregister":
+        case "manual-sync":
+          reasons.add(reason);
+          break;
+        case "dom-invalidation":
+        case "resource-ready":
+        case "layout":
+        case "pointer":
+        case "scroll":
+          break;
+      }
+    }
+
+    if (dirtyKeys.has(descriptor.key)) {
+      reasons.add("dom-invalidation");
+    }
+
+    if (
+      layoutSignaturesByTargetKey.get(descriptor.key) !==
+      layoutMeasurement.layoutSignature
+    ) {
+      reasons.add("layout");
+    }
+
+    if (hasPointerDeclaration(descriptor.declaration.pointer)) {
+      reasons.add("pointer");
+    }
+
+    if (frameInput.scroll.velocity !== 0 || frameInput.scroll.mode === "gate") {
+      reasons.add("scroll");
+    }
+
+    return Array.from(reasons);
+  }
+
+  function mergeRenderDirtyReasons(
+    current: readonly RenderDirtyReason[],
+    additional: readonly RenderDirtyReason[],
+  ): readonly RenderDirtyReason[] {
+    return Array.from(new Set([...current, ...additional]));
   }
 
   function handleVisibilityChange(): void {
@@ -928,7 +1021,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
     return (
       targetState.effectControllersByTargetKey.get(descriptor.key)
-        ?.hasEffects === true && renderable.status !== "disposed"
+        ?.schedulingMode === "frame" && renderable.status !== "disposed"
     );
   }
 
