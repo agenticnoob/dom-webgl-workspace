@@ -128,6 +128,10 @@ export type WebGLPerformanceBudget = {
   maxActiveModels?: number;
   maxTextureSize?: number;
   maxConcurrentResourceLoads?: number;
+  maxDrawCalls?: number;
+  maxTextureCount?: number;
+  maxRenderTargetSize?: number;
+  maxPostprocessRequests?: number;
 };
 
 export type WebGLPerformanceWarning = {
@@ -138,7 +142,11 @@ export type WebGLPerformanceWarning = {
     | "activeVideos"
     | "activeModels"
     | "textureSize"
-    | "concurrentResourceLoads";
+    | "concurrentResourceLoads"
+    | "drawCalls"
+    | "textureCount"
+    | "renderTargetSize"
+    | "postprocessRequests";
   count: number;
   limit: number;
 };

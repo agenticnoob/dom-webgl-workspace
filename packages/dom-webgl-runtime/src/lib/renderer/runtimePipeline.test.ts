@@ -2544,6 +2544,14 @@ function createRendererHostStub(
     getViewportSize() {
       return { width: 800, height: 600 };
     },
+    readRendererStats() {
+      return {
+        drawCalls: 0,
+        triangles: 0,
+        geometries: 0,
+        textures: 0,
+      };
+    },
     resizeIfNeeded() {
       return;
     },

@@ -9,6 +9,7 @@ import type { DOMViewportSize } from "./domProjection";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
+  readonly info?: unknown;
   setAnimationLoop?(callback: ((time: number) => void) | null): void;
   setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
@@ -16,6 +17,14 @@ export type ThreeRendererAdapter = {
   setRenderTarget?(target: object | null): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
+};
+
+export type ThreeRendererStats = {
+  drawCalls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
+  programs?: number;
 };
 
 export type ThreeRendererObjects = {
@@ -40,6 +49,7 @@ export type ThreeRendererHost = {
   readonly camera: object;
   readonly sceneAdapter: WebGLSceneAdapter;
   getViewportSize(): DOMViewportSize;
+  readRendererStats(): ThreeRendererStats;
   resizeIfNeeded(): void;
   dispose(): void;
 };
@@ -79,6 +89,9 @@ export function createThreeRendererHost(
       createThreeSceneAdapter(objects.scene, objects.camera, objects.renderer),
     getViewportSize(): DOMViewportSize {
       return { width: viewport.width, height: viewport.height };
+    },
+    readRendererStats(): ThreeRendererStats {
+      return readRendererStats(objects.renderer);
     },
     resizeIfNeeded(): void {
       const nextViewport = readCSSPixelViewport(container, canvas);
@@ -130,6 +143,9 @@ function createDefaultThreeRendererObjects(
     camera: new OrthographicCamera(0, 800, 600, 0, 0.1, 1000),
     renderer: {
       canvas,
+      get info() {
+        return renderer.info;
+      },
       setSize(width, height, updateStyle) {
         readRendererSetSize(renderer)?.(width, height, updateStyle);
       },
@@ -154,6 +170,60 @@ function createDefaultThreeRendererObjects(
     },
     scene,
   };
+}
+
+function readRendererStats(renderer: ThreeRendererAdapter): ThreeRendererStats {
+  const info = readRendererInfo(renderer.info);
+  const stats: ThreeRendererStats = {
+    drawCalls: readFiniteNumber(info?.render?.calls),
+    triangles: readFiniteNumber(info?.render?.triangles),
+    geometries: readFiniteNumber(info?.memory?.geometries),
+    textures: readFiniteNumber(info?.memory?.textures),
+  };
+  const programs = readRendererProgramCount(info?.programs);
+
+  if (programs !== undefined) {
+    stats.programs = programs;
+  }
+
+  return stats;
+}
+
+function readRendererInfo(info: unknown):
+  | {
+      render?: { calls?: unknown; triangles?: unknown };
+      memory?: { geometries?: unknown; textures?: unknown };
+      programs?: unknown;
+    }
+  | undefined {
+  if (!isRecord(info)) {
+    return undefined;
+  }
+
+  const render = isRecord(info.render) ? info.render : undefined;
+  const memory = isRecord(info.memory) ? info.memory : undefined;
+
+  return {
+    ...(render ? { render } : {}),
+    ...(memory ? { memory } : {}),
+    programs: info.programs,
+  };
+}
+
+function readRendererProgramCount(programs: unknown): number | undefined {
+  if (!programs || typeof programs !== "object" || !("length" in programs)) {
+    return undefined;
+  }
+
+  return readFiniteNumber(programs.length);
+}
+
+function readFiniteNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object");
 }
 
 function configureDefaultSceneLighting(scene: object): void {

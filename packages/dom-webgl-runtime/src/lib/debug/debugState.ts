@@ -32,7 +32,16 @@ export type DebugRuntimeState = {
   pointer: WebGLPointerState;
   performanceBudget?: WebGLPerformanceBudget;
   textureTelemetry?: readonly TextureUploadTelemetry[];
+  rendererStats?: DebugRendererStats;
   targets: readonly DebugTargetState[];
+};
+
+export type DebugRendererStats = {
+  drawCalls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
+  programs?: number;
 };
 
 const defaultPerformanceBudget: Required<WebGLPerformanceBudget> = {
@@ -42,6 +51,10 @@ const defaultPerformanceBudget: Required<WebGLPerformanceBudget> = {
   maxActiveModels: 8,
   maxTextureSize: 4096,
   maxConcurrentResourceLoads: 6,
+  maxDrawCalls: 300,
+  maxTextureCount: 256,
+  maxRenderTargetSize: 4096,
+  maxPostprocessRequests: 4,
 };
 
 export function createDebugState(
@@ -152,6 +165,18 @@ function createPerformanceWarnings(
     budget.maxActiveModels,
   );
   appendWarning(warnings, "textureSize", maxTextureSize, budget.maxTextureSize);
+  appendWarning(
+    warnings,
+    "drawCalls",
+    runtimeState.rendererStats?.drawCalls ?? 0,
+    budget.maxDrawCalls,
+  );
+  appendWarning(
+    warnings,
+    "textureCount",
+    runtimeState.rendererStats?.textures ?? 0,
+    budget.maxTextureCount,
+  );
 
   return warnings;
 }

@@ -115,6 +115,38 @@ describe("createThreeRendererHost", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
+  test("reports stable renderer summary stats from the host adapter", async () => {
+    const { createThreeRendererHost } = await import("./threeRenderer");
+    const container = document.createElement("div");
+    const canvas = document.createElement("canvas");
+    const renderer = {
+      canvas,
+      info: {
+        render: { calls: 4, triangles: 12 },
+        memory: { geometries: 2, textures: 5 },
+        programs: [{}, {}],
+      },
+      dispose: vi.fn(),
+    } as unknown as ThreeRendererAdapter;
+    const host = createThreeRendererHost(container, {
+      createObjects: () => ({
+        camera: {},
+        renderer,
+        scene: {},
+      }),
+    });
+
+    expect(host.readRendererStats()).toMatchObject({
+      drawCalls: 4,
+      triangles: 12,
+      geometries: 2,
+      textures: 5,
+      programs: 2,
+    });
+
+    host.dispose();
+  });
+
   test("adds low-cost default lights to the default scene for lit model materials", async () => {
     const rendererDispose = vi.fn();
     const rendererSetClearAlpha = vi.fn();

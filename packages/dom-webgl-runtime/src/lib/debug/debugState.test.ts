@@ -243,6 +243,39 @@ describe("debug state", () => {
     expect(state).not.toHaveProperty("textures");
   });
 
+  test("reports renderer stats budget warnings without exposing raw renderer info", () => {
+    const state = createDebugState({
+      targetCount: 1,
+      renderableCount: 1,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      performanceBudget: { maxDrawCalls: 2, maxTextureCount: 3 },
+      rendererStats: {
+        drawCalls: 4,
+        triangles: 12,
+        geometries: 2,
+        textures: 5,
+      },
+      targets: [createDebugTargetState("hero")],
+    });
+
+    expect(state.warnings).toEqual([
+      {
+        code: "performance-budget-exceeded",
+        target: "drawCalls",
+        count: 4,
+        limit: 2,
+      },
+      {
+        code: "performance-budget-exceeded",
+        target: "textureCount",
+        count: 5,
+        limit: 3,
+      },
+    ]);
+    expect(state).not.toHaveProperty("rendererInfo");
+  });
+
   test("runtime exposes current target renderable and input summaries", async () => {
     const runtime = await createRuntime({
       pointerController: createPointerController(),
@@ -567,6 +600,14 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
     },
     getViewportSize() {
       return { width: 800, height: 600 };
+    },
+    readRendererStats() {
+      return {
+        drawCalls: 0,
+        triangles: 0,
+        geometries: 0,
+        textures: 0,
+      };
     },
     resizeIfNeeded() {
       return;

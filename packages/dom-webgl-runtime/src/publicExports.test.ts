@@ -325,14 +325,18 @@ describe("public package exports", () => {
 	          container: document.createElement("div"),
 	          scrollAdapter,
 	          progressSignals,
-	          performanceBudget: {
-	            maxActiveTargets: 48,
-	            maxActiveSnapshots: 24,
-	            maxActiveVideos: 2,
-	            maxActiveModels: 4,
-	            maxTextureSize: 4096,
-	            maxConcurrentResourceLoads: 3,
-	          } satisfies WebGLPerformanceBudget,
+		          performanceBudget: {
+		            maxActiveTargets: 48,
+		            maxActiveSnapshots: 24,
+		            maxActiveVideos: 2,
+		            maxActiveModels: 4,
+		            maxTextureSize: 4096,
+		            maxConcurrentResourceLoads: 3,
+		            maxDrawCalls: 120,
+		            maxTextureCount: 96,
+		            maxRenderTargetSize: 2048,
+		            maxPostprocessRequests: 3,
+		          } satisfies WebGLPerformanceBudget,
 	        } satisfies WebGLRuntimeOptions;
 	        runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
 
@@ -805,8 +809,12 @@ describe("public package exports", () => {
 	        function acceptPerformanceWarningTarget<
 	          TKey extends WebGLPerformanceWarning["target"],
 	        >(_key: TKey): void {}
-	        // @ts-expect-error raw renderer metrics are not public performance warnings.
-	        acceptPerformanceWarningTarget("drawCalls");
+		        acceptPerformanceWarningTarget("drawCalls");
+		        acceptPerformanceWarningTarget("textureCount");
+		        acceptPerformanceWarningTarget("renderTargetSize");
+		        acceptPerformanceWarningTarget("postprocessRequests");
+		        // @ts-expect-error raw renderer info objects are not public performance warnings.
+		        acceptPerformanceWarningTarget("rendererInfo");
 	        const debugState = {
 	          targetCount: 1,
 	          renderableCount: 1,
