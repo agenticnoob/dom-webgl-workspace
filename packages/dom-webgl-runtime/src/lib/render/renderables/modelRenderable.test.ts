@@ -7,6 +7,7 @@ import { createTargetDescriptor } from "../../dom/targetDescriptor";
 import { createResourceManager } from "../../resources/resourceManager";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
+import type { WebGLFrameInput } from "../../types";
 import { compileRenderPolicy } from "../renderPolicy";
 import { createModelRenderable } from "./modelRenderable";
 
@@ -232,6 +233,45 @@ describe("createModelRenderable", () => {
     );
   });
 
+  test("updates model animation mixer only while visible and active", async () => {
+    const source = createModelDescriptor("/models/animated.glb");
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model" },
+      0,
+    );
+    const mixer = { update: vi.fn() };
+    const model = {
+      scene: new Group(),
+      animations: [{ name: "Idle" }],
+      mixer,
+    };
+    const renderable = createModelRenderable(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 100),
+        loadModel: async () => model,
+      },
+    );
+
+    await renderable.update(createFrameInput({ delta: 16 }));
+    expect(renderable.shouldRenderContinuously?.()).toBe(true);
+
+    renderable.setVisible(false);
+    await renderable.update(createFrameInput({ delta: 16 }));
+
+    expect(mixer.update).toHaveBeenCalledTimes(1);
+    expect(mixer.update).toHaveBeenCalledWith(0.016);
+    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+  });
+
   test("keeps fallback visible when the model loader fails", async () => {
     const source = createModelDescriptor("/models/missing.glb");
     const descriptor = createTargetDescriptor(
@@ -378,5 +418,37 @@ function createModelDescriptor(src: string): WebGLModelSourceDescriptor {
     type: "glb",
     anchor,
     src,
+  };
+}
+
+function createFrameInput(
+  input: Partial<WebGLFrameInput> = {},
+): WebGLFrameInput {
+  return {
+    time: 100,
+    delta: 16,
+    scroll: {
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    },
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+    ...input,
   };
 }

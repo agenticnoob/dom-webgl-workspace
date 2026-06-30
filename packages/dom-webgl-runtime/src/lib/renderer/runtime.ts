@@ -1034,6 +1034,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   ): boolean {
     const source = inferSourceDescriptor(descriptor);
 
+    if (renderable.shouldRenderContinuously?.()) {
+      return true;
+    }
+
     if (source.kind === "media" && source.type === "video") {
       return true;
     }

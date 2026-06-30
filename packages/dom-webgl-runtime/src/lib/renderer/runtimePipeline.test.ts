@@ -2399,6 +2399,27 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("renderable continuous hook keeps the loop continuous", async () => {
+    const loopHost = createLoopRecordingHost();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      onRenderableCreated(renderable) {
+        renderable.shouldRenderContinuously = () => true;
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "animated.model",
+    });
+
+    loopHost.tick(16);
+    loopHost.tick(32);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+
+    runtime.dispose();
+  });
+
   test("static and reactive effects do not keep the loop continuous without dirty work", async () => {
     const staticLoopHost = createLoopRecordingHost();
     let staticUpdates = 0;

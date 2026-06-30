@@ -34,6 +34,7 @@ export type Renderable = {
   readonly effectTarget?: WebGLEffectTarget;
   readonly effectSource?: WebGLEffectSourceHandle;
   readonly hasSceneObject: boolean;
+  shouldRenderContinuously?(): boolean;
   update(input?: WebGLFrameInput): void | Promise<void>;
   updateLayout?(measurement: ElementLayoutSnapshot): void;
   invalidateContent?(): void;
@@ -70,6 +71,7 @@ type RenderableHooks = {
   effectTarget?(): WebGLEffectTarget | undefined;
   effectSource?(): WebGLEffectSourceHandle | undefined;
   inspectTextureTelemetry?(): readonly TextureUploadTelemetry[];
+  shouldRenderContinuously?(): boolean;
   dispose?(): void;
 };
 
@@ -195,6 +197,9 @@ export function createRenderable(
       }
 
       return hooks.inspectTextureTelemetry?.() ?? [];
+    },
+    shouldRenderContinuously(): boolean {
+      return !disposed && hooks.shouldRenderContinuously?.() === true;
     },
     dispose(): void {
       if (disposed) {

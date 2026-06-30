@@ -36,6 +36,14 @@ type GLTFLoaderConstructor = new () => {
   loadAsync(src: string): Promise<unknown>;
 };
 
+type ModelAnimationMixer = {
+  update(deltaSeconds: number): void;
+};
+
+type ModelAnimationDriver = {
+  update(deltaMilliseconds: number): void;
+};
+
 export function createModelRenderable(
   context: RenderableContext,
   options: ModelRenderableOptions,
@@ -48,17 +56,20 @@ export function createModelRenderable(
     resourceReady: false,
     scene: undefined as SceneRenderableController | undefined,
     modelHandle: undefined as WebGLModelEffectHandle | undefined,
+    animation: undefined as ModelAnimationDriver | undefined,
+    visible: true,
   };
   const renderable = createRenderable(
     context,
     {
-      async update() {
+      async update(_context, _lifecycle, input) {
         const model = await resource.load(async () => loadModel(source));
 
         if (!state.scene) {
           const modelObject3D = instantiateModelSceneObject(model);
           const targetRoot = createModelTargetRoot(modelObject3D);
           state.modelHandle = createModelEffectHandle(modelObject3D);
+          state.animation = createModelAnimationDriver(model);
           state.scene = createModelSceneRenderableController({
             key: context.descriptor.key,
             sceneAdapter: options.sceneAdapter,
@@ -75,12 +86,17 @@ export function createModelRenderable(
         state.scene.attach();
         state.fallbackVisible = false;
         state.resourceReady = true;
+        updateModelAnimation(input);
       },
       updateLayout(_context, _lifecycle, measurement) {
         state.scene?.updateLayout(measurement);
       },
       setVisible(visible) {
+        state.visible = visible;
         state.scene?.controller.setVisible(visible);
+      },
+      shouldRenderContinuously() {
+        return state.visible && state.animation !== undefined;
       },
       sceneObjectController() {
         return state.scene?.controller;
@@ -108,6 +124,14 @@ export function createModelRenderable(
     },
   );
 
+  function updateModelAnimation(input: { delta: number }): void {
+    if (!state.visible || !state.animation) {
+      return;
+    }
+
+    state.animation.update(input.delta);
+  }
+
   return Object.defineProperties(renderable, {
     fallbackVisible: {
       get() {
@@ -120,6 +144,56 @@ export function createModelRenderable(
       },
     },
   }) as ModelRenderable;
+}
+
+function createModelAnimationDriver(
+  model: unknown,
+): ModelAnimationDriver | undefined {
+  const mixer = readModelAnimationMixer(model);
+
+  if (!mixer || !hasModelAnimationClips(model)) {
+    return undefined;
+  }
+
+  return {
+    update(deltaMilliseconds) {
+      mixer.update(Math.max(0, deltaMilliseconds) / 1000);
+    },
+  };
+}
+
+function readModelAnimationMixer(
+  model: unknown,
+): ModelAnimationMixer | undefined {
+  if (!model || typeof model !== "object") {
+    return undefined;
+  }
+
+  const mixer = (model as { mixer?: unknown }).mixer;
+  if (!mixer || typeof mixer !== "object") {
+    return undefined;
+  }
+
+  const update = (mixer as { update?: unknown }).update;
+  if (typeof update !== "function") {
+    return undefined;
+  }
+
+  return {
+    update(deltaSeconds) {
+      update.call(mixer, deltaSeconds);
+    },
+  };
+}
+
+function hasModelAnimationClips(model: unknown): boolean {
+  if (!model || typeof model !== "object") {
+    return false;
+  }
+
+  const animations = (model as { animations?: unknown }).animations;
+
+  return Array.isArray(animations) && animations.length > 0;
 }
 
 function createModelTargetRoot(modelScene: unknown): unknown {
