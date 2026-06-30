@@ -302,6 +302,7 @@ export function resizeCanvasToMeasurement(
   const dpr = Math.min(Math.max(1, size.devicePixelRatio), 1.5);
   const width = Math.max(1, Math.ceil(size.width * dpr));
   const height = Math.max(1, Math.ceil(size.height * dpr));
+  const changed = canvas.width !== width || canvas.height !== height;
 
   if (canvas.width !== width) {
     canvas.width = width;
@@ -309,6 +310,10 @@ export function resizeCanvasToMeasurement(
   if (canvas.height !== height) {
     canvas.height = height;
   }
+  if (!changed) {
+    return;
+  }
+
   if (markTextureDirty) {
     markTextureDirty();
   } else {

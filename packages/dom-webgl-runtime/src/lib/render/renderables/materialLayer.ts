@@ -286,7 +286,7 @@ function createOwnedTextureResource(
     texture,
     source,
   });
-  upload.markDirty("material-uniform");
+  upload.markUploadDirty("material-uniform");
 
   return { texture, upload };
 }

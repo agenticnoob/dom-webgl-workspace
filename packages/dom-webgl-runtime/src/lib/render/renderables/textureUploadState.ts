@@ -33,7 +33,8 @@ export type TextureUploadStateOptions = {
 };
 
 export type TextureUploadState = {
-  markDirty(reason: TextureUploadDirtyReason): void;
+  markUploadDirty(reason: TextureUploadDirtyReason): void;
+  markFrameDirty(reason: TextureUploadDirtyReason): void;
   updateSource(source: TextureUploadSource): void;
   updateSize(size: {
     width: number;
@@ -66,26 +67,35 @@ export function createTextureUploadState(
     dirty,
   };
 
-  const markDirty = (reason: TextureUploadDirtyReason): void => {
-      if (disposed) {
-        return;
-      }
+  const markFrameDirty = (reason: TextureUploadDirtyReason): void => {
+    if (disposed) {
+      return;
+    }
 
-      options.texture.needsUpdate = true;
-      dirty = true;
-      dirtyReason = reason;
-      telemetry = createTelemetry(
-        options.key,
-        sourceSignature,
-        telemetry.devicePixelRatio,
-        dirty,
-        dirtyReason,
-      );
-      options.requestFrame?.();
-    };
+    dirty = true;
+    dirtyReason = reason;
+    telemetry = createTelemetry(
+      options.key,
+      sourceSignature,
+      telemetry.devicePixelRatio,
+      dirty,
+      dirtyReason,
+    );
+    options.requestFrame?.();
+  };
+
+  const markUploadDirty = (reason: TextureUploadDirtyReason): void => {
+    if (disposed) {
+      return;
+    }
+
+    options.texture.needsUpdate = true;
+    markFrameDirty(reason);
+  };
 
   return {
-    markDirty,
+    markUploadDirty,
+    markFrameDirty,
     updateSource(source): void {
       if (disposed) {
         return;
@@ -104,7 +114,7 @@ export function createTextureUploadState(
         dirty,
         dirtyReason,
       );
-      markDirty("source-change");
+      markUploadDirty("source-change");
     },
     updateSize(size): void {
       if (disposed) {

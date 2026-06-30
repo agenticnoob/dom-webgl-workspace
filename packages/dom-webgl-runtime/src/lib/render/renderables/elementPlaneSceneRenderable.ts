@@ -43,7 +43,7 @@ export function createElementPlaneSceneRenderableController(
 
   group.add(mesh);
   group.visible = false;
-  textureUpload.markDirty("initial");
+  textureUpload.markUploadDirty("initial");
 
   const controller = createSceneRenderableController({
     ...options,
@@ -68,7 +68,7 @@ export function createElementPlaneSceneRenderableController(
     context,
     texture,
     markTextureDirty(reason) {
-      textureUpload.markDirty(reason);
+      textureUpload.markUploadDirty(reason);
     },
     getSize() {
       return readSurfaceSize(lastMeasurement);
@@ -82,7 +82,7 @@ export function createElementPlaneSceneRenderableController(
     lastMeasurement = measurement;
     textureUpload.updateSize(readSurfaceSize(measurement));
     resizeCanvasToMeasurement(canvas, texture, measurement, () => {
-      textureUpload.markDirty("canvas-raster");
+      textureUpload.markUploadDirty("canvas-raster");
     });
   };
 

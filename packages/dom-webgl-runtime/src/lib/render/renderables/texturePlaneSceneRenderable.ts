@@ -65,7 +65,7 @@ export function createTexturePlaneSceneRenderableController(
   let shaderInputs: WebGLEffectMediaShaderInputs | undefined;
 
   group.add(mediaMesh);
-  textureUpload.markDirty("initial");
+  textureUpload.markUploadDirty("initial");
   const controller = createSceneRenderableController({
     ...options,
     object3D: group,
@@ -131,7 +131,7 @@ export function createTexturePlaneSceneRenderableController(
 
     lastTextureTransformSignature = textureGeometrySignature;
     applyTextureTransform(texture, transform);
-    textureUpload.markDirty("texture-transform");
+    textureUpload.markFrameDirty("texture-transform");
     applyTextureLayerTransform();
     applyMediaContentBox(mediaMesh, mediaBox, contentBox);
     applyDOMActivityVisibility(group, initialStyle);
@@ -161,7 +161,7 @@ export function createTexturePlaneSceneRenderableController(
       setTextureTransform(transform) {
         textureLayerTransform = transform;
         applyTextureLayerTransform();
-        textureUpload.markDirty("texture-transform");
+        textureUpload.markFrameDirty("texture-transform");
       },
       getShaderInputs() {
         return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
@@ -170,7 +170,7 @@ export function createTexturePlaneSceneRenderableController(
         controller.object.invalidateContent?.();
       },
       markTextureDirty(reason) {
-        textureUpload.markDirty(reason);
+        textureUpload.markUploadDirty(reason);
       },
     });
   } else {
@@ -183,7 +183,7 @@ export function createTexturePlaneSceneRenderableController(
       setTextureTransform(transform) {
         textureLayerTransform = transform;
         applyTextureLayerTransform();
-        textureUpload.markDirty("texture-transform");
+        textureUpload.markFrameDirty("texture-transform");
       },
       getShaderInputs() {
         return shaderInputs ?? createFallbackShaderInputs(currentTextureSource);
@@ -192,7 +192,7 @@ export function createTexturePlaneSceneRenderableController(
         controller.object.invalidateContent?.();
       },
       markTextureDirty(reason) {
-        textureUpload.markDirty(reason);
+        textureUpload.markUploadDirty(reason);
       },
     });
   }

@@ -3,6 +3,44 @@ import { describe, expect, test, vi } from "vitest";
 import { createTextureUploadState } from "./textureUploadState";
 
 describe("texture upload state", () => {
+  test("marks frame dirty without uploading texture pixels", () => {
+    const texture = { needsUpdate: false };
+    const requestFrame = vi.fn();
+    const owner = createTextureUploadState({
+      key: "hero.image",
+      texture,
+      requestFrame,
+    });
+
+    owner.markFrameDirty("texture-transform");
+
+    expect(texture.needsUpdate).toBe(false);
+    expect(owner.inspect()).toMatchObject({
+      key: "hero.image",
+      dirty: true,
+      dirtyReason: "texture-transform",
+    });
+    expect(requestFrame).toHaveBeenCalledTimes(1);
+  });
+
+  test("marks upload dirty when pixels changed", () => {
+    const texture = { needsUpdate: false };
+    const requestFrame = vi.fn();
+    const owner = createTextureUploadState({
+      key: "hero.canvas",
+      texture,
+      requestFrame,
+    });
+
+    owner.markUploadDirty("canvas-raster");
+
+    expect(texture.needsUpdate).toBe(true);
+    expect(owner.inspect()).toMatchObject({
+      dirty: true,
+      dirtyReason: "canvas-raster",
+    });
+  });
+
   test("marks a texture dirty with telemetry and requests one frame", () => {
     const texture = { needsUpdate: false };
     const requestFrame = vi.fn();
@@ -16,7 +54,7 @@ describe("texture upload state", () => {
       requestFrame,
     });
 
-    owner.markDirty("canvas-raster");
+    owner.markUploadDirty("canvas-raster");
 
     expect(texture.needsUpdate).toBe(true);
     expect(owner.inspect()).toMatchObject({
@@ -84,7 +122,7 @@ describe("texture upload state", () => {
     owner.updateSize({ width: 240, height: 90, devicePixelRatio: 2 });
     owner.dispose();
     owner.dispose();
-    owner.markDirty("glyph-commands");
+    owner.markUploadDirty("glyph-commands");
 
     expect(texture.needsUpdate).toBe(false);
     expect(owner.inspect()).toMatchObject({

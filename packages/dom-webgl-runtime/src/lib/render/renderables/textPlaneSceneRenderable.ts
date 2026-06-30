@@ -72,7 +72,7 @@ export function createTextPlaneSceneRenderableController(
     }),
   );
   group.add(mesh);
-  textureUpload.markDirty("initial");
+  textureUpload.markUploadDirty("initial");
   const controller = createSceneRenderableController({
     ...options,
     object3D: group,
@@ -174,7 +174,7 @@ export function createTextPlaneSceneRenderableController(
       applyGlyphCommandTransform();
     },
     markTextureDirty(reason) {
-      textureUpload.markDirty(reason);
+      textureUpload.markUploadDirty(reason);
     },
     invalidate() {
       return;
@@ -203,7 +203,7 @@ export function createTextPlaneSceneRenderableController(
       height: state.height,
       devicePixelRatio: state.devicePixelRatio,
     });
-    textureUpload.markDirty("canvas-raster");
+    textureUpload.markUploadDirty("canvas-raster");
   }
 }
 
