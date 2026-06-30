@@ -804,6 +804,119 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("routes effect-owned postprocess requests through the runtime render pipeline", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const renderOrder: string[] = [];
+    const requestPostprocess = vi.fn(() => ({
+      update: vi.fn(),
+      dispose: vi.fn(),
+    }));
+    const postprocessController = createStubPostprocessController({
+      requestPostprocess,
+      render(renderBase) {
+        renderOrder.push("postprocess:before");
+        renderBase();
+        renderOrder.push("postprocess:after");
+      },
+    });
+    sceneAdapter.render.mockImplementation(() => {
+      renderOrder.push("scene");
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      postprocessController,
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.pipelinePostprocess",
+          source: "dom/element",
+          setup(ctx) {
+            return ctx.visual.requestPostprocess({
+              key: "pipeline.glow",
+              bloom: { strength: 0.3 },
+            });
+          },
+          update() {
+            return;
+          },
+        }),
+      ],
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "pipeline.surface",
+      effects: [{ kind: "custom.pipelinePostprocess" }],
+    });
+
+    await runtime.sync();
+
+    expect(requestPostprocess).toHaveBeenCalledWith({
+      key: "pipeline.glow",
+      bloom: { strength: 0.3 },
+    });
+    expect(renderOrder).toEqual([
+      "postprocess:before",
+      "scene",
+      "postprocess:after",
+    ]);
+
+    runtime.dispose();
+  });
+
+  test("default runtime postprocess controller executes an internal screen pass", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const setRenderTarget = vi.fn();
+    const renderPostprocessPass = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+
+        return {
+          ...host,
+          renderer: {
+            ...host.renderer,
+            setRenderTarget,
+            render: renderPostprocessPass,
+          },
+        };
+      },
+      effects: [
+        defineWebGLEffect({
+          kind: "custom.defaultPostprocess",
+          source: "dom/element",
+          setup(ctx) {
+            return ctx.visual.requestPostprocess({
+              key: "default.glow",
+              bloom: { strength: 0.35 },
+            });
+          },
+          update() {
+            return;
+          },
+        }),
+      ],
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "default.postprocess.surface",
+      effects: [{ kind: "custom.defaultPostprocess" }],
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(setRenderTarget).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        texture: expect.anything(),
+      }),
+    );
+    expect(setRenderTarget).toHaveBeenNthCalledWith(2, null);
+    expect(renderPostprocessPass).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+  });
+
   test("reports target effects that were not passed to the runtime", async () => {
     const runtime = await createPipelineRuntime();
 
@@ -2157,6 +2270,29 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("active postprocess controller state alone does not force the loop continuous", async () => {
+    const loopHost = createLoopRecordingHost();
+    const postprocessController = createStubPostprocessController({
+      activeRequestCount: 1,
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      postprocessController,
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "static.postprocess",
+    });
+
+    loopHost.tick(16);
+    loopHost.tick(32);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(postprocessController.render).toHaveBeenCalledTimes(1);
+
+    runtime.dispose();
+  });
+
   test("active effects gates videos and pointer targets keep the loop continuous", async () => {
     const effectLoopHost = createLoopRecordingHost();
     let effectUpdates = 0;
@@ -2521,6 +2657,29 @@ function createMutableScrollStateController(
         velocity,
       };
     },
+  };
+}
+
+function createStubPostprocessController(
+  overrides: Partial<PostprocessController> & {
+    activeRequestCount?: number;
+  } = {},
+): PostprocessController {
+  return {
+    activeRequestCount: overrides.activeRequestCount ?? 0,
+    inspectRequests: vi.fn(() => []),
+    requestPostprocess:
+      overrides.requestPostprocess ??
+      vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
+    render:
+      overrides.render ??
+      vi.fn((renderBase: () => void) => {
+        renderBase();
+      }),
+    dispose: overrides.dispose ?? vi.fn(),
   };
 }
 

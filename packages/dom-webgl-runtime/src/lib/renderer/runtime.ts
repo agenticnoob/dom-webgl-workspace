@@ -192,7 +192,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       },
     });
   const postprocessController =
-    internalOptions.postprocessController ?? createPostprocessController();
+    internalOptions.postprocessController ??
+    createPostprocessController({
+      renderer: rendererHost.renderer,
+      scene: rendererHost.scene,
+      camera: rendererHost.camera,
+      getViewportSize: () => rendererHost.getViewportSize(),
+    });
   const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );

@@ -13,6 +13,7 @@ export type ThreeRendererAdapter = {
   setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
   setClearAlpha?(alpha: number): void;
+  setRenderTarget?(target: object | null): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
 };
@@ -140,6 +141,9 @@ function createDefaultThreeRendererObjects(
       },
       setClearAlpha(alpha) {
         readRendererSetClearAlpha(renderer)?.(alpha);
+      },
+      setRenderTarget(target) {
+        readRendererSetRenderTarget(renderer)?.(target);
       },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
@@ -421,4 +425,16 @@ function readRendererSetAnimationLoop(
   return setAnimationLoop.bind(renderer) as (
     callback: ((time: number) => void) | null,
   ) => void;
+}
+
+function readRendererSetRenderTarget(
+  renderer: object,
+): ((target: object | null) => void) | undefined {
+  const setRenderTarget = (renderer as Record<string, unknown>).setRenderTarget;
+
+  if (typeof setRenderTarget !== "function") {
+    return undefined;
+  }
+
+  return setRenderTarget.bind(renderer) as (target: object | null) => void;
 }
