@@ -41,6 +41,8 @@ import {
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
+  type WebGLPerformanceBudget,
+  type WebGLPerformanceWarning,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
 } from "<runtime-package>";
@@ -74,6 +76,44 @@ import ... from "packages/dom-webgl-runtime/src";
 import ... from "packages/dom-webgl-scroll-adapters/src";
 import { createInitialPointerState } from "<runtime-package>";
 ```
+
+## Runtime Performance Budgets
+
+Consumers can pass a stable `performanceBudget` through runtime options. The
+budget does not expose raw renderer, camera, scene, material, render target, or
+composer objects. It only configures runtime-owned counters and resource-load
+pressure:
+
+```ts
+const performanceBudget = {
+  maxActiveTargets: 50,
+  maxActiveSnapshots: 30,
+  maxActiveVideos: 4,
+  maxActiveModels: 8,
+  maxTextureSize: 4096,
+  maxConcurrentResourceLoads: 6,
+} satisfies WebGLPerformanceBudget;
+
+const runtime = createWebGLRuntime({
+  container,
+  performanceBudget,
+  onDebugStateChange(state) {
+    for (const warning of state.warnings ?? []) {
+      warning satisfies WebGLPerformanceWarning;
+    }
+  },
+});
+```
+
+`WebGLDebugState.warnings` currently emits
+`performance-budget-exceeded` records for active target, snapshot, video, and
+model counts. `maxTextureSize` is reserved for a later measured texture-size
+field and should not be treated as implemented telemetry yet.
+
+Resource loading uses `maxConcurrentResourceLoads` as an internal queue limit.
+Do not build a second loader inside effects or renderables to bypass it.
+Resource cache keys preserve relative/app-local `pathname + search + hash`; for
+absolute HTTP(S) and protocol-relative URLs, cache keys include origin as well.
 
 `createInitialPointerState` is a package-internal helper. Consumers receive
 pointer state through `ctx.pointer`, `ctx.input.pointer`, or debug state.

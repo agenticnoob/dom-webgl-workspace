@@ -36,7 +36,7 @@
 - Test: `packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts`
 - Test: `packages/dom-webgl-runtime/src/publicExports.test.ts`
 
-- [ ] **Step 1: Write failing public/debug tests**
+- [x] **Step 1: Write failing public/debug tests**
 
 Add test coverage that expects debug state to expose warning records when active counts exceed conservative defaults:
 
@@ -51,7 +51,7 @@ expect(state.warnings).toContainEqual({
 
 Also add a public type fixture proving `WebGLPerformanceBudget` is exported but raw renderer metrics are not.
 
-- [ ] **Step 2: Run the focused tests**
+- [x] **Step 2: Run the focused tests**
 
 Run:
 
@@ -61,7 +61,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/debug/debugState.test.ts pa
 
 Expected: fail before implementation because `warnings` and `WebGLPerformanceBudget` do not exist.
 
-- [ ] **Step 3: Add minimal budget types and default warning generation**
+- [x] **Step 3: Add minimal budget types and default warning generation**
 
 Add:
 
@@ -77,7 +77,13 @@ export type WebGLPerformanceBudget = {
 
 export type WebGLPerformanceWarning = {
   code: "performance-budget-exceeded";
-  target: keyof Required<WebGLPerformanceBudget>;
+  target:
+    | "activeTargets"
+    | "activeSnapshots"
+    | "activeVideos"
+    | "activeModels"
+    | "textureSize"
+    | "concurrentResourceLoads";
   count: number;
   limit: number;
 };
@@ -85,7 +91,7 @@ export type WebGLPerformanceWarning = {
 
 Keep defaults internal. Start with target/snapshot/video/model counts; leave texture memory as a later measured field unless the implementation already has exact texture dimensions.
 
-- [ ] **Step 4: Verify focused tests**
+- [x] **Step 4: Verify focused tests**
 
 Run:
 
@@ -211,7 +217,7 @@ Expected: pass.
 - Test: `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
 - Modify: `docs/REVIEW_BACKLOG.md`
 
-- [ ] **Step 1: Write failing cache-key and concurrency tests**
+- [x] **Step 1: Write failing cache-key and concurrency tests**
 
 Add tests proving:
 
@@ -223,7 +229,7 @@ expect(first.record.key).not.toBe(second.record.key);
 
 Add a load pressure test proving only `maxConcurrentResourceLoads` loaders are active at once.
 
-- [ ] **Step 2: Run focused resource tests**
+- [x] **Step 2: Run focused resource tests**
 
 Run:
 
@@ -233,7 +239,7 @@ npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.t
 
 Expected: fail before origin-preserving keys and concurrency control.
 
-- [ ] **Step 3: Preserve origin for absolute URLs**
+- [x] **Step 3: Preserve origin for absolute URLs**
 
 Keep relative URLs normalized to path/search/hash. For absolute `http:` / `https:` / protocol-relative URLs, include origin:
 
@@ -243,7 +249,7 @@ return `${url.origin}${url.pathname}${url.search}${url.hash}`;
 
 Add a tiny internal queue for resource loads. Do not move loading into renderables.
 
-- [ ] **Step 4: Verify and close R-002**
+- [x] **Step 4: Verify and close R-002**
 
 Run:
 

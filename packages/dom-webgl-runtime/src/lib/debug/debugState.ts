@@ -1,5 +1,7 @@
 import type {
   WebGLDebugState,
+  WebGLPerformanceBudget,
+  WebGLPerformanceWarning,
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
@@ -27,12 +29,23 @@ export type DebugRuntimeState = {
   activeGateKey?: string;
   sceneProgress?: number;
   pointer: WebGLPointerState;
+  performanceBudget?: WebGLPerformanceBudget;
   targets: readonly DebugTargetState[];
+};
+
+const defaultPerformanceBudget: Required<WebGLPerformanceBudget> = {
+  maxActiveTargets: 50,
+  maxActiveSnapshots: 30,
+  maxActiveVideos: 4,
+  maxActiveModels: 8,
+  maxTextureSize: 4096,
+  maxConcurrentResourceLoads: 6,
 };
 
 export function createDebugState(
   runtimeState: DebugRuntimeState,
 ): WebGLDebugState {
+  const warnings = createPerformanceWarnings(runtimeState);
   const state: WebGLDebugState = {
     targetCount: runtimeState.targetCount,
     renderableCount: runtimeState.renderableCount,
@@ -67,6 +80,10 @@ export function createDebugState(
     }),
   };
 
+  if (warnings.length > 0) {
+    state.warnings = warnings;
+  }
+
   if (runtimeState.currentScrollMode === "gate") {
     state.activeGateKey = runtimeState.activeGateKey;
     state.sceneProgress = runtimeState.sceneProgress;
@@ -85,4 +102,86 @@ function readErrorMessage(error: unknown): string | undefined {
   }
 
   return String(error);
+}
+
+function createPerformanceWarnings(
+  runtimeState: DebugRuntimeState,
+): WebGLPerformanceWarning[] {
+  const budget = {
+    ...defaultPerformanceBudget,
+    ...runtimeState.performanceBudget,
+  };
+  const activeTargets = runtimeState.targets.filter(isActiveTarget);
+  const counts = {
+    activeTargets: activeTargets.length,
+    activeSnapshots: activeTargets.filter(isSnapshotTarget).length,
+    activeVideos: activeTargets.filter((target) =>
+      isSourceKind(target, "media/video"),
+    ).length,
+    activeModels: activeTargets.filter((target) =>
+      isSourceKind(target, "model/glb"),
+    ).length,
+  };
+  const warnings: WebGLPerformanceWarning[] = [];
+
+  appendWarning(
+    warnings,
+    "activeTargets",
+    counts.activeTargets,
+    budget.maxActiveTargets,
+  );
+  appendWarning(
+    warnings,
+    "activeSnapshots",
+    counts.activeSnapshots,
+    budget.maxActiveSnapshots,
+  );
+  appendWarning(
+    warnings,
+    "activeVideos",
+    counts.activeVideos,
+    budget.maxActiveVideos,
+  );
+  appendWarning(
+    warnings,
+    "activeModels",
+    counts.activeModels,
+    budget.maxActiveModels,
+  );
+
+  return warnings;
+}
+
+function appendWarning(
+  warnings: WebGLPerformanceWarning[],
+  target: WebGLPerformanceWarning["target"],
+  count: number,
+  limit: number,
+): void {
+  if (count <= limit) {
+    return;
+  }
+
+  warnings.push({
+    code: "performance-budget-exceeded",
+    target,
+    count,
+    limit,
+  });
+}
+
+function isActiveTarget(target: DebugTargetState): boolean {
+  return target.lifecycleState === "active";
+}
+
+function isSnapshotTarget(target: DebugTargetState): boolean {
+  return (
+    isSourceKind(target, "dom/element") ||
+    isSourceKind(target, "dom/text") ||
+    isSourceKind(target, "media/image")
+  );
+}
+
+function isSourceKind(target: DebugTargetState, sourceKind: string): boolean {
+  return target.sourceKind === sourceKind;
 }

@@ -54,7 +54,9 @@ The next implementation roadmap is
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
 and only then targeted batching or real postprocess passes if profiling proves
-they are needed.
+they are needed. Task 1 and Task 4 of that roadmap are implemented: public
+performance budgets feed debug warnings, absolute HTTP(S) resource cache keys
+preserve origin, and resource loads are capped by `maxConcurrentResourceLoads`.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -93,7 +95,14 @@ Current runtime behavior:
   `media/video`, `media/image-sequence`, and `model/glb`; ordinary nested
   targets do not need `renderRole: "overlay"` to paint above their parent.
 - The debug panel shows current scroll mode plus active gate key and
-  `sceneProgress` while a gate is active, plus per-target layer diagnostics.
+  `sceneProgress` while a gate is active, plus per-target layer diagnostics and
+  runtime performance budget warnings when active target, snapshot, video, or
+  model counts exceed configured limits.
+- Image, video, and model resources are cached by normalized resource key.
+  Relative/app-local URLs keep path/search/hash normalization; absolute
+  HTTP(S) and protocol-relative URLs preserve origin to avoid cross-origin
+  collisions. Resource loading is queue-limited by
+  `performanceBudget.maxConcurrentResourceLoads`.
 - The runtime creates one Three.js renderer/canvas per runtime instance.
 
 Current example behavior:

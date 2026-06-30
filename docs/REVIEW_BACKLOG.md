@@ -41,18 +41,20 @@ None.
   coverage proves query and hash variants acquire separate resource records.
 - Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && npm run check && npm run build && npm run check:imports && git diff --check`
 
-## Non-blocking Issues
-
 - ID: R-002
-- Severity: non-blocking
+- Severity: resolved
 - Related task: Task 13: Resource Record Lifecycle
 - Files:
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts`
 - Problem: `normalizeResourceUrl()` returns only `pathname + search + hash`, so two absolute URLs with different origins but the same path would share the same model resource key.
-- Why it violates the plan: Task 13 requires resource cache keys by normalized URL. The current behavior is adequate for app-local relative URLs but ambiguous for absolute URLs.
-- Suggested fix: Preserve origin for absolute URLs, while keeping stable relative URL normalization for local paths. Add a targeted test proving different absolute origins do not collide.
+- Fix applied: Absolute HTTP(S) and protocol-relative resource URLs now include
+  origin plus `pathname + search + hash` in cache keys. Relative/app-local URLs
+  keep path/search/hash normalization. Resource load pressure is also bounded
+  by the runtime performance budget's `maxConcurrentResourceLoads`.
 - Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check`
+
+## Non-blocking Issues
 
 - ID: R-004
 - Severity: non-blocking
@@ -63,16 +65,16 @@ None.
   - `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
 - Problem: The runtime has the correct one-renderer, batched-layout foundation,
-  but still lacks explicit performance budgets, development warnings, a
-  demand-driven idle scheduler, and resource load pressure controls.
+  and now has explicit performance budgets, debug warnings, and resource load
+  pressure controls. It still lacks a demand-driven idle scheduler and later
+  profile-gated batching/postprocess execution.
 - Why it matters: The current architecture avoids the known expensive mistakes
   (multiple canvases, full CSS paint cloning, scattered layout reads), but
-  production consumers need observable limits before target count, texture
-  uploads, videos, models, or postprocess requests silently degrade frame time.
+  production consumers still need lower idle work before static scenes can stop
+  paying continuous frame cost.
 - Suggested fix: Follow
-  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: add budget
-  telemetry first, then scheduler/resource controls, then profile-gated
-  batching or real postprocess passes.
+  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: scheduler
+  work is next, then profile-gated batching or real postprocess passes.
 - Verification command: `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check`
 
 ## Deferred / Not Phase 1

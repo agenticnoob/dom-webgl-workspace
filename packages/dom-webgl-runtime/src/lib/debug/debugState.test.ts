@@ -143,6 +143,78 @@ describe("debug state", () => {
     expect(createDebugState(pageState)).not.toHaveProperty("sceneProgress");
   });
 
+  test("reports performance warnings when active counts exceed default budgets", () => {
+    const targets = Array.from({ length: 51 }, (_entry, index) =>
+      createDebugTargetState(`hero.${index}`),
+    );
+
+    const state = createDebugState({
+      targetCount: targets.length,
+      renderableCount: targets.length,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      targets,
+    });
+
+    expect(state.warnings).toContainEqual({
+      code: "performance-budget-exceeded",
+      target: "activeTargets",
+      count: 51,
+      limit: 50,
+    });
+  });
+
+  test("reports performance warnings against custom runtime budgets", () => {
+    const state = createDebugState({
+      targetCount: 3,
+      renderableCount: 3,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      performanceBudget: {
+        maxActiveTargets: 3,
+        maxActiveSnapshots: 2,
+        maxActiveVideos: 1,
+        maxActiveModels: 1,
+      },
+      targets: [
+        createDebugTargetState("surface", "dom/element"),
+        createDebugTargetState("title", "dom/text"),
+        createDebugTargetState("poster", "media/image"),
+        createDebugTargetState("loop", "media/video"),
+        createDebugTargetState("loop.copy", "media/video"),
+        createDebugTargetState("model", "model/glb"),
+        createDebugTargetState("model.copy", "model/glb"),
+      ],
+    });
+
+    expect(state.warnings).toEqual([
+      {
+        code: "performance-budget-exceeded",
+        target: "activeTargets",
+        count: 7,
+        limit: 3,
+      },
+      {
+        code: "performance-budget-exceeded",
+        target: "activeSnapshots",
+        count: 3,
+        limit: 2,
+      },
+      {
+        code: "performance-budget-exceeded",
+        target: "activeVideos",
+        count: 2,
+        limit: 1,
+      },
+      {
+        code: "performance-budget-exceeded",
+        target: "activeModels",
+        count: 2,
+        limit: 1,
+      },
+    ]);
+  });
+
   test("runtime exposes current target renderable and input summaries", async () => {
     const runtime = await createRuntime({
       pointerController: createPointerController(),
@@ -537,6 +609,20 @@ function createPointerState(): WebGLPointerState {
     dragDeltaX: 0,
     dragDeltaY: 0,
     clickCount: 0,
+  };
+}
+
+function createDebugTargetState(
+  key: string,
+  sourceKind = "dom/element",
+): DebugRuntimeState["targets"][number] {
+  return {
+    key,
+    sourceKind,
+    renderRole: sourceKind === "model/glb" ? "model" : "surface",
+    resourceStatus: "ready",
+    lifecycleState: "active",
+    visible: true,
   };
 }
 

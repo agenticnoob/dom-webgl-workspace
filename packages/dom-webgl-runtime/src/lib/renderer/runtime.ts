@@ -149,7 +149,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.rendererHostFactory ?? createThreeRendererHost;
   const rendererHost = rendererHostFactory(options.container);
   const registry = createTargetRegistry();
-  const resourceManager = createResourceManager();
+  const resourceManager = createResourceManager(options.performanceBudget);
   const scrollState =
     internalOptions.scrollState ??
     createScrollController({
@@ -335,6 +335,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         renderableCount: 0,
         ...readDebugScrollState(scroll),
         pointer: frameInput.pointer,
+        performanceBudget: options.performanceBudget,
         targets: [],
       });
     }
@@ -344,6 +345,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       renderableCount: targetState.renderablesByTargetKey.size,
       ...readDebugScrollState(scroll),
       pointer: frameInput.pointer,
+      performanceBudget: options.performanceBudget,
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);

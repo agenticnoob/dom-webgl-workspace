@@ -1,5 +1,8 @@
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
-import type { WebGLResourceStatus } from "../types";
+import type {
+  WebGLPerformanceBudget,
+  WebGLResourceStatus,
+} from "../types";
 
 export type ResourceRecord<T = unknown> = {
   key: string;
@@ -33,9 +36,25 @@ type ManagedResourceRecord<T = unknown> = ResourceRecord<T> & {
   loadPromise?: Promise<T>;
 };
 
-export function createResourceManager(): ResourceManager {
+type ResourceManagerOptions = Pick<
+  WebGLPerformanceBudget,
+  "maxConcurrentResourceLoads"
+>;
+
+type ResourceLoadQueue = {
+  run<T>(loader: () => Promise<T>): Promise<T>;
+};
+
+const defaultMaxConcurrentResourceLoads = 6;
+
+export function createResourceManager(
+  options: ResourceManagerOptions = {},
+): ResourceManager {
   const records = new Map<string, ManagedResourceRecord>();
   const elementKeys = new WeakMap<Element, string>();
+  const loadQueue = createResourceLoadQueue(
+    options.maxConcurrentResourceLoads,
+  );
   let nextElementKey = 0;
 
   const readElementKey = (element: Element): string => {
@@ -68,7 +87,7 @@ export function createResourceManager(): ResourceManager {
 
       record.refCount += 1;
 
-      return createResourceHandle(record, records);
+      return createResourceHandle(record, records, loadQueue);
     },
     inspect(key: string): ResourceRecord | undefined {
       return records.get(key);
@@ -90,6 +109,7 @@ function readResourceKind(descriptor: WebGLSourceDescriptor): WebGLResourceKind 
 function createResourceHandle<T>(
   record: ManagedResourceRecord<T>,
   records: Map<string, ManagedResourceRecord>,
+  loadQueue: ResourceLoadQueue,
 ): ResourceHandle<T> {
   let disposed = false;
 
@@ -106,7 +126,7 @@ function createResourceHandle<T>(
 
       record.status = "loading";
       record.error = undefined;
-      record.loadPromise = loader()
+      record.loadPromise = loadQueue.run(loader)
         .then((value) => {
           record.status = "ready";
           record.value = value;
@@ -133,6 +153,58 @@ function createResourceHandle<T>(
       }
     },
   };
+}
+
+function createResourceLoadQueue(
+  maxConcurrentResourceLoads = defaultMaxConcurrentResourceLoads,
+): ResourceLoadQueue {
+  const limit = normalizeMaxConcurrentResourceLoads(
+    maxConcurrentResourceLoads,
+  );
+  const pendingLoads: Array<() => void> = [];
+  let activeLoads = 0;
+
+  return {
+    run<T>(loader: () => Promise<T>): Promise<T> {
+      return new Promise<T>((resolve, reject) => {
+        pendingLoads.push(() => {
+          activeLoads += 1;
+
+          let loadPromise: Promise<T>;
+
+          try {
+            loadPromise = loader();
+          } catch (error: unknown) {
+            finishLoad();
+            reject(error);
+            return;
+          }
+
+          loadPromise.then(resolve, reject).finally(finishLoad);
+        });
+        drainQueue();
+      });
+    },
+  };
+
+  function finishLoad(): void {
+    activeLoads = Math.max(0, activeLoads - 1);
+    drainQueue();
+  }
+
+  function drainQueue(): void {
+    while (activeLoads < limit && pendingLoads.length > 0) {
+      pendingLoads.shift()?.();
+    }
+  }
+}
+
+function normalizeMaxConcurrentResourceLoads(limit: number): number {
+  if (!Number.isFinite(limit)) {
+    return defaultMaxConcurrentResourceLoads;
+  }
+
+  return Math.max(1, Math.floor(limit));
 }
 
 function createResourceKey(
@@ -193,12 +265,12 @@ function readSnapshotKey(
 function normalizeResourceUrl(src: string): string {
   if (src.startsWith("//")) {
     const url = new URL(`https:${src}`);
-    return `${url.pathname}${url.search}${url.hash}`;
+    return `${url.origin}${url.pathname}${url.search}${url.hash}`;
   }
 
   if (src.startsWith("http://") || src.startsWith("https://")) {
     const url = new URL(src);
-    return `${url.pathname}${url.search}${url.hash}`;
+    return `${url.origin}${url.pathname}${url.search}${url.hash}`;
   }
 
   const url = new URL(src, "https://dom-webgl.local");

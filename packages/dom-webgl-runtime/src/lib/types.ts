@@ -121,11 +121,34 @@ export type WebGLDeclaration = {
   effects?: WebGLEffectsDeclaration;
 };
 
+export type WebGLPerformanceBudget = {
+  maxActiveTargets?: number;
+  maxActiveSnapshots?: number;
+  maxActiveVideos?: number;
+  maxActiveModels?: number;
+  maxTextureSize?: number;
+  maxConcurrentResourceLoads?: number;
+};
+
+export type WebGLPerformanceWarning = {
+  code: "performance-budget-exceeded";
+  target:
+    | "activeTargets"
+    | "activeSnapshots"
+    | "activeVideos"
+    | "activeModels"
+    | "textureSize"
+    | "concurrentResourceLoads";
+  count: number;
+  limit: number;
+};
+
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
   effects?: readonly WebGLEffectDefinition[];
   progressSignals?: WebGLProgressSignalSource;
   scrollAdapter?: WebGLScrollAdapter;
+  performanceBudget?: WebGLPerformanceBudget;
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
@@ -217,6 +240,7 @@ export type WebGLDebugState = {
   activeGateKey?: string;
   sceneProgress?: number;
   pointer: WebGLPointerState;
+  warnings?: WebGLPerformanceWarning[];
   targets: Array<{
     key: string;
     sourceKind: string;

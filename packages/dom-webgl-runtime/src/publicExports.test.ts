@@ -215,9 +215,11 @@ describe("public package exports", () => {
 					          WebGLModelEffectHandle,
 					          WebGLModelMeshHandle,
 					          WebGLEffectsDeclaration,
-			          WebGLFrameInput,
-			          WebGLGateScrollBehavior,
-	          WebGLLifecycleDeclaration,
+				          WebGLFrameInput,
+				          WebGLGateScrollBehavior,
+				          WebGLPerformanceBudget,
+				          WebGLPerformanceWarning,
+		          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
 		          WebGLDOMSourceDeclaration,
@@ -318,12 +320,20 @@ describe("public package exports", () => {
             return key === "section.reveal" ? 0.5 : 0;
           },
         } satisfies WebGLProgressSignalSource;
-        const runtimeOptionsWithScrollAdapter = {
-          container: document.createElement("div"),
-          scrollAdapter,
-          progressSignals,
-        } satisfies WebGLRuntimeOptions;
-        runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
+	        const runtimeOptionsWithScrollAdapter = {
+	          container: document.createElement("div"),
+	          scrollAdapter,
+	          progressSignals,
+	          performanceBudget: {
+	            maxActiveTargets: 48,
+	            maxActiveSnapshots: 24,
+	            maxActiveVideos: 2,
+	            maxActiveModels: 4,
+	            maxTextureSize: 4096,
+	            maxConcurrentResourceLoads: 3,
+	          } satisfies WebGLPerformanceBudget,
+	        } satisfies WebGLRuntimeOptions;
+	        runtimeOptionsWithScrollAdapter satisfies WebGLRuntimeOptions;
 
         const renderRole = "model" satisfies WebGLRenderRole;
 	        const domSource = {
@@ -768,13 +778,25 @@ describe("public package exports", () => {
           },
           pointer,
         } satisfies WebGLFrameInput);
-        const resourceStatus = "idle" satisfies WebGLResourceStatus;
-        const debugState = {
-          targetCount: 1,
-          renderableCount: 1,
-          currentScrollMode: "page",
-          pointer: frame.pointer,
-          targets: [
+	        const resourceStatus = "idle" satisfies WebGLResourceStatus;
+	        const performanceWarning = {
+	          code: "performance-budget-exceeded",
+	          target: "activeTargets",
+	          count: 51,
+	          limit: 50,
+	        } satisfies WebGLPerformanceWarning;
+	        function acceptPerformanceWarningTarget<
+	          TKey extends WebGLPerformanceWarning["target"],
+	        >(_key: TKey): void {}
+	        // @ts-expect-error raw renderer metrics are not public performance warnings.
+	        acceptPerformanceWarningTarget("drawCalls");
+	        const debugState = {
+	          targetCount: 1,
+	          renderableCount: 1,
+	          currentScrollMode: "page",
+	          pointer: frame.pointer,
+	          warnings: [performanceWarning],
+	          targets: [
             {
               key: declaration.key,
               sourceKind: "model/glb",

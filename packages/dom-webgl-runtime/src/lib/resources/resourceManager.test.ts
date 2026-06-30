@@ -68,6 +68,26 @@ describe("createResourceManager", () => {
     expect(manager.inspect("model:glb:/models/hero.glb#preview")).toBe(third.record);
   });
 
+  test("preserves absolute URL origins in resource cache keys", () => {
+    const manager = createResourceManager();
+
+    const first = manager.acquire(
+      createModelDescriptor("https://a.example.com/models/hero.glb"),
+    );
+    const second = manager.acquire(
+      createModelDescriptor("https://b.example.com/models/hero.glb"),
+    );
+
+    expect(first.record.key).toBe(
+      "model:glb:https://a.example.com/models/hero.glb",
+    );
+    expect(second.record.key).toBe(
+      "model:glb:https://b.example.com/models/hero.glb",
+    );
+    expect(first.record.key).not.toBe(second.record.key);
+    expect(first.record).not.toBe(second.record);
+  });
+
   test("keeps anonymous snapshot elements in separate resource records", () => {
     const manager = createResourceManager();
     const first = manager.acquire(createAnonymousSnapshotDescriptor());
@@ -148,6 +168,59 @@ describe("createResourceManager", () => {
       status: "error",
       error,
     });
+  });
+
+  test("limits concurrent resource loads", async () => {
+    const manager = createResourceManager({ maxConcurrentResourceLoads: 2 });
+    const first = manager.acquire<{ id: string }>(
+      createModelDescriptor("/models/a.glb"),
+    );
+    const second = manager.acquire<{ id: string }>(
+      createModelDescriptor("/models/b.glb"),
+    );
+    const third = manager.acquire<{ id: string }>(
+      createModelDescriptor("/models/c.glb"),
+    );
+    const completions: Array<() => void> = [];
+    let activeLoads = 0;
+    let peakActiveLoads = 0;
+
+    const firstLoad = first.load(createDeferredLoader("a"));
+    const secondLoad = second.load(createDeferredLoader("b"));
+    const thirdLoad = third.load(createDeferredLoader("c"));
+
+    expect(activeLoads).toBe(2);
+    expect(peakActiveLoads).toBe(2);
+    expect(completions).toHaveLength(2);
+    expect(third.record.status).toBe("loading");
+
+    completions[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(completions).toHaveLength(3);
+    expect(activeLoads).toBe(2);
+    expect(peakActiveLoads).toBe(2);
+
+    completions[1]?.();
+    completions[2]?.();
+
+    await expect(Promise.all([firstLoad, secondLoad, thirdLoad])).resolves.toEqual(
+      [{ id: "a" }, { id: "b" }, { id: "c" }],
+    );
+    expect(activeLoads).toBe(0);
+
+    function createDeferredLoader(id: string): () => Promise<{ id: string }> {
+      return () =>
+        new Promise<{ id: string }>((resolve) => {
+          activeLoads += 1;
+          peakActiveLoads = Math.max(peakActiveLoads, activeLoads);
+          completions.push(() => {
+            activeLoads -= 1;
+            resolve({ id });
+          });
+        });
+    }
   });
 
   test("adopts the existing image element for image resources", () => {

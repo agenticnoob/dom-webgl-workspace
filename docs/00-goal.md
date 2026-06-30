@@ -185,6 +185,10 @@ Current roadmap:
 - The performance direction is scheduler and budget first: instrument runtime
   cost, expose conservative development warnings, and avoid continuous
   rendering for static pages before considering batching or renderer backends.
+- Runtime performance roadmap Task 1 and Task 4 are implemented: debug state can
+  emit performance budget warnings for active targets/snapshots/videos/models,
+  resource cache keys preserve absolute origins, and resource loads are capped
+  by `maxConcurrentResourceLoads`.
 - WebGPU, multiple canvases, raw Three.js public handles, and a general
   CSS-to-WebGL engine are not the performance roadmap.
 
@@ -887,11 +891,12 @@ Suggested first-version budgets:
 
 ```ts
 type WebGLPerformanceBudget = {
-  maxActiveSnapshots: number;
-  maxActiveVideos: number;
-  maxActiveModels: number;
-  maxTextureSize: number;
-  maxConcurrentResourceLoads: number;
+  maxActiveTargets?: number;
+  maxActiveSnapshots?: number;
+  maxActiveVideos?: number;
+  maxActiveModels?: number;
+  maxTextureSize?: number;
+  maxConcurrentResourceLoads?: number;
 };
 ```
 
@@ -1054,6 +1059,9 @@ General loading rules:
 
 - All resource acquisition goes through a resource manager with concurrency limits.
 - Resource cache keys must include kind and normalized URL or snapshot invalidation key.
+  Relative/app-local URLs normalize to `pathname + search + hash`; absolute
+  HTTP(S) and protocol-relative URLs preserve origin, pathname, search, and
+  hash.
 - Multiple targets using the same URL share the same resource record.
 - Resource records use reference counting or an equivalent ownership model.
 - Failed resources remain inspectable through debug state.
