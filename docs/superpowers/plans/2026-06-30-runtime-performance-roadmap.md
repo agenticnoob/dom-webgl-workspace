@@ -367,3 +367,5 @@ npm run test -- --run && npm run typecheck && npm run build && npm run check:imp
 ```
 
 Expected: all commands pass. The existing Vite chunk-size warning remains non-blocking unless it changes into a build failure.
+
+Status: passed after Task 3, Task 5, Task 6, and documentation closeout. `npm run test -- --run` passed with 88 files / 499 tests; `npm run typecheck` passed; `npm run build` passed with the existing non-blocking Vite chunk-size warning; `npm run check:imports` passed; `git diff --check` passed.

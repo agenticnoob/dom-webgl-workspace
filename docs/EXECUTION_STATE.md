@@ -759,14 +759,22 @@ raw Three.js public API expansion.
 - `npm run check:imports` (green package-boundary review import-boundary verification: `Demo and example import boundaries OK`)
 
 ## Last Result
-Runtime performance roadmap Task 6 is complete as a profile-gated decision. The
+Runtime performance roadmap Tasks 1 through 6 are complete or decided and the
+documentation closeout is aligned. Task 6 remains a profile-gated decision: the
 profile notes record idle page, scroll page, pinned section, GLB model, and
 image-sequence scenarios, including target/renderable counts, frame timings,
 window-total counters, normalized per-frame counters, profiler limitations, and
 verification. The decision is to keep batching deferred unless future profiling
 proves draw calls dominate many compatible same-source/same-material planes.
+Final verification passed with `npm run test -- --run` (88 files / 499 tests),
+`npm run typecheck`, `npm run build` (existing non-blocking Vite chunk-size
+warning only), `npm run check:imports`, and `git diff --check`.
 
 ## Files Changed
+- `README.md`
+- `docs/00-goal.md`
+- `docs/REVIEW_BACKLOG.md`
+- `docs/agent/package-usage.md`
 - `docs/performance/profile-notes.md`
 - `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`
 - `docs/EXECUTION_STATE.md`

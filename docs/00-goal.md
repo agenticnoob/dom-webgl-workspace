@@ -185,13 +185,17 @@ Current roadmap:
 - The performance direction is scheduler and budget first: instrument runtime
   cost, expose conservative development warnings, and avoid continuous
   rendering for static pages before considering batching or renderer backends.
-- Runtime performance roadmap Task 1, Task 2, and Task 4 are implemented: debug
-  state can emit performance budget warnings for active
+- Runtime performance roadmap Tasks 1 through 6 are implemented or decided:
+  debug state can emit performance budget warnings for active
   targets/snapshots/videos/models; the renderer-owned loop idles static scenes
   on demand after the first frame; resource readiness requests one follow-up
   frame; active effects, declared gate targets, video, and pointer-driven
-  targets stay continuous; resource cache keys preserve absolute origins; and
-  resource loads are capped by `maxConcurrentResourceLoads`.
+  targets stay continuous; resource cache keys preserve absolute origins;
+  resource loads are capped by `maxConcurrentResourceLoads`; layout
+  measurement candidates are reduced for stable offscreen targets; named
+  postprocess requests run through bounded internal bloom/grain/blur passes;
+  and `docs/performance/profile-notes.md` records that batching is deferred
+  because profiling did not show draw calls dominating many compatible planes.
 - WebGPU, multiple canvases, raw Three.js public handles, and a general
   CSS-to-WebGL engine are not the performance roadmap.
 
@@ -1358,10 +1362,9 @@ Current controlled visual capability API, delivered after Phase 8:
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
 - `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
-  Current runtime truth is request/handle ownership and inspection; actual
-  bloom/grain/blur pass execution is deferred to the performance roadmap so the
-  scheduler, render-target ownership, and resolution budget are designed
-  together.
+  Current runtime truth is request/handle ownership, inspection, and bounded
+  internal bloom/grain/blur pass execution. Composer, pass ordering, and
+  render-target internals remain private.
 - Public APIs still do not expose renderer, scene, camera, raw `ShaderMaterial`,
   raw `Texture`, raw `EffectComposer`, raw `WebGLRenderTarget`, render-loop,
   arbitrary pass ordering, or renderer-state mutation.

@@ -54,32 +54,36 @@ None.
   by the runtime performance budget's `maxConcurrentResourceLoads`.
 - Verification command: `npm test -- --run packages/dom-webgl-runtime/src/lib/resources/resourceManager.test.ts && git diff --check`
 
-## Non-blocking Issues
+## Resolved Runtime Performance Issues
 
 - ID: R-004
-- Severity: non-blocking
+- Severity: resolved
 - Related task: Runtime performance roadmap
 - Files:
   - `packages/dom-webgl-runtime/src/lib/renderer/rendererLoop.ts`
   - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
   - `packages/dom-webgl-runtime/src/lib/debug/debugState.ts`
   - `packages/dom-webgl-runtime/src/lib/resources/resourceManager.ts`
+  - `packages/dom-webgl-runtime/src/lib/renderer/layoutPass.ts`
+  - `packages/dom-webgl-runtime/src/lib/renderer/postprocessController.ts`
+  - `docs/performance/profile-notes.md`
 - Problem: The runtime has the correct one-renderer, batched-layout foundation,
   and now has explicit performance budgets, debug warnings, and resource load
   pressure controls. Demand-driven idle scheduling is implemented for static
   scenes, with one-shot dirty frames for resource readiness and continuous
   rendering retained for active effects, declared gate targets, video, and
-  pointer-driven targets. It still lacks later profile-gated batching/postprocess
-  execution.
-- Why it matters: The current architecture avoids the known expensive mistakes
-  (multiple canvases, full CSS paint cloning, scattered layout reads), but
-  production consumers still need lower idle work before static scenes can stop
-  paying continuous frame cost.
-- Suggested fix: Continue
-  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` with
-  profile-gated batching or real postprocess passes after measuring whether the
-  scheduler/resource work leaves a real bottleneck.
+  pointer-driven targets.
+- Fix applied: Runtime performance roadmap Tasks 1 through 6 are implemented or
+  decided. Layout measurement candidates are reduced for stable offscreen
+  targets, named postprocess requests run through bounded internal
+  bloom/grain/blur passes, and `docs/performance/profile-notes.md` records the
+  profile-gated batching decision: batching is deferred because no dominant
+  draw-call bottleneck was proven across the measured scenarios.
 - Verification command: `npm run test -- --run && npm run typecheck && npm run build && npm run check:imports && git diff --check`
+
+## Non-blocking Issues
+
+None currently recorded for the runtime performance roadmap closeout.
 
 ## Deferred / Not Phase 1
 

@@ -748,10 +748,10 @@ ctx.resources.addDisposable(() => handle.dispose());
 ```
 
 Duplicate request keys update the current named request. Disposing the handle
-removes that request. Current runtime truth is request/handle ownership and
-inspection; the normal render path is still used. Real bloom/grain/blur pass
-execution is deferred to the runtime performance roadmap so pass scheduling,
-render-target pooling, and resolution budgets are designed together.
+removes that request. Current runtime truth is request/handle ownership,
+inspection, and bounded internal bloom/grain/blur pass execution. The runtime
+owns pass scheduling, render-target pooling, and resolution budgets; consumers
+do not receive composer, pass-order, or render-target handles.
 
 ## Target Handles
 
