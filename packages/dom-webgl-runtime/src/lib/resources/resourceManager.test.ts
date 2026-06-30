@@ -223,6 +223,105 @@ describe("createResourceManager", () => {
     }
   });
 
+  test("starts higher priority queued loads before lower priority loads", async () => {
+    const manager = createResourceManager({ maxConcurrentResourceLoads: 1 });
+    const first = manager.acquire<string>(createModelDescriptor("/first.glb"));
+    const second = manager.acquire<string>(createModelDescriptor("/second.glb"));
+    const order: string[] = [];
+    let releaseFirst!: () => void;
+
+    const firstLoad = first.load(
+      () =>
+        new Promise<string>((resolve) => {
+          order.push("first");
+          releaseFirst = () => resolve("first");
+        }),
+      { priority: 0 },
+    );
+    const secondLoad = second.load(async () => {
+      order.push("second");
+      return "second";
+    }, { priority: 10 });
+
+    expect(order).toEqual(["first"]);
+    releaseFirst();
+    await Promise.all([firstLoad, secondLoad]);
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  test("drains pending resource loads by priority while preserving FIFO ties", async () => {
+    const manager = createResourceManager({ maxConcurrentResourceLoads: 1 });
+    const first = manager.acquire<string>(createModelDescriptor("/first.glb"));
+    const low = manager.acquire<string>(createModelDescriptor("/low.glb"));
+    const high = manager.acquire<string>(createModelDescriptor("/high.glb"));
+    const tied = manager.acquire<string>(createModelDescriptor("/tied.glb"));
+    const order: string[] = [];
+    let releaseFirst!: () => void;
+
+    const firstLoad = first.load(
+      () =>
+        new Promise<string>((resolve) => {
+          order.push("first");
+          releaseFirst = () => resolve("first");
+        }),
+      { priority: 0 },
+    );
+    const lowLoad = low.load(async () => {
+      order.push("low");
+      return "low";
+    }, { priority: 1 });
+    const highLoad = high.load(async () => {
+      order.push("high");
+      return "high";
+    }, { priority: 10 });
+    const tiedLoad = tied.load(async () => {
+      order.push("tied");
+      return "tied";
+    }, { priority: 1 });
+
+    expect(order).toEqual(["first"]);
+    releaseFirst();
+    await Promise.all([firstLoad, lowLoad, highLoad, tiedLoad]);
+    expect(order).toEqual(["first", "high", "low", "tied"]);
+  });
+
+  test("uses manager priority context when load options omit priority", async () => {
+    let priority = 0;
+    const manager = createResourceManager({
+      maxConcurrentResourceLoads: 1,
+      readPriority: () => priority,
+    });
+    const first = manager.acquire<string>(createModelDescriptor("/first.glb"));
+    const low = manager.acquire<string>(createModelDescriptor("/low.glb"));
+    const high = manager.acquire<string>(createModelDescriptor("/high.glb"));
+    const order: string[] = [];
+    let releaseFirst!: () => void;
+
+    priority = 0;
+    const firstLoad = first.load(
+      () =>
+        new Promise<string>((resolve) => {
+          order.push("first");
+          releaseFirst = () => resolve("first");
+        }),
+    );
+    priority = 10;
+    const lowLoad = low.load(async () => {
+      order.push("low");
+      return "low";
+    });
+    priority = 100;
+    const highLoad = high.load(async () => {
+      order.push("high");
+      return "high";
+    });
+
+    expect(order).toEqual(["first"]);
+    releaseFirst();
+    await Promise.all([firstLoad, lowLoad, highLoad]);
+    expect(order).toEqual(["first", "high", "low"]);
+  });
+
   test("adopts the existing image element for image resources", () => {
     const manager = createResourceManager();
     const descriptor = createImageDescriptor("/assets/hero.png");

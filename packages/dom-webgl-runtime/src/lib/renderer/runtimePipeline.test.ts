@@ -184,6 +184,7 @@ describe("runtime pipeline sync", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/addons/loaders/GLTFLoader.js");
+    vi.doUnmock("../resources/resourceManager");
     vi.resetModules();
   });
 
@@ -273,6 +274,50 @@ describe("runtime pipeline sync", () => {
       media: 2,
       model: 1,
     });
+
+    runtime.dispose();
+  });
+
+  test("passes active viewport priority to resource loads", async () => {
+    const priorities: Array<number | undefined> = [];
+
+    vi.resetModules();
+    vi.doMock("../resources/resourceManager", async () => {
+      const actual = await vi.importActual<
+        typeof import("../resources/resourceManager")
+      >("../resources/resourceManager");
+
+      return {
+        ...actual,
+        createResourceManager(
+          options: Parameters<typeof actual.createResourceManager>[0] = {},
+        ) {
+          return actual.createResourceManager({
+            ...options,
+            readPriority() {
+              const priority = options.readPriority?.();
+              priorities.push(priority);
+              return priority;
+            },
+          });
+        },
+      };
+    });
+
+    const runtime = await createPipelineRuntime({
+      loadModel: async () => createModelObject3DStub(),
+      measureElement: () => createLayoutMeasurement(0, 0, 200, 200),
+    });
+    const modelAnchor = document.createElement("section");
+
+    runtime.registerTarget(modelAnchor, {
+      key: "priority.model",
+      source: { kind: "model", type: "glb", src: "/priority.glb" },
+    });
+
+    await runtime.sync();
+
+    expect(priorities).toContain(100);
 
     runtime.dispose();
   });

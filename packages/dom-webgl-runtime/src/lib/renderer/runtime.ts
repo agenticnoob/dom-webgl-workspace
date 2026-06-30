@@ -154,7 +154,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.rendererHostFactory ?? createThreeRendererHost;
   const rendererHost = rendererHostFactory(options.container);
   const registry = createTargetRegistry();
-  const resourceManager = createResourceManager(options.performanceBudget);
+  let currentResourceLoadPriority: number | undefined;
+  const resourceManager = createResourceManager({
+    ...(options.performanceBudget ?? {}),
+    readPriority: () => currentResourceLoadPriority,
+  });
   const scrollState =
     internalOptions.scrollState ??
     createScrollController({
@@ -518,6 +522,21 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
   }
 
+  function readViewportResourceLoadPriority(
+    viewportState: ViewportLifecycleState,
+  ): number {
+    switch (viewportState) {
+      case "active":
+        return 100;
+      case "preloading":
+        return 50;
+      case "mounted":
+        return 10;
+      case "disposed":
+        return 0;
+    }
+  }
+
   function reconcileOffscreenTarget(
     viewportState: ViewportLifecycleState,
     descriptor: TargetDescriptor,
@@ -828,7 +847,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         frameInput,
       );
       let result: void | Promise<void>;
+      const previousResourceLoadPriority = currentResourceLoadPriority;
 
+      currentResourceLoadPriority = readViewportResourceLoadPriority(
+        viewportState,
+      );
       try {
         result = renderable.update(frameInput);
         layoutSignaturesByTargetKey.set(
@@ -843,6 +866,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         }
         emitDebugState(true);
         throw error;
+      } finally {
+        currentResourceLoadPriority = previousResourceLoadPriority;
       }
 
       if (isPromiseLike(result)) {

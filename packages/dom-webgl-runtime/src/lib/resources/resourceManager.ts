@@ -23,7 +23,7 @@ export type WebGLResourceKind =
 
 export type ResourceHandle<T = unknown> = {
   record: ResourceRecord<T>;
-  load(loader: () => Promise<T>): Promise<T>;
+  load(loader: () => Promise<T>, options?: ResourceLoadOptions): Promise<T>;
   dispose(): void;
 };
 
@@ -39,10 +39,16 @@ type ManagedResourceRecord<T = unknown> = ResourceRecord<T> & {
 type ResourceManagerOptions = Pick<
   WebGLPerformanceBudget,
   "maxConcurrentResourceLoads"
->;
+> & {
+  readPriority?(): number | undefined;
+};
 
 type ResourceLoadQueue = {
-  run<T>(loader: () => Promise<T>): Promise<T>;
+  run<T>(loader: () => Promise<T>, options?: ResourceLoadOptions): Promise<T>;
+};
+
+export type ResourceLoadOptions = {
+  priority?: number;
 };
 
 const defaultMaxConcurrentResourceLoads = 6;
@@ -54,6 +60,7 @@ export function createResourceManager(
   const elementKeys = new WeakMap<Element, string>();
   const loadQueue = createResourceLoadQueue(
     options.maxConcurrentResourceLoads,
+    options.readPriority,
   );
   let nextElementKey = 0;
 
@@ -115,7 +122,7 @@ function createResourceHandle<T>(
 
   return {
     record,
-    load(loader: () => Promise<T>): Promise<T> {
+    load(loader: () => Promise<T>, options?: ResourceLoadOptions): Promise<T> {
       if (record.status === "ready") {
         return Promise.resolve(record.value as T);
       }
@@ -126,7 +133,7 @@ function createResourceHandle<T>(
 
       record.status = "loading";
       record.error = undefined;
-      record.loadPromise = loadQueue.run(loader)
+      record.loadPromise = loadQueue.run(loader, options)
         .then((value) => {
           record.status = "ready";
           record.value = value;
@@ -157,30 +164,45 @@ function createResourceHandle<T>(
 
 function createResourceLoadQueue(
   maxConcurrentResourceLoads = defaultMaxConcurrentResourceLoads,
+  readPriority?: () => number | undefined,
 ): ResourceLoadQueue {
   const limit = normalizeMaxConcurrentResourceLoads(
     maxConcurrentResourceLoads,
   );
-  const pendingLoads: Array<() => void> = [];
+  type PendingLoad = {
+    priority: number;
+    order: number;
+    run(): void;
+  };
+  const pendingLoads: PendingLoad[] = [];
   let activeLoads = 0;
+  let nextOrder = 0;
 
   return {
-    run<T>(loader: () => Promise<T>): Promise<T> {
+    run<T>(loader: () => Promise<T>, options?: ResourceLoadOptions): Promise<T> {
       return new Promise<T>((resolve, reject) => {
-        pendingLoads.push(() => {
-          activeLoads += 1;
+        const order = nextOrder;
+        nextOrder += 1;
+        pendingLoads.push({
+          priority: normalizeResourceLoadPriority(
+            options?.priority ?? readPriority?.(),
+          ),
+          order,
+          run() {
+            activeLoads += 1;
 
-          let loadPromise: Promise<T>;
+            let loadPromise: Promise<T>;
 
-          try {
-            loadPromise = loader();
-          } catch (error: unknown) {
-            finishLoad();
-            reject(error);
-            return;
-          }
+            try {
+              loadPromise = loader();
+            } catch (error: unknown) {
+              finishLoad();
+              reject(error);
+              return;
+            }
 
-          loadPromise.then(resolve, reject).finally(finishLoad);
+            loadPromise.then(resolve, reject).finally(finishLoad);
+          },
         });
         drainQueue();
       });
@@ -194,9 +216,25 @@ function createResourceLoadQueue(
 
   function drainQueue(): void {
     while (activeLoads < limit && pendingLoads.length > 0) {
-      pendingLoads.shift()?.();
+      pendingLoads.sort(comparePendingLoads);
+      pendingLoads.shift()?.run();
     }
   }
+}
+
+function comparePendingLoads(
+  first: { priority: number; order: number },
+  second: { priority: number; order: number },
+): number {
+  if (first.priority !== second.priority) {
+    return second.priority - first.priority;
+  }
+
+  return first.order - second.order;
+}
+
+function normalizeResourceLoadPriority(priority: number | undefined): number {
+  return typeof priority === "number" && Number.isFinite(priority) ? priority : 0;
 }
 
 function normalizeMaxConcurrentResourceLoads(limit: number): number {
