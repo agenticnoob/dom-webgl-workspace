@@ -247,10 +247,10 @@ definition is missing, the target declaration has no executable effect.
   the element snapshot surface. The no-pointer smoke field is intentionally
   nearly invisible; the current target's local pointer activates cursor-local
   emissive smoke that fades at the last local position after leaving the target.
-- `example.surfaceWaves`: draws a ReactBits-inspired pointer-reactive line wave
-  background on the element snapshot surface. Pointer displacement applies only
-  while the pointer is inside that target rect; the Perlin wave field keeps
-  animating even after the pointer leaves.
+- `example.surfaceWaves`: creates a ReactBits-inspired GPU material layer over
+  the element snapshot source texture. Pointer displacement applies only while
+  the pointer is inside that target rect; the shader keeps the ambient line field
+  moving without per-frame CPU canvas drawing.
 - `example.textWave`: rewrites text glyph output.
 - `example.textReveal`: maps target viewport progress into per-glyph opacity and scale, with page scroll progress as an additional driver.
 - `example.textSpotlight`: maps target-local pointer distance into per-glyph

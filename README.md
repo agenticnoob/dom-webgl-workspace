@@ -172,10 +172,11 @@ Current example behavior:
   renderers. Ghost Cursor dogfoods the public material layer API: no-pointer
   smoke stays nearly invisible on the dark stage, and the pointer only activates
   target-local emissive smoke around the cursor. Ghost Cursor stops uniform
-  updates after its trail decays. Waves uses the snapshot surface path for a
-  ReactBits-style Canvas2D Perlin point grid: the ambient wave stays subtle, and
-  target-local hover applies an immediate pointer impulse without moving the
-  effect into packages.
+  updates after its trail decays. Waves dogfoods the same public material layer
+  path with a GPU shader approximation of the ReactBits-style line field: the
+  ambient wave stays subtle, and target-local hover applies an immediate pointer
+  disturbance without per-frame CPU canvas drawing or moving the effect into
+  packages.
 - The text, image, video, and image-sequence buckets include taller specimen rows for richer
   motion examples: `example.textSpotlight` uses target-local pointer distance
   to recolor glyph output, `example.imageKenBurns` combines image texture

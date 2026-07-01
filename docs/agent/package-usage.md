@@ -928,12 +928,13 @@ skill:
   algorithm, not incidental infrastructure. For ReactBits Ghost Cursor, the
   reusable idea is pointer trail data plus `fbm`/`blob` shader math; the raw
   renderer/composer setup remains outside package public API. For ReactBits
-  Waves, the reusable idea is the Canvas2D Perlin point grid plus mouse
-  velocity/tension/friction physics; keep it in `apps/example` surface drawing
-  rather than adding package-owned concrete effects. For ReactBits Text Pressure
-  and Scrambled Text, use `dom/text` and `ctx.source.textLayer.setGlyphs(...)`
-  in `apps/example`; keep the exact behavior app-owned unless a later package
-  feature explicitly needs a generalized text capability. When several text
+  Waves, the active example now keeps the concrete visual in `apps/example` as a
+  public material-layer shader approximation over the source texture rather than
+  a package-owned effect or per-frame CPU canvas drawing. For ReactBits Text
+  Pressure and Scrambled Text, use `dom/text` and
+  `ctx.source.textLayer.setGlyphs(...)` in `apps/example`; keep the exact
+  behavior app-owned unless a later package feature explicitly needs a
+  generalized text capability. When several text
   effects need to affect the same glyph command list, compose reusable
   app-owned glyph transform helpers into one effect, as
   `example.textSpotlightPressureScrambleWave` does for spotlight, pressure,
@@ -948,10 +949,10 @@ skill:
   "more smoke-line feel", or "more responsive hover" are example-level tuning
   unless they reveal a missing generic primitive or coordinate/lifecycle bug.
 - Pointer-heavy effects need idle behavior only when frames become identical.
-  Trail-based material effects can stop uniform updates after decay. Canvas
-  effects like ReactBits Waves still redraw while pointer-out because the Perlin
-  wave field keeps moving; do not cache them static just because the pointer
-  left.
+  Trail-based material effects can stop uniform updates after decay. Animated
+  shader effects like `example.surfaceWaves` still update time uniforms while
+  pointer-out because the ambient field keeps moving; do not cache them static
+  just because the pointer left.
 - Pointer-driven reveal effects that must preserve long strokes should keep
   accumulated shape in consumer-owned state such as a mask canvas texture rather
   than a bounded point-uniform window. Define stationary-hover semantics

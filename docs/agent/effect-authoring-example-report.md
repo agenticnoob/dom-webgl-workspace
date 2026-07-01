@@ -85,7 +85,8 @@ frame.
   one final command list.
 - Pointer-heavy `dom/element` examples need per-effect lifecycle decisions:
   Ghost Cursor can stop uniform updates after trail decay, while ReactBits-style
-  Waves must keep drawing because its ambient Perlin field keeps moving.
+  Waves now keeps its ambient field moving through shader uniforms instead of
+  per-frame CPU canvas drawing.
 - Runtime pointer state is shared input, so target-scoped pointer effects need
   an explicit `ctx.layout` hit test and target-local coordinate conversion.
 - A full-width vertical catalog makes it easier to compare multiple effects for
@@ -151,13 +152,13 @@ frame.
   user asks for a ReactBits effect, inspect the referenced implementation and
   port the reusable algorithm instead of hand-tuning an unrelated approximation.
 - Product taste belongs in `apps/example`. Do not promote Ghost Cursor's exact
-  key names, copy, assets, shader constants, trail length, or Waves point-grid
+  key names, copy, assets, shader constants, trail length, or Waves shader
   tuning into the package unless they are first generalized into a tested public
   primitive.
 - Hover feedback is separate from ambient animation speed. For Waves, keep the
-  background motion subtle and make target-local hover responsive with pointer
-  follow plus a minimum hover impulse; do not speed up the ambient wave field to
-  compensate for slow hover.
+  background motion subtle and make target-local hover responsive with shader
+  pointer disturbance; do not speed up the ambient wave field to compensate for
+  slow hover.
 - Text effects need careful language: `textLayer.setGlyphs(...)` changes only
   the WebGL output, not DOM content or accessibility text.
 - Model examples can rotate via `ctx.target`, but advanced model effects still

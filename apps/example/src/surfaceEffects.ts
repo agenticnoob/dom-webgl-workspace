@@ -1,5 +1,6 @@
 import {
   defineWebGLEffect,
+  type WebGLEffectMaterialLayerHandle,
   type WebGLEffectUpdateContext,
 } from "@project/dom-webgl-runtime";
 
@@ -28,10 +29,9 @@ import {
   type TargetLocalPointer,
 } from "./surfacePointer";
 import {
-  createSurfaceWavesState,
-  drawReactBitsWavesSurface,
-  type SurfaceWavesState,
-} from "./wavesSurface";
+  createSurfaceWavesMaterialProgram,
+  createSurfaceWavesUniforms,
+} from "./wavesMaterial";
 
 type SurfaceFillParams = {
   kind: "example.surfaceFill";
@@ -68,6 +68,10 @@ type SurfaceFillState = {
   drawn: boolean;
   image: HTMLImageElement | undefined;
   imageSrc: string | undefined;
+};
+
+type SurfaceWavesState = {
+  layer: WebGLEffectMaterialLayerHandle | undefined;
 };
 
 export const exampleSurfaceFillEffect = defineWebGLEffect<
@@ -185,7 +189,7 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
   kind: "example.surfaceWaves",
   source: "dom/element",
   setup() {
-    return createSurfaceWavesState();
+    return { layer: undefined };
   },
   update(ctx, state, params) {
     if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
@@ -193,20 +197,25 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
     }
 
     const pointer = readLocalPointer(ctx);
-    const wavesState = state ?? createSurfaceWavesState();
+    const wavesState = state ?? { layer: undefined };
+    prepareWavesLayer(ctx, wavesState, params, pointer);
     ctx.target?.setVisible(true);
-    ctx.source.surface?.draw(({ context, width, height }) => {
-      drawReactBitsWavesSurface(context, width, height, {
-        lineColor: params.lineColor ?? "#172124",
-        opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
-        pointerActive: pointer.active,
-        pointerX: pointer.x,
-        pointerY: pointer.y,
-        time: ctx.time,
-      }, wavesState);
-    });
+    wavesState.layer?.setUniforms(createSurfaceWavesUniforms({
+      lineColor: params.lineColor ?? "#172124",
+      opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
+      pointerActive: pointer.active,
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      time: ctx.time,
+      width: ctx.layout.width,
+      height: ctx.layout.height,
+    }));
     ctx.source.surface?.setVisible?.(true);
     ctx.source.surface?.setOpacity?.(1);
+  },
+  dispose(_ctx, state) {
+    state.layer?.dispose();
+    state.layer = undefined;
   },
 });
 
@@ -322,6 +331,33 @@ function prepareGhostCursorLayer(
       trailPoints: state.trail,
       time: ctx.time,
       trailLength: clampNumber(params.trailLength, 6, 64, 32),
+      width: ctx.layout.width,
+      height: ctx.layout.height,
+    }),
+  });
+}
+
+function prepareWavesLayer(
+  ctx: WebGLEffectUpdateContext,
+  state: SurfaceWavesState,
+  params: SurfaceWavesParams,
+  pointer: TargetLocalPointer,
+): void {
+  if (ctx.source.kind !== "dom" || ctx.source.type !== "element" || state.layer) {
+    return;
+  }
+
+  state.layer = ctx.source.surface?.createMaterialLayer({
+    key: "example.surfaceWaves",
+    mode: "replace-source",
+    sourceTextureUniform: "uSource",
+    program: createSurfaceWavesMaterialProgram({
+      lineColor: params.lineColor ?? "#172124",
+      opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
+      pointerActive: pointer.active,
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+      time: ctx.time,
       width: ctx.layout.width,
       height: ctx.layout.height,
     }),

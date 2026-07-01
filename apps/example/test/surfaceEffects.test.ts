@@ -198,15 +198,23 @@ describe("surface example effects", () => {
     }
   });
 
-  test("surface ghost cursor and waves redraw element snapshot surfaces", () => {
+  test("surface ghost cursor and waves use material layers instead of CPU canvas redraws", () => {
     const ghostLayer = {
       setProgram: vi.fn(),
       setUniforms: vi.fn(),
       clear: vi.fn(),
       dispose: vi.fn(),
     };
+    const wavesLayer = {
+      setProgram: vi.fn(),
+      setUniforms: vi.fn(),
+      clear: vi.fn(),
+      dispose: vi.fn(),
+    };
     const surface = {
-      createMaterialLayer: vi.fn(() => ghostLayer),
+      createMaterialLayer: vi.fn((options: { key: string }) =>
+        options.key === "example.surfaceWaves" ? wavesLayer : ghostLayer
+      ),
       draw: vi.fn(),
       setOpacity: vi.fn(),
       setVisible: vi.fn(),
@@ -282,13 +290,41 @@ describe("surface example effects", () => {
         uTime: 960,
       }),
     );
-    expect(surface.draw).toHaveBeenCalledTimes(1);
+    expect(surface.createMaterialLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "example.surfaceWaves",
+        mode: "replace-source",
+        sourceTextureUniform: "uSource",
+        program: expect.objectContaining({
+          fragmentShader: expect.stringContaining("uWaveDensity"),
+          uniforms: expect.objectContaining({
+            uLineColor: expect.any(Array),
+            uOpacity: 0.82,
+          }),
+        }),
+      }),
+    );
+    expect(wavesLayer.setUniforms).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uPointer: expect.any(Array),
+        uPointerActive: true,
+        uTime: 960,
+      }),
+    );
+    expect(surface.draw).not.toHaveBeenCalled();
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenCalledWith(1);
   });
 
-  test("surface waves redraws while pointer is outside because Perlin waves keep moving", () => {
+  test("surface waves updates shader uniforms while pointer is outside because GPU waves keep moving", () => {
+    const wavesLayer = {
+      setProgram: vi.fn(),
+      setUniforms: vi.fn(),
+      clear: vi.fn(),
+      dispose: vi.fn(),
+    };
     const surface = {
+      createMaterialLayer: vi.fn(() => wavesLayer),
       draw: vi.fn(),
       setOpacity: vi.fn(),
       setVisible: vi.fn(),
@@ -363,7 +399,15 @@ describe("surface example effects", () => {
       },
     );
 
-    expect(surface.draw).toHaveBeenCalledTimes(2);
+    expect(surface.createMaterialLayer).toHaveBeenCalledTimes(1);
+    expect(wavesLayer.setUniforms).toHaveBeenCalledTimes(2);
+    expect(wavesLayer.setUniforms).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        uPointerActive: false,
+        uTime: 976,
+      }),
+    );
+    expect(surface.draw).not.toHaveBeenCalled();
     expect(surface.setVisible).toHaveBeenCalledWith(true);
     expect(surface.setOpacity).toHaveBeenLastCalledWith(1);
   });
