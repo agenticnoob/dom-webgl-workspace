@@ -22,6 +22,7 @@ describe("example effect catalog", () => {
       "example.imageZoom",
       "example.imageKenBurns",
       "example.imageHoverReveal",
+      "example.mediaPointerParallax",
       "example.videoPlayback",
       "example.videoDrift",
       "example.modelSpin",
@@ -89,6 +90,11 @@ describe("example effect catalog", () => {
       feather: 42,
       restoreMs: 2200,
       roughness: 0.26,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.mediaPointerParallax",
+      bleed: 0.08,
+      strength: 0.72,
     });
   });
 });

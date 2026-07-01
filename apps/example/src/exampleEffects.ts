@@ -18,6 +18,7 @@ export {
   exampleImagePanEffect,
   exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
+  exampleMediaPointerParallaxEffect,
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
@@ -39,6 +40,7 @@ import {
   exampleImagePanEffect,
   exampleImageKenBurnsEffect,
   exampleImageZoomEffect,
+  exampleMediaPointerParallaxEffect,
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
@@ -81,6 +83,7 @@ export const exampleEffects = [
   exampleImageZoomEffect,
   exampleImageKenBurnsEffect,
   exampleImageHoverRevealEffect,
+  exampleMediaPointerParallaxEffect,
   exampleVideoPlaybackEffect,
   exampleVideoDriftEffect,
   exampleModelSpinEffect,

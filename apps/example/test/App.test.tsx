@@ -289,7 +289,7 @@ describe("effect authoring example app", () => {
       "example.imageHoverReveal",
       "example.videoPlayback",
       "example.videoPlayback",
-      undefined,
+      "example.mediaPointerParallax",
       "example.sequenceCardSlide",
       "example.modelSpin",
       "example.modelFloat",
@@ -302,6 +302,11 @@ describe("effect authoring example app", () => {
     expect(finalTargetProps[16]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
+    });
+    expect(finalTargetProps[16]?.webgl.effects?.[0]).toMatchObject({
+      kind: "example.mediaPointerParallax",
+      bleed: 0.08,
+      strength: 0.72,
     });
     expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,

@@ -148,7 +148,8 @@ Current example behavior:
   `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.textPressure`, `example.textScramble`,
-  `example.imagePan`, `example.imageZoom`, `example.imageKenBurns`, `example.imageHoverReveal`,
+  `example.imagePan`, `example.imageZoom`, `example.imageKenBurns`,
+  `example.imageHoverReveal`, `example.mediaPointerParallax`,
   `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
   `example.sequenceCardBorderGlow`, `example.modelSpin`, and
   `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
@@ -184,8 +185,10 @@ Current example behavior:
   full reveal. The pinned scrub specimen dogfoods
   runtime `source: { kind: "media", type: "image-sequence" }` with
   consumer-preloaded `/example/bg-sequence/frame_*.webp` resources so scroll
-  progress selects already-ready WebGL texture frames. The sequence specimen is
-  a pinned scrub section: `ScrollEffectSection` owns the progress key, `pin`,
+  progress selects already-ready WebGL texture frames, then composes
+  `example.mediaPointerParallax` to crop the media texture and offset it from
+  target-local pointer position. The sequence specimen is a pinned scrub
+  section: `ScrollEffectSection` owns the progress key, `pin`,
   and scrub duration, while the image sequence and card stay inside the pinned
   viewport and use effects for visual motion instead of DOM scrolling. The card
   is a nested `dom/element` child target inside the image-sequence DOM subtree and composes

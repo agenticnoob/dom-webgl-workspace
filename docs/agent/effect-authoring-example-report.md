@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-06-28 for taller rows, added text/image/video specimens, the runtime image-sequence scrub row, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, and ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands.
+Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, and ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands.
 
 ## Summary
 
@@ -24,7 +24,8 @@ instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
 `example.textSpotlight`, `example.imageKenBurns`, `example.imageHoverReveal`,
 and a runtime `media/image-sequence` pinned scrub row that consumes frames
-loaded by the example app. It also includes ReactBits Text Pressure and
+loaded by the example app and composes a reusable media pointer parallax effect.
+It also includes ReactBits Text Pressure and
 Scrambled Text ports as app-owned `dom/text` effects: `example.textPressure`
 and `example.textScramble` rewrite WebGL glyph commands through
 `ctx.source.textLayer` without changing package exports. Text Pressure uses
@@ -55,7 +56,9 @@ the row compresses around them.
   before drawing resumed strokes so old areas do not jump back to full reveal.
   The pinned scrub row uses runtime
   `source: { kind: "media", type: "image-sequence" }` to
-  drive WebGL texture frames from adapter progress.
+  drive WebGL texture frames from adapter progress, while
+  `example.mediaPointerParallax` applies a shared texture crop/offset effect
+  that can also be reused by `media/image` and `media/video` targets.
 - Image-sequence resource ownership is clearer when kept at the consumer
   boundary: the example loads static assets from app code, registers the target
   after the first usable frame, passes a full-length `frames` array, and

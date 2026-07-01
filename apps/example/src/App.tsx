@@ -36,6 +36,9 @@ const sequenceCardEffects = [
     fillOpacity: 0.46,
   },
 ] as const;
+const imageSequenceScrubEffects = [
+  { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
+] as const;
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
@@ -306,6 +309,7 @@ export default function App() {
                     progressKey: videoScrubProgressKey,
                   },
                   lifecycle: { hideWhenReady: true, hideMode: "self" },
+                  effects: imageSequenceScrubEffects,
                 }}
               >
                 <WebGLTarget

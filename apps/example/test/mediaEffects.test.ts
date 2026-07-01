@@ -4,6 +4,7 @@ import { createEffectContext } from "./effectContext";
 import {
   exampleImageHoverRevealEffect,
   exampleImageKenBurnsEffect,
+  exampleMediaPointerParallaxEffect,
   exampleImagePanEffect,
   exampleImageZoomEffect,
   exampleVideoDriftEffect,
@@ -716,6 +717,76 @@ describe("media example effects", () => {
     expect(layer.dispose).toHaveBeenCalledTimes(1);
     expect(state.layer).toBeUndefined();
     expect(state.revealImage).toBeUndefined();
+  });
+
+  test("media pointer parallax crops and offsets image-sequence textures from target-local pointer", () => {
+    const image = {
+      setTextureTransform: vi.fn(),
+      setVisible: vi.fn(),
+      setOpacity: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        element: document.createElement("section"),
+        frame: 4,
+        src: "/example/bg-sequence/frame_0004.webp",
+        image,
+      },
+      layout: { left: 20, top: 30, width: 320, height: 180 },
+      pointer: { x: 340, y: 30, isInside: true },
+    });
+
+    exampleMediaPointerParallaxEffect.update(context, undefined, {
+      kind: "example.mediaPointerParallax",
+      bleed: 0.08,
+      strength: 1,
+    });
+
+    expect(exampleMediaPointerParallaxEffect.source).toEqual([
+      "media/image",
+      "media/video",
+      "media/image-sequence",
+    ]);
+    expect(image.setTextureTransform).toHaveBeenCalledWith({
+      repeatX: 0.92,
+      repeatY: 0.92,
+      offsetX: 0.08,
+      offsetY: 0,
+    });
+    expect(image.setVisible).toHaveBeenCalledWith(true);
+    expect(image.setOpacity).toHaveBeenCalledWith(1);
+  });
+
+  test("media pointer parallax recenters cropped media when the pointer leaves", () => {
+    const video = {
+      setTextureTransform: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "media",
+        type: "video",
+        element: document.createElement("video"),
+        src: "/example/video.mp4",
+        video,
+      },
+      layout: { left: 20, top: 30, width: 320, height: 180 },
+      pointer: { x: 800, y: 600, isInside: false },
+    });
+
+    exampleMediaPointerParallaxEffect.update(context, undefined, {
+      kind: "example.mediaPointerParallax",
+      bleed: 0.1,
+      strength: 0.5,
+    });
+
+    expect(video.setTextureTransform).toHaveBeenCalledWith({
+      repeatX: 0.9,
+      repeatY: 0.9,
+      offsetX: 0.05,
+      offsetY: 0.05,
+    });
   });
 
   test("video playback configures media once during setup", () => {

@@ -37,6 +37,7 @@ export type ExampleEffectParams = {
     restoreMs?: number;
     roughness?: number;
   };
+  "example.mediaPointerParallax": { bleed?: number; strength?: number };
   "example.videoPlayback": { playbackRate?: number };
   "example.videoDrift": { distance?: number };
   "example.modelSpin": { speed?: number };
@@ -83,6 +84,7 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
     restoreMs: 2200,
     roughness: 0.26,
   },
+  { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
   { kind: "example.videoPlayback", playbackRate: 0.8 },
   { kind: "example.videoDrift", distance: 0.12 },
   { kind: "example.modelSpin", speed: 0.25 },

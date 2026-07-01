@@ -22,6 +22,12 @@ type ImageKenBurnsParams = {
   maxScale?: number;
 };
 
+type MediaPointerParallaxParams = {
+  kind: "example.mediaPointerParallax";
+  bleed?: number;
+  strength?: number;
+};
+
 type ImageHoverRevealParams = {
   kind: "example.imageHoverReveal";
   revealSrc?: string;
@@ -145,6 +151,53 @@ export const exampleImageHoverRevealEffect = defineWebGLEffect<
   },
 });
 
+export const exampleMediaPointerParallaxEffect =
+  defineWebGLEffect<MediaPointerParallaxParams>({
+    kind: "example.mediaPointerParallax",
+    source: ["media/image", "media/video", "media/image-sequence"],
+    update(ctx, _state, params) {
+      if (ctx.source.kind !== "media") {
+        return;
+      }
+
+      const layer = readMediaPointerParallaxLayer(ctx.source);
+      if (!layer) {
+        return;
+      }
+
+      const bleed = clampNumber(params.bleed, 0, 0.24, 0.08);
+      const strength = clampNumber(params.strength, 0, 1, 0.72);
+      const repeat = 1 - bleed;
+      const centerOffset = bleed * 0.5;
+      const maxOffset = centerOffset * strength;
+      const pointer = readTargetLocalPointer({
+        layout: ctx.layout,
+        pointer: ctx.pointer,
+      });
+      const normalizedX = readNormalizedPointerAxis(pointer.x, ctx.layout.width);
+      const normalizedY = readNormalizedPointerAxis(pointer.y, ctx.layout.height);
+
+      layer.setTextureTransform({
+        repeatX: repeat,
+        repeatY: repeat,
+        offsetX: clampNumber(
+          centerOffset + normalizedX * maxOffset,
+          0,
+          bleed,
+          centerOffset,
+        ),
+        offsetY: clampNumber(
+          centerOffset + normalizedY * maxOffset,
+          0,
+          bleed,
+          centerOffset,
+        ),
+      });
+      layer.setVisible?.(true);
+      layer.setOpacity?.(1);
+    },
+  });
+
 export const exampleVideoPlaybackEffect = defineWebGLEffect<
   VideoPlaybackParams,
   VideoPlaybackState
@@ -194,6 +247,31 @@ function configureVideo(
   ctx.source.video?.setPlaybackRate(clampNumber(params.playbackRate, 0.25, 2, 1));
   void ctx.source.video?.play();
   state.configured = true;
+}
+
+function readMediaPointerParallaxLayer(
+  source: Parameters<typeof exampleMediaPointerParallaxEffect.update>[0]["source"],
+) {
+  if (source.kind !== "media") {
+    return undefined;
+  }
+
+  switch (source.type) {
+    case "image":
+      return source.image;
+    case "video":
+      return source.video;
+    case "image-sequence":
+      return source.image;
+  }
+}
+
+function readNormalizedPointerAxis(value: number, size: number): number {
+  if (size <= 0) {
+    return 0;
+  }
+
+  return clampNumber((value / size - 0.5) * 2, -1, 1, 0);
 }
 
 function createImageHoverRevealState(): ImageHoverRevealState {

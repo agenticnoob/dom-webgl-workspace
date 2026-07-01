@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import type {
   WebGLEffectCanvasSurfaceHandle,
   WebGLEffectSourceHandle,
+  WebGLEffectImageSequenceLayerHandle,
   WebGLEffectTextLayerHandle,
   WebGLEffectTextureLayerHandle,
   WebGLEffectVideoLayerHandle,
@@ -36,6 +37,14 @@ export type TestEffectSource =
       element: HTMLVideoElement;
       src: string;
       video?: Partial<WebGLEffectVideoLayerHandle>;
+    }
+  | {
+      kind: "media";
+      type: "image-sequence";
+      element: HTMLElement;
+      frame: number;
+      src: string;
+      image?: Partial<WebGLEffectImageSequenceLayerHandle>;
     }
   | {
       kind: "model";
@@ -82,6 +91,20 @@ export function createEffectSource(
             : createCanvasSurface(source.surface),
       };
     case "media":
+      if (source.type === "image-sequence") {
+        return {
+          kind: "media",
+          type: "image-sequence",
+          element: source.element,
+          frame: source.frame,
+          src: source.src,
+          image:
+            source.image === undefined
+              ? undefined
+              : createImageSequenceLayer(source.image),
+        };
+      }
+
       if (source.type === "video") {
         return {
           kind: "media",
@@ -114,6 +137,40 @@ export function createEffectSource(
         model: createModelHandle(source.model),
       };
   }
+}
+
+function createImageSequenceLayer(
+  overrides: Partial<WebGLEffectImageSequenceLayerHandle> = {},
+): WebGLEffectImageSequenceLayerHandle {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+
+  return {
+    source: canvas,
+    shaderInputs: {
+      naturalSize: { width: 1, height: 1 },
+      contentBox: { x: 0, y: 0, width: 1, height: 1 },
+      uvTransform: { repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0 },
+      objectFit: "fill",
+      objectPosition: "50% 50%",
+      sourceTexture: {
+        available: false,
+        uniform: "source-texture",
+        width: 1,
+        height: 1,
+      },
+    },
+    createMaterialLayer: vi.fn(() => ({
+      setProgram: vi.fn(),
+      setUniforms: vi.fn(),
+      clear: vi.fn(),
+      dispose: vi.fn(),
+    })),
+    setTextureTransform: vi.fn(),
+    invalidate: vi.fn(),
+    ...overrides,
+  };
 }
 
 function createCanvasSurface(

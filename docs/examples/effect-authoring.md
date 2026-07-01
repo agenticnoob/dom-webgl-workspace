@@ -276,6 +276,9 @@ definition is missing, the target declaration has no executable effect.
   the pointer is stationary inside the target, and it bakes the current fade
   into the mask before drawing a resumed stroke so old reveal areas do not snap
   back to full opacity.
+- `example.mediaPointerParallax`: applies the same target-local pointer
+  parallax to `media/image`, `media/video`, and `media/image-sequence` handles
+  by cropping the texture sample area slightly before offsetting it.
 - `example.videoPlayback`: mutes, slows, and starts a video texture.
 - `example.videoDrift`: applies a live transform to a video texture.
 - `example.sequenceCardSlide`: drives a `dom/element` card target from the
@@ -316,6 +319,9 @@ The pinned scrub row now dogfoods runtime `source: { kind: "media", type: "image
 `ScrollEffectSection` owns the progress key, and the WebGL target declares
 `frameCount`, consumer-owned `frames`, and `progressKey` so the runtime selects
 usable frames and updates the texture plane without owning the sequence loader.
+The image-sequence parent composes `example.mediaPointerParallax`, so scrub
+progress still selects frames while pointer position only adjusts the current
+frame's texture transform.
 The example uses a pinned scrub layout: the section owns `pin`, scrub duration,
 and progress, while the image sequence and WebGL card stay inside the pinned
 viewport. The card is a nested `dom/element` child target inside the
