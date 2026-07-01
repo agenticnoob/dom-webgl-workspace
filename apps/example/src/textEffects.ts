@@ -114,7 +114,7 @@ export const exampleTextSpotlightEffect = defineWebGLEffect<TextSpotlightParams>
 
     const pointer = readTargetLocalPointer({
       layout: ctx.layout,
-      pointer: ctx.pointer,
+      pointer: ctx.targetPointer,
     });
     const radius = clampNumber(params.radius, 48, 360, 180);
     const phase = 0.5 + Math.sin(ctx.time / 700) * 0.5;
@@ -150,7 +150,7 @@ export const exampleTextPressureEffect = defineWebGLEffect<TextPressureParams>({
 
     const pointer = readTargetLocalPointer({
       layout: ctx.layout,
-      pointer: ctx.pointer,
+      pointer: ctx.targetPointer,
     });
     const color = params.color ?? "#f4f4f5";
 
@@ -307,7 +307,7 @@ export const exampleTextScrambleEffect = defineWebGLEffect<TextScrambleParams>({
 
     const pointer = readTargetLocalPointer({
       layout: ctx.layout,
-      pointer: ctx.pointer,
+      pointer: ctx.targetPointer,
     });
     const radius = clampNumber(params.radius, 48, 360, 148);
     const speed = clampNumber(params.speed, 0.1, 2, 0.45);
@@ -348,7 +348,7 @@ export const exampleTextSpotlightPressureScrambleWaveEffect =
 
       const pointer = readTargetLocalPointer({
         layout: ctx.layout,
-        pointer: ctx.pointer,
+        pointer: ctx.targetPointer,
       });
       const radius = clampNumber(params.radius, 64, 420, 190);
       const amplitude = clampNumber(params.amplitude, 0, 24, 8);

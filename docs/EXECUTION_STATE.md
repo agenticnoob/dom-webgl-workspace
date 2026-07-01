@@ -1,14 +1,16 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
+Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. Target-scoped pointer contract is implemented: public declarations use `pointer: { hover, press, click, drag }`, `ctx.pointer` remains runtime/canvas input state, `ctx.targetPointer` exposes current-target layout-local pointer state, pointer declarations wake reactive effects with one-shot `"pointer"` dirty frames, and target debug records expose pointer snapshots only for pointer-declared targets. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
 
 Declarative WebGL transform groups are implemented with
 `transformScope: "subtree"`. Parent effects can transform, hide, and best-effort
 fade the declared WebGL subtree, while child targets keep independent source,
 effect, texture, fallback lifecycle, resource, and offscreen ownership. This
 does not expose raw Three.js `Group`/`Object3D`, scene, camera, material, matrix,
-or public scene-graph APIs, and pointer remains layout/global in v1.
+or public scene-graph APIs. Target pointer state remains layout-local only; it
+does not perform inverse-transformed picking for rotated groups, models, or
+custom meshes.
 
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
@@ -26,6 +28,7 @@ AI-first public API boundary tightening plan: `docs/superpowers/plans/2026-06-29
 Runtime performance roadmap plan: `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
 Runtime performance ownership V2 plan: `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`.
 WebGL transform groups plan: `docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`.
+Target-scoped pointer contract plan: `docs/superpowers/plans/2026-07-01-target-scoped-pointer-contract.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
@@ -47,20 +50,26 @@ render order, material restoration, texture allocation, and disposal. The public
 API still does not expose renderer, scene, camera, raw shader materials, raw
 textures, composer, render targets, render loop, pass ordering, raw model
 objects, raw mesh traversal, raw point-cloud objects, raw target object
-attachment, or renderer-state mutation.
+attachment, renderer-state mutation, or raw pointer events.
 
 ## Last Completed Task
-React Doctor conservative hygiene pass is implemented. The runtime/example code
-now resolves the safe diagnostics without changing public API: visualViewport
-scroll invalidation uses a passive listener, example image-sequence preload keeps
-bounded concurrency without loop-await syntax, debug panel error rendering and
-DOM stage setup use single-pass collection, and internal render/material reuse
-state is named as cache/render keys rather than security-shaped signatures.
-`WebGLRuntime` keeps its intentional latest-runtime dispose semantics, and
-React context access remains compatible rather than being forced to React
-19-only `use(...)`.
+Target-scoped pointer contract is implemented. `WebGLPointerDeclaration` now
+uses `hover`, `press`, `click`, and `drag`; `pointer.move` is intentionally not
+preserved, and `longPress` remains effect-level behavior derived from
+`ctx.targetPointer.pressDuration`. Effects can read `ctx.targetPointer` for
+current-target layout-local pointer state instead of repeating
+`ctx.pointer.x - ctx.layout.left/top` math. Runtime pointer ownership remains in
+the input layer, React remains declarative, and no raw DOM event, picking,
+matrix, scene graph, or Three.js object API was exposed.
 
 ## Latest Documentation Note
+Target pointer docs are aligned across README, goal, package usage, package
+onboarding, example authoring, custom-effects guidance, effect-authoring report,
+review backlog, and this execution state. The active contract is target
+semantic: `pointer: { hover, press, click, drag }` declares which target-level
+semantics wake reactive effects; target pointer debug state is optional and
+only appears on pointer-declared targets.
+
 React Doctor docs are aligned across README, goal, performance notes, review
 backlog, and this execution state. The active conclusion is conservative:
 fixed safe internal findings, left compatibility/architecture findings
@@ -236,11 +245,27 @@ example records current authoring friction in
 - Task 84: AI-First Public API Boundary Tightening.
 - Task 85: Runtime Performance Ownership V2.
 - Task 86: Test Source Separation.
+- Task 87: Target-Scoped Pointer Contract.
 
 ## Current Task
-Test source separation is complete and documented. This is a repository
-structure cleanup only; it does not change runtime behavior, public package API,
-renderer ownership, or example visual behavior.
+Target-scoped pointer contract is complete and documented. The current closeout
+is a docs-aligned commit of the implementation, tests, example dogfood updates,
+and status documents.
+
+## Target-Scoped Pointer Contract
+- Completed work: Added pure target-local pointer derivation, exposed
+  `ctx.targetPointer`, refreshed reusable effect contexts per frame, changed
+  pointer declarations to `hover`/`press`/`click`/`drag`, added event-driven
+  pointer invalidation, removed pointer declarations from continuous-render
+  ownership, and copied target-local pointer snapshots into debug state only
+  for pointer-declared targets.
+- Example note: `apps/example` now reads `ctx.targetPointer` for local pointer
+  effects. Shared helper code remains only where it adds effect-specific
+  fallback, clamping, or translated-card behavior beyond the runtime-provided
+  target-local state.
+- Boundary notes: No component-level React pointer listener, render-time side
+  effect, raw DOM event API, raw Three.js handle, raycast picking, matrix API,
+  public scene graph, or compatibility shim for `pointer.move` was added.
 
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object

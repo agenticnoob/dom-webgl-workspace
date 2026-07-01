@@ -119,7 +119,18 @@ Current runtime behavior:
   transform group for its WebGL subtree. Effects on that parent write transform,
   visibility, and best-effort opacity to the group; child targets still own their
   own sources, effects, textures, fallback lifecycle, and offscreen policy.
-  Pointer input remains layout/global in v1, with no inverse-transformed picking.
+  `ctx.pointer` remains runtime/canvas pointer state; `ctx.targetPointer` is the
+  current target's layout-local pointer state. Target pointer is layout-local
+  only, with no inverse-transformed picking for rotated groups, models, or
+  custom meshes.
+- Pointer declarations are target-semantic: use
+  `pointer: { hover, press, click, drag }` to wake reactive effects for
+  target-level pointer semantics. `ctx.targetPointer.isInside` is the current
+  target hover check, `localX/localY` replace repeated
+  `ctx.pointer.x - ctx.layout.left/top` math, and `normalizedX/Y` use the same
+  -1..1 convention as runtime pointer coordinates. Long-press behavior belongs
+  in effect params via `ctx.targetPointer.pressDuration`; runtime does not own a
+  global threshold.
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active, plus per-target layer diagnostics and
   runtime performance budget warnings when active target, snapshot, video,
@@ -472,8 +483,8 @@ const appPointerTiltEffect = defineWebGLEffect({
     const radians = (maxDegrees * Math.PI) / 180;
 
     context.target?.setRotation(
-      -context.pointer.normalizedY * radians,
-      context.pointer.normalizedX * radians * (params.strength ?? 1),
+      -context.targetPointer.normalizedY * radians,
+      context.targetPointer.normalizedX * radians * (params.strength ?? 1),
     );
   },
 });
@@ -675,8 +686,8 @@ scale, hide, or best-effort fade its WebGL subtree:
 
 The parent group affects only declared WebGL descendants. Child targets keep
 their own source/effect/texture/lifecycle ownership; a parent offscreen policy or
-fallback hide does not dispose child renderables. Pointer state remains based on
-the DOM layout/global input model in v1, not rotated or inverse-transformed
+fallback hide does not dispose child renderables. `ctx.targetPointer` remains
+layout-local to the current target; it is not rotated or inverse-transformed
 subtree picking.
 
 ## Scene Gates

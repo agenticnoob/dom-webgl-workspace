@@ -61,6 +61,7 @@ export type {
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,
+  WebGLTargetPointerState,
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
   WebGLProgressSignalSource,

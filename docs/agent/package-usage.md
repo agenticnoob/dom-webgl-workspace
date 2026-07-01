@@ -129,7 +129,9 @@ Resource cache keys preserve relative/app-local `pathname + search + hash`; for
 absolute HTTP(S) and protocol-relative URLs, cache keys include origin as well.
 
 `createInitialPointerState` is a package-internal helper. Consumers receive
-pointer state through `ctx.pointer`, `ctx.input.pointer`, or debug state.
+runtime/canvas pointer state through `ctx.pointer` or `ctx.input.pointer`, and
+current-target layout-local pointer state through `ctx.targetPointer` or target
+debug state.
 
 ## Runtime Setup
 
@@ -698,6 +700,7 @@ Use context fields as the single runtime truth:
 - `ctx.layout`: current DOM layout snapshot and viewport size.
 - `ctx.input`: full frame input.
 - `ctx.pointer`: pointer state for the runtime coordinate element.
+- `ctx.targetPointer`: current-target layout-local pointer state.
 - `ctx.scroll`: page or gate scroll state.
 - `ctx.scrollProgress`: active progress value for current scroll mode.
 - `ctx.time`: runtime time in milliseconds.
@@ -709,11 +712,19 @@ Use context fields as the single runtime truth:
 
 Pointer rule:
 
-- `ctx.pointer.normalizedX/Y` are runtime-coordinate values.
-- If an effect needs target-local hit testing, map pointer coordinates through
-  `ctx.layout`.
-- If an effect hit-tests a transformed model, project through the model's current
-  transform before comparing positions.
+- `ctx.pointer` is runtime/canvas pointer state.
+- `ctx.targetPointer` is current-target layout-local pointer state.
+- `ctx.targetPointer.isInside` is the hover check for the current target.
+- `ctx.targetPointer.localX/localY` replace repeated
+  `ctx.pointer.x - ctx.layout.left/top` math in effects.
+- `ctx.targetPointer.normalizedX/Y` are target-local values in the same -1..1
+  convention as runtime pointer coordinates.
+- `pointer: { hover, press, click, drag }` declares which target-level pointer
+  semantics should wake reactive effects.
+- `longPress` is effect-level behavior built from
+  `ctx.targetPointer.pressDuration`; runtime does not own a global threshold.
+- Target pointer is layout-local only. It does not perform inverse-transformed
+  picking for rotated groups, models, or custom meshes.
 
 ## Source Handles
 
@@ -837,7 +848,7 @@ ctx.target?.setPosition(
   ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
   0,
 );
-ctx.target?.setRotation(0, ctx.pointer.normalizedX * 0.2, 0);
+ctx.target?.setRotation(0, ctx.targetPointer.normalizedX * 0.2, 0);
 ctx.target?.setScale(1.05);
 ctx.target?.setOpacity(0.8);
 ```
@@ -921,7 +932,7 @@ Effect-specific tests should cover:
 - unsupported `ctx.source.kind` / `ctx.source.type` no-ops safely;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` for motion;
-- target-local pointer math maps through `ctx.layout`;
+- target-local pointer behavior reads `ctx.targetPointer`;
 - text glyph pointer effects use `glyph.y + glyph.height / 2` for visual
   center proximity;
 - transformed model picking accounts for current object transform;

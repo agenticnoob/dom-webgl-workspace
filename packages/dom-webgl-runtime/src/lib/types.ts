@@ -80,7 +80,8 @@ export type WebGLScrollBehavior =
   | WebGLGateScrollBehavior;
 
 export type WebGLPointerDeclaration = {
-  move?: boolean;
+  hover?: boolean;
+  press?: boolean;
   click?: boolean;
   drag?: boolean;
 };
@@ -191,6 +192,23 @@ export type WebGLPointerState = {
   clickCount: number;
 };
 
+export type WebGLTargetPointerState = {
+  localX: number;
+  localY: number;
+  normalizedX: number;
+  normalizedY: number;
+  isInside: boolean;
+  isPressed: boolean;
+  pressDuration: number;
+  isDragging: boolean;
+  dragStartLocalX: number;
+  dragStartLocalY: number;
+  dragDeltaX: number;
+  dragDeltaY: number;
+  lastClickTime?: number;
+  clickCount: number;
+};
+
 export type WebGLFrameInput = {
   time: number;
   delta: number;
@@ -260,6 +278,7 @@ export type WebGLDebugState = {
     resourceStatus: WebGLResourceStatus;
     lifecycleState: WebGLLifecycleState;
     visible: boolean;
+    pointer?: WebGLTargetPointerState;
     parentKey?: string;
     layerDepth: number;
     siblingIndex: number;

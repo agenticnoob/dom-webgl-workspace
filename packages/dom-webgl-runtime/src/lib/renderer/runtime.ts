@@ -45,6 +45,7 @@ import {
   createPointerController,
   type PointerController,
 } from "../input/pointerController";
+import { createTargetPointerState } from "../input/targetPointer";
 import {
   createScrollController,
   type ScrollController,
@@ -193,6 +194,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     createPointerController({
       coordinateElement: rendererHost.canvas,
       eventTarget: ownerDocument,
+      onPointerInput() {
+        if (hasPointerDrivenTarget()) {
+          rendererLoopRequestFrame("pointer");
+        }
+      },
     });
   const frameInputSource = createFrameInputSource(
     scrollState,
@@ -821,6 +827,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (!layoutMeasurement) {
         // Pre-filter skipped this target — kept as disposed via scroll estimation.
+        delete debugRecord.pointer;
         const prev = rectSkipState.get(descriptor.key);
         if (prev) {
           prev.skippedFrames += 1;
@@ -853,6 +860,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
       if (viewportState !== "active") {
+        delete debugRecord.pointer;
         const skipped = reconcileOffscreenTarget(
           viewportState, descriptor, renderable, frameInput, debugRecord,
         );
@@ -892,6 +900,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         dirtyReasons,
         frameInput,
       );
+      syncTargetPointerDebugRecord(descriptor, debugRecord, frameInput, layoutMeasurement);
       let result: void | Promise<void>;
       const previousResourceLoadPriority = currentResourceLoadPriority;
 
@@ -1013,6 +1022,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
 
     return Array.from(reasons);
+  }
+
+  function syncTargetPointerDebugRecord(
+    descriptor: TargetDescriptor,
+    debugRecord: TargetDebugRecord,
+    frameInput: WebGLFrameInput,
+    layoutMeasurement: ElementLayoutSnapshot,
+  ): void {
+    if (hasPointerDeclaration(descriptor.declaration.pointer)) {
+      debugRecord.pointer = createTargetPointerState(frameInput, layoutMeasurement);
+      return;
+    }
+
+    delete debugRecord.pointer;
   }
 
   function mergeRenderDirtyReasons(
@@ -1291,13 +1314,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return true;
     }
 
-    if (hasPointerDeclaration(descriptor.declaration.pointer)) {
-      return true;
-    }
-
     return (
       targetState.effectControllersByTargetKey.get(descriptor.key)
         ?.schedulingMode === "frame" && renderable.status !== "disposed"
+    );
+  }
+
+  function hasPointerDrivenTarget(): boolean {
+    return listTargetsInScanOrder(registry).some((descriptor) =>
+      hasPointerDeclaration(descriptor.declaration.pointer),
     );
   }
 
@@ -1305,7 +1330,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     pointer: WebGLDeclaration["pointer"],
   ): boolean {
     return (
-      pointer?.move === true ||
+      pointer?.hover === true ||
+      pointer?.press === true ||
       pointer?.click === true ||
       pointer?.drag === true
     );

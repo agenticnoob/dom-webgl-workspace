@@ -5,6 +5,7 @@ import type {
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
+  WebGLTargetPointerState,
   WebGLLifecycleState,
 } from "../types";
 import type { TextureUploadTelemetry } from "../render/renderables/textureUploadState";
@@ -16,6 +17,7 @@ export type DebugTargetState = {
   resourceStatus: WebGLResourceStatus;
   lifecycleState: WebGLLifecycleState;
   visible: boolean;
+  pointer?: WebGLTargetPointerState;
   parentKey?: string;
   layerDepth?: number;
   siblingIndex?: number;
@@ -97,6 +99,10 @@ export function createDebugState(
 
       if (target.computedRenderOrder !== undefined) {
         summary.computedRenderOrder = target.computedRenderOrder;
+      }
+
+      if (target.pointer) {
+        summary.pointer = { ...target.pointer };
       }
 
       if (error) {

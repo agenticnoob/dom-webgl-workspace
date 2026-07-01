@@ -2513,6 +2513,47 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("debug state exposes target-local pointer only for pointer-declared targets", async () => {
+    const runtime = await createPipelineRuntime();
+    const pointerTarget = document.createElement("section");
+    const staticTarget = document.createElement("section");
+
+    runtime.registerTarget(pointerTarget, {
+      key: "pointer.debug",
+      pointer: { hover: true },
+    });
+    runtime.registerTarget(staticTarget, {
+      key: "static.debug",
+    });
+
+    document.dispatchEvent(
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        clientX: 40,
+        clientY: 30,
+      }),
+    );
+    await runtime.sync();
+
+    const state = runtime.getDebugState();
+    expect(
+      state.targets.find((target) => target.key === "pointer.debug"),
+    ).toEqual(
+      expect.objectContaining({
+        pointer: expect.objectContaining({
+          isInside: expect.any(Boolean),
+          localX: expect.any(Number),
+          localY: expect.any(Number),
+        }),
+      }),
+    );
+    expect(
+      state.targets.find((target) => target.key === "static.debug"),
+    ).not.toHaveProperty("pointer");
+
+    runtime.dispose();
+  });
+
   test("updates renderable layout every sync and invalidates dirty raster state", async () => {
     const element = document.createElement("section");
     const layouts: unknown[] = [];
@@ -2753,7 +2794,7 @@ describe("runtime pipeline sync", () => {
     reactiveRuntime.dispose();
   });
 
-  test("active effects gates videos and pointer targets keep the loop continuous", async () => {
+  test("active effects gates and videos keep the loop continuous", async () => {
     const effectLoopHost = createLoopRecordingHost();
     let effectUpdates = 0;
     const continuousEffect = defineWebGLEffect<{ kind: "test.continuous" }>({
@@ -2821,21 +2862,45 @@ describe("runtime pipeline sync", () => {
     expect(videoLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(3);
     videoRuntime.dispose();
 
+  });
+
+  test("pointer declarations wake on-demand targets without forcing continuous rendering", async () => {
     const pointerLoopHost = createLoopRecordingHost();
-    const pointerRuntime = await createPipelineRuntime({
+    const runtime = await createPipelineRuntime({
       rendererHostFactory: pointerLoopHost.createHost,
-      pointerController: createPointerController({ normalizedX: 0.25 }),
+      effects: [
+        defineWebGLEffect({
+          kind: "test.pointerReactive",
+          schedule: "reactive",
+          update(ctx) {
+            ctx.target?.setRotation(0, ctx.targetPointer.normalizedX, 0);
+          },
+        }),
+      ],
     });
-    pointerRuntime.registerTarget(document.createElement("section"), {
+    const target = document.createElement("section");
+    runtime.registerTarget(target, {
       key: "pointer.hero",
-      pointer: { move: true },
+      pointer: { hover: true },
+      effects: [{ kind: "test.pointerReactive" }],
     });
 
     pointerLoopHost.tick(16);
     pointerLoopHost.tick(32);
 
+    expect(pointerLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    document.dispatchEvent(
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        clientX: 120,
+        clientY: 80,
+      }),
+    );
+    pointerLoopHost.tick(48);
+
     expect(pointerLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
-    pointerRuntime.dispose();
+    runtime.dispose();
   });
 
   test("progress signal notifications wake on-demand image sequence targets", async () => {

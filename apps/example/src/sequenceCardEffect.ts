@@ -82,7 +82,11 @@ export const exampleSequenceCardBorderGlowEffect =
       const offsetX = readSequenceCardMotion(ctx, params).offsetX;
       const pointer = readTargetLocalPointer({
         layout: readVisualLayout(ctx.layout, offsetX),
-        pointer: ctx.pointer,
+        pointer: {
+          ...ctx.targetPointer,
+          localX: ctx.targetPointer.localX - offsetX,
+          isInside: ctx.pointer.isInside,
+        },
       });
       const glow = readSequenceCardGlow(pointer, ctx.layout, params);
 
@@ -119,8 +123,6 @@ function readVisualLayout(
 ): Parameters<typeof readTargetLocalPointer>[0]["layout"] {
   return {
     height: layout.height,
-    left: layout.left + offsetX,
-    top: layout.top,
     width: layout.width,
   };
 }

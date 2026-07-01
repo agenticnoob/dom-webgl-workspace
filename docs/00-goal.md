@@ -234,7 +234,7 @@ React usage:
     source: { kind: "model", type: "glb", src: "/models/hero.glb" },
     renderRole: "model",
     scroll: { type: "gate", start: "top top", duration: 1 },
-    pointer: { move: true, click: true, drag: true }
+    pointer: { hover: true, press: true, click: true, drag: true }
   }}
 />
 ```
@@ -575,13 +575,14 @@ Supported interaction semantics:
 
 ```ts
 type PointerInteraction =
-  | "move"
   | "hover"
   | "click"
   | "press"
-  | "longPress"
   | "drag";
 ```
+
+`longPress` is effect-level behavior built from
+`ctx.targetPointer.pressDuration`; runtime does not own a global threshold.
 
 The runtime should maintain frame-readable pointer state:
 
@@ -639,6 +640,13 @@ type WebGLFrameInput = {
   pointer: WebGLPointerState;
 };
 ```
+
+Effects read runtime/canvas pointer state through `ctx.pointer` and current-target
+layout-local pointer state through `ctx.targetPointer`. `ctx.targetPointer`
+provides `isInside`, `localX/localY`, `normalizedX/Y`, live `pressDuration`,
+drag deltas, and click count for the current target. It is layout-local only and
+does not perform inverse-transformed picking for rotated groups, models, or
+custom meshes.
 
 Future effects and scene animation consume this frame input plus runtime-owned renderables.
 
@@ -1224,6 +1232,7 @@ type WebGLDebugState = {
     resourceStatus: WebGLResourceStatus;
     lifecycleState: WebGLLifecycleState;
     visible: boolean;
+    pointer?: WebGLTargetPointerState;
     parentKey?: string;
     layerDepth: number;
     siblingIndex: number;

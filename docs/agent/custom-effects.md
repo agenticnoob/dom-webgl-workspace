@@ -125,7 +125,7 @@ Effect tests should cover:
 - numeric params are clamped;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` or `ctx.time`, not frame counts;
-- target-local pointer math maps through `ctx.layout`;
+- target-local pointer behavior reads `ctx.targetPointer`;
 - pointer-driven effects specify idle behavior separately from pointer-inside
   state, especially when the pointer stops moving inside the target;
 - resumed interactions during fade-out do not unintentionally reset old effect

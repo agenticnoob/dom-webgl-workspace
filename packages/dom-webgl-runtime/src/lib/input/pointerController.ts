@@ -13,6 +13,7 @@ export type PointerControllerEventTarget = Pick<
 export type PointerControllerOptions = {
   coordinateElement: HTMLElement;
   eventTarget?: PointerControllerEventTarget;
+  onPointerInput?(): void;
 };
 
 export function createPointerController(
@@ -25,6 +26,9 @@ export function createPointerController(
     ? input.eventTarget
     : undefined;
   const pointerEventTarget = eventTarget ?? coordinateElement;
+  const onPointerInput = isPointerControllerOptions(input)
+    ? input.onPointerInput
+    : undefined;
   let state = createInitialPointerState();
   let disposed = false;
 
@@ -43,6 +47,8 @@ export function createPointerController(
         dragDeltaY,
       };
     }
+
+    onPointerInput?.();
   };
 
   const handlePointerDown = (event: Event) => {
@@ -64,6 +70,8 @@ export function createPointerController(
       dragDeltaX: 0,
       dragDeltaY: 0,
     };
+
+    onPointerInput?.();
   };
 
   const handlePointerUp = (event: Event) => {
@@ -82,6 +90,8 @@ export function createPointerController(
       lastClickTime: pointerEvent.timeStamp,
       clickCount: state.clickCount + 1,
     };
+
+    onPointerInput?.();
   };
 
   pointerEventTarget.addEventListener("pointermove", handlePointerMove);

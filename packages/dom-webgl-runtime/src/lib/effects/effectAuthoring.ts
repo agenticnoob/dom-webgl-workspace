@@ -3,6 +3,7 @@ import type {
   WebGLEffectDeclaration,
   WebGLFrameInput,
   WebGLProgressSignalSource,
+  WebGLTargetPointerState,
 } from "../types";
 
 export type WebGLEffectSourceKind =
@@ -326,6 +327,7 @@ export type WebGLEffectContext = {
   layout: ElementLayoutSnapshot;
   input: WebGLFrameInput;
   pointer: WebGLFrameInput["pointer"];
+  targetPointer: WebGLTargetPointerState;
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
   progress: WebGLProgressSignalSource;

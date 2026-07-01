@@ -100,9 +100,9 @@ None.
 - Problem: The runtime has the correct one-renderer, batched-layout foundation,
   and now has explicit performance budgets, debug warnings, and resource load
   pressure controls. Demand-driven idle scheduling is implemented for static
-  scenes, with one-shot dirty frames for resource readiness and continuous
-  rendering retained for active effects, declared gate targets, video, and
-  pointer-driven targets.
+  scenes, with one-shot dirty frames for resource readiness and pointer input,
+  and continuous rendering retained for active frame effects, declared gate
+  targets, and video.
 - Fix applied: Runtime performance roadmap Tasks 1 through 6 are implemented or
   decided. Layout measurement candidates are reduced for stable offscreen
   targets, named postprocess requests run through bounded internal

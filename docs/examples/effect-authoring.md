@@ -196,7 +196,7 @@ const ghostCursorEffect = defineWebGLEffect({
   },
   update(ctx, layer) {
     layer?.setUniforms({
-      uPointer: [ctx.pointer.x - ctx.layout.left, ctx.pointer.y - ctx.layout.top],
+      uPointer: [ctx.targetPointer.localX, ctx.targetPointer.localY],
       uTime: ctx.time,
     });
   },
@@ -211,6 +211,22 @@ invisible on the dark stage, and pointer input only activates target-local
 emissive smoke around the cursor. The example stops sending material uniforms
 after the trail decays to idle, so the effect remains interactive without
 keeping a settled target hot every frame.
+
+Pointer contract:
+
+- `ctx.pointer` is runtime/canvas pointer state.
+- `ctx.targetPointer` is current-target layout-local pointer state.
+- `ctx.targetPointer.isInside` is the hover check for the current target.
+- `ctx.targetPointer.localX/localY` replace repeated
+  `ctx.pointer.x - ctx.layout.left/top` math in effects.
+- `ctx.targetPointer.normalizedX/Y` are target-local values in the same -1..1
+  convention as runtime pointer coordinates.
+- `pointer: { hover, press, click, drag }` declares which target-level pointer
+  semantics should wake reactive effects.
+- `longPress` is effect-level behavior built from
+  `ctx.targetPointer.pressDuration`; runtime does not own a global threshold.
+- Target pointer is layout-local only. It does not perform inverse-transformed
+  picking for rotated groups, models, or custom meshes.
 
 ## Declare Targets
 

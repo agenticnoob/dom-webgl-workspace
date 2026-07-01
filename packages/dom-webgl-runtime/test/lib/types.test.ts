@@ -98,7 +98,8 @@ describe("WebGLDeclaration public types", () => {
           release: "both-directions-complete",
         } satisfies WebGLScrollBehavior;
         const pointer = {
-          move: true,
+          hover: true,
+          press: true,
           click: true,
           drag: true,
         } satisfies WebGLPointerDeclaration;

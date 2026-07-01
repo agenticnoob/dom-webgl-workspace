@@ -3,11 +3,11 @@ import type { WebGLEffectUpdateContext } from "@project/dom-webgl-runtime";
 type TargetLocalPointerInput = {
   readonly layout: Pick<
     WebGLEffectUpdateContext["layout"],
-    "height" | "left" | "top" | "width"
+    "height" | "width"
   >;
   readonly pointer: Pick<
-    WebGLEffectUpdateContext["pointer"],
-    "isInside" | "x" | "y"
+    WebGLEffectUpdateContext["targetPointer"],
+    "isInside" | "localX" | "localY"
   >;
 };
 
@@ -21,8 +21,8 @@ export function readTargetLocalPointer({
   layout,
   pointer,
 }: TargetLocalPointerInput): TargetLocalPointer {
-  const localX = pointer.x - layout.left;
-  const localY = pointer.y - layout.top;
+  const localX = pointer.localX;
+  const localY = pointer.localY;
   const active =
     pointer.isInside &&
     localX >= 0 &&

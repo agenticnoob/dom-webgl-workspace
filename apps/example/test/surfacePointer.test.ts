@@ -15,8 +15,8 @@ describe("surface pointer locality", () => {
       readTargetLocalPointer({
         layout: targetLayout,
         pointer: {
-          x: 8,
-          y: 24,
+          localX: 8 - targetLayout.left,
+          localY: 24 - targetLayout.top,
           isInside: true,
         },
       }),
@@ -29,8 +29,8 @@ describe("surface pointer locality", () => {
       readTargetLocalPointer({
         layout: targetLayout,
         pointer: {
-          x: targetLayout.left + targetLayout.width / 2,
-          y: targetLayout.top + targetLayout.height / 2,
+          localX: targetLayout.width / 2,
+          localY: targetLayout.height / 2,
           isInside: true,
         },
       }),

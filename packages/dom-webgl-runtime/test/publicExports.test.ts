@@ -232,6 +232,7 @@ describe("public package exports", () => {
 		          WebGLModelSourceDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLPointerState,
+	          WebGLTargetPointerState,
 	          WebGLProgressSignalSource,
 	          WebGLRenderRole,
           WebGLResourceStatus,
@@ -425,10 +426,34 @@ describe("public package exports", () => {
         ({ key: "invalid-group", group: { key: "root" } } satisfies WebGLDeclaration);
 
         const pointerDeclaration = {
-          move: true,
+          hover: true,
+          press: true,
           click: true,
           drag: true,
         } satisfies WebGLPointerDeclaration;
+        const targetPointer = {
+          localX: 24,
+          localY: 16,
+          normalizedX: -0.2,
+          normalizedY: 0.5,
+          isInside: true,
+          isPressed: true,
+          pressDuration: 320,
+          isDragging: true,
+          dragStartLocalX: 8,
+          dragStartLocalY: 10,
+          dragDeltaX: 16,
+          dragDeltaY: 6,
+          lastClickTime: 1000,
+          clickCount: 1,
+        } satisfies WebGLTargetPointerState;
+
+        targetPointer satisfies WebGLTargetPointerState;
+
+        // @ts-expect-error pointer.move is an event-level name, not the public target pointer contract.
+        ({ move: true } satisfies WebGLPointerDeclaration);
+        // @ts-expect-error long-press thresholds belong to effect params, not runtime pointer declarations.
+        ({ longPress: true } satisfies WebGLPointerDeclaration);
         const pageScroll = { type: "page" } satisfies WebGLScrollBehavior;
         const gateScroll = {
           type: "gate",

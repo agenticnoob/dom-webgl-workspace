@@ -264,8 +264,18 @@ Default target lifecycle is `hideWhenReady: true`. Use:
   Child targets keep their own source, effects, textures, fallback lifecycle,
   resources, and offscreen policy.
 - Transform groups do not expose raw Three.js `Group`, `Object3D`, scene,
-  camera, material, matrix, or parent-key APIs. Pointer state remains the
-  existing layout/global pointer model in v1.
+  camera, material, matrix, or parent-key APIs. `ctx.pointer` is runtime/canvas
+  pointer state; `ctx.targetPointer` is current-target layout-local pointer
+  state and does not perform inverse-transformed picking for rotated groups,
+  models, or custom meshes.
+- Pointer declarations are target-semantic: use
+  `pointer: { hover, press, click, drag }` to wake reactive effects for
+  target-level pointer semantics. `ctx.targetPointer.isInside` is the current
+  target hover check, `localX/localY` replace repeated
+  `ctx.pointer.x - ctx.layout.left/top` math, and `normalizedX/Y` use the same
+  -1..1 convention as runtime pointer coordinates. Long-press behavior belongs
+  in effect params via `ctx.targetPointer.pressDuration`; runtime does not own a
+  global threshold.
 
 Effect ownership rules:
 
@@ -432,8 +442,8 @@ Run a browser smoke check for visual work when the change affects a rendered app
   `scrollAdapter` identity changes every render.
 - Invalid media source: `image` or `video` is declared on a non-media element.
 - Text confusion: `textLayer.setGlyphs(...)` changes WebGL output, not DOM text.
-- Pointer offset: an effect compares runtime normalized pointer coordinates
-  directly to target-local coordinates.
+- Pointer offset: an effect compares `ctx.pointer` runtime/canvas coordinates
+  directly to target-local coordinates instead of reading `ctx.targetPointer`.
 - Shader coordinate mismatch: DOM pointer `y` is top-down, while shader
   coordinates may be bottom-up. Convert at the effect boundary and test it.
 - Shader uniform name mismatch: a visual can look static when the effect updates

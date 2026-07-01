@@ -1,4 +1,5 @@
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
+import { createTargetPointerState } from "../input/targetPointer";
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../types";
 import type {
   WebGLEffectContext,
@@ -46,6 +47,7 @@ export function createWebGLEffectContext(
     layout: options.layout,
     input: options.input,
     pointer: options.input.pointer,
+    targetPointer: createTargetPointerState(options.input, options.layout),
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
     progress: createProgressSignals(options.progressSignals),

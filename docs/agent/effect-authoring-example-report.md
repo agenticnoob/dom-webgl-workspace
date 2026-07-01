@@ -138,13 +138,11 @@ frame.
   should not use a top-level video source declaration, but a `dom/element`
   effect may own a hidden `HTMLVideoElement` and draw it into
   `ctx.source.surface`.
-- Pointer effects can look subtly wrong if they use only `ctx.pointer.isInside`:
-  that flag belongs to the runtime canvas. Example effects that should respond
-  only inside one target must subtract `ctx.layout.left/top` and reject pointers
-  outside the current target rect.
-- Text pointer effects have the same local-coordinate requirement as surface
-  pointer effects. Compare against glyph visual centers in text-layer
-  coordinates, not against raw viewport pointer coordinates.
+- Pointer effects should use `ctx.targetPointer` for current-target layout-local
+  state. `ctx.pointer` remains runtime/canvas pointer state.
+- Text pointer effects compare `ctx.targetPointer.localX/localY` against glyph
+  visual centers in text-layer coordinates, not against raw viewport pointer
+  coordinates.
 - Shader ports need explicit coordinate and uniform-name checks. DOM pointer
   `y` may need conversion before entering shader coordinates, and a shader that
   reads `iTime` will stay visually static if the effect only updates `uTime`.

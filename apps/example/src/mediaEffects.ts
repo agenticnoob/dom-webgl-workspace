@@ -172,7 +172,7 @@ export const exampleMediaPointerParallaxEffect =
       const maxOffset = centerOffset * strength;
       const pointer = readTargetLocalPointer({
         layout: ctx.layout,
-        pointer: ctx.pointer,
+        pointer: ctx.targetPointer,
       });
       const normalizedX = readNormalizedPointerAxis(pointer.x, ctx.layout.width);
       const normalizedY = readNormalizedPointerAxis(pointer.y, ctx.layout.height);
@@ -367,7 +367,7 @@ function updateImageHoverReveal(
 
   const pointer = readTargetLocalPointer({
     layout: ctx.layout,
-    pointer: ctx.pointer,
+    pointer: ctx.targetPointer,
   });
   const maskCanvas = updateImageHoverRevealMask(ctx.time, state, params, pointer, ctx.layout);
   const uvTransform = ctx.source.image?.shaderInputs.uvTransform ?? {

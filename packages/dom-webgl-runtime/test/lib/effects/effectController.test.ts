@@ -4,6 +4,7 @@ import { defineWebGLEffect } from "../../../src/lib/effects/effectAuthoring";
 import { createWebGLEffectController } from "../../../src/lib/effects/effectController";
 import { createWebGLEffectRegistry } from "../../../src/lib/effects/effectRegistry";
 import type { WebGLEffectTarget } from "../../../src/lib/effects/effectTarget";
+import type { ElementLayoutSnapshot } from "../../../src/lib/renderer/layoutPass";
 
 import type { WebGLSourceDescriptor } from "../../../src/lib/source/sourceDescriptor";
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../../../src/lib/types";
@@ -154,8 +155,20 @@ describe("createWebGLEffectController", () => {
         }),
       ]),
     });
-    const input = createFrameInput({ normalizedX: 0.5 });
-    const layout = createLayoutSnapshot();
+    const input = createFrameInput({
+      x: 140,
+      y: 90,
+      normalizedX: 0.5,
+      isInside: true,
+      isDown: true,
+      downTime: 50,
+    });
+    const layout = createLayoutSnapshot({
+      left: 100,
+      top: 50,
+      width: 200,
+      height: 100,
+    });
 
     controller.update(input, layout);
 
@@ -166,6 +179,15 @@ describe("createWebGLEffectController", () => {
         input,
         layout,
         pointer: input.pointer,
+        targetPointer: expect.objectContaining({
+          localX: 40,
+          localY: 40,
+          normalizedX: -0.6,
+          normalizedY: 0.2,
+          isInside: true,
+          isPressed: true,
+          pressDuration: 50,
+        }),
         scroll: input.scroll,
         scrollProgress: 0,
         time: 100,
@@ -700,18 +722,25 @@ function createFrameInputWithScroll(
   };
 }
 
-function createLayoutSnapshot() {
+function createLayoutSnapshot(
+  rect: Partial<Pick<ElementLayoutSnapshot, "left" | "top" | "width" | "height">> = {},
+): ElementLayoutSnapshot {
+  const left = rect.left ?? 0;
+  const top = rect.top ?? 0;
+  const width = rect.width ?? 100;
+  const height = rect.height ?? 100;
+
   return {
-    x: 0,
-    y: 0,
-    left: 0,
-    top: 0,
-    right: 200,
-    bottom: 100,
-    width: 200,
-    height: 100,
+    x: left,
+    y: top,
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
     viewport: { width: 800, height: 600 },
     devicePixelRatio: 1,
-    layoutSignature: JSON.stringify([0, 0, 200, 100, 800, 600, 1]),
+    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
   };
 }

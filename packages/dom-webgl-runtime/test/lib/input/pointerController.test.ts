@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { createPointerController } from "../../../src/lib/input/pointerController";
 
@@ -154,6 +154,31 @@ describe("createPointerController", () => {
       normalizedX: -0.8,
       normalizedY: 0.8,
     });
+  });
+
+  test("notifies when pointer input changes and stops after dispose", () => {
+    const target = createTargetElement({
+      left: 0,
+      top: 0,
+      width: 100,
+      height: 100,
+    });
+    const onPointerInput = vi.fn();
+    const pointer = createPointerController({
+      coordinateElement: target,
+      onPointerInput,
+    });
+
+    dispatchPointer(target, "pointermove", { clientX: 10, clientY: 10 });
+    dispatchPointer(target, "pointerdown", { clientX: 10, clientY: 10 });
+    dispatchPointer(target, "pointerup", { clientX: 10, clientY: 10 });
+
+    expect(onPointerInput).toHaveBeenCalledTimes(3);
+
+    pointer.dispose();
+    dispatchPointer(target, "pointermove", { clientX: 30, clientY: 30 });
+
+    expect(onPointerInput).toHaveBeenCalledTimes(3);
   });
 });
 

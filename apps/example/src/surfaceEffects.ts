@@ -304,7 +304,7 @@ function drawVideoBackgroundSurface(
 function readLocalPointer(ctx: WebGLEffectUpdateContext): TargetLocalPointer {
   return readTargetLocalPointer({
     layout: ctx.layout,
-    pointer: ctx.pointer,
+    pointer: ctx.targetPointer,
   });
 }
 

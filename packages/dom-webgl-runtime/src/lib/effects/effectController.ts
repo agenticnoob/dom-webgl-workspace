@@ -1,3 +1,4 @@
+import { createTargetPointerState } from "../input/targetPointer";
 import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type { RenderDirtyReason } from "../renderer/rendererLoop";
 import type { WebGLSourceDescriptor } from "../source/sourceDescriptor";
@@ -138,6 +139,7 @@ export function createWebGLEffectController(
           context.layout = layout;
           context.input = input;
           context.pointer = input.pointer;
+          context.targetPointer = createTargetPointerState(input, layout);
           context.scroll = input.scroll;
           context.scrollProgress = readScrollProgress(input.scroll);
           context.time = input.time;
