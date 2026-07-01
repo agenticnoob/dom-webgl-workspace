@@ -148,16 +148,19 @@ Current example behavior:
   `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.textPressure`, `example.textScramble`,
-  `example.imagePan`, `example.imageZoom`, `example.imageKenBurns`,
-  `example.imageHoverReveal`, `example.mediaPointerParallax`,
+  `example.textSpotlightPressureScrambleWave`, `example.imagePan`,
+  `example.imageZoom`, `example.imageKenBurns`, `example.imageHoverReveal`,
+  `example.mediaPointerParallax`,
   `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
   `example.sequenceCardBorderGlow`, `example.modelSpin`, and
   `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
   `ctx.source.textLayer` so the hovered glyphs widen while the rest of the line
-  compresses. They remain example code, not package exports or built-in package
-  effects.
+  compresses. `example.textSpotlightPressureScrambleWave` shows the same
+  text-layer command path can combine spotlight color, scramble characters,
+  pressure reflow, and wave offset in one application effect. They remain
+  example code, not package exports or built-in package effects.
 - In the current example, `example.surfaceFill` paints `/example/bg.png` onto
   the element snapshot surface without changing the target opacity, and
   `example.surfacePulse` draws the pulse on the surface layer without changing

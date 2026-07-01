@@ -1,7 +1,7 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, and ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands.
+Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands, and the reusable text transform helpers behind `example.textSpotlightPressureScrambleWave`.
 
 ## Summary
 
@@ -30,7 +30,11 @@ Scrambled Text ports as app-owned `dom/text` effects: `example.textPressure`
 and `example.textScramble` rewrite WebGL glyph commands through
 `ctx.source.textLayer` without changing package exports. Text Pressure uses
 glyph scale plus line-level `x` reflow so nearby glyphs expand while the rest of
-the row compresses around them.
+the row compresses around them. The combined
+`example.textSpotlightPressureScrambleWave` specimen reuses the same app-owned
+glyph transform helpers for spotlight color, pressure reflow, scramble
+characters, and wave offsets, then writes the final glyph command list once per
+frame.
 
 ## What Worked
 
@@ -75,6 +79,10 @@ the row compresses around them.
   text-layer capability when the port focuses on glyph output rather than raw
   DOM variable-font or GSAP plugin behavior. Keeping them in `apps/example`
   preserves the distinction between catalog references and package contracts.
+- Text effects that all write `ctx.source.textLayer.setGlyphs(...)` should share
+  transform helpers instead of being stacked blindly on one target. The combined
+  text specimen demonstrates reuse by composing app-owned glyph transforms into
+  one final command list.
 - Pointer-heavy `dom/element` examples need per-effect lifecycle decisions:
   Ghost Cursor can stop uniform updates after trail decay, while ReactBits-style
   Waves must keep drawing because its ambient Perlin field keeps moving.

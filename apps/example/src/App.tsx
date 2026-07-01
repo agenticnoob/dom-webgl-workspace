@@ -39,6 +39,17 @@ const sequenceCardEffects = [
 const imageSequenceScrubEffects = [
   { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
 ] as const;
+const textComboEffects = [
+  {
+    kind: "example.textSpotlightPressureScrambleWave",
+    baseColor: "#f4f4f5",
+    spotlightColor: "#f6c453",
+    scrambleChars: "01",
+    radius: 190,
+    amplitude: 8,
+    speed: 0.42,
+  },
+] as const;
 
 export default function App() {
   const [debugState, onDebugStateChange] = useWebGLDebugState();
@@ -92,7 +103,8 @@ export default function App() {
                 effects: [{ kind: "example.textReveal", color: "#d95f42" }],
               }}
             >
-              基于包原语实现的滚动字形显现。
+              基于包原语实现的滚动字形显现会把段落按阅读顺序逐步点亮，让还未进入视线的字形保持轻微收起，
+              已经经过视口中心的文字则恢复到清晰、稳定的排版状态。
             </WebGLTarget>
           </section>
 
@@ -110,7 +122,8 @@ export default function App() {
                 effects: [{ kind: "example.textSpotlight", color: "#f6c453", radius: 180 }],
               }}
             >
-              指针掠过文字时，WebGL 字形会像被手电扫过一样亮起来。
+              指针掠过这段文字时，WebGL 字形会像被手电扫过一样逐个亮起；
+              离指针更远的字符仍保留在暗处，于是同一段内容可以同时表达阅读、距离和聚焦状态。
             </WebGLTarget>
           </section>
 
@@ -162,7 +175,27 @@ export default function App() {
                 ],
               }}
             >
-              指针靠近时，字符会短暂打散，再回到原文。
+              指针靠近时，这段文字会在局部出现短暂扰码，字符先被替换成节奏明确的符号，
+              再随着距离拉开回到原文，DOM 中的可访问文本始终保持不变。
+            </WebGLTarget>
+          </section>
+
+          <section className="example-row">
+            <EffectDescription source="dom/text" title="文字组合">
+              一个 app-owned effect 同时完成聚光、扰码、压感排版和波浪位移。
+            </EffectDescription>
+            <WebGLTarget
+              as="p"
+              className="example-text example-text-combo"
+              webgl={{
+                key: "example.text.combo",
+                source: { kind: "dom", type: "text" },
+                lifecycle: { hideWhenReady: true, hideMode: "self" },
+                effects: textComboEffects,
+              }}
+            >
+              Focus driven text can glow, scramble, stretch, and drift in a single pass while the
+              source paragraph stays ordinary DOM content for layout and accessibility.
             </WebGLTarget>
           </section>
 

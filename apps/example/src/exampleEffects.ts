@@ -9,6 +9,7 @@ export {
   exampleTextPressureEffect,
   exampleTextRevealEffect,
   exampleTextScrambleEffect,
+  exampleTextSpotlightPressureScrambleWaveEffect,
   exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
@@ -61,6 +62,7 @@ import {
   exampleTextPressureEffect,
   exampleTextRevealEffect,
   exampleTextScrambleEffect,
+  exampleTextSpotlightPressureScrambleWaveEffect,
   exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "./textEffects";
@@ -76,6 +78,7 @@ export const exampleEffects = [
   exampleTextSpotlightEffect,
   exampleTextPressureEffect,
   exampleTextScrambleEffect,
+  exampleTextSpotlightPressureScrambleWaveEffect,
   examplePinnedRevealEffect,
   exampleSequenceCardSlideEffect,
   exampleSequenceCardBorderGlowEffect,

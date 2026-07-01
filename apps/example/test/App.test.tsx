@@ -173,7 +173,7 @@ describe("effect authoring example app", () => {
     expect(scrollRuntimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
     expect(host.querySelector('[data-testid="example-scroll-runtime"]')).not.toBeNull();
     expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(20);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(21);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
@@ -183,7 +183,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       firstDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(19);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(20);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
     expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
 
@@ -192,10 +192,10 @@ describe("effect authoring example app", () => {
     await act(async () => {
       expandedDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(20);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(21);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-21);
+    const finalTargetProps = targetProps.slice(-22);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -208,6 +208,7 @@ describe("effect authoring example app", () => {
       "example.text.spotlight",
       "example.text.pressure",
       "example.text.scramble",
+      "example.text.combo",
       "example.image.pan",
       "example.image.zoom",
       "example.image.ken-burns",
@@ -231,6 +232,7 @@ describe("effect authoring example app", () => {
       "p",
       "p",
       "p",
+      "p",
       "img",
       "img",
       "img",
@@ -249,6 +251,7 @@ describe("effect authoring example app", () => {
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
+      { kind: "dom", type: "text" },
       { kind: "dom", type: "text" },
       { kind: "dom", type: "text" },
       { kind: "dom", type: "text" },
@@ -283,6 +286,7 @@ describe("effect authoring example app", () => {
       "example.textSpotlight",
       "example.textPressure",
       "example.textScramble",
+      "example.textSpotlightPressureScrambleWave",
       "example.imagePan",
       "example.imageZoom",
       "example.imageKenBurns",
@@ -295,36 +299,36 @@ describe("effect authoring example app", () => {
       "example.modelFloat",
       "example.pinnedReveal",
     ]);
-    expect(finalTargetProps[15]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[16]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();
-    expect(finalTargetProps[16]?.webgl.lifecycle).toEqual({
+    expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
-    expect(finalTargetProps[16]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.mediaPointerParallax",
       bleed: 0.08,
       strength: 0.72,
     });
-    expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
+    expect(finalTargetProps[18]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "subtree",
     });
-    expect(finalTargetProps[17]?.webgl).toMatchObject({
+    expect(finalTargetProps[18]?.webgl).toMatchObject({
       key: "example.image-sequence.card",
       source: { kind: "dom", type: "element" },
     });
-    expect(finalTargetProps[17]?.webgl).not.toHaveProperty("renderRole");
-    expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[18]?.webgl).not.toHaveProperty("renderRole");
+    expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 96,
       minOpacity: 0.72,
       maxOpacity: 1,
     });
-    expect(finalTargetProps[17]?.webgl.effects?.[1]).toMatchObject({
+    expect(finalTargetProps[18]?.webgl.effects?.[1]).toMatchObject({
       kind: "example.sequenceCardBorderGlow",
       edgeSensitivity: 0.28,
       colorSensitivity: 0.48,
@@ -354,19 +358,19 @@ describe("effect authoring example app", () => {
     const pinnedSection = host.querySelector(".example-pinned-row");
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
-    expect(finalTargetProps[20]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[21]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
 
-    const firstSequenceCardEffects = finalTargetProps[17]?.webgl.effects;
+    const firstSequenceCardEffects = finalTargetProps[18]?.webgl.effects;
     await act(async () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[20];
+    const firstPinnedTarget = finalTargetProps[21];
     const secondSequenceCardTarget = targetProps
-      .slice(-21)
+      .slice(-22)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);

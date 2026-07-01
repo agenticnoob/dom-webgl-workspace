@@ -262,6 +262,9 @@ definition is missing, the target declaration has no executable effect.
 - `example.textScramble`: ports the ReactBits Scrambled Text idea through the
   runtime text layer by replacing nearby WebGL glyph characters with
   deterministic scramble characters before returning to the source text.
+- `example.textSpotlightPressureScrambleWave`: combines spotlight color,
+  pressure reflow, scramble characters, and wave offset in one app-owned
+  `dom/text` effect so the final glyph command list is written once per frame.
 - `example.imagePan`: applies an image texture transform from target viewport/page progress.
 - `example.imageZoom`: drives target scale for an image renderable.
 - `example.imageKenBurns`: combines image texture sampling drift with target

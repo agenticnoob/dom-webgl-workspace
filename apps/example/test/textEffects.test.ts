@@ -7,6 +7,7 @@ import {
   exampleTextPressureEffect,
   exampleTextRevealEffect,
   exampleTextScrambleEffect,
+  exampleTextSpotlightPressureScrambleWaveEffect,
   exampleTextSpotlightEffect,
   exampleTextWaveEffect,
 } from "../src/textEffects";
@@ -366,6 +367,59 @@ describe("text example effects", () => {
       char: "c",
       color: "#172124",
       opacity: expect.any(Number),
+    });
+  });
+
+  test("text spotlight pressure scramble wave composes glyph motion in one pass", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "dom",
+        type: "text",
+        element: document.createElement("p"),
+        text: "Fusion",
+        textLayer,
+      },
+      layout: { left: 20, top: 10, width: 420, height: 180 },
+      pointer: { x: 76, y: 52, isInside: true },
+      time: 720,
+    });
+
+    exampleTextSpotlightPressureScrambleWaveEffect.update(context, undefined, {
+      kind: "example.textSpotlightPressureScrambleWave",
+      spotlightColor: "#f6c453",
+      baseColor: "#f4f4f5",
+      scrambleChars: "01",
+      radius: 128,
+      amplitude: 7,
+      speed: 0.42,
+    });
+
+    expect(exampleTextSpotlightPressureScrambleWaveEffect.source).toBe("dom/text");
+    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const nearGlyph = { ...createGlyph(0, "F"), x: 42, y: 32, width: 18, height: 28 };
+    const farGlyph = { ...createGlyph(1, "u"), x: 300, y: 32, width: 18, height: 28 };
+    const commands = transform?.([nearGlyph, farGlyph]) as
+      | readonly WebGLTextGlyphRenderCommand[]
+      | undefined;
+
+    expect(commands?.[0]).toMatchObject({
+      index: 0,
+      color: "#f6c453",
+      opacity: expect.any(Number),
+      scaleX: expect.any(Number),
+      scaleY: expect.any(Number),
+    });
+    expect(["0", "1"]).toContain(commands?.[0]?.char);
+    expect(commands?.[0]?.scaleX).toBeGreaterThan(commands?.[1]?.scaleX ?? 0);
+    expect(commands?.[0]?.y).not.toBe(nearGlyph.y);
+    expect(commands?.[1]).toMatchObject({
+      index: 1,
+      char: "u",
+      color: "#f4f4f5",
     });
   });
 });

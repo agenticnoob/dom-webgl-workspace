@@ -11,6 +11,14 @@ export type ExampleEffectParams = {
   "example.textSpotlight": { color?: string; radius?: number };
   "example.textPressure": { color?: string; radius?: number };
   "example.textScramble": { color?: string; scrambleChars?: string; radius?: number; speed?: number };
+  "example.textSpotlightPressureScrambleWave": {
+    baseColor?: string;
+    spotlightColor?: string;
+    scrambleChars?: string;
+    radius?: number;
+    amplitude?: number;
+    speed?: number;
+  };
   "example.pinnedReveal": { progressKey: string; color?: string };
   "example.sequenceCardSlide": {
     progressKey: string;
@@ -55,6 +63,15 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.textSpotlight", color: "#f6c453", radius: 180 },
   { kind: "example.textPressure", color: "#f4f4f5", radius: 180 },
   { kind: "example.textScramble", color: "#172124", scrambleChars: ".:", radius: 148, speed: 0.45 },
+  {
+    kind: "example.textSpotlightPressureScrambleWave",
+    baseColor: "#f4f4f5",
+    spotlightColor: "#f6c453",
+    scrambleChars: "01",
+    radius: 190,
+    amplitude: 8,
+    speed: 0.42,
+  },
   { kind: "example.pinnedReveal", progressKey: "example.pinned.reveal", color: "#172124" },
   {
     kind: "example.sequenceCardSlide",

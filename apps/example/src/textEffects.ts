@@ -37,6 +37,21 @@ type TextScrambleParams = {
   speed?: number;
 };
 
+type TextSpotlightPressureScrambleWaveParams = {
+  kind: "example.textSpotlightPressureScrambleWave";
+  baseColor?: string;
+  spotlightColor?: string;
+  scrambleChars?: string;
+  radius?: number;
+  amplitude?: number;
+  speed?: number;
+};
+
+type TextFocusPoint = {
+  x: number;
+  y: number;
+};
+
 export const exampleTextWaveEffect = defineWebGLEffect<TextWaveParams>({
   kind: "example.textWave",
   source: "dom/text",
@@ -48,12 +63,11 @@ export const exampleTextWaveEffect = defineWebGLEffect<TextWaveParams>({
     const amplitude = clampNumber(params.amplitude, 0, 24, 6);
     const phase = ctx.time / 450;
     ctx.source.textLayer?.setGlyphs((glyphs) =>
-      glyphs.map((glyph) => ({
-        index: glyph.index,
-        char: glyph.char,
-        y: glyph.y + Math.sin(phase + glyph.index * 0.42) * amplitude,
+      createWaveGlyphCommands(glyphs, {
+        amplitude,
         color: "#1d2a2e",
-      })),
+        phase,
+      }),
     );
   },
 });
@@ -108,21 +122,16 @@ export const exampleTextSpotlightEffect = defineWebGLEffect<TextSpotlightParams>
     const highlightColor = params.color ?? "#f6c453";
 
     ctx.source.textLayer?.setGlyphs((glyphs) =>
-      glyphs.map((glyph) => {
-        const centerX = glyph.x + glyph.width * 0.5;
-        const centerY = glyph.y + glyph.height * 0.5;
-        const distance = Math.hypot(centerX - spotlightX, centerY - spotlightY);
-        const intensity = Math.max(0, 1 - distance / radius);
-        const scale = 0.92 + intensity * 0.2;
-
-        return {
-          index: glyph.index,
-          char: glyph.char,
-          color: intensity > 0.28 ? highlightColor : "#1d2a2e",
-          opacity: 0.28 + intensity * 0.72,
-          scaleX: scale,
-          scaleY: scale,
-        };
+      createSpotlightGlyphCommands(glyphs, {
+        baseColor: "#1d2a2e",
+        focus: { x: spotlightX, y: spotlightY },
+        highlightColor,
+        opacityBase: 0.28,
+        opacityRange: 0.72,
+        radius,
+        scaleBase: 0.92,
+        scaleRange: 0.2,
+        threshold: 0.28,
       }),
     );
   },
@@ -308,24 +317,289 @@ export const exampleTextScrambleEffect = defineWebGLEffect<TextScrambleParams>({
     const scrambleY = pointer.active ? pointer.y : ctx.layout.height * 0.5;
 
     ctx.source.textLayer?.setGlyphs((glyphs) =>
-      glyphs.map((glyph) => {
-        const centerX = glyph.x + glyph.width * 0.5;
-        const centerY = glyph.y + glyph.height * 0.5;
-        const distance = Math.hypot(centerX - scrambleX, centerY - scrambleY);
-        const intensity = Math.max(0, 1 - distance / radius);
-        const scrambleIndex = Math.abs(
-          Math.floor(ctx.time * speed * 0.08 + glyph.index * 17 + intensity * 11),
-        ) % scrambleChars.length;
-
-        return {
-          index: glyph.index,
-          char: intensity > 0.08 ? scrambleChars[scrambleIndex] : glyph.char,
-          color,
-          opacity: 0.52 + intensity * 0.48,
-          scaleX: 0.94 + intensity * 0.1,
-          scaleY: 0.94 + intensity * 0.1,
-        };
+      createScrambleGlyphCommands(glyphs, {
+        color,
+        focus: { x: scrambleX, y: scrambleY },
+        opacityBase: 0.52,
+        opacityRange: 0.48,
+        radius,
+        scaleBase: 0.94,
+        scaleRange: 0.1,
+        scrambleChars,
+        speed,
+        threshold: 0.08,
+        time: ctx.time,
       }),
     );
   },
 });
+
+export const exampleTextSpotlightPressureScrambleWaveEffect =
+  defineWebGLEffect<TextSpotlightPressureScrambleWaveParams>({
+    kind: "example.textSpotlightPressureScrambleWave",
+    source: "dom/text",
+    update(ctx, _state, params) {
+      if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+        return;
+      }
+
+      const pointer = readTargetLocalPointer({
+        layout: ctx.layout,
+        pointer: ctx.pointer,
+      });
+      const radius = clampNumber(params.radius, 64, 420, 190);
+      const amplitude = clampNumber(params.amplitude, 0, 24, 8);
+      const speed = clampNumber(params.speed, 0.1, 2, 0.42);
+      const baseColor = params.baseColor ?? "#f4f4f5";
+      const spotlightColor = params.spotlightColor ?? "#f6c453";
+      const scrambleChars = params.scrambleChars && params.scrambleChars.length > 0
+        ? Array.from(params.scrambleChars)
+        : ["0", "1"];
+      const phase = 0.5 + Math.sin(ctx.time / 760) * 0.5;
+      const focusX = pointer.active ? pointer.x : ctx.layout.width * (0.16 + phase * 0.68);
+      const focusY = pointer.active ? pointer.y : ctx.layout.height * 0.5;
+      const wavePhase = ctx.time / 450;
+
+      ctx.source.textLayer?.setGlyphs((glyphs) => {
+        const pressureCommands = pointer.active
+          ? createPressureGlyphCommands(glyphs, {
+            color: baseColor,
+            pressureX: focusX,
+            pressureY: focusY,
+            radius,
+          })
+          : createPositionedGlyphCommands(glyphs, baseColor);
+        const glyphByIndex = new Map(glyphs.map((glyph) => [glyph.index, glyph]));
+
+        const spotlightCommands = pressureCommands.map((command) => {
+          const glyph = glyphByIndex.get(command.index);
+          return applySpotlightToCommand(command, glyph, {
+            baseColor,
+            focus: { x: focusX, y: focusY },
+            highlightColor: spotlightColor,
+            opacityBase: 0.46,
+            opacityRange: 0.62,
+            radius,
+            scaleBase: 1,
+            scaleRange: 0.12,
+            threshold: 0.24,
+          });
+        });
+
+        const scrambleCommands = spotlightCommands.map((command) => {
+          const glyph = glyphByIndex.get(command.index);
+          return applyScrambleToCommand(command, glyph, {
+            color: command.color ?? baseColor,
+            focus: { x: focusX, y: focusY },
+            opacityBase: command.opacity ?? 1,
+            opacityRange: 0,
+            radius,
+            scaleBase: 1,
+            scaleRange: 0,
+            scrambleChars,
+            speed,
+            threshold: 0.1,
+            time: ctx.time,
+          });
+        });
+
+        return scrambleCommands.map((command) => {
+          const glyph = glyphByIndex.get(command.index);
+          return applyWaveToCommand(command, glyph, {
+            amplitude,
+            color: command.color,
+            phase: wavePhase,
+          });
+        });
+      });
+    },
+  });
+
+function createWaveGlyphCommands(
+  glyphs: readonly WebGLTextGlyph[],
+  input: {
+    amplitude: number;
+    color?: string;
+    phase: number;
+  },
+): WebGLTextGlyphRenderCommand[] {
+  return glyphs.map((glyph) =>
+    applyWaveToCommand(
+      {
+        index: glyph.index,
+        char: glyph.char,
+      },
+      glyph,
+      input,
+    ),
+  );
+}
+
+function applyWaveToCommand(
+  command: WebGLTextGlyphRenderCommand,
+  glyph: WebGLTextGlyph | undefined,
+  input: {
+    amplitude: number;
+    color?: string;
+    phase: number;
+  },
+): WebGLTextGlyphRenderCommand {
+  return {
+    ...command,
+    y: (command.y ?? glyph?.y ?? 0) +
+      Math.sin(input.phase + command.index * 0.42) * input.amplitude,
+    color: input.color ?? command.color,
+  };
+}
+
+function createSpotlightGlyphCommands(
+  glyphs: readonly WebGLTextGlyph[],
+  input: {
+    baseColor: string;
+    focus: TextFocusPoint;
+    highlightColor: string;
+    opacityBase: number;
+    opacityRange: number;
+    radius: number;
+    scaleBase: number;
+    scaleRange: number;
+    threshold: number;
+  },
+): WebGLTextGlyphRenderCommand[] {
+  return glyphs.map((glyph) =>
+    applySpotlightToCommand(
+      {
+        index: glyph.index,
+        char: glyph.char,
+      },
+      glyph,
+      input,
+    ),
+  );
+}
+
+function applySpotlightToCommand(
+  command: WebGLTextGlyphRenderCommand,
+  glyph: WebGLTextGlyph | undefined,
+  input: {
+    baseColor: string;
+    focus: TextFocusPoint;
+    highlightColor: string;
+    opacityBase: number;
+    opacityRange: number;
+    radius: number;
+    scaleBase: number;
+    scaleRange: number;
+    threshold: number;
+  },
+): WebGLTextGlyphRenderCommand {
+  const intensity = readFocusIntensity(command, glyph, input.focus, input.radius);
+  const scale = input.scaleBase + intensity * input.scaleRange;
+
+  return {
+    ...command,
+    color: intensity > input.threshold ? input.highlightColor : input.baseColor,
+    opacity: Math.min(1, input.opacityBase + intensity * input.opacityRange),
+    scaleX: (command.scaleX ?? 1) * scale,
+    scaleY: (command.scaleY ?? 1) * scale,
+  };
+}
+
+function createScrambleGlyphCommands(
+  glyphs: readonly WebGLTextGlyph[],
+  input: {
+    color: string;
+    focus: TextFocusPoint;
+    opacityBase: number;
+    opacityRange: number;
+    radius: number;
+    scaleBase: number;
+    scaleRange: number;
+    scrambleChars: readonly string[];
+    speed: number;
+    threshold: number;
+    time: number;
+  },
+): WebGLTextGlyphRenderCommand[] {
+  return glyphs.map((glyph) =>
+    applyScrambleToCommand(
+      {
+        index: glyph.index,
+        char: glyph.char,
+      },
+      glyph,
+      input,
+    ),
+  );
+}
+
+function applyScrambleToCommand(
+  command: WebGLTextGlyphRenderCommand,
+  glyph: WebGLTextGlyph | undefined,
+  input: {
+    color: string;
+    focus: TextFocusPoint;
+    opacityBase: number;
+    opacityRange: number;
+    radius: number;
+    scaleBase: number;
+    scaleRange: number;
+    scrambleChars: readonly string[];
+    speed: number;
+    threshold: number;
+    time: number;
+  },
+): WebGLTextGlyphRenderCommand {
+  const intensity = readFocusIntensity(command, glyph, input.focus, input.radius);
+  const scrambleIndex = Math.abs(
+    Math.floor(input.time * input.speed * 0.08 + command.index * 17 + intensity * 11),
+  ) % input.scrambleChars.length;
+
+  return {
+    ...command,
+    char: intensity > input.threshold ? input.scrambleChars[scrambleIndex] : command.char,
+    color: input.color,
+    opacity: Math.min(1, input.opacityBase + intensity * input.opacityRange),
+    scaleX: (command.scaleX ?? 1) * (input.scaleBase + intensity * input.scaleRange),
+    scaleY: (command.scaleY ?? 1) * (input.scaleBase + intensity * input.scaleRange),
+  };
+}
+
+function createPositionedGlyphCommands(
+  glyphs: readonly WebGLTextGlyph[],
+  color: string,
+): WebGLTextGlyphRenderCommand[] {
+  return glyphs.map((glyph) => ({
+    index: glyph.index,
+    char: glyph.char,
+    x: glyph.x,
+    y: glyph.y,
+    color,
+    opacity: 1,
+    scaleX: 1,
+    scaleY: 1,
+  }));
+}
+
+function readFocusIntensity(
+  command: WebGLTextGlyphRenderCommand,
+  glyph: WebGLTextGlyph | undefined,
+  focus: TextFocusPoint,
+  radius: number,
+): number {
+  const center = readCommandCenter(command, glyph);
+  const distance = Math.hypot(center.x - focus.x, center.y - focus.y);
+  return Math.max(0, 1 - distance / radius);
+}
+
+function readCommandCenter(
+  command: WebGLTextGlyphRenderCommand,
+  glyph: WebGLTextGlyph | undefined,
+): TextFocusPoint {
+  return {
+    x: (command.x ?? glyph?.x ?? 0) +
+      (glyph?.width ?? 0) * (command.scaleX ?? 1) * 0.5,
+    y: (command.y ?? glyph?.y ?? 0) +
+      (glyph?.height ?? 0) * (command.scaleY ?? 1) * 0.5,
+  };
+}

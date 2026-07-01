@@ -933,7 +933,11 @@ skill:
   rather than adding package-owned concrete effects. For ReactBits Text Pressure
   and Scrambled Text, use `dom/text` and `ctx.source.textLayer.setGlyphs(...)`
   in `apps/example`; keep the exact behavior app-owned unless a later package
-  feature explicitly needs a generalized text capability.
+  feature explicitly needs a generalized text capability. When several text
+  effects need to affect the same glyph command list, compose reusable
+  app-owned glyph transform helpers into one effect, as
+  `example.textSpotlightPressureScrambleWave` does for spotlight, pressure,
+  scramble, and wave output.
 - Shader coordinate systems are easy to invert. DOM pointer coordinates are
   top-down; shader UV-style coordinates are often bottom-up. Convert `y` at the
   effect boundary and add a regression test.

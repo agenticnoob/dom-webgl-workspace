@@ -106,8 +106,11 @@ over `/example/show.png`, fades after pointer movement stops even if the pointer
 remains inside the target, and bakes old fade opacity before drawing resumed
 strokes. The pinned scrub specimen passes a full-length consumer-owned `frames`
 array to `source: { kind: "media", type: "image-sequence" }`, while the runtime
-only selects the active texture frame. The example models this as a pinned
-scrub section: `ScrollEffectSection` owns the progress key, `pin`, and scrub
+only selects the active texture frame. The text bucket includes
+`example.textSpotlightPressureScrambleWave`, an app-owned combined text effect
+that reuses local glyph transform helpers for spotlight, pressure reflow,
+scramble characters, and wave offset before writing one final command list.
+The example models this as a pinned scrub section: `ScrollEffectSection` owns the progress key, `pin`, and scrub
 duration, while the image-sequence target and WebGL-owned `dom/element` card
 stay inside the pinned viewport. The card is a nested child target inside the
 image-sequence DOM subtree and composes

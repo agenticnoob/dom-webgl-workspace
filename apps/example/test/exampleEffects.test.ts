@@ -15,6 +15,7 @@ describe("example effect catalog", () => {
       "example.textSpotlight",
       "example.textPressure",
       "example.textScramble",
+      "example.textSpotlightPressureScrambleWave",
       "example.pinnedReveal",
       "example.sequenceCardSlide",
       "example.sequenceCardBorderGlow",
@@ -77,6 +78,15 @@ describe("example effect catalog", () => {
       scrambleChars: ".:",
       radius: 148,
       speed: 0.45,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.textSpotlightPressureScrambleWave",
+      baseColor: "#f4f4f5",
+      spotlightColor: "#f6c453",
+      scrambleChars: "01",
+      radius: 190,
+      amplitude: 8,
+      speed: 0.42,
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.imageKenBurns",
