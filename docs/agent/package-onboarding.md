@@ -33,12 +33,14 @@ Choose the simplest supported route:
 - Normal DOM-to-WebGL effects: use `<runtime-package>` only.
 - React app: use `<runtime-package>/react`.
 - Pinned section drives WebGL progress: use
-  `<scroll-adapters-package>/react`.
+  `<scroll-adapters-package>/react` with GSAP ScrollTrigger `pin`/`scrub` and
+  a stable `progressKey`.
 - Existing Lenis/GSAP/ScrollTrigger lifecycle already owned by the app: pass a
   stable `WebGLScrollAdapter` into the runtime.
 
 Do not use a scene gate for ordinary pinned sections. Gates lock page scroll and
-are for advanced scroll-locking scenes.
+are historical advanced scroll-locking behavior, not the recommended pinned
+effect route.
 
 ## Public Imports
 
@@ -292,7 +294,8 @@ Effect ownership rules:
 
 ## Pinned Scroll Route
 
-Use this when a bounded section should pin/scrub and feed progress to an effect:
+Use this when a bounded section should pin/scrub and feed progress to an effect.
+This is the current recommended pinned-scroll route:
 
 ```tsx
 import { defineWebGLEffect } from "<runtime-package>";
@@ -349,6 +352,7 @@ Rules:
 
 - Keep `progressKey` stable.
 - Effects read progress with `ctx.progress.get(progressKey)`.
+- Let GSAP ScrollTrigger own `pin` and `scrub` through `ScrollEffectSection`.
 - Do not mutate mounted `webgl.effects` on every scroll update.
 - Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
   post-pinned runway sibling just to release scroll.

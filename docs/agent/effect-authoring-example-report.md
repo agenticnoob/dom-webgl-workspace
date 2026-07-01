@@ -127,7 +127,9 @@ frame.
   fallback is hidden, otherwise the content layer can cover the fixed WebGL
   canvas and make a valid text renderable look blank.
 - Scene gates are easy to over-apply because they also expose progress. They
-  lock page scroll and are not the recommended pinned-scroll story path.
+  lock page scroll and are not the recommended pinned-scroll story path. Use
+  `@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+  and stable `progressKey` data for ordinary pinned effects.
 - Runtime replacement from a late-arriving `scrollAdapter` is handled inside the
   React adapter. Consumers should still avoid unnecessary adapter identity churn
   for performance, but they do not need a guard to prevent disposed-runtime

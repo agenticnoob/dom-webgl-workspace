@@ -5,8 +5,11 @@ DOM-first interactive WebGL runtime workspace.
 ## Status
 
 Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
-Phase 2 scene-gated scroll work is complete through Task 56 in
-`docs/PHASE2_SCENE_GATE_PLAN.md`.
+Phase 2 scene-gated scroll in `docs/PHASE2_SCENE_GATE_PLAN.md` is a
+historical implemented capability, not the current core goal or recommended
+pinned-scroll route. For ordinary pinned sections that drive effects, use
+`@project/dom-webgl-scroll-adapters/react` with GSAP ScrollTrigger pin/scrub and
+a stable `progressKey`.
 Phase 3 visible renderables are complete through Task 72 in
 `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage correction is implemented in
@@ -346,8 +349,10 @@ Current visual behavior:
   `dom/element` is a transparent layout surface until an effect draws to
   `ctx.source.surface`, and the runtime does not clone CSS backgrounds,
   borders, shadows, or other decorative paint into WebGL.
-- Phase 2 includes scene-gated scroll, scroll lock, `sceneProgress`, and
-  explicit reverse gate behavior.
+- Scene-gated scroll, scroll lock, `sceneProgress`, and explicit reverse gate
+  behavior remain available as optional advanced runtime behavior. They are
+  historical Phase 2 output, not the recommended route for pinned effect
+  sections.
 - Concrete text animation effects, shader authoring APIs, core-provided
   particle systems, animation layers, and WebGL raycast picking remain
   intentionally out of scope. Third-party scroll integration now uses a small
@@ -692,10 +697,14 @@ subtree picking.
 
 ## Scene Gates
 
-Scene gates are the advanced scroll-locking behavior. They are not the
-recommended way to build a pinned section that drives an effect; use
-`@project/dom-webgl-scroll-adapters/react`, `ScrollEffectSection`, and
-`ctx.progress.get(progressKey)` for that story.
+Scene gates are the advanced scroll-locking behavior. They are a historical
+Phase 2 capability and an optional escape hatch for products that intentionally
+want wheel/touch input to stop page scroll and drive `sceneProgress`.
+
+They are not the recommended way to build a pinned section that drives an
+effect. For that story, use `@project/dom-webgl-scroll-adapters/react`,
+`WebGLScrollRuntime`, `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`,
+and `ctx.progress.get(progressKey)`.
 
 Declare a scene gate through the same public `webgl` object used by regular
 targets:

@@ -26,7 +26,9 @@ Core must not import `lenis`, `gsap`, or `ScrollTrigger`.
 ## Runtime Integration
 
 There are three supported routes. Prefer the simplest route that matches the
-product behavior.
+product behavior. For ordinary pinned sections, default to route 2:
+`@project/dom-webgl-scroll-adapters/react` with GSAP ScrollTrigger
+`pin`/`scrub` and stable `progressKey` data.
 
 ### 1. Plain Runtime
 
@@ -43,7 +45,9 @@ This remains the default for `@project/dom-webgl-runtime`.
 
 Use `@project/dom-webgl-scroll-adapters/react` when the product story is
 "scroll a section, keep a region pinned, and drive a WebGL effect by section
-progress." This is the recommended pinned-scroll story path.
+progress." This is the recommended pinned-scroll story path. It uses GSAP
+ScrollTrigger `pin`/`scrub` under `ScrollEffectSection` and exposes progress to
+effects through a stable `progressKey`.
 
 ```tsx
 import {
@@ -194,10 +198,11 @@ Rules:
 ## Scene Gates Are Different
 
 `scroll: { type: "gate", ... }` is a runtime scene-gate feature. It locks page
-scroll while active and emits `sceneProgress` in gate mode. Use it for advanced
-scroll-locking scenes, not for the recommended pinned-scroll section story. A
-pinned section should use `ScrollEffectSection` plus `ctx.progress.get(key)` so
-the page remains in page scroll mode.
+scroll while active and emits `sceneProgress` in gate mode. It is historical
+Phase 2 behavior and an optional advanced capability, not the recommended
+pinned-scroll section story. A pinned section should use `ScrollEffectSection`
+plus GSAP ScrollTrigger `pin`/`scrub` and `ctx.progress.get(key)` so the page
+remains in page scroll mode.
 
 ## Common Failures
 

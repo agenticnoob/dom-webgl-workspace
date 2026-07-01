@@ -5,11 +5,15 @@ Date: 2026-06-16
 ## Implementation Status Note
 
 The product goal below includes future effect-oriented behavior. Phase 1 is
-complete through Task 37. Phase 2 scene-gated scroll is complete through Task
-56, including public gate declarations, scroll lock, `sceneProgress`, explicit
-reverse gate behavior, debug state display,
+complete through Task 37. Phase 2 scene-gated scroll is a historical implemented
+capability through Task 56, including public gate declarations, scroll lock,
+`sceneProgress`, explicit reverse gate behavior, debug state display,
 SSR/import-boundary regressions, full verification, and final documentation
-alignment. Phase 3 visible renderables are complete through Task 72: DOM-authored
+alignment. It is not the current core goal or the recommended pinned-scroll
+route. For pinned sections that drive effects, use
+`@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+and stable `progressKey` values. Phase 3 visible renderables are complete
+through Task 72: DOM-authored
 element snapshots, text snapshots, images, videos, and GLB models now become
 runtime-owned visible scene objects, fallback visibility is tied to renderable
 readiness, and public/SSR import boundaries remain covered. Phase 3.5 runtime
@@ -62,7 +66,7 @@ It is a runtime that treats normal DOM elements as the authoring model, compiles
 
 ## One-Sentence Goal
 
-Create a DOM-first interactive WebGL scene runtime where page authors declare ordinary DOM elements and sources, while the runtime compiles them into source descriptors, render roles, renderables, scroll-gated scene progress, pointer interaction state, and one Three.js renderer.
+Create a DOM-first interactive WebGL scene runtime where page authors declare ordinary DOM elements and sources, while the runtime compiles them into source descriptors, render roles, renderables, page/keyed scroll state, pointer interaction state, and one Three.js renderer.
 
 ## Core Mental Model
 
@@ -136,7 +140,8 @@ Package consumers should think about:
 - Which DOM element enters WebGL.
 - What source that element represents.
 - Where it sits in the DOM tree and source order.
-- Whether it follows page scroll or participates in a gated scene.
+- Whether it follows page scroll, reads keyed pinned progress, or intentionally
+  participates in an advanced gated scene.
 - Whether pointer input should affect it.
 - Which runtime-registered custom effect should own its WebGL visual treatment.
 - Whether a parent target's effect transform should control its declared WebGL
@@ -233,7 +238,6 @@ React usage:
     key: "hero.model",
     source: { kind: "model", type: "glb", src: "/models/hero.glb" },
     renderRole: "model",
-    scroll: { type: "gate", start: "top top", duration: 1 },
     pointer: { hover: true, press: true, click: true, drag: true }
   }}
 />
@@ -246,7 +250,6 @@ registerWebGLTarget(element, {
   key: "hero.model",
   source: { kind: "model", type: "glb", src: "/models/hero.glb" },
   renderRole: "model",
-  scroll: { type: "gate", start: "top top", duration: 1 },
   pointer: { drag: true }
 });
 ```
@@ -313,9 +316,11 @@ The runtime should infer defaults for:
 Users should only configure advanced fields when they need to override a real behavior:
 
 - Set `renderRole` only when source inference is insufficient.
-- Set `scroll` only when using advanced scene gates or custom scroll ranges.
-  Do not use scene gates as the normal pinned-scroll effect story; use a keyed
-  progress signal from the optional scroll adapter React layer instead.
+- Set `scroll` only when intentionally using advanced scene gates or custom
+  scroll ranges. Do not use scene gates as the normal pinned-scroll effect
+  story; use `@project/dom-webgl-scroll-adapters/react`,
+  `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`, and a keyed progress
+  signal instead.
 - Set `pointer` only when an interaction requires click, press, long press, or drag semantics.
 - Set `lifecycle` only when fallback behavior differs from the default.
 
@@ -521,15 +526,34 @@ DOM layout/content mapping plus effect/material declarations for final visuals.
 
 ## Scroll Contract
 
-The runtime must support two kinds of scroll behavior.
+The runtime default is ordinary page scroll. The recommended pinned-scroll
+effect path is the optional React adapter package, not a scene gate. Core still
+retains scene gates as historical advanced scroll-locking behavior for products
+that explicitly need them.
 
 ### Page Scroll
 
 Normal page scrolling continues. DOM layout changes, viewport measurements update, and WebGL renderables follow their DOM anchors.
 
-### Scene-Gated Scroll
+### Recommended Pinned Scroll Progress
 
-At specific DOM anchors, page scroll can temporarily stop. During the gate, wheel/touch scroll input drives the current scene animation instead of moving the page. When the scene animation completes, the runtime releases page scrolling.
+For a pinned section that drives WebGL effects, use
+`@project/dom-webgl-scroll-adapters/react`:
+
+- `WebGLScrollRuntime` owns the runtime progress store.
+- `ScrollEffectSection` owns one bounded GSAP ScrollTrigger section with `pin`
+  and `scrub`.
+- The section writes progress to a stable `progressKey`.
+- Effects read the value with `ctx.progress.get(progressKey)`.
+- Runtime scroll mode should remain page mode; this is not a scene gate.
+
+### Optional Scene-Gated Scroll
+
+At specific DOM anchors, page scroll can temporarily stop. During the gate,
+wheel/touch scroll input drives the current scene animation instead of moving
+the page. When the scene animation completes, the runtime releases page
+scrolling. This is an advanced optional capability, not the default pinned
+effect route.
 
 Mental model:
 
@@ -541,7 +565,7 @@ scroll input
   -> release back to page scroll
 ```
 
-Delivered Phase 2 API shape:
+Historical Phase 2 API shape still supported by core:
 
 ```ts
 type WebGLScrollBehavior =
@@ -554,7 +578,7 @@ type WebGLScrollBehavior =
     };
 ```
 
-Required behavior:
+Required behavior for this optional capability:
 
 - Enter gate when the declared anchor reaches its start condition.
 - Lock page scroll while the gate is active.
@@ -665,7 +689,7 @@ The runtime owns:
 - Internal render policy ordering.
 - One Three.js renderer and canvas.
 - Scroll input routing.
-- Scene gate state.
+- Optional scene gate state.
 - Pointer input state.
 - Resize, visibility, update, and disposal lifecycle.
 - Debug state.
@@ -747,7 +771,7 @@ The library owns:
 - Base renderable creation.
 - Runtime-owned visible scene objects.
 - DOM rect projection and internal render ordering.
-- Scroll controller and scene gates.
+- Scroll controller and optional scene gates.
 - Pointer controller.
 - Renderer loop.
 - React adapters.
@@ -983,7 +1007,7 @@ Range behavior:
 Rules:
 
 - Fast scroll may skip intermediate states, but it must not skip cleanup.
-- Scene gates may raise nearby target priority.
+- Optional scene gates may raise nearby target priority.
 - Hidden/offscreen targets should not rebuild snapshots or run expensive animation updates.
 - Debug state should expose each target's current lifecycle range.
 
@@ -1170,9 +1194,10 @@ Deferred:
 
 This keeps pointer interactions useful without forcing the first runtime to solve 3D picking.
 
-## Scroll Gate Browser Boundary
+## Optional Scene Gate Browser Boundary
 
-Scene-gated scroll must define browser behavior explicitly.
+Scene-gated scroll is historical advanced behavior, but when used it must define
+browser behavior explicitly.
 
 Required first-version rules:
 
@@ -1250,7 +1275,7 @@ Validation should prove:
 - DOM-derived target layers render in stable parent/child and sibling order
   across `dom/*`, `media/*`, and `model/glb`, with `renderRole` acting as a
   local policy hint.
-- Scene gates release page scroll.
+- Optional scene gates release page scroll.
 - Pointer drag/click state can be inspected through debug state.
 
 ## Module Shape For A New Implementation
@@ -1326,9 +1351,13 @@ Success criteria:
 - Renderables update from DOM measurements and dispose cleanly.
 - The example imports only from the package public API.
 
-## Second Milestone
+## Historical Second Milestone
 
-Add scene-gated scroll.
+Scene-gated scroll was the second implementation milestone. It is complete and
+is not the current next-phase target. Do not treat this milestone as a request
+to add or finish gate behavior when building ordinary pinned-scroll sections.
+Use `@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+and stable `progressKey` data for that path.
 
 Must support:
 
@@ -1343,7 +1372,7 @@ Must support:
 
 Add the first animation/effect layer.
 
-Only after base renderables, render roles, scroll gates, pointer state, and
+Only after base renderables, render roles, scroll input, pointer state, and
 layout/content mapping are stable, introduce effects as consumers of
 runtime-owned objects. This is the main path for WebGL visual styling.
 
@@ -1455,7 +1484,8 @@ the source for content, accessibility, and fallback.
 5. DOM target ancestry and sibling order define WebGL layer scope; `renderRole`
    is a local semantic bridge between source and render policy.
 6. Public API defaults should cover common cases with minimal configuration.
-7. Scroll input can either move the page or drive a gated scene.
+7. Scroll input normally moves the page; pinned effects read keyed progress, and
+   only explicit advanced gates drive `sceneProgress`.
 8. Pointer input is shared runtime state.
 9. Effects come after the base path and consume runtime-owned objects.
 10. CSS paint cloning is not the roadmap.

@@ -13,12 +13,14 @@ implementation policy.
 - Applications own concrete visual effects.
 - The package owns layout measurement, runtime lifecycle, source handles, target
   handles, frame input, pointer state, scroll state, and managed resources.
-- Native page/gate scroll is the default. Third-party smooth-scroll systems use
+- Native page scroll is the default. Scene gates are historical optional
+  scroll-locking behavior. Third-party smooth-scroll systems use
   `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
   core in `<scroll-adapters-package>`.
 - Pinned scroll effects are not authored with scene gates. Use the optional
   `<scroll-adapters-package>/react` layer when a React consumer wants bounded
-  pinned sections that feed stable keys into `ctx.progress.get(key)`.
+  GSAP-pinned sections that feed stable `progressKey` values into
+  `ctx.progress.get(key)`.
 - The package does not provide default visual effects or an official
   `effects` preset subpath.
 - Target effects use array-form declarations only:
@@ -264,6 +266,8 @@ Rules:
 
 - Effects read section progress with `ctx.progress.get(progressKey)`.
 - Missing progress keys read as `0`.
+- Let `ScrollEffectSection` own GSAP ScrollTrigger `pin`/`scrub` for ordinary
+  pinned effects.
 - The scroll-adapter progress store notifies the runtime when a key changes,
   so ScrollTrigger scrub updates wake on-demand renderables such as
   `media/image-sequence` targets.

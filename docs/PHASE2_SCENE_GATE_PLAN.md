@@ -1,8 +1,13 @@
 # Phase 2 Scene Gate Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Historical plan:** This file records the completed Phase 2 scene-gate
+> implementation. Do not use it as the current execution roadmap. Scene gates
+> remain an optional advanced scroll-locking capability; ordinary pinned-scroll
+> effects should use `@project/dom-webgl-scroll-adapters/react`,
+> `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`, and stable
+> `progressKey` data read through `ctx.progress.get(progressKey)`.
 
-**Goal:** Add scene-gated scroll to the Phase 1 DOM-first runtime, including scroll lock, `sceneProgress`, and explicit reverse gate behavior.
+**Historical goal:** Add scene-gated scroll to the Phase 1 DOM-first runtime, including scroll lock, `sceneProgress`, and explicit reverse gate behavior.
 
 **Architecture:** Scene gates live in the runtime input layer and feed the existing `WebGLFrameInput` path. The DOM remains the authoring model, renderables remain consumers of frame input, and the runtime keeps one Three.js renderer/canvas. No effect system, third-party scroll adapter, WebGL picking, or Three.js low-level public render flags are introduced in Phase 2.
 
@@ -432,10 +437,15 @@ Docs and state:
 
 ---
 
-## Suggested Next Round
+## Historical Next-Round Notes
 
-Start with Task 38 only. It is the smallest useful Phase 2 entry point and forces the public contract before any runtime behavior.
+These notes were for the original Phase 2 implementation sequence. They are not
+current instructions for follow-up agents.
 
-If Task 38 passes cleanly, the next tight TDD sequence is Task 39, Task 40, and Task 41. Stop after each task to update `docs/EXECUTION_STATE.md` and this plan checkbox before continuing.
+Phase 2 gate work is already complete through Task 56. Do not restart Task 38
+or treat gate behavior as a must-finish objective for pinned-scroll product
+work.
 
-Do not start Task 52 or demo work until Task 48 and Task 49 prove gate state reaches runtime frame input and debug state.
+For current pinned sections, use the optional React scroll adapter package:
+`WebGLScrollRuntime` + `ScrollEffectSection` + GSAP ScrollTrigger `pin`/`scrub`
+and stable `progressKey`.

@@ -22,8 +22,9 @@ export function AppRuntime({ children, runtimeEffects }: {
 ## High-Level Pinned Scroll React Adapter
 
 Use `@project/dom-webgl-scroll-adapters/react` for a pinned section whose
-progress drives a WebGL effect. The React adapter owns the bounded trigger
-instance and writes keyed progress into the runtime.
+progress drives a WebGL effect. This is the recommended pinned-scroll route:
+the React adapter owns the bounded GSAP ScrollTrigger `pin`/`scrub` instance
+and writes keyed progress into the runtime.
 
 ```tsx
 import type { ReactNode } from "react";
@@ -71,7 +72,8 @@ export function PinnedRuntime({
 ```
 
 The matching effect reads `ctx.progress.get("example.pinned.reveal")`. This is
-not a scene gate; the runtime remains in page scroll mode.
+not a scene gate; the runtime remains in page scroll mode. Use scene gates only
+for intentional advanced scroll-locking scenes.
 If `WebGLScrollRuntime` receives `smooth` options that include `ScrollTrigger`,
 child `ScrollEffectSection` components can inherit it from context and omit the
 per-section `ScrollTrigger` prop. `apps/example` uses that centralized path.

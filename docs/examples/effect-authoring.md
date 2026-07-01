@@ -65,7 +65,8 @@ import ... from "../example/src/someEffect";
 For the normal "pinned section drives a WebGL effect" path, use the optional
 React adapter from `@project/dom-webgl-scroll-adapters/react`. It hides the
 bounded trigger lifecycle from ordinary example code, owns one trigger per
-`ScrollEffectSection`, and exposes progress to effects through a stable key:
+`ScrollEffectSection`, uses GSAP ScrollTrigger `pin`/`scrub`, and exposes
+progress to effects through a stable key:
 
 ```tsx
 <WebGLScrollRuntime effects={exampleEffects} smooth={false}>
@@ -105,7 +106,9 @@ bounded section own the pin lifecycle directly.
 ```
 
 This path is not a scene gate. The page remains in normal page scroll mode while
-ScrollTrigger handles pin/scrub behavior for its own section.
+ScrollTrigger handles pin/scrub behavior for its own section. Treat
+`scroll: { type: "gate" }` as optional advanced scroll-locking behavior, not the
+recommended pinned-scroll route.
 The current `apps/example` app centralizes Lenis/GSAP/ScrollTrigger setup in
 `exampleSmoothScrollOptions` and passes it through
 `<WebGLScrollRuntime smooth={exampleSmoothScrollOptions}>`, so child
