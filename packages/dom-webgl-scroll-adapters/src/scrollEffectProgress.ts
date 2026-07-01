@@ -9,9 +9,17 @@ export type ScrollEffectProgressStore = {
 
 export function createScrollEffectProgressStore(): ScrollEffectProgressStore {
   const values = new Map<string, number>();
+  const listeners = new Set<() => void>();
   const source = {
     get(key: string): number {
       return values.get(key) ?? 0;
+    },
+    subscribe(listener: () => void): () => void {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
     },
   } satisfies WebGLProgressSignalSource;
 
@@ -19,14 +27,23 @@ export function createScrollEffectProgressStore(): ScrollEffectProgressStore {
     source,
     set(key, value) {
       values.set(key, clampProgress(value));
+      notifyListeners(listeners);
     },
     reset(key) {
       values.delete(key);
+      notifyListeners(listeners);
     },
     clear(key) {
       values.delete(key);
+      notifyListeners(listeners);
     },
   };
+}
+
+function notifyListeners(listeners: ReadonlySet<() => void>): void {
+  for (const listener of listeners) {
+    listener();
+  }
 }
 
 function clampProgress(value: number): number {

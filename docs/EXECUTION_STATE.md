@@ -106,11 +106,18 @@ over `/example/show.png`, fades after pointer movement stops even if the pointer
 remains inside the target, and bakes old fade opacity before drawing resumed
 strokes. The pinned scrub specimen passes a full-length consumer-owned `frames`
 array to `source: { kind: "media", type: "image-sequence" }`, while the runtime
-only selects the active texture frame. It now nests a WebGL-owned `dom/element`
-card target inside the image-sequence target and drives that child with
-`example.sequenceCard` from the same progress key; the parent sequence effect
-does not create child scene objects manually. The example records current
-authoring friction in `docs/agent/effect-authoring-example-report.md`.
+only selects the active texture frame. The example models this as a pinned
+scrub section: `ScrollEffectSection` owns the progress key, `pin`, and scrub
+duration, while the image-sequence target and WebGL-owned `dom/element` card
+stay inside the pinned viewport. The card is a nested child target inside the
+image-sequence DOM subtree and composes
+`example.sequenceCardSlide` for progress-keyed opacity/offset with
+`example.sequenceCardBorderGlow` for target-local pointer glow. The parent
+sequence effect does not create child scene objects manually. The scroll
+adapter progress store now notifies runtime progress subscribers so pinned
+ScrollTrigger scrub updates wake on-demand image-sequence renderables. The example
+records current authoring friction in
+`docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks
 - Task 1: Root Workspace Skeleton.
@@ -208,15 +215,20 @@ renderer ownership, or example visual behavior.
 ## Nested WebGLTarget Layer Semantics
 - Completed work: Added DOM-derived target layer records, scoped scene-object
   ordering, fallback boundary ownership for nested managed roots, runtime
-  ordering integration, public debug layer diagnostics, and an `apps/example`
-  dogfood path where `example.image-sequence.scrub` contains the nested
-  `example.image-sequence.card` target.
+  ordering integration, and public debug layer diagnostics. Nested target
+  semantics remain covered by runtime tests; the current `apps/example`
+  image-sequence card dogfood path keeps the card as a nested child target
+  inside the pinned scrub section and uses effects for card motion instead of
+  normal DOM scrolling.
 - Boundary notes: `renderRole` remains a semantic source-policy hint and no
   public `zIndex`, public layer number, Three.js render-order flag, nested
   runtime, or parent-effect child Object3D workaround was added.
-- Example note: `example.sequenceCard` is app-owned consumer code. It reads the
-  pinned section progress key and moves/opacity-drives its own `dom/element`
-  card target; the image-sequence parent only owns the sequence source layer.
+- Example note: `example.sequenceCardSlide` and
+  `example.sequenceCardBorderGlow` are app-owned consumer code. The slide
+  effect reads the pinned section progress key and moves/opacity-drives its own
+  `dom/element` card target; the border glow effect owns the card surface draw
+  and target-local pointer glow. The image-sequence parent only owns the
+  sequence source layer.
 
 ## Phase 8 Package Effect Boundary Cleanup
 - Completed work: Removed the `@project/dom-webgl-runtime/effects` package

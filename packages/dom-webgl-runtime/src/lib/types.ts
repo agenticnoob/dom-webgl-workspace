@@ -109,6 +109,7 @@ export type WebGLEffectsDeclaration = readonly WebGLEffectDeclaration[];
 
 export type WebGLProgressSignalSource = {
   get(key: string): number;
+  subscribe?(listener: () => void): () => void;
 };
 
 export type WebGLDeclaration = {

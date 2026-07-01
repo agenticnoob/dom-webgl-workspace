@@ -260,6 +260,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const rectSkipState = new Map<string, RectSkipState>();
   const layoutSignaturesByTargetKey = new Map<string, string>();
   let layoutScrollOffset = 0;
+  const unsubscribeProgressSignals = options.progressSignals?.subscribe?.(() => {
+    rendererLoopRequestFrame("scroll");
+  });
 
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
@@ -358,6 +361,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           handleVisibilityChange,
         );
         invalidationController.dispose();
+        unsubscribeProgressSignals?.();
         rectSkipState.clear();
         layoutSignaturesByTargetKey.clear();
         releaseActiveGate(scrollState);

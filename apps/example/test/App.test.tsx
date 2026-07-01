@@ -290,16 +290,15 @@ describe("effect authoring example app", () => {
       "example.videoPlayback",
       "example.videoPlayback",
       undefined,
-      "example.sequenceCard",
+      "example.sequenceCardSlide",
       "example.modelSpin",
       "example.modelFloat",
       "example.pinnedReveal",
     ]);
     expect(finalTargetProps[15]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
-    expect(
-      host.querySelector(".example-media-sequence .example-sequence-card"),
-    ).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();
     expect(finalTargetProps[16]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
@@ -314,11 +313,19 @@ describe("effect authoring example app", () => {
     });
     expect(finalTargetProps[17]?.webgl).not.toHaveProperty("renderRole");
     expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
-      kind: "example.sequenceCard",
+      kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 96,
       minOpacity: 0.72,
       maxOpacity: 1,
+    });
+    expect(finalTargetProps[17]?.webgl.effects?.[1]).toMatchObject({
+      kind: "example.sequenceCardBorderGlow",
+      edgeSensitivity: 0.28,
+      colorSensitivity: 0.48,
+      glowRadius: 44,
+      glowIntensity: 1,
+      fillOpacity: 0.46,
     });
     expect(
       finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),
@@ -335,6 +342,7 @@ describe("effect authoring example app", () => {
     });
     expect(scrollSectionProps.at(-1)).toMatchObject({
       className: "example-row example-pinned-row",
+      end: "+=140%",
       pin: true,
       progressKey: "example.pinned.reveal",
     });

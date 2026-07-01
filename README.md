@@ -149,9 +149,9 @@ Current example behavior:
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.textPressure`, `example.textScramble`,
   `example.imagePan`, `example.imageZoom`, `example.imageKenBurns`, `example.imageHoverReveal`,
-  `example.videoPlayback`, `example.videoDrift`, `example.sequenceCard`,
-  `example.modelSpin`, and `example.modelFloat`, plus the pinned-scroll
-  `example.pinnedReveal`.
+  `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
+  `example.sequenceCardBorderGlow`, `example.modelSpin`, and
+  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
   `ctx.source.textLayer` so the hovered glyphs widen while the rest of the line
@@ -184,10 +184,17 @@ Current example behavior:
   full reveal. The pinned scrub specimen dogfoods
   runtime `source: { kind: "media", type: "image-sequence" }` with
   consumer-preloaded `/example/bg-sequence/frame_*.webp` resources so scroll
-  progress selects already-ready WebGL texture frames. The image-sequence target
-  also contains a nested WebGL-owned card target driven by the same
-  `progressKey`, proving child target ordering and fallback boundaries without
-  manually adding card objects from the parent effect.
+  progress selects already-ready WebGL texture frames. The sequence specimen is
+  a pinned scrub section: `ScrollEffectSection` owns the progress key, `pin`,
+  and scrub duration, while the image sequence and card stay inside the pinned
+  viewport and use effects for visual motion instead of DOM scrolling. The card
+  is a nested `dom/element` child target inside the image-sequence DOM subtree and composes
+  `example.sequenceCardSlide` for progress-keyed opacity/offset with
+  `example.sequenceCardBorderGlow` for a ReactBits-style target-local pointer
+  border glow. The scroll adapter progress store notifies the runtime when a
+  progress key changes, so external ScrollTrigger scrub updates wake
+  on-demand image-sequence renderables without requiring an app-owned no-op
+  frame effect.
 - Runtime supports `source: { kind: "media", type: "image-sequence" }` for frame-addressable media:
   a target declares `frameCount`, `frames`, and optional `progressKey`.
   Consumers pass a full-length frame array; early frames may initially point to
@@ -307,7 +314,9 @@ Current visual behavior:
   ScrollTrigger glue. The optional scroll adapters package also exposes
   `@project/dom-webgl-scroll-adapters/react` for the recommended pinned scroll
   effect path, where `WebGLScrollRuntime` owns the progress store and
-  `ScrollEffectSection` owns a bounded trigger instance. The lower-level
+  `ScrollEffectSection` owns a bounded trigger instance. Progress sources may
+  expose `subscribe(listener)`, and the runtime requests a scroll frame when
+  those keyed progress values change. The lower-level
   `createLenisGsapScrollStack(...)` remains the advanced manual entry for apps
   that own third-party scroll lifecycle directly; omitting `scrollAdapter` still
   uses native browser scroll.

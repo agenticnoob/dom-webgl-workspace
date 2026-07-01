@@ -12,11 +12,20 @@ export type ExampleEffectParams = {
   "example.textPressure": { color?: string; radius?: number };
   "example.textScramble": { color?: string; scrambleChars?: string; radius?: number; speed?: number };
   "example.pinnedReveal": { progressKey: string; color?: string };
-  "example.sequenceCard": {
+  "example.sequenceCardSlide": {
     progressKey: string;
     travel?: number;
     minOpacity?: number;
     maxOpacity?: number;
+  };
+  "example.sequenceCardBorderGlow": {
+    progressKey?: string;
+    travel?: number;
+    edgeSensitivity?: number;
+    colorSensitivity?: number;
+    glowIntensity?: number;
+    glowRadius?: number;
+    fillOpacity?: number;
   };
   "example.imagePan": { distance?: number };
   "example.imageZoom": { maxScale?: number };
@@ -47,11 +56,21 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.textScramble", color: "#172124", scrambleChars: ".:", radius: 148, speed: 0.45 },
   { kind: "example.pinnedReveal", progressKey: "example.pinned.reveal", color: "#172124" },
   {
-    kind: "example.sequenceCard",
+    kind: "example.sequenceCardSlide",
     progressKey: "example.video.scrub",
     travel: 280,
     minOpacity: 0.18,
     maxOpacity: 0.82,
+  },
+  {
+    kind: "example.sequenceCardBorderGlow",
+    progressKey: "example.video.scrub",
+    travel: 280,
+    edgeSensitivity: 0.3,
+    colorSensitivity: 0.5,
+    glowRadius: 40,
+    glowIntensity: 1,
+    fillOpacity: 0.42,
   },
   { kind: "example.imagePan", distance: 0.2 },
   { kind: "example.imageZoom", maxScale: 1.36 },

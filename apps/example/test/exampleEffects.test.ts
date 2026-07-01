@@ -16,7 +16,8 @@ describe("example effect catalog", () => {
       "example.textPressure",
       "example.textScramble",
       "example.pinnedReveal",
-      "example.sequenceCard",
+      "example.sequenceCardSlide",
+      "example.sequenceCardBorderGlow",
       "example.imagePan",
       "example.imageZoom",
       "example.imageKenBurns",
@@ -38,11 +39,21 @@ describe("example effect catalog", () => {
       color: "#172124",
     });
     expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.sequenceCard",
+      kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 280,
       minOpacity: 0.18,
       maxOpacity: 0.82,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.sequenceCardBorderGlow",
+      progressKey: "example.video.scrub",
+      travel: 280,
+      edgeSensitivity: 0.3,
+      colorSensitivity: 0.5,
+      glowRadius: 40,
+      glowIntensity: 1,
+      fillOpacity: 0.42,
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.surfaceVideoBackground",

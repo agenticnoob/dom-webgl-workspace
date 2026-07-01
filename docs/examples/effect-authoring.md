@@ -278,9 +278,12 @@ definition is missing, the target declaration has no executable effect.
   back to full opacity.
 - `example.videoPlayback`: mutes, slows, and starts a video texture.
 - `example.videoDrift`: applies a live transform to a video texture.
-- `example.sequenceCard`: drives a nested `dom/element` card target from the
-  image-sequence pinned progress key, sliding it in from the side and back out
-  without the parent image-sequence effect creating any child objects.
+- `example.sequenceCardSlide`: drives a `dom/element` card target from the
+  image-sequence pinned progress key, sliding it in from the side and back out.
+- `example.sequenceCardBorderGlow`: draws the card surface and a ReactBits-style
+  border glow from target-local pointer proximity. When paired with slide, it
+  reads the same progress key/travel values so pointer hit math follows the
+  WebGL-translated card position.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
 
@@ -313,13 +316,19 @@ The pinned scrub row now dogfoods runtime `source: { kind: "media", type: "image
 `ScrollEffectSection` owns the progress key, and the WebGL target declares
 `frameCount`, consumer-owned `frames`, and `progressKey` so the runtime selects
 usable frames and updates the texture plane without owning the sequence loader.
-The same target contains a nested WebGL card target using `dom/element` plus
-`example.sequenceCard`. This validates DOM-derived child layer ordering and
-fallback boundaries; the image-sequence parent does not manually add card
-objects through an effect, and the card does not declare `renderRole: "overlay"`.
-DOM supplies the card's layout anchor and layer relationship. The card pixels
+The example uses a pinned scrub layout: the section owns `pin`, scrub duration,
+and progress, while the image sequence and WebGL card stay inside the pinned
+viewport. The card is a nested `dom/element` child target inside the
+image-sequence DOM subtree that composes
+`example.sequenceCardSlide` and `example.sequenceCardBorderGlow`; the
+image-sequence parent does not manually add card objects through an effect, and
+the card does not declare
+`renderRole: "overlay"`. DOM supplies the card's layout anchor. The card pixels
 come from `ctx.source.surface.draw(...)`; runtime core does not clone the DOM
 card's CSS background, border, shadow, or other decorative paint.
+`WebGLScrollRuntime` receives a notifying progress source from the scroll
+adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
+renderable even when no card effect is active in the viewport.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

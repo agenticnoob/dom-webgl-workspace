@@ -2556,6 +2556,55 @@ describe("runtime pipeline sync", () => {
     expect(pointerLoopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
     pointerRuntime.dispose();
   });
+
+  test("progress signal notifications wake on-demand image sequence targets", async () => {
+    let progress = 0;
+    let notifyProgress = () => {};
+    let unsubscribed = false;
+    const progressSignals = {
+      get() {
+        return progress;
+      },
+      subscribe(listener: () => void) {
+        notifyProgress = listener;
+
+        return () => {
+          unsubscribed = true;
+          notifyProgress = () => {};
+        };
+      },
+    };
+    const loopHost = createLoopRecordingHost();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      progressSignals,
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "sequence.hero",
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        frameCount: 2,
+        frames: [document.createElement("canvas"), document.createElement("canvas")],
+        progressKey: "sequence.progress",
+      },
+    });
+
+    loopHost.tick(16);
+    loopHost.tick(32);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(1);
+
+    progress = 1;
+    notifyProgress();
+    loopHost.tick(48);
+
+    expect(loopHost.sceneAdapter.render).toHaveBeenCalledTimes(2);
+
+    runtime.dispose();
+    expect(unsubscribed).toBe(true);
+  });
 });
 
 async function createPipelineRuntime(

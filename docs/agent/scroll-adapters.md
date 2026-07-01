@@ -89,8 +89,13 @@ const progress = ctx.progress.get(params.progressKey);
 `ScrollEffectSection` creates one bounded trigger for its own element, writes
 that trigger's progress into the nearest `WebGLScrollRuntime` store, and clears
 the key on unmount. This is not a scene gate and should keep runtime scroll mode
-as ordinary page mode. Let that bounded section be the full pinned row; do not
-append a synthetic post-pinned runway sibling just to hand scroll back.
+as ordinary page mode. The progress store also notifies the runtime when a key
+changes, so keyed scrub updates wake on-demand renderables such as
+`media/image-sequence`. For pinned scrub sections, let the section own `pin`,
+the pinned DOM subtree, and a clear scrub duration such as `end="+=140%"`.
+Cards or captions inside that subtree should be effect-driven if they need to
+move or reveal while the section is pinned. Do not append a synthetic
+post-pinned runway sibling just to hand scroll back.
 
 When the wrapper is also responsible for the official smooth-scroll stack, pass
 `smooth` options with `ScrollTrigger`; child sections can inherit it from
@@ -181,7 +186,8 @@ Rules:
 - With the low-level bridge, trigger creation, pinning strategy, scrub
   timelines, and animation semantics stay in application code.
 - With `@project/dom-webgl-scroll-adapters/react`, `ScrollEffectSection` owns a
-  bounded trigger instance and maps its progress to a keyed runtime signal.
+  bounded trigger instance and maps its progress to a notifying keyed runtime
+  signal.
 - Cleanup must not call global `killAll()` from a reusable adapter unless the
   application explicitly asks for global teardown.
 

@@ -19,11 +19,21 @@ import { SnapshotElementExamples } from "./SnapshotElementExamples";
 const videoScrubProgressKey = "example.video.scrub";
 const sequenceCardEffects = [
   {
-    kind: "example.sequenceCard",
+    kind: "example.sequenceCardSlide",
     progressKey: videoScrubProgressKey,
     travel: 96,
     minOpacity: 0.72,
     maxOpacity: 1,
+  },
+  {
+    kind: "example.sequenceCardBorderGlow",
+    progressKey: videoScrubProgressKey,
+    travel: 96,
+    edgeSensitivity: 0.28,
+    colorSensitivity: 0.48,
+    glowRadius: 44,
+    glowIntensity: 1,
+    fillOpacity: 0.46,
   },
 ] as const;
 
@@ -308,8 +318,8 @@ export default function App() {
                     effects: sequenceCardEffects,
                   }}
                 >
-                  <strong>嵌套 WebGLTarget</strong>
-                  <span>父级是图片序列，卡片是它的 DOM child 和 WebGL 子层。</span>
+                  <strong>固定区间卡片</strong>
+                  <span>卡片留在 pinned 区间内，由 effect 控制偏移和边缘光效。</span>
                 </WebGLTarget>
               </WebGLTarget>
             ) : (

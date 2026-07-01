@@ -59,4 +59,19 @@ describe("createScrollEffectProgressStore", () => {
     store.clear("intro");
     expect(store.source.get("intro")).toBe(0);
   });
+
+  test("notifies subscribers when progress values change", () => {
+    const store = createScrollEffectProgressStore();
+    const notifications: string[] = [];
+    const unsubscribe = store.source.subscribe?.(() => {
+      notifications.push("changed");
+    });
+
+    store.set("intro", 0.7);
+    store.reset("intro");
+    unsubscribe?.();
+    store.clear("intro");
+
+    expect(notifications).toEqual(["changed", "changed"]);
+  });
 });

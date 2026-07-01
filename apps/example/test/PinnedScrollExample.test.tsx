@@ -126,6 +126,8 @@ describe("pinned scroll example section", () => {
     );
     expect(css).toMatch(/\.example-sequence-card \{/);
     expect(css).toMatch(/\.example-stack \{\n  display: block;\n\}/);
+    expect(css).not.toContain(".example-pinned-story");
+    expect(css).not.toContain(".example-sequence-story");
     expect(css).not.toContain(".example-pinned-row {\n  min-height: 100vh;\n  background: var(--color-surface-primary);");
     expect(css).not.toContain(".example-video-scrub-row {\n  z-index: 30;\n  min-height: 100vh;\n  background: var(--color-surface-video-bg);");
     expect(css).not.toContain(".example-stack {\n  display: flex;");

@@ -1156,7 +1156,9 @@ Delivered third-party adapter boundary:
 - `@project/dom-webgl-scroll-adapters/react` provides the recommended
   high-level pinned scroll effect path: `WebGLScrollRuntime` owns a runtime
   progress store, `ScrollEffectSection` owns one bounded trigger instance, and
-  effects read section progress through `ctx.progress.get(progressKey)`.
+  effects read section progress through `ctx.progress.get(progressKey)`. The
+  progress source notifies the runtime when keyed values change so external
+  scrub updates can wake on-demand renderables such as image sequences.
 - `@project/dom-webgl-scroll-adapters` still provides
   `createLenisGsapScrollStack(...)` as the advanced manual stack for
   applications that want to own Lenis + GSAP ticker + ScrollTrigger wiring

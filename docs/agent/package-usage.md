@@ -261,10 +261,20 @@ Rules:
 
 - Effects read section progress with `ctx.progress.get(progressKey)`.
 - Missing progress keys read as `0`.
+- The scroll-adapter progress store notifies the runtime when a key changes,
+  so ScrollTrigger scrub updates wake on-demand renderables such as
+  `media/image-sequence` targets.
 - Keep `progressKey` stable and pass it as target effect data; do not mutate
   mounted `webgl.effects` on every scroll update.
-- Let `ScrollEffectSection` own the whole pinned row. Do not add a synthetic
-  post-pinned runway sibling just to hand scroll back to the page.
+- For pinned scrub sections, let `ScrollEffectSection` own the pinned subtree,
+  progress key, and scrub duration. Keep cards, captions, and copy inside that
+  pinned subtree only when they should remain in the pinned viewport; drive
+  their visual changes with effects rather than normal DOM scrolling.
+- `end="+=..."` is a scrub duration measured relative to the start point, not a
+  content layout model. Use it when the pinned effect should last a fixed
+  scroll distance.
+- Do not add a synthetic post-pinned runway sibling just to hand scroll back to
+  the page.
 - This is not a scene gate. The runtime should remain in page scroll mode while
   ScrollTrigger handles pin/scrub behavior.
 - If `WebGLScrollRuntime smooth={...}` includes `ScrollTrigger`, child
