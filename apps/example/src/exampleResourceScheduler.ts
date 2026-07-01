@@ -164,15 +164,18 @@ function loadImageSequenceFrames(options: {
     return frames;
   });
 
+  const loadNextFrame = (): Promise<void> => {
+    if (nextFrame > options.count) {
+      return Promise.resolve();
+    }
+
+    const frame = nextFrame;
+    nextFrame += 1;
+    return loadFrame(frame).then(loadNextFrame);
+  };
   const workers = Array.from(
     { length: Math.min(Math.max(0, options.concurrency - 1), Math.max(0, options.count - 1)) },
-    async () => {
-      while (nextFrame <= options.count) {
-        const frame = nextFrame;
-        nextFrame += 1;
-        await loadFrame(frame);
-      }
-    },
+    loadNextFrame,
   );
   const complete = Promise.all([ready, ...workers]).then(() => frames);
 

@@ -290,7 +290,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const rectSkipStabilityFrames = 3;
   const rectSkipMaxSkippedFrames = 3;
   const rectSkipState = new Map<string, RectSkipState>();
-  const layoutSignaturesByTargetKey = new Map<string, string>();
+  const layoutCacheKeysByTargetKey = new Map<string, string>();
   let layoutScrollOffset = 0;
   const unsubscribeProgressSignals = options.progressSignals?.subscribe?.(() => {
     rendererLoopRequestFrame("scroll");
@@ -348,7 +348,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rectSkipState.delete(targetKey);
       invalidationController.unobserveTarget(targetKey);
       unregisterGateTarget(scrollState, descriptor);
-      layoutSignaturesByTargetKey.delete(targetKey);
+      layoutCacheKeysByTargetKey.delete(targetKey);
       transformProjectedLayoutsByTargetKey.delete(targetKey);
       transformAttachmentGroupByTargetKey.delete(targetKey);
       restoreFallbackVisibility(targetState, targetKey);
@@ -398,7 +398,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         invalidationController.dispose();
         unsubscribeProgressSignals?.();
         rectSkipState.clear();
-        layoutSignaturesByTargetKey.clear();
+        layoutCacheKeysByTargetKey.clear();
         transformProjectedLayoutsByTargetKey.clear();
         transformAttachmentGroupByTargetKey.clear();
         removeAllTransformGroups();
@@ -900,7 +900,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       );
       try {
         result = renderable.update(frameInput);
-        layoutSignaturesByTargetKey.set(
+        layoutCacheKeysByTargetKey.set(
           descriptor.key,
           layoutMeasurement.layoutSignature,
         );
@@ -997,10 +997,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       reasons.add("dom-invalidation");
     }
 
-    if (
-      layoutSignaturesByTargetKey.get(descriptor.key) !==
-      layoutMeasurement.layoutSignature
-    ) {
+    const previousLayoutCacheKey = layoutCacheKeysByTargetKey.get(descriptor.key);
+    const nextLayoutCacheKey = layoutMeasurement.layoutSignature;
+
+    if (previousLayoutCacheKey !== nextLayoutCacheKey) {
       reasons.add("layout");
     }
 

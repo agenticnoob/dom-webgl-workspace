@@ -69,6 +69,12 @@ Declarative WebGL transform groups are implemented in
 `transformScope: "subtree"` lets a parent target's effect transform control its
 WebGL subtree while child targets keep independent source, effects, textures,
 fallback lifecycle, and resource ownership.
+A 2026-07-01 React Doctor hygiene pass resolved the safe internal diagnostics:
+passive viewport scroll invalidation, bounded example image-sequence loading,
+single-pass debug/stage collection, and non-security cache-key naming for
+render/material reuse. It does not change public API, source declarations,
+effect handles, React runtime compatibility, or the profile-gated batching
+decision.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.

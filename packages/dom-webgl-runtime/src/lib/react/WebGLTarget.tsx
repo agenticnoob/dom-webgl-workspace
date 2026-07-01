@@ -60,8 +60,6 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
 
     return () => {
       runtime.unregisterTarget(webgl.key);
-      unmarkFallbackRootRef.current?.();
-      unmarkFallbackRootRef.current = undefined;
     };
   }, [runtime, webgl.key]);
 

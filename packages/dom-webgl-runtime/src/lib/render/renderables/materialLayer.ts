@@ -46,7 +46,7 @@ export type MaterialLayerOptions = {
 type OwnedTextureResource = {
   texture: Texture;
   upload: TextureUploadState;
-  signature: string;
+  cacheKey: string;
 };
 
 let nextTextureUniformSourceId = 0;
@@ -185,12 +185,12 @@ export function createMaterialLayer(
     current: unknown,
     next: WebGLEffectUniformValue,
   ): boolean {
-    const nextSignature = readTextureUniformSignature(next);
-    if (!nextSignature || !(current instanceof Texture)) {
+    const nextCacheKey = readTextureUniformCacheKey(next);
+    if (!nextCacheKey || !(current instanceof Texture)) {
       return false;
     }
 
-    if (nextSignature === "source-texture") {
+    if (nextCacheKey === "source-texture") {
       return current === options.sourceTexture;
     }
 
@@ -200,7 +200,7 @@ export function createMaterialLayer(
     }
 
     const [owned] = ownedTextures;
-    if (owned.texture !== current || owned.signature !== nextSignature) {
+    if (owned.texture !== current || owned.cacheKey !== nextCacheKey) {
       return false;
     }
 
@@ -332,7 +332,7 @@ function createOwnedTextureResource(
   return {
     texture,
     upload,
-    signature: readTextureUniformSignature(value) ?? "",
+    cacheKey: readTextureUniformCacheKey(value) ?? "",
   };
 }
 
@@ -455,7 +455,7 @@ function updateUniformValueInPlace(
   return false;
 }
 
-function readTextureUniformSignature(
+function readTextureUniformCacheKey(
   value: WebGLEffectUniformValue,
 ): string | undefined {
   if (!isTextureUniform(value)) {

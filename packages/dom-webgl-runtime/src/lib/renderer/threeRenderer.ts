@@ -327,31 +327,41 @@ function configureDOMStageLayer(
   container: HTMLElement,
   canvas: HTMLCanvasElement,
 ): () => void {
-  const restoreEntries = Array.from(container.children)
-    .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter((child) => child !== canvas)
-    .map((child) => {
-      const previousPosition = child.style.position;
-      const previousZIndex = child.style.zIndex;
-      const appliedPosition = !child.style.position;
-      const appliedZIndex = !child.style.zIndex;
+  const restoreEntries: Array<{
+    child: HTMLElement;
+    previousPosition: string;
+    previousZIndex: string;
+    appliedPosition: boolean;
+    appliedZIndex: boolean;
+  }> = [];
 
-      if (appliedPosition) {
-        child.style.position = "relative";
-      }
+  for (const child of Array.from(container.children)) {
+    if (!(child instanceof HTMLElement) || child === canvas) {
+      continue;
+    }
 
-      if (appliedZIndex) {
-        child.style.zIndex = "1";
-      }
+    const { style } = child;
+    const previousPosition = style.position;
+    const previousZIndex = style.zIndex;
+    const appliedPosition = !previousPosition;
+    const appliedZIndex = !previousZIndex;
 
-      return {
-        child,
-        previousPosition,
-        previousZIndex,
-        appliedPosition,
-        appliedZIndex,
-      };
+    if (appliedPosition) {
+      style.position = "relative";
+    }
+
+    if (appliedZIndex) {
+      style.zIndex = "1";
+    }
+
+    restoreEntries.push({
+      child,
+      previousPosition,
+      previousZIndex,
+      appliedPosition,
+      appliedZIndex,
     });
+  }
 
   return () => {
     for (const entry of restoreEntries) {

@@ -55,8 +55,8 @@ export function createTextPlaneSceneRenderableController(
   let textContent = options.textContent ?? "";
   const initialStyle = readDOMStyleSnapshot(options.element);
   let lastMeasurement: ElementLayoutSnapshot | undefined;
-  let lastRenderSignature = "";
-  let lastRasterGeometrySignature = "";
+  let lastRenderCacheKey = "";
+  let lastRasterGeometryCacheKey = "";
   let glyphs: readonly WebGLTextGlyph[] = [];
   let glyphCommandTransform:
     | ((
@@ -89,12 +89,12 @@ export function createTextPlaneSceneRenderableController(
       return;
     }
 
-    const rasterGeometrySignature = createRasterGeometrySignature(measurement);
+    const rasterGeometryCacheKey = createRasterGeometryCacheKey(measurement);
 
     if (
       !force &&
-      lastRenderSignature &&
-      rasterGeometrySignature === lastRasterGeometrySignature
+      lastRenderCacheKey &&
+      rasterGeometryCacheKey === lastRasterGeometryCacheKey
     ) {
       return;
     }
@@ -109,14 +109,14 @@ export function createTextPlaneSceneRenderableController(
         style: initialStyle,
       },
     );
-    const signature = createTextCanvasRenderSignature(textContent, state);
+    const renderCacheKey = createTextCanvasRenderSignature(textContent, state);
 
-    if (!force && signature === lastRenderSignature) {
+    if (!force && renderCacheKey === lastRenderCacheKey) {
       return;
     }
 
-    lastRenderSignature = signature;
-    lastRasterGeometrySignature = rasterGeometrySignature;
+    lastRenderCacheKey = renderCacheKey;
+    lastRasterGeometryCacheKey = rasterGeometryCacheKey;
     updateTextCanvas(canvas, textContent, state, markCanvasRasterDirty);
     glyphs = context ? computeTextGlyphLayout(context, textContent, state) : [];
     textLayerStyle = readTextLayerStyle(state);
@@ -126,7 +126,7 @@ export function createTextPlaneSceneRenderableController(
 
   controller.object.updateTextContent = (nextTextContent) => {
     textContent = nextTextContent;
-    lastRenderSignature = "";
+    lastRenderCacheKey = "";
     updateTextCanvas(
       canvas,
       textContent,
@@ -144,7 +144,7 @@ export function createTextPlaneSceneRenderableController(
     renderTextSnapshot(lastMeasurement);
   };
   controller.object.invalidateContent = () => {
-    lastRenderSignature = "";
+    lastRenderCacheKey = "";
     renderTextSnapshot(lastMeasurement, true);
   };
   const textLayerOptions: TextLayerCapabilityOptions = {
@@ -207,7 +207,7 @@ export function createTextPlaneSceneRenderableController(
   }
 }
 
-function createRasterGeometrySignature(layout: ElementLayoutSnapshot): string {
+function createRasterGeometryCacheKey(layout: ElementLayoutSnapshot): string {
   return JSON.stringify([
     layout.width,
     layout.height,

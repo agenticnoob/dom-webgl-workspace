@@ -60,7 +60,7 @@ export function createTexturePlaneSceneRenderableController(
   const mediaMesh = new Mesh(mediaGeometry.geometry, material);
   const group = new Group();
   const initialStyle = readDOMStyleSnapshot(options.element);
-  let lastTextureTransformSignature = "";
+  let lastTextureTransformCacheKey = "";
   let textureLayerTransform: WebGLEffectTextureTransform | undefined;
   let shaderInputs: WebGLEffectMediaShaderInputs | undefined;
 
@@ -85,14 +85,14 @@ export function createTexturePlaneSceneRenderableController(
     force = false,
   ) => {
     const mediaSize = readMediaSize(currentTextureSource);
-    const textureGeometrySignature = JSON.stringify([
+    const textureGeometryCacheKey = JSON.stringify([
       measurement.width,
       measurement.height,
       mediaSize.width,
       mediaSize.height,
     ]);
 
-    if (!force && textureGeometrySignature === lastTextureTransformSignature) {
+    if (!force && textureGeometryCacheKey === lastTextureTransformCacheKey) {
       return;
     }
 
@@ -129,7 +129,7 @@ export function createTexturePlaneSceneRenderableController(
       },
     };
 
-    lastTextureTransformSignature = textureGeometrySignature;
+    lastTextureTransformCacheKey = textureGeometryCacheKey;
     applyTextureTransform(texture, transform);
     textureUpload.markFrameDirty("texture-transform");
     applyTextureLayerTransform();
@@ -141,14 +141,14 @@ export function createTexturePlaneSceneRenderableController(
     updateTextureTransform(measurement);
   };
   controller.object.invalidateContent = () => {
-    lastTextureTransformSignature = "";
+    lastTextureTransformCacheKey = "";
   };
   controller.object.updateTextureSource = (nextSource) => {
     currentTextureSource = nextSource;
     controller.object.textureSource = nextSource;
     texture.image = nextSource;
     textureUpload.updateSource(nextSource);
-    lastTextureTransformSignature = "";
+    lastTextureTransformCacheKey = "";
   };
   controller.object.inspectTextureTelemetry = () => [textureUpload.inspect()];
   if (options.textureKind === "video") {

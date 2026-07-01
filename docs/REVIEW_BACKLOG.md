@@ -56,6 +56,36 @@ None.
 
 ## Resolved Runtime Performance Issues
 
+- ID: R-005
+- Severity: resolved
+- Related task: React Doctor conservative hygiene pass
+- Files:
+  - `apps/example/src/exampleResourceScheduler.ts`
+  - `packages/dom-webgl-runtime/src/lib/dom/domInvalidation.ts`
+  - `packages/dom-webgl-runtime/src/lib/react/WebGLDebugPanel.tsx`
+  - `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.tsx`
+  - `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/surfaceTexture.ts`
+  - `packages/dom-webgl-runtime/src/lib/render/renderables/materialLayer.ts`
+  - `packages/dom-webgl-runtime/src/lib/render/renderables/textPlaneSceneRenderable.ts`
+  - `packages/dom-webgl-runtime/src/lib/render/renderables/texturePlaneSceneRenderable.ts`
+  - `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
+  - `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
+- Problem: React Doctor reported safe internal performance/hygiene findings
+  plus several compatibility-sensitive warnings. The safe findings covered
+  non-passive viewport scroll invalidation, loop-await shape in bounded example
+  image loading, chained collection passes in debug/stage helpers, and
+  security-shaped `signature` naming for non-security render/material cache
+  keys.
+- Fix applied: Safe findings were fixed without changing public API or runtime
+  semantics. visualViewport scroll invalidation is passive; example
+  image-sequence loading keeps bounded concurrency with a promise-chain worker;
+  debug panel and DOM stage setup use one-pass collection; and internal
+  render/material reuse state now uses cache/render-key naming. Compatibility
+  findings remain intentionally deferred: no React 19-only `use(...)`, no
+  ES2023-only `toSorted()`, no broad example `App` split, and no change to
+  `WebGLRuntime` latest-runtime disposal behavior.
+- Verification command: `npm run typecheck && npm run test -- --run && npm run build && npm run check:imports && git diff --check`
+
 - ID: R-004
 - Severity: resolved
 - Related task: Runtime performance roadmap

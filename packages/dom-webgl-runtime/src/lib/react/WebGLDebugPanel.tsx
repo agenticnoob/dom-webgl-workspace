@@ -3,6 +3,7 @@ import {
   useState,
   type CSSProperties,
   type FunctionComponent,
+  type ReactElement,
 } from "react";
 
 import type { WebGLDebugState, WebGLResourceStatus } from "../types";
@@ -290,6 +291,10 @@ export const WebGLDebugPanel: FunctionComponent<WebGLDebugPanelProps> =
     }
 
     // Expanded panel
+    const targetErrorRows = targetsExpanded
+      ? renderTargetErrorRows(state.targets)
+      : [];
+
     return createElement(
       "div",
       { style: STYLES.panel, role: "dialog", "aria-label": "WebGL debug panel" },
@@ -432,20 +437,32 @@ export const WebGLDebugPanel: FunctionComponent<WebGLDebugPanelProps> =
                     ]
                   : []),
                 // Error details
-                ...(targetsExpanded
-                  ? state.targets
-                      .filter((t) => t.resourceStatus === "error" && t.error)
-                      .map((target) =>
-                        createElement(
-                          "div",
-                          { key: `error-${target.key}`, style: STYLES.targetError },
-                          `\u21B3 ${target.error}`,
-                        ),
-                      )
-                  : []),
+                ...targetErrorRows,
               ),
             ]
           : []),
       ),
     );
   };
+
+function renderTargetErrorRows(
+  targets: WebGLDebugState["targets"],
+): ReactElement[] {
+  const rows: ReactElement[] = [];
+
+  for (const target of targets) {
+    if (target.resourceStatus !== "error" || !target.error) {
+      continue;
+    }
+
+    rows.push(
+      createElement(
+        "div",
+        { key: `error-${target.key}`, style: STYLES.targetError },
+        `\u21B3 ${target.error}`,
+      ),
+    );
+  }
+
+  return rows;
+}

@@ -25,18 +25,18 @@ export function createSurfaceTextureController(
   canvas: HTMLCanvasElement,
 ): SurfaceTextureController {
   const texture = new CanvasTexture(canvas);
-  let lastSignature = "";
+  let lastRenderKey = "";
 
   return {
     texture,
     update(input): CanvasTexture {
-      const signature = JSON.stringify(input);
+      const renderKey = JSON.stringify(input);
 
-      if (signature === lastSignature) {
+      if (renderKey === lastRenderKey) {
         return texture;
       }
 
-      lastSignature = signature;
+      lastRenderKey = renderKey;
       resizeCanvas(canvas, input.layout);
       drawSurface(canvas, input.material, input.layout);
       texture.needsUpdate = true;

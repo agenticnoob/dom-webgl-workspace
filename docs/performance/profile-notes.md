@@ -65,9 +65,28 @@ Window totals are counters accumulated during each sampling window. Per-frame va
 - Plane renderables share one internal `PlaneGeometry(1, 1)` with ref-counted disposal.
 - Model animation mixers are updated by the runtime only when an internal animated model shape is present and the target remains visible.
 
+## React Doctor Hygiene Pass
+
+- Date: 2026-07-01
+- Scope: conservative internal cleanup only; no new profiling run and no public
+  API change.
+- Runtime package score moved from 52/100 to 87/100 after fixing safe findings:
+  passive viewport scroll invalidation, one-pass debug/stage collection, and
+  non-security cache-key naming for render/material reuse.
+- Root workspace scan moved from 5 warnings to 4 warnings after removing the
+  loop-await shape from bounded example image-sequence loading.
+- Deferred findings are compatibility or architecture calls rather than runtime
+  profile blockers: `useContext` remains for compatibility instead of
+  React 19-only `use(...)`, `toSorted()` is not used while the workspace target
+  is ES2022, the example `App` is not split solely to improve a heuristic score,
+  and `WebGLRuntime` keeps latest-runtime dispose semantics.
+- This pass does not change the previous batching decision: automatic
+  batching/instancing remains profile-gated until a dedicated stress fixture or
+  production-mobile profile proves draw calls dominate.
+
 ## Verification
 
-- `npm run test -- --run`: passed (90 files / 528 tests).
+- `npm run test -- --run`: passed (91 files / 541 tests).
 - `npm run typecheck`: passed.
 - `npm run build`: passed; existing Vite chunk-size warning only.
 - `npm run check:imports`: passed (`Example import boundary OK`).

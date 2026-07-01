@@ -40,6 +40,13 @@ transform declaration, not a public scene graph: parent effects can move, rotate
 scale, hide, or best-effort fade the parent's WebGL subtree while children keep
 their own source, effects, textures, fallback lifecycle, and offscreen ownership.
 
+The 2026-07-01 React Doctor hygiene pass keeps that public model unchanged. It
+only tightens internal runtime/example implementation details: passive viewport
+scroll invalidation, bounded example image-sequence loading, single-pass
+collection in debug/stage helpers, and cache-key naming for non-security render
+reuse. It does not introduce React 19-only APIs, ES2023-only array helpers,
+public scene-graph handles, or automatic batching.
+
 The current effect context exposes low-level runtime output handles for every
 supported source kind. Consumers can draw to canvas-backed element surfaces,
 control WebGL text layers and glyph layout, transform image/video texture

@@ -50,13 +50,23 @@ objects, raw mesh traversal, raw point-cloud objects, raw target object
 attachment, or renderer-state mutation.
 
 ## Last Completed Task
-Declarative WebGL transform groups are implemented. `WebGLDeclaration` now
-supports `transformScope?: "self" | "subtree"`; runtime creates internal groups
-from the DOM-derived target tree; parent group effects can transform, hide, and
-best-effort fade the WebGL subtree; and child targets retain independent source,
-effects, textures, fallback lifecycle, resources, and offscreen policy.
+React Doctor conservative hygiene pass is implemented. The runtime/example code
+now resolves the safe diagnostics without changing public API: visualViewport
+scroll invalidation uses a passive listener, example image-sequence preload keeps
+bounded concurrency without loop-await syntax, debug panel error rendering and
+DOM stage setup use single-pass collection, and internal render/material reuse
+state is named as cache/render keys rather than security-shaped signatures.
+`WebGLRuntime` keeps its intentional latest-runtime dispose semantics, and
+React context access remains compatible rather than being forced to React
+19-only `use(...)`.
 
 ## Latest Documentation Note
+React Doctor docs are aligned across README, goal, performance notes, review
+backlog, and this execution state. The active conclusion is conservative:
+fixed safe internal findings, left compatibility/architecture findings
+deferred, and did not alter source declarations, effect handles, runtime public
+exports, package entrypoints, or the profile-gated batching decision.
+
 Transform group docs are aligned across README, goal, package usage, example
 authoring, AGENTS, and this execution state. The active public contract is
 parent-side `transformScope: "subtree"` only: no public parent key, group object,
@@ -802,33 +812,40 @@ renderer ownership, or example visual behavior.
 - `npm run check:imports` (green package-boundary review import-boundary verification: `Demo and example import boundaries OK`)
 
 ## Last Result
-Test Source Separation is implemented. The change moves package, app, and root
-test files out of production source directories, updates relative imports,
-extends root typecheck coverage to root `test/**/*.ts(x)`, and adds
-`test/structure.test.ts` as a repository guard. Public API shape and runtime
-behavior are unchanged. Final verification passed with
-`npm run test -- --run` (91 files / 529 tests), `npm run typecheck`,
+React Doctor conservative hygiene pass is implemented and documented. Safe
+internal diagnostics were fixed while public API shape, runtime source contract,
+React adapter compatibility, effect authoring handles, and profile-gated
+batching policy remain unchanged. Final verification passed with
+`npm run typecheck`, `npm run test -- --run` (91 files / 541 tests),
 `npm run build` (existing non-blocking Vite chunk-size warning only),
 `npm run check:imports`, and `git diff --check`.
 
 ## Files Changed
 - `README.md`
-- `AGENTS.md`
-- `docs/agent/custom-effects.md`
-- `docs/agent/scroll-adapters.md`
+- `docs/00-goal.md`
 - `docs/EXECUTION_STATE.md`
 - `docs/REVIEW_BACKLOG.md`
-- `tsconfig.base.json`
-- `test/structure.test.ts`
-- Root workspace test moved from `workspace.test.ts` to `test/workspace.test.ts`.
-- Runtime, scroll-adapter, and example test files moved from workspace `src/`
-  directories to matching workspace `test/` directories.
+- `docs/performance/profile-notes.md`
+- `apps/example/src/exampleResourceScheduler.ts`
+- `packages/dom-webgl-runtime/src/lib/dom/domInvalidation.ts`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLDebugPanel.tsx`
+- `packages/dom-webgl-runtime/src/lib/react/WebGLTarget.tsx`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/effectTargets/surfaceTexture.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/materialLayer.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/textPlaneSceneRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/render/renderables/texturePlaneSceneRenderable.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/runtime.ts`
+- `packages/dom-webgl-runtime/src/lib/renderer/threeRenderer.ts`
 
 ## Known Issues
-No blocking issue is currently known for test source separation. The existing
-non-blocking Vite production build chunk-size warning remains. Batching remains
-intentionally deferred by profile evidence rather than left as an unchecked
-implementation gap.
+No blocking issue is currently known for the React Doctor hygiene pass. The
+existing non-blocking Vite production build chunk-size warning remains. React
+Doctor still reports compatibility/architecture warnings that are intentionally
+deferred: React 19-only `use(...)`, ES2023-only `toSorted()`, the large example
+`App` heuristic, scroll-adapter state-shape refactoring, and the intentional
+`WebGLRuntime` latest-runtime dispose cleanup. Batching remains intentionally
+deferred by profile evidence rather than left as an unchecked implementation
+gap.
 
 ## Important Constraints
 - Public effect authoring should stay on `defineWebGLEffect(...)` plus

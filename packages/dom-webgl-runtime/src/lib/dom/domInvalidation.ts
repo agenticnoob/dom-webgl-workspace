@@ -21,19 +21,23 @@ export type DOMInvalidationControllerOptions = {
     addEventListener?(
       type: string,
       listener: EventListenerOrEventListenerObject,
+      options?: AddEventListenerOptions,
     ): void;
     removeEventListener?(
       type: string,
       listener: EventListenerOrEventListenerObject,
+      options?: EventListenerOptions,
     ): void;
     visualViewport?: {
       addEventListener?(
         type: string,
         listener: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions,
       ): void;
       removeEventListener?(
         type: string,
         listener: EventListenerOrEventListenerObject,
+        options?: EventListenerOptions,
       ): void;
     } | null;
   };
@@ -62,6 +66,7 @@ export function createDOMInvalidationController(
   windowTarget?.visualViewport?.addEventListener?.(
     "scroll",
     handleViewportChanged,
+    { passive: true },
   );
 
   return {
