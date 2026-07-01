@@ -258,6 +258,14 @@ Default target lifecycle is `hideWhenReady: true`. Use:
 - A parent target does not own a nested target root's fallback lifecycle. Nested
   targets hide and restore their own fallback after their own renderable
   readiness.
+- Use `transformScope: "subtree"` only when a parent target's effect should
+  move, rotate, scale, hide, or best-effort fade its declared WebGL subtree.
+  This creates an internal runtime transform group, not a public scene graph.
+  Child targets keep their own source, effects, textures, fallback lifecycle,
+  resources, and offscreen policy.
+- Transform groups do not expose raw Three.js `Group`, `Object3D`, scene,
+  camera, material, matrix, or parent-key APIs. Pointer state remains the
+  existing layout/global pointer model in v1.
 
 Effect ownership rules:
 

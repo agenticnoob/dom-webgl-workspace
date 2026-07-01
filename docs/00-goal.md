@@ -34,6 +34,12 @@ the package effect boundary cleanup supersede that concrete-effect model:
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
 
+Declarative transform groups are now implemented through
+`transformScope?: "self" | "subtree"`. This is a parent-side WebGL subtree
+transform declaration, not a public scene graph: parent effects can move, rotate,
+scale, hide, or best-effort fade the parent's WebGL subtree while children keep
+their own source, effects, textures, fallback lifecycle, and offscreen ownership.
+
 The current effect context exposes low-level runtime output handles for every
 supported source kind. Consumers can draw to canvas-backed element surfaces,
 control WebGL text layers and glyph layout, transform image/video texture
@@ -62,6 +68,7 @@ DOM element
   -> layout/content snapshot
   -> renderRole
   -> renderable
+  -> optional transform group / local layout
   -> effect/material policy
   -> runtime-owned scene object
   -> single renderer
@@ -109,6 +116,14 @@ Runtime-owned layers from `dom/element`, `dom/text`, `media/image`,
 target order, so ordinary nested targets do not need `renderRole: "overlay"` to
 paint above their parent.
 
+When a parent target declares `transformScope: "subtree"`, the runtime creates an
+internal transform group from that same DOM-derived target tree. The parent
+effect target writes transforms to the group; declared child targets are attached
+under it with group-local layout. Child source handles, effect controllers,
+textures, fallback visibility, and offscreen policy remain target-scoped.
+Pointer state remains layout/global in v1; rotated or inverse-transformed picking
+is intentionally not part of this capability.
+
 Package consumers should think about:
 
 - Which DOM element enters WebGL.
@@ -117,6 +132,8 @@ Package consumers should think about:
 - Whether it follows page scroll or participates in a gated scene.
 - Whether pointer input should affect it.
 - Which runtime-registered custom effect should own its WebGL visual treatment.
+- Whether a parent target's effect transform should control its declared WebGL
+  subtree with `transformScope: "subtree"`.
 
 Package consumers should not think about:
 
@@ -124,6 +141,7 @@ Package consumers should not think about:
 - Three.js `transparent`.
 - Three.js `depthWrite`.
 - Internal scene objects.
+- Internal transform groups.
 - DOM rect projection.
 - Renderer adapters.
 - Renderer pass order.
@@ -146,6 +164,7 @@ type WebGLDeclaration = {
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
   effects?: WebGLEffectsDeclaration;
+  transformScope?: "self" | "subtree";
 };
 
 type WebGLLifecycleDeclaration = {
@@ -874,6 +893,9 @@ Delivered fallback visibility behavior:
 - For WebGL-owned cards, markers, and captions, declare nested targets instead
   of creating child scene objects from the parent effect. The parent owns its
   source layer; child targets own their own source layer and fallback state.
+- `transformScope: "subtree"` affects WebGL transform inheritance only. It does
+  not make parent lifecycle, fallback hiding, resource disposal, or source
+  ownership cascade into child targets.
 - Target unregister and runtime disposal restore fallback visibility.
 
 ## DOM To WebGL Performance Contract

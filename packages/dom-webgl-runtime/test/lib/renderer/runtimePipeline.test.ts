@@ -6,7 +6,11 @@ import type { PointerController } from "../../../src/lib/input/pointerController
 import type { ScrollControllerGateTarget } from "../../../src/lib/input/scrollController";
 import { defineWebGLEffect } from "../../../src/lib/effects/effectAuthoring";
 import type { Renderable } from "../../../src/lib/render/renderable";
-import type { WebGLSceneAdapter, WebGLSceneObject } from "../../../src/lib/renderer/sceneObject";
+import type {
+  WebGLSceneAdapter,
+  WebGLSceneGroup,
+  WebGLSceneObject,
+} from "../../../src/lib/renderer/sceneObject";
 import type {
   WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
@@ -435,6 +439,283 @@ describe("runtime pipeline sync", () => {
         computedRenderOrder: childOrder,
       }),
     ]);
+
+    runtime.dispose();
+  });
+
+  test("attaches subtree transform descendants under a parent group with local layouts", async () => {
+    const sceneAdapter = createTransformGroupRecordingSceneAdapter();
+    const textEffectUpdates: Array<{
+      key: string;
+      sourceKind: string;
+      width: number;
+      height: number;
+    }> = [];
+    const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "test.textProbe",
+          source: "dom/text",
+          update(ctx) {
+            textEffectUpdates.push({
+              key: ctx.key,
+              sourceKind: ctx.sourceKind,
+              width: ctx.layout.width,
+              height: ctx.layout.height,
+            });
+          },
+        }),
+      ],
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["sequence", createLayoutMeasurement(0, 0, 600, 320)],
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+          ["sibling", createLayoutMeasurement(420, 80, 180, 40)],
+        ]),
+      ),
+    });
+    const sequence = document.createElement("section");
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    const sibling = document.createElement("p");
+    title.textContent = "Nested text";
+    sequence.dataset.testKey = "sequence";
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    sibling.dataset.testKey = "sibling";
+    sequence.append(card);
+    card.append(title);
+
+    runtime.registerTarget(sequence, {
+      key: "sequence",
+      source: { kind: "dom", type: "element" },
+    });
+    runtime.registerTarget(card, {
+      key: "card",
+      source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      source: { kind: "dom", type: "text" },
+      effects: [{ kind: "test.textProbe" }],
+    });
+    runtime.registerTarget(sibling, {
+      key: "sibling",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.groupsByKey.has("card")).toBe(true);
+    expect(sceneAdapter.objectParentsByKey.get("sequence")).toBeUndefined();
+    expect(sceneAdapter.objectParentsByKey.get("card")).toBe("card");
+    expect(sceneAdapter.objectParentsByKey.get("card.title")).toBe("card");
+    expect(sceneAdapter.objectParentsByKey.get("sibling")).toBeUndefined();
+    expect(readTransformGroupObject3D(sceneAdapter, "card")).toMatchObject({
+      position: { x: 210, y: 410, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+    });
+    expect(readSceneObjectLastLayout(sceneAdapter, "card")).toEqual({
+      x: 0,
+      y: 0,
+      width: 220,
+      height: 140,
+    });
+    expect(readSceneObjectLastLayout(sceneAdapter, "card.title")).toEqual({
+      x: 0,
+      y: 24,
+      width: 160,
+      height: 32,
+    });
+    expect(readSceneObjectLastLayout(sceneAdapter, "sibling")).toEqual({
+      x: 510,
+      y: 500,
+      width: 180,
+      height: 40,
+    });
+    expect(textEffectUpdates).toEqual([
+      {
+        key: "card.title",
+        sourceKind: "dom/text",
+        width: 160,
+        height: 32,
+      },
+    ]);
+
+    runtime.dispose();
+  });
+
+  test("removes a parent transform group without disposing still-registered children", async () => {
+    const sceneAdapter = createTransformGroupRecordingSceneAdapter();
+    const disposeCallsByKey = new Map<string, ReturnType<typeof vi.fn>>();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+        ]),
+      ),
+      onRenderableCreated(renderable) {
+        const originalDispose = renderable.dispose.bind(renderable);
+        const dispose = vi.fn(originalDispose);
+        renderable.dispose = dispose;
+        disposeCallsByKey.set(renderable.key, dispose);
+      },
+    });
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    title.textContent = "Nested text";
+    card.append(title);
+
+    runtime.registerTarget(card, {
+      key: "card",
+      source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+    runtime.unregisterTarget("card");
+    await runtime.sync();
+
+    expect(sceneAdapter.removedGroupKeys).toEqual(["card"]);
+    expect(disposeCallsByKey.get("card")).toHaveBeenCalledTimes(1);
+    expect(disposeCallsByKey.get("card.title")).not.toHaveBeenCalled();
+    expect(sceneAdapter.objectParentsByKey.get("card.title")).toBeUndefined();
+
+    runtime.dispose();
+  });
+
+  test("keeps flat scene attachment and absolute layouts without transformScope", async () => {
+    const sceneAdapter = createTransformGroupRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+        ]),
+      ),
+    });
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    title.textContent = "Nested text";
+    card.append(title);
+
+    runtime.registerTarget(card, {
+      key: "card",
+      source: { kind: "dom", type: "element" },
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.groupsByKey.size).toBe(0);
+    expect(sceneAdapter.objectParentsByKey.get("card")).toBeUndefined();
+    expect(sceneAdapter.objectParentsByKey.get("card.title")).toBeUndefined();
+    expect(readSceneObjectLastLayout(sceneAdapter, "card.title")).toEqual({
+      x: 210,
+      y: 434,
+      width: 160,
+      height: 32,
+    });
+
+    runtime.dispose();
+  });
+
+  test("routes subtree parent effect target transforms to the parent group", async () => {
+    const sceneAdapter = createTransformGroupRecordingSceneAdapter();
+    const sourceHandleReady: boolean[] = [];
+    const disposeCallsByKey = new Map<string, ReturnType<typeof vi.fn>>();
+    const runtime = await createPipelineRuntime({
+      effects: [
+        defineWebGLEffect({
+          kind: "test.groupTransform",
+          source: "dom/element",
+          update(ctx) {
+            sourceHandleReady.push(
+              ctx.source.kind === "dom" &&
+                ctx.source.type === "element" &&
+                Boolean(ctx.source.surface),
+            );
+            ctx.target?.setPosition(12, -8, 3);
+            ctx.target?.setRotation(0.1, -0.2, 0.3);
+            ctx.target?.setScale(1.4, 0.8, 0.6);
+            ctx.target?.setVisible(false);
+            ctx.target?.setOpacity(0.42);
+          },
+        }),
+      ],
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, sceneAdapter),
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+        ]),
+      ),
+      onRenderableCreated(renderable) {
+        const originalDispose = renderable.dispose.bind(renderable);
+        const dispose = vi.fn(originalDispose);
+        renderable.dispose = dispose;
+        disposeCallsByKey.set(renderable.key, dispose);
+      },
+    });
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    title.textContent = "Nested text";
+    card.append(title);
+
+    runtime.registerTarget(card, {
+      key: "card",
+      source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
+      effects: [{ kind: "test.groupTransform" }],
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(sourceHandleReady).toEqual([true]);
+    expect(readTransformGroupObject3D(sceneAdapter, "card")).toMatchObject({
+      visible: false,
+      position: { x: 12, y: -8, z: 3 },
+      rotation: { x: 0.1, y: -0.2, z: 0.3 },
+      scale: { x: 1.4, y: 0.8, z: 0.6 },
+      children: [
+        {
+          material: {
+            opacity: 0.42,
+            transparent: true,
+            needsUpdate: true,
+          },
+        },
+      ],
+    });
+    expect(sceneAdapter.objectParentsByKey.get("card.title")).toBe("card");
+    expect(disposeCallsByKey.get("card.title")).not.toHaveBeenCalled();
 
     runtime.dispose();
   });
@@ -2758,6 +3039,65 @@ function createObjectRecordingSceneAdapter(): WebGLSceneAdapter & {
   };
 }
 
+function createTransformGroupRecordingSceneAdapter(): WebGLSceneAdapter & {
+  objects: WebGLSceneObject[];
+  groupsByKey: Map<string, WebGLSceneGroup>;
+  objectParentsByKey: Map<string, string | undefined>;
+  groupParentsByKey: Map<string, string | undefined>;
+  removedGroupKeys: string[];
+  render: ReturnType<typeof vi.fn>;
+} {
+  const objects: WebGLSceneObject[] = [];
+  const groupsByKey = new Map<string, WebGLSceneGroup>();
+  const objectParentsByKey = new Map<string, string | undefined>();
+  const groupParentsByKey = new Map<string, string | undefined>();
+  const removedGroupKeys: string[] = [];
+
+  return {
+    objects,
+    groupsByKey,
+    objectParentsByKey,
+    groupParentsByKey,
+    removedGroupKeys,
+    addObject(object) {
+      if (!objects.includes(object)) {
+        objects.push(object);
+      }
+      objectParentsByKey.set(object.key, undefined);
+    },
+    removeObject(object) {
+      const index = objects.indexOf(object);
+
+      if (index !== -1) {
+        objects.splice(index, 1);
+      }
+      objectParentsByKey.delete(object.key);
+    },
+    createGroup(key) {
+      return {
+        key,
+        object3D: createTransformGroupObject3D(),
+      };
+    },
+    addGroup(group, parent) {
+      groupsByKey.set(group.key, group);
+      groupParentsByKey.set(group.key, parent?.key);
+    },
+    removeGroup(group) {
+      groupsByKey.delete(group.key);
+      groupParentsByKey.delete(group.key);
+      removedGroupKeys.push(group.key);
+    },
+    setObjectParent(object, parent) {
+      objectParentsByKey.set(object.key, parent?.key);
+    },
+    setGroupParent(group, parent) {
+      groupParentsByKey.set(group.key, parent?.key);
+    },
+    render: vi.fn(),
+  };
+}
+
 function readZeroMeasurement(): ElementMeasurement {
   return {
     x: 0,
@@ -2798,6 +3138,23 @@ function createLayoutMeasurement(
   };
 }
 
+function createMappedMeasureElement(
+  measurementsByTestKey: ReadonlyMap<string, ElementMeasurement>,
+): (element: HTMLElement) => ElementMeasurement {
+  return (element) => {
+    const testKey = element.dataset.testKey;
+    const measurement = testKey
+      ? measurementsByTestKey.get(testKey)
+      : undefined;
+
+    if (!measurement) {
+      throw new Error(`Missing test measurement for ${testKey ?? "element"}.`);
+    }
+
+    return measurement;
+  };
+}
+
 function stubWindowNumberProperty(
   key: "innerHeight" | "scrollY",
   readValue: () => number,
@@ -2809,7 +3166,7 @@ function stubWindowNumberProperty(
 }
 
 function readSceneObject(
-  sceneAdapter: ReturnType<typeof createObjectRecordingSceneAdapter>,
+  sceneAdapter: { objects: WebGLSceneObject[] },
   key: string,
 ): WebGLSceneObject {
   const object = sceneAdapter.objects.find((entry) => entry.key === key);
@@ -2819,6 +3176,69 @@ function readSceneObject(
   }
 
   return object;
+}
+
+function readSceneObjectLastLayout(
+  sceneAdapter: { objects: WebGLSceneObject[] },
+  key: string,
+): unknown {
+  const object = readSceneObject(sceneAdapter, key);
+
+  if ("lastLayout" in object) {
+    return object.lastLayout;
+  }
+
+  return undefined;
+}
+
+type TransformGroupObject3D = {
+  position: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
+  rotation: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
+  scale: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
+  visible: boolean;
+  children: Array<{
+    material: { opacity: number; transparent: boolean; needsUpdate: boolean };
+  }>;
+};
+
+function createTransformGroupObject3D(): TransformGroupObject3D {
+  return {
+    position: createVector3(),
+    rotation: createVector3(),
+    scale: createVector3(1, 1, 1),
+    visible: true,
+    children: [
+      {
+        material: { opacity: 1, transparent: false, needsUpdate: false },
+      },
+    ],
+  };
+}
+
+function createVector3(x = 0, y = 0, z = 0): TransformGroupObject3D["position"] {
+  return {
+    x,
+    y,
+    z,
+    set(nextX, nextY, nextZ) {
+      this.x = nextX;
+      this.y = nextY;
+      this.z = nextZ;
+    },
+  };
+}
+
+function readTransformGroupObject3D(
+  sceneAdapter: ReturnType<typeof createTransformGroupRecordingSceneAdapter>,
+  key: string,
+): TransformGroupObject3D {
+  const object3D = sceneAdapter.groupsByKey.get(key)?.object3D;
+
+  if (!object3D) {
+    throw new Error(`Missing transform group ${key}.`);
+  }
+
+  return object3D as TransformGroupObject3D;
 }
 
 function readObject3DRenderOrder(object3D: unknown): number | undefined {

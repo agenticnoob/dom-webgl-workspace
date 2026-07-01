@@ -16,13 +16,24 @@ export type WebGLSceneObjectOrdering = {
   depthTest: boolean;
 };
 
+export type WebGLSceneGroup = {
+  readonly key: string;
+  readonly object3D?: unknown;
+};
+
 export type WebGLSceneAdapter = {
   addObject(object: WebGLSceneObject): void;
   removeObject(object: WebGLSceneObject): void;
+  createGroup?(key: string): WebGLSceneGroup;
+  addGroup?(group: WebGLSceneGroup, parent?: WebGLSceneGroup): void;
+  removeGroup?(group: WebGLSceneGroup): void;
+  setObjectParent?(object: WebGLSceneObject, parent?: WebGLSceneGroup): void;
+  setGroupParent?(group: WebGLSceneGroup, parent?: WebGLSceneGroup): void;
   render(): void;
 };
 
 export type WebGLSceneObjectController = {
+  readonly object: WebGLSceneObject;
   readonly attached: boolean;
   readonly disposed: boolean;
   readonly visible: boolean;
@@ -45,6 +56,7 @@ export function createSceneObjectController(
   let currentOrdering = ordering;
 
   return {
+    object,
     get attached() {
       return attached;
     },

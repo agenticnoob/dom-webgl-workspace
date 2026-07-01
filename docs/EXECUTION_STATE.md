@@ -3,6 +3,13 @@
 ## Current Status
 Phase 1 is complete through Task 37, Phase 2 through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, optional third-party scroll integration lives in `@project/dom-webgl-scroll-adapters`, and visual QA remains user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
 
+Declarative WebGL transform groups are implemented with
+`transformScope: "subtree"`. Parent effects can transform, hide, and best-effort
+fade the declared WebGL subtree, while child targets keep independent source,
+effect, texture, fallback lifecycle, resource, and offscreen ownership. This
+does not expose raw Three.js `Group`/`Object3D`, scene, camera, material, matrix,
+or public scene-graph APIs, and pointer remains layout/global in v1.
+
 Phase 2 plan file: `docs/PHASE2_SCENE_GATE_PLAN.md`.
 Phase 3 visible renderables plan file: `docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
 Phase 3.5 runtime performance and stage plan file: `docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
@@ -18,6 +25,7 @@ Controlled visual capability API plan: `docs/superpowers/plans/2026-06-26-visual
 AI-first public API boundary tightening plan: `docs/superpowers/plans/2026-06-29-ai-first-public-api-boundary-tightening.md`.
 Runtime performance roadmap plan: `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
 Runtime performance ownership V2 plan: `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`.
+WebGL transform groups plan: `docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
@@ -42,13 +50,18 @@ objects, raw mesh traversal, raw point-cloud objects, raw target object
 attachment, or renderer-state mutation.
 
 ## Last Completed Task
-Test source separation is implemented. Runtime, scroll-adapter, and example
-tests now live under workspace `test/` directories instead of production `src/`
-directories. Root workspace and structure tests live under root `test/`.
-`test/structure.test.ts` enforces the layout so `.test` and `.spec` files do not
-return to `src/`.
+Declarative WebGL transform groups are implemented. `WebGLDeclaration` now
+supports `transformScope?: "self" | "subtree"`; runtime creates internal groups
+from the DOM-derived target tree; parent group effects can transform, hide, and
+best-effort fade the WebGL subtree; and child targets retain independent source,
+effects, textures, fallback lifecycle, resources, and offscreen policy.
 
 ## Latest Documentation Note
+Transform group docs are aligned across README, goal, package usage, example
+authoring, AGENTS, and this execution state. The active public contract is
+parent-side `transformScope: "subtree"` only: no public parent key, group object,
+scene graph, matrix API, raw Three.js handle, or inverse-transformed picking.
+
 Test-related docs now point at `packages/*/test`, `apps/example/test`, and root
 `test/` paths. Historical implementation plans and RED/GREEN evidence may still
 quote the old colocated `src/*.test.*` paths because those entries describe past
@@ -110,16 +123,20 @@ only selects the active texture frame. The text bucket includes
 `example.textSpotlightPressureScrambleWave`, an app-owned combined text effect
 that reuses local glyph transform helpers for spotlight, pressure reflow,
 scramble characters, and wave offset before writing one final command list.
-The example models this as a pinned scrub section: `ScrollEffectSection` owns the progress key, `pin`, and scrub
-duration, while the image-sequence target and WebGL-owned `dom/element` card
-stay inside the pinned viewport. The card is a nested child target inside the
-image-sequence DOM subtree and composes
-`example.sequenceCardSlide` for progress-keyed opacity/offset with
-`example.sequenceCardBorderGlow` for target-local pointer glow. The parent
-sequence effect does not create child scene objects manually. The scroll
+The example models this as a pinned scrub section: `ScrollEffectSection` owns the
+progress key, `pin`, and scrub duration, while the image-sequence target and
+WebGL-owned `dom/element` card stay inside the pinned viewport. The card is a
+nested child target inside the image-sequence DOM subtree, declares
+`transformScope: "subtree"`, and composes `example.sequenceCardSlide` for
+progress-keyed opacity/offset with `example.sequenceCardBorderGlow` for
+target-local pointer glow. Its title and description are child `dom/text`
+targets that inherit the card WebGL group transform while keeping their own
+source/effect/fallback ownership; their `example.textReveal` effects read the
+same pinned `example.video.scrub` progress key instead of global page scroll. The
+parent sequence effect does not create child scene objects manually. The scroll
 adapter progress store now notifies runtime progress subscribers so pinned
-ScrollTrigger scrub updates wake on-demand image-sequence renderables. The example
-records current authoring friction in
+ScrollTrigger scrub updates wake on-demand image-sequence renderables. The
+example records current authoring friction in
 `docs/agent/effect-authoring-example-report.md`.
 
 ## Completed Tasks

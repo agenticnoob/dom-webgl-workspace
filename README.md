@@ -64,6 +64,11 @@ objects; resource loads are queue-limited and viewport-prioritized; plane
 renderables share internal geometry; animated model mixers are updated only
 while visible; and `docs/performance/profile-notes.md` records that batching
 remains profile-gated rather than implemented by default.
+Declarative WebGL transform groups are implemented in
+`docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`:
+`transformScope: "subtree"` lets a parent target's effect transform control its
+WebGL subtree while child targets keep independent source, effects, textures,
+fallback lifecycle, and resource ownership.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
@@ -104,6 +109,11 @@ Current runtime behavior:
   runtime-owned layers from `dom/element`, `dom/text`, `media/image`,
   `media/video`, `media/image-sequence`, and `model/glb`; ordinary nested
   targets do not need `renderRole: "overlay"` to paint above their parent.
+- A parent target may declare `transformScope: "subtree"` to create an internal
+  transform group for its WebGL subtree. Effects on that parent write transform,
+  visibility, and best-effort opacity to the group; child targets still own their
+  own sources, effects, textures, fallback lifecycle, and offscreen policy.
+  Pointer input remains layout/global in v1, with no inverse-transformed picking.
 - The debug panel shows current scroll mode plus active gate key and
   `sceneProgress` while a gate is active, plus per-target layer diagnostics and
   runtime performance budget warnings when active target, snapshot, video,
@@ -195,11 +205,15 @@ Current example behavior:
   section: `ScrollEffectSection` owns the progress key, `pin`,
   and scrub duration, while the image sequence and card stay inside the pinned
   viewport and use effects for visual motion instead of DOM scrolling. The card
-  is a nested `dom/element` child target inside the image-sequence DOM subtree and composes
+  is a nested `dom/element` child target inside the image-sequence DOM subtree,
+  declares `transformScope: "subtree"`, and composes
   `example.sequenceCardSlide` for progress-keyed opacity/offset with
   `example.sequenceCardBorderGlow` for a ReactBits-style target-local pointer
-  border glow. The scroll adapter progress store notifies the runtime when a
-  progress key changes, so external ScrollTrigger scrub updates wake
+  border glow. Its title and description are child `dom/text` targets that keep
+  independent text source/effect ownership while inheriting the card WebGL group
+  transform; their text reveal effects read the same pinned `progressKey`
+  instead of page scroll. The scroll adapter progress store notifies the runtime
+  when a progress key changes, so external ScrollTrigger scrub updates wake
   on-demand image-sequence renderables without requiring an app-owned no-op
   frame effect.
 - Runtime supports `source: { kind: "media", type: "image-sequence" }` for frame-addressable media:
@@ -307,6 +321,10 @@ Current visual behavior:
   WebGL-owned child layer. The parent owns its source layer; each child owns its
   own source layer and fallback lifecycle. Do not add child Object3D instances
   from a parent effect to simulate target children.
+- `transformScope: "subtree"` is the only public v1 transform inheritance knob.
+  It is parent-side and declarative; it does not expose a public scene graph,
+  parent key, group object, matrix API, or raw Three.js object/scene/camera/
+  material handle.
 - DOM supplies layout and layer semantics. Effect code supplies pixels:
   `dom/element` is a transparent layout surface until an effect draws to
   `ctx.source.surface`, and the runtime does not clone CSS backgrounds,
@@ -617,6 +635,43 @@ Behavior:
   take ownership of a nested managed target root. Nested targets decide their
   own readiness and fallback visibility.
 - Runtime disposal and target unregister restore previous fallback visibility.
+
+## Transform Scope
+
+Nested targets are ordered as a DOM-derived WebGL tree by default. Add
+`transformScope: "subtree"` when the parent target's effect should move, rotate,
+scale, hide, or best-effort fade its WebGL subtree:
+
+```tsx
+<WebGLTarget
+  as="aside"
+  webgl={{
+    key: "card",
+    source: { kind: "dom", type: "element" },
+    transformScope: "subtree",
+    lifecycle: { hideWhenReady: true, hideMode: "self" },
+    effects: [{ kind: "app.cardSlide" }],
+  }}
+>
+  <WebGLTarget
+    as="strong"
+    webgl={{
+      key: "card.title",
+      source: { kind: "dom", type: "text" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [{ kind: "app.titleReveal" }],
+    }}
+  >
+    Card title
+  </WebGLTarget>
+</WebGLTarget>
+```
+
+The parent group affects only declared WebGL descendants. Child targets keep
+their own source/effect/texture/lifecycle ownership; a parent offscreen policy or
+fallback hide does not dispose child renderables. Pointer state remains based on
+the DOM layout/global input model in v1, not rotated or inverse-transformed
+subtree picking.
 
 ## Scene Gates
 

@@ -10,7 +10,10 @@ import {
   createTextPlaneSceneRenderableController,
   type SceneRenderableController,
 } from "./sceneRenderableObject";
-import type { DOMViewportSize } from "../../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 
 export type TextSnapshotRenderable = Renderable & {
@@ -21,6 +24,10 @@ type TextSnapshotRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   requestTextureFrame?(): void;
 };
 
@@ -47,6 +54,7 @@ export function createTextSnapshotRenderable(
           sceneAdapter: options.sceneAdapter,
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
+          projectLayout: options.projectLayout,
           element: context.descriptor.element,
           ordering: readRenderableOrdering(context),
           getManagedObjectOrdering: () => readManagedObjectOrdering(context),

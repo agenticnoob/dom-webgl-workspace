@@ -110,6 +110,42 @@ describe("text example effects", () => {
     expect(commands?.[1]).toMatchObject({ index: 1, opacity: 1 });
   });
 
+  test("text reveal uses keyed pinned progress when progressKey is provided", () => {
+    const textLayer = {
+      setGlyphs: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "dom",
+        type: "text",
+        element: document.createElement("p"),
+        text: "Card",
+        textLayer,
+      },
+      layout: { top: 120, height: 240, viewport: { width: 1024, height: 768 } },
+      scrollProgress: 1,
+      progress: { get: (key) => (key === "example.video.scrub" ? 0.25 : 0) },
+    });
+
+    exampleTextRevealEffect.update(context, undefined, {
+      kind: "example.textReveal",
+      color: "#f4f4f5",
+      progressKey: "example.video.scrub",
+    });
+
+    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
+    const commands = transform?.([
+      createGlyph(0, "C"),
+      createGlyph(1, "a"),
+      createGlyph(2, "r"),
+      createGlyph(3, "d"),
+    ]);
+
+    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1 });
+    expect(commands?.[1]).toMatchObject({ index: 1, opacity: 0.18, scaleX: 0.82 });
+    expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
+  });
+
   test("text spotlight highlights glyphs near the local pointer", () => {
     const textLayer = {
       setGlyphs: vi.fn(),

@@ -240,8 +240,9 @@ describe("public package exports", () => {
           WebGLScrollAdapter,
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
-          WebGLScrollGateState,
-          WebGLScrollMetrics,
+	          WebGLScrollGateState,
+	          WebGLScrollMetrics,
+          WebGLTransformScope,
 		          WebGLSourceDeclaration,
 	          WebGLTextGlyph,
 	          WebGLTextGlyphRenderCommand,
@@ -387,8 +388,18 @@ describe("public package exports", () => {
 	        mediaSource satisfies WebGLMediaSourceDeclaration;
 	        const declarations = [
 	          { key: "surface", source: { kind: "dom", type: "element" } },
-	          { key: "text", source: { kind: "dom", type: "text" } },
-	          { key: "image", source: { kind: "media", type: "image", src: "/image.png" } },
+			  { key: "text", source: { kind: "dom", type: "text" } },
+          {
+            key: "subtree-card",
+            source: { kind: "dom", type: "element" },
+            transformScope: "subtree",
+          },
+          {
+            key: "self-card",
+            source: { kind: "dom", type: "element" },
+            transformScope: "self",
+          },
+			  { key: "image", source: { kind: "media", type: "image", src: "/image.png" } },
 	          { key: "video", source: { kind: "media", type: "video", src: "/video.mp4" } },
 	          {
 	            key: "sequence",
@@ -402,6 +413,16 @@ describe("public package exports", () => {
 	          { key: "model", source: { kind: "model", type: "glb", src: "/product.glb" } },
 	        ] satisfies WebGLDeclaration[];
 	        declarations satisfies WebGLDeclaration[];
+        "subtree" satisfies WebGLTransformScope;
+        "self" satisfies WebGLTransformScope;
+        // @ts-expect-error transformScope accepts only the public self/subtree union.
+        "branch" satisfies WebGLTransformScope;
+        // @ts-expect-error transformScope accepts only the public self/subtree union.
+        ({ key: "invalid-transform", transformScope: "branch" } satisfies WebGLDeclaration);
+        // @ts-expect-error public declarations do not accept child-owned parent keys.
+        ({ key: "invalid-parent", parent: "root" } satisfies WebGLDeclaration);
+        // @ts-expect-error public declarations do not accept public group objects.
+        ({ key: "invalid-group", group: { key: "root" } } satisfies WebGLDeclaration);
 
         const pointerDeclaration = {
           move: true,

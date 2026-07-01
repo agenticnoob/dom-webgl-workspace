@@ -15,6 +15,7 @@ type TextWaveParams = {
 type TextRevealParams = {
   kind: "example.textReveal";
   color?: string;
+  progressKey?: string;
 };
 
 type TextSpotlightParams = {
@@ -80,10 +81,12 @@ export const exampleTextRevealEffect = defineWebGLEffect<TextRevealParams>({
       return;
     }
 
-    const progress = Math.max(
-      clampNumber(ctx.scrollProgress, 0, 1, 0),
-      readTargetViewportProgress(ctx.layout),
-    );
+    const progress = params.progressKey
+      ? clampNumber(ctx.progress.get(params.progressKey), 0, 1, 0)
+      : Math.max(
+        clampNumber(ctx.scrollProgress, 0, 1, 0),
+        readTargetViewportProgress(ctx.layout),
+      );
     const color = params.color ?? "#f6c453";
 
     ctx.source.textLayer?.setGlyphs((glyphs) => {

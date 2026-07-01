@@ -9,7 +9,10 @@ import {
   createElementPlaneSceneRenderableController,
   type SceneRenderableController,
 } from "./sceneRenderableObject";
-import type { DOMViewportSize } from "../../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 
@@ -17,6 +20,10 @@ type ElementSnapshotRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   requestTextureFrame?(): void;
 };
 
@@ -39,6 +46,7 @@ export function createElementSnapshotRenderable(
         sceneAdapter: options.sceneAdapter,
         measureElement: options.measureElement,
         getViewportSize: options.getViewportSize,
+        projectLayout: options.projectLayout,
         element: context.descriptor.element,
         ordering: readRenderableOrdering(context),
         getManagedObjectOrdering: () => readManagedObjectOrdering(context),

@@ -78,7 +78,6 @@ export const exampleSequenceCardBorderGlowEffect =
         return;
       }
 
-      const element = ctx.source.element;
       const surface = ctx.source.surface;
       const offsetX = readSequenceCardMotion(ctx, params).offsetX;
       const pointer = readTargetLocalPointer({
@@ -88,7 +87,7 @@ export const exampleSequenceCardBorderGlowEffect =
       const glow = readSequenceCardGlow(pointer, ctx.layout, params);
 
       surface?.draw(({ context, width, height }) => {
-        drawSequenceCardSurface(context, width, height, element, glow);
+        drawSequenceCardSurface(context, width, height, glow);
       });
       surface?.setVisible?.(true);
       surface?.setOpacity?.(1);
@@ -238,15 +237,8 @@ function drawSequenceCardSurface(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
-  element: HTMLElement,
   glow: SequenceCardGlow,
 ): void {
-  const title =
-    element.querySelector("strong")?.textContent?.trim() ?? "嵌套 WebGLTarget";
-  const copy =
-    element.querySelector("span")?.textContent?.trim() ??
-    "图片序列只负责 pinned scrub，卡片作为 sibling 跟随页面滚动。";
-  const padding = Math.min(28, Math.max(18, width * 0.06));
   const radius = Math.min(14, Math.max(8, width * 0.03));
 
   context.save();
@@ -264,15 +256,6 @@ function drawSequenceCardSurface(
   context.stroke();
 
   drawPointerBorderGlow(context, width, height, radius, glow);
-
-  context.fillStyle = "#f4f4f5";
-  context.font = "700 34px Georgia, 'Times New Roman', serif";
-  context.textBaseline = "top";
-  context.fillText(title, padding, padding);
-
-  context.fillStyle = "rgba(244, 244, 245, 0.78)";
-  context.font = "18px Georgia, 'Times New Roman', serif";
-  drawWrappedText(context, copy, padding, padding + 52, width - padding * 2, 27);
   context.restore();
 }
 
@@ -384,38 +367,6 @@ function drawRoundedRect(
   context.lineTo(x, y + nextRadius);
   context.quadraticCurveTo(x, y, x + nextRadius, y);
   context.closePath();
-}
-
-function drawWrappedText(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  lineHeight: number,
-): void {
-  const tokens =
-    text.match(
-      /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|\s+/gu,
-    ) ?? [];
-  let line = "";
-  let lineY = y;
-
-  for (const token of tokens) {
-    const nextLine = line ? `${line}${token}` : token.trimStart();
-    if (line && context.measureText(nextLine).width > maxWidth) {
-      context.fillText(line.trimEnd(), x, lineY);
-      line = token.trimStart();
-      lineY += lineHeight;
-      continue;
-    }
-
-    line = nextLine;
-  }
-
-  if (line) {
-    context.fillText(line.trimEnd(), x, lineY);
-  }
 }
 
 function smoothstep(edge0: number, edge1: number, value: number): number {

@@ -1,10 +1,15 @@
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
 import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
+import { Group } from "three/src/objects/Group.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
 import { capDevicePixelRatio } from "./layoutPass";
-import type { WebGLSceneAdapter, WebGLSceneObject } from "./sceneObject";
+import type {
+  WebGLSceneAdapter,
+  WebGLSceneGroup,
+  WebGLSceneObject,
+} from "./sceneObject";
 import type { DOMViewportSize } from "./domProjection";
 
 export type ThreeRendererAdapter = {
@@ -393,29 +398,103 @@ function createThreeSceneAdapter(
   camera: object,
   renderer: ThreeRendererAdapter,
 ): WebGLSceneAdapter {
-  const attached = new Set<WebGLSceneObject>();
+  const attachedObjects = new Set<WebGLSceneObject>();
+  const attachedGroups = new Set<WebGLSceneGroup>();
 
   return {
     addObject(object): void {
-      if (attached.has(object)) {
+      if (attachedObjects.has(object)) {
         return;
       }
 
-      readSceneMethod(scene, "add")?.(object.object3D ?? object);
-      attached.add(object);
+      addToRoot(object.object3D ?? object);
+      attachedObjects.add(object);
     },
     removeObject(object): void {
-      if (!attached.has(object)) {
+      if (!attachedObjects.has(object)) {
         return;
       }
 
-      readSceneMethod(scene, "remove")?.(object.object3D ?? object);
-      attached.delete(object);
+      removeFromCurrentParent(object.object3D ?? object);
+      attachedObjects.delete(object);
+    },
+    createGroup(key): WebGLSceneGroup {
+      return {
+        key,
+        object3D: new Group(),
+      };
+    },
+    addGroup(group, parent): void {
+      if (attachedGroups.has(group)) {
+        return;
+      }
+
+      if (parent?.object3D) {
+        addToParent(group.object3D ?? group, parent.object3D);
+      } else {
+        addToRoot(group.object3D ?? group);
+      }
+      attachedGroups.add(group);
+    },
+    removeGroup(group): void {
+      if (!attachedGroups.has(group)) {
+        return;
+      }
+
+      removeFromCurrentParent(group.object3D ?? group);
+      attachedGroups.delete(group);
+    },
+    setObjectParent(object, parent): void {
+      if (!attachedObjects.has(object)) {
+        return;
+      }
+
+      if (parent?.object3D) {
+        addToParent(object.object3D ?? object, parent.object3D);
+        return;
+      }
+
+      addToRoot(object.object3D ?? object);
+    },
+    setGroupParent(group, parent): void {
+      if (!attachedGroups.has(group)) {
+        return;
+      }
+
+      if (parent?.object3D) {
+        addToParent(group.object3D ?? group, parent.object3D);
+        return;
+      }
+
+      addToRoot(group.object3D ?? group);
     },
     render(): void {
       renderer.render?.(scene, camera);
     },
   };
+
+  function addToRoot(object: unknown): void {
+    readSceneMethod(scene, "add")?.(object);
+  }
+
+  function addToParent(object: unknown, parent: unknown): void {
+    readObject3DMethod(parent, "add")?.(object);
+  }
+
+  function removeFromCurrentParent(object: unknown): void {
+    const parent = readObject3DParent(object);
+
+    if (parent) {
+      const remove = readObject3DMethod(parent, "remove");
+
+      if (remove) {
+        remove(object);
+        return;
+      }
+    }
+
+    readSceneMethod(scene, "remove")?.(object);
+  }
 }
 
 function readSceneMethod(
@@ -429,6 +508,31 @@ function readSceneMethod(
   }
 
   return method.bind(scene) as (object: unknown) => void;
+}
+
+function readObject3DParent(object: unknown): unknown {
+  if (!object || typeof object !== "object") {
+    return undefined;
+  }
+
+  return (object as { parent?: unknown }).parent;
+}
+
+function readObject3DMethod(
+  object: unknown,
+  methodName: "add" | "remove",
+): ((child: unknown) => void) | undefined {
+  if (!object || typeof object !== "object") {
+    return undefined;
+  }
+
+  const method = (object as Record<string, unknown>)[methodName];
+
+  if (typeof method !== "function") {
+    return undefined;
+  }
+
+  return method.bind(object) as (child: unknown) => void;
 }
 
 function readRendererRender(

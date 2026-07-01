@@ -121,9 +121,10 @@ describe("sequence card example effect", () => {
   });
 
   test("draws the nested card surface instead of moving an empty element plane", () => {
-    const draw = vi.fn();
+    let drawSurface: WebGLEffectCanvasDrawer | undefined;
     const setVisible = vi.fn();
     const setOpacity = vi.fn();
+    const context2d = createCanvasContextStub();
     const element = document.createElement("aside");
     const title = document.createElement("strong");
     const copy = document.createElement("span");
@@ -138,7 +139,9 @@ describe("sequence card example effect", () => {
         type: "element",
         element,
         surface: {
-          draw,
+          draw(drawer) {
+            drawSurface = drawer;
+          },
           setVisible,
           setOpacity,
         },
@@ -153,10 +156,18 @@ describe("sequence card example effect", () => {
     exampleSequenceCardBorderGlowEffect.update(context, undefined, {
       kind: "example.sequenceCardBorderGlow",
     });
+    drawSurface?.({
+      canvas: document.createElement("canvas"),
+      context: context2d,
+      width: 420,
+      height: 164,
+      devicePixelRatio: 1,
+    });
 
-    expect(draw).toHaveBeenCalledTimes(1);
+    expect(drawSurface).toBeDefined();
     expect(setVisible).toHaveBeenCalledWith(true);
     expect(setOpacity).toHaveBeenCalledWith(1);
+    expect(context2d.fillText).not.toHaveBeenCalled();
   });
 
   test("adds pointer-driven border glow when the cursor is near the card edge", () => {

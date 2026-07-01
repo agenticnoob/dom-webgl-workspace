@@ -46,6 +46,7 @@ import {
   type WebGLPerformanceWarning,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
+  type WebGLTransformScope,
 } from "<runtime-package>";
 ```
 
@@ -185,9 +186,9 @@ Rules:
   module scope or memoize it.
 - Every target key must be stable and unique inside one runtime.
 - Treat each target `webgl` declaration as registration-time static. Do not
-  dynamically change `source`, `effects`, `scroll`, `pointer`, or `lifecycle`
-  under the same key; use a new key or remount the target when the declaration
-  must change.
+  dynamically change `source`, `effects`, `scroll`, `pointer`, `lifecycle`, or
+  `transformScope` under the same key; use a new key or remount the target when
+  the declaration must change.
 - Target `webgl.effects` contains data only. The executable effect definition is
   registered at runtime level.
 - Use array-form target effects only. Legacy object-form declarations such as
@@ -381,6 +382,18 @@ const declaration: WebGLDeclaration = {
 };
 ```
 
+Parent transform group:
+
+```ts
+const scope: WebGLTransformScope = "subtree";
+
+const declaration: WebGLDeclaration = {
+  key: "card.primary",
+  source: { kind: "dom", type: "element" },
+  transformScope: scope,
+};
+```
+
 Effect target:
 
 ```ts
@@ -466,6 +479,7 @@ Preferred pattern:
   webgl={{
     key: "marker.surface",
     source: { kind: "dom", type: "element" },
+    transformScope: "subtree",
     lifecycle: { hideWhenReady: true, hideMode: "self" },
     effects: [{ kind: "app.surface", opacity: 0.72 }],
   }}
@@ -490,12 +504,23 @@ Rules:
   `media/image-sequence`, and `model/glb`. `renderRole` remains a local
   source-policy hint; it is not a substitute for the layer tree and is not
   required to make an ordinary child target paint above its parent.
+- Add `transformScope: "subtree"` only when the parent target's own effect should
+  move, rotate, scale, hide, or best-effort fade the declared WebGL subtree. The
+  declaration is parent-side; children do not repeat a parent key.
 - The parent target owns only its own source layer and fallback lifecycle.
   Nested child targets own their own source layer and fallback lifecycle.
+- Child targets under a transform group still own their own effects, textures,
+  resources, fallback visibility, and offscreen disposal. Parent lifecycle does
+  not cascade into child renderables.
 - DOM supplies layout anchors and layer semantics. Effect code supplies pixels:
   `dom/element` is a transparent layout surface until an effect draws to
   `ctx.source.surface`. Runtime core does not clone CSS backgrounds, borders,
   shadows, or other decorative paint into WebGL.
+- Transform groups are internal runtime structure. Do not expose or request raw
+  Three.js `Object3D`, `Group`, scene, camera, material, matrix, or public scene
+  graph APIs for this path.
+- Pointer state remains the existing layout/global pointer model in v1. Rotated,
+  flipped, or inverse-transformed subtree picking is not supported.
 - Do not call an effect resource helper from the parent to create child card or
   caption scene objects just to simulate target children.
 - Put `dom/text` on the actual text-bearing element, such as `p`, `span`,

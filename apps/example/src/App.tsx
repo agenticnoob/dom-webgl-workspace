@@ -39,6 +39,12 @@ const sequenceCardEffects = [
 const imageSequenceScrubEffects = [
   { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
 ] as const;
+const sequenceCardTitleEffects = [
+  { kind: "example.textReveal", color: "#f4f4f5", progressKey: videoScrubProgressKey },
+] as const;
+const sequenceCardDescriptionEffects = [
+  { kind: "example.textReveal", color: "#b7c4c8", progressKey: videoScrubProgressKey },
+] as const;
 const textComboEffects = [
   {
     kind: "example.textSpotlightPressureScrambleWave",
@@ -351,12 +357,33 @@ export default function App() {
                   webgl={{
                     key: "example.image-sequence.card",
                     source: { kind: "dom", type: "element" },
-                    lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                    transformScope: "subtree",
+                    lifecycle: { hideWhenReady: true, hideMode: "self" },
                     effects: sequenceCardEffects,
                   }}
                 >
-                  <strong>固定区间卡片</strong>
-                  <span>卡片留在 pinned 区间内，由 effect 控制偏移和边缘光效。</span>
+                  <WebGLTarget
+                    as="strong"
+                    webgl={{
+                      key: "example.image-sequence.card.title",
+                      source: { kind: "dom", type: "text" },
+                      lifecycle: { hideWhenReady: true, hideMode: "self" },
+                      effects: sequenceCardTitleEffects,
+                    }}
+                  >
+                    固定区间卡片
+                  </WebGLTarget>
+                  <WebGLTarget
+                    as="span"
+                    webgl={{
+                      key: "example.image-sequence.card.description",
+                      source: { kind: "dom", type: "text" },
+                      lifecycle: { hideWhenReady: true, hideMode: "self" },
+                      effects: sequenceCardDescriptionEffects,
+                    }}
+                  >
+                    卡片留在 pinned 区间内，由 effect 控制偏移和边缘光效。
+                  </WebGLTarget>
                 </WebGLTarget>
               </WebGLTarget>
             ) : (

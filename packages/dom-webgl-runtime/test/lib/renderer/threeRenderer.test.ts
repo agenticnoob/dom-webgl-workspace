@@ -2,6 +2,11 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { WebGLDeclaration } from "../../../src/lib/types";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
+import type {
+  WebGLSceneAdapter,
+  WebGLSceneGroup,
+  WebGLSceneObject,
+} from "../../../src/lib/renderer/sceneObject";
 import type { ThreeRendererAdapter } from "../../../src/lib/renderer/threeRenderer";
 
 type RuntimeWithTask23Surface = WebGLRuntime & {
@@ -24,6 +29,7 @@ describe("createThreeRendererHost", () => {
     vi.doUnmock("three/src/lights/AmbientLight.js");
     vi.doUnmock("three/src/lights/DirectionalLight.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
+    vi.doUnmock("three/src/objects/Group.js");
     vi.doUnmock("three/src/scenes/Scene.js");
     vi.resetModules();
   });
@@ -457,6 +463,94 @@ describe("createThreeRendererHost", () => {
       HTMLCanvasElement.prototype.getBoundingClientRect = originalCanvasRect;
     }
   });
+
+  test("reparents scene objects between the scene root and internal groups", async () => {
+    const Group = vi.fn(() => createObject3D("group"));
+    vi.doMock("three/src/objects/Group.js", () => ({ Group }));
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = createObject3D("scene");
+    const renderer = {
+      canvas: document.createElement("canvas"),
+      render: vi.fn(),
+      dispose: vi.fn(),
+    } satisfies ThreeRendererAdapter;
+    const object3D = createObject3D("object");
+    const sceneObject = createSceneObject("card", object3D);
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        renderer.canvas = canvas;
+
+        return {
+          camera: {},
+          renderer,
+          scene,
+        };
+      },
+    });
+
+    host.sceneAdapter.addObject(sceneObject);
+    host.sceneAdapter.addObject(sceneObject);
+    const group = createRequiredGroup(host.sceneAdapter, "card");
+    addRequiredGroup(host.sceneAdapter, group);
+    addRequiredGroup(host.sceneAdapter, group);
+
+    expect(scene.children).toEqual([object3D, group.object3D]);
+    setRequiredObjectParent(host.sceneAdapter, sceneObject, group);
+    expect(scene.children).toEqual([group.object3D]);
+    expect(readChildren(group.object3D)).toEqual([object3D]);
+
+    setRequiredObjectParent(host.sceneAdapter, sceneObject);
+    setRequiredObjectParent(host.sceneAdapter, sceneObject);
+    expect(scene.children).toEqual([group.object3D, object3D]);
+    expect(readChildren(group.object3D)).toEqual([]);
+
+    setRequiredObjectParent(host.sceneAdapter, sceneObject, group);
+    host.sceneAdapter.removeObject(sceneObject);
+    host.sceneAdapter.removeObject(sceneObject);
+    expect(readChildren(group.object3D)).toEqual([]);
+
+    removeRequiredGroup(host.sceneAdapter, group);
+    removeRequiredGroup(host.sceneAdapter, group);
+    expect(scene.children).toEqual([]);
+    host.dispose();
+  });
+
+  test("reparents internal groups under other groups", async () => {
+    vi.doMock("three/src/objects/Group.js", () => ({
+      Group: vi.fn(() => createObject3D("group")),
+    }));
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = createObject3D("scene");
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera: {},
+          renderer: {
+            canvas,
+            render: vi.fn(),
+            dispose: vi.fn(),
+          },
+          scene,
+        };
+      },
+    });
+
+    const parentGroup = createRequiredGroup(host.sceneAdapter, "card");
+    const childGroup = createRequiredGroup(host.sceneAdapter, "card.media");
+    addRequiredGroup(host.sceneAdapter, parentGroup);
+    addRequiredGroup(host.sceneAdapter, childGroup);
+
+    setRequiredGroupParent(host.sceneAdapter, childGroup, parentGroup);
+    expect(scene.children).toEqual([parentGroup.object3D]);
+    expect(readChildren(parentGroup.object3D)).toEqual([childGroup.object3D]);
+
+    setRequiredGroupParent(host.sceneAdapter, childGroup);
+    expect(scene.children).toEqual([parentGroup.object3D, childGroup.object3D]);
+    expect(readChildren(parentGroup.object3D)).toEqual([]);
+    host.dispose();
+  });
 });
 
 describe("createWebGLRuntime renderer host", () => {
@@ -528,4 +622,106 @@ function createRendererObjectsStub(canvas: HTMLCanvasElement) {
     },
     scene: {},
   };
+}
+
+type FakeObject3D = {
+  kind: string;
+  parent: FakeObject3D | undefined;
+  children: FakeObject3D[];
+  add(child: FakeObject3D): void;
+  remove(child: FakeObject3D): void;
+};
+
+function createObject3D(kind: string): FakeObject3D {
+  const object: FakeObject3D = {
+    kind,
+    parent: undefined,
+    children: [],
+    add(child) {
+      child.parent?.remove(child);
+      if (!object.children.includes(child)) {
+        object.children.push(child);
+      }
+      child.parent = object;
+    },
+    remove(child) {
+      object.children = object.children.filter((entry) => entry !== child);
+      if (child.parent === object) {
+        child.parent = undefined;
+      }
+    },
+  };
+
+  return object;
+}
+
+function createSceneObject(
+  key: string,
+  object3D: FakeObject3D,
+): WebGLSceneObject {
+  return {
+    key,
+    object3D,
+    setVisible: vi.fn(),
+    updateLayout: vi.fn(),
+    dispose: vi.fn(),
+  };
+}
+
+function createRequiredGroup(
+  adapter: WebGLSceneAdapter,
+  key: string,
+): WebGLSceneGroup {
+  const createGroup = adapter.createGroup;
+  expect(createGroup).toEqual(expect.any(Function));
+  if (!createGroup) throw new Error("Expected scene adapter createGroup.");
+  return createGroup(key);
+}
+
+function addRequiredGroup(
+  adapter: WebGLSceneAdapter,
+  group: WebGLSceneGroup,
+): void {
+  const addGroup = adapter.addGroup;
+  expect(addGroup).toEqual(expect.any(Function));
+  if (!addGroup) throw new Error("Expected scene adapter addGroup.");
+  addGroup(group);
+}
+
+function removeRequiredGroup(
+  adapter: WebGLSceneAdapter,
+  group: WebGLSceneGroup,
+): void {
+  const removeGroup = adapter.removeGroup;
+  expect(removeGroup).toEqual(expect.any(Function));
+  if (!removeGroup) throw new Error("Expected scene adapter removeGroup.");
+  removeGroup(group);
+}
+
+function setRequiredObjectParent(
+  adapter: WebGLSceneAdapter,
+  object: WebGLSceneObject,
+  parent?: WebGLSceneGroup,
+): void {
+  const setObjectParent = adapter.setObjectParent;
+  expect(setObjectParent).toEqual(expect.any(Function));
+  if (!setObjectParent) {
+    throw new Error("Expected scene adapter setObjectParent.");
+  }
+  setObjectParent(object, parent);
+}
+
+function setRequiredGroupParent(
+  adapter: WebGLSceneAdapter,
+  group: WebGLSceneGroup,
+  parent?: WebGLSceneGroup,
+): void {
+  const setGroupParent = adapter.setGroupParent;
+  expect(setGroupParent).toEqual(expect.any(Function));
+  if (!setGroupParent) throw new Error("Expected scene adapter setGroupParent.");
+  setGroupParent(group, parent);
+}
+
+function readChildren(object3D: unknown): FakeObject3D[] {
+  return (object3D as { children: FakeObject3D[] }).children;
 }

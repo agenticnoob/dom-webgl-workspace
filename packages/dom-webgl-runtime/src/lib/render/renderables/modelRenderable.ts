@@ -1,7 +1,10 @@
 import type { ResourceManager } from "../../resources/resourceManager";
 import type { Object3D } from "three/src/core/Object3D.js";
 import { Group } from "three/src/objects/Group.js";
-import type { DOMViewportSize } from "../../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
@@ -29,6 +32,10 @@ type ModelRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
 };
 
@@ -75,6 +82,7 @@ export function createModelRenderable(
             sceneAdapter: options.sceneAdapter,
             measureElement: options.measureElement,
             getViewportSize: options.getViewportSize,
+            projectLayout: options.projectLayout,
             element: source.anchor,
             object3D: targetRoot,
             ordering: readRenderableOrdering(context),

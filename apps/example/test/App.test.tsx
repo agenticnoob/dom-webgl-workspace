@@ -62,6 +62,7 @@ type TargetMockProps = {
     effects?: readonly Record<string, unknown>[];
     lifecycle?: Record<string, unknown>;
     scroll?: { readonly type?: unknown };
+    transformScope?: "self" | "subtree";
   };
 };
 
@@ -195,7 +196,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(21);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-22);
+    const finalTargetProps = targetProps.slice(-24);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -217,6 +218,8 @@ describe("effect authoring example app", () => {
       "example.video.drift",
       "example.image-sequence.scrub",
       "example.image-sequence.card",
+      "example.image-sequence.card.title",
+      "example.image-sequence.card.description",
       "example.model.spin",
       "example.model.float",
       "example.pinned.reveal",
@@ -241,6 +244,8 @@ describe("effect authoring example app", () => {
       "video",
       "section",
       "aside",
+      "strong",
+      "span",
       "section",
       "section",
       "p",
@@ -271,6 +276,8 @@ describe("effect authoring example app", () => {
         progressKey: "example.video.scrub",
       },
       { kind: "dom", type: "element" },
+      { kind: "dom", type: "text" },
+      { kind: "dom", type: "text" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "dom", type: "text" },
@@ -295,6 +302,8 @@ describe("effect authoring example app", () => {
       "example.videoPlayback",
       "example.mediaPointerParallax",
       "example.sequenceCardSlide",
+      "example.textReveal",
+      "example.textReveal",
       "example.modelSpin",
       "example.modelFloat",
       "example.pinnedReveal",
@@ -314,11 +323,12 @@ describe("effect authoring example app", () => {
     });
     expect(finalTargetProps[18]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
-      hideMode: "subtree",
+      hideMode: "self",
     });
     expect(finalTargetProps[18]?.webgl).toMatchObject({
       key: "example.image-sequence.card",
       source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
     });
     expect(finalTargetProps[18]?.webgl).not.toHaveProperty("renderRole");
     expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
@@ -335,6 +345,30 @@ describe("effect authoring example app", () => {
       glowRadius: 44,
       glowIntensity: 1,
       fillOpacity: 0.46,
+    });
+    expect(finalTargetProps[19]?.webgl).toMatchObject({
+      key: "example.image-sequence.card.title",
+      source: { kind: "dom", type: "text" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [
+        {
+          kind: "example.textReveal",
+          color: "#f4f4f5",
+          progressKey: "example.video.scrub",
+        },
+      ],
+    });
+    expect(finalTargetProps[20]?.webgl).toMatchObject({
+      key: "example.image-sequence.card.description",
+      source: { kind: "dom", type: "text" },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [
+        {
+          kind: "example.textReveal",
+          color: "#b7c4c8",
+          progressKey: "example.video.scrub",
+        },
+      ],
     });
     expect(
       finalTargetProps.every(({ webgl }) => webgl.scroll?.type !== "gate"),
@@ -358,7 +392,7 @@ describe("effect authoring example app", () => {
     const pinnedSection = host.querySelector(".example-pinned-row");
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
-    expect(finalTargetProps[21]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[23]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
@@ -368,9 +402,9 @@ describe("effect authoring example app", () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[21];
+    const firstPinnedTarget = finalTargetProps[23];
     const secondSequenceCardTarget = targetProps
-      .slice(-22)
+      .slice(-24)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);

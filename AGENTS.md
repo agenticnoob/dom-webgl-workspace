@@ -68,6 +68,7 @@ DOM-first WebGL runtime：普通 DOM 元素通过声明进入 WebGL 管线。流
 - 每个 runtime 实例只有一个 Three.js canvas，固定视口、`pointer-events: none`、透明背景、插入在容器第一个子元素位置。React 适配器拥有 DOM content layer（在 canvas 之上），子元素无需手动 z-index。
 - DOM rect 在一个批量 layout pass 中读取，然后投影到场景坐标系。
 - renderRole 的默认推断：`dom/element → surface`，`dom/text → content`，`media/image|video|image-sequence → media`，`model/glb → model`。
+- `transformScope: "subtree"` 是父 target 声明式 WebGL 子树 transform：父 effect 写 group transform/visible/opacity，子 target 的 source/effect/texture/lifecycle/offscreen 仍独立。v1 不做 inverse-transformed picking，不暴露 public scene graph、parent key、group/matrix API 或 raw Three.js object/scene/camera/material。
 - 光追、多 canvas、shader 编写 API、核心内置粒子系统、Three.js renderOrder/transparent/depthWrite 不在公共 API 范围内。
 - 模块加载时不触碰 `window`/`document`，SSR 安全。浏览器 API 在运行时使用前才执行。
 
@@ -94,6 +95,7 @@ createWebGLRuntime({ container, effects: [myEffect] });
 - Effect context 暴露每个 `ctx.source.kind + ctx.source.type` 的低阶输出 handle：`dom/element` 的 canvas 表面、`dom/text` 的文字层、`media/image` / `media/video` / `media/image-sequence` 的纹理层、`model/glb` 的模型 handle。
 - Effect 不能扫描 DOM、创建独立渲染器、拥有独立资源管线。
 - `ctx.target.setPosition(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
+- 对 `transformScope: "subtree"` target，`ctx.target` 写内部 group；source handle 仍是该 target 自己的输出层，子 target 仍由自己的 effect/source 管理。
 - source 声明严格：只使用 `kind: "dom" | "media" | "model"`，子类型写在 `type`。旧的 `snapshot/mode`、`image`、`video`、`image-sequence`、`model/format` 声明已移除。
 
 ## React 使用要点

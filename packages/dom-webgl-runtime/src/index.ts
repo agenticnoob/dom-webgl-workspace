@@ -77,4 +77,5 @@ export type {
   WebGLOffscreenStrategy,
   WebGLImageSequenceFrame,
   WebGLSourceDeclaration,
+  WebGLTransformScope,
 } from "./lib/types";

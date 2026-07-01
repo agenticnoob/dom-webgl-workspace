@@ -1,11 +1,17 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../../../src/lib/dom/targetDescriptor";
-import type { WebGLSceneObjectController } from "../../../../src/lib/renderer/sceneObject";
+import type {
+  WebGLSceneObject,
+  WebGLSceneObjectController,
+} from "../../../../src/lib/renderer/sceneObject";
 import type { WebGLMediaImageSequenceSourceDescriptor } from "../../../../src/lib/source/sourceDescriptor";
 import { compileRenderPolicy } from "../../../../src/lib/render/renderPolicy";
 import { createImageSequenceRenderable } from "../../../../src/lib/render/renderables/imageSequenceRenderable";
-import type { SceneRenderableController } from "../../../../src/lib/render/renderables/sceneRenderableController";
+import type {
+  SceneRenderableController,
+  SceneRenderableObject,
+} from "../../../../src/lib/render/renderables/sceneRenderableController";
 
 describe("createImageSequenceRenderable", () => {
   test("selects a frame from keyed progress and updates the texture plane", async () => {
@@ -185,7 +191,26 @@ function createSceneController(options: {
   let attached = false;
   let disposed = false;
   let visible = true;
+  const object: SceneRenderableObject & {
+    updateTextureSource(source: HTMLImageElement): void;
+  } = {
+    key: "sequence.hero",
+    object3D: {},
+    visible: true,
+    disposed: false,
+    setVisible() {
+      return;
+    },
+    updateLayout() {
+      return;
+    },
+    updateTextureSource: options.updateTextureSource,
+    dispose() {
+      return;
+    },
+  };
   const controller: WebGLSceneObjectController = {
+    object,
     get attached() {
       return attached;
     },
@@ -216,22 +241,7 @@ function createSceneController(options: {
   };
 
   return {
-    object: {
-      key: "sequence.hero",
-      object3D: {},
-      visible: true,
-      disposed: false,
-      setVisible() {
-        return;
-      },
-      updateLayout() {
-        return;
-      },
-      updateTextureSource: options.updateTextureSource,
-      dispose() {
-        return;
-      },
-    },
+    object,
     controller,
     updateLayout() {
       return;

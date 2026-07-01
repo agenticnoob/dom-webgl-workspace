@@ -107,6 +107,8 @@ export type WebGLEffectDeclaration = WebGLCustomEffectDeclaration;
 
 export type WebGLEffectsDeclaration = readonly WebGLEffectDeclaration[];
 
+export type WebGLTransformScope = "self" | "subtree";
+
 export type WebGLProgressSignalSource = {
   get(key: string): number;
   subscribe?(listener: () => void): () => void;
@@ -120,6 +122,7 @@ export type WebGLDeclaration = {
   pointer?: WebGLPointerDeclaration;
   lifecycle?: WebGLLifecycleDeclaration;
   effects?: WebGLEffectsDeclaration;
+  transformScope?: WebGLTransformScope;
 };
 
 export type WebGLPerformanceBudget = {

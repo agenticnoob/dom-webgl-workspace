@@ -1,6 +1,10 @@
 import type { TargetDescriptor } from "../dom/targetDescriptor";
 import type { ResourceManager } from "../resources/resourceManager";
-import type { DOMViewportSize } from "../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../renderer/domProjection";
+import { projectDOMRectToSceneLayout } from "../renderer/domProjection";
 import type { WebGLSceneAdapter } from "../renderer/sceneObject";
 import type {
   WebGLMediaVideoSourceDescriptor,
@@ -42,6 +46,11 @@ export type RenderableFactoryContext = {
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
   progressSignals?: WebGLProgressSignalSource;
   requestTextureFrame?(): void;
+  projectLayout?(
+    descriptor: TargetDescriptor,
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   getOrdering?(
     descriptor: TargetDescriptor,
     policy: RenderPolicy,
@@ -78,6 +87,7 @@ export function createRenderable(
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
+          projectLayout: createProjectLayoutReader(context, targetDescriptor),
           requestTextureFrame: context.requestTextureFrame,
         });
       }
@@ -86,6 +96,7 @@ export function createRenderable(
         sceneAdapter: context.sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
+        projectLayout: createProjectLayoutReader(context, targetDescriptor),
         requestTextureFrame: context.requestTextureFrame,
       });
     case "media":
@@ -95,6 +106,7 @@ export function createRenderable(
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
+          projectLayout: createProjectLayoutReader(context, targetDescriptor),
           requestTextureFrame: context.requestTextureFrame,
         });
       }
@@ -105,6 +117,7 @@ export function createRenderable(
           sceneAdapter: context.sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
+          projectLayout: createProjectLayoutReader(context, targetDescriptor),
           loadVideo: context.loadVideo,
           requestTextureFrame: context.requestTextureFrame,
         });
@@ -114,6 +127,7 @@ export function createRenderable(
         sceneAdapter: context.sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
+        projectLayout: createProjectLayoutReader(context, targetDescriptor),
         progressSignals: context.progressSignals,
         requestTextureFrame: context.requestTextureFrame,
       });
@@ -123,11 +137,27 @@ export function createRenderable(
         sceneAdapter: context.sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
+        projectLayout: createProjectLayoutReader(context, targetDescriptor),
         loadModel: context.loadModel,
       });
   }
 
   throwUnsupportedSourceDescriptor(sourceDescriptor);
+}
+
+function createProjectLayoutReader(
+  context: RenderableFactoryContext,
+  descriptor: TargetDescriptor,
+):
+  | ((measurement: ElementMeasurement, viewport: DOMViewportSize) => ProjectedDOMRect)
+  | undefined {
+  if (!context.projectLayout) {
+    return undefined;
+  }
+
+  return (measurement, viewport) =>
+    context.projectLayout?.(descriptor, measurement, viewport) ??
+    projectDOMRectToSceneLayout(measurement, viewport);
 }
 
 function throwUnsupportedSourceDescriptor(

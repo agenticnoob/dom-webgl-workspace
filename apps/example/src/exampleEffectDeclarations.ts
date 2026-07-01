@@ -7,7 +7,7 @@ export type ExampleEffectParams = {
   "example.surfaceGhostCursor": { trailLength?: number; color?: string; opacity?: number };
   "example.surfaceWaves": { lineColor?: string; opacity?: number };
   "example.textWave": { amplitude?: number };
-  "example.textReveal": { color?: string };
+  "example.textReveal": { color?: string; progressKey?: string };
   "example.textSpotlight": { color?: string; radius?: number };
   "example.textPressure": { color?: string; radius?: number };
   "example.textScramble": { color?: string; scrambleChars?: string; radius?: number; speed?: number };

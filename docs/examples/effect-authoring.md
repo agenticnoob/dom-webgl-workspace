@@ -252,7 +252,10 @@ definition is missing, the target declaration has no executable effect.
   the pointer is inside that target rect; the shader keeps the ambient line field
   moving without per-frame CPU canvas drawing.
 - `example.textWave`: rewrites text glyph output.
-- `example.textReveal`: maps target viewport progress into per-glyph opacity and scale, with page scroll progress as an additional driver.
+- `example.textReveal`: maps target viewport progress into per-glyph opacity
+  and scale, with page scroll progress as an additional driver; when a
+  `progressKey` is provided, it reads `ctx.progress.get(progressKey)` so pinned
+  children can follow their owning section instead of page scroll.
 - `example.textSpotlight`: maps target-local pointer distance into per-glyph
   color, opacity, and scale.
 - `example.textPressure`: ports the ReactBits Text Pressure idea through the
@@ -328,13 +331,18 @@ frame's texture transform.
 The example uses a pinned scrub layout: the section owns `pin`, scrub duration,
 and progress, while the image sequence and WebGL card stay inside the pinned
 viewport. The card is a nested `dom/element` child target inside the
-image-sequence DOM subtree that composes
+image-sequence DOM subtree with `transformScope: "subtree"`. It composes
 `example.sequenceCardSlide` and `example.sequenceCardBorderGlow`; the
 image-sequence parent does not manually add card objects through an effect, and
 the card does not declare
 `renderRole: "overlay"`. DOM supplies the card's layout anchor. The card pixels
 come from `ctx.source.surface.draw(...)`; runtime core does not clone the DOM
 card's CSS background, border, shadow, or other decorative paint.
+The card title and description are child `dom/text` targets, so their text
+source/effect/fallback ownership remains independent while the parent card's
+group transform moves the WebGL subtree. Their `example.textReveal` effects use
+the same image-sequence `progressKey`, so the text reveal is driven by the pinned
+scrub section rather than global page scroll.
 `WebGLScrollRuntime` receives a notifying progress source from the scroll
 adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
 renderable even when no card effect is active in the viewport.

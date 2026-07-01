@@ -55,14 +55,20 @@ import {
   type RenderableFactoryContext,
 } from "../render/renderableFactory";
 import type { Renderable } from "../render/renderable";
+import { createTransformGroupPlan } from "../render/transformGroups";
 import { compileRenderPolicy, toSceneObjectOrdering } from "../render/renderPolicy";
 import {
   toScopedManagedObjectOrdering,
   toScopedSceneObjectOrdering,
 } from "../render/layerOrdering";
+import { createObject3DEffectTarget } from "../render/renderables/effectTargets/elementPlaneEffectTarget";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
+import {
+  projectDOMRectToSceneLayout,
+  type ProjectedDOMRect,
+} from "./domProjection";
 import { createLayoutPass, type ElementLayoutSnapshot } from "./layoutPass";
 import { compileOffscreenPolicy } from "./offscreenPolicy";
 import {
@@ -97,6 +103,7 @@ import {
   type TargetDebugRecord,
   type TargetRuntimeState,
 } from "./targetRuntimeState";
+import type { WebGLSceneGroup } from "./sceneObject";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -129,12 +136,22 @@ type PipelineRenderableContext = RenderableFactoryContext & {
   effectRegistry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
   postprocessController?: PostprocessController;
+  getEffectTarget?(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): WebGLEffectTarget | undefined;
 };
 
 type SyncFrameResult = {
   didSynchronousUpdate: boolean;
   schedulingMode: RenderSchedulingMode;
   pendingUpdate?: Promise<void>;
+};
+
+type RuntimeTransformGroupState = {
+  group: WebGLSceneGroup;
+  effectTarget?: WebGLEffectTarget;
+  effectTargetObject3D?: unknown;
 };
 
 type BrowserDOMGlobals = typeof globalThis & {
@@ -206,6 +223,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const targetState = createTargetRuntimeState(
     internalOptions.renderables ?? [],
   );
+  const transformGroupsByKey = new Map<string, RuntimeTransformGroupState>();
+  const transformProjectedLayoutsByTargetKey = new Map<string, ProjectedDOMRect>();
+  const transformAttachmentGroupByTargetKey = new Map<
+    string,
+    string | undefined
+  >();
   const fallbackRootUnmarkersByTargetKey = new Map<string, () => void>();
   // Created once at init. Margins stay with the lifecycle object;
   // viewportHeight is refreshed each frame through classify().
@@ -239,6 +262,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         targetState.managedOrderingsByTargetKey.get(descriptor.key) ??
         toSceneObjectOrdering(compileRenderPolicy("overlay"))
       );
+    },
+    projectLayout(descriptor, measurement, viewport) {
+      return (
+        transformProjectedLayoutsByTargetKey.get(descriptor.key) ??
+        projectDOMRectToSceneLayout(measurement, viewport)
+      );
+    },
+    getEffectTarget(descriptor, renderable) {
+      return readRuntimeEffectTarget(descriptor, renderable);
     },
   };
   let nextScanOrder = 0;
@@ -317,9 +349,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       invalidationController.unobserveTarget(targetKey);
       unregisterGateTarget(scrollState, descriptor);
       layoutSignaturesByTargetKey.delete(targetKey);
+      transformProjectedLayoutsByTargetKey.delete(targetKey);
+      transformAttachmentGroupByTargetKey.delete(targetKey);
       restoreFallbackVisibility(targetState, targetKey);
       targetState.fallbackControllersByTargetKey.delete(targetKey);
       disposeTargetRenderable(targetState, targetKey);
+      removeTransformGroup(targetKey);
       unmarkFallbackRoot(targetKey);
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
@@ -364,6 +399,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         unsubscribeProgressSignals?.();
         rectSkipState.clear();
         layoutSignaturesByTargetKey.clear();
+        transformProjectedLayoutsByTargetKey.clear();
+        transformAttachmentGroupByTargetKey.clear();
+        removeAllTransformGroups();
         releaseActiveGate(scrollState);
         scrollState.dispose?.();
         pointerController.dispose();
@@ -675,6 +713,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
         if (layoutMeasurement) {
           const currentInput = frameInputSource.getState();
+          applyTransformAttachment(descriptor, renderable);
           renderable.updateLayout?.(layoutMeasurement);
           updateTargetEffects(
             descriptor,
@@ -713,6 +752,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     effectDirtyReasons: readonly RenderDirtyReason[],
   ): void {
     if (layoutMeasurement) {
+      applyTransformAttachment(descriptor, renderable);
       renderable.updateLayout?.(layoutMeasurement);
       updateTargetEffects(
         descriptor,
@@ -769,6 +809,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const dirtyKeys = invalidationController.consumeDirtyKeys();
 
     const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
+    syncTransformGroups(descriptors, layoutMeasurements);
 
     const pendingUpdates: Array<Promise<void>> = [];
     let didSynchronousUpdate = false;
@@ -1032,6 +1073,206 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     setOrdering?.(ordering);
   }
 
+  function syncTransformGroups(
+    descriptors: readonly TargetDescriptor[],
+    layoutMeasurements: ReadonlyMap<string, ElementLayoutSnapshot>,
+  ): void {
+    const projectedLayoutsByKey = new Map<string, ProjectedDOMRect>();
+
+    for (const [key, measurement] of layoutMeasurements) {
+      projectedLayoutsByKey.set(
+        key,
+        projectDOMRectToSceneLayout(measurement, measurement.viewport),
+      );
+    }
+
+    const plan = createTransformGroupPlan({
+      descriptors,
+      layersByKey: targetState.targetLayersByTargetKey,
+      layoutsByKey: projectedLayoutsByKey,
+    });
+
+    reconcileTransformGroups(plan.groupsByKey);
+    transformProjectedLayoutsByTargetKey.clear();
+    transformAttachmentGroupByTargetKey.clear();
+
+    for (const descriptor of descriptors) {
+      const projectedLayout = projectedLayoutsByKey.get(descriptor.key);
+      const attachment = plan.attachmentsByKey.get(descriptor.key);
+
+      if (!projectedLayout) {
+        continue;
+      }
+
+      if (
+        attachment?.groupKey &&
+        transformGroupsByKey.has(attachment.groupKey)
+      ) {
+        transformProjectedLayoutsByTargetKey.set(
+          descriptor.key,
+          attachment.layout,
+        );
+        transformAttachmentGroupByTargetKey.set(
+          descriptor.key,
+          attachment.groupKey,
+        );
+        continue;
+      }
+
+      transformProjectedLayoutsByTargetKey.set(
+        descriptor.key,
+        attachment?.groupKey ? projectedLayout : attachment?.layout ?? projectedLayout,
+      );
+      transformAttachmentGroupByTargetKey.set(descriptor.key, undefined);
+    }
+  }
+
+  function reconcileTransformGroups(
+    nextGroupsByKey: ReadonlyMap<
+      string,
+      { key: string; parentGroupKey: string | undefined; layout: ProjectedDOMRect }
+    >,
+  ): void {
+    if (
+      !rendererHost.sceneAdapter.createGroup ||
+      !rendererHost.sceneAdapter.addGroup
+    ) {
+      removeAllTransformGroups();
+      return;
+    }
+
+    const nextKeys = new Set(nextGroupsByKey.keys());
+    for (const key of Array.from(transformGroupsByKey.keys())) {
+      if (!nextKeys.has(key)) {
+        removeTransformGroup(key);
+      }
+    }
+
+    const groupRecords = Array.from(nextGroupsByKey.values()).sort(
+      (left, right) => readTargetLayerDepth(left.key) - readTargetLayerDepth(right.key),
+    );
+
+    for (const record of groupRecords) {
+      const parentGroup = record.parentGroupKey
+        ? transformGroupsByKey.get(record.parentGroupKey)?.group
+        : undefined;
+      let state = transformGroupsByKey.get(record.key);
+
+      if (!state) {
+        const group = rendererHost.sceneAdapter.createGroup(record.key);
+        rendererHost.sceneAdapter.addGroup(group, parentGroup);
+        state = { group };
+        transformGroupsByKey.set(record.key, state);
+      } else {
+        rendererHost.sceneAdapter.setGroupParent?.(state.group, parentGroup);
+      }
+
+      updateTransformGroupPosition(state.group.object3D, record.layout);
+    }
+  }
+
+  function updateTransformGroupPosition(
+    object3D: unknown,
+    layout: ProjectedDOMRect,
+  ): void {
+    if (!object3D || typeof object3D !== "object") {
+      return;
+    }
+
+    setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
+  }
+
+  function setVector3(
+    value: unknown,
+    x: number,
+    y: number,
+    z: number,
+  ): void {
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    const vector = value as {
+      set?: (x: number, y: number, z: number) => void;
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+
+    if (typeof vector.set === "function") {
+      vector.set(x, y, z);
+      return;
+    }
+
+    vector.x = x;
+    vector.y = y;
+    vector.z = z;
+  }
+
+  function applyTransformAttachment(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): void {
+    const sceneObject = renderable.sceneObjectController?.object;
+
+    if (!sceneObject) {
+      return;
+    }
+
+    const groupKey = transformAttachmentGroupByTargetKey.get(descriptor.key);
+    const group = groupKey ? transformGroupsByKey.get(groupKey)?.group : undefined;
+
+    rendererHost.sceneAdapter.setObjectParent?.(sceneObject, group);
+  }
+
+  function readRuntimeEffectTarget(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): WebGLEffectTarget | undefined {
+    if (descriptor.declaration.transformScope !== "subtree") {
+      return renderable.effectTarget;
+    }
+
+    const state = transformGroupsByKey.get(descriptor.key);
+    if (!state) {
+      return renderable.effectTarget;
+    }
+
+    if (
+      state.effectTargetObject3D !== state.group.object3D ||
+      !state.effectTarget
+    ) {
+      state.effectTargetObject3D = state.group.object3D;
+      state.effectTarget = createObject3DEffectTarget(
+        state.group.object3D,
+        renderable.effectTarget?.addObject3D,
+      );
+    }
+
+    return state.effectTarget ?? renderable.effectTarget;
+  }
+
+  function removeTransformGroup(key: string): void {
+    const state = transformGroupsByKey.get(key);
+
+    if (!state) {
+      return;
+    }
+
+    rendererHost.sceneAdapter.removeGroup?.(state.group);
+    transformGroupsByKey.delete(key);
+  }
+
+  function removeAllTransformGroups(): void {
+    for (const key of Array.from(transformGroupsByKey.keys())) {
+      removeTransformGroup(key);
+    }
+  }
+
+  function readTargetLayerDepth(key: string): number {
+    return targetState.targetLayersByTargetKey.get(key)?.depth ?? 0;
+  }
+
   function shouldKeepTargetContinuous(
     descriptor: TargetDescriptor,
     renderable: Renderable,
@@ -1129,7 +1370,9 @@ function createPipelineRenderable(
     source,
     getSource: () => renderable.effectSource,
     getTarget: () => {
-      const target = renderable.effectTarget;
+      const target =
+        context.getEffectTarget?.(descriptor, renderable) ??
+        renderable.effectTarget;
 
       if (!target) {
         rawEffectTarget = undefined;

@@ -1,5 +1,8 @@
 import type { ResourceManager } from "../../resources/resourceManager";
-import type { DOMViewportSize } from "../../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLMediaImageSourceDescriptor } from "../../source/sourceDescriptor";
@@ -24,6 +27,10 @@ type ImageRenderableOptions = {
   sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   requestTextureFrame?(): void;
 };
 
@@ -60,6 +67,7 @@ export function createImageRenderable(
           sceneAdapter: options.sceneAdapter,
           measureElement: options.measureElement,
           getViewportSize: options.getViewportSize,
+          projectLayout: options.projectLayout,
           element: source.anchor,
           ordering: readRenderableOrdering(context),
           getManagedObjectOrdering: () => readManagedObjectOrdering(context),

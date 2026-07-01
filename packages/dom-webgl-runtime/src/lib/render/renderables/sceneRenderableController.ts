@@ -69,6 +69,10 @@ export type SceneRenderableControllerOptions = {
   disposeResources?(): void;
   requestTextureFrame?(): void;
   getManagedObjectOrdering?(): WebGLSceneObjectOrdering;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   layoutObject3D?(object3D: unknown, layout: ProjectedDOMRect): void;
 };
 
@@ -131,11 +135,11 @@ export function createSceneRenderableController(
     object,
     controller,
     updateLayout(measurement = options.measureElement(options.element)): void {
+      const viewport = options.getViewportSize?.() ?? defaultViewport;
       controller.updateLayout(
-        projectDOMRectToSceneLayout(
-          measurement,
-          options.getViewportSize?.() ?? defaultViewport,
-        ),
+        options.projectLayout
+          ? options.projectLayout(measurement, viewport)
+          : projectDOMRectToSceneLayout(measurement, viewport),
       );
       object.updateTextLayout?.(measurement);
     },

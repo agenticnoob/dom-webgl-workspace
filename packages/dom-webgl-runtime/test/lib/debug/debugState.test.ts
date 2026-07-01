@@ -10,7 +10,10 @@ import {
 } from "../../../src/lib/debug/debugState";
 import type { Renderable } from "../../../src/lib/render/renderable";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
-import type { WebGLSceneObjectController } from "../../../src/lib/renderer/sceneObject";
+import type {
+  WebGLSceneObject,
+  WebGLSceneObjectController,
+} from "../../../src/lib/renderer/sceneObject";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
 
 type RuntimeDebugOptions = Parameters<typeof createWebGLRuntime>[0] & {
@@ -763,8 +766,21 @@ function createDebugTargetState(
 
 function createVisibleSceneObjectController(): WebGLSceneObjectController {
   let visible = true;
+  const object: WebGLSceneObject = {
+    key: "debug.visible",
+    setVisible(nextVisible) {
+      visible = nextVisible;
+    },
+    updateLayout() {
+      return;
+    },
+    dispose() {
+      return;
+    },
+  };
 
   return {
+    object,
     attached: true,
     disposed: false,
     get visible() {

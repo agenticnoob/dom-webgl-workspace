@@ -1,7 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createTargetDescriptor } from "../../../src/lib/dom/targetDescriptor";
-import type { WebGLSceneObjectController } from "../../../src/lib/renderer/sceneObject";
+import type {
+  WebGLSceneObject,
+  WebGLSceneObjectController,
+} from "../../../src/lib/renderer/sceneObject";
 import type { WebGLDOMSourceDescriptor } from "../../../src/lib/source/sourceDescriptor";
 import { compileRenderPolicy } from "../../../src/lib/render/renderPolicy";
 import { createRenderable } from "../../../src/lib/render/renderable";
@@ -146,8 +149,21 @@ function createSceneObjectControllerStub(): WebGLSceneObjectController {
   let attached = false;
   let disposed = false;
   let visible = true;
+  const object: WebGLSceneObject = {
+    key: "renderable.scene",
+    setVisible(nextVisible) {
+      visible = nextVisible;
+    },
+    updateLayout() {
+      return;
+    },
+    dispose() {
+      disposed = true;
+    },
+  };
 
   return {
+    object,
     get attached() {
       return attached;
     },

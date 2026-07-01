@@ -1,5 +1,8 @@
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../../types";
-import type { DOMViewportSize } from "../../renderer/domProjection";
+import type {
+  DOMViewportSize,
+  ProjectedDOMRect,
+} from "../../renderer/domProjection";
 import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLMediaImageSequenceSourceDescriptor } from "../../source/sourceDescriptor";
@@ -18,6 +21,10 @@ type ImageSequenceRenderableOptions = {
   readonly sceneAdapter: WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
+  projectLayout?(
+    measurement: ElementMeasurement,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect;
   readonly progressSignals?: WebGLProgressSignalSource;
   requestTextureFrame?(): void;
   readonly createSceneController?: (options: {
@@ -48,6 +55,7 @@ export function createImageSequenceRenderable(
         sceneAdapter: options.sceneAdapter,
         measureElement: options.measureElement,
         getViewportSize: options.getViewportSize,
+        projectLayout: options.projectLayout,
         element: sceneOptions.source.anchor,
         ordering: readRenderableOrdering(context),
         getManagedObjectOrdering: () => readManagedObjectOrdering(context),
