@@ -28,6 +28,7 @@ describe("example effect catalog", () => {
       "example.videoDrift",
       "example.modelSpin",
       "example.modelFloat",
+      "example.modelFloatGlow",
     ]);
   });
 
@@ -105,6 +106,13 @@ describe("example effect catalog", () => {
       kind: "example.mediaPointerParallax",
       bleed: 0.08,
       strength: 0.72,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.modelFloatGlow",
+      amplitude: 30,
+      speed: 0.46,
+      emissive: "#7dd3fc",
+      lightIntensity: 2.2,
     });
   });
 });

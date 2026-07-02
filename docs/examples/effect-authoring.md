@@ -29,7 +29,7 @@ The example ships its own static assets under `apps/example/public`. The React
 app references
 `/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
 `/example/image.png`, `/example/show.png`, `/example/mask.png`,
-`/example/video.mp4`, and `/models/hero.glb` from that example public
+`/example/video.mp4`, `/models/hero.glb`, and `/models/4.glb` from that example public
 directory. `/example/bg-sequence` is the compressed image sequence used by the
 pinned runtime `image-sequence` source; the current checked-in sequence is 454
 WebP frames at 1600x900, 12fps extraction, and about 141MB total.
@@ -219,6 +219,14 @@ emissive smoke around the cursor. The example stops sending material uniforms
 after the trail decays to idle, so the effect remains interactive without
 keeping a settled target hot every frame.
 
+For GLB effects, use the same `ctx.object` entrypoint for transform, material,
+lights, animation, and postprocess. `apps/example` dogfoods this with
+`example.modelFloatGlow` on `/models/4.glb`: the effect rotates and floats the
+model, sets `ctx.object.material?.emissive`, requests a runtime-owned point light
+through `ctx.object.lights?.point(...)`, and requests bloom through
+`ctx.object.postprocess.request(...)`. It does not create a loader, scene,
+camera, light, material, mixer, composer, render target, or render loop.
+
 Pointer contract:
 
 - `ctx.pointer` is runtime/canvas pointer state.
@@ -318,6 +326,8 @@ definition is missing, the target declaration has no executable effect.
   WebGL-translated card position.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
+- `example.modelFloatGlow`: combines GLB transform, material emissive color,
+  runtime-owned point light, and bloom through the managed `ctx.object` facade.
 
 ### Image Hover Reveal Implementation Notes
 

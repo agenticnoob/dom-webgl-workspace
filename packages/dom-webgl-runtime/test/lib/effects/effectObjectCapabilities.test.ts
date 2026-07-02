@@ -417,6 +417,24 @@ function createMesh(name: string): WebGLModelMeshHandle {
     index: 0,
     name,
     materialName: "Base",
+    material: {
+      color: {
+        value: "#ffffff",
+        set() {},
+      },
+      emissive: {
+        value: "#000000",
+        intensity: 1,
+        set() {},
+      },
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+      createLayer() {
+        return createMaterialLayer();
+      },
+      restore() {},
+    },
     restoreMaterial() {},
     createMaterialLayer() {
       return createMaterialLayer();

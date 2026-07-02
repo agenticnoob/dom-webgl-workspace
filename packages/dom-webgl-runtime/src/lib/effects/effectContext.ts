@@ -10,6 +10,7 @@ import type {
   WebGLEffectTargetHandle,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
+import type { WebGLEffectObjectHandle } from "./effectObject";
 import { createWebGLEffectObject } from "./effectObjectContext";
 
 export type WebGLEffectContextOptions = {
@@ -23,6 +24,7 @@ export type WebGLEffectContextOptions = {
   progressSignals?: WebGLProgressSignalSource;
   visual?: WebGLEffectVisualContext;
   managedVisual?: WebGLEffectVisualContext;
+  lights?: WebGLEffectObjectHandle["lights"];
 };
 
 const emptyProgressSignals: WebGLProgressSignalSource = {
@@ -65,6 +67,7 @@ export function createWebGLEffectContext(
       target: options.target,
       visual,
       resources: options.resources,
+      lights: options.lights,
     }),
     resources: options.resources,
   };

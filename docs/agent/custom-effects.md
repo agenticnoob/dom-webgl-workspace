@@ -18,6 +18,10 @@ on decisions agents must make while writing effect definitions.
   `docs/agent/effect-object-boundary.md`: new visual capabilities belong under a
   controlled Three-like `ctx.object` facade, not as source-specific public
   handles.
+- When porting from Three.js, keep the mental model and port the algorithm, not
+  the ownership. Do not create a renderer, scene, camera, loader, light, mesh,
+  material, texture, mixer, composer, pass, render target, or render loop in
+  consumer effects. Ask for or use a managed facade under `ctx.object`.
 
 ## React Registration Pattern
 
@@ -86,7 +90,10 @@ Current handles:
 - `media/video`: control texture transform, play/pause, muted state, and playback
   rate.
 - `media/image-sequence`: control the current frame texture transform and invalidation.
-- `model/glb`: inspect and control the runtime-owned model handle.
+- `model/glb`: inspect and control the runtime-owned model handle, material
+  facade, and animation facade.
+- runtime lights: request runtime-owned ambient, directional, or point lights.
+- runtime postprocess: request named bloom, grain, or blur handles.
 
 Public handles are capability handles: use methods such as `draw`, `setGlyphs`,
 `setTextureTransform`, `createMaterialLayer`, `forEachMesh`, `sampleVertices`,

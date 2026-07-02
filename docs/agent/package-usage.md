@@ -449,12 +449,26 @@ Supported source declarations:
 - `{ kind: "media", type: "image", src?: string }`
 - `{ kind: "media", type: "video", src?: string }`
 - `{ kind: "media", type: "image-sequence", frameCount: number, frames: readonly (HTMLImageElement | HTMLCanvasElement | ImageBitmap)[], progressKey?: string }`
-- `{ kind: "model", type: "glb", src: string }`
+- `{ kind: "model", type: "glb", src: string, loader?: WebGLModelLoaderDeclaration }`
 
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 Media declarations can infer from real `img` / `video` elements, or use an
 arbitrary HTMLElement anchor when `src` is provided.
+
+Use declarative loader configuration for compressed GLB assets. The runtime owns
+loader instances and decoder lifecycle:
+
+```ts
+source: {
+  kind: "model",
+  type: "glb",
+  src: "/models/product.glb",
+  loader: {
+    draco: { decoderPath: "/draco/" },
+  },
+}
+```
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must
@@ -634,6 +648,33 @@ export const appPulseEffect = defineWebGLEffect<AppPulseParams, AppPulseState>({
 });
 ```
 
+Model material, light, animation, and postprocess effects still start at
+`ctx.object`:
+
+```ts
+const modelGlow = defineWebGLEffect({
+  kind: "app.modelGlow",
+  source: "model/glb",
+  setup(ctx) {
+    ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+    ctx.object.lights?.point("glow", {
+      color: "#7dd3fc",
+      intensity: 2.4,
+      distance: 420,
+      follow: "object",
+    });
+    ctx.object.postprocess.request({
+      key: "app.modelGlow.bloom",
+      bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
+    });
+  },
+  update(ctx) {
+    ctx.object.rotation.y += ctx.delta / 1000;
+    ctx.object.position.y += Math.sin(ctx.time / 700) * 0.5;
+  },
+});
+```
+
 Rules:
 
 - `kind` in the definition must exactly match target declaration `kind`.
@@ -662,6 +703,7 @@ interface AppEffectParams {
   "app.surface": { opacity?: number };
   "app.pointerTilt": { strength?: number; maxDegrees?: number };
   "app.modelSpin": { speed?: number };
+  "app.modelGlow": { emissive?: string; lightIntensity?: number };
 }
 ```
 

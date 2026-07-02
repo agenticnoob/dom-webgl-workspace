@@ -1877,7 +1877,7 @@ git commit -m "feat: dogfood managed three-like model glow"
 - Modify: `docs/agent/custom-effects.md`
 - Modify: `docs/examples/effect-authoring.md`
 
-- [ ] **Step 1: Update package docs with the managed API thesis**
+- [x] **Step 1: Update package docs with the managed API thesis**
 
 In `README.md` and `docs/agent/effect-object-boundary.md`, add this exact principle near the effect model section:
 
@@ -1889,7 +1889,7 @@ camera, objects, materials, textures, loaders, mixers, lights, render targets,
 scroll, pointer, lifecycle, disposal, and performance scheduling.
 ```
 
-- [ ] **Step 2: Update usage docs with the canonical example**
+- [x] **Step 2: Update usage docs with the canonical example**
 
 In `docs/agent/package-usage.md`, add:
 
@@ -1930,7 +1930,7 @@ source: {
 }
 ```
 
-- [ ] **Step 3: Add public boundary guardrail text**
+- [x] **Step 3: Add public boundary guardrail text**
 
 In `docs/agent/package-onboarding.md` and `docs/agent/custom-effects.md`, add:
 
@@ -1941,7 +1941,7 @@ material, texture, mixer, composer, pass, render target, or render loop in
 consumer effects. Ask for or use a managed facade under `ctx.object`.
 ```
 
-- [ ] **Step 4: Update execution state**
+- [x] **Step 4: Update execution state**
 
 In `docs/EXECUTION_STATE.md`, add a current-truth entry:
 
@@ -1953,7 +1953,7 @@ for raw Three.js internals, model loader configuration including Draco, resource
 lifetime, fallback visibility, scroll/pointer monitoring, and scheduling.
 ```
 
-- [ ] **Step 5: Run full verification**
+- [x] **Step 5: Run full verification**
 
 Run:
 
@@ -1973,7 +1973,7 @@ Expected:
 - import boundary check passes;
 - `git diff --check` has no whitespace errors.
 
-- [ ] **Step 6: Check for forbidden public raw Three.js cues**
+- [x] **Step 6: Check for forbidden public raw Three.js cues**
 
 Run:
 
@@ -1983,7 +1983,7 @@ rg -n "raw object3D|raw mesh|raw material|scene\\.add|new THREE|setDRACOLoader|c
 
 Expected: matches only in negative guardrails, internal implementation files, tests proving rejection, or docs warning not to use those paths.
 
-- [ ] **Step 7: Commit docs and final verification state**
+- [x] **Step 7: Commit docs and final verification state**
 
 ```bash
 git add README.md AGENTS.md docs/00-goal.md docs/EXECUTION_STATE.md docs/agent/effect-object-boundary.md docs/agent/package-usage.md docs/agent/package-onboarding.md docs/agent/custom-effects.md docs/examples/effect-authoring.md

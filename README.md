@@ -53,15 +53,20 @@ material layers, source texture uniforms, text/media shader inputs, GLB mesh
 material handles, managed point layers, and named postprocess request handles
 while keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
 material/texture fields, and raw materials internal.
-Effect authoring direction is corrected and partially implemented in
-`docs/agent/effect-object-boundary.md`: `ctx.object` is now the primary
-controlled Three-like facade for transform, visibility, opacity, postprocess,
-and existing surface/text/texture/video/model capabilities. Effect authors use
-`ctx.object` for all visual control and source-backed capabilities; source,
-target, and visual handles are internal runtime assembly details and are not
-part of the public effect context. The implementation records are
+Effect authoring direction is implemented in
+`docs/agent/effect-object-boundary.md`: `ctx.object` is now the primary managed
+Three-like facade for transform, visibility, opacity, material, lights,
+animation, postprocess, and surface/text/texture/video/model capabilities.
+Effect authors use `ctx.object` for all visual control and source-backed
+capabilities; source, target, and visual handles are internal runtime assembly
+details and are not part of the public effect context. Runtime owns raw Three.js
+renderer, scene, camera, objects, materials, textures, loaders, mixers, lights,
+render targets, lifecycle, disposal, pointer, scroll, and scheduling. The
+implementation records are
 `docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md` and
-`docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`.
+`docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`, with
+the managed Three-like object API in
+`docs/superpowers/plans/2026-07-02-managed-three-like-object-api.md`.
 The runtime performance roadmap in
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
@@ -196,7 +201,8 @@ Current example behavior:
   `example.mediaPointerParallax`,
   `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
   `example.sequenceCardBorderGlow`, `example.modelSpin`, and
-  `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
+  `example.modelFloat`, `example.modelFloatGlow`, plus the pinned-scroll
+  `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
   `ctx.object.text` so the hovered glyphs widen while the rest of the line
@@ -274,14 +280,12 @@ Current visual behavior:
   `effects: [{ kind: "example.surfaceFill" }, { kind: "example.textWave" }]`.
   Effects only run when the runtime receives matching definitions through
   runtime-level `effects`.
-- The example-local GLB vertex particle effect hides the original GLB meshes
-  after sampling their vertices, renders only the point cloud, and uses pointer
-  motion to scatter particles only after the pointer hits a particle-sized local
-  radius, then springs them back to their source vertices. Pointer hits are
-  mapped through the current model target layout, so scrolling or a non-centered
-  model rect does not shift interaction toward the viewport center. The hit
-  projection and horizontal scatter impulse also account for the model's current
-  y-axis rotation, so interaction follows the visible rotating particle model.
+- The example-local GLB effects use `ctx.object` only: `example.modelSpin`
+  rotates `/models/hero.glb`, `example.modelFloat` combines layout and runtime
+  time for movement, and `example.modelFloatGlow` dogfoods `/models/4.glb` with
+  controlled material emissive color, runtime-owned point light, bloom request,
+  transform, rotation, and scale. They do not create loaders, scenes, cameras,
+  lights, materials, mixers, composers, render targets, or render loops.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -427,16 +431,25 @@ such as position/rotation/scale/opacity, and managed resources. They do not
 scan DOM, mutate arbitrary DOM, create their own renderer, or own independent
 asset loading.
 
+The public authoring model is managed Three-like API: consumers use familiar
+Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
+`lights`, and `animation`, while the runtime owns raw Three.js renderer, scene,
+camera, objects, materials, textures, loaders, mixers, lights, render targets,
+scroll, pointer, lifecycle, disposal, and performance scheduling.
+
 The effect context exposes low-level runtime output handles for every supported
 source kind. Consumers can draw to canvas-backed element surfaces through
 `ctx.object.surface`, control WebGL text and glyph layout through
 `ctx.object.text`, transform image/video/sequence textures through
 `ctx.object.texture`, control video playback through `ctx.object.video`, inspect
 or manipulate GLB model mesh handles and managed point layers through
-`ctx.object.model`, and request named runtime-owned postprocess handles through
-`ctx.object.postprocess`. Current postprocess support owns request/handle
-lifecycle and executes bounded internal bloom/grain/blur passes without
-exposing composer, pass-order, or render-target internals.
+`ctx.object.model`, adjust controlled material fields through
+`ctx.object.material`, request runtime-owned lights through `ctx.object.lights`,
+drive model clips through `ctx.object.animation`, and request named
+runtime-owned postprocess handles through `ctx.object.postprocess`. Current
+postprocess support owns request/handle lifecycle and executes bounded internal
+bloom/grain/blur passes without exposing composer, pass-order, or render-target
+internals.
 `ctx.object.position.set(...)` writes runtime scene-space coordinates, not DOM
 `left`/`top`. Concrete effects remain application-owned.
 Material programs are Three-inspired shader declarations, not raw Three.js
@@ -452,7 +465,8 @@ Capability matrix:
 | `media/image` | object-fit aware texture controls, media shader inputs, and `createMaterialLayer(...)` |
 | `media/video` | image capabilities plus playback controls |
 | `media/image-sequence` | frame-addressable media texture controls |
-| `model/glb` | controlled mesh handles, material restore, sampled vertices, managed point layers |
+| `model/glb` | controlled mesh handles, material facade, sampled vertices, managed point layers, animation facade |
+| runtime lights | `ctx.object.lights` for runtime-owned ambient/directional/point light requests |
 | runtime postprocess | `ctx.object.postprocess.request(...)` for named bloom/grain/blur request handles |
 
 Runtime owns material, texture, geometry, render-target, postprocess request,

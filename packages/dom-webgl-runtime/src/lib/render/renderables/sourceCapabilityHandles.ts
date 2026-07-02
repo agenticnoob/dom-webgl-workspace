@@ -14,15 +14,16 @@ import type {
   WebGLTextGlyphRenderCommand,
   WebGLTextLayerStyle,
 } from "../../effects/effectAuthoring";
-import type { WebGLEffectMaterialFacade } from "../../effects/effectMaterial";
+import {
+  readManagedMaterialFacade,
+  rememberManagedMaterialFacade,
+} from "../../effects/effectManagedMaterialRegistry";
 import { Texture } from "three/src/textures/Texture.js";
 
 import { createManagedMaterialFacade } from "./managedMaterialControls";
 import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
 import type { TextureUploadDirtyReason } from "./textureUploadState";
-
-const managedMaterialFacades = new WeakMap<object, WebGLEffectMaterialFacade>();
 
 export type CanvasSurfaceCapabilityOptions = {
   object3D: unknown;
@@ -223,16 +224,6 @@ export function createVideoLayerCapabilityHandle(
   return handle;
 }
 
-export function readManagedMaterialFacade(
-  handle: unknown,
-): WebGLEffectMaterialFacade | undefined {
-  if (!handle || typeof handle !== "object") {
-    return undefined;
-  }
-
-  return managedMaterialFacades.get(handle);
-}
-
 function drawCanvas(
   options: CanvasSurfaceCapabilityOptions,
   drawer: WebGLEffectCanvasDrawer,
@@ -385,13 +376,6 @@ function createSourceMaterialLayerHost(
       });
     },
   };
-}
-
-function rememberManagedMaterialFacade(
-  handle: object,
-  material: WebGLEffectMaterialFacade,
-): void {
-  managedMaterialFacades.set(handle, material);
 }
 
 function readSourceTexture(texture: unknown): Texture | undefined {

@@ -63,6 +63,7 @@ import {
   toScopedSceneObjectOrdering,
 } from "../render/layerOrdering";
 import { createObject3DEffectTarget } from "../render/renderables/effectTargets/elementPlaneEffectTarget";
+import { createManagedLightsFacade } from "../render/renderables/managedLights";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
@@ -1421,6 +1422,7 @@ function createPipelineRenderable(
     registry: context.effectRegistry,
     progressSignals: context.progressSignals,
     visual: context.postprocessController,
+    createLights: createManagedLightsFacade,
   });
 
   return {

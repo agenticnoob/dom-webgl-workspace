@@ -33,22 +33,29 @@ Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
 Effect object boundary direction: `docs/agent/effect-object-boundary.md`.
 Effect object facade refactor plan: `docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
 Effect object-only public context plan: `docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`.
+Managed Three-like object API plan: `docs/superpowers/plans/2026-07-02-managed-three-like-object-api.md`.
+
+Managed Three-like object API is the current public effect authoring direction:
+`ctx.object` owns transform, material, lights, animation, source-backed modules,
+and postprocess requests through controlled facades. Runtime remains responsible
+for raw Three.js internals, model loader configuration including Draco, resource
+lifetime, fallback visibility, scroll/pointer monitoring, and scheduling.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
 effect authoring model. The implemented public context exposes `ctx.object` as
 the controlled Three-like facade for transform, visibility, opacity,
-postprocess, and surface/text/texture/video/model capabilities. New visual
-capabilities should be designed for `ctx.object` first, then implemented behind
-that facade with runtime-owned internals.
+material, lights, animation, postprocess, and surface/text/texture/video/model
+capabilities. New visual capabilities should be designed for `ctx.object` first,
+then implemented behind that facade with runtime-owned internals.
 
 Existing public handles remain AI-first controlled capability handles: use
 methods such as `draw`, `setGlyphs`, `setTransform`, `createMaterialLayer`,
 `meshes.forEach`, `sampling.vertices`, and `points.create`; do not rely on
 `object3D`, `mesh`, `material`, or `texture` fields. Object modules can create
-runtime-owned material layers, expose text/media shader input metadata, expose
-GLB controlled mesh material restore, vertex samples, managed point layers, and
-accept named bloom/grain/blur requests through
-`ctx.object.postprocess.request(...)`.
+runtime-owned material layers, expose controlled material facades, expose
+text/media shader input metadata, expose GLB controlled mesh material restore,
+vertex samples, managed point layers, animation clips, and accept named
+bloom/grain/blur requests through `ctx.object.postprocess.request(...)`.
 Current postprocess support includes request/handle ownership, inspection, and
 bounded internal pass execution for named bloom/grain/blur-style requests.
 Postprocess request count and render-target size feed performance warning

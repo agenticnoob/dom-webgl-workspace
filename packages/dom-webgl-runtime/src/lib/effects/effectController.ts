@@ -10,11 +10,13 @@ import type {
 import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
+  WebGLEffectResourceScope,
   WebGLEffectSchedule,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
+import type { WebGLEffectObjectHandle } from "./effectObject";
 import {
   createResourceManagedVisualContext,
   createWebGLEffectContext,
@@ -51,13 +53,22 @@ export type WebGLEffectControllerOptions = {
   registry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
   visual?: WebGLEffectVisualContext;
+  createLights?: WebGLEffectLightsFactory;
 };
+
+export type WebGLEffectLightsFactory = (options: {
+  target?: WebGLEffectTarget;
+  resources: WebGLEffectResourceScope;
+  readObjectPosition(): { x: number; y: number; z: number };
+}) => WebGLEffectObjectHandle["lights"];
 
 type RunningEffect = {
   definition: WebGLEffectDefinition;
   params: ReturnType<typeof compileWebGLEffectDeclarations>[number];
   resources: ReturnType<typeof createWebGLEffectResourceScope>;
   visual: WebGLEffectVisualContext;
+  lights?: WebGLEffectObjectHandle["lights"];
+  lightsTarget?: WebGLEffectTarget;
   state: unknown;
   initialized: boolean;
   reusableContext: WebGLEffectContext | null;
@@ -144,6 +155,7 @@ export function createWebGLEffectController(
 
       for (const effect of effects) {
         let context: WebGLEffectContext;
+        const lights = readEffectLights(effect, target, options);
 
         if (effect.reusableContext) {
           context = effect.reusableContext;
@@ -161,6 +173,7 @@ export function createWebGLEffectController(
             target,
             visual: effect.visual,
             resources: effect.resources,
+            lights,
           });
         } else {
           context = createWebGLEffectContext({
@@ -173,6 +186,7 @@ export function createWebGLEffectController(
             resources: effect.resources,
             progressSignals: options.progressSignals,
             managedVisual: effect.visual,
+            lights,
           });
           effect.reusableContext = context;
         }
@@ -193,6 +207,36 @@ export function createWebGLEffectController(
     },
   };
 }
+
+function readEffectLights(
+  effect: RunningEffect,
+  target: WebGLEffectTarget | undefined,
+  options: WebGLEffectControllerOptions,
+): WebGLEffectObjectHandle["lights"] {
+  if (!options.createLights) {
+    return undefined;
+  }
+
+  if (effect.lights && effect.lightsTarget === target) {
+    return effect.lights;
+  }
+
+  if (!target) {
+    return undefined;
+  }
+
+  effect.lightsTarget = target;
+  effect.lights = options.createLights({
+    target,
+    resources: effect.resources,
+    readObjectPosition() {
+      return effect.reusableContext?.object.position ?? zeroObjectPosition;
+    },
+  });
+  return effect.lights;
+}
+
+const zeroObjectPosition = { x: 0, y: 0, z: 0 };
 
 function readSchedulingMode(
   effects: readonly RunningEffect[],

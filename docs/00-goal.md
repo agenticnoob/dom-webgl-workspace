@@ -63,16 +63,21 @@ The 2026-07-02 effect authoring direction correction is captured in
 `docs/agent/effect-object-boundary.md`. The runtime now exposes a controlled
 Three-like `ctx.object` facade for basic transform, visibility, opacity,
 postprocess, and existing surface/text/texture/video/model capabilities. The
-older source/target/visual handles remain compatibility and implementation
-substrate, but they are not the desired long-term public mental model. Future
-visual capability work should continue under `ctx.object`: effect authors should
-mutate familiar properties such as position, rotation, scale, visibility,
-opacity, texture/text/model modules, material uniforms, animation, picking,
-lights, and postprocess through one runtime-owned object. Raw Three.js renderer,
-scene, camera, Object3D, mesh, material, texture, animation mixer, raycaster,
-composer, and loader instances remain internal.
+source/target/visual handles are internal implementation substrate, not public
+effect context. Future visual capability work should continue under
+`ctx.object`: effect authors should mutate familiar properties such as position,
+rotation, scale, visibility, opacity, texture/text/model modules, material,
+animation, lights, and postprocess through one runtime-owned object. Raw
+Three.js renderer, scene, camera, Object3D, mesh, material, texture, animation
+mixer, raycaster, composer, and loader instances remain internal.
 The refactor plan lives in
 `docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
+Managed Three-like object API is now the active public authoring direction:
+consumers use familiar vocabulary such as `position`, `rotation`, `scale`,
+`material`, `lights`, and `animation` through `ctx.object`, while the runtime
+keeps ownership of raw Three.js renderer, scene, camera, objects, materials,
+textures, loaders, mixers, lights, render targets, lifecycle, disposal, pointer,
+scroll, and scheduling.
 
 ## Purpose
 

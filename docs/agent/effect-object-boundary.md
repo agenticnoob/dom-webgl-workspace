@@ -19,6 +19,12 @@ Source, target, and visual handles are internal runtime assembly details. They
 are not part of the public effect context and are not exported from the package
 root as effect authoring API.
 
+The public authoring model is managed Three-like API: consumers use familiar
+Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
+`lights`, and `animation`, while the runtime owns raw Three.js renderer, scene,
+camera, objects, materials, textures, loaders, mixers, lights, render targets,
+scroll, pointer, lifecycle, disposal, and performance scheduling.
+
 ## Product Thesis
 
 The package should own:

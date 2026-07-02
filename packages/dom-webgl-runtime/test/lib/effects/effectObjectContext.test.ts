@@ -57,28 +57,23 @@ describe("createWebGLEffectObject", () => {
     expect(object.surface).toBe(surface);
   });
 
-  test("managed lights attach through target and dispose with resources", () => {
-    const disposed: unknown[] = [];
-    const added: unknown[] = [];
-    const target = {
-      setVisible() {},
-      setPosition() {},
-      setRotation() {},
-      setScale() {},
-      setOpacity() {},
-      addObject3D(
-        object3D: unknown,
-        options?: { dispose?: (object3D: unknown) => void },
-      ) {
-        added.push(object3D);
-        return {
-          setVisible() {},
-          remove() {},
-          dispose() {
-            disposed.push(object3D);
-            options?.dispose?.(object3D);
-          },
-        };
+  test("exposes injected managed lights facade", () => {
+    const lightCalls: string[] = [];
+    const lights = {
+      ambient(key: string) {
+        lightCalls.push(`ambient:${key}`);
+        return createManagedObjectHandle();
+      },
+      directional(key: string) {
+        lightCalls.push(`directional:${key}`);
+        return createManagedObjectHandle();
+      },
+      point(key: string) {
+        lightCalls.push(`point:${key}`);
+        return createManagedObjectHandle();
+      },
+      remove(key: string) {
+        lightCalls.push(`remove:${key}`);
       },
     };
     const resources = createWebGLEffectResourceScope();
@@ -90,9 +85,9 @@ describe("createWebGLEffectObject", () => {
     const object = createWebGLEffectObject({
       sourceKind: "dom/element",
       source,
-      target,
       resources,
       visual: createVisual([]),
+      lights,
     });
 
     object.position.set(12, 24, 0);
@@ -101,10 +96,9 @@ describe("createWebGLEffectObject", () => {
       intensity: 2,
       follow: "object",
     });
+    object.lights?.remove("glow");
 
-    expect(added.length).toBe(1);
-    resources.dispose();
-    expect(disposed).toEqual(added);
+    expect(lightCalls).toEqual(["point:glow", "remove:glow"]);
   });
 });
 
@@ -129,6 +123,14 @@ function createVisual(calls: string[]): WebGLEffectVisualContext {
         dispose() {},
       };
     },
+  };
+}
+
+function createManagedObjectHandle() {
+  return {
+    setVisible() {},
+    remove() {},
+    dispose() {},
   };
 }
 

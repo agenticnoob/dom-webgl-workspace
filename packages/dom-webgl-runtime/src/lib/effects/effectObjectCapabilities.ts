@@ -3,7 +3,7 @@ import type {
   WebGLEffectObjectHandle,
   WebGLEffectTextureFacade,
 } from "./effectObject";
-import { readManagedMaterialFacade } from "../render/renderables/sourceCapabilityHandles";
+import { readManagedMaterialFacade } from "./effectManagedMaterialRegistry";
 
 export type WebGLEffectObjectCapabilities = {
   material?: WebGLEffectObjectHandle["material"];

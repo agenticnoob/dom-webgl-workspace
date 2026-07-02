@@ -127,6 +127,7 @@ describe("createModelEffectHandle", () => {
         emissive: { set: vi.fn(), getHexString: () => "000000" },
         emissiveIntensity: 1,
         opacity: 1,
+        transparent: false,
         metalness: 0,
         roughness: 1,
       },

@@ -93,8 +93,8 @@ describe("model example effects", () => {
 
   test("model float glow uses managed material lights and postprocess", () => {
     const material: NonNullable<WebGLEffectContext["object"]["material"]> = {
-      color: { set: vi.fn() },
-      emissive: { set: vi.fn() },
+      color: { value: "#ffffff", set: vi.fn() },
+      emissive: { value: "#000000", intensity: 1, set: vi.fn() },
       opacity: 1,
       metalness: 0,
       roughness: 1,

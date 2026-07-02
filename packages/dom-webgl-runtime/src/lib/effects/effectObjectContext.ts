@@ -8,7 +8,6 @@ import type {
 import type { WebGLEffectObjectHandle } from "./effectObject";
 import { createEffectObjectCapabilities } from "./effectObjectCapabilities";
 import { createEffectObjectTransform } from "./effectObjectTransform";
-import { createManagedLightsFacade } from "../render/renderables/managedLights";
 
 export type WebGLEffectObjectOptions = {
   sourceKind: WebGLEffectSourceKind;
@@ -16,6 +15,7 @@ export type WebGLEffectObjectOptions = {
   target?: WebGLEffectTargetHandle;
   visual: WebGLEffectVisualContext;
   resources: WebGLEffectResourceScope;
+  lights?: WebGLEffectObjectHandle["lights"];
 };
 
 export function createWebGLEffectObject(
@@ -46,13 +46,7 @@ export function createWebGLEffectObject(
         return options.visual.requestPostprocess(request);
       },
     },
-    lights: createManagedLightsFacade({
-      target: options.target,
-      resources: options.resources,
-      readObjectPosition() {
-        return transform.position;
-      },
-    }),
+    lights: options.lights,
     ...capabilities,
   };
 }

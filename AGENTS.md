@@ -93,10 +93,15 @@ createWebGLRuntime({ container, effects: [myEffect] });
 - **useEffect array-form only**：`effects: [{ kind: "app.effect", opacity: 0.75 }]`。禁止使用旧的 `effects.material` / `effects.motion` 对象形式（已从编译器和类型中移除）。
 - 核心不注册默认视觉效果。所有具体效果由应用/消费者提供。包不导出 `effects` 子路径。
 - Effect authors use the controlled Three-like `ctx.object` facade for visual
-  control and source-backed capabilities: transform/visible/opacity,
-  postprocess, surface/text/texture/video/model modules, and future visual
-  capabilities. Source, target, and visual handles are internal runtime
-  assembly details, not part of the public effect context.
+  control and source-backed capabilities: transform/visible/opacity, material,
+  lights, animation, postprocess, surface/text/texture/video/model modules, and
+  future visual capabilities. Source, target, and visual handles are internal
+  runtime assembly details, not part of the public effect context.
+- Managed Three-like API 是当前 effect authoring 方向：消费者可以使用熟悉的
+  `position` / `rotation` / `scale` / `material` / `lights` / `animation`
+  词汇，但 renderer、scene、camera、object、material、loader、light、mixer、
+  render target、scroll、pointer、lifecycle、dispose 和 scheduling 仍由 runtime
+  拥有。
 - Effect 不能扫描 DOM、创建独立渲染器、拥有独立资源管线。
 - `ctx.object.position.set(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
 - 对 `transformScope: "subtree"` target，`ctx.object` 写内部 group；source-backed

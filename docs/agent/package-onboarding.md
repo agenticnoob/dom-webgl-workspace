@@ -88,12 +88,17 @@ import ... from "../example/src/someEffect";
 The runtime package does not export concrete effects or an `effects` preset
 subpath. Example effects are consumer examples, not package API.
 
+When porting from Three.js, keep the mental model and port the algorithm, not
+the ownership. Do not create a renderer, scene, camera, loader, light, mesh,
+material, texture, mixer, composer, pass, render target, or render loop in
+consumer effects. Ask for or use a managed facade under `ctx.object`.
+
 ## Minimal React Integration
 
 Define effects at module scope, pass them once to the runtime, and declare target
 effect data on each target. The snippet below shows the current implemented
 handle surface. When designing new package capabilities, read
-`docs/agent/effect-object-boundary.md` first and target the future
+`docs/agent/effect-object-boundary.md` first and target the current managed
 `ctx.object` facade instead of adding more source-specific public handles.
 
 ```tsx

@@ -8,8 +8,8 @@ import {
   createTextLayerCapabilityHandle,
   createTextureLayerCapabilityHandle,
   createVideoLayerCapabilityHandle,
-  readManagedMaterialFacade,
 } from "../../../../src/lib/render/renderables/sourceCapabilityHandles";
+import { readManagedMaterialFacade } from "../../../../src/lib/effects/effectManagedMaterialRegistry";
 
 describe("source capability handles", () => {
   test("canvas surface handle draws and invalidates the existing texture", () => {
@@ -119,6 +119,7 @@ describe("source capability handles", () => {
       emissive: { set: vi.fn(), getHexString: () => "000000" },
       emissiveIntensity: 1,
       opacity: 1,
+      transparent: false,
       metalness: 0,
       roughness: 1,
     };
