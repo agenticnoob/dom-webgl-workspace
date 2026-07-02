@@ -50,6 +50,12 @@ export type ExampleEffectParams = {
   "example.videoDrift": { distance?: number };
   "example.modelSpin": { speed?: number };
   "example.modelFloat": { amplitude?: number };
+  "example.modelFloatGlow": {
+    amplitude?: number;
+    speed?: number;
+    emissive?: string;
+    lightIntensity?: number;
+  };
 };
 
 export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams>()([
@@ -106,4 +112,11 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.videoDrift", distance: 0.12 },
   { kind: "example.modelSpin", speed: 0.25 },
   { kind: "example.modelFloat", amplitude: 24 },
+  {
+    kind: "example.modelFloatGlow",
+    amplitude: 30,
+    speed: 0.46,
+    emissive: "#7dd3fc",
+    lightIntensity: 2.2,
+  },
 ]);

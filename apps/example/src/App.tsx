@@ -445,6 +445,40 @@ export default function App() {
             )}
           </section>
 
+          <section className="example-row">
+            <EffectDescription source="model/glb" title="模型自发光">
+              用 Three-like managed facade 控制 GLB 的位置、旋转、材质发光、点光源和 bloom。
+            </EffectDescription>
+            {exampleResources.modelReady ? (
+              <WebGLTarget
+                as="section"
+                className="example-panel example-panel-model example-panel-model-glow"
+                webgl={{
+                  key: "example.model.float-glow",
+                  source: {
+                    kind: "model",
+                    type: "glb",
+                    src: "/models/4.glb",
+                  },
+                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                  effects: [
+                    {
+                      kind: "example.modelFloatGlow",
+                      amplitude: 30,
+                      speed: 0.46,
+                      emissive: "#7dd3fc",
+                      lightIntensity: 2.2,
+                    },
+                  ],
+                }}
+              >
+                <strong>Managed Three-like API 控制模型发光和灯光。</strong>
+              </WebGLTarget>
+            ) : (
+              <section className="example-panel example-panel-model example-panel-model-glow" />
+            )}
+          </section>
+
           <PinnedScrollExample />
         </div>
       </main>

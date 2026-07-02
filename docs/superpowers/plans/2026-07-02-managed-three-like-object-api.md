@@ -1668,7 +1668,7 @@ git commit -m "feat: add managed model animation facade"
 - Test: `apps/example/test/modelEffects.test.ts`
 - Test: `apps/example/test/App.test.tsx`
 
-- [ ] **Step 1: Add rotating floating glow effect**
+- [x] **Step 1: Add rotating floating glow effect**
 
 In `apps/example/src/modelEffects.ts`, add:
 
@@ -1727,7 +1727,7 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
 });
 ```
 
-- [ ] **Step 2: Register effect and params**
+- [x] **Step 2: Register effect and params**
 
 In `apps/example/src/exampleEffects.ts`, add `exampleModelFloatGlowEffect` to the exported array.
 
@@ -1742,7 +1742,7 @@ In `apps/example/src/exampleEffectDeclarations.ts`, add:
 };
 ```
 
-- [ ] **Step 3: Warm both model assets**
+- [x] **Step 3: Warm both model assets**
 
 In `apps/example/src/exampleResourceScheduler.ts`, replace the single model warm with:
 
@@ -1754,7 +1754,7 @@ const modelReady = Promise.all([heroModelReady, fourModelReady]).then((results) 
 );
 ```
 
-- [ ] **Step 4: Add example row**
+- [x] **Step 4: Add example row**
 
 In `apps/example/src/App.tsx`, after the existing model float row, add:
 
@@ -1794,7 +1794,7 @@ In `apps/example/src/App.tsx`, after the existing model float row, add:
 </section>
 ```
 
-- [ ] **Step 5: Add effect test**
+- [x] **Step 5: Add effect test**
 
 In `apps/example/test/modelEffects.test.ts`, add:
 
@@ -1846,7 +1846,7 @@ test("model float glow uses managed material lights and postprocess", () => {
 });
 ```
 
-- [ ] **Step 6: Run example tests**
+- [x] **Step 6: Run example tests**
 
 Run:
 
@@ -1856,7 +1856,7 @@ npm test -- --run apps/example/test/modelEffects.test.ts apps/example/test/App.t
 
 Expected: PASS and App test includes `/models/4.glb` declaration.
 
-- [ ] **Step 7: Commit example dogfood**
+- [x] **Step 7: Commit example dogfood**
 
 ```bash
 git add apps/example/src/modelEffects.ts apps/example/src/exampleEffects.ts apps/example/src/exampleEffectDeclarations.ts apps/example/src/exampleResourceScheduler.ts apps/example/src/App.tsx apps/example/test/modelEffects.test.ts apps/example/test/App.test.tsx apps/example/public/models/4.glb

@@ -24,6 +24,7 @@ export {
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
 export {
+  exampleModelFloatGlowEffect,
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
@@ -45,7 +46,11 @@ import {
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
-import { exampleModelFloatEffect, exampleModelSpinEffect } from "./modelEffects";
+import {
+  exampleModelFloatGlowEffect,
+  exampleModelFloatEffect,
+  exampleModelSpinEffect,
+} from "./modelEffects";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 import {
   exampleSequenceCardBorderGlowEffect,
@@ -91,4 +96,5 @@ export const exampleEffects = [
   exampleVideoDriftEffect,
   exampleModelSpinEffect,
   exampleModelFloatEffect,
+  exampleModelFloatGlowEffect,
 ] as const;
