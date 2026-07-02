@@ -8,16 +8,16 @@ on decisions agents must make while writing effect definitions.
 ## Boundary
 
 - Effects are application-owned code.
-- `@project/dom-webgl-runtime` exports authoring primitives, current source
-  handles, target handles, frame input, and managed resources.
+- `@project/dom-webgl-runtime` exports authoring primitives, the controlled
+  `ctx.object` facade, frame input, and managed resources.
 - The package does not export concrete effects, preset effects, or
   `@project/dom-webgl-runtime/effects`.
 - Example app effects live under `apps/example` and are copyable examples, not
   package API.
 - Forward capability design should use
   `docs/agent/effect-object-boundary.md`: new visual capabilities belong under a
-  controlled Three-like `ctx.object` facade, not as another method on
-  `ctx.source.*`.
+  controlled Three-like `ctx.object` facade, not as source-specific public
+  handles.
 
 ## React Registration Pattern
 
@@ -55,13 +55,12 @@ Rules:
 - Use namespaced kinds such as `product.textWave`; avoid generic names such as
   `wave`, `fade`, or `particles`.
 
-## Source Handles
+## Object Modules
 
-`ctx.object` is the preferred visual control surface. `ctx.source.*` and
-`ctx.target` remain compatibility handles and source-metadata substrate. Do not
-add new public model/text/media capability families here when planning package
-work; route new capability through the controlled effect object boundary
-instead.
+`ctx.object` is the public visual control surface. Source, target, and visual
+handles are internal runtime assembly details. Do not add public
+model/text/media capability families outside the controlled effect object
+boundary.
 
 Use source-specific object modules when they exist:
 
@@ -130,7 +129,7 @@ Do not dispose or mutate:
 Effect tests should cover:
 
 - definition `kind` matches declaration `kind`;
-- unsupported source kinds no-op safely;
+- absent `ctx.object.*` capability modules no-op safely;
 - numeric params are clamped;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` or `ctx.time`, not frame counts;
@@ -139,7 +138,7 @@ Effect tests should cover:
   state, especially when the pointer stops moving inside the target;
 - resumed interactions during fade-out do not unintentionally reset old effect
   state to full strength;
-- `dispose` releases effect-owned resources and restores source mutations.
+- `dispose` releases effect-owned resources.
 
 Repository verification:
 

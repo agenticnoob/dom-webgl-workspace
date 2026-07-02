@@ -6,11 +6,9 @@ application code. The page uses Chinese visible copy
 for effect explanations while keeping source kinds and effect kind strings in
 English as API data.
 
-The examples now use `ctx.object` as the first visual authoring surface.
-`ctx.source.*`, `ctx.target`, and `ctx.visual` remain compatibility/source
-metadata handles; new package capability design should follow
-`docs/agent/effect-object-boundary.md` instead of growing more source-specific
-handles.
+The examples use `ctx.object` as the public visual authoring surface. Source,
+target, and visual handles are internal runtime assembly details; new package
+capability design should follow `docs/agent/effect-object-boundary.md`.
 
 ## Install And Run
 
@@ -260,7 +258,7 @@ definition is missing, the target declaration has no executable effect.
 
 ## Source Examples In `apps/example`
 
-`apps/example/src/exampleEffects.ts` covers the current public source handles:
+`apps/example/src/exampleEffects.ts` covers the current public object modules:
 
 - `example.surfaceFill`: draws `/example/bg.png` onto the element snapshot
   surface and applies opacity only to that surface layer.
@@ -323,8 +321,8 @@ definition is missing, the target declaration has no executable effect.
 
 ### Image Hover Reveal Implementation Notes
 
-`example.imageHoverReveal` is intentionally consumer-owned. It uses only the
-public `media/image` source handle, `createMaterialLayer(...)`, and texture
+`example.imageHoverReveal` is intentionally consumer-owned. It uses only
+`ctx.object.texture`, `texture.material.createMaterialLayer(...)`, and texture
 uniform declarations:
 
 - `uBaseTexture` is the runtime-owned source image texture.
@@ -382,5 +380,5 @@ package effects.
 - Old explicit declarations such as top-level media kinds and `snapshot/mode`
   are removed.
 - `ctx.object.text` affects WebGL output only; it does not mutate DOM text.
-- Effects should no-op when `ctx.source.kind` or `ctx.source.type` is not compatible.
+- Effects should no-op when the needed `ctx.object.*` capability module is absent.
 - Effect-owned objects and listeners need `ctx.resources` disposal.

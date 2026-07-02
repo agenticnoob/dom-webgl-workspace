@@ -1,11 +1,22 @@
 import { vi } from "vitest";
 
-import type {
-  WebGLEffectContext,
-  WebGLEffectTargetHandle,
-} from "@project/dom-webgl-runtime";
+import type { WebGLEffectContext } from "@project/dom-webgl-runtime";
 
 import { createEffectSource, type TestEffectSource } from "./effectSourceHandles";
+
+type TestEffectSourceHandle = ReturnType<typeof createEffectSource>;
+
+type TestEffectTargetHandle = {
+  setVisible(visible: boolean): void;
+  setPosition(x: number, y: number, z?: number): void;
+  setRotation(x: number, y: number, z?: number): void;
+  setScale(x: number, y?: number, z?: number): void;
+  setOpacity(opacity: number): void;
+};
+
+type TestEffectVisualContext = {
+  requestPostprocess: WebGLEffectContext["object"]["postprocess"]["request"];
+};
 
 type TestEffectContextOverrides = Omit<
   Partial<WebGLEffectContext>,
@@ -16,13 +27,15 @@ type TestEffectContextOverrides = Omit<
   | "scroll"
   | "source"
   | "target"
+  | "visual"
 > & {
   layout?: Partial<WebGLEffectContext["layout"]>;
   pointer?: Partial<WebGLEffectContext["pointer"]>;
   resources?: Partial<WebGLEffectContext["resources"]>;
   scroll?: WebGLEffectContext["scroll"];
   source?: TestEffectSource;
-  target?: Partial<WebGLEffectTargetHandle>;
+  target?: Partial<TestEffectTargetHandle>;
+  visual?: TestEffectVisualContext;
 };
 
 export function createGlyph(index: number, char: string) {
@@ -80,7 +93,6 @@ export function createEffectContext(
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
     progress: overrides.progress ?? { get: () => 0 },
-    visual,
     time,
     delta,
     object:
@@ -91,8 +103,6 @@ export function createEffectContext(
         target,
         visual,
       }),
-    source,
-    target,
     resources,
   } satisfies WebGLEffectContext;
 }
@@ -143,9 +153,7 @@ function normalizeAxis(value: number, size: number): number {
   return (2 * value - size) / size;
 }
 
-function readEffectSourceKind(
-  source: WebGLEffectContext["source"],
-): WebGLEffectContext["sourceKind"] {
+function readEffectSourceKind(source: TestEffectSourceHandle): WebGLEffectContext["sourceKind"] {
   switch (source.kind) {
     case "dom":
       return source.type === "text" ? "dom/text" : "dom/element";
@@ -158,6 +166,7 @@ function readEffectSourceKind(
         case "image-sequence":
           return "media/image-sequence";
       }
+      return assertNeverSource(source);
     case "model":
       return "model/glb";
   }
@@ -222,7 +231,7 @@ function createPageScrollState(): WebGLEffectContext["scroll"] {
   };
 }
 
-function createTargetHandle(): WebGLEffectTargetHandle {
+function createTargetHandle(): TestEffectTargetHandle {
   return {
     setVisible: vi.fn(),
     setPosition: vi.fn(),
@@ -244,9 +253,9 @@ function createResourceScope(): WebGLEffectContext["resources"] {
 
 function createTestEffectObject(options: {
   sourceKind: WebGLEffectContext["sourceKind"];
-  source: WebGLEffectContext["source"];
-  target: WebGLEffectTargetHandle | undefined;
-  visual: WebGLEffectContext["visual"];
+  source: TestEffectSourceHandle;
+  target: TestEffectTargetHandle | undefined;
+  visual: TestEffectVisualContext;
 }): WebGLEffectContext["object"] {
   const transform = createTestTransform(options.target);
 
@@ -276,7 +285,7 @@ function createTestEffectObject(options: {
   };
 }
 
-function createTestTransform(target: WebGLEffectTargetHandle | undefined) {
+function createTestTransform(target: TestEffectTargetHandle | undefined) {
   let visible = true;
   let opacity = 1;
 
@@ -384,27 +393,34 @@ function createTestScale(
 }
 
 function createTestObjectCapabilities(
-  source: WebGLEffectContext["source"],
+  source: TestEffectSourceHandle,
 ): Partial<WebGLEffectContext["object"]> {
   switch (source.kind) {
     case "dom":
       if (source.type === "text") {
-        return source.textLayer
+        const textLayer = source.textLayer;
+        return textLayer
           ? {
               text: {
                 get text() {
-                  return source.textLayer?.text ?? source.text;
+                  return textLayer.text;
+                },
+                get style() {
+                  return textLayer.style;
+                },
+                get shaderInputs() {
+                  return textLayer.shaderInputs;
                 },
                 getGlyphs() {
-                  return source.textLayer?.getGlyphs() ?? [];
+                  return textLayer.getGlyphs();
                 },
                 setText(text) {
-                  source.textLayer?.setText(text);
+                  textLayer.setText(text);
                 },
                 setGlyphs(transform) {
-                  source.textLayer?.setGlyphs(transform);
+                  textLayer.setGlyphs(transform);
                 },
-                material: source.textLayer,
+                material: textLayer,
               },
             }
           : {};
@@ -415,23 +431,30 @@ function createTestObjectCapabilities(
       switch (source.type) {
         case "image":
           return source.image
-            ? { texture: createTestTextureFacade(source.image) }
+            ? { texture: createTestTextureFacade(source.image, { src: source.src }) }
             : {};
         case "video":
           return source.video
             ? {
-                texture: createTestTextureFacade(source.video),
-                video: source.video,
+                texture: createTestTextureFacade(source.video, { src: source.src }),
+                video: createTestVideoFacade(source.video),
               }
             : {};
         case "image-sequence":
           return source.image
-            ? { texture: createTestTextureFacade(source.image) }
+            ? {
+                texture: createTestTextureFacade(source.image, {
+                  src: source.src,
+                  frame: source.frame,
+                }),
+              }
             : {};
       }
+      return assertNeverSource(source);
     case "model":
       return {
         model: {
+          src: source.src,
           meshes: {
             all() {
               return source.model.getMeshes();
@@ -455,22 +478,32 @@ function createTestObjectCapabilities(
   }
 }
 
+function assertNeverSource(source: never): never {
+  return source;
+}
+
 function createTestTextureFacade(
   layer:
     | NonNullable<
-        Extract<WebGLEffectContext["source"], { kind: "media"; type: "image" }>["image"]
+        Extract<TestEffectSourceHandle, { kind: "media"; type: "image" }>["image"]
       >
     | NonNullable<
-        Extract<WebGLEffectContext["source"], { kind: "media"; type: "video" }>["video"]
+        Extract<TestEffectSourceHandle, { kind: "media"; type: "video" }>["video"]
       >
     | NonNullable<
         Extract<
-          WebGLEffectContext["source"],
+          TestEffectSourceHandle,
           { kind: "media"; type: "image-sequence" }
         >["image"]
       >,
+  metadata: { src?: string; frame?: number },
 ): NonNullable<WebGLEffectContext["object"]["texture"]> {
   return {
+    src: metadata.src,
+    frame: metadata.frame,
+    get shaderInputs() {
+      return layer.shaderInputs;
+    },
     setTransform(transform) {
       layer.setTextureTransform(transform);
     },
@@ -478,5 +511,26 @@ function createTestTextureFacade(
       layer.invalidate();
     },
     material: layer,
+  };
+}
+
+function createTestVideoFacade(
+  video: NonNullable<
+    Extract<TestEffectSourceHandle, { kind: "media"; type: "video" }>["video"]
+  >,
+): NonNullable<WebGLEffectContext["object"]["video"]> {
+  return {
+    play() {
+      return video.play();
+    },
+    pause() {
+      video.pause();
+    },
+    setMuted(muted) {
+      video.setMuted(muted);
+    },
+    setPlaybackRate(rate) {
+      video.setPlaybackRate(rate);
+    },
   };
 }

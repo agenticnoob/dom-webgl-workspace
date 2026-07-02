@@ -1,16 +1,18 @@
 import type {
   WebGLEffectCanvasSurfaceHandle,
   WebGLEffectMaterialLayerHost,
+  WebGLEffectMediaShaderInputs,
   WebGLEffectManagedObjectHandle,
   WebGLEffectPointLayerOptions,
   WebGLEffectPostprocessHandle,
   WebGLEffectPostprocessRequest,
   WebGLEffectSourceKind,
+  WebGLEffectTextShaderInputs,
   WebGLEffectTextureTransform,
-  WebGLEffectVideoLayerHandle,
   WebGLModelMeshHandle,
   WebGLTextGlyph,
   WebGLTextGlyphRenderCommand,
+  WebGLTextLayerStyle,
 } from "./effectAuthoring";
 
 export type WebGLEffectVector3Like = {
@@ -29,13 +31,25 @@ export type WebGLEffectPostprocessFacade = {
 };
 
 export type WebGLEffectTextureFacade = {
+  readonly src?: string;
+  readonly frame?: number;
+  readonly shaderInputs: WebGLEffectMediaShaderInputs;
   setTransform(transform: WebGLEffectTextureTransform): void;
   invalidate(): void;
   material: WebGLEffectMaterialLayerHost;
 };
 
+export type WebGLEffectVideoFacade = {
+  play(): Promise<void> | void;
+  pause(): void;
+  setMuted(muted: boolean): void;
+  setPlaybackRate(rate: number): void;
+};
+
 export type WebGLEffectTextFacade = {
   readonly text: string;
+  readonly style: WebGLTextLayerStyle;
+  readonly shaderInputs: WebGLEffectTextShaderInputs;
   getGlyphs(): readonly WebGLTextGlyph[];
   setText(text: string): void;
   setGlyphs(
@@ -60,6 +74,7 @@ export type WebGLEffectModelPointsFacade = {
 };
 
 export type WebGLEffectModelFacade = {
+  readonly src: string;
   meshes: WebGLEffectModelMeshesFacade;
   sampling: WebGLEffectModelSamplingFacade;
   points: WebGLEffectModelPointsFacade;
@@ -75,7 +90,7 @@ export type WebGLEffectObjectHandle = {
   surface?: WebGLEffectCanvasSurfaceHandle;
   text?: WebGLEffectTextFacade;
   texture?: WebGLEffectTextureFacade;
-  video?: WebGLEffectVideoLayerHandle;
+  video?: WebGLEffectVideoFacade;
   model?: WebGLEffectModelFacade;
   postprocess: WebGLEffectPostprocessFacade;
 };

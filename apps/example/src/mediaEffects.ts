@@ -271,13 +271,12 @@ function prepareImageHoverReveal(
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
 ): void {
-  if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
+  const texture = ctx.object.texture;
+  if (!texture) {
     return;
   }
 
   const revealSrc = params.revealSrc ?? "/example/mask.png";
-  const imageHandle = ctx.source.image;
-  const texture = ctx.object.texture;
   if (!state.revealImage || state.revealSrc !== revealSrc) {
     const image = new Image();
     const placeholder = readImageHoverRevealPlaceholder(state);
@@ -294,16 +293,16 @@ function prepareImageHoverReveal(
         uRevealReady: true,
         uRevealTexture: { kind: "image-texture", source: image },
       });
-      texture?.invalidate();
+      texture.invalidate();
     };
     image.src = revealSrc;
   }
 
-  if (state.layer || !imageHandle || !texture || !state.revealImage) {
+  if (state.layer || !state.revealImage) {
     return;
   }
 
-  const uvTransform = imageHandle.shaderInputs.uvTransform;
+  const uvTransform = texture.shaderInputs.uvTransform;
   const maskCanvas = readImageHoverRevealMaskCanvas(state, ctx.layout);
   state.layer = texture.material.createMaterialLayer({
     key: "example.imageHoverReveal",
@@ -340,7 +339,8 @@ function updateImageHoverReveal(
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
 ): void {
-  if (ctx.source.kind !== "media" || ctx.source.type !== "image" || !state.layer) {
+  const texture = ctx.object.texture;
+  if (!texture || !state.layer) {
     return;
   }
 
@@ -349,12 +349,7 @@ function updateImageHoverReveal(
     pointer: ctx.targetPointer,
   });
   const maskCanvas = updateImageHoverRevealMask(ctx.time, state, params, pointer, ctx.layout);
-  const uvTransform = ctx.source.image?.shaderInputs.uvTransform ?? {
-    repeatX: 1,
-    repeatY: 1,
-    offsetX: 0,
-    offsetY: 0,
-  };
+  const uvTransform = texture.shaderInputs.uvTransform;
 
   state.layer.setUniforms({
     uPointer: [pointer.x, pointer.y],
@@ -372,7 +367,7 @@ function updateImageHoverReveal(
     uUvRepeat: [uvTransform.repeatX, uvTransform.repeatY],
     uUvOffset: [uvTransform.offsetX, uvTransform.offsetY],
   });
-  ctx.object.texture?.invalidate();
+  texture.invalidate();
   ctx.object.visible = true;
   ctx.object.opacity = 1;
 }

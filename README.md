@@ -56,11 +56,12 @@ material/texture fields, and raw materials internal.
 Effect authoring direction is corrected and partially implemented in
 `docs/agent/effect-object-boundary.md`: `ctx.object` is now the primary
 controlled Three-like facade for transform, visibility, opacity, postprocess,
-and existing surface/text/texture/video/model capabilities. Current
-`ctx.source.*`, `ctx.target`, and `ctx.visual` handles remain compatibility and
-implementation substrate, but new public visual capabilities should not continue
-expanding source-specific handles. The implementation record is
-`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
+and existing surface/text/texture/video/model capabilities. Effect authors use
+`ctx.object` for all visual control and source-backed capabilities; source,
+target, and visual handles are internal runtime assembly details and are not
+part of the public effect context. The implementation records are
+`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md` and
+`docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`.
 The runtime performance roadmap in
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
@@ -427,15 +428,16 @@ scan DOM, mutate arbitrary DOM, create their own renderer, or own independent
 asset loading.
 
 The effect context exposes low-level runtime output handles for every supported
-source kind. Consumers can draw to canvas-backed element surfaces, control
-WebGL text layers and glyph layout, transform image/video texture planes,
-control video playback, create controlled material layers over source textures,
-read source-specific shader input metadata, inspect or manipulate GLB model
-mesh handles, create managed point layers, and request named runtime-owned
-postprocess handles through public effect context. Current postprocess support
-owns request/handle lifecycle and executes bounded internal bloom/grain/blur
-passes without exposing composer, pass-order, or render-target internals.
-Target `setPosition(...)` writes runtime scene-space coordinates, not DOM
+source kind. Consumers can draw to canvas-backed element surfaces through
+`ctx.object.surface`, control WebGL text and glyph layout through
+`ctx.object.text`, transform image/video/sequence textures through
+`ctx.object.texture`, control video playback through `ctx.object.video`, inspect
+or manipulate GLB model mesh handles and managed point layers through
+`ctx.object.model`, and request named runtime-owned postprocess handles through
+`ctx.object.postprocess`. Current postprocess support owns request/handle
+lifecycle and executes bounded internal bloom/grain/blur passes without
+exposing composer, pass-order, or render-target internals.
+`ctx.object.position.set(...)` writes runtime scene-space coordinates, not DOM
 `left`/`top`. Concrete effects remain application-owned.
 Material programs are Three-inspired shader declarations, not raw Three.js
 materials; public fields are `vertexShader`, `fragmentShader`, `uniforms`,
@@ -451,7 +453,7 @@ Capability matrix:
 | `media/video` | image capabilities plus playback controls |
 | `media/image-sequence` | frame-addressable media texture controls |
 | `model/glb` | controlled mesh handles, material restore, sampled vertices, managed point layers |
-| runtime visual context | `ctx.visual.requestPostprocess(...)` for named bloom/grain/blur request handles |
+| runtime postprocess | `ctx.object.postprocess.request(...)` for named bloom/grain/blur request handles |
 
 Runtime owns material, texture, geometry, render-target, postprocess request,
 and managed-object lifecycle. Effects update public handles/requests and

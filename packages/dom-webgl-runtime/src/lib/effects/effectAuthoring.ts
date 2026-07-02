@@ -332,12 +332,9 @@ export type WebGLEffectContext = {
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
   progress: WebGLProgressSignalSource;
-  visual: WebGLEffectVisualContext;
   time: number;
   delta: number;
   object: WebGLEffectObjectHandle;
-  source: WebGLEffectSourceHandle;
-  target: WebGLEffectTargetHandle | undefined;
   resources: WebGLEffectResourceScope;
 };
 

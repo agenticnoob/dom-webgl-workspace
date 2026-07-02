@@ -14,9 +14,8 @@ the source for layout, content, accessibility, and interaction state.
 Package split:
 
 - `<runtime-package>`: runtime creation, React adapter, target declarations,
-  effect authoring primitives, current source/target handles, scroll state,
-  pointer state, managed resources, and the forward controlled effect-object
-  boundary.
+  effect authoring primitives, controlled `ctx.object` facade, scroll state,
+  pointer state, and managed resources.
 - `<scroll-adapters-package>`: optional Lenis, GSAP ticker, ScrollTrigger, and
   React pinned-scroll glue.
 - Application code: all concrete visual effects, product copy, assets, layouts,
@@ -199,10 +198,9 @@ Choose the source from the actual DOM element:
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 
-`ctx.source` remains available for source metadata and compatibility. New visual
-control examples should use `ctx.object` first. Do not add new public
-source-specific capability families without first designing their object-facade
-shape.
+Effect authors use `ctx.object` for visual control and source-backed
+capabilities. Source, target, and visual handles are internal runtime assembly
+details, not public effect authoring API.
 
 For text output, use the object text facade:
 
@@ -220,31 +218,34 @@ ctx.object.text.setGlyphs((glyphs) =>
 );
 ```
 
-Compatibility handles for source metadata and legacy examples:
+Object modules:
 
-- `dom/element`: `ctx.source.surface`
-- `dom/text`: `ctx.source.textLayer`
-- `media/image`: `ctx.source.image`
-- `media/video`: `ctx.source.video`
-- `media/image-sequence`: `ctx.source.image`
-- `model/glb`: `ctx.source.model`
+- `ctx.object.surface`: canvas draw/clear/invalidate/material-layer controls.
+- `ctx.object.text`: text, style, shader inputs, glyph read/write, and
+  material-layer controls.
+- `ctx.object.texture`: media src/frame metadata, shader inputs, texture
+  transform, invalidate, and material-layer controls.
+- `ctx.object.video`: video playback controls.
+- `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
+  layers.
+- `ctx.object.postprocess`: named postprocess requests.
 
 Current visual capability surface:
 
-- Element and text snapshot handles can draw to their canvas surface and create
+- Element and text object modules can draw to their canvas surface and create
   runtime-owned material layers over the source texture.
-- Text, image, and video handles expose shader input metadata such as size,
+- Text, media texture, and video modules expose shader input metadata such as size,
   glyph layout, natural media size, content box, source texture availability,
   and object-fit UV transform.
-- Image/video handles keep object-fit and playback controls public without
+- Texture/video modules keep object-fit and playback controls public without
   exposing raw Three textures.
-- GLB handles expose controlled mesh handles, material restore, vertex samples,
+- GLB object modules expose controlled mesh handles, material restore, vertex samples,
   and managed point layers.
 - Public handles are capability handles: use methods such as `draw`,
-  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
-  `sampleVertices`, and `createPointLayer`; do not rely on `object3D`, `mesh`,
+  `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
+  `sampling.vertices`, and `points.create`; do not rely on `object3D`, `mesh`,
   `material`, or `texture` fields.
-- `ctx.visual.requestPostprocess(...)` submits named bloom/grain/blur requests
+- `ctx.object.postprocess.request(...)` submits named bloom/grain/blur requests
   owned by the runtime.
 - Material uniforms are controlled data, not raw Three.js objects. Numeric
   tuples and supported arrays such as pointer-trail `vec2[]` are acceptable;
@@ -453,7 +454,7 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Runtime churn: React recreates the runtime because `effects` or
   `scrollAdapter` identity changes every render.
 - Invalid media source: `image` or `video` is declared on a non-media element.
-- Text confusion: `textLayer.setGlyphs(...)` changes WebGL output, not DOM text.
+- Text confusion: `ctx.object.text.setGlyphs(...)` changes WebGL output, not DOM text.
 - Pointer offset: an effect compares `ctx.pointer` runtime/canvas coordinates
   directly to target-local coordinates instead of reading `ctx.targetPointer`.
 - Shader coordinate mismatch: DOM pointer `y` is top-down, while shader

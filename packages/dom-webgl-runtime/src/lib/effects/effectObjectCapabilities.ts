@@ -49,21 +49,7 @@ function createDOMCapabilities(
       }
 
       return {
-        text: {
-          get text() {
-            return source.textLayer?.text ?? source.text;
-          },
-          getGlyphs() {
-            return source.textLayer?.getGlyphs() ?? [];
-          },
-          setText(text) {
-            source.textLayer?.setText(text);
-          },
-          setGlyphs(transform) {
-            source.textLayer?.setGlyphs(transform);
-          },
-          material: source.textLayer,
-        },
+        text: createTextFacade(source, source.textLayer),
       };
   }
 }
@@ -73,16 +59,25 @@ function createMediaCapabilities(
 ): WebGLEffectObjectCapabilities {
   switch (source.type) {
     case "image":
-      return source.image ? { texture: createTextureFacade(source.image) } : {};
+      return source.image
+        ? { texture: createTextureFacade(source.image, { src: source.src }) }
+        : {};
     case "video":
       return source.video
         ? {
-            texture: createTextureFacade(source.video),
-            video: source.video,
+            texture: createTextureFacade(source.video, { src: source.src }),
+            video: createVideoFacade(source.video),
           }
         : {};
     case "image-sequence":
-      return source.image ? { texture: createTextureFacade(source.image) } : {};
+      return source.image
+        ? {
+            texture: createTextureFacade(source.image, {
+              src: source.src,
+              frame: source.frame,
+            }),
+          }
+        : {};
   }
 }
 
@@ -91,6 +86,7 @@ function createModelCapabilities(
 ): WebGLEffectObjectCapabilities {
   return {
     model: {
+      src: source.src,
       meshes: {
         all() {
           return source.model.getMeshes();
@@ -113,8 +109,43 @@ function createModelCapabilities(
   };
 }
 
-function createTextureFacade(layer: TextureLayer): WebGLEffectTextureFacade {
+function createTextFacade(
+  source: Extract<DOMSourceHandle, { type: "text" }>,
+  textLayer: NonNullable<Extract<DOMSourceHandle, { type: "text" }>["textLayer"]>,
+): NonNullable<WebGLEffectObjectCapabilities["text"]> {
   return {
+    get text() {
+      return textLayer.text ?? source.text;
+    },
+    get style() {
+      return textLayer.style;
+    },
+    get shaderInputs() {
+      return textLayer.shaderInputs;
+    },
+    getGlyphs() {
+      return textLayer.getGlyphs();
+    },
+    setText(text) {
+      textLayer.setText(text);
+    },
+    setGlyphs(transform) {
+      textLayer.setGlyphs(transform);
+    },
+    material: textLayer,
+  };
+}
+
+function createTextureFacade(
+  layer: TextureLayer,
+  metadata: { src?: string; frame?: number },
+): WebGLEffectTextureFacade {
+  return {
+    src: metadata.src,
+    frame: metadata.frame,
+    get shaderInputs() {
+      return layer.shaderInputs;
+    },
     setTransform(transform) {
       layer.setTextureTransform(transform);
     },
@@ -122,5 +153,24 @@ function createTextureFacade(layer: TextureLayer): WebGLEffectTextureFacade {
       layer.invalidate();
     },
     material: layer,
+  };
+}
+
+function createVideoFacade(
+  video: NonNullable<Extract<MediaSourceHandle, { type: "video" }>["video"]>,
+): NonNullable<WebGLEffectObjectCapabilities["video"]> {
+  return {
+    play() {
+      return video.play();
+    },
+    pause() {
+      video.pause();
+    },
+    setMuted(muted) {
+      video.setMuted(muted);
+    },
+    setPlaybackRate(rate) {
+      video.setPlaybackRate(rate);
+    },
   };
 }

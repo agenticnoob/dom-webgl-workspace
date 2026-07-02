@@ -26,9 +26,7 @@ export {
   type WebGLEffectSchedule,
   type WebGLEffectSetupContext,
   type WebGLEffectSourceTextureShaderInput,
-  type WebGLEffectSourceHandle,
   type WebGLEffectSurfaceShaderInputs,
-  type WebGLEffectTargetHandle,
   type WebGLEffectTextLayerHandle,
   type WebGLEffectTextShaderInputs,
   type WebGLEffectTextureUniform,
@@ -36,7 +34,6 @@ export {
   type WebGLEffectTextureTransform,
   type WebGLEffectUniformValue,
   type WebGLEffectUpdateContext,
-  type WebGLEffectVisualContext,
   type WebGLEffectVideoLayerHandle,
   type WebGLModelEffectHandle,
   type WebGLModelMeshHandle,
@@ -55,6 +52,7 @@ export type {
   WebGLEffectTextFacade,
   WebGLEffectTextureFacade,
   WebGLEffectVector3Like,
+  WebGLEffectVideoFacade,
 } from "./lib/effects/effectObject";
 export type { WebGLDebugState } from "./lib/types";
 export type {

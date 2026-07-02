@@ -32,8 +32,9 @@ Phase 5/6 historically added legacy `effects.material` and `effects.motion`
 declaration shapes plus concrete package-owned effect implementations. Phase 7
 historically moved those declarations through registry primitives. Phase 8 and
 the package effect boundary cleanup supersede that concrete-effect model:
-`defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
- target handles, and managed effect resources are the public authoring API, while
+`defineWebGLEffect(...)`, runtime-level `effects`, the controlled
+`ctx.object` facade, frame/input state, keyed progress, and managed effect
+resources are the public authoring API, while
  all concrete effect implementations live in application, example, or documentation
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
@@ -1436,17 +1437,17 @@ Current controlled visual capability API, delivered after Phase 8:
   `defines`, and `blend`. The runtime compiles those declarations into internal
   Three material/texture state, restores original materials, and disposes
   runtime-owned resources.
-- Text/media handles expose shader input metadata such as source texture
+- Object modules expose shader input metadata such as source texture
   availability, size, DPR, glyph coordinates, media natural size, content box,
   and object-fit UV transform.
-- GLB model handles expose controlled mesh handles, material restore, sampled
+- GLB object model modules expose controlled mesh handles, material restore, sampled
   vertices, and managed point layers.
 - Public handles are AI-first capability handles: use methods such as `draw`,
-  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
-  `sampleVertices`, and `createPointLayer`. They do not expose `object3D`,
+  `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
+  `sampling.vertices`, and `points.create`. They do not expose `object3D`,
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
-- `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
+- `ctx.object.postprocess.request(...)` exposes named bloom/grain/blur requests.
   Current runtime truth is request/handle ownership, inspection, and bounded
   internal bloom/grain/blur pass execution. Composer, pass ordering, and
   render-target internals remain private.
@@ -1462,20 +1463,20 @@ Delivered Phase 8 behavior:
   concrete effects or official presets.
 - Example and documentation snippets may define local effects with the public
   authoring API, but those examples are consumer-owned code.
-- Effect context exposes layout, frame input, pointer, scroll, time, source
-  handles, target handles, and managed resources.
-- GLB effects receive a model source handle after the model source is loaded;
+- Effect context exposes layout, frame input, pointer, target-local pointer,
+  scroll, time, keyed progress, `ctx.object`, and managed resources.
+- GLB effects receive `ctx.object.model` after the model source is loaded;
   effects do not load GLB assets themselves.
 - Raw renderer, camera, scene, material, texture, composer, render-target,
   render-loop, pass ordering, and renderer-state mutation remain outside the
   public API.
 
-Text animation effects such as scrambled text and text pressure should use the
-public `dom/text` text-layer handle. They should not run by mutating native
+Text animation effects such as scrambled text and text pressure should use
+`ctx.object.text`. They should not run by mutating native
 DOM and waiting for snapshot refresh, because that couples effect timing to
-browser paint and snapshot cadence. `textLayer.setText(...)` and
-`textLayer.setGlyphs(...)` update only the WebGL output layer; DOM text remains
-the source for content, accessibility, and fallback.
+browser paint and snapshot cadence. `ctx.object.text.setText(...)` and
+`ctx.object.text.setGlyphs(...)` update only the WebGL output layer; DOM text
+remains the source for content, accessibility, and fallback.
 
 ## Non-Goals For The New Project
 

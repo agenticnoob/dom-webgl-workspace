@@ -49,6 +49,23 @@ describe("createEffectObjectCapabilities", () => {
     expect(glyphCalls).toEqual(["setText:Updated", "setGlyphs"]);
   });
 
+  test("maps text style and shader inputs to object.text", () => {
+    const calls: string[] = [];
+    const textLayer = createTextLayer("Hello", calls);
+    const source = {
+      kind: "dom",
+      type: "text",
+      element: document.createElement("p"),
+      text: "Hello",
+      textLayer,
+    } satisfies WebGLEffectSourceHandle;
+
+    const text = createEffectObjectCapabilities(source).text;
+
+    expect(text?.style.font).toBe("16px sans-serif");
+    expect(text?.shaderInputs.text).toBe("Hello");
+  });
+
   test("maps media image handles to object.texture", () => {
     const calls: string[] = [];
     const image = createImageLayer(calls);
@@ -85,9 +102,28 @@ describe("createEffectObjectCapabilities", () => {
 
     const capabilities = createEffectObjectCapabilities(source);
 
-    expect(capabilities.video).toBe(video);
+    capabilities.video?.setMuted(true);
     capabilities.texture?.setTransform({ offsetY: 0.5 });
-    expect(calls).toEqual(["transform:0.5"]);
+    expect(calls).toEqual(["muted:true", "transform:0.5"]);
+  });
+
+  test("maps media metadata to object.texture and keeps video controls separate", () => {
+    const calls: string[] = [];
+    const video = createVideoLayer(calls);
+    const source = {
+      kind: "media",
+      type: "video",
+      element: document.createElement("video"),
+      src: "/video.mp4",
+      video,
+    } satisfies WebGLEffectSourceHandle;
+
+    const capabilities = createEffectObjectCapabilities(source);
+
+    expect(capabilities.texture?.src).toBe("/video.mp4");
+    expect(capabilities.texture?.shaderInputs.objectFit).toBe("cover");
+    capabilities.video?.setPlaybackRate(0.75);
+    expect(calls).toContain("playback:0.75");
   });
 
   test("maps image sequences to object.texture", () => {
@@ -105,6 +141,22 @@ describe("createEffectObjectCapabilities", () => {
     createEffectObjectCapabilities(source).texture?.invalidate();
 
     expect(calls).toEqual(["invalidate"]);
+  });
+
+  test("maps image sequence frame metadata to object.texture", () => {
+    const source = {
+      kind: "media",
+      type: "image-sequence",
+      element: document.createElement("section"),
+      frame: 12,
+      src: "/frames/0012.webp",
+      image: createImageSequenceLayer([]),
+    } satisfies WebGLEffectSourceHandle;
+
+    const texture = createEffectObjectCapabilities(source).texture;
+
+    expect(texture?.src).toBe("/frames/0012.webp");
+    expect(texture?.frame).toBe(12);
   });
 
   test("maps model handles to object.model facades", () => {
@@ -132,6 +184,26 @@ describe("createEffectObjectCapabilities", () => {
     expect(objectModel?.sampling.vertices({ maxPoints: 3 })).toBe(vertices);
     expect(objectModel?.points.create({ positions: vertices })).toBe(pointLayer);
     expect(calls).toEqual(["all", "forEach", "vertices:3", "points:3"]);
+  });
+
+  test("maps model src to object.model", () => {
+    const model = createModel(
+      [],
+      createMesh("Body"),
+      new Float32Array(),
+      createManagedObject(),
+    );
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("div"),
+      src: "/models/hero.glb",
+      model,
+    } satisfies WebGLEffectSourceHandle;
+
+    expect(createEffectObjectCapabilities(source).model?.src).toBe(
+      "/models/hero.glb",
+    );
   });
 });
 
@@ -199,8 +271,12 @@ function createVideoLayer(calls: string[]): WebGLEffectVideoLayerHandle {
     ...createTextureLayer(document.createElement("video"), calls, "offsetY"),
     play() {},
     pause() {},
-    setMuted() {},
-    setPlaybackRate() {},
+    setMuted(muted) {
+      calls.push(`muted:${muted}`);
+    },
+    setPlaybackRate(rate) {
+      calls.push(`playback:${rate}`);
+    },
   };
 }
 

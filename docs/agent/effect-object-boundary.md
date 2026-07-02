@@ -8,16 +8,16 @@ source-specific effect handles.
 
 ## Current Truth
 
-The current implementation exposes effect context through `ctx.object`,
-`ctx.source`, `ctx.target`, `ctx.visual`, `ctx.resources`, `ctx.pointer`,
-`ctx.targetPointer`, `ctx.progress`, `ctx.time`, and `ctx.delta`.
+The current public effect context exposes `ctx.object`, `ctx.resources`,
+`ctx.pointer`, `ctx.targetPointer`, `ctx.progress`, `ctx.layout`, `ctx.input`,
+`ctx.scroll`, `ctx.scrollProgress`, `ctx.time`, `ctx.delta`, `ctx.key`, and
+`ctx.sourceKind`.
 
-`ctx.object` is the primary authoring handle for transform, visibility, opacity,
-postprocess, and existing surface/text/texture/video/model capabilities.
-`ctx.source`, `ctx.target`, and `ctx.visual` remain useful compatibility and
-implementation substrate for source metadata, resource ownership, renderer
-state, source textures, model objects, postprocess requests, and disposal. They
-are not the desired place to keep expanding public visual capability families.
+`ctx.object` is the public authoring handle for transform, visibility, opacity,
+postprocess, and surface/text/texture/video/model source-backed capabilities.
+Source, target, and visual handles are internal runtime assembly details. They
+are not part of the public effect context and are not exported from the package
+root as effect authoring API.
 
 ## Product Thesis
 
@@ -72,9 +72,8 @@ facade owned by the runtime.
 Most downstream consumers are expected to be AI agents. AI agents already know
 common Three.js authoring patterns such as `position`, `rotation`, `scale`,
 `visible`, `material`, `uniforms`, animation clips, and hit tests. They are less
-likely to reliably remember a package-specific split between
-`ctx.source.surface`, `ctx.source.textLayer`, `ctx.source.image`,
-`ctx.source.video`, `ctx.source.model`, `ctx.target`, and `ctx.visual`.
+likely to reliably remember the old package-specific split between source
+layers, target transforms, and visual postprocess handles.
 
 The package should therefore reuse Three.js vocabulary where it improves
 authoring accuracy, but keep raw Three.js ownership internal.
@@ -126,9 +125,8 @@ source-handle mental model.
 
 ## Direction For Existing Handles
 
-Current `ctx.source.*`, `ctx.target`, and `ctx.visual` handles should be treated
-as the existing implementation substrate and compatibility surface, not the
-place to keep expanding the public API.
+Source, target, and visual handles should be treated as internal implementation
+substrate, not the place to keep expanding the public API.
 
 New public visual capabilities should be designed for `ctx.object` first. If a
 capability requires source-specific internals, implement those internals behind

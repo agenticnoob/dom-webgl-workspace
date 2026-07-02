@@ -11,9 +11,9 @@ implementation policy.
 - Root entrypoint owns vanilla runtime creation and effect authoring.
 - React entrypoint owns React runtime/provider/target components.
 - Applications own concrete visual effects.
-- The package owns layout measurement, runtime lifecycle, current source/target
-  handles, frame input, pointer state, scroll state, managed resources, and the
-  forward controlled effect-object boundary.
+- The package owns layout measurement, runtime lifecycle, internal source/target
+  assembly, frame input, pointer state, scroll state, managed resources, and the
+  controlled effect-object boundary.
 - Native page scroll is the default. Scene gates are historical optional
   scroll-locking behavior. Third-party smooth-scroll systems use
   `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
@@ -31,9 +31,9 @@ implementation policy.
 ## Effect Object Direction
 
 Read `docs/agent/effect-object-boundary.md` before designing new effect
-capabilities. The current implementation exposes `ctx.object` as the primary
-controlled Three-like facade. `ctx.source.*`, `ctx.target`, and `ctx.visual`
-remain compatibility/current-truth surface, not the long-term expansion point.
+capabilities. The public effect context exposes `ctx.object` as the controlled
+Three-like facade. Source, target, and visual handles are internal runtime
+assembly details, not public effect authoring API.
 
 Forward public effect authoring should center on one controlled Three-like
 object:
@@ -52,10 +52,9 @@ defineWebGLEffect({
 });
 ```
 
-`ctx.source` remains available for source metadata and compatibility. New visual
-control examples should use `ctx.object` first. Do not add new public
-source-specific capability families without first designing their object-facade
-shape.
+Effect authors use `ctx.object` for all visual control and source-backed
+capabilities. Do not add new public source-specific capability families without
+first designing their object-facade shape.
 
 ## Public Imports
 
@@ -641,11 +640,9 @@ Rules:
 - Use namespaced kinds such as `app.surface`, `brand.heroParticles`, or
   `product.galleryTilt`.
 - Do not use generic global names such as `fade`, `rotate`, or `particles`.
-- Use `source` on the definition to restrict compatible source handles.
+- Use `source` on the definition to restrict compatible source kinds.
 - Use `ctx.object` for visual transform, visibility, opacity, postprocess, and
   source-backed capability modules.
-- Narrow `ctx.source.kind` and `ctx.source.type` only when reading source
-  metadata or compatibility fields.
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
@@ -739,12 +736,11 @@ Use context fields as the single runtime truth:
 - `ctx.targetPointer`: current-target layout-local pointer state.
 - `ctx.scroll`: page or gate scroll state.
 - `ctx.scrollProgress`: active progress value for current scroll mode.
+- `ctx.progress`: keyed progress signals from the runtime.
 - `ctx.time`: runtime time in milliseconds.
 - `ctx.delta`: frame delta in milliseconds.
-- `ctx.source`: source handle.
-- `ctx.target`: runtime target controls, if available.
+- `ctx.object`: controlled visual facade and source-backed capability modules.
 - `ctx.resources`: effect-owned resource scope.
-- `ctx.visual`: runtime-scoped visual requests such as named postprocess.
 
 Pointer rule:
 
@@ -762,13 +758,9 @@ Pointer rule:
 - Target pointer is layout-local only. It does not perform inverse-transformed
   picking for rotated groups, models, or custom meshes.
 
-## Source Handles
+## Object Modules
 
-This section describes the current implementation before the effect object
-facade. Keep it accurate for existing code, but do not use it as a template for
-adding new public capability families.
-
-For visual control, start with `ctx.object`:
+For visual control and source-backed capabilities, use `ctx.object`:
 
 ```ts
 ctx.object.visible = true;
@@ -778,29 +770,20 @@ ctx.object.scale.setScalar(1.05);
 ctx.object.opacity = 0.8;
 ```
 
-For source metadata or compatibility fields, narrow by `ctx.source.kind` and
-`ctx.source.type`:
+Object modules:
 
-```ts
-if (ctx.source.kind === "media" && ctx.source.type === "image") {
-  ctx.source.src satisfies string;
-  ctx.source.image?.shaderInputs.uvTransform satisfies unknown;
-}
-```
-
-Compatibility source handles:
-
-| Source kind | Public output handle | Main controls |
-| --- | --- | --- |
-| `dom/element` | `ctx.source.surface` | compatibility access to canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)` |
-| `dom/text` | `ctx.source.textLayer` | compatibility access to canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
-| `media/image` | `ctx.source.image` | source metadata, object-fit aware shader inputs, compatibility texture controls |
-| `media/video` | `ctx.source.video` | source metadata plus play, pause, muted, playback rate compatibility controls |
-| `media/image-sequence` | `ctx.source.image` | current frame metadata, shader inputs, compatibility texture controls |
-| `model/glb` | `ctx.source.model` | compatibility mesh/material/sample/point-layer controls |
+- `ctx.object.surface`: canvas draw/clear/invalidate/material-layer controls.
+- `ctx.object.text`: text, style, shader inputs, glyph read/write, and
+  material-layer controls.
+- `ctx.object.texture`: media src/frame metadata, shader inputs, texture
+  transform, invalidate, and material-layer controls.
+- `ctx.object.video`: video playback controls.
+- `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
+  layers.
+- `ctx.object.postprocess`: named postprocess requests.
 
 DOM text remains the source of content, accessibility, and fallback.
-`textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
+`ctx.object.text.setText(...)` and `ctx.object.text.setGlyphs(...)` affect only the WebGL
 output layer. Effects should not mutate DOM text for visual animation.
 
 Glyph coordinates are text-layer local CSS-pixel coordinates. `glyph.x` and
@@ -822,7 +805,9 @@ effects built on these primitives.
 
 Material layer rules:
 
-- Use `createMaterialLayer(...)` on source handles or model mesh handles.
+- Use `createMaterialLayer(...)` through `ctx.object.surface`,
+  `ctx.object.text.material`, `ctx.object.texture.material`, or model mesh
+  handles.
 - Material programs are Three-inspired shader declarations, not raw Three.js
   materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
   `defines`, and `blend`. Runtime-owned defaults decide transparency, depth,
@@ -849,17 +834,15 @@ Material layer rules:
 
 Model helper rules:
 
-Model source handles expose controlled model capabilities in the current
-implementation. Future model animation, picking, light, material variant, and
-sampling work should be routed through `ctx.object` instead of growing this
-handle surface directly:
+`ctx.object.model` exposes controlled model capabilities:
 
-- `model.getMeshes()` and `model.forEachMesh(...)` expose controlled mesh handles.
+- `model.src` exposes the declared model source string.
+- `model.meshes.all()` and `model.meshes.forEach(...)` expose controlled mesh handles.
 - Mesh handles expose `index`, optional `name`, optional `materialName`,
   `createMaterialLayer(...)`, and `restoreMaterial()`.
-- `model.sampleVertices({ maxPoints })` returns root-local vertex positions for
+- `model.sampling.vertices({ maxPoints })` returns root-local vertex positions for
   app-authored particle or point-layer effects.
-- `model.createPointLayer({ positions, color, size, material })` returns a
+- `model.points.create({ positions, color, size, material })` returns a
   managed handle whose generated geometry/material lifecycle is runtime-owned.
 - Effects do not receive raw model root objects, raw mesh traversal, or raw
   point-cloud objects.
@@ -870,7 +853,7 @@ handle surface directly:
 Runtime-scoped visual requests:
 
 ```ts
-const handle = ctx.visual.requestPostprocess({
+const handle = ctx.object.postprocess.request({
   key: "app.softGlow",
   bloom: { strength: 0.45, radius: 0.2, threshold: 0.8 },
   grain: { amount: 0.04 },
@@ -981,7 +964,7 @@ Effect-specific tests should cover:
 
 - unknown effect kind fails at registration or is caught by tests;
 - definition `kind` matches declaration `kind`;
-- unsupported `ctx.source.kind` / `ctx.source.type` no-ops safely;
+- absent `ctx.object.*` capability modules no-op safely;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` for motion;
 - target-local pointer behavior reads `ctx.targetPointer`;
