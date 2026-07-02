@@ -152,7 +152,7 @@ Prefer this pattern:
 
 ```ts
 ctx.object.animation?.play("Idle");
-ctx.object.lights?.request({ key: "rim", kind: "directional" });
+ctx.object.lights?.directional("rim", { intensity: 1.5 });
 ctx.object.hitTest?.({ mode: "mesh" });
 ctx.object.model?.variants.apply("Dark");
 ctx.object.model?.meshes.select({ nameIncludes: "Body" });
@@ -178,6 +178,8 @@ and overrides the runtime fit transform.
 requests are runtime-canvas scoped. Target-local model glow should use material
 or mesh emissive controls plus runtime-owned lights unless a future
 target-scoped postprocess capability is explicitly designed.
+Runtime-owned lights are keyed requests; repeated calls with the same key update
+the existing light and stay under runtime disposal ownership.
 
 Model authoring controls such as animations, picking, mesh selection, material
 variants, lights, and sampling should not be added as a growing

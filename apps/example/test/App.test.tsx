@@ -196,7 +196,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-25);
+    const finalTargetProps = targetProps.slice(-26);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -222,6 +222,7 @@ describe("effect authoring example app", () => {
       "example.image-sequence.card.description",
       "example.model.spin",
       "example.model.float",
+      "example.model.dark-scene",
       "example.model.float-glow",
       "example.pinned.reveal",
     ]);
@@ -247,6 +248,7 @@ describe("effect authoring example app", () => {
       "aside",
       "strong",
       "span",
+      "section",
       "section",
       "section",
       "section",
@@ -282,6 +284,7 @@ describe("effect authoring example app", () => {
       { kind: "dom", type: "text" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
+      { kind: "dom", type: "element" },
       {
         kind: "model",
         type: "glb",
@@ -314,6 +317,7 @@ describe("effect authoring example app", () => {
       "example.textReveal",
       "example.modelSpin",
       "example.modelFloat",
+      "example.modelDarkScene",
       "example.modelFloatGlow",
       "example.pinnedReveal",
     ]);
@@ -402,6 +406,13 @@ describe("effect authoring example app", () => {
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
     expect(finalTargetProps[23]?.webgl).toMatchObject({
+      key: "example.model.dark-scene",
+      source: { kind: "dom", type: "element" },
+      renderRole: "surface",
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+    });
+    expect(finalTargetProps[24]?.webgl).toMatchObject({
       key: "example.model.float-glow",
       source: {
         kind: "model",
@@ -415,11 +426,11 @@ describe("effect authoring example app", () => {
           kind: "example.modelFloatGlow",
           speed: 0.46,
           emissive: "#7dd3fc",
-          lightIntensity: 2.2,
+          lightIntensity: 4.5,
         },
       ],
     });
-    expect(finalTargetProps[24]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[25]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
@@ -429,9 +440,9 @@ describe("effect authoring example app", () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[24];
+    const firstPinnedTarget = finalTargetProps[25];
     const secondSequenceCardTarget = targetProps
-      .slice(-25)
+      .slice(-26)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);

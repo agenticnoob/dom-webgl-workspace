@@ -447,33 +447,47 @@ export default function App() {
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型自发光">
-              用 Three-like managed facade 控制 GLB 的旋转、材质发光和点光源。
+              WebGL 暗场景承托 GLB，再用 managed facade 控制旋转、材质发光和点光源。
             </EffectDescription>
             {exampleResources.modelReady ? (
-              <WebGLTarget
-                as="section"
-                className="example-panel example-panel-model example-panel-model-glow"
-                webgl={{
-                  key: "example.model.float-glow",
-                  source: {
-                    kind: "model",
-                    type: "glb",
-                    src: "/models/4.glb",
-                    loader: { draco: { decoderPath: "/draco/gltf/" } },
-                  },
-                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                  effects: [
-                    {
-                      kind: "example.modelFloatGlow",
-                      speed: 0.46,
-                      emissive: "#7dd3fc",
-                      lightIntensity: 2.2,
+              <React.Fragment>
+                <WebGLTarget
+                  as="section"
+                  aria-hidden="true"
+                  className="example-model-scene"
+                  webgl={{
+                    key: "example.model.dark-scene",
+                    source: { kind: "dom", type: "element" },
+                    renderRole: "surface",
+                    lifecycle: { hideWhenReady: true, hideMode: "self" },
+                    effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+                  }}
+                />
+                <WebGLTarget
+                  as="section"
+                  className="example-panel example-panel-model example-panel-model-glow"
+                  webgl={{
+                    key: "example.model.float-glow",
+                    source: {
+                      kind: "model",
+                      type: "glb",
+                      src: "/models/4.glb",
+                      loader: { draco: { decoderPath: "/draco/gltf/" } },
                     },
-                  ],
-                }}
-              >
-                <strong>Managed Three-like API 控制模型发光和灯光。</strong>
-              </WebGLTarget>
+                    lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                    effects: [
+                      {
+                        kind: "example.modelFloatGlow",
+                        speed: 0.46,
+                        emissive: "#7dd3fc",
+                        lightIntensity: 4.5,
+                      },
+                    ],
+                  }}
+                >
+                  <strong>Managed Three-like API 控制模型发光和灯光。</strong>
+                </WebGLTarget>
+              </React.Fragment>
             ) : (
               <section className="example-panel example-panel-model example-panel-model-glow" />
             )}

@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createEffectContext } from "./effectContext";
 import {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -62,6 +63,37 @@ describe("surface example effects", () => {
     expect(surface.setOpacity).toHaveBeenCalledWith(0.72);
     expect(target.setVisible).toHaveBeenCalledWith(true);
     expect(target.setOpacity).not.toHaveBeenCalled();
+  });
+
+  test("model dark scene draws a WebGL surface backdrop without DOM paint", () => {
+    const surface = {
+      draw: vi.fn(),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const target = {
+      setVisible: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "dom",
+          type: "element",
+        element: document.createElement("section"),
+        surface,
+      },
+      target,
+    });
+
+    exampleModelDarkSceneEffect.update(context, undefined, {
+      kind: "example.modelDarkScene",
+      opacity: 0.96,
+    });
+
+    expect(exampleModelDarkSceneEffect.source).toBe("dom/element");
+    expect(surface.draw).toHaveBeenCalledTimes(1);
+    expect(surface.setVisible).toHaveBeenCalledWith(true);
+    expect(surface.setOpacity).toHaveBeenCalledWith(0.96);
+    expect(target.setVisible).toHaveBeenCalledWith(true);
   });
 
   test("surface pulse visibly animates surface opacity for element snapshots", () => {

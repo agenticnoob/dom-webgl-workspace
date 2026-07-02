@@ -9,6 +9,7 @@
   --color-surface-waves: #dbe5df;
   --color-surface-model: #d7e1d6;
   --color-surface-model-alt: #cdd6e8;
+  --color-surface-model-glow: #0d1519;
   --color-surface-media: #1d2a2e;
   --color-overlay-bg: rgba(0, 0, 0, 0.68);
   --color-overlay-panel-bg: rgba(0, 0, 0, 0.82);
@@ -353,6 +354,22 @@ body {
 
 .example-panel-model-float {
   background: var(--color-surface-model-alt);
+}
+
+.example-model-scene {
+  position: absolute;
+  inset: 0;
+  display: block;
+  min-height: 560px;
+  pointer-events: none;
+}
+
+.example-panel-model-glow {
+  background:
+    radial-gradient(circle at 54% 46%, rgba(125, 211, 252, 0.24), transparent 34%),
+    radial-gradient(circle at 50% 54%, rgba(244, 114, 182, 0.12), transparent 48%),
+    var(--color-surface-model-glow);
+  color: var(--color-overlay-text);
 }
 
 .example-pinned-row {

@@ -237,6 +237,8 @@ Object modules:
 - `ctx.object.video`: video playback controls.
 - `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
   layers.
+- `ctx.object.lights`: keyed runtime-owned ambient, directional, and point light
+  requests. Reusing a key updates the existing light.
 - `ctx.object.postprocess`: named postprocess requests.
 
 Current visual capability surface:
@@ -256,6 +258,9 @@ Current visual capability surface:
   `material`, or `texture` fields.
 - `ctx.object.postprocess.request(...)` submits named bloom/grain/blur requests
   owned by the runtime.
+- `ctx.object.lights?.point(...)`, `.directional(...)`, and `.ambient(...)`
+  submit keyed runtime-owned light requests. Dynamic light params should be
+  redeclared with the same key from `update`.
 - Material uniforms are controlled data, not raw Three.js objects. Numeric
   tuples and supported arrays such as pointer-trail `vec2[]` are acceptable;
   renderer, scene, camera, composer, raw texture, raw material, and pass objects
@@ -476,6 +481,9 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Invisible model after an effect update: `ctx.object.position` and
   `ctx.object.scale` override the runtime model fit transform. Leave model
   placement to the runtime unless the effect intentionally owns it.
+- Light intensity appears unchanged: for runtime-fit models, declare the light
+  from `update` with the same key and an explicit projected layout-center
+  position. A one-time `setup` request will not reflect later parameter changes.
 - Shader coordinate mismatch: DOM pointer `y` is top-down, while shader
   coordinates may be bottom-up. Convert at the effect boundary and test it.
 - Shader uniform name mismatch: a visual can look static when the effect updates

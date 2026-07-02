@@ -43,8 +43,10 @@ lifetime, fallback visibility, scroll/pointer monitoring, and scheduling.
 The current example dogfoods this with `/models/4.glb`: the model source declares
 `loader: { draco: { decoderPath: "/draco/gltf/" } }`, the app serves matching
 decoder files under `apps/example/public/draco/gltf`, and
+`example.modelDarkScene` paints a WebGL surface backdrop behind the GLB while
 `example.modelFloatGlow` uses rotation, mesh/material emissive values, and a
-runtime-owned point light. It intentionally avoids `ctx.object.postprocess`
+keyed runtime-owned point light positioned at the projected layout center. It
+intentionally avoids `ctx.object.postprocess`
 because current postprocess is runtime-canvas scoped, and it leaves model fit
 position/scale to the runtime layout pass so the GLB remains visible in its
 target rect.

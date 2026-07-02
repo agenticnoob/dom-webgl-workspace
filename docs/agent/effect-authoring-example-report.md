@@ -42,10 +42,14 @@ the row compresses around them. The combined
 glyph transform helpers for spotlight color, pressure reflow, scramble
 characters, and wave offsets, then writes the final glyph command list once per
 frame.
-The model bucket now includes `example.modelFloatGlow` on `/models/4.glb`.
-That example uses the managed `ctx.object` facade for rotation, material/mesh
-emissive color, and a runtime-owned point light while the runtime still owns GLB
-loading, Draco decoding, model fit position/scale, and all raw Three.js objects.
+The model bucket now includes `example.modelDarkScene` and
+`example.modelFloatGlow` on `/models/4.glb`. The dark scene effect paints a
+WebGL surface backdrop, and the model effect uses the managed `ctx.object`
+facade for rotation, material/mesh emissive color, and a runtime-owned point
+light keyed by effect id. The light is declared from `update` with the projected
+layout center so `lightIntensity` changes update the existing runtime-owned
+light while the runtime still owns GLB loading, Draco decoding, model fit
+position/scale, and all raw Three.js objects.
 
 ## What Worked
 
@@ -112,6 +116,9 @@ loading, Draco decoding, model fit position/scale, and all raw Three.js objects.
 - Model-local glow is clearer when expressed through controlled material/mesh
   emissive values and runtime-owned lights. That avoids making a single example
   target request canvas-wide postprocess.
+- Runtime-owned lights are keyed requests. Dynamic light params should be
+  redeclared with the same key from `update`; effects should not stash raw light
+  objects or manually own their lifecycle.
 - Leaving model fit position/scale to the runtime layout pass keeps the GLB
   visible and centered in its target rect; effects can still animate rotation,
   materials, lights, animation, and generated model-local points.
@@ -189,6 +196,9 @@ loading, Draco decoding, model fit position/scale, and all raw Three.js objects.
 - Postprocess requests are easy to over-scope. Current `ctx.object.postprocess`
   requests affect the runtime canvas, so using bloom for one model can dim or
   blur unrelated WebGL targets on the page.
+- A DOM background on a ready model target can occlude the fixed WebGL canvas.
+  Use a WebGL `dom/element` surface backdrop when the model needs a darker
+  stage.
 - Model renderables already have a runtime-owned fit transform. A model effect
   that writes `ctx.object.position` or `ctx.object.scale` becomes responsible
   for placement and can move the loaded model out of the expected target area.
@@ -199,9 +209,10 @@ loading, Draco decoding, model fit position/scale, and all raw Three.js objects.
   narrowing, resource ownership, media target rules, and validation.
 - `docs/examples/effect-authoring.md` now gives a React-only consumer tutorial.
 - README and package usage docs now point to `apps/example`.
-- The managed model dogfood notes now document Draco static assets,
-  canvas-scoped postprocess, and model fit ownership so future examples do not
-  reintroduce the same invisible/blurred model failure mode.
+- The managed model dogfood notes now document Draco static assets, WebGL
+  surface backdrops, canvas-scoped postprocess, and model fit ownership so
+  future examples do not reintroduce the same invisible/blurred model failure
+  mode.
 
 ## Boundaries To Preserve
 

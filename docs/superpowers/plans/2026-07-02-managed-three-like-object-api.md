@@ -39,7 +39,7 @@ loader.setDRACOLoader(...);
 ## Current Truth
 
 - `WebGLEffectContext` is already object-first: public fields are `ctx.object`, `ctx.resources`, input/time/layout/progress fields, and `ctx.sourceKind`.
-- `ctx.object` currently supports transform, visibility, opacity, postprocess, and optional source-backed modules: surface, text, texture, video, model.
+- `ctx.object` currently supports transform, visibility, opacity, material, keyed runtime lights, animation, postprocess, and optional source-backed modules: surface, text, texture, video, model.
 - `ctx.object.model` currently exposes `src`, `meshes`, `sampling`, and `points`.
 - GLB loading currently uses a bare `GLTFLoader.loadAsync(src)` path; public `WebGLModelSourceDeclaration` has no Draco loader configuration.
 - Runtime internals already have an internal `loadModel?` hook for tests, but public `WebGLRuntimeOptions` and React props do not expose model loader configuration.
@@ -1672,21 +1672,27 @@ dogfood showed two ownership bugs in that sketch:
 - Runtime model layout already fits the loaded GLB to the target rect; writing
   `ctx.object.position` or `ctx.object.scale` in this example overrides that
   fit and can move the model out of view.
+- Do not fake contrast with an opaque DOM row background on ready model
+  targets. The DOM content layer sits above the fixed WebGL canvas and can
+  occlude the model; use a WebGL `dom/element` surface backdrop instead.
 
-The current checked-in `example.modelFloatGlow` therefore uses rotation,
-mesh/material emissive values, and a runtime-owned point light. It intentionally
-avoids `ctx.object.postprocess` and leaves model fit position/scale to the
-runtime layout pass. Treat the snippets below as original RED/GREEN plan
-history, not the current example contract.
+The current checked-in example therefore uses `example.modelDarkScene` for the
+WebGL surface backdrop and `example.modelFloatGlow` for rotation, mesh/material
+emissive values, and a keyed runtime-owned point light positioned from the
+projected layout center. It intentionally avoids `ctx.object.postprocess` and
+leaves model fit position/scale to the runtime layout pass. The snippets below
+are reconciled with that current example contract.
 
 **Files:**
 
 - Modify: `apps/example/src/modelEffects.ts`
+- Modify: `apps/example/src/surfaceEffects.ts`
 - Modify: `apps/example/src/exampleEffects.ts`
 - Modify: `apps/example/src/exampleEffectDeclarations.ts`
 - Modify: `apps/example/src/exampleResourceScheduler.ts`
 - Modify: `apps/example/src/App.tsx`
 - Test: `apps/example/test/modelEffects.test.ts`
+- Test: `apps/example/test/surfaceEffects.test.ts`
 - Test: `apps/example/test/App.test.tsx`
 
 - [x] **Step 1: Add managed model glow effect**
@@ -1696,7 +1702,6 @@ In `apps/example/src/modelEffects.ts`, add:
 ```ts
 type ModelFloatGlowParams = {
   kind: "example.modelFloatGlow";
-  amplitude?: number;
   speed?: number;
   emissive?: string;
   lightIntensity?: number;
@@ -1706,57 +1711,56 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
   kind: "example.modelFloatGlow",
   source: "model/glb",
   setup(ctx, params) {
-    const bloom = ctx.object.postprocess.request({
-      key: `${ctx.key}.bloom`,
-      bloom: { strength: 0.42, radius: 0.24, threshold: 0.62 },
+    const emissive = params.emissive ?? "#7dd3fc";
+    ctx.object.material?.emissive.set(emissive, 2.7);
+    ctx.object.model?.meshes.forEach((mesh) => {
+      mesh.material.emissive.set(emissive, 2.2);
     });
-    ctx.resources.addDisposable(() => bloom.dispose());
-
-    ctx.object.material?.emissive.set(params.emissive ?? "#7dd3fc", 1.4);
-    const light = ctx.object.lights?.point(`${ctx.key}.glow`, {
-      color: params.emissive ?? "#7dd3fc",
-      intensity: params.lightIntensity ?? 2.2,
-      distance: 460,
-      follow: "object",
-    });
-    if (light) {
-      ctx.resources.addDisposable(() => light.dispose());
-    }
-
     return undefined;
   },
-  update(ctx, _state, params) {
+  update(ctx, _state, params: { lightIntensity?: number }) {
     if (!ctx.object.model) {
       return;
     }
 
-    const amplitude = clampNumber(params.amplitude, 0, 96, 32);
     const speed = clampNumber(params.speed, 0, 3, 0.42);
-    const centerX = ctx.layout.left + ctx.layout.width / 2;
-    const centerY = ctx.layout.top + ctx.layout.height / 2;
-    const floatY = centerY + Math.sin(ctx.time / 760) * amplitude;
+    const lightIntensity = clampNumber(params.lightIntensity, 0, 12, 4.5);
+    const emissive = params.emissive ?? "#7dd3fc";
 
     ctx.object.visible = true;
-    ctx.object.position.set(centerX, floatY, 0);
+    ctx.object.lights?.point(`${ctx.key}.glow`, {
+      color: emissive,
+      intensity: lightIntensity,
+      distance: 620,
+      position: [
+        ctx.layout.left + ctx.layout.width / 2,
+        ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+        180,
+      ],
+    });
     ctx.object.rotation.set(
       Math.sin(ctx.time / 1100) * 0.18,
       (ctx.time / 1000) * speed,
       0,
     );
-    ctx.object.scale.setScalar(1 + Math.sin(ctx.time / 900) * 0.025);
   },
 });
 ```
 
 - [x] **Step 2: Register effect and params**
 
-In `apps/example/src/exampleEffects.ts`, add `exampleModelFloatGlowEffect` to the exported array.
+In `apps/example/src/surfaceEffects.ts`, add `exampleModelDarkSceneEffect` as a
+`dom/element` surface effect that draws a dark WebGL backdrop with soft blue and
+violet radial light.
+
+In `apps/example/src/exampleEffects.ts`, add `exampleModelDarkSceneEffect` and
+`exampleModelFloatGlowEffect` to the exported array.
 
 In `apps/example/src/exampleEffectDeclarations.ts`, add:
 
 ```ts
+"example.modelDarkScene": { opacity?: number };
 "example.modelFloatGlow": {
-  amplitude?: number;
   speed?: number;
   emissive?: string;
   lightIntensity?: number;
@@ -1782,33 +1786,47 @@ In `apps/example/src/App.tsx`, after the existing model float row, add:
 ```tsx
 <section className="example-row">
   <EffectDescription source="model/glb" title="模型自发光">
-    用 Three-like managed facade 控制 GLB 的位置、旋转、材质发光、点光源和 bloom。
+    WebGL 暗场景承托 GLB，再用 managed facade 控制旋转、材质发光和点光源。
   </EffectDescription>
   {exampleResources.modelReady ? (
-    <WebGLTarget
-      as="section"
-      className="example-panel example-panel-model example-panel-model-glow"
-      webgl={{
-        key: "example.model.float-glow",
-        source: {
-          kind: "model",
-          type: "glb",
-          src: "/models/4.glb",
-        },
-        lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-        effects: [
-          {
-            kind: "example.modelFloatGlow",
-            amplitude: 30,
-            speed: 0.46,
-            emissive: "#7dd3fc",
-            lightIntensity: 2.2,
+    <React.Fragment>
+      <WebGLTarget
+        as="section"
+        aria-hidden="true"
+        className="example-model-scene"
+        webgl={{
+          key: "example.model.dark-scene",
+          source: { kind: "dom", type: "element" },
+          renderRole: "surface",
+          lifecycle: { hideWhenReady: true, hideMode: "self" },
+          effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+        }}
+      />
+      <WebGLTarget
+        as="section"
+        className="example-panel example-panel-model example-panel-model-glow"
+        webgl={{
+          key: "example.model.float-glow",
+          source: {
+            kind: "model",
+            type: "glb",
+            src: "/models/4.glb",
+            loader: { draco: { decoderPath: "/draco/gltf/" } },
           },
-        ],
-      }}
-    >
-      <strong>Managed Three-like API 控制模型发光和灯光。</strong>
-    </WebGLTarget>
+          lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+          effects: [
+            {
+              kind: "example.modelFloatGlow",
+              speed: 0.46,
+              emissive: "#7dd3fc",
+              lightIntensity: 4.5,
+            },
+          ],
+        }}
+      >
+        <strong>Managed Three-like API 控制模型发光和灯光。</strong>
+      </WebGLTarget>
+    </React.Fragment>
   ) : (
     <section className="example-panel example-panel-model example-panel-model-glow" />
   )}
@@ -1820,7 +1838,7 @@ In `apps/example/src/App.tsx`, after the existing model float row, add:
 In `apps/example/test/modelEffects.test.ts`, add:
 
 ```ts
-test("model float glow uses managed material lights and postprocess", () => {
+test("model float glow uses managed material and lights without global postprocess", () => {
   const material = {
     emissive: { set: vi.fn() },
   };
@@ -1845,25 +1863,26 @@ test("model float glow uses managed material lights and postprocess", () => {
   exampleModelFloatGlowEffect.setup?.(ctx, {
     kind: "example.modelFloatGlow",
     emissive: "#7dd3fc",
-    lightIntensity: 2.2,
+    lightIntensity: 4.5,
   });
   exampleModelFloatGlowEffect.update(ctx, undefined, {
     kind: "example.modelFloatGlow",
-    amplitude: 30,
     speed: 0.46,
+    lightIntensity: 1.25,
   });
 
-  expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.4);
+  expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 2.7);
   expect(lights.point).toHaveBeenCalledWith("example.model.float-glow.glow", {
     color: "#7dd3fc",
-    intensity: 2.2,
-    distance: 460,
-    follow: "object",
+    intensity: 1.25,
+    distance: 620,
+    position: [
+      ctx.layout.left + ctx.layout.width / 2,
+      ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+      180,
+    ],
   });
-  expect(postprocess.request).toHaveBeenCalledWith({
-    key: "example.model.float-glow.bloom",
-    bloom: { strength: 0.42, radius: 0.24, threshold: 0.62 },
-  });
+  expect(postprocess.request).not.toHaveBeenCalled();
 });
 ```
 
@@ -1920,20 +1939,19 @@ const modelGlow = defineWebGLEffect({
   source: "model/glb",
   setup(ctx) {
     ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+  },
+  update(ctx, _state, params) {
     ctx.object.lights?.point("glow", {
       color: "#7dd3fc",
-      intensity: 2.4,
+      intensity: clampNumber(params.lightIntensity, 0, 8, 2.4),
       distance: 420,
-      follow: "object",
+      position: [
+        ctx.layout.left + ctx.layout.width / 2,
+        ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+        180,
+      ],
     });
-    ctx.object.postprocess.request({
-      key: "app.modelGlow.bloom",
-      bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
-    });
-  },
-  update(ctx) {
     ctx.object.rotation.y += ctx.delta / 1000;
-    ctx.object.position.y += Math.sin(ctx.time / 700) * 0.5;
   },
 });
 ```

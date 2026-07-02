@@ -77,7 +77,9 @@ consumers use familiar vocabulary such as `position`, `rotation`, `scale`,
 `material`, `lights`, and `animation` through `ctx.object`, while the runtime
 keeps ownership of raw Three.js renderer, scene, camera, objects, materials,
 textures, loaders, mixers, lights, render targets, lifecycle, disposal, pointer,
-scroll, and scheduling.
+scroll, and scheduling. Runtime lights are keyed requests: reusing the same key
+updates the existing runtime-owned ambient, directional, or point light rather
+than exposing raw light objects or effect-owned light lifecycle.
 Compressed model assets use declarative loader config and app-served decoder
 files; effects do not receive loader callbacks. Runtime postprocess requests are
 currently scoped to the runtime canvas, not one model target. Model renderables

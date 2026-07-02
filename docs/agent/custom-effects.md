@@ -92,7 +92,8 @@ Current handles:
 - `media/image-sequence`: control the current frame texture transform and invalidation.
 - `model/glb`: inspect and control the runtime-owned model handle, material
   facade, and animation facade.
-- runtime lights: request runtime-owned ambient, directional, or point lights.
+- runtime lights: request keyed runtime-owned ambient, directional, or point
+  lights. Reusing a light key updates the existing runtime-owned light.
 - runtime postprocess: request named bloom, grain, or blur handles.
 
 Public handles are capability handles: use methods such as `draw`, `setGlyphs`,
@@ -161,6 +162,9 @@ Effect tests should cover:
   app public directory;
 - model glow effects use material/mesh emissive and lights when the intended
   glow is target-local;
+- model glow effects that leave runtime layout in charge of model fit should
+  position lights from the projected layout center instead of relying on object
+  transform state;
 - model effects that do not own placement avoid writing
   `ctx.object.position`/`ctx.object.scale`;
 - `dispose` releases effect-owned resources.

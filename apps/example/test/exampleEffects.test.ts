@@ -26,6 +26,7 @@ describe("example effect catalog", () => {
       "example.mediaPointerParallax",
       "example.videoPlayback",
       "example.videoDrift",
+      "example.modelDarkScene",
       "example.modelSpin",
       "example.modelFloat",
       "example.modelFloatGlow",
@@ -108,10 +109,14 @@ describe("example effect catalog", () => {
       strength: 0.72,
     });
     expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.modelDarkScene",
+      opacity: 0.96,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
       kind: "example.modelFloatGlow",
       speed: 0.46,
       emissive: "#7dd3fc",
-      lightIntensity: 2.2,
+      lightIntensity: 4.5,
     });
   });
 });

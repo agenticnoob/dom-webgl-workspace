@@ -64,6 +64,11 @@ type SurfaceWavesParams = {
   opacity?: number;
 };
 
+type ModelDarkSceneParams = {
+  kind: "example.modelDarkScene";
+  opacity?: number;
+};
+
 type SurfaceFillState = {
   drawn: boolean;
   image: HTMLImageElement | undefined;
@@ -222,6 +227,25 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
   },
 });
 
+export const exampleModelDarkSceneEffect =
+  defineWebGLEffect<ModelDarkSceneParams>({
+    kind: "example.modelDarkScene",
+    source: "dom/element",
+    update(ctx, _state, params) {
+      const surface = ctx.object.surface;
+      if (!surface) {
+        return;
+      }
+
+      surface.draw(({ context, width, height }) => {
+        drawModelDarkSceneSurface(context, width, height);
+      });
+      surface.setVisible?.(true);
+      surface.setOpacity?.(clampNumber(params.opacity, 0, 1, 0.96));
+      ctx.object.visible = true;
+    },
+  });
+
 function createSurfaceFillState(): SurfaceFillState {
   return {
     drawn: false,
@@ -255,6 +279,43 @@ function drawSurface(
   surface.setVisible?.(true);
   surface.setOpacity?.(opacity);
   ctx.object.visible = true;
+}
+
+function drawModelDarkSceneSurface(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+): void {
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "#081216";
+  context.fillRect(0, 0, width, height);
+
+  const blueGlow = context.createRadialGradient(
+    width * 0.54,
+    height * 0.44,
+    0,
+    width * 0.54,
+    height * 0.44,
+    Math.max(width, height) * 0.52,
+  );
+  blueGlow.addColorStop(0, "rgba(125, 211, 252, 0.36)");
+  blueGlow.addColorStop(0.42, "rgba(66, 112, 144, 0.22)");
+  blueGlow.addColorStop(1, "rgba(8, 18, 22, 0)");
+  context.fillStyle = blueGlow;
+  context.fillRect(0, 0, width, height);
+
+  const violetGlow = context.createRadialGradient(
+    width * 0.48,
+    height * 0.62,
+    0,
+    width * 0.48,
+    height * 0.62,
+    Math.max(width, height) * 0.44,
+  );
+  violetGlow.addColorStop(0, "rgba(244, 114, 182, 0.14)");
+  violetGlow.addColorStop(1, "rgba(8, 18, 22, 0)");
+  context.fillStyle = violetGlow;
+  context.fillRect(0, 0, width, height);
 }
 
 function prepareSurfaceImage(

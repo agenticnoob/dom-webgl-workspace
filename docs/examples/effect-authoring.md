@@ -224,10 +224,12 @@ keeping a settled target hot every frame.
 
 For GLB effects, use the same `ctx.object` entrypoint for transform, material,
 lights, and animation. `apps/example` dogfoods this with
-`example.modelFloatGlow` on `/models/4.glb`: the effect rotates the model, sets
-`ctx.object.material?.emissive`, requests a runtime-owned point light through
-`ctx.object.lights?.point(...)`, and intentionally leaves model fit
-position/scale owned by the runtime layout pass. It also avoids
+`example.modelDarkScene` plus `example.modelFloatGlow` on `/models/4.glb`: the
+dark scene effect paints a WebGL surface backdrop, while the model effect
+rotates the GLB, sets `ctx.object.material?.emissive`, requests a runtime-owned
+point light through `ctx.object.lights?.point(...)` with the same key each frame
+so `lightIntensity` updates the existing light, and intentionally leaves model
+fit position/scale owned by the runtime layout pass. It also avoids
 `ctx.object.postprocess` because current postprocess requests are
 runtime-canvas scoped, not target-scoped. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
@@ -331,8 +333,11 @@ definition is missing, the target declaration has no executable effect.
   WebGL-translated card position.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
+- `example.modelDarkScene`: paints a dark WebGL surface backdrop behind the
+  glowing model without relying on DOM background paint.
 - `example.modelFloatGlow`: combines GLB rotation, material emissive color, and
-  runtime-owned point light while runtime layout owns model fit position/scale.
+  a keyed runtime-owned point light positioned at the projected layout center
+  while runtime layout owns model fit position/scale.
 
 ### Image Hover Reveal Implementation Notes
 
@@ -401,9 +406,13 @@ package effects.
   `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching
   decoder files under `apps/example/public/draco/gltf`.
 - `ctx.object.postprocess` currently affects the whole runtime WebGL canvas.
-  `example.modelFloatGlow` intentionally uses mesh/material emissive and a
-  point light instead of bloom so the rest of the page does not dim or blur.
+  The model glow example intentionally uses `example.modelDarkScene`,
+  mesh/material emissive, and a point light instead of bloom so the rest of the
+  page does not dim or blur.
 - `model/glb` renderables are fit to their target rect by the runtime layout
   pass. `example.modelFloatGlow` avoids writing `ctx.object.position` and
   `ctx.object.scale` so it does not override that fit transform.
+- Runtime lights are keyed requests. Calling `ctx.object.lights?.point(...)`
+  again with the same key updates the existing light instead of requiring a new
+  effect-owned handle.
 - Effect-owned objects and listeners need `ctx.resources` disposal.

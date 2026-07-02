@@ -282,12 +282,14 @@ Current visual behavior:
   runtime-level `effects`.
 - The example-local GLB effects use `ctx.object` only: `example.modelSpin`
   rotates `/models/hero.glb`, `example.modelFloat` combines layout and runtime
-  time for movement, and `example.modelFloatGlow` dogfoods `/models/4.glb` with
-  controlled rotation, material emissive color, and a runtime-owned point light
-  while leaving model fit position/scale owned by the runtime layout pass. It
+  time for movement, `example.modelDarkScene` paints a WebGL surface backdrop,
+  and `example.modelFloatGlow` dogfoods `/models/4.glb` with controlled
+  rotation, material emissive color, and a keyed runtime-owned point light
+  positioned at the projected layout center while leaving model fit
+  position/scale owned by the runtime layout pass. It
   intentionally avoids `ctx.object.postprocess` because
   current postprocess requests are runtime-canvas scoped, not target-scoped.
-  They do not create loaders, scenes, cameras, lights, materials, mixers,
+  They do not create raw loaders, scenes, cameras, lights, materials, mixers,
   composers, render targets, or render loops.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
@@ -468,7 +470,7 @@ Capability matrix:
 | `media/video` | image capabilities plus playback controls |
 | `media/image-sequence` | frame-addressable media texture controls |
 | `model/glb` | controlled mesh handles, material facade, sampled vertices, managed point layers, animation facade |
-| runtime lights | `ctx.object.lights` for runtime-owned ambient/directional/point light requests |
+| runtime lights | `ctx.object.lights` for keyed runtime-owned ambient/directional/point light requests |
 | runtime postprocess | `ctx.object.postprocess.request(...)` for named bloom/grain/blur request handles |
 
 Runtime owns material, texture, geometry, render-target, postprocess request,

@@ -1,4 +1,5 @@
 export {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -57,6 +58,7 @@ import {
   exampleSequenceCardSlideEffect,
 } from "./sequenceCardEffect";
 import {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -94,6 +96,7 @@ export const exampleEffects = [
   exampleMediaPointerParallaxEffect,
   exampleVideoPlaybackEffect,
   exampleVideoDriftEffect,
+  exampleModelDarkSceneEffect,
   exampleModelSpinEffect,
   exampleModelFloatEffect,
   exampleModelFloatGlowEffect,

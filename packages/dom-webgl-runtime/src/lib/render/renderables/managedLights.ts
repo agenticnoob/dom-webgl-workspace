@@ -21,73 +21,139 @@ type InternalTargetWithObjects = WebGLEffectTargetHandle & {
   ): WebGLEffectManagedObjectHandle;
 };
 
+type ManagedLightEntry =
+  | {
+      kind: "ambient";
+      light: AmbientLight;
+      handle: WebGLEffectManagedObjectHandle;
+    }
+  | {
+      kind: "directional";
+      light: DirectionalLight;
+      handle: WebGLEffectManagedObjectHandle;
+    }
+  | {
+      kind: "point";
+      light: PointLight;
+      handle: WebGLEffectManagedObjectHandle;
+    };
+
+type ManagedLightDraft =
+  | {
+      kind: "ambient";
+      light: AmbientLight;
+    }
+  | {
+      kind: "directional";
+      light: DirectionalLight;
+    }
+  | {
+      kind: "point";
+      light: PointLight;
+    };
+
 export function createManagedLightsFacade(options: {
   target?: InternalTargetWithObjects;
   resources: WebGLEffectResourceScope;
   readObjectPosition(): { x: number; y: number; z: number };
 }): WebGLEffectLightsFacade | undefined {
-  if (!options.target?.addObject3D) {
+  const addObject3D = options.target?.addObject3D;
+
+  if (!addObject3D) {
     return undefined;
   }
 
-  const handlesByKey = new Map<string, WebGLEffectManagedObjectHandle>();
+  const attachObject3D: NonNullable<InternalTargetWithObjects["addObject3D"]> =
+    addObject3D;
+  const entriesByKey = new Map<string, ManagedLightEntry>();
 
   options.resources.addDisposable(() => {
-    for (const handle of handlesByKey.values()) {
-      handle.dispose();
+    for (const entry of entriesByKey.values()) {
+      entry.handle.dispose();
     }
-    handlesByKey.clear();
+    entriesByKey.clear();
   });
 
   return {
     ambient(key, request) {
-      const light = new AmbientLight(
-        readColor(request.color),
-        readIntensity(request.intensity, 1),
-      );
-      return replaceLight(key, light);
+      const existing = entriesByKey.get(key);
+
+      if (existing?.kind === "ambient") {
+        applyAmbientRequest(existing.light, request);
+        return existing.handle;
+      }
+
+      const light = new AmbientLight();
+      applyAmbientRequest(light, request);
+      return replaceLight(key, { kind: "ambient", light });
     },
     directional(key, request) {
-      const light = new DirectionalLight(
-        readColor(request.color),
-        readIntensity(request.intensity, 1),
-      );
-      applyPosition(
-        light,
-        request.position,
-        options.readObjectPosition(),
-        request.follow,
-      );
-      applyDirectionalTarget(light, request.target);
-      return replaceLight(key, light);
+      const existing = entriesByKey.get(key);
+
+      if (existing?.kind === "directional") {
+        applyDirectionalRequest(existing.light, request);
+        return existing.handle;
+      }
+
+      const light = new DirectionalLight();
+      applyDirectionalRequest(light, request);
+      return replaceLight(key, { kind: "directional", light });
     },
     point(key, request) {
-      const light = new PointLight(
-        readColor(request.color),
-        readIntensity(request.intensity, 1),
-        readPositive(request.distance, 0),
-        readPositive(request.decay, 2),
-      );
-      applyPosition(
-        light,
-        request.position,
-        options.readObjectPosition(),
-        request.follow,
-      );
-      return replaceLight(key, light);
+      const existing = entriesByKey.get(key);
+
+      if (existing?.kind === "point") {
+        applyPointRequest(existing.light, request);
+        return existing.handle;
+      }
+
+      const light = new PointLight();
+      applyPointRequest(light, request);
+      return replaceLight(key, { kind: "point", light });
     },
     remove(key) {
-      handlesByKey.get(key)?.dispose();
-      handlesByKey.delete(key);
+      entriesByKey.get(key)?.handle.dispose();
+      entriesByKey.delete(key);
     },
   };
 
+  function applyDirectionalRequest(
+    light: DirectionalLight,
+    request: WebGLEffectDirectionalLightRequest,
+  ): void {
+    light.color.set(readColor(request.color));
+    light.intensity = readIntensity(request.intensity, 1);
+    applyPosition(
+      light,
+      request.position,
+      options.readObjectPosition(),
+      request.follow,
+    );
+    applyDirectionalTarget(light, request.target);
+  }
+
+  function applyPointRequest(
+    light: PointLight,
+    request: WebGLEffectPointLightRequest,
+  ): void {
+    light.color.set(readColor(request.color));
+    light.intensity = readIntensity(request.intensity, 1);
+    light.distance = readPositive(request.distance, 0);
+    light.decay = readPositive(request.decay, 2);
+    applyPosition(
+      light,
+      request.position,
+      options.readObjectPosition(),
+      request.follow,
+    );
+  }
+
   function replaceLight(
     key: string,
-    light: unknown,
+    entry: ManagedLightDraft,
   ): WebGLEffectManagedObjectHandle {
-    handlesByKey.get(key)?.dispose();
-    const handle = options.target?.addObject3D?.(light, {
+    entriesByKey.get(key)?.handle.dispose();
+    const handle = attachObject3D(entry.light, {
       dispose(object3D) {
         disposeLightObject(object3D);
       },
@@ -96,13 +162,35 @@ export function createManagedLightsFacade(options: {
     if (!handle) {
       return createDisposedHandle();
     }
-    handlesByKey.set(key, handle);
+    entriesByKey.set(key, createManagedLightEntry(entry, handle));
     return handle;
   }
 }
 
+function createManagedLightEntry(
+  entry: ManagedLightDraft,
+  handle: WebGLEffectManagedObjectHandle,
+): ManagedLightEntry {
+  switch (entry.kind) {
+    case "ambient":
+      return { kind: "ambient", light: entry.light, handle };
+    case "directional":
+      return { kind: "directional", light: entry.light, handle };
+    case "point":
+      return { kind: "point", light: entry.light, handle };
+  }
+}
+
+function applyAmbientRequest(
+  light: AmbientLight,
+  request: WebGLEffectAmbientLightRequest,
+): void {
+  light.color.set(readColor(request.color));
+  light.intensity = readIntensity(request.intensity, 1);
+}
+
 function applyPosition(
-  light: unknown,
+  light: DirectionalLight | PointLight,
   explicit: readonly [number, number, number] | undefined,
   objectPosition: { x: number; y: number; z: number },
   follow: "object" | "layout-center" | "none" | undefined,
@@ -112,28 +200,18 @@ function applyPosition(
     (follow === "object" || follow === "layout-center"
       ? ([objectPosition.x, objectPosition.y, objectPosition.z + 120] as const)
       : ([0, 0, 120] as const));
-  const target = (
-    light as { position?: { set?: (x: number, y: number, z: number) => void } }
-  ).position;
-  target?.set?.(position[0], position[1], position[2]);
+  light.position.set(position[0], position[1], position[2]);
 }
 
 function applyDirectionalTarget(
-  light: unknown,
+  light: DirectionalLight,
   targetPosition: readonly [number, number, number] | undefined,
 ): void {
   if (!targetPosition) {
     return;
   }
 
-  const target = (
-    light as {
-      target?: {
-        position?: { set?: (x: number, y: number, z: number) => void };
-      };
-    }
-  ).target;
-  target?.position?.set?.(targetPosition[0], targetPosition[1], targetPosition[2]);
+  light.target.position.set(targetPosition[0], targetPosition[1], targetPosition[2]);
 }
 
 function readColor(value: unknown): string | number {

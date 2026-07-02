@@ -663,14 +663,18 @@ const modelGlow = defineWebGLEffect({
   source: "model/glb",
   setup(ctx) {
     ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+  },
+  update(ctx, _state, params: { lightIntensity?: number }) {
     ctx.object.lights?.point("glow", {
       color: "#7dd3fc",
-      intensity: 2.4,
+      intensity: clampNumber(params.lightIntensity, 0, 8, 2.4),
       distance: 420,
-      follow: "object",
+      position: [
+        ctx.layout.left + ctx.layout.width / 2,
+        ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+        180,
+      ],
     });
-  },
-  update(ctx) {
     ctx.object.rotation.y += ctx.delta / 1000;
   },
 });
@@ -688,6 +692,14 @@ Rules:
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
+- Runtime lights are keyed requests, not effect-owned raw lights. Reusing the
+  same key updates the existing runtime-owned light, so dynamic intensity or
+  position can be declared from `update`.
+- If a `model/glb` effect leaves runtime layout in charge of model fit, put
+  target-local lights at an explicit projected layout-center position.
+  `follow: "object"` follows transform state written through
+  `ctx.object.position`; it is not a substitute for the runtime layout fit
+  position.
 - Dispose effect-owned resources through `ctx.resources`.
 
 ## Type-Safe Effect Declarations
