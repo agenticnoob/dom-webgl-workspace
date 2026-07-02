@@ -394,7 +394,7 @@ git commit -m "test: define managed three-like object api contract"
 - Modify: `packages/dom-webgl-runtime/src/lib/types.ts`
 - Modify: `packages/dom-webgl-runtime/src/index.ts`
 
-- [ ] **Step 1: Add color facade types**
+- [x] **Step 1: Add color facade types**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectColor.ts`:
 
@@ -415,7 +415,7 @@ export type WebGLEffectEmissiveLike = WebGLEffectColorLike & {
 };
 ```
 
-- [ ] **Step 2: Add material facade types**
+- [x] **Step 2: Add material facade types**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectMaterial.ts`:
 
@@ -447,7 +447,7 @@ export type WebGLEffectMaterialFacade = {
 };
 ```
 
-- [ ] **Step 3: Add lights facade types**
+- [x] **Step 3: Add lights facade types**
 
 Create `packages/dom-webgl-runtime/src/lib/effects/effectLights.ts`:
 
@@ -487,7 +487,7 @@ export type WebGLEffectLightsFacade = {
 };
 ```
 
-- [ ] **Step 4: Extend object facade types**
+- [x] **Step 4: Extend object facade types**
 
 Modify `packages/dom-webgl-runtime/src/lib/effects/effectObject.ts` imports:
 
@@ -536,7 +536,7 @@ export type WebGLEffectObjectHandle = {
 };
 ```
 
-- [ ] **Step 5: Add public loader declaration types**
+- [x] **Step 5: Add public loader declaration types**
 
 In `packages/dom-webgl-runtime/src/lib/types.ts`, add:
 
@@ -574,7 +574,7 @@ export type WebGLRuntimeOptions = {
 };
 ```
 
-- [ ] **Step 6: Export public types**
+- [x] **Step 6: Export public types**
 
 In `packages/dom-webgl-runtime/src/index.ts`, export the new types:
 
@@ -597,7 +597,7 @@ export type {
 } from "./lib/effects/effectLights";
 ```
 
-- [ ] **Step 7: Run public type tests**
+- [x] **Step 7: Run public type tests**
 
 Run:
 
@@ -607,7 +607,7 @@ npm test -- --run packages/dom-webgl-runtime/test/publicExports.test.ts
 
 Expected: public type errors for missing runtime implementation may be gone, but runtime/authoring behavior tests still fail until later tasks implement facades.
 
-- [ ] **Step 8: Commit public type surface**
+- [x] **Step 8: Commit public type surface**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/effects/effectColor.ts packages/dom-webgl-runtime/src/lib/effects/effectMaterial.ts packages/dom-webgl-runtime/src/lib/effects/effectLights.ts packages/dom-webgl-runtime/src/lib/effects/effectObject.ts packages/dom-webgl-runtime/src/lib/types.ts packages/dom-webgl-runtime/src/index.ts

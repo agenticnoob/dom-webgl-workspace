@@ -42,6 +42,24 @@ export {
   type WebGLTextLayerStyle,
 } from "./lib/effects/effectAuthoring";
 export type {
+  WebGLEffectColorLike,
+  WebGLEffectColorValue,
+  WebGLEffectEmissiveLike,
+} from "./lib/effects/effectColor";
+export type {
+  WebGLEffectAmbientLightRequest,
+  WebGLEffectDirectionalLightRequest,
+  WebGLEffectLightFollowMode,
+  WebGLEffectLightsFacade,
+  WebGLEffectPointLightRequest,
+} from "./lib/effects/effectLights";
+export type {
+  WebGLEffectMaterialFacade,
+  WebGLEffectMaterialLayerOptions,
+} from "./lib/effects/effectMaterial";
+export type {
+  WebGLEffectAnimationFacade,
+  WebGLEffectAnimationPlayOptions,
   WebGLEffectModelFacade,
   WebGLEffectModelMeshesFacade,
   WebGLEffectModelPointsFacade,
@@ -68,6 +86,7 @@ export type {
   WebGLMediaSourceDeclaration,
   WebGLMediaVideoPlaybackDeclaration,
   WebGLMediaVideoSourceDeclaration,
+  WebGLModelLoaderDeclaration,
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,

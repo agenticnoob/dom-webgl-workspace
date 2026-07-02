@@ -181,18 +181,30 @@ describe("public package exports", () => {
 		          defineWebGLEffect,
 		        } from "${importPath}";
 			        import type {
-			          WebGLDebugState,
-			          WebGLDeclaration,
+				          WebGLDebugState,
+				          WebGLDeclaration,
+				          WebGLEffectAmbientLightRequest,
+				          WebGLEffectAnimationFacade,
+				          WebGLEffectAnimationPlayOptions,
 				          WebGLEffectCanvasDrawer,
 				          WebGLEffectCanvasSurfaceHandle,
 				          WebGLEffectContext,
 				          WebGLEffectDefinition,
+				          WebGLEffectColorLike,
+				          WebGLEffectColorValue,
+				          WebGLEffectDirectionalLightRequest,
+				          WebGLEffectEmissiveLike,
 				          WebGLEffectImageSequenceLayerHandle,
 				          WebGLEffectBlendMode,
+				          WebGLEffectLightFollowMode,
+				          WebGLEffectLightsFacade,
+				          WebGLEffectMaterialFacade,
 				          WebGLEffectMaterialLayerHandle,
 				          WebGLEffectMaterialLayerHost,
+				          WebGLEffectMaterialLayerOptions,
 				          WebGLEffectMaterialProgram,
 				          WebGLEffectPointLayerOptions,
+				          WebGLEffectPointLightRequest,
 				          WebGLEffectPostprocessHandle,
 				          WebGLEffectPostprocessRequest,
 				          WebGLEffectRenderableHandle,
@@ -235,9 +247,10 @@ describe("public package exports", () => {
 		          WebGLMediaImageSequenceSourceDeclaration,
 		          WebGLMediaImageSourceDeclaration,
 		          WebGLMediaSourceDeclaration,
-		          WebGLMediaVideoPlaybackDeclaration,
-		          WebGLMediaVideoSourceDeclaration,
-		          WebGLModelSourceDeclaration,
+			          WebGLMediaVideoPlaybackDeclaration,
+			          WebGLMediaVideoSourceDeclaration,
+			          WebGLModelLoaderDeclaration,
+			          WebGLModelSourceDeclaration,
 	          WebGLPointerDeclaration,
 	          WebGLPointerState,
 	          WebGLTargetPointerState,
@@ -452,6 +465,7 @@ describe("public package exports", () => {
 		          },
 		        } satisfies WebGLRuntimeOptions;
 		        runtimeOptionsWithModelLoader satisfies WebGLRuntimeOptions;
+		        runtimeOptionsWithModelLoader.modelLoader satisfies WebGLModelLoaderDeclaration;
 	        "subtree" satisfies WebGLTransformScope;
 	        "self" satisfies WebGLTransformScope;
 	        // @ts-expect-error transformScope accepts only the public self/subtree union.
@@ -488,10 +502,43 @@ describe("public package exports", () => {
 
         targetPointer satisfies WebGLTargetPointerState;
         declare const publicCtx: WebGLEffectContext;
-        publicCtx.object satisfies WebGLEffectObjectHandle;
-        publicCtx.resources satisfies WebGLEffectResourceScope;
-        publicCtx.targetPointer.localX satisfies number;
-        publicCtx.progress.get("section") satisfies number;
+	        publicCtx.object satisfies WebGLEffectObjectHandle;
+	        publicCtx.object.material satisfies WebGLEffectMaterialFacade | undefined;
+	        publicCtx.object.lights satisfies WebGLEffectLightsFacade | undefined;
+	        publicCtx.object.animation satisfies WebGLEffectAnimationFacade | undefined;
+	        publicCtx.resources satisfies WebGLEffectResourceScope;
+	        publicCtx.targetPointer.localX satisfies number;
+	        publicCtx.progress.get("section") satisfies number;
+	        const colorValue = "#7dd3fc" satisfies WebGLEffectColorValue;
+	        declare const colorFacade: WebGLEffectColorLike;
+	        declare const emissiveFacade: WebGLEffectEmissiveLike;
+	        colorFacade.set(colorValue);
+	        emissiveFacade.set(colorValue, 1.8);
+	        const materialLayerOptions = {
+	          key: "fixture.material",
+	          program: {
+	            fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+	          },
+	        } satisfies WebGLEffectMaterialLayerOptions;
+	        publicCtx.object.material?.createLayer(materialLayerOptions);
+	        "object" satisfies WebGLEffectLightFollowMode;
+	        ({ color: colorValue, intensity: 1 } satisfies WebGLEffectAmbientLightRequest);
+	        ({
+	          color: colorValue,
+	          intensity: 1,
+	          position: [0, 0, 1],
+	          target: [0, 0, 0],
+	          follow: "layout-center",
+	        } satisfies WebGLEffectDirectionalLightRequest);
+	        ({
+	          color: colorValue,
+	          intensity: 1,
+	          distance: 120,
+	          decay: 2,
+	          position: [0, 0, 1],
+	          follow: "none",
+	        } satisfies WebGLEffectPointLightRequest);
+	        ({ loop: "once", fadeInMs: 120, timeScale: 1 } satisfies WebGLEffectAnimationPlayOptions);
 
         // @ts-expect-error use ctx.object and ctx.sourceKind instead.
         publicCtx.source;

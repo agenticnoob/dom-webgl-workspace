@@ -14,6 +14,8 @@ import type {
   WebGLTextGlyphRenderCommand,
   WebGLTextLayerStyle,
 } from "./effectAuthoring";
+import type { WebGLEffectLightsFacade } from "./effectLights";
+import type { WebGLEffectMaterialFacade } from "./effectMaterial";
 
 export type WebGLEffectVector3Like = {
   x: number;
@@ -80,6 +82,20 @@ export type WebGLEffectModelFacade = {
   points: WebGLEffectModelPointsFacade;
 };
 
+export type WebGLEffectAnimationPlayOptions = {
+  loop?: "once" | "repeat";
+  fadeInMs?: number;
+  timeScale?: number;
+};
+
+export type WebGLEffectAnimationFacade = {
+  clips(): readonly string[];
+  play(name: string, options?: WebGLEffectAnimationPlayOptions): void;
+  stop(name: string): void;
+  stopAll(): void;
+  setTime(seconds: number): void;
+};
+
 export type WebGLEffectObjectHandle = {
   readonly sourceKind: WebGLEffectSourceKind;
   position: WebGLEffectVector3Like;
@@ -87,6 +103,9 @@ export type WebGLEffectObjectHandle = {
   scale: WebGLEffectScaleLike;
   visible: boolean;
   opacity: number;
+  material?: WebGLEffectMaterialFacade;
+  lights?: WebGLEffectLightsFacade;
+  animation?: WebGLEffectAnimationFacade;
   surface?: WebGLEffectCanvasSurfaceHandle;
   text?: WebGLEffectTextFacade;
   texture?: WebGLEffectTextureFacade;

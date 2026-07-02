@@ -58,10 +58,18 @@ export type WebGLMediaImageSequenceSourceDeclaration = {
   startFrame?: number;
 };
 
+export type WebGLModelLoaderDeclaration = {
+  draco?: {
+    decoderPath: string;
+    preload?: boolean;
+  };
+};
+
 export type WebGLModelSourceDeclaration = {
   kind: "model";
   type: "glb";
   src: string;
+  loader?: WebGLModelLoaderDeclaration;
 };
 
 export type WebGLPageScrollBehavior = {
@@ -161,6 +169,7 @@ export type WebGLRuntimeOptions = {
   effects?: readonly WebGLEffectDefinition[];
   progressSignals?: WebGLProgressSignalSource;
   scrollAdapter?: WebGLScrollAdapter;
+  modelLoader?: WebGLModelLoaderDeclaration;
   performanceBudget?: WebGLPerformanceBudget;
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
