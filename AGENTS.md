@@ -82,7 +82,7 @@ import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 const myEffect = defineWebGLEffect({
   kind: "app.myEffect",
   update(ctx, _state, params) {
-    ctx.target?.setOpacity(params.opacity ?? 1);
+    ctx.object.opacity = params.opacity ?? 1;
   },
 });
 
@@ -92,10 +92,16 @@ createWebGLRuntime({ container, effects: [myEffect] });
 核心规则：
 - **useEffect array-form only**：`effects: [{ kind: "app.effect", opacity: 0.75 }]`。禁止使用旧的 `effects.material` / `effects.motion` 对象形式（已从编译器和类型中移除）。
 - 核心不注册默认视觉效果。所有具体效果由应用/消费者提供。包不导出 `effects` 子路径。
-- Effect context 暴露每个 `ctx.source.kind + ctx.source.type` 的低阶输出 handle：`dom/element` 的 canvas 表面、`dom/text` 的文字层、`media/image` / `media/video` / `media/image-sequence` 的纹理层、`model/glb` 的模型 handle。
+- Effect authors use the controlled Three-like `ctx.object` facade for visual
+  control and source-backed capabilities: transform/visible/opacity,
+  postprocess, surface/text/texture/video/model modules, and future visual
+  capabilities. Source, target, and visual handles are internal runtime
+  assembly details, not part of the public effect context.
 - Effect 不能扫描 DOM、创建独立渲染器、拥有独立资源管线。
-- `ctx.target.setPosition(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
-- 对 `transformScope: "subtree"` target，`ctx.target` 写内部 group；source handle 仍是该 target 自己的输出层，子 target 仍由自己的 effect/source 管理。
+- `ctx.object.position.set(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
+- 对 `transformScope: "subtree"` target，`ctx.object` 写内部 group；source-backed
+  object modules 仍是该 target 自己的输出层，子 target 仍由自己的
+  effect/source 管理。
 - source 声明严格：只使用 `kind: "dom" | "media" | "model"`，子类型写在 `type`。旧的 `snapshot/mode`、`image`、`video`、`image-sequence`、`model/format` 声明已移除。
 
 ## React 使用要点

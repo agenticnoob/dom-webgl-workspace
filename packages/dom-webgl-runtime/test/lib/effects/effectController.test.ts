@@ -80,8 +80,9 @@ describe("createWebGLEffectController", () => {
     expect(dispose.mock.calls[0]?.[0]).toMatchObject({
       key: "hero",
       sourceKind: "dom/element",
-      source: { kind: "dom", type: "element" },
-      target,
+      object: expect.objectContaining({
+        sourceKind: "dom/element",
+      }),
     });
   });
 
@@ -135,7 +136,7 @@ describe("createWebGLEffectController", () => {
     );
   });
 
-  test("passes frame, layout, source, target, and resources to user effects", () => {
+  test("passes frame, layout, object, and resources to user effects", () => {
     const update = vi.fn();
     const source = createElementEffectSource();
     const controller = createWebGLEffectController({
@@ -148,8 +149,8 @@ describe("createWebGLEffectController", () => {
         defineWebGLEffect({
           kind: "custom.visibleTilt",
           update(ctx) {
-            ctx.target?.setVisible(true);
-            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+            ctx.object.visible = true;
+            ctx.object.rotation.set(0, ctx.pointer.normalizedX, 0);
             update(ctx);
           },
         }),
@@ -192,7 +193,12 @@ describe("createWebGLEffectController", () => {
         scrollProgress: 0,
         time: 100,
         delta: 16,
-        source,
+        object: expect.objectContaining({
+          sourceKind: "dom/element",
+          rotation: expect.objectContaining({
+            set: expect.any(Function),
+          }),
+        }),
         resources: expect.objectContaining({
           addDisposable: expect.any(Function),
         }),
@@ -397,7 +403,7 @@ describe("createWebGLEffectController", () => {
       },
       createModelEffectSource(),
     ],
-  ])("passes dynamic %s source handles to effects", (_kind, source, handle) => {
+  ])("passes dynamic %s object capabilities to effects", (kind, source, handle) => {
     const update = vi.fn();
     const controller = createWebGLEffectController({
       key: "custom.source",
@@ -415,7 +421,27 @@ describe("createWebGLEffectController", () => {
 
     controller.update(createFrameInput(), createLayoutSnapshot());
 
-    expect(update.mock.calls[0]?.[0].source).toBe(handle);
+    const context = update.mock.calls[0]?.[0];
+    expect(context.object.sourceKind).toBe(kind);
+    switch (kind) {
+      case "dom/element":
+        expect(context.object.surface).toBeDefined();
+        break;
+      case "dom/text":
+        expect(context.object.text).toBeDefined();
+        break;
+      case "media/image":
+      case "media/image-sequence":
+        expect(context.object.texture).toBeDefined();
+        break;
+      case "media/video":
+        expect(context.object.texture).toBeDefined();
+        expect(context.object.video).toBeDefined();
+        break;
+      case "model/glb":
+        expect(context.object.model?.src).toBe("/product.glb");
+        break;
+    }
   });
 
   test("disposes the effect target", () => {

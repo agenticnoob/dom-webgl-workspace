@@ -2,7 +2,6 @@ import { vi } from "vitest";
 
 import type {
   WebGLEffectCanvasSurfaceHandle,
-  WebGLEffectSourceHandle,
   WebGLEffectImageSequenceLayerHandle,
   WebGLEffectTextLayerHandle,
   WebGLEffectTextureLayerHandle,
@@ -54,9 +53,53 @@ export type TestEffectSource =
       model: Partial<WebGLModelEffectHandle>;
     };
 
+export type TestEffectSourceHandle =
+  | {
+      kind: "dom";
+      type: "element";
+      element: HTMLElement;
+      surface?: WebGLEffectCanvasSurfaceHandle;
+    }
+  | {
+      kind: "dom";
+      type: "text";
+      element: HTMLElement;
+      text: string;
+      textLayer?: WebGLEffectTextLayerHandle;
+    }
+  | {
+      kind: "media";
+      type: "image";
+      element: HTMLImageElement;
+      src: string;
+      image?: WebGLEffectTextureLayerHandle<HTMLImageElement>;
+    }
+  | {
+      kind: "media";
+      type: "video";
+      element: HTMLVideoElement;
+      src: string;
+      video?: WebGLEffectVideoLayerHandle;
+    }
+  | {
+      kind: "media";
+      type: "image-sequence";
+      element: HTMLElement;
+      frame: number;
+      src: string;
+      image?: WebGLEffectImageSequenceLayerHandle;
+    }
+  | {
+      kind: "model";
+      type: "glb";
+      anchor: HTMLElement;
+      src: string;
+      model: WebGLModelEffectHandle;
+    };
+
 export function createEffectSource(
   source: TestEffectSource | undefined,
-): WebGLEffectSourceHandle {
+): TestEffectSourceHandle {
   if (source === undefined) {
     return {
       kind: "dom",

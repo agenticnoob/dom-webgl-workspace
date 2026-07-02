@@ -5,6 +5,7 @@ import type {
   WebGLProgressSignalSource,
   WebGLTargetPointerState,
 } from "../types";
+import type { WebGLEffectObjectHandle } from "./effectObject";
 
 export type WebGLEffectSourceKind =
   | "dom/element"
@@ -331,11 +332,9 @@ export type WebGLEffectContext = {
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
   progress: WebGLProgressSignalSource;
-  visual: WebGLEffectVisualContext;
   time: number;
   delta: number;
-  source: WebGLEffectSourceHandle;
-  target: WebGLEffectTargetHandle | undefined;
+  object: WebGLEffectObjectHandle;
   resources: WebGLEffectResourceScope;
 };
 

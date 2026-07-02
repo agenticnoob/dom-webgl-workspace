@@ -199,20 +199,28 @@ describe("public package exports", () => {
 				          WebGLEffectResourceScope,
 				          WebGLEffectSchedule,
 				          WebGLEffectContentBoxShaderInput,
-				          WebGLEffectMediaShaderInputs,
-				          WebGLEffectObjectFitShaderInput,
-				          WebGLEffectSourceTextureShaderInput,
-				          WebGLEffectSourceHandle,
-				          WebGLEffectSurfaceShaderInputs,
-				          WebGLEffectTargetHandle,
-				          WebGLEffectTextLayerHandle,
-				          WebGLEffectTextShaderInputs,
-				          WebGLEffectTextureUniform,
-					          WebGLEffectTextureLayerHandle,
-					          WebGLEffectTextureTransform,
-					          WebGLEffectUniformValue,
-					          WebGLEffectVisualContext,
-					          WebGLEffectVideoLayerHandle,
+					          WebGLEffectMediaShaderInputs,
+					          WebGLEffectObjectFitShaderInput,
+					          WebGLEffectModelFacade,
+					          WebGLEffectModelMeshesFacade,
+					          WebGLEffectModelPointsFacade,
+					          WebGLEffectModelSamplingFacade,
+					          WebGLEffectObjectHandle,
+				          WebGLEffectPostprocessFacade,
+			          WebGLEffectSourceTextureShaderInput,
+			          WebGLEffectScaleLike,
+			          WebGLEffectSurfaceShaderInputs,
+			          WebGLEffectTextFacade,
+			          WebGLEffectTextLayerHandle,
+			          WebGLEffectTextShaderInputs,
+					          WebGLEffectTextureFacade,
+					          WebGLEffectTextureUniform,
+						          WebGLEffectTextureLayerHandle,
+						          WebGLEffectTextureTransform,
+			          WebGLEffectUniformValue,
+			          WebGLEffectVector3Like,
+			          WebGLEffectVideoFacade,
+			          WebGLEffectVideoLayerHandle,
 					          WebGLModelEffectHandle,
 					          WebGLModelMeshHandle,
 					          WebGLEffectsDeclaration,
@@ -258,6 +266,12 @@ describe("public package exports", () => {
         import type { WebGLSolidMaterialDeclaration } from "${importPath}";
         // @ts-expect-error legacy surface material declarations are no longer public exports.
         import type { WebGLSurfaceMaterialDeclaration } from "${importPath}";
+        // @ts-expect-error source handles are internal assembly details.
+        import type { WebGLEffectSourceHandle } from "${importPath}";
+        // @ts-expect-error target handles are internal assembly details.
+        import type { WebGLEffectTargetHandle } from "${importPath}";
+        // @ts-expect-error visual context is replaced by ctx.object.postprocess.
+        import type { WebGLEffectVisualContext } from "${importPath}";
 
         // @ts-expect-error Target registry is an internal pipeline helper.
         import { createTargetRegistry } from "${importPath}";
@@ -449,6 +463,18 @@ describe("public package exports", () => {
         } satisfies WebGLTargetPointerState;
 
         targetPointer satisfies WebGLTargetPointerState;
+        declare const publicCtx: WebGLEffectContext;
+        publicCtx.object satisfies WebGLEffectObjectHandle;
+        publicCtx.resources satisfies WebGLEffectResourceScope;
+        publicCtx.targetPointer.localX satisfies number;
+        publicCtx.progress.get("section") satisfies number;
+
+        // @ts-expect-error use ctx.object and ctx.sourceKind instead.
+        publicCtx.source;
+        // @ts-expect-error use ctx.object transform controls instead.
+        publicCtx.target;
+        // @ts-expect-error use ctx.object.postprocess instead.
+        publicCtx.visual;
 
         // @ts-expect-error pointer.move is an event-level name, not the public target pointer contract.
         ({ move: true } satisfies WebGLPointerDeclaration);
@@ -478,12 +504,106 @@ describe("public package exports", () => {
 			          { kind: "app.surface", opacity: 0.86 },
 			          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
 			        ] satisfies WebGLEffectsDeclaration;
-			        const customEffects = [
-			          { kind: "custom.surfacePulse", opacity: 0.4 },
-			        ] satisfies WebGLEffectsDeclaration;
-			        "static" satisfies WebGLEffectSchedule;
-			        "reactive" satisfies WebGLEffectSchedule;
-			        "frame" satisfies WebGLEffectSchedule;
+				        const customEffects = [
+				          { kind: "custom.surfacePulse", opacity: 0.4 },
+				        ] satisfies WebGLEffectsDeclaration;
+				        const objectEffect = defineWebGLEffect({
+				          kind: "custom.object",
+				          update(ctx) {
+				            ctx.object.position.set(1, 2, 3);
+				            ctx.object.position.y += 4;
+				            ctx.object.rotation.set(0, 0.5, 0);
+				            ctx.object.scale.setScalar(1.1);
+				            ctx.object.visible = true;
+				            ctx.object.opacity = 0.75;
+				            ctx.object.postprocess.request({
+				              key: "custom.glow",
+				              bloom: { strength: 0.2 },
+				            });
+				            ctx.object satisfies WebGLEffectObjectHandle;
+				            ctx.object.position satisfies WebGLEffectVector3Like;
+				            ctx.object.rotation satisfies WebGLEffectVector3Like;
+				            ctx.object.scale satisfies WebGLEffectScaleLike;
+				            ctx.object.text satisfies WebGLEffectTextFacade | undefined;
+				            ctx.object.texture satisfies WebGLEffectTextureFacade | undefined;
+				            ctx.object.video satisfies WebGLEffectVideoFacade | undefined;
+				            ctx.object.model satisfies WebGLEffectModelFacade | undefined;
+				            ctx.object.model?.meshes satisfies
+				              | WebGLEffectModelMeshesFacade
+				              | undefined;
+				            ctx.object.model?.sampling satisfies
+				              | WebGLEffectModelSamplingFacade
+				              | undefined;
+				            ctx.object.model?.points satisfies
+				              | WebGLEffectModelPointsFacade
+				              | undefined;
+				            ctx.object.postprocess satisfies WebGLEffectPostprocessFacade;
+				          },
+				        });
+
+				        objectEffect satisfies WebGLEffectDefinition;
+				        const objectOnlyEffect = defineWebGLEffect({
+				          kind: "custom.objectOnly",
+				          update(ctx) {
+				            ctx.object.opacity = 1;
+				            ctx.object.position.set(0, 24, 0);
+				            ctx.object.rotation.y += ctx.delta / 1000;
+				            ctx.object.scale.setScalar(1.05);
+				            ctx.object.postprocess.request({
+				              key: "custom.soft",
+				              blur: { radius: 0.2 },
+				            });
+
+				            ctx.object.surface?.draw(({ context }) => {
+				              context.fillRect(0, 0, 1, 1);
+				            });
+
+				            ctx.object.text?.setGlyphs((glyphs) =>
+				              glyphs.map((glyph) => ({
+				                index: glyph.index,
+				                char: glyph.char,
+				              })),
+				            );
+				            ctx.object.text?.shaderInputs.glyphs satisfies
+				              | readonly WebGLTextGlyph[]
+				              | undefined;
+				            ctx.object.text?.style.font satisfies string | undefined;
+
+				            ctx.object.texture?.setTransform({ repeatX: 1, repeatY: 1 });
+				            ctx.object.texture?.shaderInputs.uvTransform.repeatX satisfies
+				              | number
+				              | undefined;
+				            ctx.object.texture?.src satisfies string | undefined;
+				            ctx.object.texture?.frame satisfies number | undefined;
+
+				            ctx.object.video?.setMuted(true);
+				            ctx.object.video?.setPlaybackRate(1);
+
+				            ctx.object.model?.points.create({
+				              positions: ctx.object.model.sampling.vertices({ maxPoints: 128 }),
+				            });
+				            ctx.object.model?.src satisfies string | undefined;
+				          },
+				        });
+
+				        objectOnlyEffect satisfies WebGLEffectDefinition;
+				        // @ts-expect-error raw object3D is not public.
+				        declare const rawObject: WebGLEffectContext["object"]["object3D"];
+				        // @ts-expect-error raw mesh is not public.
+				        declare const rawMesh: WebGLEffectContext["object"]["mesh"];
+				        // @ts-expect-error raw material is not public.
+				        declare const rawMaterial: WebGLEffectContext["object"]["material"];
+				        // @ts-expect-error raw texture handle is not public.
+				        declare const rawTexture: WebGLEffectContext["object"]["rawTexture"];
+				        // @ts-expect-error raw renderer is not public.
+				        declare const rawRenderer: WebGLEffectContext["object"]["renderer"];
+				        // @ts-expect-error raw scene is not public.
+				        declare const rawScene: WebGLEffectContext["object"]["scene"];
+				        // @ts-expect-error raw camera is not public.
+				        declare const rawCamera: WebGLEffectContext["object"]["camera"];
+				        "static" satisfies WebGLEffectSchedule;
+				        "reactive" satisfies WebGLEffectSchedule;
+				        "frame" satisfies WebGLEffectSchedule;
 			        // @ts-expect-error effect schedules are a closed public union.
 			        "idle" satisfies WebGLEffectSchedule;
 			        defineWebGLEffect({
@@ -509,20 +629,18 @@ describe("public package exports", () => {
 				          kind: "custom.glbParticles",
 				          source: "model/glb",
 					          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
-					            ctx.source satisfies WebGLEffectSourceHandle;
-					            ctx.target satisfies WebGLEffectTargetHandle | undefined;
 				            ctx.resources satisfies WebGLEffectResourceScope;
-				            ctx.visual satisfies WebGLEffectVisualContext;
-				            const postprocess = ctx.visual.requestPostprocess({
+				            const postprocess = ctx.object.postprocess.request({
 				              key: "custom.glow",
 				              bloom: { strength: 0.6, radius: 0.2, threshold: 0.8 },
 				              grain: { amount: 0.05 },
 				              blur: { radius: 0.25 },
 				            } satisfies WebGLEffectPostprocessRequest);
 					            postprocess satisfies WebGLEffectPostprocessHandle;
-					            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
-					              ctx.source.model.createPointLayer({
-					                positions: ctx.source.model.sampleVertices({ maxPoints: 2048 }),
+					            const model = ctx.object.model;
+					            if (model) {
+					              model.points.create({
+					                positions: model.sampling.vertices({ maxPoints: 2048 }),
 					                color: "#7dd3fc",
 					                size: 0.026,
 					                material: {
@@ -532,7 +650,7 @@ describe("public package exports", () => {
 				                  },
 				                },
 				              } satisfies WebGLEffectPointLayerOptions);
-				              ctx.source.model.forEachMesh((mesh) => {
+				              model.meshes.forEach((mesh) => {
 				                mesh satisfies WebGLModelMeshHandle;
 				                mesh.index satisfies number;
 				                mesh.name satisfies string | undefined;
@@ -558,8 +676,8 @@ describe("public package exports", () => {
 			            ctx satisfies WebGLEffectContext;
 			            state.density satisfies number;
 			            ctx.progress.get("section.reveal") satisfies number;
-			            ctx.target?.setPosition(0, 0, 0);
-			            ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+			            ctx.object.position.set(0, 0, 0);
+			            ctx.object.rotation.set(0, ctx.pointer.normalizedX, 0);
 			          },
 			        }) satisfies WebGLEffectDefinition<
 			          { kind: "custom.glbParticles"; density?: number },
@@ -569,17 +687,16 @@ describe("public package exports", () => {
         const sourceCapabilityEffect = defineWebGLEffect({
           kind: "custom.sourceCapabilities",
           update(ctx) {
-	            if (ctx.source.kind === "dom" && ctx.source.type === "element") {
-	              ctx.source.surface satisfies WebGLEffectCanvasSurfaceHandle | undefined;
-	              ctx.source.surface?.shaderInputs satisfies WebGLEffectSurfaceShaderInputs | undefined;
-	              ctx.source.surface?.shaderInputs.size.width satisfies number | undefined;
-	              ctx.source.surface?.shaderInputs.sourceTexture satisfies
+	            const surface = ctx.object.surface;
+	            if (surface) {
+	              surface satisfies WebGLEffectCanvasSurfaceHandle;
+	              surface.shaderInputs satisfies WebGLEffectSurfaceShaderInputs;
+	              surface.shaderInputs.size.width satisfies number;
+	              surface.shaderInputs.sourceTexture satisfies
 	                | WebGLEffectSourceTextureShaderInput
 	                | undefined;
-	              ctx.source.surface?.shaderInputs.contentBox satisfies
-	                | WebGLEffectContentBoxShaderInput
-	                | undefined;
-	              ctx.source.surface?.draw(({ context }) => {
+	              surface.shaderInputs.contentBox satisfies WebGLEffectContentBoxShaderInput;
+	              surface.draw(({ context }) => {
 	                context.fillRect(0, 0, 10, 10);
 	              });
 		              const publicProgram = {
@@ -602,11 +719,11 @@ describe("public package exports", () => {
 		              // @ts-expect-error material programs do not expose Three.js render-state fields.
 		              acceptMaterialProgramKey("transparent");
 		              // @ts-expect-error material programs do not expose Three.js render-state fields.
-		              acceptMaterialProgramKey(("depth" + "Write") as \`depth${"Write"}\`);
+		              acceptMaterialProgramKey("depthWrite");
 		              // @ts-expect-error material programs do not expose Three.js render-state fields.
-		              acceptMaterialProgramKey(("depth" + "Test") as \`depth${"Test"}\`);
+		              acceptMaterialProgramKey("depthTest");
 		              // @ts-expect-error material programs do not expose Three.js render-state fields.
-		              acceptMaterialProgramKey(("tone" + "Mapped") as \`tone${"Mapped"}\`);
+		              acceptMaterialProgramKey("toneMapped");
 		              function acceptSurfaceKey<
 		                TKey extends keyof WebGLEffectCanvasSurfaceHandle,
 		              >(_key: TKey): void {}
@@ -616,26 +733,24 @@ describe("public package exports", () => {
 		              acceptSurfaceKey("mesh");
 		              // @ts-expect-error surface material is runtime-owned and not public.
 		              acceptSurfaceKey("material");
-		              const layer = ctx.source.surface?.createMaterialLayer({
+		              const layer = surface.createMaterialLayer({
 		                key: "custom.surfaceShader",
 		                sourceTextureUniform: "sourceMap",
 		                mode: "replace-source",
 		                program: publicProgram,
 		              });
-		              layer satisfies WebGLEffectMaterialLayerHandle | undefined;
+		              layer satisfies WebGLEffectMaterialLayerHandle;
 		            }
 
-	            if (ctx.source.kind === "dom" && ctx.source.type === "text") {
-	              ctx.source.textLayer satisfies WebGLEffectTextLayerHandle | undefined;
-	              ctx.source.textLayer?.shaderInputs satisfies
-	                | WebGLEffectTextShaderInputs
-	                | undefined;
-	              ctx.source.textLayer?.shaderInputs.glyphs satisfies
-	                | readonly WebGLTextGlyph[]
-	                | undefined;
-	              const glyphs = ctx.source.textLayer?.getGlyphs() ?? [];
+	            const text = ctx.object.text;
+	            if (text) {
+	              text satisfies WebGLEffectTextFacade;
+	              text.shaderInputs satisfies WebGLEffectTextShaderInputs;
+	              text.shaderInputs.glyphs satisfies readonly WebGLTextGlyph[] | undefined;
+	              text.style satisfies WebGLTextLayerStyle;
+	              const glyphs = text.getGlyphs();
               glyphs satisfies readonly WebGLTextGlyph[];
-              ctx.source.textLayer?.setGlyphs((entries) =>
+              text.setGlyphs((entries) =>
                 entries.map((glyph) => ({
                   index: glyph.index,
                   char: glyph.char,
@@ -644,97 +759,75 @@ describe("public package exports", () => {
 	                  opacity: 1,
 	                })),
 	              );
-	              ctx.source.textLayer satisfies WebGLEffectMaterialLayerHost | undefined;
+	              text.material satisfies WebGLEffectMaterialLayerHost;
 	            }
 
-	            if (ctx.source.kind === "media" && ctx.source.type === "image") {
-	              ctx.source.image satisfies
-	                | WebGLEffectTextureLayerHandle<HTMLImageElement>
-	                | undefined;
-	              ctx.source.image?.shaderInputs satisfies
-	                | WebGLEffectMediaShaderInputs
-	                | undefined;
-	              ctx.source.image?.shaderInputs.naturalSize.width satisfies
-	                | number
-	                | undefined;
-	              ctx.source.image?.shaderInputs.uvTransform satisfies
-	                | WebGLEffectObjectFitShaderInput
-	                | undefined;
-		              const imageLayer = ctx.source.image;
-		              function acceptImageKey<
-		                TKey extends keyof WebGLEffectTextureLayerHandle<HTMLImageElement>,
-		              >(_key: TKey): void {}
-		              // @ts-expect-error media texture is runtime-owned and not public.
-		              acceptImageKey("texture");
-		              // @ts-expect-error media mesh is runtime-owned and not public.
-		              acceptImageKey("mesh");
-		              // @ts-expect-error media material is runtime-owned and not public.
-		              acceptImageKey("material");
-		              imageLayer?.setTextureTransform({ repeatX: 1, repeatY: 1 });
-		              imageLayer?.createMaterialLayer({
-		                key: "custom.imageShader",
+	            const texture = ctx.object.texture;
+	            if (texture) {
+	              texture satisfies WebGLEffectTextureFacade;
+	              texture.shaderInputs satisfies WebGLEffectMediaShaderInputs;
+	              texture.shaderInputs.naturalSize.width satisfies number | undefined;
+	              texture.shaderInputs.uvTransform satisfies WebGLEffectObjectFitShaderInput;
+	              texture.src satisfies string | undefined;
+	              texture.frame satisfies number | undefined;
+	              function acceptTextureKey<TKey extends keyof WebGLEffectTextureFacade>(
+	                _key: TKey,
+	              ): void {}
+	              // @ts-expect-error media texture is runtime-owned and not public.
+	              acceptTextureKey("texture");
+	              // @ts-expect-error media mesh is runtime-owned and not public.
+	              acceptTextureKey("mesh");
+	              // @ts-expect-error media material is runtime-owned and not public.
+	              acceptTextureKey("rawMaterial");
+	              texture.setTransform({ repeatX: 1, repeatY: 1 });
+	              texture.material.createMaterialLayer({
+	                key: "custom.textureShader",
+	                sourceTextureUniform: "sourceMap",
+	                mode: "replace-source",
 	                program: {
 	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
 	                  uniforms: {
-	                    imageMap: {
-	                      kind: "image-texture",
-	                      source: imageLayer.source,
-	                    } satisfies WebGLEffectTextureUniform,
+	                    sourceMap: { kind: "source-texture" } satisfies WebGLEffectTextureUniform,
 	                  },
 	                },
 	              });
 	            }
 
-	            if (ctx.source.kind === "media" && ctx.source.type === "video") {
-	              ctx.source.video satisfies WebGLEffectVideoLayerHandle | undefined;
-	              ctx.source.video?.shaderInputs satisfies
-	                | WebGLEffectMediaShaderInputs
-	                | undefined;
-	              const videoLayer = ctx.source.video;
-	              videoLayer?.setMuted(true);
-	              videoLayer?.setPlaybackRate(1);
-	              videoLayer?.createMaterialLayer({
-	                key: "custom.videoShader",
-	                program: {
-	                  fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
-	                  uniforms: {
-	                    videoMap: {
-	                      kind: "video-texture",
-	                      source: videoLayer.source,
-	                    },
-	                  },
-	                },
+	            const video = ctx.object.video;
+	            if (video) {
+	              video.setMuted(true);
+	              video.setPlaybackRate(1);
+	            }
+
+	            const model = ctx.object.model;
+	            if (model) {
+	              model satisfies WebGLEffectModelFacade;
+	              model.src satisfies string | undefined;
+	              model.sampling.vertices({ maxPoints: 64 });
+	              model.points.create({
+	                positions: model.sampling.vertices({ maxPoints: 16 }),
 	              });
-	            }
-
-		            if (ctx.source.kind === "media" && ctx.source.type === "image-sequence") {
-		              ctx.source.image satisfies
-		                | WebGLEffectImageSequenceLayerHandle
-		                | undefined;
-		              ctx.source.frame satisfies number;
-		              ctx.source.src satisfies string;
-	              ctx.source.image?.setTextureTransform({ repeatX: 1, repeatY: 1 });
-	            }
-
-	            if (ctx.source.kind === "model" && ctx.source.type === "glb") {
-	              ctx.source.model satisfies WebGLEffectRenderableHandle;
-	              ctx.source.model.sampleVertices({ maxPoints: 64 });
-	              function acceptModelKey<TKey extends keyof WebGLModelEffectHandle>(
+	              model.meshes.forEach((mesh) => {
+	                mesh.restoreMaterial();
+	              });
+	              function acceptModelKey<TKey extends keyof WebGLEffectModelFacade>(
 	                _key: TKey,
 	              ): void {}
 	              // @ts-expect-error model root object is runtime-owned and not public.
-	              acceptModelKey(("object" + "3D") as \`object${"3D"}\`);
+	              acceptModelKey("object3D");
 	              // @ts-expect-error raw mesh traversal is not public.
-	              acceptModelKey(("traverse" + "Meshes") as \`traverse${"Meshes"}\`);
+	              acceptModelKey("traverseMeshes");
 	              // @ts-expect-error point-cloud objects are not returned as raw objects.
-	              acceptModelKey(("createPoint" + "Cloud") as \`createPoint${"Cloud"}\`);
+	              acceptModelKey("createPointCloud");
+	              // @ts-expect-error model animation controls are not raw source handles.
+	              model.animations;
+	              // @ts-expect-error model light controls are not raw source handles.
+	              model.requestLight;
+	              // @ts-expect-error model picking controls are not raw source handles.
+	              model.hitTest;
+	              // @ts-expect-error material variants are not raw source handles.
+	              model.materialVariants;
 	            }
-
-	            function acceptTargetKey<TKey extends keyof WebGLEffectTargetHandle>(
-	              _key: TKey,
-	            ): void {}
-	            // @ts-expect-error effect targets do not accept raw Object3D children.
-	            acceptTargetKey(("addObject" + "3D") as \`addObject${"3D"}\`);
 	          },
 	        });
 

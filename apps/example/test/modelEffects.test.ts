@@ -7,7 +7,7 @@ import {
 } from "../src/modelEffects";
 
 describe("model example effects", () => {
-  test("model spin uses the public target handle and model source kind", () => {
+  test("model spin uses the object facade and model source kind", () => {
     const target = {
       setRotation: vi.fn(),
       setVisible: vi.fn(),

@@ -32,8 +32,9 @@ Phase 5/6 historically added legacy `effects.material` and `effects.motion`
 declaration shapes plus concrete package-owned effect implementations. Phase 7
 historically moved those declarations through registry primitives. Phase 8 and
 the package effect boundary cleanup supersede that concrete-effect model:
-`defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
- target handles, and managed effect resources are the public authoring API, while
+`defineWebGLEffect(...)`, runtime-level `effects`, the controlled
+`ctx.object` facade, frame/input state, keyed progress, and managed effect
+resources are the public authoring API, while
  all concrete effect implementations live in application, example, or documentation
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
@@ -57,6 +58,21 @@ control WebGL text layers and glyph layout, transform image/video texture
 planes, control video playback, and inspect or manipulate GLB model handles
 through public effect context. These are primitives, not package-owned visual
 effects.
+
+The 2026-07-02 effect authoring direction correction is captured in
+`docs/agent/effect-object-boundary.md`. The runtime now exposes a controlled
+Three-like `ctx.object` facade for basic transform, visibility, opacity,
+postprocess, and existing surface/text/texture/video/model capabilities. The
+older source/target/visual handles remain compatibility and implementation
+substrate, but they are not the desired long-term public mental model. Future
+visual capability work should continue under `ctx.object`: effect authors should
+mutate familiar properties such as position, rotation, scale, visibility,
+opacity, texture/text/model modules, material uniforms, animation, picking,
+lights, and postprocess through one runtime-owned object. Raw Three.js renderer,
+scene, camera, Object3D, mesh, material, texture, animation mixer, raycaster,
+composer, and loader instances remain internal.
+The refactor plan lives in
+`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
 
 ## Purpose
 
@@ -144,6 +160,8 @@ Package consumers should think about:
   participates in an advanced gated scene.
 - Whether pointer input should affect it.
 - Which runtime-registered custom effect should own its WebGL visual treatment.
+- For forward effect authoring, how that effect mutates the controlled
+  Three-like object facade rather than a growing set of source-specific handles.
 - Whether a parent target's effect transform should control its declared WebGL
   subtree with `transformScope: "subtree"`.
 
@@ -446,7 +464,7 @@ Delivered Phase 3 behavior:
   target's local policy offset inside that scope. Page code still does not set
   public Three.js flags or public layer numbers. DOM supplies layout anchors and
   layer semantics; effect code supplies final pixels. `dom/element` remains a
-  transparent layout surface until an effect draws to `ctx.source.surface`, and
+  transparent layout surface until an effect draws to `ctx.object.surface`, and
   runtime core does not clone CSS backgrounds, borders, shadows, or decorative
   paint into WebGL.
 - Mounted React runtimes create and dispose the runtime but do not own a frame
@@ -1419,17 +1437,17 @@ Current controlled visual capability API, delivered after Phase 8:
   `defines`, and `blend`. The runtime compiles those declarations into internal
   Three material/texture state, restores original materials, and disposes
   runtime-owned resources.
-- Text/media handles expose shader input metadata such as source texture
+- Object modules expose shader input metadata such as source texture
   availability, size, DPR, glyph coordinates, media natural size, content box,
   and object-fit UV transform.
-- GLB model handles expose controlled mesh handles, material restore, sampled
+- GLB object model modules expose controlled mesh handles, material restore, sampled
   vertices, and managed point layers.
 - Public handles are AI-first capability handles: use methods such as `draw`,
-  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
-  `sampleVertices`, and `createPointLayer`. They do not expose `object3D`,
+  `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
+  `sampling.vertices`, and `points.create`. They do not expose `object3D`,
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
-- `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
+- `ctx.object.postprocess.request(...)` exposes named bloom/grain/blur requests.
   Current runtime truth is request/handle ownership, inspection, and bounded
   internal bloom/grain/blur pass execution. Composer, pass ordering, and
   render-target internals remain private.
@@ -1445,20 +1463,20 @@ Delivered Phase 8 behavior:
   concrete effects or official presets.
 - Example and documentation snippets may define local effects with the public
   authoring API, but those examples are consumer-owned code.
-- Effect context exposes layout, frame input, pointer, scroll, time, source
-  handles, target handles, and managed resources.
-- GLB effects receive a model source handle after the model source is loaded;
+- Effect context exposes layout, frame input, pointer, target-local pointer,
+  scroll, time, keyed progress, `ctx.object`, and managed resources.
+- GLB effects receive `ctx.object.model` after the model source is loaded;
   effects do not load GLB assets themselves.
 - Raw renderer, camera, scene, material, texture, composer, render-target,
   render-loop, pass ordering, and renderer-state mutation remain outside the
   public API.
 
-Text animation effects such as scrambled text and text pressure should use the
-public `dom/text` text-layer handle. They should not run by mutating native
+Text animation effects such as scrambled text and text pressure should use
+`ctx.object.text`. They should not run by mutating native
 DOM and waiting for snapshot refresh, because that couples effect timing to
-browser paint and snapshot cadence. `textLayer.setText(...)` and
-`textLayer.setGlyphs(...)` update only the WebGL output layer; DOM text remains
-the source for content, accessibility, and fallback.
+browser paint and snapshot cadence. `ctx.object.text.setText(...)` and
+`ctx.object.text.setGlyphs(...)` update only the WebGL output layer; DOM text
+remains the source for content, accessibility, and fallback.
 
 ## Non-Goals For The New Project
 

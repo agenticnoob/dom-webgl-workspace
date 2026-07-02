@@ -15,7 +15,12 @@ import type {
   WebGLEffectSourceKind,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
-import { createWebGLEffectContext, readScrollProgress } from "./effectContext";
+import {
+  createResourceManagedVisualContext,
+  createWebGLEffectContext,
+  readScrollProgress,
+} from "./effectContext";
+import { createWebGLEffectObject } from "./effectObjectContext";
 import { compileWebGLEffectDeclarations } from "./effectDeclaration";
 import { assertEffectCompatibility } from "./effectCompatibility";
 import {
@@ -52,6 +57,7 @@ type RunningEffect = {
   definition: WebGLEffectDefinition;
   params: ReturnType<typeof compileWebGLEffectDeclarations>[number];
   resources: ReturnType<typeof createWebGLEffectResourceScope>;
+  visual: WebGLEffectVisualContext;
   state: unknown;
   initialized: boolean;
   reusableContext: WebGLEffectContext | null;
@@ -79,10 +85,15 @@ export function createWebGLEffectController(
         sourceKind,
       );
 
+      const resources = createWebGLEffectResourceScope();
       return {
         definition,
         params: declaration,
-        resources: createWebGLEffectResourceScope(),
+        resources,
+        visual: createResourceManagedVisualContext(
+          options.visual,
+          resources,
+        ),
         state: undefined,
         initialized: false,
         reusableContext: null,
@@ -144,8 +155,12 @@ export function createWebGLEffectController(
           context.scrollProgress = readScrollProgress(input.scroll);
           context.time = input.time;
           context.delta = input.delta;
-          context.source = source;
-          context.target = target ?? undefined;
+          context.object = createWebGLEffectObject({
+            sourceKind,
+            source,
+            target,
+            visual: effect.visual,
+          });
         } else {
           context = createWebGLEffectContext({
             key: options.key,
@@ -156,7 +171,7 @@ export function createWebGLEffectController(
             target,
             resources: effect.resources,
             progressSignals: options.progressSignals,
-            visual: options.visual,
+            managedVisual: effect.visual,
           });
           effect.reusableContext = context;
         }

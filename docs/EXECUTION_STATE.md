@@ -1,7 +1,7 @@
 # Execution State
 
 ## Current Status
-Phase 1 is complete through Task 37, historical Phase 2 scene gates through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. Scene-gated scroll remains an optional advanced scroll-locking capability, not the current core goal and not the recommended pinned-scroll route. Current pinned-scroll effects should use `@project/dom-webgl-scroll-adapters/react`, `WebGLScrollRuntime`, `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`, stable `progressKey` data, and effect reads through `ctx.progress.get(progressKey)`. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, debug source kinds, public types, and effect context source handles now use `kind + type`. Effects narrow with `ctx.source.kind` and `ctx.source.type`, while optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The package exports no concrete effect implementations and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, keeps scene gates as historical optional behavior, routes optional third-party scroll integration through `@project/dom-webgl-scroll-adapters`, and leaves visual QA user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. Target-scoped pointer contract is implemented: public declarations use `pointer: { hover, press, click, drag }`, `ctx.pointer` remains runtime/canvas input state, `ctx.targetPointer` exposes current-target layout-local pointer state, pointer declarations wake reactive effects with one-shot `"pointer"` dirty frames, and target debug records expose pointer snapshots only for pointer-declared targets. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
+Phase 1 is complete through Task 37, historical Phase 2 scene gates through Task 56, Phase 3 through Task 72, Phase 8 custom effect authoring is the current public extension model, and nested `WebGLTarget` layer semantics are implemented in the current runtime. Scene-gated scroll remains an optional advanced scroll-locking capability, not the current core goal and not the recommended pinned-scroll route. Current pinned-scroll effects should use `@project/dom-webgl-scroll-adapters/react`, `WebGLScrollRuntime`, `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`, stable `progressKey` data, and effect reads through `ctx.progress.get(progressKey)`. The current source declaration contract is unified around `source.kind: "dom" | "media" | "model"` plus `source.type`; old explicit declarations (`snapshot/mode`, top-level `image`, top-level `video`, top-level `image-sequence`, and `model/format`) are removed rather than compatibility-supported. Runtime source descriptors, render routing, resource keys, and debug source kinds use `kind + type`. Public effect authors use `ctx.object` for visual control and source-backed capabilities; optional `source` filters remain compact strings such as `dom/element`, `media/image`, `media/video`, `media/image-sequence`, and `model/glb`. The public effect context no longer exposes `ctx.source`, `ctx.target`, or `ctx.visual`; those are internal runtime assembly details. The package exports no concrete effect implementations, no old source/target/visual context handles from the root entrypoint, and no `@project/dom-webgl-runtime/effects` subpath. Nested targets now form a DOM-derived WebGL layer tree; fallback boundaries are managed per target root; and debug state exposes parent/layer/sibling/render-order diagnostics. `apps/demo` has been removed; `apps/example` is the only app workspace and the React-only downstream dogfood/tutorial surface. Current architecture direction remains explicit: DOM is the source for layout, content, accessibility, and interaction state; WebGL effects/materials are the source for final visual styling. Core keeps native scroll as the default, keeps scene gates as historical optional behavior, routes optional third-party scroll integration through `@project/dom-webgl-scroll-adapters`, and leaves visual QA user-owned when requested. The runtime performance roadmap in `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md` is implemented or decided through the profile-gated batching decision, and Runtime Performance Ownership V2 in `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md` is implemented. Runtime ownership now covers split texture upload/frame dirtiness, incremental material uniform updates, effect scheduling hints, renderer/postprocess budget warning inputs, viewport-priority resource queueing, shared internal plane geometry, and visible-only model animation mixer updates. Target-scoped pointer contract is implemented: public declarations use `pointer: { hover, press, click, drag }`, `ctx.pointer` remains runtime/canvas input state, `ctx.targetPointer` exposes current-target layout-local pointer state, pointer declarations wake reactive effects with one-shot `"pointer"` dirty frames, and target debug records expose pointer snapshots only for pointer-declared targets. `docs/performance/profile-notes.md` records the current profile result: batching remains deferred because the example does not prove draw calls dominate many compatible active planes. Test files now live outside production `src/` directories: package and app tests use their workspace `test/` directories, root workspace/structure tests live in root `test/`, and `test/structure.test.ts` guards against `.test` / `.spec` files being added back under `src/`.
 
 Declarative WebGL transform groups are implemented with
 `transformScope: "subtree"`. Parent effects can transform, hide, and best-effort
@@ -30,16 +30,25 @@ Runtime performance ownership V2 plan: `docs/superpowers/plans/2026-06-30-runtim
 WebGL transform groups plan: `docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`.
 Target-scoped pointer contract plan: `docs/superpowers/plans/2026-07-01-target-scoped-pointer-contract.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
+Effect object boundary direction: `docs/agent/effect-object-boundary.md`.
+Effect object facade refactor plan: `docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
+Effect object-only public context plan: `docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
-effect authoring model. Public handles are AI-first capability handles: use
-methods such as `draw`, `setGlyphs`, `setTextureTransform`,
-`createMaterialLayer`, `forEachMesh`, `sampleVertices`, and
-`createPointLayer`, not `object3D`, `mesh`, `material`, or `texture` fields.
-Source handles can create runtime-owned material layers, text/media handles
-expose shader input metadata, GLB model handles expose controlled mesh material
-restore, vertex samples, and managed point layers, and
-`ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
+effect authoring model. The implemented public context exposes `ctx.object` as
+the controlled Three-like facade for transform, visibility, opacity,
+postprocess, and surface/text/texture/video/model capabilities. New visual
+capabilities should be designed for `ctx.object` first, then implemented behind
+that facade with runtime-owned internals.
+
+Existing public handles remain AI-first controlled capability handles: use
+methods such as `draw`, `setGlyphs`, `setTransform`, `createMaterialLayer`,
+`meshes.forEach`, `sampling.vertices`, and `points.create`; do not rely on
+`object3D`, `mesh`, `material`, or `texture` fields. Object modules can create
+runtime-owned material layers, expose text/media shader input metadata, expose
+GLB controlled mesh material restore, vertex samples, managed point layers, and
+accept named bloom/grain/blur requests through
+`ctx.object.postprocess.request(...)`.
 Current postprocess support includes request/handle ownership, inspection, and
 bounded internal pass execution for named bloom/grain/blur-style requests.
 Postprocess request count and render-target size feed performance warning
@@ -87,10 +96,10 @@ quote the old colocated `src/*.test.*` paths because those entries describe past
 execution context rather than current commands to run.
 
 Controlled visual capability API is implemented through the existing
-`defineWebGLEffect(...)` authoring model. Public source handles now cover
+`defineWebGLEffect(...)` authoring model. Public object modules cover
 runtime-owned material layers, source texture uniforms, text/media shader input
 metadata, GLB controlled mesh handles, managed point layers, and named
-postprocess requests through `ctx.visual.requestPostprocess(...)`. Runtime
+postprocess requests through `ctx.object.postprocess.request(...)`. Runtime
 continues to own Three.js material, texture, geometry, render-target
 infrastructure, postprocess request handles, restore, and dispose lifecycles.
 Public handles are controlled capability handles and do not expose raw
@@ -112,9 +121,9 @@ ReactBits-style pointer trail as controlled public uniform data; visual browser
 Source declarations are now `kind + type` only. Use
 `{ kind: "dom", type: "element" | "text" }`,
 `{ kind: "media", type: "image" | "video" | "image-sequence" }`, or
-`{ kind: "model", type: "glb", src }`. Effect context source handles expose
-`ctx.source.kind` and `ctx.source.type`; old checks such as
-`ctx.source.kind === "image"` or `ctx.source.kind === "model/glb"` are stale.
+`{ kind: "model", type: "glb", src }`. Effects use optional definition
+`source` filters plus absent `ctx.object.*` capability checks; old checks such
+as `ctx.source.kind === "image"` or `ctx.source.kind === "model/glb"` are stale.
 `apps/example` is the sole app workspace and imports runtime packages only
 through public entrypoints. `npm run check:imports` now runs
 `scripts/assert-example-public-imports.mjs`.

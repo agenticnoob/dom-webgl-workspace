@@ -14,7 +14,7 @@ the source for layout, content, accessibility, and interaction state.
 Package split:
 
 - `<runtime-package>`: runtime creation, React adapter, target declarations,
-  effect authoring primitives, source handles, target handles, scroll state,
+  effect authoring primitives, controlled `ctx.object` facade, scroll state,
   pointer state, and managed resources.
 - `<scroll-adapters-package>`: optional Lenis, GSAP ticker, ScrollTrigger, and
   React pinned-scroll glue.
@@ -91,7 +91,10 @@ subpath. Example effects are consumer examples, not package API.
 ## Minimal React Integration
 
 Define effects at module scope, pass them once to the runtime, and declare target
-effect data on each target.
+effect data on each target. The snippet below shows the current implemented
+handle surface. When designing new package capabilities, read
+`docs/agent/effect-object-boundary.md` first and target the future
+`ctx.object` facade instead of adding more source-specific public handles.
 
 ```tsx
 import { defineWebGLEffect } from "<runtime-package>";
@@ -106,7 +109,7 @@ const appSurfaceEffect = defineWebGLEffect<AppSurfaceParams>({
   kind: "app.surface",
   source: "dom/element",
   update(ctx, _state, params) {
-    ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
+    ctx.object.opacity = clampNumber(params.opacity, 0, 1, 1);
   },
 });
 
@@ -195,15 +198,18 @@ Choose the source from the actual DOM element:
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 
-Effect code must narrow `ctx.source.kind` and `ctx.source.type` before using
-source-specific handles:
+Effect authors use `ctx.object` for visual control and source-backed
+capabilities. Source, target, and visual handles are internal runtime assembly
+details, not public effect authoring API.
+
+For text output, use the object text facade:
 
 ```ts
-if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+if (!ctx.object.text) {
   return;
 }
 
-ctx.source.textLayer?.setGlyphs((glyphs) =>
+ctx.object.text.setGlyphs((glyphs) =>
   glyphs.map((glyph) => ({
     index: glyph.index,
     char: glyph.char,
@@ -212,31 +218,34 @@ ctx.source.textLayer?.setGlyphs((glyphs) =>
 );
 ```
 
-Available handles:
+Object modules:
 
-- `dom/element`: `ctx.source.surface`
-- `dom/text`: `ctx.source.textLayer`
-- `media/image`: `ctx.source.image`
-- `media/video`: `ctx.source.video`
-- `media/image-sequence`: `ctx.source.image`
-- `model/glb`: `ctx.source.model`
+- `ctx.object.surface`: canvas draw/clear/invalidate/material-layer controls.
+- `ctx.object.text`: text, style, shader inputs, glyph read/write, and
+  material-layer controls.
+- `ctx.object.texture`: media src/frame metadata, shader inputs, texture
+  transform, invalidate, and material-layer controls.
+- `ctx.object.video`: video playback controls.
+- `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
+  layers.
+- `ctx.object.postprocess`: named postprocess requests.
 
 Current visual capability surface:
 
-- Element and text snapshot handles can draw to their canvas surface and create
+- Element and text object modules can draw to their canvas surface and create
   runtime-owned material layers over the source texture.
-- Text, image, and video handles expose shader input metadata such as size,
+- Text, media texture, and video modules expose shader input metadata such as size,
   glyph layout, natural media size, content box, source texture availability,
   and object-fit UV transform.
-- Image/video handles keep object-fit and playback controls public without
+- Texture/video modules keep object-fit and playback controls public without
   exposing raw Three textures.
-- GLB handles expose controlled mesh handles, material restore, vertex samples,
+- GLB object modules expose controlled mesh handles, material restore, vertex samples,
   and managed point layers.
 - Public handles are capability handles: use methods such as `draw`,
-  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
-  `sampleVertices`, and `createPointLayer`; do not rely on `object3D`, `mesh`,
+  `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
+  `sampling.vertices`, and `points.create`; do not rely on `object3D`, `mesh`,
   `material`, or `texture` fields.
-- `ctx.visual.requestPostprocess(...)` submits named bloom/grain/blur requests
+- `ctx.object.postprocess.request(...)` submits named bloom/grain/blur requests
   owned by the runtime.
 - Material uniforms are controlled data, not raw Three.js objects. Numeric
   tuples and supported arrays such as pointer-trail `vec2[]` are acceptable;
@@ -313,7 +322,7 @@ const pinnedRevealEffect = defineWebGLEffect<{
   kind: "app.pinnedReveal",
   update(ctx, _state, params) {
     const progress = ctx.progress.get(params.progressKey);
-    ctx.target?.setOpacity(progress);
+    ctx.object.opacity = progress;
   },
 });
 
@@ -445,7 +454,7 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Runtime churn: React recreates the runtime because `effects` or
   `scrollAdapter` identity changes every render.
 - Invalid media source: `image` or `video` is declared on a non-media element.
-- Text confusion: `textLayer.setGlyphs(...)` changes WebGL output, not DOM text.
+- Text confusion: `ctx.object.text.setGlyphs(...)` changes WebGL output, not DOM text.
 - Pointer offset: an effect compares `ctx.pointer` runtime/canvas coordinates
   directly to target-local coordinates instead of reading `ctx.targetPointer`.
 - Shader coordinate mismatch: DOM pointer `y` is top-down, while shader
@@ -469,6 +478,8 @@ Run a browser smoke check for visual work when the change affects a rendered app
 ## Where To Look Next
 
 - `docs/agent/package-usage.md`: full package contract and edge cases.
+- `docs/agent/effect-object-boundary.md`: forward effect authoring boundary;
+  read before designing new package visual capabilities.
 - `docs/agent/custom-effects.md`: custom effect writing checklist.
 - `docs/agent/scroll-adapters.md`: Lenis, GSAP ticker, and ScrollTrigger rules.
 - `docs/examples/effect-authoring.md`: React-only downstream tutorial.

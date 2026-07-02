@@ -57,13 +57,13 @@ export const exampleTextWaveEffect = defineWebGLEffect<TextWaveParams>({
   kind: "example.textWave",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
     const amplitude = clampNumber(params.amplitude, 0, 24, 6);
     const phase = ctx.time / 450;
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       createWaveGlyphCommands(glyphs, {
         amplitude,
         color: "#1d2a2e",
@@ -77,7 +77,7 @@ export const exampleTextRevealEffect = defineWebGLEffect<TextRevealParams>({
   kind: "example.textReveal",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
@@ -89,7 +89,7 @@ export const exampleTextRevealEffect = defineWebGLEffect<TextRevealParams>({
       );
     const color = params.color ?? "#f6c453";
 
-    ctx.source.textLayer?.setGlyphs((glyphs) => {
+    ctx.object.text.setGlyphs((glyphs) => {
       const visibleCount = Math.ceil(glyphs.length * progress);
 
       return glyphs.map((glyph) => ({
@@ -108,7 +108,7 @@ export const exampleTextSpotlightEffect = defineWebGLEffect<TextSpotlightParams>
   kind: "example.textSpotlight",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
@@ -124,7 +124,7 @@ export const exampleTextSpotlightEffect = defineWebGLEffect<TextSpotlightParams>
     const spotlightY = pointer.active ? pointer.y : fallbackY;
     const highlightColor = params.color ?? "#f6c453";
 
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       createSpotlightGlyphCommands(glyphs, {
         baseColor: "#1d2a2e",
         focus: { x: spotlightX, y: spotlightY },
@@ -144,7 +144,7 @@ export const exampleTextPressureEffect = defineWebGLEffect<TextPressureParams>({
   kind: "example.textPressure",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
@@ -155,7 +155,7 @@ export const exampleTextPressureEffect = defineWebGLEffect<TextPressureParams>({
     const color = params.color ?? "#f4f4f5";
 
     if (!pointer.active) {
-      ctx.source.textLayer?.setGlyphs((glyphs) =>
+      ctx.object.text.setGlyphs((glyphs) =>
         glyphs.map((glyph) => ({
           index: glyph.index,
           char: glyph.char,
@@ -172,7 +172,7 @@ export const exampleTextPressureEffect = defineWebGLEffect<TextPressureParams>({
     const pressureX = pointer.x;
     const pressureY = pointer.y;
 
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       createPressureGlyphCommands(glyphs, {
         color,
         pressureX,
@@ -301,7 +301,7 @@ export const exampleTextScrambleEffect = defineWebGLEffect<TextScrambleParams>({
   kind: "example.textScramble",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
@@ -319,7 +319,7 @@ export const exampleTextScrambleEffect = defineWebGLEffect<TextScrambleParams>({
     const scrambleX = pointer.active ? pointer.x : ctx.layout.width * (0.16 + phase * 0.68);
     const scrambleY = pointer.active ? pointer.y : ctx.layout.height * 0.5;
 
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       createScrambleGlyphCommands(glyphs, {
         color,
         focus: { x: scrambleX, y: scrambleY },
@@ -342,7 +342,7 @@ export const exampleTextSpotlightPressureScrambleWaveEffect =
     kind: "example.textSpotlightPressureScrambleWave",
     source: "dom/text",
     update(ctx, _state, params) {
-      if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+      if (!ctx.object.text) {
         return;
       }
 
@@ -363,7 +363,7 @@ export const exampleTextSpotlightPressureScrambleWaveEffect =
       const focusY = pointer.active ? pointer.y : ctx.layout.height * 0.5;
       const wavePhase = ctx.time / 450;
 
-      ctx.source.textLayer?.setGlyphs((glyphs) => {
+      ctx.object.text.setGlyphs((glyphs) => {
         const pressureCommands = pointer.active
           ? createPressureGlyphCommands(glyphs, {
             color: baseColor,

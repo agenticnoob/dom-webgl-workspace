@@ -2,6 +2,10 @@
 
 Date: 2026-06-22
 Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands, and the reusable text transform helpers behind `example.textSpotlightPressureScrambleWave`.
+Historical note: this report records the pre-2026-07-02 effect context shape.
+Mentions of `ctx.source.*`, `ctx.target`, or source handles below are historical
+evidence, not current authoring guidance. Current public effects use
+`ctx.object` modules for visual control and source-backed capabilities.
 
 ## Summary
 
@@ -19,7 +23,7 @@ ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
 section progress. This makes `apps/example` the dogfood surface for the
 higher-level pinned scroll React adapter.
 The current `dom/element` bucket also includes app-owned video background,
-ghost cursor, and waves examples implemented through `ctx.source.surface`
+ghost cursor, and waves examples implemented through `ctx.object.surface`
 instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
 `example.textSpotlight`, `example.imageKenBurns`, `example.imageHoverReveal`,
@@ -28,7 +32,7 @@ loaded by the example app and composes a reusable media pointer parallax effect.
 It also includes ReactBits Text Pressure and
 Scrambled Text ports as app-owned `dom/text` effects: `example.textPressure`
 and `example.textScramble` rewrite WebGL glyph commands through
-`ctx.source.textLayer` without changing package exports. Text Pressure uses
+`ctx.object.text` without changing package exports. Text Pressure uses
 glyph scale plus line-level `x` reflow so nearby glyphs expand while the rest of
 the row compresses around them. The combined
 `example.textSpotlightPressureScrambleWave` specimen reuses the same app-owned
@@ -79,7 +83,7 @@ frame.
   text-layer capability when the port focuses on glyph output rather than raw
   DOM variable-font or GSAP plugin behavior. Keeping them in `apps/example`
   preserves the distinction between catalog references and package contracts.
-- Text effects that all write `ctx.source.textLayer.setGlyphs(...)` should share
+- Text effects that all write `ctx.object.text.setGlyphs(...)` should share
   transform helpers instead of being stacked blindly on one target. The combined
   text specimen demonstrates reuse by composing app-owned glyph transforms into
   one final command list.
@@ -139,7 +143,7 @@ frame.
 - The video-background example is a useful distinction: a non-video element
   should not use a top-level video source declaration, but a `dom/element`
   effect may own a hidden `HTMLVideoElement` and draw it into
-  `ctx.source.surface`.
+  `ctx.object.surface`.
 - Pointer effects should use `ctx.targetPointer` for current-target layout-local
   state. `ctx.pointer` remains runtime/canvas pointer state.
 - Text pointer effects compare `ctx.targetPointer.localX/localY` against glyph
@@ -161,7 +165,7 @@ frame.
   slow hover.
 - Text effects need careful language: `textLayer.setGlyphs(...)` changes only
   the WebGL output, not DOM content or accessibility text.
-- Model examples can rotate via `ctx.target`, but advanced model effects still
+- Model examples can rotate via `ctx.object`, but advanced model effects still
   need users to understand object ownership and cleanup.
 
 ## Documentation Gaps Closed In This Pass

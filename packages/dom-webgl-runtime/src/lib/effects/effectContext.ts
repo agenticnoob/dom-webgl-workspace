@@ -10,6 +10,7 @@ import type {
   WebGLEffectTargetHandle,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
+import { createWebGLEffectObject } from "./effectObjectContext";
 
 export type WebGLEffectContextOptions = {
   key: string;
@@ -21,6 +22,7 @@ export type WebGLEffectContextOptions = {
   resources: WebGLEffectResourceScope;
   progressSignals?: WebGLProgressSignalSource;
   visual?: WebGLEffectVisualContext;
+  managedVisual?: WebGLEffectVisualContext;
 };
 
 const emptyProgressSignals: WebGLProgressSignalSource = {
@@ -41,6 +43,10 @@ const emptyVisualContext: WebGLEffectVisualContext = {
 export function createWebGLEffectContext(
   options: WebGLEffectContextOptions,
 ): WebGLEffectContext {
+  const visual =
+    options.managedVisual ??
+    createResourceManagedVisualContext(options.visual, options.resources);
+
   return {
     key: options.key,
     sourceKind: options.sourceKind,
@@ -51,25 +57,27 @@ export function createWebGLEffectContext(
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
     progress: createProgressSignals(options.progressSignals),
-    visual: createResourceManagedVisualContext(
-      options.visual ?? emptyVisualContext,
-      options.resources,
-    ),
     time: options.input.time,
     delta: options.input.delta,
-    source: options.source,
-    target: options.target,
+    object: createWebGLEffectObject({
+      sourceKind: options.sourceKind,
+      source: options.source,
+      target: options.target,
+      visual,
+    }),
     resources: options.resources,
   };
 }
 
-function createResourceManagedVisualContext(
-  visual: WebGLEffectVisualContext,
+export function createResourceManagedVisualContext(
+  visual: WebGLEffectVisualContext | undefined,
   resources: WebGLEffectResourceScope,
 ): WebGLEffectVisualContext {
+  const sourceVisual = visual ?? emptyVisualContext;
+
   return {
     requestPostprocess(request) {
-      const handle = visual.requestPostprocess(request);
+      const handle = sourceVisual.requestPostprocess(request);
       resources.addDisposable(() => {
         handle.dispose();
       });

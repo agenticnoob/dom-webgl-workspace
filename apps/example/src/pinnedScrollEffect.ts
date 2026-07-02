@@ -12,14 +12,15 @@ export const examplePinnedRevealEffect = defineWebGLEffect<PinnedRevealParams>({
   kind: "example.pinnedReveal",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    const text = ctx.object.text;
+    if (!text) {
       return;
     }
 
     const progress = clampNumber(ctx.progress.get(params.progressKey), 0, 1, 0);
     const color = params.color ?? "#172124";
 
-    ctx.source.textLayer?.setGlyphs((glyphs) => {
+    text.setGlyphs((glyphs) => {
       const visibleCount = Math.ceil(glyphs.length * progress);
 
       return glyphs.map((glyph) => ({

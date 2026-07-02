@@ -71,8 +71,8 @@ const testSurfaceEffect = defineWebGLEffect<{
   kind: "test.surface",
   source: "dom/element",
   update(ctx, _state, params) {
-    ctx.target?.setVisible(true);
-    ctx.target?.setOpacity(params.opacity ?? 1);
+    ctx.object.visible = true;
+    ctx.object.opacity = params.opacity ?? 1;
   },
 });
 
@@ -177,9 +177,10 @@ const testPointerTiltEffect = defineWebGLEffect<{
     const maxDegrees = params.maxDegrees ?? 8;
     const radians = (maxDegrees * Math.PI) / 180;
 
-    ctx.target?.setRotation(
+    ctx.object.rotation.set(
       -ctx.pointer.normalizedY * radians * strength,
       ctx.pointer.normalizedX * radians * strength,
+      0,
     );
   },
 });
@@ -650,16 +651,12 @@ describe("runtime pipeline sync", () => {
           kind: "test.groupTransform",
           source: "dom/element",
           update(ctx) {
-            sourceHandleReady.push(
-              ctx.source.kind === "dom" &&
-                ctx.source.type === "element" &&
-                Boolean(ctx.source.surface),
-            );
-            ctx.target?.setPosition(12, -8, 3);
-            ctx.target?.setRotation(0.1, -0.2, 0.3);
-            ctx.target?.setScale(1.4, 0.8, 0.6);
-            ctx.target?.setVisible(false);
-            ctx.target?.setOpacity(0.42);
+            sourceHandleReady.push(Boolean(ctx.object.surface));
+            ctx.object.position.set(12, -8, 3);
+            ctx.object.rotation.set(0.1, -0.2, 0.3);
+            ctx.object.scale.set(1.4, 0.8, 0.6);
+            ctx.object.visible = false;
+            ctx.object.opacity = 0.42;
           },
         }),
       ],
@@ -825,7 +822,7 @@ describe("runtime pipeline sync", () => {
           kind: "custom.modelProbe",
           source: "model/glb",
           update(ctx) {
-            updateEffect(ctx.source);
+            updateEffect(ctx.object.model);
           },
         }),
       ],
@@ -842,21 +839,23 @@ describe("runtime pipeline sync", () => {
 
     expect(updateEffect).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: "model",
-        type: "glb",
         src: "/product.glb",
-        model: expect.objectContaining({
-          sampleVertices: expect.any(Function),
-          getMeshes: expect.any(Function),
-          forEachMesh: expect.any(Function),
-          createPointLayer: expect.any(Function),
+        meshes: expect.objectContaining({
+          all: expect.any(Function),
+          forEach: expect.any(Function),
+        }),
+        sampling: expect.objectContaining({
+          vertices: expect.any(Function),
+        }),
+        points: expect.objectContaining({
+          create: expect.any(Function),
         }),
       }),
     );
     const modelSource = updateEffect.mock.calls[0]?.[0] as
-      | { model?: Record<string, unknown> }
+      | Record<string, unknown>
       | undefined;
-    expect(modelSource?.model).not.toHaveProperty("createPointCloud");
+    expect(modelSource).not.toHaveProperty("createPointCloud");
 
     runtime.dispose();
   });
@@ -1012,8 +1011,8 @@ describe("runtime pipeline sync", () => {
     const setup = vi.fn(() => ({ updates: 0 }));
     const update = vi.fn((ctx, state: { updates: number }) => {
       state.updates += 1;
-      ctx.target?.setVisible(true);
-      ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+      ctx.object.visible = true;
+      ctx.object.rotation.set(0, ctx.pointer.normalizedX, 0);
     });
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -1051,11 +1050,19 @@ describe("runtime pipeline sync", () => {
       key: "custom.surface",
       sourceKind: "dom/element",
       pointer: { normalizedX: 1 },
-      target: {
-        setVisible: expect.any(Function),
-        setRotation: expect.any(Function),
+      object: {
+        visible: true,
+        rotation: {
+          set: expect.any(Function),
+        },
+        surface: {
+          draw: expect.any(Function),
+        },
       },
     });
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("source");
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("target");
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("visual");
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
       visible: true,
     });
@@ -1112,7 +1119,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("passes controlled postprocess requests through the effect visual context", async () => {
+  test("passes controlled postprocess requests through the effect object facade", async () => {
     const postprocessController = createPostprocessController();
     const runtime = await createPipelineRuntime({
       postprocessController,
@@ -1121,7 +1128,7 @@ describe("runtime pipeline sync", () => {
           kind: "custom.postprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.object.postprocess.request({
               key: "custom.glow",
               bloom: { strength: 0.4 },
             });
@@ -1188,7 +1195,7 @@ describe("runtime pipeline sync", () => {
           kind: "custom.pipelinePostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.object.postprocess.request({
               key: "pipeline.glow",
               bloom: { strength: 0.3 },
             });
@@ -1242,7 +1249,7 @@ describe("runtime pipeline sync", () => {
           kind: "custom.defaultPostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.object.postprocess.request({
               key: "default.glow",
               bloom: { strength: 0.35 },
             });
@@ -2035,7 +2042,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("resume preserves effect-owned hidden visibility that was applied through ctx.target", async () => {
+  test("resume preserves effect-owned hidden visibility that was applied through ctx.object", async () => {
     const element = document.createElement("section");
     let measurement = createLayoutMeasurement(0, 0, 200, 120);
     const renderableSetVisible = vi.fn();
@@ -2050,7 +2057,7 @@ describe("runtime pipeline sync", () => {
           source: "dom/element",
           update(ctx) {
             effectUpdate();
-            ctx.target?.setVisible(false);
+            ctx.object.visible = false;
           },
         }),
       ],
@@ -2140,7 +2147,7 @@ describe("runtime pipeline sync", () => {
           },
           dispose(ctx) {
             effectDispose();
-            ctx.target?.setVisible(false);
+            ctx.object.visible = false;
           },
         }),
       ],
@@ -2873,7 +2880,7 @@ describe("runtime pipeline sync", () => {
           kind: "test.pointerReactive",
           schedule: "reactive",
           update(ctx) {
-            ctx.target?.setRotation(0, ctx.targetPointer.normalizedX, 0);
+            ctx.object.rotation.set(0, ctx.targetPointer.normalizedX, 0);
           },
         }),
       ],

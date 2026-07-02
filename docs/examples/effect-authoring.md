@@ -6,6 +6,10 @@ application code. The page uses Chinese visible copy
 for effect explanations while keeping source kinds and effect kind strings in
 English as API data.
 
+The examples use `ctx.object` as the public visual authoring surface. Source,
+target, and visual handles are internal runtime assembly details; new package
+capability design should follow `docs/agent/effect-object-boundary.md`.
+
 ## Install And Run
 
 From the workspace root:
@@ -143,12 +147,12 @@ export const textWaveEffect = defineWebGLEffect<{
   kind: "example.textWave",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
     const amplitude = params.amplitude ?? 6;
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       glyphs.map((glyph) => ({
         index: glyph.index,
         char: glyph.char,
@@ -182,9 +186,9 @@ const ghostCursorEffect = defineWebGLEffect({
   kind: "example.surfaceGhostCursor",
   source: "dom/element",
   setup(ctx) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") return;
+    if (!ctx.object.surface) return;
 
-    return ctx.source.surface?.createMaterialLayer({
+    return ctx.object.surface.createMaterialLayer({
       key: "example.surfaceGhostCursor",
       mode: "replace-source",
       sourceTextureUniform: "uSource",
@@ -254,7 +258,7 @@ definition is missing, the target declaration has no executable effect.
 
 ## Source Examples In `apps/example`
 
-`apps/example/src/exampleEffects.ts` covers the current public source handles:
+`apps/example/src/exampleEffects.ts` covers the current public object modules:
 
 - `example.surfaceFill`: draws `/example/bg.png` onto the element snapshot
   surface and applies opacity only to that surface layer.
@@ -317,8 +321,8 @@ definition is missing, the target declaration has no executable effect.
 
 ### Image Hover Reveal Implementation Notes
 
-`example.imageHoverReveal` is intentionally consumer-owned. It uses only the
-public `media/image` source handle, `createMaterialLayer(...)`, and texture
+`example.imageHoverReveal` is intentionally consumer-owned. It uses only
+`ctx.object.texture`, `texture.material.createMaterialLayer(...)`, and texture
 uniform declarations:
 
 - `uBaseTexture` is the runtime-owned source image texture.
@@ -355,7 +359,7 @@ image-sequence DOM subtree with `transformScope: "subtree"`. It composes
 image-sequence parent does not manually add card objects through an effect, and
 the card does not declare
 `renderRole: "overlay"`. DOM supplies the card's layout anchor. The card pixels
-come from `ctx.source.surface.draw(...)`; runtime core does not clone the DOM
+come from `ctx.object.surface.draw(...)`; runtime core does not clone the DOM
 card's CSS background, border, shadow, or other decorative paint.
 The card title and description are child `dom/text` targets, so their text
 source/effect/fallback ownership remains independent while the parent card's
@@ -375,6 +379,6 @@ package effects.
   runtime.
 - Old explicit declarations such as top-level media kinds and `snapshot/mode`
   are removed.
-- `ctx.source.textLayer` affects WebGL output only; it does not mutate DOM text.
-- Effects should no-op when `ctx.source.kind` or `ctx.source.type` is not compatible.
+- `ctx.object.text` affects WebGL output only; it does not mutate DOM text.
+- Effects should no-op when the needed `ctx.object.*` capability module is absent.
 - Effect-owned objects and listeners need `ctx.resources` disposal.
