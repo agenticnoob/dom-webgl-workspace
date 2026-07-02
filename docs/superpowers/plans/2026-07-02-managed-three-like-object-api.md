@@ -1180,7 +1180,7 @@ git commit -m "feat: add managed material facade"
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectContext.ts`
 - Test: `packages/dom-webgl-runtime/test/lib/effects/effectObjectContext.test.ts`
 
-- [ ] **Step 1: Implement keyed managed lights**
+- [x] **Step 1: Implement keyed managed lights**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/managedLights.ts`:
 
@@ -1312,7 +1312,7 @@ function createDisposedHandle(): WebGLEffectManagedObjectHandle {
 }
 ```
 
-- [ ] **Step 2: Pass resources into object assembly**
+- [x] **Step 2: Pass resources into object assembly**
 
 Change `packages/dom-webgl-runtime/src/lib/effects/effectObjectContext.ts` options:
 
@@ -1348,7 +1348,7 @@ import { createManagedLightsFacade } from "../render/renderables/managedLights";
 
 In `packages/dom-webgl-runtime/src/lib/effects/effectContext.ts`, pass `resources` into `createWebGLEffectObject(...)`.
 
-- [ ] **Step 3: Add lights lifecycle test**
+- [x] **Step 3: Add lights lifecycle test**
 
 In `packages/dom-webgl-runtime/test/lib/effects/effectObjectContext.test.ts`, add:
 
@@ -1392,7 +1392,7 @@ test("managed lights attach through target and dispose with resources", () => {
 });
 ```
 
-- [ ] **Step 4: Run lights tests**
+- [x] **Step 4: Run lights tests**
 
 Run:
 
@@ -1402,7 +1402,7 @@ npm test -- --run packages/dom-webgl-runtime/test/lib/effects/effectObjectContex
 
 Expected: PASS, with no public raw light access.
 
-- [ ] **Step 5: Commit lights facade**
+- [x] **Step 5: Commit lights facade**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/render/renderables/managedLights.ts packages/dom-webgl-runtime/src/lib/effects/effectObjectContext.ts packages/dom-webgl-runtime/src/lib/effects/effectContext.ts packages/dom-webgl-runtime/test/lib/effects/effectObjectContext.test.ts packages/dom-webgl-runtime/test/publicExports.test.ts

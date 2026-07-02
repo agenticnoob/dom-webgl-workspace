@@ -64,6 +64,7 @@ export function createWebGLEffectContext(
       source: options.source,
       target: options.target,
       visual,
+      resources: options.resources,
     }),
     resources: options.resources,
   };

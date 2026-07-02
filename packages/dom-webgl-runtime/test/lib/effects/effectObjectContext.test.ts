@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { createWebGLEffectObject } from "../../../src/lib/effects/effectObjectContext";
+import { createWebGLEffectResourceScope } from "../../../src/lib/effects/effectResources";
 import type {
   WebGLEffectCanvasDrawer,
   WebGLEffectCanvasSurfaceHandle,
@@ -25,6 +26,7 @@ describe("createWebGLEffectObject", () => {
       sourceKind: "dom/element",
       source,
       target: createTarget(targetCalls),
+      resources: createWebGLEffectResourceScope(),
       visual: createVisual(postprocessCalls),
     });
 
@@ -48,10 +50,61 @@ describe("createWebGLEffectObject", () => {
     const object = createWebGLEffectObject({
       sourceKind: "dom/element",
       source,
+      resources: createWebGLEffectResourceScope(),
       visual: createVisual([]),
     });
 
     expect(object.surface).toBe(surface);
+  });
+
+  test("managed lights attach through target and dispose with resources", () => {
+    const disposed: unknown[] = [];
+    const added: unknown[] = [];
+    const target = {
+      setVisible() {},
+      setPosition() {},
+      setRotation() {},
+      setScale() {},
+      setOpacity() {},
+      addObject3D(
+        object3D: unknown,
+        options?: { dispose?: (object3D: unknown) => void },
+      ) {
+        added.push(object3D);
+        return {
+          setVisible() {},
+          remove() {},
+          dispose() {
+            disposed.push(object3D);
+            options?.dispose?.(object3D);
+          },
+        };
+      },
+    };
+    const resources = createWebGLEffectResourceScope();
+    const source = {
+      kind: "dom",
+      type: "element",
+      element: document.createElement("div"),
+    } satisfies WebGLEffectSourceHandle;
+    const object = createWebGLEffectObject({
+      sourceKind: "dom/element",
+      source,
+      target,
+      resources,
+      visual: createVisual([]),
+    });
+
+    object.position.set(12, 24, 0);
+    object.lights?.point("glow", {
+      color: "#7dd3fc",
+      intensity: 2,
+      follow: "object",
+    });
+
+    expect(added.length).toBe(1);
+    resources.dispose();
+    expect(disposed).toEqual(added);
   });
 });
 

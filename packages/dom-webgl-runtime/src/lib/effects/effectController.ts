@@ -160,6 +160,7 @@ export function createWebGLEffectController(
             source,
             target,
             visual: effect.visual,
+            resources: effect.resources,
           });
         } else {
           context = createWebGLEffectContext({
