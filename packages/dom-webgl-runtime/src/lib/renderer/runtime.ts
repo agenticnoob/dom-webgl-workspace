@@ -247,6 +247,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
+    modelLoader: options.modelLoader,
     effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
     progressSignals: options.progressSignals,
     postprocessController,

@@ -189,6 +189,7 @@ describe("runtime pipeline sync", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/addons/loaders/GLTFLoader.js");
+    vi.doUnmock("../../../src/lib/assets/modelLoader");
     vi.doUnmock("../resources/resourceManager");
     vi.resetModules();
   });
@@ -279,6 +280,35 @@ describe("runtime pipeline sync", () => {
       media: 2,
       model: 1,
     });
+
+    runtime.dispose();
+  });
+
+  test("passes runtime model loader config to default model renderables", async () => {
+    vi.resetModules();
+    const loadGLBModel = vi.fn(async () => createModelObject3DStub());
+
+    vi.doMock("../../../src/lib/assets/modelLoader", () => ({
+      loadGLBModel,
+    }));
+
+    const runtime = await createPipelineRuntime({
+      modelLoader: { draco: { decoderPath: "/runtime-draco/" } },
+      measureElement: () => createLayoutMeasurement(0, 0, 200, 200),
+    });
+    const anchor = document.createElement("section");
+
+    runtime.registerTarget(anchor, {
+      key: "runtime.loader.model",
+      source: { kind: "model", type: "glb", src: "/runtime-loader.glb" },
+    });
+
+    await runtime.sync();
+
+    expect(loadGLBModel).toHaveBeenCalledWith(
+      expect.objectContaining({ src: "/runtime-loader.glb" }),
+      { runtimeLoader: { draco: { decoderPath: "/runtime-draco/" } } },
+    );
 
     runtime.dispose();
   });

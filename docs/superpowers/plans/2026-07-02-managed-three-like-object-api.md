@@ -628,7 +628,7 @@ git commit -m "feat: add managed three-like public facade types"
 - Test: `packages/dom-webgl-runtime/test/lib/render/renderables/modelRenderable.test.ts`
 - Test: `packages/dom-webgl-runtime/test/lib/renderer/runtimePipeline.test.ts`
 
-- [ ] **Step 1: Add source descriptor loader field**
+- [x] **Step 1: Add source descriptor loader field**
 
 In `packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.ts`, update `WebGLModelSourceDescriptor`:
 
@@ -656,7 +656,7 @@ return {
 };
 ```
 
-- [ ] **Step 2: Create runtime-owned loader module**
+- [x] **Step 2: Create runtime-owned loader module**
 
 Create `packages/dom-webgl-runtime/src/lib/assets/modelLoader.ts`:
 
@@ -733,7 +733,7 @@ export function mergeModelLoaderConfig(
 }
 ```
 
-- [ ] **Step 3: Wire loader through runtime options**
+- [x] **Step 3: Wire loader through runtime options**
 
 In `packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx`, extend props:
 
@@ -794,7 +794,7 @@ const loadModel =
     loadGLBModel(modelSource, { runtimeLoader: options.modelLoader }));
 ```
 
-- [ ] **Step 4: Add Draco loader test**
+- [x] **Step 4: Add Draco loader test**
 
 Append a test to `packages/dom-webgl-runtime/test/lib/render/renderables/modelRenderable.test.ts`:
 
@@ -843,7 +843,7 @@ test("configures DRACOLoader for Draco-compressed GLB sources", async () => {
 });
 ```
 
-- [ ] **Step 5: Run loader tests**
+- [x] **Step 5: Run loader tests**
 
 Run:
 
@@ -853,7 +853,7 @@ npm test -- --run packages/dom-webgl-runtime/test/lib/render/renderables/modelRe
 
 Expected: PASS for loader tests and public declaration fixtures.
 
-- [ ] **Step 6: Commit loader work**
+- [x] **Step 6: Commit loader work**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/assets/modelLoader.ts packages/dom-webgl-runtime/src/lib/source/sourceDescriptor.ts packages/dom-webgl-runtime/src/lib/source/inferSource.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts packages/dom-webgl-runtime/src/lib/render/renderableFactory.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.ts packages/dom-webgl-runtime/src/lib/react/WebGLRuntime.tsx packages/dom-webgl-runtime/test/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/test/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/test/publicExports.test.ts

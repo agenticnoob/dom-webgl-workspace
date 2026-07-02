@@ -11,7 +11,11 @@ import type {
   WebGLModelSourceDescriptor,
   WebGLSourceDescriptor,
 } from "../source/sourceDescriptor";
-import type { WebGLProgressSignalSource, WebGLRenderRole } from "../types";
+import type {
+  WebGLModelLoaderDeclaration,
+  WebGLProgressSignalSource,
+  WebGLRenderRole,
+} from "../types";
 import type { Renderable } from "./renderable";
 import {
   compileRenderPolicy,
@@ -44,6 +48,7 @@ export type RenderableFactoryContext = {
   getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
+  modelLoader?: WebGLModelLoaderDeclaration;
   progressSignals?: WebGLProgressSignalSource;
   requestTextureFrame?(): void;
   projectLayout?(
@@ -139,6 +144,7 @@ export function createRenderable(
         getViewportSize: context.getViewportSize,
         projectLayout: createProjectLayoutReader(context, targetDescriptor),
         loadModel: context.loadModel,
+        modelLoader: context.modelLoader,
       });
   }
 

@@ -312,6 +312,66 @@ describe("createModelRenderable", () => {
       },
     );
   });
+
+  test("configures DRACOLoader for Draco-compressed GLB sources", async () => {
+    vi.resetModules();
+    const loadAsync = vi.fn(() =>
+      Promise.resolve({ scene: createModelObject("draco-model") }),
+    );
+    const setDRACOLoader = vi.fn();
+    const setDecoderPath = vi.fn(function setDecoderPath(this: unknown) {
+      return this;
+    });
+    const preload = vi.fn();
+    const dispose = vi.fn();
+
+    vi.doMock("three/addons/loaders/GLTFLoader.js", () => ({
+      GLTFLoader: vi.fn(() => ({ loadAsync, setDRACOLoader })),
+    }));
+    vi.doMock("three/addons/loaders/DRACOLoader.js", () => ({
+      DRACOLoader: vi.fn(() => ({ setDecoderPath, preload, dispose })),
+    }));
+
+    const { createModelRenderable: createRenderableWithMocks } = await import(
+      "../../../../src/lib/render/renderables/modelRenderable"
+    );
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("section"),
+      src: "/models/4.glb",
+      loader: { draco: { decoderPath: "/draco/", preload: true } },
+    } satisfies WebGLModelSourceDescriptor;
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model.draco" },
+      0,
+    );
+    const renderable = createRenderableWithMocks(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 100),
+      },
+    );
+
+    await renderable.update(createFrameInput());
+
+    expect(setDecoderPath).toHaveBeenCalledWith("/draco/");
+    expect(preload).toHaveBeenCalledTimes(1);
+    expect(setDRACOLoader).toHaveBeenCalledTimes(1);
+    expect(loadAsync).toHaveBeenCalledWith("/models/4.glb");
+    expect(dispose).toHaveBeenCalledTimes(1);
+
+    vi.doUnmock("three/addons/loaders/GLTFLoader.js");
+    vi.doUnmock("three/addons/loaders/DRACOLoader.js");
+  });
 });
 
 type TestSceneObject = {

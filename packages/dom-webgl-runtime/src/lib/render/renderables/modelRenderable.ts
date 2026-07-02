@@ -1,6 +1,7 @@
 import type { ResourceManager } from "../../resources/resourceManager";
 import type { Object3D } from "three/src/core/Object3D.js";
 import { Group } from "three/src/objects/Group.js";
+import { loadGLBModel } from "../../assets/modelLoader";
 import type {
   DOMViewportSize,
   ProjectedDOMRect,
@@ -9,6 +10,7 @@ import type { ElementMeasurement } from "../../renderer/layoutPass";
 import type { WebGLSceneAdapter } from "../../renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../source/sourceDescriptor";
 import type { WebGLModelEffectHandle } from "../../effects/effectAuthoring";
+import type { WebGLModelLoaderDeclaration } from "../../types";
 import {
   createRenderable,
   readManagedObjectOrdering,
@@ -37,10 +39,7 @@ type ModelRenderableOptions = {
     viewport: DOMViewportSize,
   ): ProjectedDOMRect;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
-};
-
-type GLTFLoaderConstructor = new () => {
-  loadAsync(src: string): Promise<unknown>;
+  modelLoader?: WebGLModelLoaderDeclaration;
 };
 
 type ModelAnimationMixer = {
@@ -57,7 +56,10 @@ export function createModelRenderable(
 ): ModelRenderable {
   const source = readModelSource(context.source);
   const resource = options.resourceManager.acquire<unknown>(source);
-  const loadModel = options.loadModel ?? loadModelWithDefaultAdapter;
+  const loadModel =
+    options.loadModel ??
+    ((modelSource: WebGLModelSourceDescriptor) =>
+      loadGLBModel(modelSource, { runtimeLoader: options.modelLoader }));
   const state = {
     fallbackVisible: true,
     resourceReady: false,
@@ -293,15 +295,4 @@ function readSourceType(source: RenderableContext["source"]): string {
   }
 
   return String(source);
-}
-
-async function loadModelWithDefaultAdapter(
-  source: WebGLModelSourceDescriptor,
-): Promise<unknown> {
-  const { GLTFLoader } = (await import(
-    "three/addons/loaders/GLTFLoader.js"
-  )) as { GLTFLoader: GLTFLoaderConstructor };
-  const loader = new GLTFLoader();
-
-  return loader.loadAsync(source.src);
 }
