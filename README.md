@@ -53,6 +53,14 @@ material layers, source texture uniforms, text/media shader inputs, GLB mesh
 material handles, managed point layers, and named postprocess request handles
 while keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
 material/texture fields, and raw materials internal.
+Effect authoring direction is corrected and partially implemented in
+`docs/agent/effect-object-boundary.md`: `ctx.object` is now the primary
+controlled Three-like facade for transform, visibility, opacity, postprocess,
+and existing surface/text/texture/video/model capabilities. Current
+`ctx.source.*`, `ctx.target`, and `ctx.visual` handles remain compatibility and
+implementation substrate, but new public visual capabilities should not continue
+expanding source-specific handles. The implementation record is
+`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
 The runtime performance roadmap in
 `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
 budget first, then demand-driven scheduling, resource/load pressure controls,
@@ -81,6 +89,10 @@ decision.
 Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
 should read that file first when integrating the package from zero.
 Detailed package usage rules live in `docs/agent/package-usage.md`.
+The forward effect authoring boundary lives in
+`docs/agent/effect-object-boundary.md`; use it before designing new effect
+capabilities so the package does not drift back into source-specific handle
+expansion.
 React-only effect authoring examples live in `apps/example` and
 `docs/examples/effect-authoring.md`; they are downstream consumer examples, not
 runtime package exports.
@@ -186,7 +198,7 @@ Current example behavior:
   `example.modelFloat`, plus the pinned-scroll `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
-  `ctx.source.textLayer` so the hovered glyphs widen while the rest of the line
+  `ctx.object.text` so the hovered glyphs widen while the rest of the line
   compresses. `example.textSpotlightPressureScrambleWave` shows the same
   text-layer command path can combine spotlight color, scramble characters,
   pressure reflow, and wave offset in one application effect. They remain
@@ -347,7 +359,7 @@ Current visual behavior:
   material handle.
 - DOM supplies layout and layer semantics. Effect code supplies pixels:
   `dom/element` is a transparent layout surface until an effect draws to
-  `ctx.source.surface`, and the runtime does not clone CSS backgrounds,
+  `ctx.object.surface`, and the runtime does not clone CSS backgrounds,
   borders, shadows, or other decorative paint into WebGL.
 - Scene-gated scroll, scroll lock, `sceneProgress`, and explicit reverse gate
   behavior remain available as optional advanced runtime behavior. They are
@@ -517,12 +529,13 @@ const modelParticleEffect = defineWebGLEffect<{
   kind: "app.modelParticles",
   source: "model/glb",
   setup(ctx) {
-    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
+    const model = ctx.object.model;
+    if (!model) {
       return undefined;
     }
 
-    const points = ctx.source.model.createPointLayer({
-      positions: ctx.source.model.sampleVertices({ maxPoints: 2048 }),
+    const points = model.points.create({
+      positions: model.sampling.vertices({ maxPoints: 2048 }),
       color: "#7dd3fc",
       size: 0.026,
     });
@@ -530,11 +543,11 @@ const modelParticleEffect = defineWebGLEffect<{
     return { points };
   },
   update(ctx) {
-    if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
+    if (!ctx.object.model) {
       return;
     }
 
-    ctx.source.model.setRotation?.(0, ctx.time / 1600, 0);
+    ctx.object.rotation.set(0, ctx.time / 1600, 0);
   },
   dispose(_ctx, state) {
     state?.points.dispose();

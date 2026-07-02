@@ -19,6 +19,27 @@ describe("effect module boundaries", () => {
       expect(source, file).not.toMatch(/render\/renderables/);
     }
   });
+
+  test("public authoring type modules do not import Three.js", () => {
+    const effectAuthoringSource = readFileSync(
+      join(
+        process.cwd(),
+        "packages/dom-webgl-runtime/src/lib/effects/effectAuthoring.ts",
+      ),
+      "utf8",
+    );
+    const effectObjectSource = readFileSync(
+      join(
+        process.cwd(),
+        "packages/dom-webgl-runtime/src/lib/effects/effectObject.ts",
+      ),
+      "utf8",
+    );
+
+    expect(effectAuthoringSource).not.toContain("from \"three");
+    expect(effectObjectSource).not.toContain("from \"three");
+    expect(effectObjectSource).not.toContain("from 'three");
+  });
 });
 
 function listFiles(root: string): string[] {

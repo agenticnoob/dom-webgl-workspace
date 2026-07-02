@@ -14,8 +14,9 @@ the source for layout, content, accessibility, and interaction state.
 Package split:
 
 - `<runtime-package>`: runtime creation, React adapter, target declarations,
-  effect authoring primitives, source handles, target handles, scroll state,
-  pointer state, and managed resources.
+  effect authoring primitives, current source/target handles, scroll state,
+  pointer state, managed resources, and the forward controlled effect-object
+  boundary.
 - `<scroll-adapters-package>`: optional Lenis, GSAP ticker, ScrollTrigger, and
   React pinned-scroll glue.
 - Application code: all concrete visual effects, product copy, assets, layouts,
@@ -91,7 +92,10 @@ subpath. Example effects are consumer examples, not package API.
 ## Minimal React Integration
 
 Define effects at module scope, pass them once to the runtime, and declare target
-effect data on each target.
+effect data on each target. The snippet below shows the current implemented
+handle surface. When designing new package capabilities, read
+`docs/agent/effect-object-boundary.md` first and target the future
+`ctx.object` facade instead of adding more source-specific public handles.
 
 ```tsx
 import { defineWebGLEffect } from "<runtime-package>";
@@ -106,7 +110,7 @@ const appSurfaceEffect = defineWebGLEffect<AppSurfaceParams>({
   kind: "app.surface",
   source: "dom/element",
   update(ctx, _state, params) {
-    ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
+    ctx.object.opacity = clampNumber(params.opacity, 0, 1, 1);
   },
 });
 
@@ -195,15 +199,19 @@ Choose the source from the actual DOM element:
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 
-Effect code must narrow `ctx.source.kind` and `ctx.source.type` before using
-source-specific handles:
+`ctx.source` remains available for source metadata and compatibility. New visual
+control examples should use `ctx.object` first. Do not add new public
+source-specific capability families without first designing their object-facade
+shape.
+
+For text output, use the object text facade:
 
 ```ts
-if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+if (!ctx.object.text) {
   return;
 }
 
-ctx.source.textLayer?.setGlyphs((glyphs) =>
+ctx.object.text.setGlyphs((glyphs) =>
   glyphs.map((glyph) => ({
     index: glyph.index,
     char: glyph.char,
@@ -212,7 +220,7 @@ ctx.source.textLayer?.setGlyphs((glyphs) =>
 );
 ```
 
-Available handles:
+Compatibility handles for source metadata and legacy examples:
 
 - `dom/element`: `ctx.source.surface`
 - `dom/text`: `ctx.source.textLayer`
@@ -313,7 +321,7 @@ const pinnedRevealEffect = defineWebGLEffect<{
   kind: "app.pinnedReveal",
   update(ctx, _state, params) {
     const progress = ctx.progress.get(params.progressKey);
-    ctx.target?.setOpacity(progress);
+    ctx.object.opacity = progress;
   },
 });
 
@@ -469,6 +477,8 @@ Run a browser smoke check for visual work when the change affects a rendered app
 ## Where To Look Next
 
 - `docs/agent/package-usage.md`: full package contract and edge cases.
+- `docs/agent/effect-object-boundary.md`: forward effect authoring boundary;
+  read before designing new package visual capabilities.
 - `docs/agent/custom-effects.md`: custom effect writing checklist.
 - `docs/agent/scroll-adapters.md`: Lenis, GSAP ticker, and ScrollTrigger rules.
 - `docs/examples/effect-authoring.md`: React-only downstream tutorial.

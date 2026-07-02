@@ -6,6 +6,12 @@ application code. The page uses Chinese visible copy
 for effect explanations while keeping source kinds and effect kind strings in
 English as API data.
 
+The examples now use `ctx.object` as the first visual authoring surface.
+`ctx.source.*`, `ctx.target`, and `ctx.visual` remain compatibility/source
+metadata handles; new package capability design should follow
+`docs/agent/effect-object-boundary.md` instead of growing more source-specific
+handles.
+
 ## Install And Run
 
 From the workspace root:
@@ -143,12 +149,12 @@ export const textWaveEffect = defineWebGLEffect<{
   kind: "example.textWave",
   source: "dom/text",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+    if (!ctx.object.text) {
       return;
     }
 
     const amplitude = params.amplitude ?? 6;
-    ctx.source.textLayer?.setGlyphs((glyphs) =>
+    ctx.object.text.setGlyphs((glyphs) =>
       glyphs.map((glyph) => ({
         index: glyph.index,
         char: glyph.char,
@@ -182,9 +188,9 @@ const ghostCursorEffect = defineWebGLEffect({
   kind: "example.surfaceGhostCursor",
   source: "dom/element",
   setup(ctx) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") return;
+    if (!ctx.object.surface) return;
 
-    return ctx.source.surface?.createMaterialLayer({
+    return ctx.object.surface.createMaterialLayer({
       key: "example.surfaceGhostCursor",
       mode: "replace-source",
       sourceTextureUniform: "uSource",
@@ -355,7 +361,7 @@ image-sequence DOM subtree with `transformScope: "subtree"`. It composes
 image-sequence parent does not manually add card objects through an effect, and
 the card does not declare
 `renderRole: "overlay"`. DOM supplies the card's layout anchor. The card pixels
-come from `ctx.source.surface.draw(...)`; runtime core does not clone the DOM
+come from `ctx.object.surface.draw(...)`; runtime core does not clone the DOM
 card's CSS background, border, shadow, or other decorative paint.
 The card title and description are child `dom/text` targets, so their text
 source/effect/fallback ownership remains independent while the parent card's
@@ -375,6 +381,6 @@ package effects.
   runtime.
 - Old explicit declarations such as top-level media kinds and `snapshot/mode`
   are removed.
-- `ctx.source.textLayer` affects WebGL output only; it does not mutate DOM text.
+- `ctx.object.text` affects WebGL output only; it does not mutate DOM text.
 - Effects should no-op when `ctx.source.kind` or `ctx.source.type` is not compatible.
 - Effect-owned objects and listeners need `ctx.resources` disposal.

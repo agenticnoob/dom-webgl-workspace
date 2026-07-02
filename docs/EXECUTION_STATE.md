@@ -30,15 +30,27 @@ Runtime performance ownership V2 plan: `docs/superpowers/plans/2026-06-30-runtim
 WebGL transform groups plan: `docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`.
 Target-scoped pointer contract plan: `docs/superpowers/plans/2026-07-01-target-scoped-pointer-contract.md`.
 Cross-project reference notes: `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
+Effect object boundary direction: `docs/agent/effect-object-boundary.md`.
+Effect object facade refactor plan: `docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
-effect authoring model. Public handles are AI-first capability handles: use
+effect authoring model. The implemented context now exposes `ctx.object` as the
+primary controlled Three-like facade for transform, visibility, opacity,
+postprocess, and existing surface/text/texture/video/model capabilities. The
+older `ctx.source.*`, `ctx.target`, `ctx.visual`, and `ctx.resources` handles
+remain compatibility and implementation substrate, not the forward expansion
+direction. New visual capabilities should be designed for `ctx.object` first,
+then implemented behind that facade with runtime-owned internals. Do not
+continue adding source-specific public methods such as model-only animation,
+light, picking, or variant helpers directly to `ctx.source.model`.
+
+Existing public handles remain AI-first controlled capability handles: use
 methods such as `draw`, `setGlyphs`, `setTextureTransform`,
 `createMaterialLayer`, `forEachMesh`, `sampleVertices`, and
-`createPointLayer`, not `object3D`, `mesh`, `material`, or `texture` fields.
-Source handles can create runtime-owned material layers, text/media handles
-expose shader input metadata, GLB model handles expose controlled mesh material
-restore, vertex samples, and managed point layers, and
+`createPointLayer`; do not rely on `object3D`, `mesh`, `material`, or `texture`
+fields. Source handles can create runtime-owned material layers, text/media
+handles expose shader input metadata, GLB model handles expose controlled mesh
+material restore, vertex samples, and managed point layers, and
 `ctx.visual.requestPostprocess(...)` accepts named bloom/grain/blur requests.
 Current postprocess support includes request/handle ownership, inspection, and
 bounded internal pass execution for named bloom/grain/blur-style requests.

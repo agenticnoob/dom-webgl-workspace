@@ -58,6 +58,21 @@ planes, control video playback, and inspect or manipulate GLB model handles
 through public effect context. These are primitives, not package-owned visual
 effects.
 
+The 2026-07-02 effect authoring direction correction is captured in
+`docs/agent/effect-object-boundary.md`. The runtime now exposes a controlled
+Three-like `ctx.object` facade for basic transform, visibility, opacity,
+postprocess, and existing surface/text/texture/video/model capabilities. The
+older source/target/visual handles remain compatibility and implementation
+substrate, but they are not the desired long-term public mental model. Future
+visual capability work should continue under `ctx.object`: effect authors should
+mutate familiar properties such as position, rotation, scale, visibility,
+opacity, texture/text/model modules, material uniforms, animation, picking,
+lights, and postprocess through one runtime-owned object. Raw Three.js renderer,
+scene, camera, Object3D, mesh, material, texture, animation mixer, raycaster,
+composer, and loader instances remain internal.
+The refactor plan lives in
+`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
+
 ## Purpose
 
 Build a new DOM-first interactive WebGL runtime from zero with a clear product model.
@@ -144,6 +159,8 @@ Package consumers should think about:
   participates in an advanced gated scene.
 - Whether pointer input should affect it.
 - Which runtime-registered custom effect should own its WebGL visual treatment.
+- For forward effect authoring, how that effect mutates the controlled
+  Three-like object facade rather than a growing set of source-specific handles.
 - Whether a parent target's effect transform should control its declared WebGL
   subtree with `transformScope: "subtree"`.
 
@@ -446,7 +463,7 @@ Delivered Phase 3 behavior:
   target's local policy offset inside that scope. Page code still does not set
   public Three.js flags or public layer numbers. DOM supplies layout anchors and
   layer semantics; effect code supplies final pixels. `dom/element` remains a
-  transparent layout surface until an effect draws to `ctx.source.surface`, and
+  transparent layout surface until an effect draws to `ctx.object.surface`, and
   runtime core does not clone CSS backgrounds, borders, shadows, or decorative
   paint into WebGL.
 - Mounted React runtimes create and dispose the runtime but do not own a frame

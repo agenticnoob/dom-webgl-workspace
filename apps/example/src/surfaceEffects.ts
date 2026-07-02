@@ -94,7 +94,8 @@ export const exampleSurfacePulseEffect = defineWebGLEffect<SurfacePulseParams>({
   kind: "example.surfacePulse",
   source: "dom/element",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+    const surface = ctx.object.surface;
+    if (!surface) {
       return;
     }
 
@@ -102,12 +103,12 @@ export const exampleSurfacePulseEffect = defineWebGLEffect<SurfacePulseParams>({
     const opacity = clampNumber(params.opacity, 0.1, 1, 1);
     const pulse = 0.5 + Math.sin(ctx.time / 360) * 0.5;
 
-    ctx.target?.setVisible(true);
-    ctx.source.surface?.draw(({ context, width, height }) => {
+    ctx.object.visible = true;
+    surface.draw(({ context, width, height }) => {
       drawPulseSurface(context, width, height, pulse, opacity, expansion);
     });
-    ctx.source.surface?.setVisible?.(true);
-    ctx.source.surface?.setOpacity?.(1);
+    surface.setVisible?.(true);
+    surface.setOpacity?.(1);
   },
 });
 
@@ -147,7 +148,8 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
     return state;
   },
   update(ctx, state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+    const surface = ctx.object.surface;
+    if (!surface) {
       return;
     }
 
@@ -155,7 +157,7 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
     const shouldUpdate = updateSurfaceGhostCursorState(state, pointer);
 
     prepareGhostCursorLayer(ctx, state, params);
-    ctx.target?.setVisible(true);
+    ctx.object.visible = true;
     if (shouldUpdate) {
       state.layer?.setUniforms(
         createGhostCursorUniforms({
@@ -173,8 +175,8 @@ export const exampleSurfaceGhostCursorEffect = defineWebGLEffect<
         }),
       );
     }
-    ctx.source.surface?.setVisible?.(true);
-    ctx.source.surface?.setOpacity?.(1);
+    surface.setVisible?.(true);
+    surface.setOpacity?.(1);
   },
   dispose(_ctx, state) {
     state.layer?.dispose();
@@ -192,14 +194,15 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
     return { layer: undefined };
   },
   update(ctx, state, params) {
-    if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+    const surface = ctx.object.surface;
+    if (!surface) {
       return;
     }
 
     const pointer = readLocalPointer(ctx);
     const wavesState = state ?? { layer: undefined };
     prepareWavesLayer(ctx, wavesState, params, pointer);
-    ctx.target?.setVisible(true);
+    ctx.object.visible = true;
     wavesState.layer?.setUniforms(createSurfaceWavesUniforms({
       lineColor: params.lineColor ?? "#172124",
       opacity: clampNumber(params.opacity, 0.1, 1, 0.82),
@@ -210,8 +213,8 @@ export const exampleSurfaceWavesEffect = defineWebGLEffect<
       width: ctx.layout.width,
       height: ctx.layout.height,
     }));
-    ctx.source.surface?.setVisible?.(true);
-    ctx.source.surface?.setOpacity?.(1);
+    surface.setVisible?.(true);
+    surface.setOpacity?.(1);
   },
   dispose(_ctx, state) {
     state.layer?.dispose();
@@ -232,7 +235,8 @@ function drawSurface(
   params: SurfaceFillParams,
   state: SurfaceFillState,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+  const surface = ctx.object.surface;
+  if (!surface) {
     return;
   }
 
@@ -241,16 +245,16 @@ function drawSurface(
   prepareSurfaceImage(ctx, state, imageSrc);
 
   if (!state.drawn) {
-    ctx.source.surface?.draw(({ context, width, height }) => {
+    surface.draw(({ context, width, height }) => {
       context.clearRect(0, 0, width, height);
       drawCoverImage(context, state.image, width, height);
     });
     state.drawn = true;
   }
 
-  ctx.source.surface?.setVisible?.(true);
-  ctx.source.surface?.setOpacity?.(opacity);
-  ctx.target?.setVisible(true);
+  surface.setVisible?.(true);
+  surface.setOpacity?.(opacity);
+  ctx.object.visible = true;
 }
 
 function prepareSurfaceImage(
@@ -258,11 +262,7 @@ function prepareSurfaceImage(
   state: SurfaceFillState,
   imageSrc: string,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
-    return;
-  }
-
-  const surface = ctx.source.surface;
+  const surface = ctx.object.surface;
   if (state.image && state.imageSrc === imageSrc) {
     return;
   }
@@ -284,7 +284,8 @@ function drawVideoBackgroundSurface(
   params: SurfaceVideoBackgroundParams,
   state: SurfaceVideoBackgroundState,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+  const surface = ctx.object.surface;
+  if (!surface) {
     return;
   }
 
@@ -292,13 +293,13 @@ function drawVideoBackgroundSurface(
   prepareSurfaceVideo(ctx, state, videoSrc);
   const opacity = clampNumber(params.opacity, 0, 1, 0.84);
 
-  ctx.source.surface?.draw(({ context, width, height }) => {
+  surface.draw(({ context, width, height }) => {
     context.clearRect(0, 0, width, height);
     drawCoverImage(context, state.video, width, height);
   });
-  ctx.source.surface?.setVisible?.(true);
-  ctx.source.surface?.setOpacity?.(opacity);
-  ctx.target?.setVisible(true);
+  surface.setVisible?.(true);
+  surface.setOpacity?.(opacity);
+  ctx.object.visible = true;
 }
 
 function readLocalPointer(ctx: WebGLEffectUpdateContext): TargetLocalPointer {
@@ -313,11 +314,11 @@ function prepareGhostCursorLayer(
   state: SurfaceGhostCursorState,
   params: SurfaceGhostCursorParams,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element" || state.layer) {
+  if (!ctx.object.surface || state.layer) {
     return;
   }
 
-  state.layer = ctx.source.surface?.createMaterialLayer({
+  state.layer = ctx.object.surface.createMaterialLayer({
     key: "example.surfaceGhostCursor",
     mode: "replace-source",
     sourceTextureUniform: "uSource",
@@ -343,11 +344,11 @@ function prepareWavesLayer(
   params: SurfaceWavesParams,
   pointer: TargetLocalPointer,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element" || state.layer) {
+  if (!ctx.object.surface || state.layer) {
     return;
   }
 
-  state.layer = ctx.source.surface?.createMaterialLayer({
+  state.layer = ctx.object.surface.createMaterialLayer({
     key: "example.surfaceWaves",
     mode: "replace-source",
     sourceTextureUniform: "uSource",

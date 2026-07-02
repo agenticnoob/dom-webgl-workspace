@@ -82,7 +82,7 @@ import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 const myEffect = defineWebGLEffect({
   kind: "app.myEffect",
   update(ctx, _state, params) {
-    ctx.target?.setOpacity(params.opacity ?? 1);
+    ctx.object.opacity = params.opacity ?? 1;
   },
 });
 
@@ -92,9 +92,15 @@ createWebGLRuntime({ container, effects: [myEffect] });
 核心规则：
 - **useEffect array-form only**：`effects: [{ kind: "app.effect", opacity: 0.75 }]`。禁止使用旧的 `effects.material` / `effects.motion` 对象形式（已从编译器和类型中移除）。
 - 核心不注册默认视觉效果。所有具体效果由应用/消费者提供。包不导出 `effects` 子路径。
-- Effect context 暴露每个 `ctx.source.kind + ctx.source.type` 的低阶输出 handle：`dom/element` 的 canvas 表面、`dom/text` 的文字层、`media/image` / `media/video` / `media/image-sequence` 的纹理层、`model/glb` 的模型 handle。
+- Effect context 的首选视觉入口是受控 Three-like `ctx.object` facade：transform/visible/opacity、postprocess，以及 surface/text/texture/video/model capability 都从这里开始。`ctx.source.kind + ctx.source.type` 的低阶输出 handle 仍保留作 metadata/兼容底座。
+- **Forward boundary correction**：`ctx.source.*` / `ctx.target` / `ctx.visual`
+  是兼容和实现 substrate，不是继续扩 public API 的方向。新视觉能力必须先按
+  `docs/agent/effect-object-boundary.md` 设计为受控 Three-like `ctx.object`
+  facade，再由 runtime 内部适配到 source/model/text/media/renderable。不要继续往
+  `ctx.source.model` 这类 source-specific handle 上追加 animation / picking /
+  lights / material variants 等 public 方法。
 - Effect 不能扫描 DOM、创建独立渲染器、拥有独立资源管线。
-- `ctx.target.setPosition(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
+- `ctx.object.position.set(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
 - 对 `transformScope: "subtree"` target，`ctx.target` 写内部 group；source handle 仍是该 target 自己的输出层，子 target 仍由自己的 effect/source 管理。
 - source 声明严格：只使用 `kind: "dom" | "media" | "model"`，子类型写在 `type`。旧的 `snapshot/mode`、`image`、`video`、`image-sequence`、`model/format` 声明已移除。
 

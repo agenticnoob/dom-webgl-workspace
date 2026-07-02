@@ -5,6 +5,7 @@ import type {
   WebGLProgressSignalSource,
   WebGLTargetPointerState,
 } from "../types";
+import type { WebGLEffectObjectHandle } from "./effectObject";
 
 export type WebGLEffectSourceKind =
   | "dom/element"
@@ -334,6 +335,7 @@ export type WebGLEffectContext = {
   visual: WebGLEffectVisualContext;
   time: number;
   delta: number;
+  object: WebGLEffectObjectHandle;
   source: WebGLEffectSourceHandle;
   target: WebGLEffectTargetHandle | undefined;
   resources: WebGLEffectResourceScope;

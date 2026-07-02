@@ -44,6 +44,18 @@ export {
   type WebGLTextGlyphRenderCommand,
   type WebGLTextLayerStyle,
 } from "./lib/effects/effectAuthoring";
+export type {
+  WebGLEffectModelFacade,
+  WebGLEffectModelMeshesFacade,
+  WebGLEffectModelPointsFacade,
+  WebGLEffectModelSamplingFacade,
+  WebGLEffectObjectHandle,
+  WebGLEffectPostprocessFacade,
+  WebGLEffectScaleLike,
+  WebGLEffectTextFacade,
+  WebGLEffectTextureFacade,
+  WebGLEffectVector3Like,
+} from "./lib/effects/effectObject";
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLDeclaration,

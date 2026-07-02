@@ -8,12 +8,16 @@ on decisions agents must make while writing effect definitions.
 ## Boundary
 
 - Effects are application-owned code.
-- `@project/dom-webgl-runtime` exports authoring primitives, source handles,
-  target handles, frame input, and managed resources.
+- `@project/dom-webgl-runtime` exports authoring primitives, current source
+  handles, target handles, frame input, and managed resources.
 - The package does not export concrete effects, preset effects, or
   `@project/dom-webgl-runtime/effects`.
 - Example app effects live under `apps/example` and are copyable examples, not
   package API.
+- Forward capability design should use
+  `docs/agent/effect-object-boundary.md`: new visual capabilities belong under a
+  controlled Three-like `ctx.object` facade, not as another method on
+  `ctx.source.*`.
 
 ## React Registration Pattern
 
@@ -53,15 +57,20 @@ Rules:
 
 ## Source Handles
 
-Always narrow `ctx.source.kind` and `ctx.source.type` before using a
-source-specific handle:
+`ctx.object` is the preferred visual control surface. `ctx.source.*` and
+`ctx.target` remain compatibility handles and source-metadata substrate. Do not
+add new public model/text/media capability families here when planning package
+work; route new capability through the controlled effect object boundary
+instead.
+
+Use source-specific object modules when they exist:
 
 ```ts
-if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+if (!ctx.object.text) {
   return;
 }
 
-ctx.source.textLayer?.setGlyphs((glyphs) =>
+ctx.object.text.setGlyphs((glyphs) =>
   glyphs.map((glyph) => ({
     index: glyph.index,
     char: glyph.char,

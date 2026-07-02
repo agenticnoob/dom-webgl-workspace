@@ -199,18 +199,28 @@ describe("public package exports", () => {
 				          WebGLEffectResourceScope,
 				          WebGLEffectSchedule,
 				          WebGLEffectContentBoxShaderInput,
-				          WebGLEffectMediaShaderInputs,
-				          WebGLEffectObjectFitShaderInput,
-				          WebGLEffectSourceTextureShaderInput,
-				          WebGLEffectSourceHandle,
-				          WebGLEffectSurfaceShaderInputs,
-				          WebGLEffectTargetHandle,
-				          WebGLEffectTextLayerHandle,
-				          WebGLEffectTextShaderInputs,
-				          WebGLEffectTextureUniform,
-					          WebGLEffectTextureLayerHandle,
-					          WebGLEffectTextureTransform,
-					          WebGLEffectUniformValue,
+					          WebGLEffectMediaShaderInputs,
+					          WebGLEffectObjectFitShaderInput,
+					          WebGLEffectModelFacade,
+					          WebGLEffectModelMeshesFacade,
+					          WebGLEffectModelPointsFacade,
+					          WebGLEffectModelSamplingFacade,
+					          WebGLEffectObjectHandle,
+					          WebGLEffectPostprocessFacade,
+					          WebGLEffectSourceTextureShaderInput,
+					          WebGLEffectSourceHandle,
+					          WebGLEffectScaleLike,
+					          WebGLEffectSurfaceShaderInputs,
+					          WebGLEffectTargetHandle,
+					          WebGLEffectTextFacade,
+					          WebGLEffectTextLayerHandle,
+					          WebGLEffectTextShaderInputs,
+					          WebGLEffectTextureFacade,
+					          WebGLEffectTextureUniform,
+						          WebGLEffectTextureLayerHandle,
+						          WebGLEffectTextureTransform,
+						          WebGLEffectUniformValue,
+					          WebGLEffectVector3Like,
 					          WebGLEffectVisualContext,
 					          WebGLEffectVideoLayerHandle,
 					          WebGLModelEffectHandle,
@@ -478,12 +488,60 @@ describe("public package exports", () => {
 			          { kind: "app.surface", opacity: 0.86 },
 			          { kind: "app.pointerTilt", strength: 0.6, maxDegrees: 8 },
 			        ] satisfies WebGLEffectsDeclaration;
-			        const customEffects = [
-			          { kind: "custom.surfacePulse", opacity: 0.4 },
-			        ] satisfies WebGLEffectsDeclaration;
-			        "static" satisfies WebGLEffectSchedule;
-			        "reactive" satisfies WebGLEffectSchedule;
-			        "frame" satisfies WebGLEffectSchedule;
+				        const customEffects = [
+				          { kind: "custom.surfacePulse", opacity: 0.4 },
+				        ] satisfies WebGLEffectsDeclaration;
+				        const objectEffect = defineWebGLEffect({
+				          kind: "custom.object",
+				          update(ctx) {
+				            ctx.object.position.set(1, 2, 3);
+				            ctx.object.position.y += 4;
+				            ctx.object.rotation.set(0, 0.5, 0);
+				            ctx.object.scale.setScalar(1.1);
+				            ctx.object.visible = true;
+				            ctx.object.opacity = 0.75;
+				            ctx.object.postprocess.request({
+				              key: "custom.glow",
+				              bloom: { strength: 0.2 },
+				            });
+				            ctx.object satisfies WebGLEffectObjectHandle;
+				            ctx.object.position satisfies WebGLEffectVector3Like;
+				            ctx.object.rotation satisfies WebGLEffectVector3Like;
+				            ctx.object.scale satisfies WebGLEffectScaleLike;
+				            ctx.object.text satisfies WebGLEffectTextFacade | undefined;
+				            ctx.object.texture satisfies WebGLEffectTextureFacade | undefined;
+				            ctx.object.model satisfies WebGLEffectModelFacade | undefined;
+				            ctx.object.model?.meshes satisfies
+				              | WebGLEffectModelMeshesFacade
+				              | undefined;
+				            ctx.object.model?.sampling satisfies
+				              | WebGLEffectModelSamplingFacade
+				              | undefined;
+				            ctx.object.model?.points satisfies
+				              | WebGLEffectModelPointsFacade
+				              | undefined;
+				            ctx.object.postprocess satisfies WebGLEffectPostprocessFacade;
+				          },
+				        });
+
+				        objectEffect satisfies WebGLEffectDefinition;
+				        // @ts-expect-error raw object3D is not public.
+				        declare const rawObject: WebGLEffectContext["object"]["object3D"];
+				        // @ts-expect-error raw mesh is not public.
+				        declare const rawMesh: WebGLEffectContext["object"]["mesh"];
+				        // @ts-expect-error raw material is not public.
+				        declare const rawMaterial: WebGLEffectContext["object"]["material"];
+				        // @ts-expect-error raw texture handle is not public.
+				        declare const rawTexture: WebGLEffectContext["object"]["rawTexture"];
+				        // @ts-expect-error raw renderer is not public.
+				        declare const rawRenderer: WebGLEffectContext["object"]["renderer"];
+				        // @ts-expect-error raw scene is not public.
+				        declare const rawScene: WebGLEffectContext["object"]["scene"];
+				        // @ts-expect-error raw camera is not public.
+				        declare const rawCamera: WebGLEffectContext["object"]["camera"];
+				        "static" satisfies WebGLEffectSchedule;
+				        "reactive" satisfies WebGLEffectSchedule;
+				        "frame" satisfies WebGLEffectSchedule;
 			        // @ts-expect-error effect schedules are a closed public union.
 			        "idle" satisfies WebGLEffectSchedule;
 			        defineWebGLEffect({
@@ -726,9 +784,17 @@ describe("public package exports", () => {
 	              acceptModelKey(("object" + "3D") as \`object${"3D"}\`);
 	              // @ts-expect-error raw mesh traversal is not public.
 	              acceptModelKey(("traverse" + "Meshes") as \`traverse${"Meshes"}\`);
-	              // @ts-expect-error point-cloud objects are not returned as raw objects.
-	              acceptModelKey(("createPoint" + "Cloud") as \`createPoint${"Cloud"}\`);
-	            }
+		              // @ts-expect-error point-cloud objects are not returned as raw objects.
+		              acceptModelKey(("createPoint" + "Cloud") as \`createPoint${"Cloud"}\`);
+		              // @ts-expect-error new public model animation controls belong under ctx.object.
+		              ctx.source.model.animations;
+		              // @ts-expect-error new public model light controls belong under ctx.object.
+		              ctx.source.model.requestLight;
+		              // @ts-expect-error new public model picking controls belong under ctx.object.
+		              ctx.source.model.hitTest;
+		              // @ts-expect-error new public material variants belong under ctx.object.
+		              ctx.source.model.materialVariants;
+		            }
 
 	            function acceptTargetKey<TKey extends keyof WebGLEffectTargetHandle>(
 	              _key: TKey,

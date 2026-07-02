@@ -9,7 +9,13 @@ import { createEffectSource, type TestEffectSource } from "./effectSourceHandles
 
 type TestEffectContextOverrides = Omit<
   Partial<WebGLEffectContext>,
-  "input" | "layout" | "pointer" | "resources" | "scroll" | "source" | "target"
+  | "input"
+  | "layout"
+  | "pointer"
+  | "resources"
+  | "scroll"
+  | "source"
+  | "target"
 > & {
   layout?: Partial<WebGLEffectContext["layout"]>;
   pointer?: Partial<WebGLEffectContext["pointer"]>;
@@ -43,10 +49,25 @@ export function createEffectContext(
   const layout = createLayoutSnapshot(overrides.layout);
   const targetPointer =
     overrides.targetPointer ?? createTargetPointerState(pointer, layout, time);
+  const sourceKind = overrides.sourceKind ?? readEffectSourceKind(source);
+  const visual = overrides.visual ?? {
+    requestPostprocess: vi.fn(() => ({
+      update: vi.fn(),
+      dispose: vi.fn(),
+    })),
+  };
+  const target =
+    overrides.target === undefined
+      ? undefined
+      : { ...createTargetHandle(), ...overrides.target };
+  const resources = {
+    ...createResourceScope(),
+    ...overrides.resources,
+  };
 
   return {
     key: overrides.key ?? "example.test",
-    sourceKind: overrides.sourceKind ?? readEffectSourceKind(source),
+    sourceKind,
     layout,
     input: {
       time,
@@ -59,23 +80,20 @@ export function createEffectContext(
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
     progress: overrides.progress ?? { get: () => 0 },
-    visual: overrides.visual ?? {
-      requestPostprocess: vi.fn(() => ({
-        update: vi.fn(),
-        dispose: vi.fn(),
-      })),
-    },
+    visual,
     time,
     delta,
+    object:
+      overrides.object ??
+      createTestEffectObject({
+        sourceKind,
+        source,
+        target,
+        visual,
+      }),
     source,
-    target:
-      overrides.target === undefined
-        ? undefined
-        : { ...createTargetHandle(), ...overrides.target },
-    resources: {
-      ...createResourceScope(),
-      ...overrides.resources,
-    },
+    target,
+    resources,
   } satisfies WebGLEffectContext;
 }
 
@@ -221,5 +239,244 @@ function createResourceScope(): WebGLEffectContext["resources"] {
       return factory();
     },
     dispose: vi.fn(),
+  };
+}
+
+function createTestEffectObject(options: {
+  sourceKind: WebGLEffectContext["sourceKind"];
+  source: WebGLEffectContext["source"];
+  target: WebGLEffectTargetHandle | undefined;
+  visual: WebGLEffectContext["visual"];
+}): WebGLEffectContext["object"] {
+  const transform = createTestTransform(options.target);
+
+  return {
+    sourceKind: options.sourceKind,
+    position: transform.position,
+    rotation: transform.rotation,
+    scale: transform.scale,
+    get visible() {
+      return transform.visible;
+    },
+    set visible(value) {
+      transform.visible = value;
+    },
+    get opacity() {
+      return transform.opacity;
+    },
+    set opacity(value) {
+      transform.opacity = value;
+    },
+    postprocess: {
+      request(request) {
+        return options.visual.requestPostprocess(request);
+      },
+    },
+    ...createTestObjectCapabilities(options.source),
+  };
+}
+
+function createTestTransform(target: WebGLEffectTargetHandle | undefined) {
+  let visible = true;
+  let opacity = 1;
+
+  return {
+    position: createTestVector((x, y, z) => target?.setPosition(x, y, z)),
+    rotation: createTestVector((x, y, z) => target?.setRotation(x, y, z)),
+    scale: createTestScale((x, y, z) => target?.setScale(x, y, z)),
+    get visible() {
+      return visible;
+    },
+    set visible(value: boolean) {
+      visible = value;
+      target?.setVisible(value);
+    },
+    get opacity() {
+      return opacity;
+    },
+    set opacity(value: number) {
+      opacity = value;
+      target?.setOpacity(value);
+    },
+  };
+}
+
+function createTestVector(
+  commit: (x: number, y: number, z: number) => void,
+): WebGLEffectContext["object"]["position"] {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+
+  return {
+    get x() {
+      return x;
+    },
+    set x(value) {
+      x = value;
+      commit(x, y, z);
+    },
+    get y() {
+      return y;
+    },
+    set y(value) {
+      y = value;
+      commit(x, y, z);
+    },
+    get z() {
+      return z;
+    },
+    set z(value) {
+      z = value;
+      commit(x, y, z);
+    },
+    set(nextX, nextY, nextZ = 0) {
+      x = nextX;
+      y = nextY;
+      z = nextZ;
+      commit(x, y, z);
+    },
+  };
+}
+
+function createTestScale(
+  commit: (x: number, y: number, z: number) => void,
+): WebGLEffectContext["object"]["scale"] {
+  let x = 1;
+  let y = 1;
+  let z = 1;
+
+  return {
+    get x() {
+      return x;
+    },
+    set x(value) {
+      x = value;
+      commit(x, y, z);
+    },
+    get y() {
+      return y;
+    },
+    set y(value) {
+      y = value;
+      commit(x, y, z);
+    },
+    get z() {
+      return z;
+    },
+    set z(value) {
+      z = value;
+      commit(x, y, z);
+    },
+    set(nextX, nextY, nextZ = 1) {
+      x = nextX;
+      y = nextY;
+      z = nextZ;
+      commit(x, y, z);
+    },
+    setScalar(value) {
+      x = value;
+      y = value;
+      z = value;
+      commit(x, y, z);
+    },
+  };
+}
+
+function createTestObjectCapabilities(
+  source: WebGLEffectContext["source"],
+): Partial<WebGLEffectContext["object"]> {
+  switch (source.kind) {
+    case "dom":
+      if (source.type === "text") {
+        return source.textLayer
+          ? {
+              text: {
+                get text() {
+                  return source.textLayer?.text ?? source.text;
+                },
+                getGlyphs() {
+                  return source.textLayer?.getGlyphs() ?? [];
+                },
+                setText(text) {
+                  source.textLayer?.setText(text);
+                },
+                setGlyphs(transform) {
+                  source.textLayer?.setGlyphs(transform);
+                },
+                material: source.textLayer,
+              },
+            }
+          : {};
+      }
+
+      return { surface: source.surface };
+    case "media":
+      switch (source.type) {
+        case "image":
+          return source.image
+            ? { texture: createTestTextureFacade(source.image) }
+            : {};
+        case "video":
+          return source.video
+            ? {
+                texture: createTestTextureFacade(source.video),
+                video: source.video,
+              }
+            : {};
+        case "image-sequence":
+          return source.image
+            ? { texture: createTestTextureFacade(source.image) }
+            : {};
+      }
+    case "model":
+      return {
+        model: {
+          meshes: {
+            all() {
+              return source.model.getMeshes();
+            },
+            forEach(visitor) {
+              source.model.forEachMesh(visitor);
+            },
+          },
+          sampling: {
+            vertices(options) {
+              return source.model.sampleVertices(options);
+            },
+          },
+          points: {
+            create(options) {
+              return source.model.createPointLayer(options);
+            },
+          },
+        },
+      };
+  }
+}
+
+function createTestTextureFacade(
+  layer:
+    | NonNullable<
+        Extract<WebGLEffectContext["source"], { kind: "media"; type: "image" }>["image"]
+      >
+    | NonNullable<
+        Extract<WebGLEffectContext["source"], { kind: "media"; type: "video" }>["video"]
+      >
+    | NonNullable<
+        Extract<
+          WebGLEffectContext["source"],
+          { kind: "media"; type: "image-sequence" }
+        >["image"]
+      >,
+): NonNullable<WebGLEffectContext["object"]["texture"]> {
+  return {
+    setTransform(transform) {
+      layer.setTextureTransform(transform);
+    },
+    invalidate() {
+      layer.invalidate();
+    },
+    material: layer,
   };
 }

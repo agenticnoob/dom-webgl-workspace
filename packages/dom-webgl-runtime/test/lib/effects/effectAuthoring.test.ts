@@ -31,4 +31,18 @@ describe("defineWebGLEffect", () => {
 
     expect(definition.source).toBe("media/image-sequence");
   });
+
+  test("supports object-first effect authoring syntax", () => {
+    const definition = defineWebGLEffect({
+      kind: "custom.objectSyntax",
+      update(ctx) {
+        ctx.object.position.y += Math.sin(ctx.time / 1000) * 8;
+        ctx.object.rotation.y += ctx.delta / 1000;
+        ctx.object.scale.setScalar(1.05);
+        ctx.object.opacity = 0.9;
+      },
+    });
+
+    expect(definition.kind).toBe("custom.objectSyntax");
+  });
 });

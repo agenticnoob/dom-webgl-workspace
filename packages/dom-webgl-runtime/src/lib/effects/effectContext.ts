@@ -10,6 +10,7 @@ import type {
   WebGLEffectTargetHandle,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
+import { createWebGLEffectObject } from "./effectObjectContext";
 
 export type WebGLEffectContextOptions = {
   key: string;
@@ -41,6 +42,11 @@ const emptyVisualContext: WebGLEffectVisualContext = {
 export function createWebGLEffectContext(
   options: WebGLEffectContextOptions,
 ): WebGLEffectContext {
+  const visual = createResourceManagedVisualContext(
+    options.visual ?? emptyVisualContext,
+    options.resources,
+  );
+
   return {
     key: options.key,
     sourceKind: options.sourceKind,
@@ -51,12 +57,15 @@ export function createWebGLEffectContext(
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
     progress: createProgressSignals(options.progressSignals),
-    visual: createResourceManagedVisualContext(
-      options.visual ?? emptyVisualContext,
-      options.resources,
-    ),
+    visual,
     time: options.input.time,
     delta: options.input.delta,
+    object: createWebGLEffectObject({
+      sourceKind: options.sourceKind,
+      source: options.source,
+      target: options.target,
+      visual,
+    }),
     source: options.source,
     target: options.target,
     resources: options.resources,
