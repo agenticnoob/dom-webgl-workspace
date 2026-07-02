@@ -1,6 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { createEffectObjectCapabilities } from "../../../src/lib/effects/effectObjectCapabilities";
+import { createModelEffectHandle } from "../../../src/lib/render/renderables/modelEffectHandle";
 import type {
   WebGLEffectCanvasDrawer,
   WebGLEffectCanvasSurfaceHandle,
@@ -204,6 +205,41 @@ describe("createEffectObjectCapabilities", () => {
     expect(createEffectObjectCapabilities(source).model?.src).toBe(
       "/models/hero.glb",
     );
+  });
+
+  test("maps model primary mesh material to object.material", () => {
+    const material = {
+      color: { set: vi.fn(), getHexString: () => "ffffff" },
+      emissive: { set: vi.fn(), getHexString: () => "000000" },
+      emissiveIntensity: 1,
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+    };
+    const mesh = {
+      name: "Body",
+      geometry: {},
+      material,
+    };
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("div"),
+      src: "/model.glb",
+      model: createModelEffectHandle({ children: [mesh] }),
+    } satisfies WebGLEffectSourceHandle;
+
+    const objectMaterial = createEffectObjectCapabilities(source).material;
+
+    objectMaterial?.emissive.set("#7dd3fc", 1.8);
+    if (objectMaterial) {
+      objectMaterial.opacity = 0.7;
+    }
+
+    expect(objectMaterial).toBeDefined();
+    expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc");
+    expect(material.emissiveIntensity).toBe(1.8);
+    expect(material.opacity).toBe(0.7);
   });
 });
 

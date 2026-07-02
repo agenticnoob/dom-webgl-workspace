@@ -5,6 +5,7 @@ import type {
   WebGLProgressSignalSource,
   WebGLTargetPointerState,
 } from "../types";
+import type { WebGLEffectMaterialFacade } from "./effectMaterial";
 import type { WebGLEffectObjectHandle } from "./effectObject";
 
 export type WebGLEffectSourceKind =
@@ -241,6 +242,7 @@ export type WebGLModelMeshHandle = WebGLEffectRenderableHandle &
     readonly index: number;
     readonly name?: string;
     readonly materialName?: string;
+    material: WebGLEffectMaterialFacade;
     restoreMaterial(): void;
   };
 

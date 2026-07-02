@@ -3,8 +3,10 @@ import type {
   WebGLEffectObjectHandle,
   WebGLEffectTextureFacade,
 } from "./effectObject";
+import { readManagedMaterialFacade } from "../render/renderables/sourceCapabilityHandles";
 
 export type WebGLEffectObjectCapabilities = {
+  material?: WebGLEffectObjectHandle["material"];
   surface?: WebGLEffectObjectHandle["surface"];
   text?: WebGLEffectObjectHandle["text"];
   texture?: WebGLEffectObjectHandle["texture"];
@@ -41,6 +43,7 @@ function createDOMCapabilities(
   switch (source.type) {
     case "element":
       return {
+        material: readManagedMaterialFacade(source.surface),
         surface: source.surface,
       };
     case "text":
@@ -49,6 +52,7 @@ function createDOMCapabilities(
       }
 
       return {
+        material: readManagedMaterialFacade(source.textLayer),
         text: createTextFacade(source, source.textLayer),
       };
   }
@@ -60,11 +64,15 @@ function createMediaCapabilities(
   switch (source.type) {
     case "image":
       return source.image
-        ? { texture: createTextureFacade(source.image, { src: source.src }) }
+        ? {
+            material: readManagedMaterialFacade(source.image),
+            texture: createTextureFacade(source.image, { src: source.src }),
+          }
         : {};
     case "video":
       return source.video
         ? {
+            material: readManagedMaterialFacade(source.video),
             texture: createTextureFacade(source.video, { src: source.src }),
             video: createVideoFacade(source.video),
           }
@@ -72,6 +80,7 @@ function createMediaCapabilities(
     case "image-sequence":
       return source.image
         ? {
+            material: readManagedMaterialFacade(source.image),
             texture: createTextureFacade(source.image, {
               src: source.src,
               frame: source.frame,
@@ -85,6 +94,9 @@ function createModelCapabilities(
   source: ModelSourceHandle,
 ): WebGLEffectObjectCapabilities {
   return {
+    get material() {
+      return source.model.getMeshes()[0]?.material;
+    },
     model: {
       src: source.src,
       meshes: {

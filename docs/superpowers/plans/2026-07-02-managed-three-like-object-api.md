@@ -871,7 +871,7 @@ git commit -m "feat: add runtime-owned draco model loader config"
 - Test: `packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts`
 - Test: `packages/dom-webgl-runtime/test/lib/render/renderables/sourceCapabilityHandles.test.ts`
 
-- [ ] **Step 1: Add internal material controls**
+- [x] **Step 1: Add internal material controls**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/managedMaterialControls.ts`:
 
@@ -1010,7 +1010,7 @@ function clampNumber(value: number, min: number, max: number, fallback: number):
 }
 ```
 
-- [ ] **Step 2: Attach material facade to model mesh handles**
+- [x] **Step 2: Attach material facade to model mesh handles**
 
 In `packages/dom-webgl-runtime/src/lib/render/renderables/modelEffectHandle.ts`, import `createManagedMaterialFacade` and add a `material` field to mesh handles:
 
@@ -1076,7 +1076,7 @@ function readMaterial(mesh: unknown): unknown {
 }
 ```
 
-- [ ] **Step 3: Expose top-level `ctx.object.material`**
+- [x] **Step 3: Expose top-level `ctx.object.material`**
 
 In `packages/dom-webgl-runtime/src/lib/effects/effectObjectCapabilities.ts`, map source capabilities:
 
@@ -1116,7 +1116,7 @@ function createModelCapabilities(
 
 For `dom/text`, `media/image`, `media/video`, and `media/image-sequence`, set `material` to a facade backed by the existing source material layer host. For `dom/element`, use the surface layer host.
 
-- [ ] **Step 4: Add material behavior tests**
+- [x] **Step 4: Add material behavior tests**
 
 In `packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts`, add:
 
@@ -1154,7 +1154,7 @@ test("exposes managed material facade without raw material access", () => {
 });
 ```
 
-- [ ] **Step 5: Run material tests**
+- [x] **Step 5: Run material tests**
 
 Run:
 
@@ -1164,7 +1164,7 @@ npm test -- --run packages/dom-webgl-runtime/test/lib/render/renderables/modelEf
 
 Expected: PASS for material facade behavior and public type contract.
 
-- [ ] **Step 6: Commit material facade**
+- [x] **Step 6: Commit material facade**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/render/renderables/managedMaterialControls.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelEffectHandle.ts packages/dom-webgl-runtime/src/lib/render/renderables/sourceCapabilityHandles.ts packages/dom-webgl-runtime/src/lib/effects/effectObjectCapabilities.ts packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts packages/dom-webgl-runtime/test/lib/render/renderables/sourceCapabilityHandles.test.ts packages/dom-webgl-runtime/test/publicExports.test.ts

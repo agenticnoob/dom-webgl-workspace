@@ -8,6 +8,7 @@ import {
   createTextLayerCapabilityHandle,
   createTextureLayerCapabilityHandle,
   createVideoLayerCapabilityHandle,
+  readManagedMaterialFacade,
 } from "../../../../src/lib/render/renderables/sourceCapabilityHandles";
 
 describe("source capability handles", () => {
@@ -109,6 +110,44 @@ describe("source capability handles", () => {
     layer.dispose();
 
     expect(mesh.material).toBe(material);
+  });
+
+  test("canvas surface exposes internal managed material facade without raw material", () => {
+    const context = createCanvasContextStub();
+    const material = {
+      color: { set: vi.fn(), getHexString: () => "ffffff" },
+      emissive: { set: vi.fn(), getHexString: () => "000000" },
+      emissiveIntensity: 1,
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+    };
+    const handle = createCanvasSurfaceCapabilityHandle({
+      object3D: createObject3D(),
+      mesh: { material },
+      material,
+      canvas: createCanvasStub(context),
+      context,
+      texture: new Texture(),
+      getSize: () => ({ width: 120, height: 40, devicePixelRatio: 1 }),
+      invalidate: vi.fn(),
+    });
+    const facade = readManagedMaterialFacade(handle);
+
+    facade?.color.set("#38bdf8");
+    if (facade) {
+      facade.opacity = 0.5;
+      facade.metalness = 0.25;
+      facade.roughness = 0.75;
+    }
+
+    expect(facade).toBeDefined();
+    expect(material.color.set).toHaveBeenCalledWith("#38bdf8");
+    expect(material.opacity).toBe(0.5);
+    expect(material.transparent).toBe(true);
+    expect(material.metalness).toBe(0.25);
+    expect(material.roughness).toBe(0.75);
+    expect("rawMaterial" in handle).toBe(false);
   });
 
   test("text layer handle exposes glyph layout and draws glyph commands without mutating DOM text", () => {

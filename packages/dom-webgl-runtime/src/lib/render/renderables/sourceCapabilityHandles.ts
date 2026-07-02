@@ -3,6 +3,7 @@ import type {
   WebGLEffectCanvasSurfaceHandle,
   WebGLEffectContentBoxShaderInput,
   WebGLEffectMediaShaderInputs,
+  WebGLEffectMaterialLayerHost,
   WebGLEffectObjectFitShaderInput,
   WebGLEffectSourceTextureShaderInput,
   WebGLEffectTextLayerHandle,
@@ -13,11 +14,15 @@ import type {
   WebGLTextGlyphRenderCommand,
   WebGLTextLayerStyle,
 } from "../../effects/effectAuthoring";
+import type { WebGLEffectMaterialFacade } from "../../effects/effectMaterial";
 import { Texture } from "three/src/textures/Texture.js";
 
+import { createManagedMaterialFacade } from "./managedMaterialControls";
 import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
 import type { TextureUploadDirtyReason } from "./textureUploadState";
+
+const managedMaterialFacades = new WeakMap<object, WebGLEffectMaterialFacade>();
 
 export type CanvasSurfaceCapabilityOptions = {
   object3D: unknown;
@@ -65,7 +70,8 @@ export type TextureLayerCapabilityOptions<
 export function createCanvasSurfaceCapabilityHandle(
   options: CanvasSurfaceCapabilityOptions,
 ): WebGLEffectCanvasSurfaceHandle {
-  return {
+  const layerHost = createSourceMaterialLayerHost(options);
+  const handle: WebGLEffectCanvasSurfaceHandle = {
     ...createObject3DControls(options.object3D, {
       scaleZ: 1,
       opacity: { kind: "material", material: options.material },
@@ -78,13 +84,7 @@ export function createCanvasSurfaceCapabilityHandle(
         createSurfaceShaderInputs(options.getSize(), options.texture)
       );
     },
-    createMaterialLayer(layerOptions) {
-      return createMaterialLayer({
-        ...layerOptions,
-        target: createMaterialTarget(options.mesh, options.material),
-        sourceTexture: readSourceTexture(options.texture),
-      });
-    },
+    createMaterialLayer: layerHost.createMaterialLayer,
     clear() {
       clearCanvas(options);
       markTextureDirty(options, "effect-invalidate");
@@ -99,13 +99,22 @@ export function createCanvasSurfaceCapabilityHandle(
       return options.getSize();
     },
   };
+  rememberManagedMaterialFacade(
+    handle,
+    createManagedMaterialFacade({
+      material: options.material,
+      layerHost,
+    }),
+  );
+  return handle;
 }
 
 export function createTextLayerCapabilityHandle(
   options: TextLayerCapabilityOptions,
 ): WebGLEffectTextLayerHandle {
-  return {
-    ...createCanvasSurfaceCapabilityHandle(options),
+  const surfaceHandle = createCanvasSurfaceCapabilityHandle(options);
+  const handle: WebGLEffectTextLayerHandle = {
+    ...surfaceHandle,
     get text() {
       return options.getText();
     },
@@ -137,6 +146,11 @@ export function createTextLayerCapabilityHandle(
       drawTextGlyphCommands(options, transform(options.getGlyphs()));
     },
   };
+  const materialFacade = readManagedMaterialFacade(surfaceHandle);
+  if (materialFacade) {
+    rememberManagedMaterialFacade(handle, materialFacade);
+  }
+  return handle;
 }
 
 export function createTextureLayerCapabilityHandle<
@@ -144,7 +158,8 @@ export function createTextureLayerCapabilityHandle<
 >(
   options: TextureLayerCapabilityOptions<TSource>,
 ): WebGLEffectTextureLayerHandle<TSource> {
-  return {
+  const layerHost = createSourceMaterialLayerHost(options);
+  const handle: WebGLEffectTextureLayerHandle<TSource> = {
     ...createObject3DControls(options.object3D, {
       scaleZ: 1,
       opacity: { kind: "material", material: options.material },
@@ -153,13 +168,7 @@ export function createTextureLayerCapabilityHandle<
     get shaderInputs() {
       return options.getShaderInputs?.() ?? createMediaShaderInputs(options);
     },
-    createMaterialLayer(layerOptions) {
-      return createMaterialLayer({
-        ...layerOptions,
-        target: createMaterialTarget(options.mesh, options.material),
-        sourceTexture: readSourceTexture(options.texture),
-      });
-    },
+    createMaterialLayer: layerHost.createMaterialLayer,
     setTextureTransform(transform) {
       if (options.setTextureTransform) {
         options.setTextureTransform(transform);
@@ -173,6 +182,14 @@ export function createTextureLayerCapabilityHandle<
       markTextureDirty(options, "effect-invalidate");
     },
   };
+  rememberManagedMaterialFacade(
+    handle,
+    createManagedMaterialFacade({
+      material: options.material,
+      layerHost,
+    }),
+  );
+  return handle;
 }
 
 export function createVideoLayerCapabilityHandle(
@@ -180,7 +197,7 @@ export function createVideoLayerCapabilityHandle(
 ): WebGLEffectVideoLayerHandle {
   const textureHandle = createTextureLayerCapabilityHandle(options);
 
-  return {
+  const handle: WebGLEffectVideoLayerHandle = {
     ...textureHandle,
     source: options.source,
     get shaderInputs() {
@@ -199,6 +216,21 @@ export function createVideoLayerCapabilityHandle(
       options.source.playbackRate = rate;
     },
   };
+  const materialFacade = readManagedMaterialFacade(textureHandle);
+  if (materialFacade) {
+    rememberManagedMaterialFacade(handle, materialFacade);
+  }
+  return handle;
+}
+
+export function readManagedMaterialFacade(
+  handle: unknown,
+): WebGLEffectMaterialFacade | undefined {
+  if (!handle || typeof handle !== "object") {
+    return undefined;
+  }
+
+  return managedMaterialFacades.get(handle);
 }
 
 function drawCanvas(
@@ -335,6 +367,31 @@ function createMaterialTarget(
   }
 
   return { material };
+}
+
+function createSourceMaterialLayerHost(
+  options: {
+    mesh: unknown;
+    material: unknown;
+    texture: unknown;
+  },
+): WebGLEffectMaterialLayerHost {
+  return {
+    createMaterialLayer(layerOptions) {
+      return createMaterialLayer({
+        ...layerOptions,
+        target: createMaterialTarget(options.mesh, options.material),
+        sourceTexture: readSourceTexture(options.texture),
+      });
+    },
+  };
+}
+
+function rememberManagedMaterialFacade(
+  handle: object,
+  material: WebGLEffectMaterialFacade,
+): void {
+  managedMaterialFacades.set(handle, material);
 }
 
 function readSourceTexture(texture: unknown): Texture | undefined {

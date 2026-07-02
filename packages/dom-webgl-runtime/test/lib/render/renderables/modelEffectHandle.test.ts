@@ -119,6 +119,40 @@ describe("createModelEffectHandle", () => {
     expect(mesh.material).toBe(originalMaterials);
   });
 
+  test("exposes managed material facade without raw material access", () => {
+    const mesh = {
+      geometry: {},
+      material: {
+        color: { set: vi.fn(), getHexString: () => "ffffff" },
+        emissive: { set: vi.fn(), getHexString: () => "000000" },
+        emissiveIntensity: 1,
+        opacity: 1,
+        metalness: 0,
+        roughness: 1,
+      },
+    };
+    const object3D = { children: [mesh] };
+    const handle = createModelEffectHandle(object3D);
+    const [meshHandle] = handle.getMeshes();
+
+    meshHandle?.material.color.set("#38bdf8");
+    meshHandle?.material.emissive.set("#7dd3fc", 2);
+    if (meshHandle) {
+      meshHandle.material.opacity = 0.72;
+      meshHandle.material.metalness = 0.4;
+      meshHandle.material.roughness = 0.2;
+    }
+
+    expect(mesh.material.color.set).toHaveBeenCalledWith("#38bdf8");
+    expect(mesh.material.emissive.set).toHaveBeenCalledWith("#7dd3fc");
+    expect(mesh.material.emissiveIntensity).toBe(2);
+    expect(mesh.material.opacity).toBe(0.72);
+    expect(mesh.material.transparent).toBe(true);
+    expect(mesh.material.metalness).toBe(0.4);
+    expect(mesh.material.roughness).toBe(0.2);
+    expect("rawMaterial" in (meshHandle ?? {})).toBe(false);
+  });
+
   test("creates managed point layers and disposes generated geometry/material once", () => {
     const root = new Group();
     const handle = createModelEffectHandle(root);
