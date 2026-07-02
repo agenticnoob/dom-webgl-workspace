@@ -414,24 +414,48 @@ describe("public package exports", () => {
             source: { kind: "dom", type: "element" },
             transformScope: "self",
           },
-			  { key: "image", source: { kind: "media", type: "image", src: "/image.png" } },
-	          { key: "video", source: { kind: "media", type: "video", src: "/video.mp4" } },
-	          {
-	            key: "sequence",
+				  { key: "image", source: { kind: "media", type: "image", src: "/image.png" } },
+		          { key: "video", source: { kind: "media", type: "video", src: "/video.mp4" } },
+		          {
+		            key: "sequence",
 	            source: {
 	              kind: "media",
 	              type: "image-sequence",
 	              frameCount: 1,
 	              frames: [document.createElement("canvas")],
 	            },
-	          },
-	          { key: "model", source: { kind: "model", type: "glb", src: "/product.glb" } },
-	        ] satisfies WebGLDeclaration[];
-	        declarations satisfies WebGLDeclaration[];
-        "subtree" satisfies WebGLTransformScope;
-        "self" satisfies WebGLTransformScope;
-        // @ts-expect-error transformScope accepts only the public self/subtree union.
-        "branch" satisfies WebGLTransformScope;
+		          },
+		          { key: "model", source: { kind: "model", type: "glb", src: "/product.glb" } },
+		        ] satisfies WebGLDeclaration[];
+		        declarations satisfies WebGLDeclaration[];
+		        const dracoModelDeclaration = {
+		          key: "model.draco",
+		          source: {
+		            kind: "model",
+		            type: "glb",
+		            src: "/models/4.glb",
+		            loader: {
+		              draco: {
+		                decoderPath: "/draco/",
+		                preload: true,
+		              },
+		            },
+		          },
+		          effects: [{ kind: "custom.managedThreeLike" }],
+		        } satisfies WebGLDeclaration;
+		        const runtimeOptionsWithModelLoader = {
+		          container: document.createElement("div"),
+		          modelLoader: {
+		            draco: {
+		              decoderPath: "/draco/",
+		            },
+		          },
+		        } satisfies WebGLRuntimeOptions;
+		        runtimeOptionsWithModelLoader satisfies WebGLRuntimeOptions;
+	        "subtree" satisfies WebGLTransformScope;
+	        "self" satisfies WebGLTransformScope;
+	        // @ts-expect-error transformScope accepts only the public self/subtree union.
+	        "branch" satisfies WebGLTransformScope;
         // @ts-expect-error transformScope accepts only the public self/subtree union.
         ({ key: "invalid-transform", transformScope: "branch" } satisfies WebGLDeclaration);
         // @ts-expect-error public declarations do not accept child-owned parent keys.
@@ -512,14 +536,34 @@ describe("public package exports", () => {
 				          update(ctx) {
 				            ctx.object.position.set(1, 2, 3);
 				            ctx.object.position.y += 4;
-				            ctx.object.rotation.set(0, 0.5, 0);
-				            ctx.object.scale.setScalar(1.1);
-				            ctx.object.visible = true;
-				            ctx.object.opacity = 0.75;
-				            ctx.object.postprocess.request({
-				              key: "custom.glow",
-				              bloom: { strength: 0.2 },
-				            });
+		 	            ctx.object.rotation.set(0, 0.5, 0);
+		 	            ctx.object.scale.setScalar(1.1);
+		 	            ctx.object.visible = true;
+		 	            ctx.object.opacity = 0.75;
+		 	            ctx.object.material?.color.set("#f8fafc");
+		 	            ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+		 	            ctx.object.material?.createLayer({
+		 	              key: "custom.materialLayer",
+		 	              program: {
+		 	                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		 	                blend: "additive",
+		 	              },
+		 	            });
+		 	            ctx.object.lights?.point("glow", {
+		 	              color: "#7dd3fc",
+		 	              intensity: 2.4,
+		 	              distance: 420,
+		 	              follow: "object",
+		 	            });
+		 	            ctx.object.animation?.play("Idle", {
+		 	              loop: "repeat",
+		 	              fadeInMs: 120,
+		 	              timeScale: 1,
+		 	            });
+		 	            ctx.object.postprocess.request({
+		 	              key: "custom.glow",
+		 	              bloom: { strength: 0.2 },
+		 	            });
 				            ctx.object satisfies WebGLEffectObjectHandle;
 				            ctx.object.position satisfies WebGLEffectVector3Like;
 				            ctx.object.rotation satisfies WebGLEffectVector3Like;
@@ -541,10 +585,52 @@ describe("public package exports", () => {
 				          },
 				        });
 
-				        objectEffect satisfies WebGLEffectDefinition;
-				        const objectOnlyEffect = defineWebGLEffect({
-				          kind: "custom.objectOnly",
-				          update(ctx) {
+		    objectEffect satisfies WebGLEffectDefinition;
+		        const managedThreeLikeEffect = defineWebGLEffect({
+		          kind: "custom.managedThreeLike",
+		          update(ctx) {
+		            ctx.object.position.set(0, 24, 0);
+		            ctx.object.position.y += 4;
+		            ctx.object.rotation.set(0, 0.5, 0);
+		            ctx.object.rotation.y += ctx.delta / 1000;
+		            ctx.object.scale.setScalar(1.08);
+		            ctx.object.visible = true;
+		            ctx.object.opacity = 0.86;
+
+		            ctx.object.material?.color.set("#f8fafc");
+		            ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+		            ctx.object.material?.createLayer({
+		              key: "custom.materialLayer",
+		              program: {
+		                fragmentShader: "void main(){ gl_FragColor = vec4(1.0); }",
+		                blend: "additive",
+		              },
+		            });
+
+		            ctx.object.lights?.point("glow", {
+		              color: "#7dd3fc",
+		              intensity: 2.4,
+		              distance: 420,
+		              follow: "object",
+		            });
+
+		            ctx.object.animation?.play("Idle", {
+		              loop: "repeat",
+		              fadeInMs: 120,
+		              timeScale: 1,
+		            });
+
+		            ctx.object.postprocess.request({
+		              key: "custom.softBloom",
+		              bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
+		            });
+		          },
+		        });
+
+		        managedThreeLikeEffect satisfies WebGLEffectDefinition;
+		        const objectOnlyEffect = defineWebGLEffect({
+		          kind: "custom.objectOnly",
+		          update(ctx) {
 				            ctx.object.opacity = 1;
 				            ctx.object.position.set(0, 24, 0);
 				            ctx.object.rotation.y += ctx.delta / 1000;
@@ -589,19 +675,38 @@ describe("public package exports", () => {
 				        objectOnlyEffect satisfies WebGLEffectDefinition;
 				        // @ts-expect-error raw object3D is not public.
 				        declare const rawObject: WebGLEffectContext["object"]["object3D"];
-				        // @ts-expect-error raw mesh is not public.
-				        declare const rawMesh: WebGLEffectContext["object"]["mesh"];
-				        // @ts-expect-error raw material is not public.
-				        declare const rawMaterial: WebGLEffectContext["object"]["material"];
-				        // @ts-expect-error raw texture handle is not public.
-				        declare const rawTexture: WebGLEffectContext["object"]["rawTexture"];
-				        // @ts-expect-error raw renderer is not public.
-				        declare const rawRenderer: WebGLEffectContext["object"]["renderer"];
-				        // @ts-expect-error raw scene is not public.
-				        declare const rawScene: WebGLEffectContext["object"]["scene"];
-				        // @ts-expect-error raw camera is not public.
-				        declare const rawCamera: WebGLEffectContext["object"]["camera"];
-				        "static" satisfies WebGLEffectSchedule;
+		 	        // @ts-expect-error raw mesh is not public.
+		 	        declare const rawMesh: WebGLEffectContext["object"]["mesh"];
+		 	        // @ts-expect-error raw material is not public.
+		 	        declare const rawMaterial: WebGLEffectContext["object"]["rawMaterial"];
+		 	        // @ts-expect-error raw texture handle is not public.
+		 	        declare const rawTexture: WebGLEffectContext["object"]["rawTexture"];
+		 	        // @ts-expect-error raw renderer is not public.
+		 	        declare const rawRenderer: WebGLEffectContext["object"]["renderer"];
+		 	        // @ts-expect-error raw scene is not public.
+		 	        declare const rawScene: WebGLEffectContext["object"]["scene"];
+		 	        // @ts-expect-error raw camera is not public.
+		 	        declare const rawCamera: WebGLEffectContext["object"]["camera"];
+		        declare const publicObject: WebGLEffectContext["object"];
+		        // @ts-expect-error raw object3D remains runtime-owned.
+		        publicObject.object3D;
+		        // @ts-expect-error raw mesh remains runtime-owned.
+		        publicObject.mesh;
+		        // @ts-expect-error raw material remains runtime-owned.
+		        publicObject.rawMaterial;
+		        // @ts-expect-error raw light remains runtime-owned.
+		        publicObject.rawLight;
+		        // @ts-expect-error raw renderer remains runtime-owned.
+		        publicObject.renderer;
+		        // @ts-expect-error raw scene remains runtime-owned.
+		        publicObject.scene;
+		        // @ts-expect-error raw camera remains runtime-owned.
+		        publicObject.camera;
+		        // @ts-expect-error loader callbacks are not public escape hatches.
+		        dracoModelDeclaration.source.loader.configureLoader;
+		        // @ts-expect-error loaded GLTF callbacks are not public escape hatches.
+		        dracoModelDeclaration.source.onGLTFLoaded;
+		        "static" satisfies WebGLEffectSchedule;
 				        "reactive" satisfies WebGLEffectSchedule;
 				        "frame" satisfies WebGLEffectSchedule;
 			        // @ts-expect-error effect schedules are a closed public union.

@@ -47,6 +47,22 @@ describe("defineWebGLEffect", () => {
     expect(definition.kind).toBe("custom.objectSyntax");
   });
 
+  test("supports Three-like managed object authoring syntax", () => {
+    const definition = defineWebGLEffect({
+      kind: "custom.threeLikeSyntax",
+      update(ctx) {
+        ctx.object.position.set(1, 2, 3);
+        ctx.object.rotation.y += ctx.delta / 1000;
+        ctx.object.scale.setScalar(1.2);
+        ctx.object.material?.emissive.set("#38bdf8", 2);
+        ctx.object.lights?.point("rim", { intensity: 1.5, follow: "object" });
+        ctx.object.animation?.play("Idle");
+      },
+    });
+
+    expect(definition.kind).toBe("custom.threeLikeSyntax");
+  });
+
   test("does not expose source target or visual on public effect context", () => {
     const definition = defineWebGLEffect({
       kind: "custom.objectOnlySyntax",
