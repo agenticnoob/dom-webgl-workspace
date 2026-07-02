@@ -1420,7 +1420,7 @@ git commit -m "feat: add runtime-managed lights facade"
 - Test: `packages/dom-webgl-runtime/test/lib/render/renderables/modelRenderable.test.ts`
 - Test: `packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts`
 
-- [ ] **Step 1: Add runtime-owned animation controls**
+- [x] **Step 1: Add runtime-owned animation controls**
 
 Create `packages/dom-webgl-runtime/src/lib/render/renderables/modelAnimationControls.ts`:
 
@@ -1533,7 +1533,7 @@ function readClipName(clip: AnimationClipLike, index: number): string {
 }
 ```
 
-- [ ] **Step 2: Use animation controller in model renderable**
+- [x] **Step 2: Use animation controller in model renderable**
 
 In `packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts`, replace the older animation driver with the new controller:
 
@@ -1567,7 +1567,7 @@ state.scene?.controller.dispose();
 resource.dispose();
 ```
 
-- [ ] **Step 3: Expose animation through object capabilities**
+- [x] **Step 3: Expose animation through object capabilities**
 
 In `packages/dom-webgl-runtime/src/lib/render/renderables/modelEffectHandle.ts`, accept options:
 
@@ -1617,7 +1617,7 @@ return {
 };
 ```
 
-- [ ] **Step 4: Add animation tests**
+- [x] **Step 4: Add animation tests**
 
 In `packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts`, add:
 
@@ -1639,7 +1639,7 @@ test("exposes animation facade without raw mixer", () => {
 });
 ```
 
-- [ ] **Step 5: Run animation tests**
+- [x] **Step 5: Run animation tests**
 
 Run:
 
@@ -1649,7 +1649,7 @@ npm test -- --run packages/dom-webgl-runtime/test/lib/render/renderables/modelRe
 
 Expected: PASS. Visible models with animations continue updating only while visible.
 
-- [ ] **Step 6: Commit animation facade**
+- [x] **Step 6: Commit animation facade**
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/render/renderables/modelAnimationControls.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelRenderable.ts packages/dom-webgl-runtime/src/lib/render/renderables/modelEffectHandle.ts packages/dom-webgl-runtime/src/lib/effects/effectObjectCapabilities.ts packages/dom-webgl-runtime/src/lib/effects/effectAuthoring.ts packages/dom-webgl-runtime/test/lib/render/renderables/modelRenderable.test.ts packages/dom-webgl-runtime/test/lib/render/renderables/modelEffectHandle.test.ts packages/dom-webgl-runtime/test/publicExports.test.ts

@@ -6,7 +6,10 @@ import type {
   WebGLTargetPointerState,
 } from "../types";
 import type { WebGLEffectMaterialFacade } from "./effectMaterial";
-import type { WebGLEffectObjectHandle } from "./effectObject";
+import type {
+  WebGLEffectAnimationFacade,
+  WebGLEffectObjectHandle,
+} from "./effectObject";
 
 export type WebGLEffectSourceKind =
   | "dom/element"
@@ -254,6 +257,7 @@ export type WebGLEffectPointLayerOptions = {
 };
 
 export type WebGLModelEffectHandle = WebGLEffectRenderableHandle & {
+  readonly animation?: WebGLEffectAnimationFacade;
   getMeshes(): readonly WebGLModelMeshHandle[];
   forEachMesh(visitor: (mesh: WebGLModelMeshHandle) => void): void;
   sampleVertices(options?: { maxPoints?: number }): Float32Array;

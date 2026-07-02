@@ -12,16 +12,27 @@ import type {
   WebGLModelEffectHandle,
   WebGLModelMeshHandle,
 } from "../../effects/effectAuthoring";
+import type { WebGLEffectAnimationFacade } from "../../effects/effectObject";
 import { createManagedMaterialFacade } from "./managedMaterialControls";
 import { createMaterialLayer } from "./materialLayer";
 import { createObject3DControls } from "./object3DControls";
 
-export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHandle {
+export type ModelEffectHandleOptions = {
+  animation?: WebGLEffectAnimationFacade;
+};
+
+export function createModelEffectHandle(
+  object3D: unknown,
+  options: ModelEffectHandleOptions = {},
+): WebGLModelEffectHandle {
   return {
     ...createObject3DControls(object3D, {
       scaleZ: "x",
       opacity: { kind: "object" },
     }),
+    get animation() {
+      return options.animation;
+    },
     getMeshes() {
       return collectMeshHandles(object3D);
     },

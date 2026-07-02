@@ -233,8 +233,8 @@ describe("createModelRenderable", () => {
     );
   });
 
-  test("updates model animation mixer only while visible and active", async () => {
-    const source = createModelDescriptor("/models/animated.glb");
+  test("does not use app-provided model mixer escape hatches", async () => {
+    const source = createModelDescriptor("/models/external-mixer.glb");
     const descriptor = createTargetDescriptor(
       source.anchor,
       { key: "hero.model" },
@@ -243,10 +243,68 @@ describe("createModelRenderable", () => {
     const mixer = { update: vi.fn() };
     const model = {
       scene: new Group(),
-      animations: [{ name: "Idle" }],
+      animations: [],
       mixer,
     };
     const renderable = createModelRenderable(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 100),
+        loadModel: async () => model,
+      },
+    );
+
+    await renderable.update(createFrameInput({ delta: 16 }));
+    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+
+    renderable.setVisible(false);
+    await renderable.update(createFrameInput({ delta: 16 }));
+
+    expect(mixer.update).not.toHaveBeenCalled();
+    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+  });
+
+  test("creates a runtime-owned animation mixer for GLB animation clips", async () => {
+    vi.resetModules();
+    const update = vi.fn();
+    const stop = vi.fn();
+    const reset = vi.fn(function reset(this: unknown) {
+      return this;
+    });
+    const play = vi.fn(function play(this: unknown) {
+      return this;
+    });
+    const clipAction = vi.fn(() => ({ reset, play, stop }));
+    const uncacheRoot = vi.fn();
+    const AnimationMixer = vi.fn(() => ({
+      update,
+      clipAction,
+      uncacheRoot,
+    }));
+
+    vi.doMock("three/src/animation/AnimationMixer.js", () => ({
+      AnimationMixer,
+    }));
+
+    const { createModelRenderable: createRenderableWithMocks } = await import(
+      "../../../../src/lib/render/renderables/modelRenderable"
+    );
+    const source = createModelDescriptor("/models/animated-runtime.glb");
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model.animated" },
+      0,
+    );
+    const scene = new Group();
+    const model = { scene, animations: [{ name: "Idle" }] };
+    const renderable = createRenderableWithMocks(
       {
         descriptor,
         source,
@@ -266,10 +324,14 @@ describe("createModelRenderable", () => {
 
     renderable.setVisible(false);
     await renderable.update(createFrameInput({ delta: 16 }));
+    renderable.dispose();
 
-    expect(mixer.update).toHaveBeenCalledTimes(1);
-    expect(mixer.update).toHaveBeenCalledWith(0.016);
-    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+    expect(AnimationMixer).toHaveBeenCalledWith(scene);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(0.016);
+    expect(uncacheRoot).toHaveBeenCalledWith(scene);
+
+    vi.doUnmock("three/src/animation/AnimationMixer.js");
   });
 
   test("keeps fallback visible when the model loader fails", async () => {

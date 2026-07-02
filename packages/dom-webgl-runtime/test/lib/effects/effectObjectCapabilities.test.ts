@@ -241,6 +241,36 @@ describe("createEffectObjectCapabilities", () => {
     expect(material.emissiveIntensity).toBe(1.8);
     expect(material.opacity).toBe(0.7);
   });
+
+  test("maps model animation facade to object.animation", () => {
+    const animation = {
+      clips: vi.fn(() => ["Idle"]),
+      play: vi.fn(),
+      stop: vi.fn(),
+      stopAll: vi.fn(),
+      setTime: vi.fn(),
+    };
+    const model = {
+      ...createModel(
+        [],
+        createMesh("Body"),
+        new Float32Array(),
+        createManagedObject(),
+      ),
+      animation,
+    } satisfies WebGLModelEffectHandle;
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("div"),
+      src: "/model.glb",
+      model,
+    } satisfies WebGLEffectSourceHandle;
+
+    createEffectObjectCapabilities(source).animation?.play("Idle");
+
+    expect(animation.play).toHaveBeenCalledWith("Idle");
+  });
 });
 
 function createSurface(): WebGLEffectCanvasSurfaceHandle {

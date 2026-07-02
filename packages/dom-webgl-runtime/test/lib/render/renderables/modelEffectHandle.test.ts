@@ -153,6 +153,22 @@ describe("createModelEffectHandle", () => {
     expect("rawMaterial" in (meshHandle ?? {})).toBe(false);
   });
 
+  test("exposes animation facade without raw mixer", () => {
+    const animation = {
+      clips: vi.fn(() => ["Idle"]),
+      play: vi.fn(),
+      stop: vi.fn(),
+      stopAll: vi.fn(),
+      setTime: vi.fn(),
+    };
+    const handle = createModelEffectHandle({ children: [] }, { animation });
+
+    handle.animation?.play("Idle", { loop: "repeat" });
+
+    expect(animation.play).toHaveBeenCalledWith("Idle", { loop: "repeat" });
+    expect("mixer" in handle).toBe(false);
+  });
+
   test("creates managed point layers and disposes generated geometry/material once", () => {
     const root = new Group();
     const handle = createModelEffectHandle(root);

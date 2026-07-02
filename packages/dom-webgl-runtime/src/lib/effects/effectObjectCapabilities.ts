@@ -7,6 +7,7 @@ import { readManagedMaterialFacade } from "../render/renderables/sourceCapabilit
 
 export type WebGLEffectObjectCapabilities = {
   material?: WebGLEffectObjectHandle["material"];
+  animation?: WebGLEffectObjectHandle["animation"];
   surface?: WebGLEffectObjectHandle["surface"];
   text?: WebGLEffectObjectHandle["text"];
   texture?: WebGLEffectObjectHandle["texture"];
@@ -94,6 +95,7 @@ function createModelCapabilities(
   source: ModelSourceHandle,
 ): WebGLEffectObjectCapabilities {
   return {
+    animation: source.model.animation,
     get material() {
       return source.model.getMeshes()[0]?.material;
     },
