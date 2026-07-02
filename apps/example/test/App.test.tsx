@@ -282,7 +282,12 @@ describe("effect authoring example app", () => {
       { kind: "dom", type: "text" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
       { kind: "model", type: "glb", src: "/models/hero.glb" },
-      { kind: "model", type: "glb", src: "/models/4.glb" },
+      {
+        kind: "model",
+        type: "glb",
+        src: "/models/4.glb",
+        loader: { draco: { decoderPath: "/draco/gltf/" } },
+      },
       { kind: "dom", type: "text" },
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.effects?.[0]?.kind)).toEqual([
@@ -398,12 +403,16 @@ describe("effect authoring example app", () => {
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
     expect(finalTargetProps[23]?.webgl).toMatchObject({
       key: "example.model.float-glow",
-      source: { kind: "model", type: "glb", src: "/models/4.glb" },
+      source: {
+        kind: "model",
+        type: "glb",
+        src: "/models/4.glb",
+        loader: { draco: { decoderPath: "/draco/gltf/" } },
+      },
       lifecycle: { hideWhenReady: true, hideMode: "subtree" },
       effects: [
         {
           kind: "example.modelFloatGlow",
-          amplitude: 30,
           speed: 0.46,
           emissive: "#7dd3fc",
           lightIntensity: 2.2,

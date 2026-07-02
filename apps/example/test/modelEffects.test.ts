@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 
-import type { WebGLEffectContext } from "@project/dom-webgl-runtime";
+import type {
+  WebGLEffectContext,
+  WebGLModelMeshHandle,
+} from "@project/dom-webgl-runtime";
 
 import { createEffectContext } from "./effectContext";
 import {
@@ -91,7 +94,7 @@ describe("model example effects", () => {
     expect(target.setRotation).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 0);
   });
 
-  test("model float glow uses managed material lights and postprocess", () => {
+  test("model float glow uses managed material and lights without global postprocess", () => {
     const material: NonNullable<WebGLEffectContext["object"]["material"]> = {
       color: { value: "#ffffff", set: vi.fn() },
       emissive: { value: "#000000", intensity: 1, set: vi.fn() },
@@ -117,12 +120,11 @@ describe("model example effects", () => {
       point: vi.fn(() => lightHandle),
       remove: vi.fn(),
     };
-    const bloom = {
-      update: vi.fn(),
-      dispose: vi.fn(),
-    };
     const postprocess = {
-      request: vi.fn(() => bloom),
+      request: vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
     };
     const target = {
       setPosition: vi.fn(),
@@ -130,6 +132,29 @@ describe("model example effects", () => {
       setScale: vi.fn(),
       setVisible: vi.fn(),
     };
+    const meshMaterial = {
+      emissive: { value: "#000000", intensity: 1, set: vi.fn() },
+      color: { value: "#ffffff", set: vi.fn() },
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+      createLayer: vi.fn(),
+      restore: vi.fn(),
+    };
+    const mesh = {
+      index: 0,
+      material: meshMaterial,
+      createMaterialLayer: vi.fn(() => ({
+        clear: vi.fn(),
+        dispose: vi.fn(),
+        setProgram: vi.fn(),
+        setUniforms: vi.fn(),
+      })),
+      restoreMaterial: vi.fn(),
+    } satisfies WebGLModelMeshHandle;
+    const forEachMesh = vi.fn((visitor: (mesh: WebGLModelMeshHandle) => void) => {
+      visitor(mesh);
+    });
     const baseContext = createEffectContext({
       key: "example.model.float-glow",
       source: {
@@ -139,7 +164,7 @@ describe("model example effects", () => {
         src: "/models/4.glb",
         model: {
           getMeshes: vi.fn(() => []),
-          forEachMesh: vi.fn(),
+          forEachMesh,
           sampleVertices: vi.fn(),
           createPointLayer: vi.fn(() => ({
             setVisible: vi.fn(),
@@ -174,32 +199,26 @@ describe("model example effects", () => {
     });
     exampleModelFloatGlowEffect.update(context, undefined, {
       kind: "example.modelFloatGlow",
-      amplitude: 30,
       speed: 0.46,
     });
 
     expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.4);
+    expect(forEachMesh).toHaveBeenCalledTimes(1);
+    expect(meshMaterial.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.1);
     expect(lights.point).toHaveBeenCalledWith("example.model.float-glow.glow", {
       color: "#7dd3fc",
       intensity: 2.2,
       distance: 460,
       follow: "object",
     });
-    expect(postprocess.request).toHaveBeenCalledWith({
-      key: "example.model.float-glow.bloom",
-      bloom: { strength: 0.42, radius: 0.24, threshold: 0.62 },
-    });
-    expect(baseContext.resources.addDisposable).toHaveBeenCalledTimes(2);
-    expect(target.setPosition).toHaveBeenCalledWith(100, expect.any(Number), 0);
+    expect(postprocess.request).not.toHaveBeenCalled();
+    expect(baseContext.resources.addDisposable).toHaveBeenCalledTimes(1);
+    expect(target.setPosition).not.toHaveBeenCalled();
     expect(target.setRotation).toHaveBeenCalledWith(
       expect.any(Number),
       expect.any(Number),
       0,
     );
-    expect(target.setScale).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
-    );
+    expect(target.setScale).not.toHaveBeenCalled();
   });
 });

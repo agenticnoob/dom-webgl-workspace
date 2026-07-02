@@ -109,7 +109,6 @@ describe("example effect catalog", () => {
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.modelFloatGlow",
-      amplitude: 30,
       speed: 0.46,
       emissive: "#7dd3fc",
       lightIntensity: 2.2,

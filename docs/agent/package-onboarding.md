@@ -198,10 +198,14 @@ Choose the source from the actual DOM element:
 | real `img` element or media anchor | `{ kind: "media", type: "image" }` or `{ kind: "media", type: "image", src }` |
 | real `video` element or media anchor | `{ kind: "media", type: "video" }` or `{ kind: "media", type: "video", src }` |
 | frame-addressable media anchor | `{ kind: "media", type: "image-sequence", frameCount, frames }` |
-| GLB model target | `{ kind: "model", type: "glb", src }` |
+| GLB model target | `{ kind: "model", type: "glb", src, loader? }` |
 
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
+
+For Draco-compressed GLBs, declare `loader: { draco: { decoderPath } }` and
+serve the matching decoder files from the app public/static directory. The
+runtime owns loader instances; effects do not receive loader callbacks.
 
 Effect authors use `ctx.object` for visual control and source-backed
 capabilities. Source, target, and visual handles are internal runtime assembly
@@ -462,6 +466,16 @@ Run a browser smoke check for visual work when the change affects a rendered app
 - Text confusion: `ctx.object.text.setGlyphs(...)` changes WebGL output, not DOM text.
 - Pointer offset: an effect compares `ctx.pointer` runtime/canvas coordinates
   directly to target-local coordinates instead of reading `ctx.targetPointer`.
+- Draco GLB loading failure: compressed models need declarative
+  `source.loader.draco.decoderPath` and matching decoder files served by the
+  app. The runtime owns the loader instance, but the app owns static asset
+  placement.
+- Canvas-wide blur/dimming: `ctx.object.postprocess` is currently
+  runtime-canvas scoped, not target-scoped. Do not use it for a single model glow
+  unless affecting the whole WebGL canvas is intended.
+- Invisible model after an effect update: `ctx.object.position` and
+  `ctx.object.scale` override the runtime model fit transform. Leave model
+  placement to the runtime unless the effect intentionally owns it.
 - Shader coordinate mismatch: DOM pointer `y` is top-down, while shader
   coordinates may be bottom-up. Convert at the effect boundary and test it.
 - Shader uniform name mismatch: a visual can look static when the effect updates

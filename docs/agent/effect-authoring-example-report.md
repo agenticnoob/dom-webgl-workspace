@@ -1,7 +1,10 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands, and the reusable text transform helpers behind `example.textSpotlightPressureScrambleWave`.
+Updated: 2026-07-02 for the managed Three-like `example.modelFloatGlow`
+dogfood on `/models/4.glb`, including Draco decoder asset serving,
+runtime-owned loader config, material/mesh emissive plus light-based glow, and
+the postprocess/model-fit pitfalls found during browser verification.
 Historical note: this report records the pre-2026-07-02 effect context shape.
 Mentions of `ctx.source.*`, `ctx.target`, or source handles below are historical
 evidence, not current authoring guidance. Current public effects use
@@ -39,6 +42,10 @@ the row compresses around them. The combined
 glyph transform helpers for spotlight color, pressure reflow, scramble
 characters, and wave offsets, then writes the final glyph command list once per
 frame.
+The model bucket now includes `example.modelFloatGlow` on `/models/4.glb`.
+That example uses the managed `ctx.object` facade for rotation, material/mesh
+emissive color, and a runtime-owned point light while the runtime still owns GLB
+loading, Draco decoding, model fit position/scale, and all raw Three.js objects.
 
 ## What Worked
 
@@ -99,6 +106,15 @@ frame.
   downstream app code.
 - Copying static assets into `apps/example/public` keeps the example runnable as
   an isolated downstream app.
+- Draco-compressed model assets work as a downstream example when both pieces
+  are present: declarative `loader.draco.decoderPath` on the model source and
+  matching decoder files in the app's public directory.
+- Model-local glow is clearer when expressed through controlled material/mesh
+  emissive values and runtime-owned lights. That avoids making a single example
+  target request canvas-wide postprocess.
+- Leaving model fit position/scale to the runtime layout pass keeps the GLB
+  visible and centered in its target rect; effects can still animate rotation,
+  materials, lights, animation, and generated model-local points.
 - The scroll boundary now has two valid consumer levels: low-level helpers where
   the app owns Lenis and cleanup, and the high-level React adapter where
   `WebGLScrollRuntime` owns a progress store and `ScrollEffectSection` owns one
@@ -167,6 +183,15 @@ frame.
   the WebGL output, not DOM content or accessibility text.
 - Model examples can rotate via `ctx.object`, but advanced model effects still
   need users to understand object ownership and cleanup.
+- A Draco-compressed GLB can look like a runtime bug when the asset loads without
+  decoder config. The fix is not a loader callback escape hatch; declare
+  `loader: { draco: { decoderPath } }` and serve the decoder files.
+- Postprocess requests are easy to over-scope. Current `ctx.object.postprocess`
+  requests affect the runtime canvas, so using bloom for one model can dim or
+  blur unrelated WebGL targets on the page.
+- Model renderables already have a runtime-owned fit transform. A model effect
+  that writes `ctx.object.position` or `ctx.object.scale` becomes responsible
+  for placement and can move the loaded model out of the expected target area.
 
 ## Documentation Gaps Closed In This Pass
 
@@ -174,6 +199,9 @@ frame.
   narrowing, resource ownership, media target rules, and validation.
 - `docs/examples/effect-authoring.md` now gives a React-only consumer tutorial.
 - README and package usage docs now point to `apps/example`.
+- The managed model dogfood notes now document Draco static assets,
+  canvas-scoped postprocess, and model fit ownership so future examples do not
+  reintroduce the same invisible/blurred model failure mode.
 
 ## Boundaries To Preserve
 

@@ -122,7 +122,8 @@ Modify existing files:
   Focused tests for loader, material, lights, model animation, and lifecycle.
 
 - `apps/example/src/modelEffects.ts`, `apps/example/src/App.tsx`, `apps/example/src/exampleEffects.ts`
-  Dogfood `4.glb` with rotating floating glow using the new facade.
+  Dogfood `4.glb` with managed rotation, emissive material/mesh controls, and
+  runtime-owned light using the new facade.
 
 - Active docs: `README.md`, `docs/00-goal.md`, `docs/EXECUTION_STATE.md`, `docs/agent/effect-object-boundary.md`, `docs/agent/package-usage.md`, `docs/agent/package-onboarding.md`, `docs/agent/custom-effects.md`, `docs/examples/effect-authoring.md`, `AGENTS.md`.
 
@@ -1658,6 +1659,26 @@ git commit -m "feat: add managed model animation facade"
 
 ## Task 7: Example Dogfood With `4.glb`
 
+**Post-implementation correction (2026-07-02):** The original Task 7 sketch
+below requested a model-local bloom through `ctx.object.postprocess` and wrote
+`ctx.object.position` / `ctx.object.scale` for the `4.glb` example. Browser
+dogfood showed two ownership bugs in that sketch:
+
+- `/models/4.glb` is Draco-compressed, so the example source must declare
+  `loader: { draco: { decoderPath: "/draco/gltf/" } }` and the app must serve
+  the matching decoder files under `apps/example/public/draco/gltf`.
+- Current postprocess requests are runtime-canvas scoped, not target/model
+  scoped; using bloom for one model dims/blurs the entire WebGL canvas.
+- Runtime model layout already fits the loaded GLB to the target rect; writing
+  `ctx.object.position` or `ctx.object.scale` in this example overrides that
+  fit and can move the model out of view.
+
+The current checked-in `example.modelFloatGlow` therefore uses rotation,
+mesh/material emissive values, and a runtime-owned point light. It intentionally
+avoids `ctx.object.postprocess` and leaves model fit position/scale to the
+runtime layout pass. Treat the snippets below as original RED/GREEN plan
+history, not the current example contract.
+
 **Files:**
 
 - Modify: `apps/example/src/modelEffects.ts`
@@ -1668,7 +1689,7 @@ git commit -m "feat: add managed model animation facade"
 - Test: `apps/example/test/modelEffects.test.ts`
 - Test: `apps/example/test/App.test.tsx`
 
-- [x] **Step 1: Add rotating floating glow effect**
+- [x] **Step 1: Add managed model glow effect**
 
 In `apps/example/src/modelEffects.ts`, add:
 

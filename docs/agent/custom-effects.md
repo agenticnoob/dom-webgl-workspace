@@ -104,13 +104,23 @@ materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
 `defines`, and `blend`; runtime defaults own transparency, depth, tone mapping,
 allocation, restoration, and disposal.
 
+Model-specific cautions:
+
+- A compressed GLB still needs declarative `source.loader.draco.decoderPath` and
+  decoder files served from the app public asset root.
+- `ctx.object.postprocess` is runtime-canvas scoped today. Do not use it for a
+  target-local model glow unless changing the whole WebGL canvas is intended.
+- Runtime layout fits `model/glb` bounds into the target rect. Writing
+  `ctx.object.position` or `ctx.object.scale` takes ownership of placement and
+  can move the model out of view.
+
 ## Resource Ownership
 
 Create expensive objects in `setup`, not `update`.
 
 Use `ctx.resources.addDisposable(...)` for effect-owned listeners, object
-handles, generated geometries, materials, textures, and source mutations that
-must be restored.
+handles returned by public runtime APIs, and source mutations that must be
+restored.
 
 Do not dispose or mutate:
 
@@ -119,6 +129,8 @@ Do not dispose or mutate:
 - runtime canvas;
 - global scroll or pointer systems;
 - package-internal registries.
+- raw Three.js renderer, scene, camera, geometry, material, texture, light,
+  loader, mixer, composer, pass, render target, or render loop.
 
 ## Media And Target Rules
 
@@ -145,6 +157,12 @@ Effect tests should cover:
   state, especially when the pointer stops moving inside the target;
 - resumed interactions during fade-out do not unintentionally reset old effect
   state to full strength;
+- compressed model effects declare loader config and keep decoder assets in the
+  app public directory;
+- model glow effects use material/mesh emissive and lights when the intended
+  glow is target-local;
+- model effects that do not own placement avoid writing
+  `ctx.object.position`/`ctx.object.scale`;
 - `dispose` releases effect-owned resources.
 
 Repository verification:

@@ -4,6 +4,8 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
+const TYPECHECK_TEST_TIMEOUT_MS = 60_000;
+
 describe("WebGLDeclaration public types", () => {
   test("accepts scene-gate declarations and still rejects internal policy fields", () => {
     const repoRoot = process.cwd();
@@ -259,7 +261,7 @@ describe("WebGLDeclaration public types", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, TYPECHECK_TEST_TIMEOUT_MS);
 });
 
 function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {

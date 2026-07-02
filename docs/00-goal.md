@@ -78,6 +78,12 @@ consumers use familiar vocabulary such as `position`, `rotation`, `scale`,
 keeps ownership of raw Three.js renderer, scene, camera, objects, materials,
 textures, loaders, mixers, lights, render targets, lifecycle, disposal, pointer,
 scroll, and scheduling.
+Compressed model assets use declarative loader config and app-served decoder
+files; effects do not receive loader callbacks. Runtime postprocess requests are
+currently scoped to the runtime canvas, not one model target. Model renderables
+are fit to their target rect by the runtime layout pass, so effects should write
+`ctx.object.position` or `ctx.object.scale` only when they intentionally take
+over placement.
 
 ## Purpose
 

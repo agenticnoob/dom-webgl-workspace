@@ -470,6 +470,13 @@ source: {
 }
 ```
 
+The declaration only tells the runtime where to find decoder assets. The
+consumer app must still serve those files from its public/static asset root. A
+Draco-compressed GLB without matching decoder files will fail with loader errors
+such as `THREE.GLTFLoader: No DRACOLoader instance provided` or decoder 404s.
+For example, `apps/example` serves `/models/4.glb` with decoder files under
+`/draco/gltf/` and declares `loader: { draco: { decoderPath: "/draco/gltf/" } }`.
+
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must
 provide a full-length frame array before registering the target; entries can
@@ -648,8 +655,7 @@ export const appPulseEffect = defineWebGLEffect<AppPulseParams, AppPulseState>({
 });
 ```
 
-Model material, light, animation, and postprocess effects still start at
-`ctx.object`:
+Model material, light, and animation effects still start at `ctx.object`:
 
 ```ts
 const modelGlow = defineWebGLEffect({
@@ -663,14 +669,9 @@ const modelGlow = defineWebGLEffect({
       distance: 420,
       follow: "object",
     });
-    ctx.object.postprocess.request({
-      key: "app.modelGlow.bloom",
-      bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
-    });
   },
   update(ctx) {
     ctx.object.rotation.y += ctx.delta / 1000;
-    ctx.object.position.y += Math.sin(ctx.time / 700) * 0.5;
   },
 });
 ```
@@ -910,6 +911,10 @@ inspection, bounded internal bloom/grain/blur pass execution, and budget
 warnings for request count and render-target size. The runtime owns pass
 scheduling, render-target pooling, and resolution budgets; consumers do not
 receive composer, pass-order, pass object, or render-target handles.
+Postprocess requests are runtime-canvas scoped today. Do not use
+`ctx.object.postprocess` when the visual requirement is a strictly target-local
+model glow; prefer material/mesh emissive values and runtime-owned lights until
+a future target-scoped postprocess capability exists.
 
 ## Object Transform Handles
 
@@ -930,6 +935,13 @@ ctx.object.scale.setScalar(1.05);
 ctx.object.opacity = 0.8;
 ```
 
+For `model/glb` renderables, the runtime layout pass already fits the loaded
+model bounds into the target rect. If an effect writes `ctx.object.position` or
+`ctx.object.scale`, it overrides that fit transform. Only do this when the
+effect intentionally owns model placement; otherwise leave fit position/scale to
+the runtime and animate rotation, material, lights, animation, mesh handles, or
+managed point layers.
+
 When an effect needs model particles or generated model-local points, prefer
 `ctx.object.model?.points.create(...)`. The runtime owns attachment, ordering,
 and disposal through the returned managed handle. A future advanced object
@@ -942,10 +954,10 @@ Do not mutate target internals that are not exposed by the handle.
 
 Effects may own:
 
-- temporary Three.js objects created by the effect;
+- app-local plain JavaScript state created by the effect;
 - event listeners created by the effect;
-- generated geometries/materials/textures;
-- material layer handles and postprocess request handles;
+- runtime-managed handles returned by public APIs, such as material layers,
+  model point layers, and postprocess request handles;
 - per-effect mutable state.
 
 Effects must not own:
@@ -957,7 +969,8 @@ Effects must not own:
 - global scroll/pointer systems;
 - package-internal registries.
 - raw Three.js renderer, scene, camera, shader material, texture, composer,
-  render target, render-loop, pass ordering, or renderer-state mutation.
+  geometry, mesh, light, loader, mixer, render target, render-loop, pass
+  ordering, or renderer-state mutation.
 
 If an effect mutates a source model's mesh visibility, material, rotation, scale,
 or position, store previous values and restore them on dispose unless the effect
@@ -1097,6 +1110,15 @@ skill:
   reads `iTime`, or otherwise mismatches public uniform names.
 - Text effect vertical drift: effect treats `glyph.y` as a baseline and uses
   `glyph.y - glyph.height / 2`; glyph `y` is already the top drawing position.
+- Draco model invisible or loader error: a compressed GLB declares no
+  `loader.draco` config, or the app does not serve decoder files at
+  `decoderPath`.
+- Canvas becomes dim or blurry after one target is ready: an effect requested
+  `ctx.object.postprocess` for what was actually a target-local glow. Current
+  postprocess is runtime-canvas scoped.
+- Model disappears after a glow/rotation effect: the effect writes
+  `ctx.object.position` or `ctx.object.scale` and overrides the runtime's model
+  fit transform.
 - Rotating model interaction drift: effect hit-tests unrotated model-local
   vertices while visible model is transformed.
 - Resource leak: effect creates objects/listeners without `ctx.resources`.

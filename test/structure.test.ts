@@ -10,6 +10,7 @@ const ignoredDirectories = new Set([
   "dist",
   "node_modules",
 ]);
+const ignoredDirectoryPrefixes = [".tmp-dom-webgl-"];
 const testFilePattern = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 
 describe("workspace structure", () => {
@@ -28,7 +29,7 @@ function collectFiles(directory: string): string[] {
   const files: string[] = [];
 
   for (const entry of entries) {
-    if (ignoredDirectories.has(entry)) {
+    if (ignoredDirectories.has(entry) || isIgnoredDirectoryPrefix(entry)) {
       continue;
     }
 
@@ -43,4 +44,8 @@ function collectFiles(directory: string): string[] {
   }
 
   return files;
+}
+
+function isIgnoredDirectoryPrefix(entry: string): boolean {
+  return ignoredDirectoryPrefixes.some((prefix) => entry.startsWith(prefix));
 }

@@ -40,6 +40,14 @@ Managed Three-like object API is the current public effect authoring direction:
 and postprocess requests through controlled facades. Runtime remains responsible
 for raw Three.js internals, model loader configuration including Draco, resource
 lifetime, fallback visibility, scroll/pointer monitoring, and scheduling.
+The current example dogfoods this with `/models/4.glb`: the model source declares
+`loader: { draco: { decoderPath: "/draco/gltf/" } }`, the app serves matching
+decoder files under `apps/example/public/draco/gltf`, and
+`example.modelFloatGlow` uses rotation, mesh/material emissive values, and a
+runtime-owned point light. It intentionally avoids `ctx.object.postprocess`
+because current postprocess is runtime-canvas scoped, and it leaves model fit
+position/scale to the runtime layout pass so the GLB remains visible in its
+target rect.
 
 Current visual capability API note: `defineWebGLEffect(...)` remains the single
 effect authoring model. The implemented public context exposes `ctx.object` as
@@ -79,6 +87,14 @@ the input layer, React remains declarative, and no raw DOM event, picking,
 matrix, scene graph, or Three.js object API was exposed.
 
 ## Latest Documentation Note
+Managed model dogfood docs are aligned across README, package usage,
+onboarding, custom-effects guidance, effect-authoring example docs, the
+effect-authoring report, and this execution state. The active pitfalls are:
+Draco-compressed GLBs need declarative loader config plus served decoder assets;
+`ctx.object.postprocess` is currently runtime-canvas scoped rather than
+target-scoped; and `model/glb` effects that write `ctx.object.position` or
+`ctx.object.scale` override the runtime model fit transform.
+
 Target pointer docs are aligned across README, goal, package usage, package
 onboarding, example authoring, custom-effects guidance, effect-authoring report,
 review backlog, and this execution state. The active contract is target

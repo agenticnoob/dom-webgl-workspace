@@ -60,7 +60,7 @@ defineWebGLEffect({
     object.opacity = 0.82;
 
     object.model?.meshes.forEach((mesh) => {
-      mesh.setOpacity?.(0.9);
+      mesh.material.opacity = 0.9;
     });
     object.postprocess.request({
       key: "app.heroGlow",
@@ -163,6 +163,21 @@ ctx.object.model?.meshes.select({ nameIncludes: "Body" });
 Model asset loading, decoder configuration, GLB diagnostics, and fit/pivot
 policy are still valid runtime-owned asset capabilities. They are not replaced
 by `ctx.object`.
+
+Compressed models use declarative loader config, not loader callbacks. A source
+may declare `loader.draco.decoderPath`, while the consuming app serves decoder
+files from that static path and the runtime owns `GLTFLoader`/`DRACOLoader`
+instances and disposal.
+
+Model renderables are fit to their target rect by the runtime layout pass.
+`ctx.object.position` and `ctx.object.scale` remain valid managed transform
+controls, but writing them means the effect intentionally owns model placement
+and overrides the runtime fit transform.
+
+`ctx.object.postprocess` is a managed runtime request facade, but current
+requests are runtime-canvas scoped. Target-local model glow should use material
+or mesh emissive controls plus runtime-owned lights unless a future
+target-scoped postprocess capability is explicitly designed.
 
 Model authoring controls such as animations, picking, mesh selection, material
 variants, lights, and sampling should not be added as a growing

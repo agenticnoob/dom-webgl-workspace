@@ -283,9 +283,12 @@ Current visual behavior:
 - The example-local GLB effects use `ctx.object` only: `example.modelSpin`
   rotates `/models/hero.glb`, `example.modelFloat` combines layout and runtime
   time for movement, and `example.modelFloatGlow` dogfoods `/models/4.glb` with
-  controlled material emissive color, runtime-owned point light, bloom request,
-  transform, rotation, and scale. They do not create loaders, scenes, cameras,
-  lights, materials, mixers, composers, render targets, or render loops.
+  controlled rotation, material emissive color, and a runtime-owned point light
+  while leaving model fit position/scale owned by the runtime layout pass. It
+  intentionally avoids `ctx.object.postprocess` because
+  current postprocess requests are runtime-canvas scoped, not target-scoped.
+  They do not create loaders, scenes, cameras, lights, materials, mixers,
+  composers, render targets, or render loops.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -425,11 +428,10 @@ Current visual behavior:
 
 ### Effect model
 
-Effects are user-authored runtime definitions. They receive the target source
-handle, layout snapshot, frame input, pointer and scroll state, target controls
-such as position/rotation/scale/opacity, and managed resources. They do not
-scan DOM, mutate arbitrary DOM, create their own renderer, or own independent
-asset loading.
+Effects are user-authored runtime definitions. They receive layout snapshots,
+frame input, pointer and scroll state, the controlled `ctx.object` visual facade,
+and managed resources. They do not scan DOM, mutate arbitrary DOM, create their
+own renderer, or own independent asset loading.
 
 The public authoring model is managed Three-like API: consumers use familiar
 Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
@@ -479,7 +481,10 @@ texture fields, raw point-cloud objects, or renderer-state handles.
 Source declarations use one top-level source family plus a subtype:
 `{ kind: "dom", type: "element" | "text" }`,
 `{ kind: "media", type: "image" | "video" | "image-sequence" }`, or
-`{ kind: "model", type: "glb", src }`. Old explicit declarations
+`{ kind: "model", type: "glb", src, loader? }`. Draco-compressed GLBs use
+declarative `loader: { draco: { decoderPath } }`, and the consuming app must
+serve the matching decoder files from that path; effects do not receive loader
+callbacks or raw loader instances. Old explicit declarations
 (`snapshot/mode`, `image`, `video`, `image-sequence`, `model/format`) are not
 supported.
 
@@ -503,21 +508,22 @@ import { createWebGLRuntime, defineWebGLEffect } from "@project/dom-webgl-runtim
 const appSurfaceEffect = defineWebGLEffect({
   kind: "app.surface",
   source: "dom/element",
-  update(context, _state, params) {
-    context.target?.setVisible(true);
-    context.target?.setOpacity(params.opacity ?? 1);
+  update(ctx, _state, params) {
+    ctx.object.visible = true;
+    ctx.object.opacity = params.opacity ?? 1;
   },
 });
 
 const appPointerTiltEffect = defineWebGLEffect({
   kind: "app.pointerTilt",
-  update(context, _state, params) {
+  update(ctx, _state, params) {
     const maxDegrees = params.maxDegrees ?? 6;
     const radians = (maxDegrees * Math.PI) / 180;
 
-    context.target?.setRotation(
-      -context.targetPointer.normalizedY * radians,
-      context.targetPointer.normalizedX * radians * (params.strength ?? 1),
+    ctx.object.rotation.set(
+      -ctx.targetPointer.normalizedY * radians,
+      ctx.targetPointer.normalizedX * radians * (params.strength ?? 1),
+      0,
     );
   },
 });

@@ -104,6 +104,15 @@ createWebGLRuntime({ container, effects: [myEffect] });
   拥有。
 - Effect 不能扫描 DOM、创建独立渲染器、拥有独立资源管线。
 - `ctx.object.position.set(...)` 写的是场景空间坐标，不是 DOM `left`/`top`。
+- `model/glb` renderable 会由 runtime layout pass 按目标 rect 自动 fit。
+  effect 写 `ctx.object.position` / `ctx.object.scale` 就是在接管模型摆放，
+  很容易把模型移出视口；只在确实要接管 placement 时这么做。
+- Draco 压缩 GLB 需要声明式 `source.loader.draco.decoderPath`，并由 app
+  public/static 目录实际提供 decoder 文件。不要暴露 loader callback 或 raw
+  `GLTFLoader` / `DRACOLoader` 逃生口。
+- `ctx.object.postprocess` 当前是 runtime-canvas scoped，不是单 target/model
+  scoped。单个模型发光优先用 material/mesh emissive + runtime-owned lights，
+  否则会让整张 WebGL canvas 变暗或变糊。
 - 对 `transformScope: "subtree"` target，`ctx.object` 写内部 group；source-backed
   object modules 仍是该 target 自己的输出层，子 target 仍由自己的
   effect/source 管理。

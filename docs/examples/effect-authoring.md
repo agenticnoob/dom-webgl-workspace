@@ -30,9 +30,12 @@ app references
 `/example/bg.png`, `/example/bg.mp4`, `/example/bg-sequence/frame_*.webp`,
 `/example/image.png`, `/example/show.png`, `/example/mask.png`,
 `/example/video.mp4`, `/models/hero.glb`, and `/models/4.glb` from that example public
-directory. `/example/bg-sequence` is the compressed image sequence used by the
-pinned runtime `image-sequence` source; the current checked-in sequence is 454
-WebP frames at 1600x900, 12fps extraction, and about 141MB total.
+directory. `/models/4.glb` is Draco-compressed and declares
+`loader: { draco: { decoderPath: "/draco/gltf/" } }`, so the example also ships
+the matching Three.js Draco decoder files under `apps/example/public/draco/gltf`.
+`/example/bg-sequence` is the compressed image sequence used by the pinned
+runtime `image-sequence` source; the current checked-in sequence is 454 WebP
+frames at 1600x900, 12fps extraction, and about 141MB total.
 
 ## Layout Contract
 
@@ -220,11 +223,13 @@ after the trail decays to idle, so the effect remains interactive without
 keeping a settled target hot every frame.
 
 For GLB effects, use the same `ctx.object` entrypoint for transform, material,
-lights, animation, and postprocess. `apps/example` dogfoods this with
-`example.modelFloatGlow` on `/models/4.glb`: the effect rotates and floats the
-model, sets `ctx.object.material?.emissive`, requests a runtime-owned point light
-through `ctx.object.lights?.point(...)`, and requests bloom through
-`ctx.object.postprocess.request(...)`. It does not create a loader, scene,
+lights, and animation. `apps/example` dogfoods this with
+`example.modelFloatGlow` on `/models/4.glb`: the effect rotates the model, sets
+`ctx.object.material?.emissive`, requests a runtime-owned point light through
+`ctx.object.lights?.point(...)`, and intentionally leaves model fit
+position/scale owned by the runtime layout pass. It also avoids
+`ctx.object.postprocess` because current postprocess requests are
+runtime-canvas scoped, not target-scoped. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
 
 Pointer contract:
@@ -326,8 +331,8 @@ definition is missing, the target declaration has no executable effect.
   WebGL-translated card position.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
-- `example.modelFloatGlow`: combines GLB transform, material emissive color,
-  runtime-owned point light, and bloom through the managed `ctx.object` facade.
+- `example.modelFloatGlow`: combines GLB rotation, material emissive color, and
+  runtime-owned point light while runtime layout owns model fit position/scale.
 
 ### Image Hover Reveal Implementation Notes
 
@@ -391,4 +396,14 @@ package effects.
   are removed.
 - `ctx.object.text` affects WebGL output only; it does not mutate DOM text.
 - Effects should no-op when the needed `ctx.object.*` capability module is absent.
+- Draco-compressed GLB files need both declarative loader config and decoder
+  files in the app public directory. `/models/4.glb` uses
+  `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching
+  decoder files under `apps/example/public/draco/gltf`.
+- `ctx.object.postprocess` currently affects the whole runtime WebGL canvas.
+  `example.modelFloatGlow` intentionally uses mesh/material emissive and a
+  point light instead of bloom so the rest of the page does not dim or blur.
+- `model/glb` renderables are fit to their target rect by the runtime layout
+  pass. `example.modelFloatGlow` avoids writing `ctx.object.position` and
+  `ctx.object.scale` so it does not override that fit transform.
 - Effect-owned objects and listeners need `ctx.resources` disposal.

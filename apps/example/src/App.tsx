@@ -447,7 +447,7 @@ export default function App() {
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型自发光">
-              用 Three-like managed facade 控制 GLB 的位置、旋转、材质发光、点光源和 bloom。
+              用 Three-like managed facade 控制 GLB 的旋转、材质发光和点光源。
             </EffectDescription>
             {exampleResources.modelReady ? (
               <WebGLTarget
@@ -459,12 +459,12 @@ export default function App() {
                     kind: "model",
                     type: "glb",
                     src: "/models/4.glb",
+                    loader: { draco: { decoderPath: "/draco/gltf/" } },
                   },
                   lifecycle: { hideWhenReady: true, hideMode: "subtree" },
                   effects: [
                     {
                       kind: "example.modelFloatGlow",
-                      amplitude: 30,
                       speed: 0.46,
                       emissive: "#7dd3fc",
                       lightIntensity: 2.2,

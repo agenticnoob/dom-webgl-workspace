@@ -15,6 +15,10 @@ describe("example static assets", () => {
     await expectAsset("example/bg-sequence/frame_0001.webp");
     await expectAsset("example/bg-sequence/frame_0454.webp");
     await expectAsset("models/hero.glb");
+    await expectAsset("models/4.glb");
+    await expectAsset("draco/gltf/draco_decoder.js");
+    await expectAsset("draco/gltf/draco_decoder.wasm");
+    await expectAsset("draco/gltf/draco_wasm_wrapper.js");
   });
 });
 
