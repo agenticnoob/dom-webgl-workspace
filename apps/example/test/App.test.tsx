@@ -410,7 +410,7 @@ describe("effect authoring example app", () => {
       source: { kind: "dom", type: "element" },
       renderRole: "surface",
       lifecycle: { hideWhenReady: true, hideMode: "self" },
-      effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+      effects: [{ kind: "example.modelDarkScene" }],
     });
     expect(finalTargetProps[24]?.webgl).toMatchObject({
       key: "example.model.float-glow",
@@ -426,7 +426,7 @@ describe("effect authoring example app", () => {
           kind: "example.modelFloatGlow",
           speed: 0.46,
           emissive: "#7dd3fc",
-          lightIntensity: 4.5,
+          lightIntensity: 1.8,
         },
       ],
     });

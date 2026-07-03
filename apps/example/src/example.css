@@ -9,7 +9,7 @@
   --color-surface-waves: #dbe5df;
   --color-surface-model: #d7e1d6;
   --color-surface-model-alt: #cdd6e8;
-  --color-surface-model-glow: #0d1519;
+  --color-surface-model-glow: #000000;
   --color-surface-media: #1d2a2e;
   --color-overlay-bg: rgba(0, 0, 0, 0.68);
   --color-overlay-panel-bg: rgba(0, 0, 0, 0.82);
@@ -365,10 +365,10 @@ body {
 }
 
 .example-panel-model-glow {
-  background:
-    radial-gradient(circle at 54% 46%, rgba(125, 211, 252, 0.24), transparent 34%),
-    radial-gradient(circle at 50% 54%, rgba(244, 114, 182, 0.12), transparent 48%),
-    var(--color-surface-model-glow);
+  width: min(520px, calc(100% - var(--space-8)));
+  min-height: 300px;
+  margin: var(--space-14) auto;
+  background: var(--color-surface-model-glow);
   color: var(--color-overlay-text);
 }
 

@@ -66,7 +66,6 @@ type SurfaceWavesParams = {
 
 type ModelDarkSceneParams = {
   kind: "example.modelDarkScene";
-  opacity?: number;
 };
 
 type SurfaceFillState = {
@@ -231,7 +230,7 @@ export const exampleModelDarkSceneEffect =
   defineWebGLEffect<ModelDarkSceneParams>({
     kind: "example.modelDarkScene",
     source: "dom/element",
-    update(ctx, _state, params) {
+    update(ctx) {
       const surface = ctx.object.surface;
       if (!surface) {
         return;
@@ -241,7 +240,7 @@ export const exampleModelDarkSceneEffect =
         drawModelDarkSceneSurface(context, width, height);
       });
       surface.setVisible?.(true);
-      surface.setOpacity?.(clampNumber(params.opacity, 0, 1, 0.96));
+      surface.setOpacity?.(1);
       ctx.object.visible = true;
     },
   });
@@ -287,34 +286,7 @@ function drawModelDarkSceneSurface(
   height: number,
 ): void {
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#081216";
-  context.fillRect(0, 0, width, height);
-
-  const blueGlow = context.createRadialGradient(
-    width * 0.54,
-    height * 0.44,
-    0,
-    width * 0.54,
-    height * 0.44,
-    Math.max(width, height) * 0.52,
-  );
-  blueGlow.addColorStop(0, "rgba(125, 211, 252, 0.36)");
-  blueGlow.addColorStop(0.42, "rgba(66, 112, 144, 0.22)");
-  blueGlow.addColorStop(1, "rgba(8, 18, 22, 0)");
-  context.fillStyle = blueGlow;
-  context.fillRect(0, 0, width, height);
-
-  const violetGlow = context.createRadialGradient(
-    width * 0.48,
-    height * 0.62,
-    0,
-    width * 0.48,
-    height * 0.62,
-    Math.max(width, height) * 0.44,
-  );
-  violetGlow.addColorStop(0, "rgba(244, 114, 182, 0.14)");
-  violetGlow.addColorStop(1, "rgba(8, 18, 22, 0)");
-  context.fillStyle = violetGlow;
+  context.fillStyle = "#000000";
   context.fillRect(0, 0, width, height);
 }
 

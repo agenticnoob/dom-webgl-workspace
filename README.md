@@ -282,13 +282,14 @@ Current visual behavior:
   runtime-level `effects`.
 - The example-local GLB effects use `ctx.object` only: `example.modelSpin`
   rotates `/models/hero.glb`, `example.modelFloat` combines layout and runtime
-  time for movement, `example.modelDarkScene` paints a WebGL surface backdrop,
-  and `example.modelFloatGlow` dogfoods `/models/4.glb` with controlled
-  rotation, material emissive color, and a keyed runtime-owned point light
-  positioned at the projected layout center while leaving model fit
-  position/scale owned by the runtime layout pass. It
-  intentionally avoids `ctx.object.postprocess` because
-  current postprocess requests are runtime-canvas scoped, not target-scoped.
+  time for movement, `example.modelDarkScene` paints an opaque black WebGL
+  surface backdrop, and `example.modelFloatGlow` dogfoods `/models/4.glb` with
+  controlled rotation, material emissive color, and a restrained runtime-owned
+  point light positioned at the projected layout center. It avoids
+  canvas-scoped postprocess so the other WebGL targets stay visually stable.
+  Model fit position/scale stays owned by the runtime layout pass; the example
+  keeps the glowing model smaller by constraining the DOM target rect instead
+  of writing `ctx.object.scale`.
   They do not create raw loaders, scenes, cameras, lights, materials, mixers,
   composers, render targets, or render loops.
 - Runtime CSS reads should stay limited to fields needed for layout/content

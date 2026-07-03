@@ -110,13 +110,12 @@ describe("example effect catalog", () => {
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.modelDarkScene",
-      opacity: 0.96,
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.modelFloatGlow",
       speed: 0.46,
       emissive: "#7dd3fc",
-      lightIntensity: 4.5,
+      lightIntensity: 1.8,
     });
   });
 });

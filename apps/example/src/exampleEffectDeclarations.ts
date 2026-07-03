@@ -48,7 +48,7 @@ export type ExampleEffectParams = {
   "example.mediaPointerParallax": { bleed?: number; strength?: number };
   "example.videoPlayback": { playbackRate?: number };
   "example.videoDrift": { distance?: number };
-  "example.modelDarkScene": { opacity?: number };
+  "example.modelDarkScene": {};
   "example.modelSpin": { speed?: number };
   "example.modelFloat": { amplitude?: number };
   "example.modelFloatGlow": {
@@ -110,13 +110,13 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
   { kind: "example.videoPlayback", playbackRate: 0.8 },
   { kind: "example.videoDrift", distance: 0.12 },
-  { kind: "example.modelDarkScene", opacity: 0.96 },
+  { kind: "example.modelDarkScene" },
   { kind: "example.modelSpin", speed: 0.25 },
   { kind: "example.modelFloat", amplitude: 24 },
   {
     kind: "example.modelFloatGlow",
     speed: 0.46,
     emissive: "#7dd3fc",
-    lightIntensity: 4.5,
+    lightIntensity: 1.8,
   },
 ]);

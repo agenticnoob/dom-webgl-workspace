@@ -44,12 +44,15 @@ characters, and wave offsets, then writes the final glyph command list once per
 frame.
 The model bucket now includes `example.modelDarkScene` and
 `example.modelFloatGlow` on `/models/4.glb`. The dark scene effect paints a
-WebGL surface backdrop, and the model effect uses the managed `ctx.object`
-facade for rotation, material/mesh emissive color, and a runtime-owned point
-light keyed by effect id. The light is declared from `update` with the projected
-layout center so `lightIntensity` changes update the existing runtime-owned
-light while the runtime still owns GLB loading, Draco decoding, model fit
-position/scale, and all raw Three.js objects.
+pure black, fully opaque WebGL surface backdrop, and the model effect uses the
+managed `ctx.object` facade for rotation, material/mesh emissive color, a
+runtime-owned point light keyed by effect id, without a canvas-scoped
+postprocess request. The light is declared from `update` with the
+projected layout center so `lightIntensity` changes update the existing
+runtime-owned light while the runtime still owns GLB loading, Draco decoding,
+model fit position/scale, light handles, and all raw Three.js objects.
+The glowing model is kept smaller by narrowing its DOM target rect rather than
+by writing target scale from the effect.
 
 ## What Worked
 
@@ -113,9 +116,9 @@ position/scale, and all raw Three.js objects.
 - Draco-compressed model assets work as a downstream example when both pieces
   are present: declarative `loader.draco.decoderPath` on the model source and
   matching decoder files in the app's public directory.
-- Model-local glow is clearer when expressed through controlled material/mesh
-  emissive values and runtime-owned lights. That avoids making a single example
-  target request canvas-wide postprocess.
+- Model glow is clearer when the backdrop is a pure black WebGL surface and the
+  bright source lives in the model effect: controlled material/mesh emissive
+  values plus a keyed runtime-owned light.
 - Runtime-owned lights are keyed requests. Dynamic light params should be
   redeclared with the same key from `update`; effects should not stash raw light
   objects or manually own their lifecycle.
@@ -194,8 +197,8 @@ position/scale, and all raw Three.js objects.
   decoder config. The fix is not a loader callback escape hatch; declare
   `loader: { draco: { decoderPath } }` and serve the decoder files.
 - Postprocess requests are easy to over-scope. Current `ctx.object.postprocess`
-  requests affect the runtime canvas, so using bloom for one model can dim or
-  blur unrelated WebGL targets on the page.
+  requests affect the runtime canvas. The model glow example avoids bloom so it
+  does not dim or blur unrelated WebGL targets.
 - A DOM background on a ready model target can occlude the fixed WebGL canvas.
   Use a WebGL `dom/element` surface backdrop when the model needs a darker
   stage.
@@ -209,8 +212,8 @@ position/scale, and all raw Three.js objects.
   narrowing, resource ownership, media target rules, and validation.
 - `docs/examples/effect-authoring.md` now gives a React-only consumer tutorial.
 - README and package usage docs now point to `apps/example`.
-- The managed model dogfood notes now document Draco static assets, WebGL
-  surface backdrops, canvas-scoped postprocess, and model fit ownership so
+- The managed model dogfood notes now document Draco static assets, pure black
+  WebGL surface backdrops, localized model glow, and model fit ownership so
   future examples do not reintroduce the same invisible/blurred model failure
   mode.
 

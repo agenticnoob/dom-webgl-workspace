@@ -43,11 +43,11 @@ lifetime, fallback visibility, scroll/pointer monitoring, and scheduling.
 The current example dogfoods this with `/models/4.glb`: the model source declares
 `loader: { draco: { decoderPath: "/draco/gltf/" } }`, the app serves matching
 decoder files under `apps/example/public/draco/gltf`, and
-`example.modelDarkScene` paints a WebGL surface backdrop behind the GLB while
-`example.modelFloatGlow` uses rotation, mesh/material emissive values, and a
-keyed runtime-owned point light positioned at the projected layout center. It
-intentionally avoids `ctx.object.postprocess`
-because current postprocess is runtime-canvas scoped, and it leaves model fit
+`example.modelDarkScene` paints a pure black, fully opaque WebGL surface
+backdrop behind the GLB while `example.modelFloatGlow` uses rotation,
+mesh/material emissive values, a keyed runtime-owned point light positioned at
+the projected layout center, and no canvas-scoped postprocess so the rest of the
+runtime WebGL scene remains sharp and unchanged. It leaves model fit
 position/scale to the runtime layout pass so the GLB remains visible in its
 target rect.
 
@@ -94,7 +94,9 @@ onboarding, custom-effects guidance, effect-authoring example docs, the
 effect-authoring report, and this execution state. The active pitfalls are:
 Draco-compressed GLBs need declarative loader config plus served decoder assets;
 `ctx.object.postprocess` is currently runtime-canvas scoped rather than
-target-scoped; and `model/glb` effects that write `ctx.object.position` or
+target-scoped, so model glow examples should prefer material emissive values
+and runtime-owned lights unless canvas-wide bloom is intentional; and
+`model/glb` effects that write `ctx.object.position` or
 `ctx.object.scale` override the runtime model fit transform.
 
 Target pointer docs are aligned across README, goal, package usage, package

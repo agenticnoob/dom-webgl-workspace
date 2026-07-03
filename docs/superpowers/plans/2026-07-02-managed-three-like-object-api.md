@@ -1712,9 +1712,9 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
   source: "model/glb",
   setup(ctx, params) {
     const emissive = params.emissive ?? "#7dd3fc";
-    ctx.object.material?.emissive.set(emissive, 2.7);
+    ctx.object.material?.emissive.set(emissive, 1.8);
     ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.material.emissive.set(emissive, 2.2);
+      mesh.material.emissive.set(emissive, 1.5);
     });
     return undefined;
   },
@@ -1724,18 +1724,18 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
     }
 
     const speed = clampNumber(params.speed, 0, 3, 0.42);
-    const lightIntensity = clampNumber(params.lightIntensity, 0, 12, 4.5);
+    const lightIntensity = clampNumber(params.lightIntensity, 0, 12, 1.8);
     const emissive = params.emissive ?? "#7dd3fc";
 
     ctx.object.visible = true;
     ctx.object.lights?.point(`${ctx.key}.glow`, {
       color: emissive,
       intensity: lightIntensity,
-      distance: 620,
+      distance: 420,
       position: [
         ctx.layout.left + ctx.layout.width / 2,
         ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
-        180,
+        120,
       ],
     });
     ctx.object.rotation.set(
@@ -1759,7 +1759,7 @@ In `apps/example/src/exampleEffects.ts`, add `exampleModelDarkSceneEffect` and
 In `apps/example/src/exampleEffectDeclarations.ts`, add:
 
 ```ts
-"example.modelDarkScene": { opacity?: number };
+"example.modelDarkScene": {};
 "example.modelFloatGlow": {
   speed?: number;
   emissive?: string;
@@ -1799,7 +1799,7 @@ In `apps/example/src/App.tsx`, after the existing model float row, add:
           source: { kind: "dom", type: "element" },
           renderRole: "surface",
           lifecycle: { hideWhenReady: true, hideMode: "self" },
-          effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+          effects: [{ kind: "example.modelDarkScene" }],
         }}
       />
       <WebGLTarget
@@ -1819,12 +1819,12 @@ In `apps/example/src/App.tsx`, after the existing model float row, add:
               kind: "example.modelFloatGlow",
               speed: 0.46,
               emissive: "#7dd3fc",
-              lightIntensity: 4.5,
+              lightIntensity: 1.8,
             },
           ],
         }}
       >
-        <strong>Managed Three-like API 控制模型发光和灯光。</strong>
+        <strong>Managed Three-like API 控制模型自发光和局部灯光。</strong>
       </WebGLTarget>
     </React.Fragment>
   ) : (
@@ -1863,7 +1863,7 @@ test("model float glow uses managed material and lights without global postproce
   exampleModelFloatGlowEffect.setup?.(ctx, {
     kind: "example.modelFloatGlow",
     emissive: "#7dd3fc",
-    lightIntensity: 4.5,
+    lightIntensity: 1.8,
   });
   exampleModelFloatGlowEffect.update(ctx, undefined, {
     kind: "example.modelFloatGlow",
@@ -1871,11 +1871,11 @@ test("model float glow uses managed material and lights without global postproce
     lightIntensity: 1.25,
   });
 
-  expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 2.7);
+  expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.8);
   expect(lights.point).toHaveBeenCalledWith("example.model.float-glow.glow", {
     color: "#7dd3fc",
     intensity: 1.25,
-    distance: 620,
+    distance: 420,
     position: [
       ctx.layout.left + ctx.layout.width / 2,
       ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
@@ -1948,7 +1948,7 @@ const modelGlow = defineWebGLEffect({
       position: [
         ctx.layout.left + ctx.layout.width / 2,
         ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
-        180,
+        120,
       ],
     });
     ctx.object.rotation.y += ctx.delta / 1000;

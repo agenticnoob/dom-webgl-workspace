@@ -447,7 +447,7 @@ export default function App() {
 
           <section className="example-row">
             <EffectDescription source="model/glb" title="模型自发光">
-              WebGL 暗场景承托 GLB，再用 managed facade 控制旋转、材质发光和点光源。
+              纯黑 WebGL 暗场景承托 GLB，再用 managed facade 控制轻微自发光和局部点光源。
             </EffectDescription>
             {exampleResources.modelReady ? (
               <React.Fragment>
@@ -460,7 +460,7 @@ export default function App() {
                     source: { kind: "dom", type: "element" },
                     renderRole: "surface",
                     lifecycle: { hideWhenReady: true, hideMode: "self" },
-                    effects: [{ kind: "example.modelDarkScene", opacity: 0.96 }],
+                    effects: [{ kind: "example.modelDarkScene" }],
                   }}
                 />
                 <WebGLTarget
@@ -480,12 +480,12 @@ export default function App() {
                         kind: "example.modelFloatGlow",
                         speed: 0.46,
                         emissive: "#7dd3fc",
-                        lightIntensity: 4.5,
+                        lightIntensity: 1.8,
                       },
                     ],
                   }}
                 >
-                  <strong>Managed Three-like API 控制模型发光和灯光。</strong>
+                  <strong>Managed Three-like API 控制模型自发光和局部灯光。</strong>
                 </WebGLTarget>
               </React.Fragment>
             ) : (

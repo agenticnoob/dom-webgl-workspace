@@ -195,7 +195,7 @@ describe("model example effects", () => {
     exampleModelFloatGlowEffect.setup?.(context, {
       kind: "example.modelFloatGlow",
       emissive: "#7dd3fc",
-      lightIntensity: 4.5,
+      lightIntensity: 1.8,
     });
     exampleModelFloatGlowEffect.update(context, undefined, {
       kind: "example.modelFloatGlow",
@@ -203,15 +203,15 @@ describe("model example effects", () => {
       lightIntensity: 1.25,
     });
 
-    expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 2.7);
+    expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.8);
     expect(forEachMesh).toHaveBeenCalledTimes(1);
-    expect(meshMaterial.emissive.set).toHaveBeenCalledWith("#7dd3fc", 2.2);
+    expect(meshMaterial.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.5);
     expect(lights.point).toHaveBeenCalledTimes(1);
     expect(lights.point).toHaveBeenCalledWith("example.model.float-glow.glow", {
       color: "#7dd3fc",
       intensity: 1.25,
-      distance: 620,
-      position: [100, 698, 180],
+      distance: 420,
+      position: [100, 698, 120],
     });
     expect(postprocess.request).not.toHaveBeenCalled();
     expect(baseContext.resources.addDisposable).not.toHaveBeenCalled();

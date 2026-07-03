@@ -225,13 +225,14 @@ keeping a settled target hot every frame.
 For GLB effects, use the same `ctx.object` entrypoint for transform, material,
 lights, and animation. `apps/example` dogfoods this with
 `example.modelDarkScene` plus `example.modelFloatGlow` on `/models/4.glb`: the
-dark scene effect paints a WebGL surface backdrop, while the model effect
-rotates the GLB, sets `ctx.object.material?.emissive`, requests a runtime-owned
-point light through `ctx.object.lights?.point(...)` with the same key each frame
-so `lightIntensity` updates the existing light, and intentionally leaves model
-fit position/scale owned by the runtime layout pass. It also avoids
-`ctx.object.postprocess` because current postprocess requests are
-runtime-canvas scoped, not target-scoped. It does not create a loader, scene,
+dark scene effect paints an opaque black WebGL surface backdrop, while the
+model effect rotates the GLB, sets `ctx.object.material?.emissive`, requests a
+runtime-owned point light through `ctx.object.lights?.point(...)` with the same
+key each frame so `lightIntensity` updates the existing light, and avoids
+canvas-scoped postprocess so the rest of the runtime scene is not blurred or
+darkened. Model fit position/scale stays owned by the runtime layout pass; the
+example keeps the glowing model smaller by constraining the DOM target rect
+instead of writing `ctx.object.scale`. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
 
 Pointer contract:
@@ -333,11 +334,11 @@ definition is missing, the target declaration has no executable effect.
   WebGL-translated card position.
 - `example.modelSpin`: rotates a GLB target through target controls.
 - `example.modelFloat`: combines layout data and runtime time for GLB movement.
-- `example.modelDarkScene`: paints a dark WebGL surface backdrop behind the
-  glowing model without relying on DOM background paint.
+- `example.modelDarkScene`: paints a pure black, fully opaque WebGL surface
+  backdrop behind the glowing model without relying on DOM background paint.
 - `example.modelFloatGlow`: combines GLB rotation, material emissive color, and
-  a keyed runtime-owned point light positioned at the projected layout center
-  while runtime layout owns model fit position/scale.
+  a keyed runtime-owned point light positioned at the projected layout center.
+  A smaller target rect leaves model fit position/scale owned by runtime layout.
 
 ### Image Hover Reveal Implementation Notes
 
@@ -406,9 +407,9 @@ package effects.
   `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching
   decoder files under `apps/example/public/draco/gltf`.
 - `ctx.object.postprocess` currently affects the whole runtime WebGL canvas.
-  The model glow example intentionally uses `example.modelDarkScene`,
-  mesh/material emissive, and a point light instead of bloom so the rest of the
-  page does not dim or blur.
+  The model glow example avoids it, so the subtle glow comes from
+  `example.modelFloatGlow` emissive material and point light without changing
+  unrelated WebGL targets.
 - `model/glb` renderables are fit to their target rect by the runtime layout
   pass. `example.modelFloatGlow` avoids writing `ctx.object.position` and
   `ctx.object.scale` so it does not override that fit transform.

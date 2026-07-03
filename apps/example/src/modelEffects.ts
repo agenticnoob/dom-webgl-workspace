@@ -55,9 +55,9 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
   source: "model/glb",
   setup(ctx, params) {
     const emissive = params.emissive ?? "#7dd3fc";
-    ctx.object.material?.emissive.set(emissive, 2.7);
+    ctx.object.material?.emissive.set(emissive, 1.8);
     ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.material.emissive.set(emissive, 2.2);
+      mesh.material.emissive.set(emissive, 1.5);
     });
 
     return undefined;
@@ -68,18 +68,18 @@ export const exampleModelFloatGlowEffect = defineWebGLEffect<ModelFloatGlowParam
     }
 
     const speed = clampNumber(params.speed, 0, 3, 0.42);
-    const lightIntensity = clampNumber(params.lightIntensity, 0, 12, 4.5);
+    const lightIntensity = clampNumber(params.lightIntensity, 0, 12, 1.8);
     const emissive = params.emissive ?? "#7dd3fc";
 
     ctx.object.visible = true;
     ctx.object.lights?.point(`${ctx.key}.glow`, {
       color: emissive,
       intensity: lightIntensity,
-      distance: 620,
+      distance: 420,
       position: [
         ctx.layout.left + ctx.layout.width / 2,
         ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
-        180,
+        120,
       ],
     });
     ctx.object.rotation.set(
