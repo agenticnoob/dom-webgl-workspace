@@ -109,7 +109,7 @@ import {
   type TargetDebugRecord,
   type TargetRuntimeState,
 } from "./targetRuntimeState";
-import type { WebGLSceneGroup } from "./sceneObject";
+import type { WebGLSceneAdapter, WebGLSceneGroup } from "./sceneObject";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -158,6 +158,7 @@ type SyncFrameResult = {
 };
 
 type RuntimeTransformGroupState = {
+  sceneAdapter: WebGLSceneAdapter;
   group: WebGLSceneGroup;
   effectTarget?: WebGLEffectTarget;
   effectTargetObject3D?: unknown;
@@ -284,6 +285,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         toSceneObjectOrdering(compileRenderPolicy("overlay"))
       );
     },
+    getSceneAdapter(descriptor) {
+      return readSceneAdapterForTarget(descriptor);
+    },
     projectLayout(descriptor, measurement, viewport) {
       return (
         transformProjectedLayoutsByTargetKey.get(descriptor.key) ??
@@ -340,6 +344,56 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
   return {
     container: options.container,
+    registerScene(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL scene after runtime disposal.");
+      }
+
+      renderLayers.registerScene(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterScene(id) {
+      const sceneId = id.trim();
+
+      if (sceneId !== "main") {
+        unregisterTargetsForScene(sceneId);
+      }
+
+      renderLayers.unregisterScene(sceneId);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerCamera(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL camera after runtime disposal.");
+      }
+
+      renderLayers.registerCamera(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterCamera(id) {
+      renderLayers.unregisterCamera(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerRenderPass(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL render pass after runtime disposal.",
+        );
+      }
+
+      renderLayers.registerRenderPass(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterRenderPass(id) {
+      renderLayers.unregisterRenderPass(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
     registerTarget(element, declaration) {
       if (disposed) {
         throw new Error("Cannot register a WebGL target after runtime disposal.");
@@ -362,21 +416,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     },
     unregisterTarget(key) {
-      const targetKey = key.trim();
-      const descriptor = registry.get(targetKey);
-
-      registry.unregister(targetKey);
-      rectSkipState.delete(targetKey);
-      invalidationController.unobserveTarget(targetKey);
-      unregisterGateTarget(scrollState, descriptor);
-      layoutCacheKeysByTargetKey.delete(targetKey);
-      transformProjectedLayoutsByTargetKey.delete(targetKey);
-      transformAttachmentGroupByTargetKey.delete(targetKey);
-      restoreFallbackVisibility(targetState, targetKey);
-      targetState.fallbackControllersByTargetKey.delete(targetKey);
-      disposeTargetRenderable(targetState, targetKey);
-      removeTransformGroup(targetKey);
-      unmarkFallbackRoot(targetKey);
+      unregisterRuntimeTarget(key);
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
@@ -428,6 +468,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         pointerController.dispose();
         rendererLoop.dispose();
         postprocessController.dispose();
+        renderLayers.dispose();
         rendererHost.dispose();
         unmarkAllFallbackRoots();
         emitDebugState(true);
@@ -469,6 +510,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
         return {
           key: descriptor.key,
+          sceneId: descriptor.declaration.sceneId ?? "main",
           ...readTargetDebugRecord(descriptor, targetState),
           parentKey: layer?.parentKey,
           layerDepth: layer?.depth ?? 0,
@@ -495,9 +537,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    renderLayers.renderPasses((_pass, scene) => {
+    renderLayers.renderPasses((_pass, scene, camera) => {
       postprocessController.render(() => {
-        scene.sceneAdapter.render();
+        scene.sceneAdapter.render(camera.camera);
       });
     });
   }
@@ -815,163 +857,213 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
   }
 
-  function syncFrame(dirtyReasons: readonly RenderDirtyReason[] = ["manual-sync"]): SyncFrameResult {
+  function syncFrame(
+    dirtyReasons: readonly RenderDirtyReason[] = ["manual-sync"],
+  ): SyncFrameResult {
     if (disposed) {
       return { didSynchronousUpdate: false, schedulingMode: "on-demand" };
     }
 
     syncingFrame = true;
     try {
-    const descriptors = listTargetsInScanOrder(registry);
-    const frameInput = frameInputSource.update();
-    let requiresContinuousRendering = frameInput.scroll.mode === "gate";
+      const descriptors = listTargetsInScanOrder(registry);
+      const frameInput = frameInputSource.update();
+      let requiresContinuousRendering = frameInput.scroll.mode === "gate";
 
-    layoutScrollOffset += frameInput.scroll.velocity;
-    syncTargetLayerOrdering(descriptors);
-    rendererHost.resizeIfNeeded();
-    const dirtyKeys = invalidationController.consumeDirtyKeys();
+      layoutScrollOffset += frameInput.scroll.velocity;
+      syncTargetLayerOrdering(descriptors);
+      rendererHost.resizeIfNeeded();
+      renderLayers.resize(rendererHost.getViewportSize());
+      const dirtyKeys = invalidationController.consumeDirtyKeys();
 
-    const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
-    syncTransformGroups(descriptors, layoutMeasurements);
+      const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
+      syncTransformGroups(descriptors, layoutMeasurements);
 
-    const pendingUpdates: Array<Promise<void>> = [];
-    let didSynchronousUpdate = false;
-    const viewportHeight = window.innerHeight || 600;
+      const pendingUpdates: Array<Promise<void>> = [];
+      let didSynchronousUpdate = false;
+      const viewportHeight = window.innerHeight || 600;
 
-    for (const descriptor of descriptors) {
-      let debugRecord = readTargetDebugRecord(descriptor, targetState);
-      const layoutMeasurement = layoutMeasurements.get(descriptor.key);
+      for (const descriptor of descriptors) {
+        let debugRecord = readTargetDebugRecord(descriptor, targetState);
+        const layoutMeasurement = layoutMeasurements.get(descriptor.key);
 
-      if (!layoutMeasurement) {
-        // Pre-filter skipped this target — kept as disposed via scroll estimation.
-        delete debugRecord.pointer;
-        const prev = rectSkipState.get(descriptor.key);
-        if (prev) {
-          prev.skippedFrames += 1;
+        if (!layoutMeasurement) {
+          // Pre-filter skipped this target — kept as disposed via scroll estimation.
+          delete debugRecord.pointer;
+          const prev = rectSkipState.get(descriptor.key);
+          if (prev) {
+            prev.skippedFrames += 1;
+          }
+          const renderable = targetState.renderablesByTargetKey.get(
+            descriptor.key,
+          );
+          reconcileOffscreenTarget(
+            "disposed",
+            descriptor,
+            renderable,
+            frameInput,
+            readTargetDebugRecord(descriptor, targetState),
+          );
+          continue;
         }
-        const renderable = targetState.renderablesByTargetKey.get(descriptor.key);
-        reconcileOffscreenTarget(
-          "disposed",
-          descriptor,
-          renderable,
-          frameInput,
-          readTargetDebugRecord(descriptor, targetState),
+
+        const viewportState = viewportLifecycle.classify(
+          layoutMeasurement,
+          viewportHeight,
         );
-        continue;
-      }
 
-      const viewportState = viewportLifecycle.classify(layoutMeasurement, viewportHeight);
+        if (viewportState === "disposed") {
+          rectSkipState.set(descriptor.key, {
+            lastTop: layoutMeasurement.top,
+            layoutScrollOffset,
+            viewport: layoutMeasurement.viewport,
+            frames: (rectSkipState.get(descriptor.key)?.frames ?? 0) + 1,
+            skippedFrames: 0,
+          });
+        } else {
+          rectSkipState.delete(descriptor.key);
+        }
 
-      if (viewportState === "disposed") {
-        rectSkipState.set(descriptor.key, {
-          lastTop: layoutMeasurement.top,
-          layoutScrollOffset,
-          viewport: layoutMeasurement.viewport,
-          frames: (rectSkipState.get(descriptor.key)?.frames ?? 0) + 1,
-          skippedFrames: 0,
-        });
-      } else {
-        rectSkipState.delete(descriptor.key);
-      }
+        let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
 
-      let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
+        if (viewportState !== "active") {
+          delete debugRecord.pointer;
+          const skipped = reconcileOffscreenTarget(
+            viewportState,
+            descriptor,
+            renderable,
+            frameInput,
+            debugRecord,
+          );
+          if (skipped) {
+            continue;
+          }
+        }
 
-      if (viewportState !== "active") {
-        delete debugRecord.pointer;
-        const skipped = reconcileOffscreenTarget(
-          viewportState, descriptor, renderable, frameInput, debugRecord,
-        );
-        if (skipped) continue;
-      }
-
-      const wasParked = targetState.parkedAtByTargetKey.delete(descriptor.key);
-      if (wasParked) {
-        renderable?.setVisible(
-          targetState.parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
-        );
-        targetState.parkedVisibilityByTargetKey.delete(descriptor.key);
-      }
-
-      if (!renderable) {
-        const created = ensureRenderableCreated(descriptor, debugRecord);
-        if (!created) continue;
-        renderable = created;
-        debugRecord = readTargetDebugRecord(descriptor, targetState);
-      }
-
-      applyCurrentSceneOrdering(descriptor, renderable);
-      if (shouldKeepTargetContinuous(descriptor, renderable)) {
-        requiresContinuousRendering = true;
-      }
-
-      if (dirtyKeys.has(descriptor.key)) {
-        renderable.invalidateContent?.();
-      }
-
-      const lifecycleVersion = readLifecycleVersion(targetState, descriptor.key);
-      const requestResourceReadyFrame = renderable.status === "idle";
-      const effectDirtyReasons = readTargetEffectDirtyReasons(
-        descriptor,
-        layoutMeasurement,
-        dirtyKeys,
-        dirtyReasons,
-        frameInput,
-      );
-      syncTargetPointerDebugRecord(descriptor, debugRecord, frameInput, layoutMeasurement);
-      let result: void | Promise<void>;
-      const previousResourceLoadPriority = currentResourceLoadPriority;
-
-      currentResourceLoadPriority = readViewportResourceLoadPriority(
-        viewportState,
-      );
-      try {
-        result = renderable.update(frameInput);
-        layoutCacheKeysByTargetKey.set(
+        const wasParked = targetState.parkedAtByTargetKey.delete(
           descriptor.key,
-          layoutMeasurement.layoutSignature,
         );
-      } catch (error: unknown) {
-        markDebugRecordError(debugRecord, error);
-        restoreFallbackVisibility(targetState, descriptor.key);
-        if (isGateTarget(descriptor)) {
-          releaseActiveGate(scrollState);
+        if (wasParked) {
+          renderable?.setVisible(
+            targetState.parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
+          );
+          targetState.parkedVisibilityByTargetKey.delete(descriptor.key);
         }
-        emitDebugState(true);
-        throw error;
-      } finally {
-        currentResourceLoadPriority = previousResourceLoadPriority;
+
+        if (!renderable) {
+          const created = ensureRenderableCreated(descriptor, debugRecord);
+          if (!created) {
+            continue;
+          }
+          renderable = created;
+          debugRecord = readTargetDebugRecord(descriptor, targetState);
+        }
+
+        applyCurrentSceneOrdering(descriptor, renderable);
+        if (shouldKeepTargetContinuous(descriptor, renderable)) {
+          requiresContinuousRendering = true;
+        }
+
+        if (dirtyKeys.has(descriptor.key)) {
+          renderable.invalidateContent?.();
+        }
+
+        const lifecycleVersion = readLifecycleVersion(
+          targetState,
+          descriptor.key,
+        );
+        const requestResourceReadyFrame = renderable.status === "idle";
+        const effectDirtyReasons = readTargetEffectDirtyReasons(
+          descriptor,
+          layoutMeasurement,
+          dirtyKeys,
+          dirtyReasons,
+          frameInput,
+        );
+        syncTargetPointerDebugRecord(
+          descriptor,
+          debugRecord,
+          frameInput,
+          layoutMeasurement,
+        );
+        let result: void | Promise<void>;
+        const previousResourceLoadPriority = currentResourceLoadPriority;
+
+        currentResourceLoadPriority = readViewportResourceLoadPriority(
+          viewportState,
+        );
+        try {
+          result = renderable.update(frameInput);
+          layoutCacheKeysByTargetKey.set(
+            descriptor.key,
+            layoutMeasurement.layoutSignature,
+          );
+        } catch (error: unknown) {
+          markDebugRecordError(debugRecord, error);
+          restoreFallbackVisibility(targetState, descriptor.key);
+          if (isGateTarget(descriptor)) {
+            releaseActiveGate(scrollState);
+          }
+          emitDebugState(true);
+          throw error;
+        } finally {
+          currentResourceLoadPriority = previousResourceLoadPriority;
+        }
+
+        if (isPromiseLike(result)) {
+          scheduleAsyncCompletion(
+            result,
+            descriptor,
+            renderable,
+            debugRecord,
+            layoutMeasurement,
+            lifecycleVersion,
+            pendingUpdates,
+            frameInput,
+            requestResourceReadyFrame,
+            effectDirtyReasons,
+          );
+        } else {
+          applySyncCompletion(
+            descriptor,
+            renderable,
+            debugRecord,
+            layoutMeasurement,
+            frameInput,
+            effectDirtyReasons,
+          );
+          didSynchronousUpdate = true;
+        }
       }
 
-      if (isPromiseLike(result)) {
-        scheduleAsyncCompletion(result, descriptor, renderable, debugRecord,
-          layoutMeasurement, lifecycleVersion, pendingUpdates,
-          frameInput, requestResourceReadyFrame, effectDirtyReasons);
-      } else {
-        applySyncCompletion(descriptor, renderable, debugRecord,
-          layoutMeasurement, frameInput, effectDirtyReasons);
-        didSynchronousUpdate = true;
+      emitDebugState();
+
+      if (pendingUpdates.length === 0) {
+        return {
+          didSynchronousUpdate,
+          schedulingMode: requiresContinuousRendering
+            ? "continuous"
+            : "on-demand",
+        };
       }
-    }
 
-    emitDebugState();
+      const pendingUpdate = Promise.all(pendingUpdates).then(
+        () => {
+          emitDebugState(true);
+        },
+        (error: unknown) => {
+          emitDebugState(true);
+          throw error;
+        },
+      );
 
-    if (pendingUpdates.length === 0) {
       return {
         didSynchronousUpdate,
-        schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
+        schedulingMode: requiresContinuousRendering
+          ? "continuous"
+          : "on-demand",
+        pendingUpdate,
       };
-    }
-
-    const pendingUpdate = Promise.all(pendingUpdates).then(
-      () => { emitDebugState(true); },
-      (error: unknown) => { emitDebugState(true); throw error; },
-    );
-
-    return {
-      didSynchronousUpdate,
-      schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
-      pendingUpdate,
-    };
     } finally {
       syncingFrame = false;
     }
@@ -1126,13 +1218,16 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       );
     }
 
+    const descriptorsByKey = new Map(
+      descriptors.map((descriptor) => [descriptor.key, descriptor]),
+    );
     const plan = createTransformGroupPlan({
       descriptors,
       layersByKey: targetState.targetLayersByTargetKey,
       layoutsByKey: projectedLayoutsByKey,
     });
 
-    reconcileTransformGroups(plan.groupsByKey);
+    reconcileTransformGroups(plan.groupsByKey, descriptorsByKey);
     transformProjectedLayoutsByTargetKey.clear();
     transformAttachmentGroupByTargetKey.clear();
 
@@ -1144,10 +1239,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         continue;
       }
 
-      if (
-        attachment?.groupKey &&
-        transformGroupsByKey.has(attachment.groupKey)
-      ) {
+      const group = attachment?.groupKey
+        ? readTransformGroupStateForDescriptor(attachment.groupKey, descriptor)
+        : undefined;
+
+      if (attachment?.groupKey && group) {
         transformProjectedLayoutsByTargetKey.set(
           descriptor.key,
           attachment.layout,
@@ -1167,20 +1263,32 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
   }
 
+  function readSceneAdapterForTarget(
+    descriptor: TargetDescriptor,
+  ): WebGLSceneAdapter {
+    return renderLayers.getSceneAdapterForTarget(descriptor.declaration.sceneId);
+  }
+
+  function readTransformGroupStateForDescriptor(
+    groupKey: string,
+    descriptor: TargetDescriptor,
+  ): RuntimeTransformGroupState | undefined {
+    const state = transformGroupsByKey.get(groupKey);
+
+    if (!state || state.sceneAdapter !== readSceneAdapterForTarget(descriptor)) {
+      return undefined;
+    }
+
+    return state;
+  }
+
   function reconcileTransformGroups(
     nextGroupsByKey: ReadonlyMap<
       string,
       { key: string; parentGroupKey: string | undefined; layout: ProjectedDOMRect }
     >,
+    descriptorsByKey: ReadonlyMap<string, TargetDescriptor>,
   ): void {
-    if (
-      !mainSceneAdapter.createGroup ||
-      !mainSceneAdapter.addGroup
-    ) {
-      removeAllTransformGroups();
-      return;
-    }
-
     const nextKeys = new Set(nextGroupsByKey.keys());
     for (const key of Array.from(transformGroupsByKey.keys())) {
       if (!nextKeys.has(key)) {
@@ -1193,18 +1301,37 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
 
     for (const record of groupRecords) {
-      const parentGroup = record.parentGroupKey
-        ? transformGroupsByKey.get(record.parentGroupKey)?.group
+      const descriptor = descriptorsByKey.get(record.key);
+
+      if (!descriptor) {
+        continue;
+      }
+
+      const sceneAdapter = readSceneAdapterForTarget(descriptor);
+      if (!sceneAdapter.createGroup || !sceneAdapter.addGroup) {
+        removeTransformGroup(record.key);
+        continue;
+      }
+
+      const parentState = record.parentGroupKey
+        ? transformGroupsByKey.get(record.parentGroupKey)
         : undefined;
+      const parentGroup =
+        parentState?.sceneAdapter === sceneAdapter ? parentState.group : undefined;
       let state = transformGroupsByKey.get(record.key);
 
+      if (state && state.sceneAdapter !== sceneAdapter) {
+        removeTransformGroup(record.key);
+        state = undefined;
+      }
+
       if (!state) {
-        const group = mainSceneAdapter.createGroup(record.key);
-        mainSceneAdapter.addGroup(group, parentGroup);
-        state = { group };
+        const group = sceneAdapter.createGroup(record.key);
+        sceneAdapter.addGroup(group, parentGroup);
+        state = { sceneAdapter, group };
         transformGroupsByKey.set(record.key, state);
       } else {
-        mainSceneAdapter.setGroupParent?.(state.group, parentGroup);
+        sceneAdapter.setGroupParent?.(state.group, parentGroup);
       }
 
       updateTransformGroupPosition(state.group.object3D, record.layout);
@@ -1260,9 +1387,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
 
     const groupKey = transformAttachmentGroupByTargetKey.get(descriptor.key);
-    const group = groupKey ? transformGroupsByKey.get(groupKey)?.group : undefined;
+    const group = groupKey
+      ? readTransformGroupStateForDescriptor(groupKey, descriptor)?.group
+      : undefined;
 
-    mainSceneAdapter.setObjectParent?.(sceneObject, group);
+    readSceneAdapterForTarget(descriptor).setObjectParent?.(sceneObject, group);
   }
 
   function readRuntimeEffectTarget(
@@ -1299,7 +1428,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    mainSceneAdapter.removeGroup?.(state.group);
+    state.sceneAdapter.removeGroup?.(state.group);
     transformGroupsByKey.delete(key);
   }
 
@@ -1352,6 +1481,32 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       pointer?.click === true ||
       pointer?.drag === true
     );
+  }
+
+  function unregisterTargetsForScene(sceneId: string): void {
+    for (const descriptor of listTargetsInScanOrder(registry)) {
+      if (descriptor.declaration.sceneId?.trim() === sceneId) {
+        unregisterRuntimeTarget(descriptor.key);
+      }
+    }
+  }
+
+  function unregisterRuntimeTarget(key: string): void {
+    const targetKey = key.trim();
+    const descriptor = registry.get(targetKey);
+
+    registry.unregister(targetKey);
+    rectSkipState.delete(targetKey);
+    invalidationController.unobserveTarget(targetKey);
+    unregisterGateTarget(scrollState, descriptor);
+    layoutCacheKeysByTargetKey.delete(targetKey);
+    transformProjectedLayoutsByTargetKey.delete(targetKey);
+    transformAttachmentGroupByTargetKey.delete(targetKey);
+    restoreFallbackVisibility(targetState, targetKey);
+    targetState.fallbackControllersByTargetKey.delete(targetKey);
+    disposeTargetRenderable(targetState, targetKey);
+    removeTransformGroup(targetKey);
+    unmarkFallbackRoot(targetKey);
   }
 
   function unmarkFallbackRoot(key: string): void {

@@ -62,7 +62,10 @@ import {
 
 ```tsx
 import {
+  WebGLCamera,
+  WebGLRenderPass,
   WebGLRuntime,
+  WebGLScene,
   WebGLTarget,
   useWebGLRuntime,
 } from "<runtime-package>/react";
@@ -164,6 +167,55 @@ Rules:
   `effects: [{ kind: "app.effect", ...params }]`.
 - Nested `WebGLTarget` children are valid. Use them when a WebGL-owned panel,
   card, caption, or marker has its own WebGL child layer.
+
+## Opt-In Managed Scene Integration
+
+Use `WebGLTarget` alone for normal DOM-first effects. Use `WebGLScene` only
+when targets need explicit managed scene/pass ownership:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLScene id="world" defaultPass>
+        <WebGLCamera id="world.camera" default />
+        <WebGLTarget
+          webgl={{
+            key: "world.model",
+            source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+          }}
+        >
+          <div aria-label="World model fallback" />
+        </WebGLTarget>
+      </WebGLScene>
+    </WebGLRuntime>
+  );
+}
+```
+
+Rules:
+
+- `WebGLTarget` inside `WebGLScene` inherits that scene unless
+  `webgl.sceneId` is explicit.
+- Scene-created default passes wait until a default camera is registered.
+- Unmounting `WebGLScene` or calling `runtime.unregisterScene(id)` releases
+  live targets still routed to that scene.
+- Non-React consumers can call `runtime.registerScene(...)`,
+  `runtime.registerCamera(...)`, `runtime.registerRenderPass(...)`, and use
+  `sceneId` on target declarations for the same routing.
+- Phase 2 supports DOM-aligned scene separation only:
+  `projection: "dom-aligned"`, camera `type: "orthographic"`, and
+  `mode: "dom-aligned"`.
+- Projection/stage-local APIs, scene-native models, multiple camera projection
+  policies, pass-scoped postprocess, and raw Three.js scene/camera/renderer
+  handles are not public.
 
 ## Minimal Vanilla Integration
 

@@ -589,6 +589,59 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("attaches managed-scene subtree transform groups through the target scene adapter", async () => {
+    const mainAdapter = createTransformGroupRecordingSceneAdapter();
+    const worldAdapter = createTransformGroupRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, mainAdapter),
+      renderLayerRegistryFactory: () =>
+        createRenderLayerRegistryStub(mainAdapter, {
+          scenes: { world: worldAdapter },
+        }).registry,
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+        ]),
+      ),
+    });
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    title.textContent = "Nested text";
+    card.append(title);
+
+    runtime.registerTarget(card, {
+      key: "card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      sceneId: "world",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(mainAdapter.groupsByKey.size).toBe(0);
+    expect(mainAdapter.objectParentsByKey.get("card.title")).toBeUndefined();
+    expect(worldAdapter.groupsByKey.has("card")).toBe(true);
+    expect(worldAdapter.objectParentsByKey.get("card")).toBe("card");
+    expect(worldAdapter.objectParentsByKey.get("card.title")).toBe("card");
+    expect(readSceneObjectLastLayout(worldAdapter, "card.title")).toEqual({
+      x: 0,
+      y: 24,
+      width: 160,
+      height: 32,
+    });
+
+    runtime.dispose();
+  });
+
   test("removes a parent transform group without disposing still-registered children", async () => {
     const sceneAdapter = createTransformGroupRecordingSceneAdapter();
     const disposeCallsByKey = new Map<string, ReturnType<typeof vi.fn>>();
@@ -3015,6 +3068,208 @@ describe("runtime pipeline sync", () => {
 
     expect(renderPasses).toHaveBeenCalledTimes(1);
     expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledWith(
+      registry.getCamera("main").camera,
+    );
+    runtime.dispose();
+  });
+
+  test("routes targets with sceneId to the managed scene adapter", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: {
+        world: worldAdapter,
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const mainElement = document.createElement("section");
+    const worldElement = document.createElement("section");
+
+    runtime.registerTarget(mainElement, {
+      key: "main.target",
+      source: { kind: "dom", type: "element" },
+    });
+    runtime.registerTarget(worldElement, {
+      key: "world.target",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(mainAdapter.objects.map((object) => object.key)).toEqual(["main.target"]);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.target",
+    ]);
+    runtime.dispose();
+  });
+
+  test("targets without scene declarations still render through generated main", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "level1.surface",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.objects.map((object) => object.key)).toEqual([
+      "level1.surface",
+    ]);
+    runtime.dispose();
+  });
+
+  test("vanilla target sceneId uses the same routing as React inheritance", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const overlayAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { overlay: overlayAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "overlay.title",
+      sceneId: "overlay",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(overlayAdapter.objects.map((object) => object.key)).toEqual([
+      "overlay.title",
+    ]);
+    runtime.dispose();
+  });
+
+  test("debug state includes managed scene ids for routed targets", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "world.target",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "world.target",
+      sceneId: "world",
+    });
+    runtime.dispose();
+  });
+
+  test("unregistering a managed scene releases live targets routed to that scene", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(0, 0, 120, 80),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targetCount).toBe(1);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.card",
+    ]);
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(runtime.getDebugState().targetCount).toBe(0);
+    expect(worldAdapter.objects).toHaveLength(0);
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targetCount).toBe(0);
+    runtime.dispose();
+  });
+
+  test("runtime registers managed scene camera and pass declarations", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry, registerScene, registerCamera, registerRenderPass } =
+      createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerScene({ id: "world", defaultPass: true });
+    runtime.registerCamera({ id: "world.camera", sceneId: "world", default: true });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+    });
+    runtime.unregisterRenderPass("world.pass");
+    runtime.unregisterCamera("world.camera");
+    runtime.unregisterScene("world");
+
+    expect(registerScene).toHaveBeenCalledWith({ id: "world", defaultPass: true });
+    expect(registerCamera).toHaveBeenCalledWith({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+    });
+    expect(registerRenderPass).toHaveBeenCalledWith({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+    });
     runtime.dispose();
   });
 });
@@ -3148,22 +3403,36 @@ function createRecordingSceneAdapter(): WebGLSceneAdapter & {
   };
 }
 
-function createRenderLayerRegistryStub(sceneAdapter: WebGLSceneAdapter): {
+function createRenderLayerRegistryStub(
+  sceneAdapter: WebGLSceneAdapter,
+  options: {
+    scenes?: Record<string, WebGLSceneAdapter>;
+  } = {},
+): {
   registry: InternalRenderLayerRegistry;
   renderPasses: ReturnType<typeof vi.fn>;
+  registerScene: ReturnType<typeof vi.fn>;
+  unregisterScene: ReturnType<typeof vi.fn>;
+  registerCamera: ReturnType<typeof vi.fn>;
+  unregisterCamera: ReturnType<typeof vi.fn>;
+  registerRenderPass: ReturnType<typeof vi.fn>;
+  unregisterRenderPass: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "main",
     generated: true,
     projection: "dom-aligned",
     scene: {},
+    camera: {},
     sceneAdapter,
   } satisfies InternalRenderSceneEntry;
   const mainCamera = {
     id: "main",
     generated: true,
+    sceneId: "main",
     type: "orthographic",
     mode: "dom-aligned",
+    default: true,
     camera: {},
   } satisfies InternalRenderCameraEntry;
   const mainPass = {
@@ -3173,7 +3442,17 @@ function createRenderLayerRegistryStub(sceneAdapter: WebGLSceneAdapter): {
     cameraId: "main",
     order: 0,
   } satisfies InternalRenderPassEntry;
+  const sceneAdapters = new Map<string, WebGLSceneAdapter>([
+    ["main", sceneAdapter],
+    ...Object.entries(options.scenes ?? {}),
+  ]);
   const passes = [mainPass] as const;
+  const registerScene = vi.fn();
+  const registerCamera = vi.fn();
+  const registerRenderPass = vi.fn();
+  const unregisterScene = vi.fn();
+  const unregisterCamera = vi.fn();
+  const unregisterRenderPass = vi.fn();
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
@@ -3184,8 +3463,19 @@ function createRenderLayerRegistryStub(sceneAdapter: WebGLSceneAdapter): {
 
   return {
     registry: {
-      getScene() {
-        return mainScene;
+      getScene(id) {
+        if (id === "main") {
+          return mainScene;
+        }
+
+        return {
+          id,
+          generated: false,
+          projection: "dom-aligned",
+          scene: {},
+          camera: {},
+          sceneAdapter: sceneAdapters.get(id) ?? sceneAdapter,
+        };
       },
       getCamera() {
         return mainCamera;
@@ -3196,9 +3486,26 @@ function createRenderLayerRegistryStub(sceneAdapter: WebGLSceneAdapter): {
       getMainSceneAdapter() {
         return mainScene.sceneAdapter;
       },
+      getSceneAdapterForTarget(sceneId) {
+        return sceneAdapters.get(sceneId ?? "main") ?? sceneAdapter;
+      },
+      registerScene,
+      unregisterScene,
+      registerCamera,
+      unregisterCamera,
+      registerRenderPass,
+      unregisterRenderPass,
+      resize: vi.fn(),
       renderPasses,
+      dispose: vi.fn(),
     },
     renderPasses,
+    registerScene,
+    unregisterScene,
+    registerCamera,
+    unregisterCamera,
+    registerRenderPass,
+    unregisterRenderPass,
   };
 }
 

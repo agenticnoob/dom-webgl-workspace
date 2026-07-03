@@ -43,8 +43,12 @@ Current runtime behavior:
   React creates and disposes the runtime but does not own an animation-frame
   sync loop.
 - DOM element surfaces, DOM text surfaces, media images/videos/image sequences,
-  and GLB models now create
-  runtime-owned visible scene objects in the single internal Three.js scene.
+  and GLB models now create runtime-owned visible scene objects in the implicit
+  generated `main` scene by default.
+- Applications can opt into managed `WebGLScene`, `WebGLCamera`, and
+  `WebGLRenderPass` declarations for DOM-anchored scene/pass ownership. This
+  does not replace the Level 1 `WebGLTarget` path, and it does not expose raw
+  Three.js scene, camera, renderer, pass, or object handles.
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
@@ -548,7 +552,10 @@ import {
   defineWebGLEffect,
 } from "@project/dom-webgl-runtime";
 import {
+  WebGLCamera,
+  WebGLRenderPass,
   WebGLRuntime,
+  WebGLScene,
   WebGLTarget,
   useWebGLRuntime,
 } from "@project/dom-webgl-runtime/react";
@@ -559,6 +566,42 @@ import {
 Runtime source must not import app code or branch on app-only keys/assets.
 Example-specific content belongs under `apps/example` and should reach the
 package only through public declarations.
+
+## Opt-In Managed Scenes
+
+Use `WebGLTarget` alone for normal DOM-first effects. When a target needs
+explicit scene/pass ownership, wrap it in a managed scene and camera:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLTarget,
+} from "@project/dom-webgl-runtime/react";
+
+<WebGLRuntime effects={runtimeEffects}>
+  <WebGLScene id="world" defaultPass>
+    <WebGLCamera id="world.camera" default />
+    <WebGLTarget
+      webgl={{
+        key: "world.model",
+        source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+      }}
+    >
+      <div aria-label="World model fallback" />
+    </WebGLTarget>
+  </WebGLScene>
+</WebGLRuntime>;
+```
+
+Targets inside `WebGLScene` inherit that scene unless `webgl.sceneId` is set
+explicitly. Scene-created default passes wait for a default camera, and
+unregistering or unmounting a managed scene releases targets still routed to
+that scene. Phase 2 managed scenes are DOM-aligned and cameras are
+orthographic/dom-aligned only; projection policies, stage-local placement,
+scene-native models, multiple camera projection policies, pass-scoped
+postprocess, and raw Three.js access remain out of scope.
 
 ## Lifecycle And Fallback Visibility
 

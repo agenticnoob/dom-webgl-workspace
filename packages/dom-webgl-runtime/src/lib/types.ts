@@ -123,8 +123,37 @@ export type WebGLProgressSignalSource = {
   subscribe?(listener: () => void): () => void;
 };
 
+export type WebGLSceneProjection = "dom-aligned";
+
+export type WebGLCameraType = "orthographic";
+
+export type WebGLCameraMode = "dom-aligned";
+
+export type WebGLSceneDeclaration = {
+  id: string;
+  projection?: WebGLSceneProjection;
+  defaultCameraId?: string;
+  defaultPass?: boolean;
+};
+
+export type WebGLCameraDeclaration = {
+  id: string;
+  sceneId: string;
+  type?: WebGLCameraType;
+  mode?: WebGLCameraMode;
+  default?: boolean;
+};
+
+export type WebGLRenderPassDeclaration = {
+  id?: string;
+  sceneId: string;
+  cameraId?: string;
+  order?: number;
+};
+
 export type WebGLDeclaration = {
   key: string;
+  sceneId?: string;
   source?: WebGLSourceDeclaration;
   renderRole?: WebGLRenderRole;
   scroll?: WebGLScrollBehavior;
@@ -176,6 +205,12 @@ export type WebGLRuntimeOptions = {
 
 export type WebGLRuntime = {
   readonly container: HTMLElement;
+  registerScene(declaration: WebGLSceneDeclaration): void;
+  unregisterScene(id: string): void;
+  registerCamera(declaration: WebGLCameraDeclaration): void;
+  unregisterCamera(id: string): void;
+  registerRenderPass(declaration: WebGLRenderPassDeclaration): void;
+  unregisterRenderPass(id: string): void;
   registerTarget(element: HTMLElement, declaration: WebGLDeclaration): void;
   unregisterTarget(key: string): void;
   sync(): void | Promise<void>;
@@ -282,6 +317,7 @@ export type WebGLDebugState = {
   warnings?: WebGLPerformanceWarning[];
   targets: Array<{
     key: string;
+    sceneId?: string;
     sourceKind: string;
     renderRole: WebGLRenderRole;
     resourceStatus: WebGLResourceStatus;

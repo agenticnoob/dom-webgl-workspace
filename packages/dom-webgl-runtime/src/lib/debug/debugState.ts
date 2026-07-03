@@ -12,6 +12,7 @@ import type { TextureUploadTelemetry } from "../render/renderables/textureUpload
 
 export type DebugTargetState = {
   key: string;
+  sceneId?: string;
   sourceKind: string;
   renderRole: WebGLRenderRole;
   resourceStatus: WebGLResourceStatus;
@@ -95,6 +96,10 @@ export function createDebugState(
 
       if (target.parentKey) {
         summary.parentKey = target.parentKey;
+      }
+
+      if (target.sceneId) {
+        summary.sceneId = target.sceneId;
       }
 
       if (target.computedRenderOrder !== undefined) {

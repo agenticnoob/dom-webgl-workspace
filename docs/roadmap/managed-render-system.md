@@ -732,7 +732,7 @@ Status values:
 | --- | --- | --- | --- |
 | Phase 0: Direction and Boundary Alignment | `[verified]` | n/a | Roadmap created, docs reorganized, DOM-first Level 1/2/3 boundary documented. |
 | Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal main scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
-| Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[not-started]` | none | Depends on Phase 1. |
+| Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[not-started]` | none | Depends on Phase 1 and Phase 2. |
 | Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
@@ -853,8 +853,8 @@ Acceptance criteria:
 
 ### Phase 2: Opt-In Scene, Camera, and Pass Declarations
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md)
 - **Depends on:** Phase 1
 - **Last updated:** 2026-07-03
 - **Exit criteria:** managed React declarations can opt into scene/camera/pass
@@ -873,13 +873,13 @@ Public direction:
   </WebGLTarget>
 
   <WebGLScene id="world">
-    <WebGLCamera id="main" default type="perspective" />
+    <WebGLCamera id="world.camera" default type="orthographic" mode="dom-aligned" />
     <WebGLTarget webgl={{ key: "model", source }}>
       <div className="model-fallback" />
     </WebGLTarget>
   </WebGLScene>
 
-  <WebGLRenderPass scene="world" />
+  <WebGLRenderPass scene="world" camera="world.camera" />
 </WebGLRuntime>
 ```
 
@@ -888,10 +888,16 @@ Rules:
 - `WebGLTarget` inherits nearest `WebGLScene`.
 - `WebGLTarget` outside any `WebGLScene` remains valid and uses the implicit
   Level 1 `main` scene.
+- Unregistering a managed scene releases live targets still routed to that
+  scene.
 - `WebGLScene` can declare a default camera.
 - `WebGLRenderPass` picks scene and camera.
-- Scenes other than `main` do not render unless explicitly passed.
+- Scenes other than `main` do not render unless explicitly passed or declared
+  with `defaultPass`.
 - Runtime descriptor API should support the same model without React context.
+- Phase 2 supports only DOM-aligned scenes and orthographic DOM-aligned cameras;
+  projection policies, screen overlays, perspective stages, stage-local
+  placement, and multiple camera projection policies belong to later phases.
 
 Acceptance criteria:
 
@@ -899,6 +905,19 @@ Acceptance criteria:
 - New tests prove target scene inheritance.
 - New tests prove duplicate scene/camera ids produce controlled diagnostics.
 - Public contract tests reject raw `THREE.Scene` and `THREE.Camera` handles.
+
+Completion notes:
+
+- React exports `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass`.
+- Vanilla runtimes can register equivalent scene, camera, and pass descriptors.
+- `WebGLTarget` inherits nearest React scene context when `webgl.sceneId` is
+  absent; explicit `sceneId` gives vanilla parity.
+- Targets outside managed scenes still render through generated `main`.
+- Managed DOM-aligned scene cameras resize with the runtime viewport, and
+  subtree transform groups stay inside their target scene adapter.
+- Scene-created default passes wait until a default camera is registered.
+- Phase 2 keeps projection scope narrow: `dom-aligned` scenes and
+  orthographic/dom-aligned cameras only. Projection policies remain Phase 3.
 
 ### Phase 3: Projection Policies
 

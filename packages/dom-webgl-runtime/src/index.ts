@@ -74,6 +74,9 @@ export type {
 } from "./lib/effects/effectObject";
 export type { WebGLDebugState } from "./lib/types";
 export type {
+  WebGLCameraDeclaration,
+  WebGLCameraMode,
+  WebGLCameraType,
   WebGLDeclaration,
   WebGLEffectsDeclaration,
   WebGLFrameInput,
@@ -94,6 +97,7 @@ export type {
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
   WebGLProgressSignalSource,
+  WebGLRenderPassDeclaration,
   WebGLRenderRole,
   WebGLResourceStatus,
   WebGLRuntime,
@@ -106,6 +110,8 @@ export type {
   WebGLOffscreenLifecycleDeclaration,
   WebGLOffscreenStrategy,
   WebGLImageSequenceFrame,
+  WebGLSceneDeclaration,
+  WebGLSceneProjection,
   WebGLSourceDeclaration,
   WebGLTransformScope,
 } from "./lib/types";

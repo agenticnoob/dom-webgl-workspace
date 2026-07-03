@@ -10,6 +10,18 @@ export {
   WebGLTarget,
   type WebGLTargetProps,
 } from "./lib/react/WebGLTarget";
+export {
+  WebGLScene,
+  type WebGLSceneProps,
+} from "./lib/react/WebGLScene";
+export {
+  WebGLCamera,
+  type WebGLCameraProps,
+} from "./lib/react/WebGLCamera";
+export {
+  WebGLRenderPass,
+  type WebGLRenderPassProps,
+} from "./lib/react/WebGLRenderPass";
 export { useWebGLRuntime } from "./lib/react/useWebGLRuntime";
 export {
   WebGLDebugPanel,

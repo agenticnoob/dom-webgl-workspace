@@ -140,6 +140,12 @@ function createPendingRuntime(): RuntimeInstance {
 
   return {
     container,
+    registerScene() {},
+    unregisterScene() {},
+    registerCamera() {},
+    unregisterCamera() {},
+    registerRenderPass() {},
+    unregisterRenderPass() {},
     registerTarget(_element: HTMLElement, _declaration: WebGLDeclaration) {},
     unregisterTarget() {},
     sync() {},

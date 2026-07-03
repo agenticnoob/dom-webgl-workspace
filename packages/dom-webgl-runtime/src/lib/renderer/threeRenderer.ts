@@ -59,6 +59,14 @@ export type ThreeRendererHost = {
   dispose(): void;
 };
 
+export type ManagedThreeSceneAdapterEntry = {
+  readonly scene: object;
+  readonly camera: object;
+  readonly sceneAdapter: WebGLSceneAdapter;
+  resize(viewport: DOMViewportSize): void;
+  dispose(): void;
+};
+
 export function createThreeRendererHost(
   container: HTMLElement,
   options: ThreeRendererHostOptions = {},
@@ -127,6 +135,27 @@ export function createThreeRendererHost(
       objects.renderer.dispose();
       restoreDOMStageLayer();
       canvas.remove();
+    },
+  };
+}
+
+export function createManagedDomAlignedSceneAdapter(
+  renderer: ThreeRendererAdapter,
+): ManagedThreeSceneAdapterEntry {
+  const scene = new Scene();
+  configureDefaultSceneLighting(scene);
+  const camera = new OrthographicCamera(0, 800, 600, 0, 0.1, 1000);
+  const sceneAdapter = createThreeSceneAdapter(scene, camera, renderer);
+
+  return {
+    scene,
+    camera,
+    sceneAdapter,
+    resize(viewport) {
+      configureOrthographicCamera(camera, viewport.width, viewport.height);
+    },
+    dispose() {
+      clearSceneObjects(scene);
     },
   };
 }
@@ -478,8 +507,8 @@ function createThreeSceneAdapter(
 
       addToRoot(group.object3D ?? group);
     },
-    render(): void {
-      renderer.render?.(scene, camera);
+    render(cameraOverride?: object): void {
+      renderer.render?.(scene, cameraOverride ?? camera);
     },
   };
 
@@ -504,6 +533,19 @@ function createThreeSceneAdapter(
     }
 
     readSceneMethod(scene, "remove")?.(object);
+  }
+}
+
+function clearSceneObjects(scene: object): void {
+  const children = (scene as { children?: unknown }).children;
+  const remove = readSceneMethod(scene, "remove");
+
+  if (!Array.isArray(children) || !remove) {
+    return;
+  }
+
+  for (const child of [...children]) {
+    remove(child);
   }
 }
 

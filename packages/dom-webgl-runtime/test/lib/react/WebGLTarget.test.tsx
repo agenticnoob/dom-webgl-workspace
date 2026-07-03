@@ -228,6 +228,36 @@ describe("WebGLTarget", () => {
     expect(isManagedFallbackRoot(host.querySelector("#child")!)).toBe(true);
   });
 
+  test("inherits the nearest WebGLScene id when no explicit sceneId is provided", async () => {
+    const { WebGLRuntimeProvider, WebGLScene, WebGLTarget } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "world" },
+            createElement(WebGLTarget, {
+              id: "world-target",
+              webgl: { key: "world.target" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(
+      host.querySelector("#world-target"),
+      { key: "world.target", sceneId: "world" },
+    );
+  });
+
   test("keeps runtime internals out of the React public entrypoint", async () => {
     const reactEntrypoint = await import("../../../src/react");
 
@@ -253,6 +283,12 @@ function createRuntimeStub(): WebGLRuntime & {
 } {
   return {
     container: document.createElement("div"),
+    registerScene: vi.fn(),
+    unregisterScene: vi.fn(),
+    registerCamera: vi.fn(),
+    unregisterCamera: vi.fn(),
+    registerRenderPass: vi.fn(),
+    unregisterRenderPass: vi.fn(),
     registerTarget: vi.fn((element: HTMLElement, declaration: WebGLDeclaration) =>
       createTargetDescriptor(element, declaration, 0),
     ),

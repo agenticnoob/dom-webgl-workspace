@@ -29,7 +29,7 @@ export type WebGLSceneAdapter = {
   removeGroup?(group: WebGLSceneGroup): void;
   setObjectParent?(object: WebGLSceneObject, parent?: WebGLSceneGroup): void;
   setGroupParent?(group: WebGLSceneGroup, parent?: WebGLSceneGroup): void;
-  render(): void;
+  render(camera?: object): void;
 };
 
 export type WebGLSceneObjectController = {

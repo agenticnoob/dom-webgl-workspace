@@ -516,6 +516,12 @@ function createRuntimeStub(container: HTMLElement): RuntimeInstance {
 
   return {
     container,
+    registerScene: vi.fn(),
+    unregisterScene: vi.fn(),
+    registerCamera: vi.fn(),
+    unregisterCamera: vi.fn(),
+    registerRenderPass: vi.fn(),
+    unregisterRenderPass: vi.fn(),
     registerTarget: vi.fn(),
     unregisterTarget: vi.fn(),
     sync: vi.fn(),

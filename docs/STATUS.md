@@ -12,7 +12,7 @@ phase records are archived under [archive/](./archive/).
   orthographic camera, and one renderer.
 - Internally, the default Level 1 render path is represented as generated
   `main` scene, `main` DOM-aligned camera, and `main` render pass entries.
-  These are not public declarations.
+  Additional managed scenes, cameras, and passes can be declared explicitly.
 - Public effect authoring goes through `defineWebGLEffect(...)` and the managed
   `ctx.object` facade.
 - Runtime internals remain private: renderer, scene, camera, Object3D, Mesh,
@@ -49,9 +49,28 @@ phase records are archived under [archive/](./archive/).
 - Transform groups:
   - `transformScope: "subtree"` creates an internal runtime group
   - no public scene graph, group, matrix, or raw Three.js handle is exposed
+- Opt-in managed render declarations:
+  - React exports `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass`
+  - vanilla runtime exposes `registerScene`, `registerCamera`, and
+    `registerRenderPass` plus matching unregister methods
+  - `WebGLTarget` inherits the nearest React `WebGLScene` when `webgl.sceneId`
+    is absent; vanilla targets can set `sceneId` explicitly
+  - managed DOM-aligned scene cameras resize with the runtime viewport, and
+    `transformScope: "subtree"` groups stay inside the target's scene adapter
+  - scene-created default passes wait until a default camera is registered
+  - unregistering a managed scene releases live targets still routed to that
+    scene
+  - target debug summaries can expose `sceneId`, but not raw scene/camera/pass
+    objects
 
 ## Active Caveats
 
+- Phase 2 managed scenes support only `projection: "dom-aligned"`,
+  `type: "orthographic"`, and `mode: "dom-aligned"`. Screen, perspective,
+  stage-local placement, scene-native models, multiple camera projection
+  policies, and projection policies remain later roadmap phases.
+- Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
+  shortest and default DOM-first path.
 - `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
   full WebGL canvas and should not be treated as target/model-local glow.
 - Model-local glow should use material/emissive controls and runtime-owned
@@ -74,8 +93,9 @@ phase records are archived under [archive/](./archive/).
 The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
 Use that roadmap's `Roadmap Status` table as the source of truth for what has
 not started, what has a focused plan, what is in progress, and what is verified.
-Phase 1 internal render layer foundations are verified. The public API remains
-unchanged while the default Level 1 path now flows through internal generated
+Phase 1 internal render layer foundations are verified. Phase 2 opt-in
+scene/camera/pass declarations are verified behind managed descriptors while
+the default Level 1 path still flows through internal generated
 scene/camera/pass entries.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`

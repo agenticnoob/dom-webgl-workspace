@@ -317,6 +317,47 @@ describe("createThreeRendererHost", () => {
     host.dispose();
   });
 
+  test("resizes managed DOM-aligned scene cameras to the runtime viewport", async () => {
+    const scene = { add: vi.fn() };
+    const camera = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      position: { set: vi.fn() },
+      updateProjectionMatrix: vi.fn(),
+    };
+    const Scene = vi.fn(() => scene);
+    const OrthographicCamera = vi.fn(() => camera);
+
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
+    }));
+    vi.doMock("three/src/scenes/Scene.js", () => ({ Scene }));
+
+    const { createManagedDomAlignedSceneAdapter } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedDomAlignedSceneAdapter({
+      canvas: document.createElement("canvas"),
+      render: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    managed.resize({ width: 375, height: 812 });
+
+    expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
+    expect(camera).toMatchObject({
+      left: 0,
+      right: 375,
+      top: 812,
+      bottom: 0,
+    });
+    expect(camera.position.set).toHaveBeenLastCalledWith(0, 0, 500);
+    expect(camera.updateProjectionMatrix).toHaveBeenCalled();
+
+    managed.dispose();
+  });
+
   test("caps renderer pixel ratio at 1.5", async () => {
     const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
     const setPixelRatio = vi.fn();

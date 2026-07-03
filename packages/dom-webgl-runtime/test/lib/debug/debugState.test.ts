@@ -156,6 +156,33 @@ describe("debug state", () => {
     ]);
   });
 
+  test("includes managed scene ids without exposing scene objects", () => {
+    const state = createDebugState({
+      targetCount: 1,
+      renderableCount: 1,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      targets: [
+        {
+          key: "world.target",
+          sceneId: "world",
+          sourceKind: "dom/element",
+          renderRole: "surface",
+          resourceStatus: "ready",
+          lifecycleState: "active",
+          visible: true,
+        },
+      ],
+    });
+
+    expect(state.targets[0]).toMatchObject({
+      key: "world.target",
+      sceneId: "world",
+    });
+    expect(state.targets[0]).not.toHaveProperty("scene");
+    expect(state.targets[0]).not.toHaveProperty("camera");
+  });
+
   test("reports active gate fields only for gate scroll mode", () => {
     const gateState: DebugRuntimeState = {
       targetCount: 0,

@@ -9,7 +9,8 @@ implementation policy.
 
 - Use public package entrypoints only.
 - Root entrypoint owns vanilla runtime creation and effect authoring.
-- React entrypoint owns React runtime/provider/target components.
+- React entrypoint owns React runtime/provider/target plus opt-in
+  scene/camera/pass declaration components.
 - Applications own concrete visual effects.
 - The package owns layout measurement, runtime lifecycle, internal source/target
   assembly, frame input, pointer state, scroll state, managed resources, and the
@@ -73,10 +74,16 @@ import {
   type WebGLEffectContext,
   type WebGLEffectDefinition,
   type WebGLEffectSchedule,
+  type WebGLCameraDeclaration,
+  type WebGLCameraMode,
+  type WebGLCameraType,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
+  type WebGLRenderPassDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
+  type WebGLSceneDeclaration,
+  type WebGLSceneProjection,
   type WebGLTransformScope,
 } from "<runtime-package>";
 ```
@@ -85,7 +92,10 @@ Use for React:
 
 ```tsx
 import {
+  WebGLCamera,
+  WebGLRenderPass,
   WebGLRuntime,
+  WebGLScene,
   WebGLTarget,
   useWebGLRuntime,
 } from "<runtime-package>/react";
@@ -166,7 +176,7 @@ debug state.
 
 ## Runtime Setup
 
-There are three supported consumer levels.
+There are four supported consumer routes.
 
 ### 1. Plain Runtime
 
@@ -233,7 +243,99 @@ Rules:
   WebGL-owned panels, cards, captions, or markers with child layers instead of
   manually adding child Object3D instances from a parent effect.
 
-### 2. High-Level Pinned Scroll React Adapter
+### 2. Opt-In Managed Scene Ownership
+
+Use this route only when DOM-backed targets need explicit scene/pass ownership.
+Plain `WebGLTarget` remains the shortest path.
+
+React:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLRenderPass,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLScene id="world" defaultPass>
+        <WebGLCamera id="world.camera" default />
+        <WebGLTarget
+          webgl={{
+            key: "world.model",
+            source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+          }}
+        >
+          <div aria-label="World model fallback" />
+        </WebGLTarget>
+      </WebGLScene>
+
+      <WebGLScene id="overlay">
+        <WebGLCamera id="overlay.camera" default />
+        <WebGLTarget
+          webgl={{
+            key: "overlay.title",
+            source: { kind: "dom", type: "text" },
+          }}
+        >
+          Overlay title
+        </WebGLTarget>
+      </WebGLScene>
+      <WebGLRenderPass
+        id="overlay.pass"
+        scene="overlay"
+        camera="overlay.camera"
+        order={1}
+      />
+    </WebGLRuntime>
+  );
+}
+```
+
+Vanilla:
+
+```ts
+runtime.registerScene({ id: "world", defaultPass: true });
+runtime.registerCamera({
+  id: "world.camera",
+  sceneId: "world",
+  default: true,
+});
+runtime.registerRenderPass({
+  id: "world.pass",
+  sceneId: "world",
+  cameraId: "world.camera",
+});
+runtime.registerTarget(element, {
+  key: "world.model",
+  sceneId: "world",
+  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+});
+```
+
+Rules:
+
+- `WebGLTarget` inside `WebGLScene` inherits that scene unless
+  `webgl.sceneId` is explicit.
+- Targets outside `WebGLScene` use the generated Level 1 `main` scene.
+- Unregistering or unmounting a managed scene releases live targets still
+  routed to that scene.
+- Phase 2 supports only `projection: "dom-aligned"`,
+  `type: "orthographic"`, and `mode: "dom-aligned"`.
+- A scene renders through `defaultPass` or an explicit `WebGLRenderPass`;
+  scene-created default passes wait until a default camera is registered.
+- `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
+  not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
+  object, material, composer, render target, or pass objects.
+- Projection policies, screen/perspective cameras, stage-local placement,
+  scene-native `WebGLModel`, multiple camera projection policies, pass-scoped
+  postprocess, and scoped `ctx.scene`/`ctx.camera` effects remain later phases.
+
+### 3. High-Level Pinned Scroll React Adapter
 
 For the normal "pinned section drives an effect" story, use
 `<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
@@ -319,7 +421,7 @@ Rules:
 - If `WebGLScrollRuntime` receives an advanced `scrollAdapter`, it bypasses its
   built-in smooth-stack creation and forwards that adapter to the runtime.
 
-### 3. Advanced Manual `scrollAdapter`
+### 4. Advanced Manual `scrollAdapter`
 
 Use a scroll adapter only when the application already owns a third-party
 scroll system:

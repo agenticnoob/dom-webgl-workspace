@@ -23,6 +23,9 @@ describe("public package exports", () => {
 
     expect(reactApi.WebGLRuntime).toEqual(expect.any(Function));
     expect(reactApi.WebGLTarget).toEqual(expect.any(Function));
+    expect(reactApi.WebGLScene).toEqual(expect.any(Function));
+    expect(reactApi.WebGLCamera).toEqual(expect.any(Function));
+    expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
@@ -52,9 +55,23 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-		        import { WebGLRuntime, WebGLTarget } from "${importPath}";
-		        import type { WebGLRuntimeProps, WebGLTargetProps } from "${importPath}";
-		        import type { ReactElement } from "react";
+        import {
+          WebGLCamera,
+          WebGLRenderPass,
+          WebGLRuntime,
+          WebGLScene,
+          WebGLTarget,
+        } from "${importPath}";
+        import type {
+          WebGLCameraProps,
+          WebGLRenderPassProps,
+          WebGLRuntimeProps,
+          WebGLSceneProps,
+          WebGLTargetProps,
+        } from "${importPath}";
+        import type { ReactElement } from "react";
+        import type { Camera as ThreeCamera } from "three/src/cameras/Camera.js";
+        import type { Scene as ThreeScene } from "three/src/scenes/Scene.js";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
         // @ts-expect-error Scene objects are internal renderer state.
@@ -79,17 +96,13 @@ describe("public package exports", () => {
         import type { InternalRenderCameraEntry } from "${importPath}";
         // @ts-expect-error Internal render passes are not public declarations.
         import type { InternalRenderPassEntry } from "${importPath}";
-        // @ts-expect-error WebGLScene is not a public Phase 1 API.
-        import type { WebGLScene } from "${importPath}";
-        // @ts-expect-error WebGLCamera is not a public Phase 1 API.
-        import type { WebGLCamera } from "${importPath}";
-        // @ts-expect-error WebGLRenderPass is not a public Phase 1 API.
-        import type { WebGLRenderPass } from "${importPath}";
-
-		        WebGLRuntime satisfies unknown;
-		        WebGLTarget satisfies unknown;
-		        declare const effects: WebGLRuntimeProps["effects"];
-		        declare const progressSignals: WebGLRuntimeProps["progressSignals"];
+        WebGLRuntime satisfies unknown;
+        WebGLTarget satisfies unknown;
+        WebGLScene satisfies unknown;
+        WebGLCamera satisfies unknown;
+        WebGLRenderPass satisfies unknown;
+        declare const effects: WebGLRuntimeProps["effects"];
+        declare const progressSignals: WebGLRuntimeProps["progressSignals"];
 
 		        const runtimeElement = (
 		          <WebGLRuntime effects={effects} progressSignals={progressSignals}>
@@ -104,10 +117,86 @@ describe("public package exports", () => {
 		          </WebGLRuntime>
 		        );
 
-		        runtimeElement satisfies ReactElement;
+        runtimeElement satisfies ReactElement;
 
-		const props = {
-		  webgl: {
+        const levelTwoElement = (
+          <WebGLRuntime effects={effects} progressSignals={progressSignals}>
+            <WebGLTarget
+              webgl={{
+                key: "level1.title",
+                source: { kind: "dom", type: "text" },
+              }}
+            >
+              Level 1 still works
+            </WebGLTarget>
+
+            <WebGLScene id="world" defaultPass>
+              <WebGLCamera id="world.camera" default />
+              <WebGLTarget
+                webgl={{
+                  key: "world.model",
+                  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+                }}
+              >
+                <div />
+              </WebGLTarget>
+            </WebGLScene>
+
+            <WebGLScene id="overlay">
+              <WebGLCamera id="overlay.camera" default />
+              <WebGLTarget
+                webgl={{
+                  key: "overlay.title",
+                  source: { kind: "dom", type: "text" },
+                }}
+              >
+                Overlay title
+              </WebGLTarget>
+            </WebGLScene>
+            <WebGLRenderPass
+              id="overlay.pass"
+              scene="overlay"
+              camera="overlay.camera"
+              order={1}
+            />
+          </WebGLRuntime>
+        );
+
+        levelTwoElement satisfies ReactElement;
+
+        const sceneProps = {
+          id: "world",
+          defaultPass: true,
+        } satisfies WebGLSceneProps;
+        sceneProps satisfies WebGLSceneProps;
+
+        const cameraProps = {
+          id: "world.camera",
+          default: true,
+          type: "orthographic",
+          mode: "dom-aligned",
+        } satisfies WebGLCameraProps;
+        cameraProps satisfies WebGLCameraProps;
+
+        const passProps = {
+          id: "world.pass",
+          scene: "world",
+          camera: "world.camera",
+          order: 0,
+        } satisfies WebGLRenderPassProps;
+        passProps satisfies WebGLRenderPassProps;
+
+        declare const rawScene: ThreeScene;
+        declare const rawCamera: ThreeCamera;
+
+        // @ts-expect-error WebGLScene does not accept a raw Three scene handle.
+        const rawSceneProps = { id: "raw", scene: rawScene } satisfies WebGLSceneProps;
+
+        // @ts-expect-error WebGLCamera does not accept a raw Three camera handle.
+        const rawCameraProps = { id: "raw.camera", camera: rawCamera } satisfies WebGLCameraProps;
+
+	const props = {
+	  webgl: {
 		    key: "hero.gate",
 		    scroll: {
 		      type: "gate",
@@ -194,9 +283,12 @@ describe("public package exports", () => {
 		          createWebGLRuntime,
 		          defineWebGLEffect,
 		        } from "${importPath}";
-			        import type {
-				          WebGLDebugState,
-				          WebGLDeclaration,
+				        import type {
+                  WebGLCameraDeclaration,
+                  WebGLCameraMode,
+                  WebGLCameraType,
+					          WebGLDebugState,
+					          WebGLDeclaration,
 				          WebGLEffectAmbientLightRequest,
 				          WebGLEffectAnimationFacade,
 				          WebGLEffectAnimationPlayOptions,
@@ -270,9 +362,10 @@ describe("public package exports", () => {
 	          WebGLTargetPointerState,
 	          WebGLProgressSignalSource,
 	          WebGLRenderRole,
-          WebGLResourceStatus,
-          WebGLRuntime,
-          WebGLRuntimeOptions,
+	          WebGLRenderPassDeclaration,
+	          WebGLResourceStatus,
+	          WebGLRuntime,
+	          WebGLRuntimeOptions,
           WebGLScrollAdapter,
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
@@ -280,7 +373,9 @@ describe("public package exports", () => {
 	          WebGLScrollMetrics,
           WebGLTransformScope,
 		          WebGLSourceDeclaration,
-	          WebGLTextGlyph,
+		          WebGLSceneDeclaration,
+		          WebGLSceneProjection,
+		          WebGLTextGlyph,
 	          WebGLTextGlyphRenderCommand,
 	          WebGLTextLayerStyle,
 		        } from "${importPath}";
@@ -340,11 +435,11 @@ describe("public package exports", () => {
         import type { InternalRenderCameraEntry } from "${importPath}";
         // @ts-expect-error Internal render passes are not public declarations.
         import type { InternalRenderPassEntry } from "${importPath}";
-        // @ts-expect-error WebGLScene is not a public Phase 1 API.
+        // @ts-expect-error React WebGLScene is exported only from the React entrypoint.
         import type { WebGLScene } from "${importPath}";
-        // @ts-expect-error WebGLCamera is not a public Phase 1 API.
+        // @ts-expect-error React WebGLCamera is exported only from the React entrypoint.
         import type { WebGLCamera } from "${importPath}";
-        // @ts-expect-error WebGLRenderPass is not a public Phase 1 API.
+        // @ts-expect-error React WebGLRenderPass is exported only from the React entrypoint.
         import type { WebGLRenderPass } from "${importPath}";
 
         createWebGLRuntime satisfies (
@@ -378,7 +473,38 @@ describe("public package exports", () => {
             return key === "section.reveal" ? 0.5 : 0;
           },
         } satisfies WebGLProgressSignalSource;
-	        const runtimeOptionsWithScrollAdapter = {
+        const sceneDeclaration = {
+          id: "world",
+          defaultCameraId: "world.camera",
+          defaultPass: true,
+        } satisfies WebGLSceneDeclaration;
+
+        const cameraDeclaration = {
+          id: "world.camera",
+          sceneId: "world",
+          default: true,
+          type: "orthographic",
+          mode: "dom-aligned",
+        } satisfies WebGLCameraDeclaration;
+
+        const passDeclaration = {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 0,
+        } satisfies WebGLRenderPassDeclaration;
+
+        const projection = "dom-aligned" satisfies WebGLSceneProjection;
+        const cameraType = "orthographic" satisfies WebGLCameraType;
+        const cameraMode = "dom-aligned" satisfies WebGLCameraMode;
+
+        sceneDeclaration satisfies WebGLSceneDeclaration;
+        cameraDeclaration satisfies WebGLCameraDeclaration;
+        passDeclaration satisfies WebGLRenderPassDeclaration;
+        projection satisfies WebGLSceneProjection;
+        cameraType satisfies WebGLCameraType;
+        cameraMode satisfies WebGLCameraMode;
+		        const runtimeOptionsWithScrollAdapter = {
 	          container: document.createElement("div"),
 	          scrollAdapter,
 	          progressSignals,
