@@ -69,12 +69,19 @@ phase records are archived under [archive/](./archive/).
 ## Active Direction
 
 The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
+Use that roadmap's `Roadmap Status` table as the source of truth for what has
+not started, what has a focused plan, what is in progress, and what is verified.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
 user-authored scenes, cameras, or render passes. Managed scene/camera/stage APIs
 are opt-in escalation for DOM-anchored scenes and advanced stage-local 3D
 islands, not a replacement for DOM-driven authoring.
+
+API design should stay agent-first, React-like, and Three-like: declarative
+components and descriptors, explicit ownership and scope, familiar Three.js
+vocabulary where it helps, runtime-owned lifecycle, and small cohesive modules
+without premature generalized render-graph or raw Three.js escape hatches.
 
 Relationship rules from the active roadmap:
 

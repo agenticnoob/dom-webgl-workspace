@@ -23,6 +23,59 @@ This is not a React Three Fiber clone and not a raw Three.js wrapper. The packag
 may borrow Three.js and R3F vocabulary where it improves authoring clarity, but
 the public contract must stay descriptor-driven and runtime-managed.
 
+## Authoring and API Guardrails
+
+The roadmap is agent-first and consumer-first. Future APIs should be easy for an
+AI agent or application author to compose correctly without needing hidden
+runtime knowledge, raw Three.js ownership, or a large mental model.
+
+React authoring should follow React's mental model:
+
+- declarations describe desired runtime state;
+- component nesting communicates ownership and inheritance where it is natural;
+- props stay serializable or descriptor-like whenever possible;
+- mount, update, and unmount map cleanly to runtime registration, sync, and
+  disposal;
+- stable identity is explicit through ids/keys, not inferred from render order;
+- ordinary Level 1 usage should not require imperative refs, effects, or custom
+  lifecycle wiring.
+
+Public API shape should reduce consumer mental load:
+
+- keep the shortest path short: `WebGLTarget` remains enough for DOM-backed
+  effects;
+- require scene/camera/pass vocabulary only when the consumer opts into that
+  level;
+- prefer defaults that match current behavior over mandatory configuration;
+- make scope explicit in names and placement: target, scene, camera, pass,
+  runtime, timeline, and stage-local behavior should not be ambiguous;
+- reject APIs that make simple examples explain advanced rendering concepts;
+- expose one clear way to do the common case before adding aliases or escape
+  hatches.
+
+Three-like vocabulary is preferred where it helps comprehension:
+
+- use familiar names such as `position`, `rotation`, `scale`, `material`,
+  `lights`, `camera`, `scene`, `animation`, and `renderPass`;
+- keep the meaning close to Three.js when practical, but expose managed
+  descriptors and controlled facades instead of raw instances;
+- avoid inventing new terms when a Three.js term is already accurate and safe;
+- do not mirror Three.js APIs mechanically if that would expose lifecycle,
+  mutation, resource ownership, render-loop, or disposal responsibilities.
+
+Implementation should follow ordinary software design discipline:
+
+- keep modules small, cohesive, and responsible for one concern;
+- keep renderer internals, React adapters, descriptor normalization, resource
+  management, input, scroll, and effect scheduling decoupled;
+- prefer explicit data flow over cross-module hidden state;
+- introduce abstractions only after they remove real duplication or isolate a
+  real ownership boundary;
+- do not build a generalized render graph, plugin system, or raw escape hatch
+  before concrete phases prove the need;
+- every new capability needs focused tests at the descriptor/normalization and
+  runtime behavior boundary that changed.
+
 ## DOM-First Boundary
 
 The roadmap must not move the product center away from DOM-driven authoring.
@@ -661,6 +714,44 @@ Make these explicit opt-in capabilities:
 Do not promote an opt-in capability to default unless it improves Level 1
 DOM-target usage without adding required concepts to existing consumers.
 
+## Roadmap Status
+
+Status values:
+
+```text
+[not-started]  Direction exists, but no focused implementation plan exists.
+[planned]      A focused plan exists under docs/superpowers/plans/.
+[in-progress]  Tests or implementation are underway.
+[implemented]  Code is written, but verification/docs/commit may not be closed.
+[verified]     Tests, docs, and commit are closed for that phase.
+[blocked]      The phase has a concrete blocker.
+[superseded]   A later design replaced this phase.
+```
+
+| Phase | Status | Focused Plan | Notes |
+| --- | --- | --- | --- |
+| Phase 0: Direction and Boundary Alignment | `[verified]` | n/a | Roadmap created, docs reorganized, DOM-first Level 1/2/3 boundary documented. |
+| Phase 1: Internal Render Layer Foundations | `[not-started]` | none | Next recommended implementation phase. |
+| Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[not-started]` | none | Depends on Phase 1. |
+| Phase 3: Projection Policies | `[not-started]` | none | Depends on Phase 1 and Phase 2. |
+| Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
+| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
+| Phase 6: Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract. |
+| Phase 7: Managed Model Animation | `[not-started]` | none | Can start after Phase 5; advanced morph/bone work may depend on Phase 8/9. |
+| Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
+| Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
+| Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
+
+Rules for future updates:
+
+- Every implementation loop must start by reading this table.
+- When a focused plan is created, update the phase to `[planned]` and link it.
+- When tests or code begin, update the phase to `[in-progress]`.
+- When implementation is complete but not fully verified, use `[implemented]`.
+- Only use `[verified]` after tests, docs, and commit are closed.
+- Do not infer status from memory or archived plans; update this table as the
+  source of truth.
+
 ## Roadmap
 
 Phase dependency order:
@@ -692,6 +783,13 @@ Ordering rules:
 
 ### Phase 0: Direction and Boundary Alignment
 
+- **Status:** `[verified]`
+- **Focused plan:** n/a
+- **Depends on:** roadmap discussion
+- **Last updated:** 2026-07-03
+- **Exit criteria:** roadmap exists, DOM-first boundary is documented, completed
+  plans are archived, active docs point to this roadmap.
+
 Goal: make the final model clear before implementation.
 
 Deliverables:
@@ -716,6 +814,14 @@ Validation:
 - `git diff --check` is enough for this docs-only phase.
 
 ### Phase 1: Internal Render Layer Foundations
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 0
+- **Last updated:** 2026-07-03
+- **Exit criteria:** internal scene/camera/pass registries exist with one generated
+  `main` scene, one generated `main` camera, and one generated `main` pass;
+  public API and Level 1 `WebGLTarget` behavior are unchanged.
 
 Goal: refactor internal state to make scene/camera/pass concepts explicit while
 preserving current behavior.
@@ -746,6 +852,14 @@ Acceptance criteria:
 - No consumer-visible multi-scene feature is required yet.
 
 ### Phase 2: Opt-In Scene, Camera, and Pass Declarations
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 1
+- **Last updated:** 2026-07-03
+- **Exit criteria:** managed React declarations can opt into scene/camera/pass
+  ownership without requiring Level 1 users to author scenes, cameras, or
+  passes.
 
 Goal: add managed React declarations without exposing raw Three.js objects or
 making Level 1 users author scenes, cameras, or passes.
@@ -788,6 +902,13 @@ Acceptance criteria:
 
 ### Phase 3: Projection Policies
 
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 1, Phase 2
+- **Last updated:** 2026-07-03
+- **Exit criteria:** projection policies and placement modes are explicit,
+  testable, and preserve current DOM rect behavior for Level 1.
+
 Goal: formalize how DOM rects map into each managed scene/camera type.
 
 Deliverables:
@@ -814,6 +935,13 @@ Acceptance criteria:
 - Perspective stage mapping has explicit, testable math.
 
 ### Phase 4: Managed Stage Primitives
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 3
+- **Last updated:** 2026-07-03
+- **Exit criteria:** runtime-owned lit stage primitives can coexist with GLB
+  models without exposing raw meshes, materials, or lights.
 
 Goal: introduce real lit scene substrate.
 
@@ -866,6 +994,13 @@ Acceptance criteria:
 
 ### Phase 5: Target Routing, Scroll Timelines, and Effect Scope
 
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 2, Phase 3
+- **Last updated:** 2026-07-03
+- **Exit criteria:** target, scene, camera, runtime, and timeline scopes are
+  explicit; current `ScrollEffectSection` usage remains compatible.
+
 Goal: make target, scene, camera, runtime, and timeline scopes explicit.
 
 Deliverables:
@@ -905,6 +1040,14 @@ Acceptance criteria:
 - Public tests reject raw scene/camera access.
 
 ### Phase 6: Postprocess Scope Correction
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 5
+- **Last updated:** 2026-07-03
+- **Exit criteria:** postprocess has pass/runtime-scoped public naming and
+  examples no longer read as object-local unless explicitly marked as legacy
+  compatibility.
 
 Goal: move postprocess out of object-local mental model.
 
@@ -951,6 +1094,14 @@ Acceptance criteria:
 - Debug state reports active postprocess requests by pass/canvas scope.
 
 ### Phase 7: Managed Model Animation
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 5
+- **Last updated:** 2026-07-03
+- **Exit criteria:** complete animated GLB assets can play, scrub, blend, and
+  expose morph controls through managed runtime APIs without exposing raw
+  mixers, actions, bones, skeletons, or morph arrays.
 
 Goal: turn complete animated GLB assets into managed runtime-driven behavior
 without exposing raw `AnimationMixer`, `AnimationAction`, `Bone`, `Skeleton`, or
@@ -1049,6 +1200,14 @@ Acceptance criteria:
 
 ### Phase 8: Interaction and Picking
 
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 3, Phase 4, Phase 5
+- **Last updated:** 2026-07-03
+- **Exit criteria:** runtime-owned input routing supports object hit state,
+  scene/camera empty-space controls, and pointer capture without exposing raw
+  `Raycaster` or raw intersection objects.
+
 Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
 
 Capabilities:
@@ -1086,6 +1245,13 @@ Acceptance criteria:
 
 ### Phase 9: Dynamics and Physics
 
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 4, Phase 8
+- **Last updated:** 2026-07-03
+- **Exit criteria:** managed dynamics or physics can drive eligible stage-local
+  objects through runtime-owned transforms, constraints, and lifecycle.
+
 Goal: add motion systems after stage and collider contracts exist.
 
 Possible layers:
@@ -1115,6 +1281,13 @@ Acceptance criteria:
 - The runtime remains compatible with static, non-physics pages.
 
 ### Phase 10: Advanced Escape Hatch Decision
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 1 through Phase 9
+- **Last updated:** 2026-07-03
+- **Exit criteria:** an unsafe escape hatch is explicitly accepted or rejected
+  after managed descriptors have been tested against real downstream needs.
 
 Goal: decide whether an explicit unsafe escape hatch is still necessary after
 managed scenes, cameras, stage, pass, picking, and dynamics exist.
