@@ -50,6 +50,48 @@ describe("WebGLScene", () => {
 
     expect(runtime.unregisterScene).toHaveBeenCalledWith("world");
   });
+
+  test("registers scene-owned render pass from the render prop", async () => {
+    const { WebGLRuntimeProvider, WebGLScene } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLScene, {
+            id: "overlay",
+            render: { camera: "overlay.camera", order: 10 },
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerScene).toHaveBeenCalledWith({
+      id: "overlay",
+      projection: undefined,
+      defaultCameraId: undefined,
+      defaultPass: false,
+    });
+    expect(runtime.registerRenderPass).toHaveBeenCalledWith({
+      id: undefined,
+      sceneId: "overlay",
+      cameraId: "overlay.camera",
+      order: 10,
+    });
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.unregisterRenderPass).toHaveBeenCalledWith(
+      "overlay:overlay.camera:pass",
+    );
+    expect(runtime.unregisterScene).toHaveBeenCalledWith("overlay");
+  });
 });
 
 function createTestRoot(): { root: Root; host: HTMLElement } {
@@ -64,6 +106,8 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 function createRuntimeStub(): WebGLRuntime & {
   registerScene: ReturnType<typeof vi.fn>;
   unregisterScene: ReturnType<typeof vi.fn>;
+  registerRenderPass: ReturnType<typeof vi.fn>;
+  unregisterRenderPass: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

@@ -57,35 +57,48 @@ describe("render layer declaration normalization", () => {
     });
   });
 
-  test("keeps explicit target scene ids trimmed and defaults missing ids to main", () => {
+  test("keeps explicit target scene ids trimmed and defaults missing ids to the generated scene", () => {
     expect(normalizeTargetSceneId(" overlay ")).toBe("overlay");
-    expect(normalizeTargetSceneId(undefined)).toBe("main");
+    expect(normalizeTargetSceneId(undefined)).toBe("__dom-webgl-default__");
   });
 
-  test("rejects empty ids and generated main overrides", () => {
+  test("rejects empty ids and generated default overrides while allowing user main ids", () => {
     expect(() => normalizeRenderLayerSceneDeclaration({ id: " " })).toThrow(
       "WebGL scene declaration requires a non-empty id.",
     );
-    expect(() => normalizeRenderLayerSceneDeclaration({ id: "main" })).toThrow(
-      'WebGL scene id "main" is reserved by the generated Level 1 scene.',
+    expect(normalizeRenderLayerSceneDeclaration({ id: "main" })).toEqual({
+      id: "main",
+      projection: "dom-aligned",
+      defaultPass: false,
+    });
+    expect(() =>
+      normalizeRenderLayerSceneDeclaration({ id: "__dom-webgl-default__" }),
+    ).toThrow(
+      'WebGL scene id "__dom-webgl-default__" is reserved by the generated Level 1 scene.',
     );
     expect(() =>
-      normalizeRenderLayerCameraDeclaration({ id: "main", sceneId: "world" }),
+      normalizeRenderLayerCameraDeclaration({
+        id: "__dom-webgl-default__",
+        sceneId: "world",
+      }),
     ).toThrow(
-      'WebGL camera id "main" is reserved by the generated Level 1 camera.',
+      'WebGL camera id "__dom-webgl-default__" is reserved by the generated Level 1 camera.',
     );
     expect(() =>
       normalizeRenderLayerSceneDeclaration({
         id: "world",
-        defaultCameraId: "main",
+        defaultCameraId: "__dom-webgl-default__",
       }),
     ).toThrow(
-      'WebGL camera id "main" is reserved by the generated Level 1 camera.',
+      'WebGL camera id "__dom-webgl-default__" is reserved by the generated Level 1 camera.',
     );
     expect(() =>
-      normalizeRenderLayerPassDeclaration({ id: "main", sceneId: "world" }),
+      normalizeRenderLayerPassDeclaration({
+        id: "__dom-webgl-default__",
+        sceneId: "world",
+      }),
     ).toThrow(
-      'WebGL render pass id "main" is reserved by the generated Level 1 pass.',
+      'WebGL render pass id "__dom-webgl-default__" is reserved by the generated Level 1 pass.',
     );
   });
 

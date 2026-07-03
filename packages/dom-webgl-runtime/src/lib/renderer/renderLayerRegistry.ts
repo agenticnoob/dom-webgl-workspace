@@ -5,6 +5,7 @@ import {
   type ThreeRendererHost,
 } from "./threeRenderer";
 import {
+  generatedRenderLayerId,
   normalizeRenderLayerCameraDeclaration,
   normalizeRenderLayerPassDeclaration,
   normalizeRenderLayerSceneDeclaration,
@@ -87,7 +88,7 @@ export function createInternalRenderLayerRegistry(
     options.createManagedSceneAdapter ??
     (() => createManagedDomAlignedSceneAdapter(rendererHost.renderer));
   const mainScene = {
-    id: "main",
+    id: generatedRenderLayerId,
     generated: true,
     projection: "dom-aligned",
     scene: rendererHost.scene,
@@ -95,19 +96,19 @@ export function createInternalRenderLayerRegistry(
     sceneAdapter: rendererHost.sceneAdapter,
   } satisfies InternalRenderSceneEntry;
   const mainCamera = {
-    id: "main",
+    id: generatedRenderLayerId,
     generated: true,
-    sceneId: "main",
+    sceneId: generatedRenderLayerId,
     type: "orthographic",
     mode: "dom-aligned",
     default: true,
     camera: rendererHost.camera,
   } satisfies InternalRenderCameraEntry;
   const mainPass = {
-    id: "main",
+    id: generatedRenderLayerId,
     generated: true,
-    sceneId: "main",
-    cameraId: "main",
+    sceneId: generatedRenderLayerId,
+    cameraId: generatedRenderLayerId,
     order: 0,
   } satisfies InternalRenderPassEntry;
   const scenesById = new Map<string, InternalRenderSceneEntry>([
@@ -281,6 +282,7 @@ export function createInternalRenderLayerRegistry(
         ...normalized,
         generated: false,
         sceneId: normalized.sceneId,
+        deferUntilCamera: true,
       });
     },
     unregisterRenderPass(id) {

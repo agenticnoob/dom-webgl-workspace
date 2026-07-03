@@ -5,7 +5,14 @@ import type { WebGLSceneDeclaration } from "../types";
 import { WebGLSceneProvider } from "./sceneContext";
 import { useWebGLRuntime } from "./useWebGLRuntime";
 
+export type WebGLSceneRenderOptions = {
+  id?: string;
+  camera?: string;
+  order?: number;
+};
+
 export type WebGLSceneProps = WebGLSceneDeclaration & {
+  render?: boolean | WebGLSceneRenderOptions;
   children?: ReactNode;
 };
 
@@ -14,22 +21,51 @@ export function WebGLScene({
   projection,
   defaultCameraId,
   defaultPass,
+  render,
   children,
 }: WebGLSceneProps) {
   const runtime = useWebGLRuntime();
+  const renderOptions =
+    typeof render === "object" && render !== null ? render : undefined;
+  const sceneDefaultPass =
+    render === undefined ? defaultPass : render === true;
 
   useLayoutEffect(() => {
     runtime.registerScene({
       id,
       projection,
       defaultCameraId,
-      defaultPass,
+      defaultPass: sceneDefaultPass,
     });
 
+    if (renderOptions) {
+      runtime.registerRenderPass({
+        id: renderOptions.id,
+        sceneId: id,
+        cameraId: renderOptions.camera,
+        order: renderOptions.order,
+      });
+    }
+
     return () => {
+      if (renderOptions) {
+        runtime.unregisterRenderPass(
+          renderOptions.id?.trim() ??
+            `${id.trim()}:${renderOptions.camera?.trim() ?? "default"}:pass`,
+        );
+      }
       runtime.unregisterScene(id);
     };
-  }, [runtime, id, projection, defaultCameraId, defaultPass]);
+  }, [
+    runtime,
+    id,
+    projection,
+    defaultCameraId,
+    sceneDefaultPass,
+    renderOptions?.id,
+    renderOptions?.camera,
+    renderOptions?.order,
+  ]);
 
   return createElement(WebGLSceneProvider, { sceneId: id }, children);
 }

@@ -34,7 +34,7 @@ describe("WebGLRenderPass", () => {
           WebGLRuntimeProvider,
           { runtime },
           createElement(WebGLRenderPass, {
-            id: "overlay.pass",
+            id: " overlay.pass ",
             scene: "overlay",
             camera: "overlay.camera",
             order: 1,
@@ -44,11 +44,18 @@ describe("WebGLRenderPass", () => {
     });
 
     expect(runtime.registerRenderPass).toHaveBeenCalledWith({
-      id: "overlay.pass",
+      id: " overlay.pass ",
       sceneId: "overlay",
       cameraId: "overlay.camera",
       order: 1,
     });
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.unregisterRenderPass).toHaveBeenCalledWith("overlay.pass");
   });
 });
 
@@ -63,6 +70,7 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 
 function createRuntimeStub(): WebGLRuntime & {
   registerRenderPass: ReturnType<typeof vi.fn>;
+  unregisterRenderPass: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

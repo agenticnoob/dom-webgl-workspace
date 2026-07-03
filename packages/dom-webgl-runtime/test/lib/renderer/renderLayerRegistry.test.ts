@@ -5,21 +5,21 @@ import type { WebGLSceneAdapter } from "../../../src/lib/renderer/sceneObject";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
 
 describe("createInternalRenderLayerRegistry", () => {
-  test("creates generated main scene camera and pass from the renderer host", () => {
+  test("creates generated default scene camera and pass from the renderer host", () => {
     const sceneAdapter = createSceneAdapter();
     const host = createRendererHostStub(sceneAdapter);
 
     const registry = createInternalRenderLayerRegistry(host);
 
-    expect(registry.getScene("main")).toMatchObject({
-      id: "main",
+    expect(registry.getScene("__dom-webgl-default__")).toMatchObject({
+      id: "__dom-webgl-default__",
       generated: true,
       projection: "dom-aligned",
       scene: host.scene,
       sceneAdapter,
     });
-    expect(registry.getCamera("main")).toMatchObject({
-      id: "main",
+    expect(registry.getCamera("__dom-webgl-default__")).toMatchObject({
+      id: "__dom-webgl-default__",
       generated: true,
       type: "orthographic",
       mode: "dom-aligned",
@@ -27,10 +27,10 @@ describe("createInternalRenderLayerRegistry", () => {
     });
     expect(registry.getPasses()).toEqual([
       {
-        id: "main",
+        id: "__dom-webgl-default__",
         generated: true,
-        sceneId: "main",
-        cameraId: "main",
+        sceneId: "__dom-webgl-default__",
+        cameraId: "__dom-webgl-default__",
         order: 0,
       },
     ]);
@@ -43,9 +43,9 @@ describe("createInternalRenderLayerRegistry", () => {
       createRendererHostStub(sceneAdapter),
     );
     const renderPass = vi.fn((pass, scene, camera) => {
-      expect(pass.id).toBe("main");
-      expect(scene.id).toBe("main");
-      expect(camera.id).toBe("main");
+      expect(pass.id).toBe("__dom-webgl-default__");
+      expect(scene.id).toBe("__dom-webgl-default__");
+      expect(camera.id).toBe("__dom-webgl-default__");
       scene.sceneAdapter.render();
     });
 
@@ -89,7 +89,9 @@ describe("createInternalRenderLayerRegistry", () => {
       order: 1,
     });
 
-    expect(registry.getScene("main").sceneAdapter).toBe(mainAdapter);
+    expect(registry.getScene("__dom-webgl-default__").sceneAdapter).toBe(
+      mainAdapter,
+    );
     expect(registry.getScene("world")).toMatchObject({
       id: "world",
       generated: false,
@@ -111,6 +113,42 @@ describe("createInternalRenderLayerRegistry", () => {
     registry.resize({ width: 390, height: 844 });
 
     expect(resize).toHaveBeenLastCalledWith({ width: 390, height: 844 });
+  });
+
+  test("allows user-managed scenes named main without replacing the generated default", () => {
+    const defaultAdapter = createSceneAdapter();
+    const userMainAdapter = createSceneAdapter();
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(defaultAdapter),
+      {
+        createManagedSceneAdapter() {
+          return {
+            scene: { label: "user-main-scene" },
+            camera: { label: "user-main-camera" },
+            sceneAdapter: userMainAdapter,
+            resize() {
+              return;
+            },
+            dispose() {
+              return;
+            },
+          };
+        },
+      },
+    );
+
+    registry.registerScene({ id: "main" });
+
+    expect(registry.getScene("__dom-webgl-default__").sceneAdapter).toBe(
+      defaultAdapter,
+    );
+    expect(registry.getScene("main")).toMatchObject({
+      id: "main",
+      generated: false,
+      sceneAdapter: userMainAdapter,
+    });
+    expect(registry.getSceneAdapterForTarget(undefined)).toBe(defaultAdapter);
+    expect(registry.getSceneAdapterForTarget("main")).toBe(userMainAdapter);
   });
 
   test("renders generated and managed passes in order", () => {
@@ -212,6 +250,57 @@ describe("createInternalRenderLayerRegistry", () => {
     });
 
     expect(order).toEqual(["main", "main", "world"]);
+  });
+
+  test("defers explicit passes until their camera is registered", () => {
+    const mainAdapter = createSceneAdapter();
+    const overlayAdapter = createSceneAdapter();
+    const order: string[] = [];
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(mainAdapter),
+      {
+        createManagedSceneAdapter() {
+          return {
+            scene: { label: "overlay-scene" },
+            camera: { label: "overlay-camera" },
+            sceneAdapter: overlayAdapter,
+            resize() {
+              return;
+            },
+            dispose() {
+              return;
+            },
+          };
+        },
+      },
+    );
+
+    mainAdapter.render.mockImplementation(() => order.push("main"));
+    overlayAdapter.render.mockImplementation(() => order.push("overlay"));
+
+    registry.registerScene({ id: "overlay" });
+    registry.registerRenderPass({
+      id: "overlay.pass",
+      sceneId: "overlay",
+      cameraId: "overlay.camera",
+      order: 1,
+    });
+    registry.renderPasses((_pass, scene) => {
+      scene.sceneAdapter.render();
+    });
+
+    expect(order).toEqual(["main"]);
+
+    registry.registerCamera({
+      id: "overlay.camera",
+      sceneId: "overlay",
+      default: true,
+    });
+    registry.renderPasses((_pass, scene) => {
+      scene.sceneAdapter.render();
+    });
+
+    expect(order).toEqual(["main", "main", "overlay"]);
   });
 
   test("keeps default cameras scoped to their owning scene", () => {

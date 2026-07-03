@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** `c890d975 docs: add managed render roadmap status guardrails`
+**Last reviewed against:** `7749aaec feat: add opt-in managed scene declarations`
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -88,7 +88,7 @@ Level 1: DOM WebGL Target
   - default path for docs, examples, and compatibility
   - WebGLTarget is the shortest path; no user-authored scene/camera/pass needed
   - DOM owns layout, content, accessibility, fallback, and lifecycle
-  - DOM rect projects into the implicit main scene and main pass
+  - DOM rect projects into the internal generated default scene and pass
   - target-local effects act through ctx.object
   - no scene-native placement, camera controls, custom passes, or physics
 
@@ -255,7 +255,13 @@ Level 2 adds managed scene/pass vocabulary while targets remain DOM-backed:
 
 ```tsx
 <WebGLRuntime>
-  <WebGLScene id="main" projection="dom-aligned" defaultPass>
+  <WebGLScene
+    id="world"
+    projection="dom-aligned"
+    render={{ camera: "world.camera" }}
+  >
+    <WebGLCamera id="world.camera" default />
+
     <WebGLTarget
       webgl={{
         key: "hero-model",
@@ -267,7 +273,11 @@ Level 2 adds managed scene/pass vocabulary while targets remain DOM-backed:
     </WebGLTarget>
   </WebGLScene>
 
-  <WebGLScene id="overlay" projection="screen">
+  <WebGLScene
+    id="overlay"
+    projection="screen"
+    render={{ camera: "screen", order: 1 }}
+  >
     <WebGLCamera id="screen" default type="orthographic" mode="screen" />
 
     <WebGLTarget
@@ -280,7 +290,6 @@ Level 2 adds managed scene/pass vocabulary while targets remain DOM-backed:
     </WebGLTarget>
   </WebGLScene>
 
-  <WebGLRenderPass scene="overlay" camera="screen" clearDepth />
 </WebGLRuntime>
 ```
 
@@ -335,15 +344,19 @@ needed:
 
 Rules:
 
-- `WebGLRuntime` auto-creates an implicit `main` scene, `main` camera, and main
-  pass for Level 1 usage.
+- `WebGLRuntime` auto-creates an internal generated default scene, camera, and
+  pass for Level 1 usage. The internal generated ids are reserved, but consumer
+  ids such as `main` are ordinary managed ids.
 - `WebGLTarget` inherits the nearest `WebGLScene` by React context.
 - `WebGLScene` owns a default camera.
 - `WebGLTarget` belongs to a scene, not directly to a camera.
-- `WebGLRenderPass` chooses which scene and camera to render.
-- The runtime may auto-create a pass only for the default `main` scene.
-- Additional scenes require an explicit `WebGLRenderPass` or an explicit
-  `defaultPass` declaration.
+- In React, `WebGLScene render` is the primary way to say this scene
+  participates in rendering. `WebGLRenderPass` remains an advanced explicit
+  pass descriptor.
+- The runtime may auto-create a pass only for the internal generated default
+  scene.
+- Additional scenes require `WebGLScene render`, an explicit
+  `WebGLRenderPass`, or an explicit `defaultPass` declaration.
 - Non-React consumers use equivalent descriptors with explicit `sceneId`,
   `cameraId`, and `pass` fields.
 - `WebGLTarget` remains DOM-backed and owns fallback/lifecycle behavior.
@@ -515,8 +528,8 @@ DOM rect center -> orthographic scene position
 DOM rect size   -> plane/model fit extent
 ```
 
-Use for the default `main` scene, text, DOM surfaces, media planes, and existing
-examples.
+Use for the internal generated default scene, text, DOM surfaces, media planes,
+and existing examples.
 
 ### `screen`
 
@@ -665,10 +678,9 @@ type WebGLRenderPassDeclaration = {
 Default pass behavior:
 
 - Single scene/camera apps get one generated pass on one runtime canvas.
-- Only the default `main` scene receives an implicit generated pass, and only
-  when the app has not declared its own pass list.
-- Additional scenes must opt into rendering with `WebGLRenderPass` or
-  `defaultPass`.
+- Only the internal generated default scene receives an implicit generated pass.
+- Additional scenes must opt into rendering with `WebGLScene render`,
+  `WebGLRenderPass`, or `defaultPass`.
 - Additional cameras do not render anything by themselves. A camera becomes
   visible only through a render pass.
 - Multiple scenes/cameras/passes compose into the same canvas by default. They do
@@ -686,8 +698,8 @@ Keep these default and simple:
 
 - one `WebGLRuntime` creates one managed transparent canvas;
 - Level 1 authoring uses `WebGLTarget` without user-authored scene/camera/pass;
-- implicit `main` scene, `main` DOM-aligned orthographic camera, and generated
-  main pass preserve current behavior;
+- internal generated default scene, DOM-aligned orthographic camera, and
+  generated pass preserve current behavior;
 - `WebGLTarget` placement defaults to `dom-anchored`;
 - native/browser scroll remains enough for ordinary pages;
 - target pointer behavior remains DOM-rect based through `ctx.pointer` and
@@ -731,9 +743,9 @@ Status values:
 | Phase | Status | Focused Plan | Notes |
 | --- | --- | --- | --- |
 | Phase 0: Direction and Boundary Alignment | `[verified]` | n/a | Roadmap created, docs reorganized, DOM-first Level 1/2/3 boundary documented. |
-| Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal main scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
+| Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal generated scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
-| Phase 3: Projection Policies | `[not-started]` | none | Depends on Phase 1 and Phase 2. |
+| Phase 3: Projection Policies | `[planned]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Focused plan created; depends on Phase 1 and Phase 2. |
 | Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
 | Phase 6: Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract. |
@@ -799,7 +811,9 @@ Deliverables:
 - Define terminology:
   - `WebGLScene` is managed scene/layer, not raw `THREE.Scene`.
   - `WebGLCamera` is managed camera descriptor, not raw `THREE.Camera`.
-  - `WebGLRenderPass` controls render order and composition.
+  - `WebGLScene render` is the primary React render declaration.
+  - `WebGLRenderPass` controls render order and composition for explicit pass
+    descriptors.
   - `WebGLTarget` remains the DOM anchor.
 - Confirm non-goals:
   - no default raw Three.js object exposure;
@@ -819,8 +833,9 @@ Validation:
 - **Focused plan:** [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md)
 - **Depends on:** Phase 0
 - **Last updated:** 2026-07-03
-- **Exit criteria:** internal scene/camera/pass registries exist with one generated
-  `main` scene, one generated `main` camera, and one generated `main` pass;
+- **Exit criteria:** internal scene/camera/pass registries exist with one
+  internal generated scene, one internal generated camera, and one internal
+  generated pass;
   public API and Level 1 `WebGLTarget` behavior are unchanged.
 
 Goal: refactor internal state to make scene/camera/pass concepts explicit while
@@ -836,7 +851,7 @@ pass: render(main, main)
 
 Implementation direction:
 
-- Introduce internal scene registry with one default `main` entry.
+- Introduce internal scene registry with one generated default entry.
 - Introduce internal camera registry with one default DOM-aligned orthographic
   camera.
 - Introduce internal pass list with one generated pass.
@@ -872,28 +887,27 @@ Public direction:
     Title
   </WebGLTarget>
 
-  <WebGLScene id="world">
+  <WebGLScene id="world" render={{ camera: "world.camera" }}>
     <WebGLCamera id="world.camera" default type="orthographic" mode="dom-aligned" />
     <WebGLTarget webgl={{ key: "model", source }}>
       <div className="model-fallback" />
     </WebGLTarget>
   </WebGLScene>
-
-  <WebGLRenderPass scene="world" camera="world.camera" />
 </WebGLRuntime>
 ```
 
 Rules:
 
 - `WebGLTarget` inherits nearest `WebGLScene`.
-- `WebGLTarget` outside any `WebGLScene` remains valid and uses the implicit
-  Level 1 `main` scene.
+- `WebGLTarget` outside any `WebGLScene` remains valid and uses the internal
+  generated Level 1 default scene.
 - Unregistering a managed scene releases live targets still routed to that
   scene.
 - `WebGLScene` can declare a default camera.
-- `WebGLRenderPass` picks scene and camera.
-- Scenes other than `main` do not render unless explicitly passed or declared
-  with `defaultPass`.
+- `WebGLScene render` picks the scene camera for React-owned rendering.
+  `WebGLRenderPass` remains available for explicit pass descriptors.
+- Managed scenes do not render unless explicitly passed or declared with
+  `render`/`defaultPass`.
 - Runtime descriptor API should support the same model without React context.
 - Phase 2 supports only DOM-aligned scenes and orthographic DOM-aligned cameras;
   projection policies, screen overlays, perspective stages, stage-local
@@ -912,17 +926,19 @@ Completion notes:
 - Vanilla runtimes can register equivalent scene, camera, and pass descriptors.
 - `WebGLTarget` inherits nearest React scene context when `webgl.sceneId` is
   absent; explicit `sceneId` gives vanilla parity.
-- Targets outside managed scenes still render through generated `main`.
+- Targets outside managed scenes still render through the internal generated
+  default scene.
 - Managed DOM-aligned scene cameras resize with the runtime viewport, and
   subtree transform groups stay inside their target scene adapter.
-- Scene-created default passes wait until a default camera is registered.
+- Scene-owned render declarations wait until the referenced/default camera is
+  registered.
 - Phase 2 keeps projection scope narrow: `dom-aligned` scenes and
   orthographic/dom-aligned cameras only. Projection policies remain Phase 3.
 
 ### Phase 3: Projection Policies
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[planned]`
+- **Focused plan:** [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md)
 - **Depends on:** Phase 1, Phase 2
 - **Last updated:** 2026-07-03
 - **Exit criteria:** projection policies and placement modes are explicit,

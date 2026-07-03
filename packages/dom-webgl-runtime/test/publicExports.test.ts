@@ -67,6 +67,7 @@ describe("public package exports", () => {
           WebGLRenderPassProps,
           WebGLRuntimeProps,
           WebGLSceneProps,
+          WebGLSceneRenderOptions,
           WebGLTargetProps,
         } from "${importPath}";
         import type { ReactElement } from "react";
@@ -130,7 +131,7 @@ describe("public package exports", () => {
               Level 1 still works
             </WebGLTarget>
 
-            <WebGLScene id="world" defaultPass>
+            <WebGLScene id="world" render={{ camera: "world.camera" }}>
               <WebGLCamera id="world.camera" default />
               <WebGLTarget
                 webgl={{
@@ -142,7 +143,7 @@ describe("public package exports", () => {
               </WebGLTarget>
             </WebGLScene>
 
-            <WebGLScene id="overlay">
+            <WebGLScene id="overlay" render={{ camera: "overlay.camera", order: 1 }}>
               <WebGLCamera id="overlay.camera" default />
               <WebGLTarget
                 webgl={{
@@ -153,22 +154,28 @@ describe("public package exports", () => {
                 Overlay title
               </WebGLTarget>
             </WebGLScene>
-            <WebGLRenderPass
-              id="overlay.pass"
-              scene="overlay"
-              camera="overlay.camera"
-              order={1}
-            />
           </WebGLRuntime>
         );
 
         levelTwoElement satisfies ReactElement;
 
+        const sceneRender = {
+          camera: "world.camera",
+          order: 0,
+        } satisfies WebGLSceneRenderOptions;
+        sceneRender satisfies WebGLSceneRenderOptions;
+
         const sceneProps = {
           id: "world",
-          defaultPass: true,
+          render: sceneRender,
         } satisfies WebGLSceneProps;
         sceneProps satisfies WebGLSceneProps;
+
+        const legacyDefaultPassSceneProps = {
+          id: "legacy",
+          defaultPass: true,
+        } satisfies WebGLSceneProps;
+        legacyDefaultPassSceneProps satisfies WebGLSceneProps;
 
         const cameraProps = {
           id: "world.camera",

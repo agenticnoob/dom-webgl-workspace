@@ -63,7 +63,6 @@ import {
 ```tsx
 import {
   WebGLCamera,
-  WebGLRenderPass,
   WebGLRuntime,
   WebGLScene,
   WebGLTarget,
@@ -184,7 +183,7 @@ import {
 export function App() {
   return (
     <WebGLRuntime effects={runtimeEffects}>
-      <WebGLScene id="world" defaultPass>
+      <WebGLScene id="world" render={{ camera: "world.camera" }}>
         <WebGLCamera id="world.camera" default />
         <WebGLTarget
           webgl={{
@@ -204,7 +203,9 @@ Rules:
 
 - `WebGLTarget` inside `WebGLScene` inherits that scene unless
   `webgl.sceneId` is explicit.
-- Scene-created default passes wait until a default camera is registered.
+- A scene only needs a camera when it opts into rendering with `render` or
+  `defaultPass`; the generated pass waits until the referenced/default camera
+  is registered.
 - Unmounting `WebGLScene` or calling `runtime.unregisterScene(id)` releases
   live targets still routed to that scene.
 - Non-React consumers can call `runtime.registerScene(...)`,

@@ -13,6 +13,7 @@ export {
 export {
   WebGLScene,
   type WebGLSceneProps,
+  type WebGLSceneRenderOptions,
 } from "./lib/react/WebGLScene";
 export {
   WebGLCamera,

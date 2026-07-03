@@ -93,7 +93,6 @@ Use for React:
 ```tsx
 import {
   WebGLCamera,
-  WebGLRenderPass,
   WebGLRuntime,
   WebGLScene,
   WebGLTarget,
@@ -253,7 +252,6 @@ React:
 ```tsx
 import {
   WebGLCamera,
-  WebGLRenderPass,
   WebGLRuntime,
   WebGLScene,
   WebGLTarget,
@@ -262,7 +260,7 @@ import {
 export function App() {
   return (
     <WebGLRuntime effects={runtimeEffects}>
-      <WebGLScene id="world" defaultPass>
+      <WebGLScene id="world" render={{ camera: "world.camera" }}>
         <WebGLCamera id="world.camera" default />
         <WebGLTarget
           webgl={{
@@ -274,7 +272,7 @@ export function App() {
         </WebGLTarget>
       </WebGLScene>
 
-      <WebGLScene id="overlay">
+      <WebGLScene id="overlay" render={{ camera: "overlay.camera", order: 1 }}>
         <WebGLCamera id="overlay.camera" default />
         <WebGLTarget
           webgl={{
@@ -285,12 +283,6 @@ export function App() {
           Overlay title
         </WebGLTarget>
       </WebGLScene>
-      <WebGLRenderPass
-        id="overlay.pass"
-        scene="overlay"
-        camera="overlay.camera"
-        order={1}
-      />
     </WebGLRuntime>
   );
 }
@@ -321,13 +313,18 @@ Rules:
 
 - `WebGLTarget` inside `WebGLScene` inherits that scene unless
   `webgl.sceneId` is explicit.
-- Targets outside `WebGLScene` use the generated Level 1 `main` scene.
+- Targets outside `WebGLScene` use the internal generated Level 1 default
+  scene. Consumer ids such as `main` are ordinary managed ids.
 - Unregistering or unmounting a managed scene releases live targets still
   routed to that scene.
 - Phase 2 supports only `projection: "dom-aligned"`,
   `type: "orthographic"`, and `mode: "dom-aligned"`.
-- A scene renders through `defaultPass` or an explicit `WebGLRenderPass`;
-  scene-created default passes wait until a default camera is registered.
+- In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
+  can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
+  advanced explicit pass descriptors.
+- A scene only needs a camera when it opts into rendering with `render` or
+  `defaultPass`; the generated pass waits until the referenced/default camera
+  is registered.
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.

@@ -3069,7 +3069,7 @@ describe("runtime pipeline sync", () => {
     expect(renderPasses).toHaveBeenCalledTimes(1);
     expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
     expect(sceneAdapter.render).toHaveBeenCalledWith(
-      registry.getCamera("main").camera,
+      registry.getCamera("__dom-webgl-default__").camera,
     );
     runtime.dispose();
   });
@@ -3419,7 +3419,7 @@ function createRenderLayerRegistryStub(
   unregisterRenderPass: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
-    id: "main",
+    id: "__dom-webgl-default__",
     generated: true,
     projection: "dom-aligned",
     scene: {},
@@ -3427,23 +3427,23 @@ function createRenderLayerRegistryStub(
     sceneAdapter,
   } satisfies InternalRenderSceneEntry;
   const mainCamera = {
-    id: "main",
+    id: "__dom-webgl-default__",
     generated: true,
-    sceneId: "main",
+    sceneId: "__dom-webgl-default__",
     type: "orthographic",
     mode: "dom-aligned",
     default: true,
     camera: {},
   } satisfies InternalRenderCameraEntry;
   const mainPass = {
-    id: "main",
+    id: "__dom-webgl-default__",
     generated: true,
-    sceneId: "main",
-    cameraId: "main",
+    sceneId: "__dom-webgl-default__",
+    cameraId: "__dom-webgl-default__",
     order: 0,
   } satisfies InternalRenderPassEntry;
   const sceneAdapters = new Map<string, WebGLSceneAdapter>([
-    ["main", sceneAdapter],
+    ["__dom-webgl-default__", sceneAdapter],
     ...Object.entries(options.scenes ?? {}),
   ]);
   const passes = [mainPass] as const;
@@ -3464,7 +3464,7 @@ function createRenderLayerRegistryStub(
   return {
     registry: {
       getScene(id) {
-        if (id === "main") {
+        if (id === "__dom-webgl-default__") {
           return mainScene;
         }
 
@@ -3487,7 +3487,9 @@ function createRenderLayerRegistryStub(
         return mainScene.sceneAdapter;
       },
       getSceneAdapterForTarget(sceneId) {
-        return sceneAdapters.get(sceneId ?? "main") ?? sceneAdapter;
+        return (
+          sceneAdapters.get(sceneId ?? "__dom-webgl-default__") ?? sceneAdapter
+        );
       },
       registerScene,
       unregisterScene,

@@ -7,6 +7,8 @@ import type {
   WebGLSceneProjection,
 } from "../types";
 
+export const generatedRenderLayerId = "__dom-webgl-default__";
+
 export type NormalizedRenderLayerSceneDeclaration = {
   id: string;
   projection: WebGLSceneProjection;
@@ -33,7 +35,7 @@ export function normalizeRenderLayerSceneDeclaration(
   declaration: WebGLSceneDeclaration,
 ): NormalizedRenderLayerSceneDeclaration {
   const id = normalizePublicId(declaration.id, "scene");
-  assertNotReservedMain(id, "scene");
+  assertNotReservedGeneratedId(id, "scene");
   const projection = declaration.projection ?? "dom-aligned";
 
   if (projection !== "dom-aligned") {
@@ -47,7 +49,7 @@ export function normalizeRenderLayerSceneDeclaration(
     : undefined;
 
   if (defaultCameraId) {
-    assertNotReservedMain(defaultCameraId, "camera");
+    assertNotReservedGeneratedId(defaultCameraId, "camera");
   }
 
   return {
@@ -66,7 +68,7 @@ export function normalizeRenderLayerCameraDeclaration(
   const type = declaration.type ?? "orthographic";
   const mode = declaration.mode ?? "dom-aligned";
 
-  assertNotReservedMain(id, "camera");
+  assertNotReservedGeneratedId(id, "camera");
 
   if (type !== "orthographic") {
     throw new Error(`Unsupported WebGL camera type "${String(type)}".`);
@@ -96,7 +98,7 @@ export function normalizeRenderLayerPassDeclaration(
     ? normalizePublicId(declaration.id, "render pass")
     : `${sceneId}:${cameraId ?? "default"}:pass`;
 
-  assertNotReservedMain(id, "render pass");
+  assertNotReservedGeneratedId(id, "render pass");
 
   return {
     id,
@@ -108,7 +110,7 @@ export function normalizeRenderLayerPassDeclaration(
 
 export function normalizeTargetSceneId(sceneId: string | undefined): string {
   if (sceneId === undefined) {
-    return "main";
+    return generatedRenderLayerId;
   }
 
   return normalizePublicId(sceneId, "scene");
@@ -124,16 +126,16 @@ function normalizePublicId(value: string, kind: string): string {
   return normalized;
 }
 
-function assertNotReservedMain(
+function assertNotReservedGeneratedId(
   id: string,
   kind: "scene" | "camera" | "render pass",
 ): void {
-  if (id !== "main") {
+  if (id !== generatedRenderLayerId) {
     return;
   }
 
   throw new Error(
-    `WebGL ${kind} id "main" is reserved by the generated Level 1 ${readLevelOneResourceName(kind)}.`,
+    `WebGL ${kind} id "${generatedRenderLayerId}" is reserved by the generated Level 1 ${readLevelOneResourceName(kind)}.`,
   );
 }
 

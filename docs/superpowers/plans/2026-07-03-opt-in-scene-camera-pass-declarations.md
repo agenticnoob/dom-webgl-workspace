@@ -4,9 +4,9 @@
 
 **Goal:** Add managed opt-in `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` declarations while keeping Level 1 `WebGLTarget` usage unchanged and default.
 
-**Implementation status:** Executed in this round. Roadmap Phase 2 is now marked `[verified]`; this plan remains as the focused implementation record.
+**Implementation status:** Executed in this round. Roadmap Phase 2 is now marked `[verified]`; this plan remains as the focused implementation record. Follow-up branch `codex/react-scene-render-api` keeps `WebGLScene render` as the primary React-owned render declaration and replaces generated `main` ids with the internal reserved `__dom-webgl-default__` id so consumer ids such as `main` remain valid.
 
-**Architecture:** Extend the Phase 1 internal render-layer registry from generated `main` entries to runtime-owned managed scene/camera/pass entries. React declarations register descriptors through runtime lifecycle methods, and `WebGLTarget` inherits the nearest managed scene through React context; vanilla users can use equivalent descriptor/runtime methods with explicit ids. Phase 2 only establishes ownership, routing, duplicate diagnostics, and public ergonomics; projection policies, stage-local placement, pass-scoped postprocess, and scene-native models remain later phases.
+**Architecture:** Extend the Phase 1 internal render-layer registry from generated default entries to runtime-owned managed scene/camera/pass entries. React declarations register descriptors through runtime lifecycle methods, and `WebGLTarget` inherits the nearest managed scene through React context; vanilla users can use equivalent descriptor/runtime methods with explicit ids. Phase 2 only establishes ownership, routing, duplicate diagnostics, and public ergonomics; projection policies, stage-local placement, pass-scoped postprocess, and scene-native models remain later phases.
 
 **Tech Stack:** TypeScript, React, Vitest, jsdom, existing internal Three.js renderer adapter, existing DOM-first runtime factories.
 
@@ -1823,10 +1823,10 @@ Expected: all commands PASS. Existing Vite chunk-size warnings are non-blocking 
 - Current Level 1 examples and tests work unchanged.
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are exported from `@project/dom-webgl-runtime/react`.
 - Root public types expose descriptor declarations but not internal registry/adapter/Three objects.
-- `WebGLTarget` inside `WebGLScene` inherits scene ownership; targets outside scenes use generated `main`.
+- `WebGLTarget` inside `WebGLScene` inherits scene ownership; targets outside scenes use the internal generated default scene.
 - Vanilla users can register equivalent scene/camera/pass descriptors and explicit `sceneId` target routing.
 - Duplicate scene/camera/pass ids and unresolved pass references produce deterministic errors.
-- Render pass order is deterministic and keeps generated `main` pass first by default.
+- Render pass order is deterministic and keeps the generated default pass first by default.
 - Debug output may expose managed ids, but never raw scene/camera/pass objects.
 - Docs clearly distinguish Level 1 default usage from Level 2 opt-in declarations.
 - Roadmap Phase 2 is not marked `[verified]` until tests, docs, and commit are closed.
@@ -1838,12 +1838,12 @@ Expected: all commands PASS. Existing Vite chunk-size warnings are non-blocking 
 - If Phase 2 accepts `perspective` now, it will create a hollow API because Phase 3 owns projection policy. Keep Phase 2 orthographic/dom-aligned unless the user explicitly approves earlier perspective work.
 - Additional scenes need internal disposal; otherwise unregistering a scene can leave objects attached.
 - `ctx.object.postprocess` remains runtime-canvas scoped, so docs must not imply pass-scoped postprocess exists after Phase 2.
-- `main` is generated and reserved in this plan. If consumers need to customize `main`, that should be a separate design decision.
+- The initial plan reserved `main`; the follow-up decision changed the generated id to `__dom-webgl-default__`, so consumer-managed `main` scene/camera/pass ids are allowed.
 
 ## Questions For Confirmation
 
 - Should Phase 2 intentionally support only `projection: "dom-aligned"` and `type: "orthographic"`, leaving `perspective-stage` and `type: "perspective"` to Phase 3?
-- Should user-declared id `"main"` remain reserved in Phase 2, or should `WebGLScene id="main"` be allowed to augment the generated default scene?
+- Resolved after implementation: user-declared id `"main"` is allowed; it does not augment or replace the internal generated default scene.
 - Should debug state include only target-level `sceneId` in Phase 2, or also runtime-level scene/camera/pass summaries?
 
 ## Self-Review

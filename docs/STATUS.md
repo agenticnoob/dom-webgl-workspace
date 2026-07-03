@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** `c890d975 docs: add managed render roadmap status guardrails`
+**Last reviewed against:** `7749aaec feat: add opt-in managed scene declarations`
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -51,13 +51,16 @@ phase records are archived under [archive/](./archive/).
   - no public scene graph, group, matrix, or raw Three.js handle is exposed
 - Opt-in managed render declarations:
   - React exports `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass`
+  - React scene-owned rendering is declared on `WebGLScene` with `render`;
+    `WebGLRenderPass` remains the advanced explicit pass descriptor
   - vanilla runtime exposes `registerScene`, `registerCamera`, and
     `registerRenderPass` plus matching unregister methods
   - `WebGLTarget` inherits the nearest React `WebGLScene` when `webgl.sceneId`
     is absent; vanilla targets can set `sceneId` explicitly
   - managed DOM-aligned scene cameras resize with the runtime viewport, and
     `transformScope: "subtree"` groups stay inside the target's scene adapter
-  - scene-created default passes wait until a default camera is registered
+  - scene-owned render declarations wait until the referenced/default camera is
+    registered; scenes that do not opt into rendering do not require cameras
   - unregistering a managed scene releases live targets still routed to that
     scene
   - target debug summaries can expose `sceneId`, but not raw scene/camera/pass
@@ -96,7 +99,8 @@ not started, what has a focused plan, what is in progress, and what is verified.
 Phase 1 internal render layer foundations are verified. Phase 2 opt-in
 scene/camera/pass declarations are verified behind managed descriptors while
 the default Level 1 path still flows through internal generated
-scene/camera/pass entries.
+scene/camera/pass entries. Phase 3 projection policies now has a focused plan:
+[2026-07-03-projection-policies.md](./superpowers/plans/2026-07-03-projection-policies.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -117,9 +121,9 @@ Relationship rules from the active roadmap:
   raw `THREE.Scene` or a new default authoring requirement.
 - `WebGLModel` is the opt-in scene-native model path for advanced 3D. Models
   that should follow DOM layout remain `WebGLTarget` model sources.
-- One implicit `main` scene, DOM-aligned camera, and generated pass preserve
-  current behavior; additional scenes/cameras/passes render only when explicitly
-  declared.
+- One internal generated default scene, DOM-aligned camera, and generated pass
+  preserve current behavior. The generated ids are reserved internally, so
+  consumer ids such as `main` are ordinary managed ids.
 - Scroll timelines and scoped effect routing should land before progress-driven
   model animation, input routing/picking, and physics. Physics remains last,
   after managed stage/collider/input contracts exist.

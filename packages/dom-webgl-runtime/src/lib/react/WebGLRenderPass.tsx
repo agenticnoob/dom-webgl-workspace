@@ -40,7 +40,7 @@ export function WebGLRenderPass({
 
     return () => {
       runtime.unregisterRenderPass(
-        id ?? `${sceneId.trim()}:${camera?.trim() ?? "default"}:pass`,
+        id?.trim() ?? `${sceneId.trim()}:${camera?.trim() ?? "default"}:pass`,
       );
     };
   }, [runtime, id, sceneId, camera, order]);

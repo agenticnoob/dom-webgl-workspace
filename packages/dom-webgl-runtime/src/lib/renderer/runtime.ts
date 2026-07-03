@@ -85,6 +85,7 @@ import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
+import { generatedRenderLayerId } from "./renderLayerDeclarations";
 import {
   createRendererLoop,
   type RenderDirtyReason,
@@ -183,8 +184,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const renderLayers =
     internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
     createInternalRenderLayerRegistry(rendererHost);
-  const mainScene = renderLayers.getScene("main");
-  const mainCamera = renderLayers.getCamera("main");
+  const mainScene = renderLayers.getScene(generatedRenderLayerId);
+  const mainCamera = renderLayers.getCamera(generatedRenderLayerId);
   const mainSceneAdapter = renderLayers.getMainSceneAdapter();
   const registry = createTargetRegistry();
   let currentResourceLoadPriority: number | undefined;
@@ -356,7 +357,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     unregisterScene(id) {
       const sceneId = id.trim();
 
-      if (sceneId !== "main") {
+      if (sceneId !== generatedRenderLayerId) {
         unregisterTargetsForScene(sceneId);
       }
 
@@ -510,7 +511,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
         return {
           key: descriptor.key,
-          sceneId: descriptor.declaration.sceneId ?? "main",
+          sceneId: descriptor.declaration.sceneId ?? generatedRenderLayerId,
           ...readTargetDebugRecord(descriptor, targetState),
           parentKey: layer?.parentKey,
           layerDepth: layer?.depth ?? 0,
