@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** `7749aaec feat: add opt-in managed scene declarations`
+**Last reviewed against:** Phase 3 projection policies implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -9,7 +9,7 @@ phase records are archived under [archive/](./archive/).
 
 - One runtime instance creates one fixed transparent WebGL canvas.
 - The current default host owns one main internal Three.js scene, one main
-  orthographic camera, and one renderer.
+  DOM-aligned orthographic camera, and one renderer.
 - Internally, the default Level 1 render path is represented as generated
   `main` scene, `main` DOM-aligned camera, and `main` render pass entries.
   Additional managed scenes, cameras, and passes can be declared explicitly.
@@ -59,21 +59,29 @@ phase records are archived under [archive/](./archive/).
     is absent; vanilla targets can set `sceneId` explicitly
   - managed DOM-aligned scene cameras resize with the runtime viewport, and
     `transformScope: "subtree"` groups stay inside the target's scene adapter
+  - explicit scene projections support `dom-aligned`, `screen`, and
+    `perspective-stage`
+  - managed cameras support orthographic DOM/screen modes and perspective-stage
+    mode through descriptors, not raw `THREE.Camera` handles
+  - target placement supports `dom-anchored`, `screen-anchored`,
+    `screen-depth`, and `stage-local`
+  - render passes can request runtime-owned `clear` and `clearDepth`
   - scene-owned render declarations wait until the referenced/default camera is
     registered; scenes that do not opt into rendering do not require cameras
   - unregistering a managed scene releases live targets still routed to that
     scene
-  - target debug summaries can expose `sceneId`, but not raw scene/camera/pass
-    objects
+  - target debug summaries can expose `sceneId`, `projection`, and
+    `placementMode`, but not raw scene/camera/pass objects
 
 ## Active Caveats
 
-- Phase 2 managed scenes support only `projection: "dom-aligned"`,
-  `type: "orthographic"`, and `mode: "dom-aligned"`. Screen, perspective,
-  stage-local placement, scene-native models, multiple camera projection
-  policies, and projection policies remain later roadmap phases.
 - Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
   shortest and default DOM-first path.
+- `screen-depth` is the first perspective-stage DOM bridge. `screen-plane`
+  remains deferred until named managed stage planes exist.
+- `stage-local` placement sets explicit scene-local layout for a target, but
+  named lit stage primitives and scene-native `WebGLModel` declarations remain
+  future roadmap work.
 - `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
   full WebGL canvas and should not be treated as target/model-local glow.
 - Model-local glow should use material/emissive controls and runtime-owned
@@ -99,7 +107,9 @@ not started, what has a focused plan, what is in progress, and what is verified.
 Phase 1 internal render layer foundations are verified. Phase 2 opt-in
 scene/camera/pass declarations are verified behind managed descriptors while
 the default Level 1 path still flows through internal generated
-scene/camera/pass entries. Phase 3 projection policies now has a focused plan:
+scene/camera/pass entries. Phase 3 projection policies are implemented through
+explicit scene projections, managed camera modes, target placement descriptors,
+and pass clear controls:
 [2026-07-03-projection-policies.md](./superpowers/plans/2026-07-03-projection-policies.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
@@ -130,7 +140,6 @@ Relationship rules from the active roadmap:
 
 - managed scenes and cameras
 - managed render passes
-- explicit projection and placement modes
 - managed lit stage primitives
 - scoped effect contexts for object, scene, camera, and runtime
 - managed scroll timelines/progress signals

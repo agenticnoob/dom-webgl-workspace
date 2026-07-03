@@ -63,7 +63,7 @@ describe("WebGLScene", () => {
           { runtime },
           createElement(WebGLScene, {
             id: "overlay",
-            render: { camera: "overlay.camera", order: 10 },
+            render: { camera: "overlay.camera", order: 10, clearDepth: true },
           }),
         ),
       );
@@ -80,6 +80,8 @@ describe("WebGLScene", () => {
       sceneId: "overlay",
       cameraId: "overlay.camera",
       order: 10,
+      clear: undefined,
+      clearDepth: true,
     });
 
     act(() => {
@@ -91,6 +93,33 @@ describe("WebGLScene", () => {
       "overlay:overlay.camera:pass",
     );
     expect(runtime.unregisterScene).toHaveBeenCalledWith("overlay");
+  });
+
+  test("forwards screen projection declarations", async () => {
+    const { WebGLRuntimeProvider, WebGLScene } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLScene, {
+            id: "overlay",
+            projection: "screen",
+            defaultCameraId: "overlay.camera",
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerScene).toHaveBeenCalledWith({
+      id: "overlay",
+      projection: "screen",
+      defaultCameraId: "overlay.camera",
+      defaultPass: undefined,
+    });
   });
 });
 

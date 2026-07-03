@@ -26,6 +26,7 @@ describe("createThreeRendererHost", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/src/cameras/OrthographicCamera.js");
+    vi.doUnmock("three/src/cameras/PerspectiveCamera.js");
     vi.doUnmock("three/src/lights/AmbientLight.js");
     vi.doUnmock("three/src/lights/DirectionalLight.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
@@ -356,6 +357,44 @@ describe("createThreeRendererHost", () => {
     expect(camera.updateProjectionMatrix).toHaveBeenCalled();
 
     managed.dispose();
+  });
+
+  test("creates managed perspective cameras from declarations", async () => {
+    const perspectiveCamera = {
+      aspect: 0,
+      position: { set: vi.fn() },
+      lookAt: vi.fn(),
+      updateProjectionMatrix: vi.fn(),
+    };
+    const PerspectiveCamera = vi.fn(() => perspectiveCamera);
+
+    vi.doMock("three/src/cameras/PerspectiveCamera.js", () => ({
+      PerspectiveCamera,
+    }));
+
+    const { createManagedCamera } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+    });
+
+    expect(PerspectiveCamera).toHaveBeenCalledWith(50, 1, 0.1, 2000);
+
+    managed.resize({ width: 390, height: 844 });
+
+    expect(perspectiveCamera.aspect).toBe(390 / 844);
+    expect(perspectiveCamera.position.set).toHaveBeenLastCalledWith(0, 0, 500);
+    expect(perspectiveCamera.lookAt).toHaveBeenLastCalledWith(0, 0, 0);
+    expect(perspectiveCamera.updateProjectionMatrix).toHaveBeenCalled();
   });
 
   test("caps renderer pixel ratio at 1.5", async () => {

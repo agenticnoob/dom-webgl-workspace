@@ -75,9 +75,11 @@ export type {
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLCameraDeclaration,
+  WebGLCameraFramingDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
   WebGLDeclaration,
+  WebGLDOMAnchoredPlacementDeclaration,
   WebGLEffectsDeclaration,
   WebGLFrameInput,
   WebGLGateScrollBehavior,
@@ -110,8 +112,16 @@ export type {
   WebGLOffscreenLifecycleDeclaration,
   WebGLOffscreenStrategy,
   WebGLImageSequenceFrame,
+  WebGLPlacementDeclaration,
+  WebGLPlacementMode,
   WebGLSceneDeclaration,
   WebGLSceneProjection,
+  WebGLScreenAnchor,
+  WebGLScreenAnchoredPlacementDeclaration,
+  WebGLScreenDepthPlacementDeclaration,
   WebGLSourceDeclaration,
+  WebGLStageLocalPlacementDeclaration,
   WebGLTransformScope,
+  WebGLTuple2,
+  WebGLTuple3,
 } from "./lib/types";

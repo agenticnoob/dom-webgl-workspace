@@ -57,6 +57,39 @@ describe("WebGLRenderPass", () => {
 
     expect(runtime.unregisterRenderPass).toHaveBeenCalledWith("overlay.pass");
   });
+
+  test("forwards clear and clearDepth render pass declarations", async () => {
+    const { WebGLRenderPass, WebGLRuntimeProvider } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLRenderPass, {
+            id: "overlay.pass",
+            scene: "overlay",
+            camera: "overlay.camera",
+            order: 10,
+            clearDepth: true,
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerRenderPass).toHaveBeenCalledWith({
+      id: "overlay.pass",
+      sceneId: "overlay",
+      cameraId: "overlay.camera",
+      order: 10,
+      clear: undefined,
+      clearDepth: true,
+    });
+  });
 });
 
 function createTestRoot(): { root: Root; host: HTMLElement } {

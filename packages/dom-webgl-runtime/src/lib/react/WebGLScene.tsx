@@ -9,6 +9,8 @@ export type WebGLSceneRenderOptions = {
   id?: string;
   camera?: string;
   order?: number;
+  clear?: boolean;
+  clearDepth?: boolean;
 };
 
 export type WebGLSceneProps = WebGLSceneDeclaration & {
@@ -44,6 +46,8 @@ export function WebGLScene({
         sceneId: id,
         cameraId: renderOptions.camera,
         order: renderOptions.order,
+        clear: renderOptions.clear,
+        clearDepth: renderOptions.clearDepth,
       });
     }
 
@@ -65,6 +69,8 @@ export function WebGLScene({
     renderOptions?.id,
     renderOptions?.camera,
     renderOptions?.order,
+    renderOptions?.clear,
+    renderOptions?.clearDepth,
   ]);
 
   return createElement(WebGLSceneProvider, { sceneId: id }, children);

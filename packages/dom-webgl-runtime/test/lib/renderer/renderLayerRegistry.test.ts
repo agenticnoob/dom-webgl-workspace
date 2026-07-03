@@ -32,6 +32,8 @@ describe("createInternalRenderLayerRegistry", () => {
         sceneId: "__dom-webgl-default__",
         cameraId: "__dom-webgl-default__",
         order: 0,
+        clear: false,
+        clearDepth: false,
       },
     ]);
     expect(registry.getMainSceneAdapter()).toBe(sceneAdapter);
@@ -58,6 +60,7 @@ describe("createInternalRenderLayerRegistry", () => {
   test("registers managed scene camera and pass entries without replacing main", () => {
     const mainAdapter = createSceneAdapter();
     const worldAdapter = createSceneAdapter();
+    const managedCamera = { label: "world-camera" };
     const resize = vi.fn();
     const registry = createInternalRenderLayerRegistry(
       createRendererHostStub(mainAdapter),
@@ -68,6 +71,17 @@ describe("createInternalRenderLayerRegistry", () => {
             camera: { label: "world-camera" },
             sceneAdapter: worldAdapter,
             resize,
+            dispose() {
+              return;
+            },
+          };
+        },
+        createManagedCamera() {
+          return {
+            camera: managedCamera,
+            resize() {
+              return;
+            },
             dispose() {
               return;
             },
@@ -105,7 +119,7 @@ describe("createInternalRenderLayerRegistry", () => {
       type: "orthographic",
       mode: "dom-aligned",
       sceneId: "world",
-      camera: { label: "world-camera" },
+      camera: managedCamera,
     });
     expect(registry.getSceneAdapterForTarget("world")).toBe(worldAdapter);
     expect(resize).toHaveBeenCalledWith({ width: 800, height: 600 });
@@ -113,6 +127,62 @@ describe("createInternalRenderLayerRegistry", () => {
     registry.resize({ width: 390, height: 844 });
 
     expect(resize).toHaveBeenLastCalledWith({ width: 390, height: 844 });
+  });
+
+  test("creates managed cameras separately from managed scene adapters", () => {
+    const mainAdapter = createSceneAdapter();
+    const worldAdapter = createSceneAdapter();
+    const perspectiveCamera = { label: "perspective-camera" };
+    const resizeCamera = vi.fn();
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(mainAdapter),
+      {
+        createManagedSceneAdapter() {
+          return {
+            scene: { label: "world-scene" },
+            camera: { label: "fallback-camera" },
+            sceneAdapter: worldAdapter,
+            resize() {
+              return;
+            },
+            dispose() {
+              return;
+            },
+          };
+        },
+        createManagedCamera(declaration) {
+          expect(declaration.type).toBe("perspective");
+          return {
+            camera: perspectiveCamera,
+            resize: resizeCamera,
+            dispose() {
+              return;
+            },
+          };
+        },
+      },
+    );
+
+    registry.registerScene({ id: "world", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+    });
+
+    expect(registry.getCamera("world.camera")).toMatchObject({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      camera: perspectiveCamera,
+    });
+
+    registry.resize({ width: 390, height: 844 });
+
+    expect(resizeCamera).toHaveBeenCalledWith({ width: 390, height: 844 });
   });
 
   test("allows user-managed scenes named main without replacing the generated default", () => {

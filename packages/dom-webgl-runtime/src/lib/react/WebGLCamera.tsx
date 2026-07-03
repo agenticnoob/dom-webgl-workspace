@@ -14,6 +14,12 @@ export function WebGLCamera({
   scene,
   type,
   mode,
+  fov,
+  near,
+  far,
+  position,
+  target,
+  zoom,
   default: isDefault,
 }: WebGLCameraProps) {
   const runtime = useWebGLRuntime();
@@ -32,13 +38,32 @@ export function WebGLCamera({
       sceneId,
       type,
       mode,
+      fov,
+      near,
+      far,
+      position,
+      target,
+      zoom,
       default: isDefault,
     });
 
     return () => {
       runtime.unregisterCamera(id);
     };
-  }, [runtime, id, sceneId, type, mode, isDefault]);
+  }, [
+    runtime,
+    id,
+    sceneId,
+    type,
+    mode,
+    fov,
+    near,
+    far,
+    position,
+    target,
+    zoom,
+    isDefault,
+  ]);
 
   return null;
 }

@@ -123,11 +123,78 @@ export type WebGLProgressSignalSource = {
   subscribe?(listener: () => void): () => void;
 };
 
-export type WebGLSceneProjection = "dom-aligned";
+export type WebGLTuple2 = readonly [number, number];
 
-export type WebGLCameraType = "orthographic";
+export type WebGLTuple3 = readonly [number, number, number];
 
-export type WebGLCameraMode = "dom-aligned";
+export type WebGLSceneProjection =
+  | "dom-aligned"
+  | "screen"
+  | "perspective-stage";
+
+export type WebGLCameraType = "orthographic" | "perspective";
+
+export type WebGLCameraMode =
+  | "dom-aligned"
+  | "screen"
+  | "perspective-stage";
+
+export type WebGLScreenAnchor =
+  | "top-left"
+  | "top"
+  | "top-right"
+  | "right"
+  | "bottom-right"
+  | "bottom"
+  | "bottom-left"
+  | "left"
+  | "center";
+
+export type WebGLPlacementMode =
+  | "dom-anchored"
+  | "screen-anchored"
+  | "screen-depth"
+  | "stage-local";
+
+export type WebGLCameraFramingDeclaration = {
+  fov?: number;
+  near?: number;
+  far?: number;
+  position?: WebGLTuple3;
+  target?: WebGLTuple3;
+  zoom?: number;
+};
+
+export type WebGLDOMAnchoredPlacementDeclaration = {
+  mode?: "dom-anchored";
+};
+
+export type WebGLScreenAnchoredPlacementDeclaration = {
+  mode: "screen-anchored";
+  anchor?: WebGLScreenAnchor;
+  offset?: WebGLTuple2;
+  size?: "dom" | WebGLTuple2;
+};
+
+export type WebGLScreenDepthPlacementDeclaration = {
+  mode: "screen-depth";
+  depth?: number;
+  size?: "dom" | WebGLTuple2;
+};
+
+export type WebGLStageLocalPlacementDeclaration = {
+  mode: "stage-local";
+  position?: WebGLTuple3;
+  rotation?: WebGLTuple3;
+  scale?: number | WebGLTuple3;
+  size?: WebGLTuple2;
+};
+
+export type WebGLPlacementDeclaration =
+  | WebGLDOMAnchoredPlacementDeclaration
+  | WebGLScreenAnchoredPlacementDeclaration
+  | WebGLScreenDepthPlacementDeclaration
+  | WebGLStageLocalPlacementDeclaration;
 
 export type WebGLSceneDeclaration = {
   id: string;
@@ -136,7 +203,7 @@ export type WebGLSceneDeclaration = {
   defaultPass?: boolean;
 };
 
-export type WebGLCameraDeclaration = {
+export type WebGLCameraDeclaration = WebGLCameraFramingDeclaration & {
   id: string;
   sceneId: string;
   type?: WebGLCameraType;
@@ -149,11 +216,14 @@ export type WebGLRenderPassDeclaration = {
   sceneId: string;
   cameraId?: string;
   order?: number;
+  clear?: boolean;
+  clearDepth?: boolean;
 };
 
 export type WebGLDeclaration = {
   key: string;
   sceneId?: string;
+  placement?: WebGLPlacementDeclaration;
   source?: WebGLSourceDeclaration;
   renderRole?: WebGLRenderRole;
   scroll?: WebGLScrollBehavior;
@@ -318,6 +388,8 @@ export type WebGLDebugState = {
   targets: Array<{
     key: string;
     sceneId?: string;
+    projection?: WebGLSceneProjection;
+    placementMode?: WebGLPlacementMode;
     sourceKind: string;
     renderRole: WebGLRenderRole;
     resourceStatus: WebGLResourceStatus;

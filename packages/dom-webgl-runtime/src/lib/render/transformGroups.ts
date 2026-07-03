@@ -124,8 +124,11 @@ function toSelfLayout(layout: ProjectedDOMRect): ProjectedDOMRect {
   return {
     x: 0,
     y: 0,
+    ...(layout.z !== undefined ? { z: 0 } : {}),
     width: layout.width,
     height: layout.height,
+    ...(layout.rotation ? { rotation: layout.rotation } : {}),
+    ...(layout.scale !== undefined ? { scale: layout.scale } : {}),
   };
 }
 
@@ -136,8 +139,13 @@ function toLocalLayout(
   return {
     x: layout.x - parentLayout.x,
     y: layout.y - parentLayout.y,
+    ...(layout.z !== undefined || parentLayout.z !== undefined
+      ? { z: (layout.z ?? 0) - (parentLayout.z ?? 0) }
+      : {}),
     width: layout.width,
     height: layout.height,
+    ...(layout.rotation ? { rotation: layout.rotation } : {}),
+    ...(layout.scale !== undefined ? { scale: layout.scale } : {}),
   };
 }
 
@@ -145,7 +153,10 @@ function cloneLayout(layout: ProjectedDOMRect): ProjectedDOMRect {
   return {
     x: layout.x,
     y: layout.y,
+    ...(layout.z !== undefined ? { z: layout.z } : {}),
     width: layout.width,
     height: layout.height,
+    ...(layout.rotation ? { rotation: layout.rotation } : {}),
+    ...(layout.scale !== undefined ? { scale: layout.scale } : {}),
   };
 }

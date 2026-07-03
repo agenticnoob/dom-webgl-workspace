@@ -75,16 +75,22 @@ import {
   type WebGLEffectDefinition,
   type WebGLEffectSchedule,
   type WebGLCameraDeclaration,
+  type WebGLCameraFramingDeclaration,
   type WebGLCameraMode,
   type WebGLCameraType,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
+  type WebGLPlacementDeclaration,
+  type WebGLPlacementMode,
   type WebGLRenderPassDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
+  type WebGLScreenAnchor,
   type WebGLSceneDeclaration,
   type WebGLSceneProjection,
   type WebGLTransformScope,
+  type WebGLTuple2,
+  type WebGLTuple3,
 } from "<runtime-package>";
 ```
 
@@ -272,11 +278,20 @@ export function App() {
         </WebGLTarget>
       </WebGLScene>
 
-      <WebGLScene id="overlay" render={{ camera: "overlay.camera", order: 1 }}>
-        <WebGLCamera id="overlay.camera" default />
+      <WebGLScene
+        id="overlay"
+        projection="screen"
+        render={{ camera: "overlay.camera", order: 1, clearDepth: true }}
+      >
+        <WebGLCamera id="overlay.camera" default mode="screen" />
         <WebGLTarget
           webgl={{
             key: "overlay.title",
+            placement: {
+              mode: "screen-anchored",
+              anchor: "top-right",
+              offset: [-32, 32],
+            },
             source: { kind: "dom", type: "text" },
           }}
         >
@@ -309,6 +324,35 @@ runtime.registerTarget(element, {
 });
 ```
 
+Perspective-stage scenes use a perspective camera and an explicit placement:
+
+```tsx
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera
+    id="hero.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+    fov={42}
+    position={[0, 0, 700]}
+    target={[0, 0, 0]}
+  />
+  <WebGLTarget
+    webgl={{
+      key: "hero.model",
+      placement: { mode: "screen-depth", depth: 260 },
+      source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+    }}
+  >
+    <div aria-label="Hero model fallback" />
+  </WebGLTarget>
+</WebGLScene>
+```
+
 Rules:
 
 - `WebGLTarget` inside `WebGLScene` inherits that scene unless
@@ -317,8 +361,15 @@ Rules:
   scene. Consumer ids such as `main` are ordinary managed ids.
 - Unregistering or unmounting a managed scene releases live targets still
   routed to that scene.
-- Phase 2 supports only `projection: "dom-aligned"`,
-  `type: "orthographic"`, and `mode: "dom-aligned"`.
+- Supported scene projections are `dom-aligned`, `screen`, and
+  `perspective-stage`.
+- Supported target placements are `dom-anchored`, `screen-anchored`,
+  `screen-depth`, and `stage-local`.
+- Use orthographic cameras for `dom-aligned` and `screen` scenes. Use
+  perspective cameras with `mode: "perspective-stage"` for perspective-stage
+  scenes.
+- `screen-depth` is the initial perspective DOM bridge. `screen-plane` waits
+  for named managed stage planes.
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.
@@ -328,9 +379,8 @@ Rules:
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
-- Projection policies, screen/perspective cameras, stage-local placement,
-  scene-native `WebGLModel`, multiple camera projection policies, pass-scoped
-  postprocess, and scoped `ctx.scene`/`ctx.camera` effects remain later phases.
+- Scene-native `WebGLModel`, named stage primitives, pass-scoped postprocess,
+  and scoped `ctx.scene`/`ctx.camera` effects remain later phases.
 
 ### 3. High-Level Pinned Scroll React Adapter
 

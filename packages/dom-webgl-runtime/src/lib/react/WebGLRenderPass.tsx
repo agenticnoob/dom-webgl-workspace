@@ -10,6 +10,8 @@ export type WebGLRenderPassProps = {
   scene?: string;
   camera?: string;
   order?: number;
+  clear?: boolean;
+  clearDepth?: boolean;
 };
 
 export function WebGLRenderPass({
@@ -17,6 +19,8 @@ export function WebGLRenderPass({
   scene,
   camera,
   order,
+  clear,
+  clearDepth,
 }: WebGLRenderPassProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -34,6 +38,8 @@ export function WebGLRenderPass({
       sceneId,
       cameraId: camera,
       order,
+      clear,
+      clearDepth,
     };
 
     runtime.registerRenderPass(declaration);
@@ -43,7 +49,7 @@ export function WebGLRenderPass({
         id?.trim() ?? `${sceneId.trim()}:${camera?.trim() ?? "default"}:pass`,
       );
     };
-  }, [runtime, id, sceneId, camera, order]);
+  }, [runtime, id, sceneId, camera, order, clear, clearDepth]);
 
   return null;
 }

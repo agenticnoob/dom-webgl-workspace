@@ -211,12 +211,18 @@ Rules:
 - Non-React consumers can call `runtime.registerScene(...)`,
   `runtime.registerCamera(...)`, `runtime.registerRenderPass(...)`, and use
   `sceneId` on target declarations for the same routing.
-- Phase 2 supports DOM-aligned scene separation only:
-  `projection: "dom-aligned"`, camera `type: "orthographic"`, and
-  `mode: "dom-aligned"`.
-- Projection/stage-local APIs, scene-native models, multiple camera projection
-  policies, pass-scoped postprocess, and raw Three.js scene/camera/renderer
-  handles are not public.
+- Managed scenes support `projection: "dom-aligned" | "screen" |
+  "perspective-stage"`.
+- Managed cameras support orthographic `dom-aligned`/`screen` modes and
+  perspective `perspective-stage` mode. Camera descriptors own framing values;
+  raw `THREE.Camera` handles are not public.
+- Targets can declare `placement: { mode: "dom-anchored" }`,
+  `screen-anchored`, `screen-depth`, or `stage-local` depending on the scene
+  projection.
+- `WebGLRenderPass` can request runtime-owned `clear` or `clearDepth`.
+- Scene-native models, named stage primitives, `screen-plane`, pass-scoped
+  postprocess, and raw Three.js scene/camera/renderer handles remain future or
+  non-public.
 
 ## Minimal Vanilla Integration
 

@@ -2,9 +2,17 @@ import type {
   WebGLCameraDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
+  WebGLDOMAnchoredPlacementDeclaration,
+  WebGLPlacementDeclaration,
+  WebGLScreenAnchor,
+  WebGLScreenAnchoredPlacementDeclaration,
+  WebGLScreenDepthPlacementDeclaration,
+  WebGLStageLocalPlacementDeclaration,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
   WebGLSceneProjection,
+  WebGLTuple2,
+  WebGLTuple3,
 } from "../types";
 
 export const generatedRenderLayerId = "__dom-webgl-default__";
@@ -22,6 +30,12 @@ export type NormalizedRenderLayerCameraDeclaration = {
   type: WebGLCameraType;
   mode: WebGLCameraMode;
   default: boolean;
+  fov?: number;
+  near?: number;
+  far?: number;
+  position?: WebGLTuple3;
+  target?: WebGLTuple3;
+  zoom?: number;
 };
 
 export type NormalizedRenderLayerPassDeclaration = {
@@ -29,7 +43,26 @@ export type NormalizedRenderLayerPassDeclaration = {
   sceneId: string;
   cameraId?: string;
   order: number;
+  clear: boolean;
+  clearDepth: boolean;
 };
+
+export type NormalizedTargetPlacement =
+  | Required<WebGLDOMAnchoredPlacementDeclaration>
+  | (WebGLScreenAnchoredPlacementDeclaration & {
+      anchor: WebGLScreenAnchor;
+      offset: WebGLTuple2;
+      size: "dom" | WebGLTuple2;
+    })
+  | (WebGLScreenDepthPlacementDeclaration & {
+      depth: number;
+      size: "dom" | WebGLTuple2;
+    })
+  | (WebGLStageLocalPlacementDeclaration & {
+      position: WebGLTuple3;
+      rotation: WebGLTuple3;
+      scale: number | WebGLTuple3;
+    });
 
 export function normalizeRenderLayerSceneDeclaration(
   declaration: WebGLSceneDeclaration,
@@ -37,12 +70,7 @@ export function normalizeRenderLayerSceneDeclaration(
   const id = normalizePublicId(declaration.id, "scene");
   assertNotReservedGeneratedId(id, "scene");
   const projection = declaration.projection ?? "dom-aligned";
-
-  if (projection !== "dom-aligned") {
-    throw new Error(
-      `Unsupported WebGL scene projection "${String(projection)}".`,
-    );
-  }
+  assertSceneProjection(projection);
 
   const defaultCameraId = declaration.defaultCameraId
     ? normalizePublicId(declaration.defaultCameraId, "camera")
@@ -69,14 +97,8 @@ export function normalizeRenderLayerCameraDeclaration(
   const mode = declaration.mode ?? "dom-aligned";
 
   assertNotReservedGeneratedId(id, "camera");
-
-  if (type !== "orthographic") {
-    throw new Error(`Unsupported WebGL camera type "${String(type)}".`);
-  }
-
-  if (mode !== "dom-aligned") {
-    throw new Error(`Unsupported WebGL camera mode "${String(mode)}".`);
-  }
+  assertCameraType(type);
+  assertCameraMode(mode);
 
   return {
     id,
@@ -84,6 +106,36 @@ export function normalizeRenderLayerCameraDeclaration(
     type,
     mode,
     default: declaration.default ?? false,
+    ...(declaration.fov !== undefined
+      ? { fov: normalizePositiveNumber(declaration.fov, 50, "camera fov") }
+      : {}),
+    ...(declaration.near !== undefined
+      ? { near: normalizePositiveNumber(declaration.near, 0.1, "camera near") }
+      : {}),
+    ...(declaration.far !== undefined
+      ? { far: normalizePositiveNumber(declaration.far, 2000, "camera far") }
+      : {}),
+    ...(declaration.position
+      ? {
+          position: normalizeTuple3(
+            declaration.position,
+            [0, 0, 500],
+            "camera position",
+          ),
+        }
+      : {}),
+    ...(declaration.target
+      ? {
+          target: normalizeTuple3(
+            declaration.target,
+            [0, 0, 0],
+            "camera target",
+          ),
+        }
+      : {}),
+    ...(declaration.zoom !== undefined
+      ? { zoom: normalizePositiveNumber(declaration.zoom, 1, "camera zoom") }
+      : {}),
   };
 }
 
@@ -105,6 +157,8 @@ export function normalizeRenderLayerPassDeclaration(
     sceneId,
     ...(cameraId ? { cameraId } : {}),
     order: normalizeOrder(declaration.order),
+    clear: declaration.clear ?? false,
+    clearDepth: declaration.clearDepth ?? false,
   };
 }
 
@@ -114,6 +168,90 @@ export function normalizeTargetSceneId(sceneId: string | undefined): string {
   }
 
   return normalizePublicId(sceneId, "scene");
+}
+
+export function normalizeTargetPlacement(
+  placement: WebGLPlacementDeclaration | undefined,
+): NormalizedTargetPlacement {
+  if (
+    !placement ||
+    placement.mode === undefined ||
+    placement.mode === "dom-anchored"
+  ) {
+    return { mode: "dom-anchored" };
+  }
+
+  switch (placement.mode) {
+    case "screen-anchored":
+      return {
+        mode: "screen-anchored",
+        anchor: placement.anchor ?? "center",
+        offset: normalizeTuple2(
+          placement.offset,
+          [0, 0],
+          "screen-anchored offset",
+        ),
+        size: normalizePlacementSize(placement.size),
+      };
+    case "screen-depth":
+      return {
+        mode: "screen-depth",
+        depth: normalizePositiveNumber(
+          placement.depth,
+          500,
+          "screen-depth depth",
+        ),
+        size: normalizePlacementSize(placement.size),
+      };
+    case "stage-local":
+      return {
+        mode: "stage-local",
+        position: normalizeTuple3(
+          placement.position,
+          [0, 0, 0],
+          "stage-local position",
+        ),
+        rotation: normalizeTuple3(
+          placement.rotation,
+          [0, 0, 0],
+          "stage-local rotation",
+        ),
+        scale: normalizePlacementScale(placement.scale),
+        ...(placement.size
+          ? { size: normalizeTuple2(placement.size, [1, 1], "stage-local size") }
+          : {}),
+      };
+  }
+}
+
+export function assertCameraMatchesSceneProjection(
+  scene: Pick<NormalizedRenderLayerSceneDeclaration, "id" | "projection">,
+  camera: Pick<
+    NormalizedRenderLayerCameraDeclaration,
+    "id" | "type" | "mode"
+  >,
+): void {
+  switch (scene.projection) {
+    case "dom-aligned":
+      if (camera.type === "orthographic" && camera.mode === "dom-aligned") {
+        return;
+      }
+      break;
+    case "screen":
+      if (camera.type === "orthographic" && camera.mode === "screen") {
+        return;
+      }
+      break;
+    case "perspective-stage":
+      if (camera.type === "perspective" && camera.mode === "perspective-stage") {
+        return;
+      }
+      break;
+  }
+
+  throw new Error(
+    `WebGL camera "${camera.id}" uses ${camera.type}/${camera.mode} but scene "${scene.id}" uses projection "${scene.projection}".`,
+  );
 }
 
 function normalizePublicId(value: string, kind: string): string {
@@ -157,4 +295,112 @@ function normalizeOrder(value: number | undefined): number {
   }
 
   return value;
+}
+
+function normalizePositiveNumber(
+  value: number | undefined,
+  fallback: number,
+  label: string,
+): number {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`WebGL ${label} must be a positive finite number.`);
+  }
+
+  return value;
+}
+
+function normalizeTuple2(
+  value: WebGLTuple2 | undefined,
+  fallback: WebGLTuple2,
+  label: string,
+): WebGLTuple2 {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isFinite(value[0]) || !Number.isFinite(value[1])) {
+    throw new Error(`WebGL ${label} must contain finite numbers.`);
+  }
+
+  return [value[0], value[1]];
+}
+
+function normalizeTuple3(
+  value: WebGLTuple3 | undefined,
+  fallback: WebGLTuple3,
+  label: string,
+): WebGLTuple3 {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (
+    !Number.isFinite(value[0]) ||
+    !Number.isFinite(value[1]) ||
+    !Number.isFinite(value[2])
+  ) {
+    throw new Error(`WebGL ${label} must contain finite numbers.`);
+  }
+
+  return [value[0], value[1], value[2]];
+}
+
+function normalizePlacementSize(
+  size: "dom" | WebGLTuple2 | undefined,
+): "dom" | WebGLTuple2 {
+  if (size === undefined || size === "dom") {
+    return "dom";
+  }
+
+  return normalizeTuple2(size, [1, 1], "placement size");
+}
+
+function normalizePlacementScale(
+  scale: number | WebGLTuple3 | undefined,
+): number | WebGLTuple3 {
+  if (scale === undefined) {
+    return 1;
+  }
+
+  if (typeof scale === "number") {
+    return normalizePositiveNumber(scale, 1, "stage-local scale");
+  }
+
+  return normalizeTuple3(scale, [1, 1, 1], "stage-local scale");
+}
+
+function assertSceneProjection(value: WebGLSceneProjection): void {
+  if (
+    value === "dom-aligned" ||
+    value === "screen" ||
+    value === "perspective-stage"
+  ) {
+    return;
+  }
+
+  throw new Error(`Unsupported WebGL scene projection "${String(value)}".`);
+}
+
+function assertCameraType(value: WebGLCameraType): void {
+  if (value === "orthographic" || value === "perspective") {
+    return;
+  }
+
+  throw new Error(`Unsupported WebGL camera type "${String(value)}".`);
+}
+
+function assertCameraMode(value: WebGLCameraMode): void {
+  if (
+    value === "dom-aligned" ||
+    value === "screen" ||
+    value === "perspective-stage"
+  ) {
+    return;
+  }
+
+  throw new Error(`Unsupported WebGL camera mode "${String(value)}".`);
 }

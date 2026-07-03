@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** `7749aaec feat: add opt-in managed scene declarations`
+**Last reviewed against:** Phase 3 projection policies implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -745,7 +745,7 @@ Status values:
 | Phase 0: Direction and Boundary Alignment | `[verified]` | n/a | Roadmap created, docs reorganized, DOM-first Level 1/2/3 boundary documented. |
 | Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal generated scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
-| Phase 3: Projection Policies | `[planned]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Focused plan created; depends on Phase 1 and Phase 2. |
+| Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
 | Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
 | Phase 6: Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract. |
@@ -937,10 +937,10 @@ Completion notes:
 
 ### Phase 3: Projection Policies
 
-- **Status:** `[planned]`
+- **Status:** `[verified]`
 - **Focused plan:** [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md)
 - **Depends on:** Phase 1, Phase 2
-- **Last updated:** 2026-07-03
+- **Last updated:** 2026-07-04
 - **Exit criteria:** projection policies and placement modes are explicit,
   testable, and preserve current DOM rect behavior for Level 1.
 
@@ -954,20 +954,24 @@ Deliverables:
 - Placement modes:
   - `dom-anchored` for existing DOM-driven targets;
   - `screen-anchored` for overlay/HUD objects;
-  - `stage-local` for pure scene-native 3D objects.
-- Debug records report projection policy and scene id for each target.
+  - `screen-depth` as the first perspective-stage DOM bridge;
+  - `stage-local` for explicit scene-local target layout.
+- Render pass descriptors support runtime-owned `clear` and `clearDepth`.
+- Debug records report projection policy, placement mode, and scene id for each
+  target.
 
-Open decision:
+Resolved v1 decision:
 
-- First `perspective-stage` mode should likely be `screen-depth` or
-  `screen-plane`. `screen-plane` is better for real stage placement but requires
-  a named stage plane to exist.
+- `screen-depth` ships as the first perspective-stage DOM bridge.
+- `screen-plane` remains deferred until named managed stage planes exist.
 
 Acceptance criteria:
 
 - DOM-aligned scenes preserve existing rect-to-plane behavior.
 - Overlay scenes render screen-space content without world depth interference.
 - Perspective stage mapping has explicit, testable math.
+- Existing Level 1 targets continue to use the generated DOM-aligned
+  scene/camera/pass.
 
 ### Phase 4: Managed Stage Primitives
 
@@ -976,7 +980,9 @@ Acceptance criteria:
 - **Depends on:** Phase 3
 - **Last updated:** 2026-07-03
 - **Exit criteria:** runtime-owned lit stage primitives can coexist with GLB
-  models without exposing raw meshes, materials, or lights.
+  models without exposing raw meshes, materials, or lights; Phase 3's deferred
+  `screen-plane` placement decision is explicitly resolved or recorded as a
+  follow-up.
 
 Goal: introduce real lit scene substrate.
 
@@ -1012,12 +1018,24 @@ Initial primitive set:
 - material descriptors: `basic`, `standard`;
 - light descriptors: `ambient`, `directional`, `point`.
 
+Phase 3 deferred `screen-plane` follow-up:
+
+- If Phase 4 introduces named stage planes, the focused Phase 4 plan must
+  explicitly decide whether to add `placement: { mode: "screen-plane", planeId }`
+  in the same phase.
+- If `screen-plane` would expand Phase 4 beyond the managed stage primitive
+  substrate, the Phase 4 plan must record it as an explicit follow-up tied to
+  named stage planes. Do not leave it as an implicit open question.
+
 Rules:
 
 - Stage primitives are internal meshes, not raw `THREE.Mesh`.
 - Materials are descriptors or managed facades, not raw `THREE.Material`.
 - Lights are keyed runtime-owned objects.
 - Stage objects participate in the scene's lighting and depth.
+- `screen-plane`, when accepted, remains a managed placement descriptor that
+  targets a named runtime-owned plane; it must not expose raw planes, raycasters,
+  intersections, meshes, or camera internals.
 
 Acceptance criteria:
 
@@ -1026,6 +1044,8 @@ Acceptance criteria:
   stage primitives.
 - Runtime owns disposal for geometry, material, texture, light, and generated
   objects.
+- The Phase 4 focused plan either implements `screen-plane` against named stage
+  planes or documents the exact later phase/follow-up that will own it.
 
 ### Phase 5: Target Routing, Scroll Timelines, and Effect Scope
 

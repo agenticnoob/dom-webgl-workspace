@@ -292,6 +292,7 @@ describe("public package exports", () => {
 		        } from "${importPath}";
 				        import type {
                   WebGLCameraDeclaration,
+                  WebGLCameraFramingDeclaration,
                   WebGLCameraMode,
                   WebGLCameraType,
 					          WebGLDebugState,
@@ -356,6 +357,8 @@ describe("public package exports", () => {
 		          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
+	          WebGLPlacementDeclaration,
+	          WebGLPlacementMode,
 		          WebGLDOMSourceDeclaration,
 		          WebGLMediaImageSequenceSourceDeclaration,
 		          WebGLMediaImageSourceDeclaration,
@@ -382,9 +385,12 @@ describe("public package exports", () => {
 		          WebGLSourceDeclaration,
 		          WebGLSceneDeclaration,
 		          WebGLSceneProjection,
+		          WebGLScreenAnchor,
 		          WebGLTextGlyph,
 	          WebGLTextGlyphRenderCommand,
 	          WebGLTextLayerStyle,
+	          WebGLTuple2,
+	          WebGLTuple3,
 		        } from "${importPath}";
 
         // @ts-expect-error legacy material declarations are no longer public exports.
@@ -504,6 +510,84 @@ describe("public package exports", () => {
         const projection = "dom-aligned" satisfies WebGLSceneProjection;
         const cameraType = "orthographic" satisfies WebGLCameraType;
         const cameraMode = "dom-aligned" satisfies WebGLCameraMode;
+        const screenScene = {
+          id: "overlay",
+          projection: "screen",
+          defaultCameraId: "overlay.camera",
+        } satisfies WebGLSceneDeclaration;
+        const perspectiveScene = {
+          id: "world",
+          projection: "perspective-stage",
+          defaultCameraId: "world.camera",
+          defaultPass: true,
+        } satisfies WebGLSceneDeclaration;
+        const screenCamera = {
+          id: "overlay.camera",
+          sceneId: "overlay",
+          type: "orthographic",
+          mode: "screen",
+          default: true,
+        } satisfies WebGLCameraDeclaration;
+        const perspectiveCamera = {
+          id: "world.camera",
+          sceneId: "world",
+          type: "perspective",
+          mode: "perspective-stage",
+          fov: 50,
+          near: 0.1,
+          far: 2000,
+          position: [0, 0, 500],
+          target: [0, 0, 0],
+        } satisfies WebGLCameraDeclaration;
+        const screenPlacement = {
+          mode: "screen-anchored",
+          anchor: "top-right",
+          offset: [-32, 32],
+          size: [180, 48],
+        } satisfies WebGLPlacementDeclaration;
+        const perspectivePlacement = {
+          mode: "screen-depth",
+          depth: 500,
+        } satisfies WebGLPlacementDeclaration;
+        const stagePlacement = {
+          mode: "stage-local",
+          position: [0, 0, 0],
+          rotation: [0, Math.PI, 0],
+          scale: 1.2,
+          size: [240, 240],
+        } satisfies WebGLPlacementDeclaration;
+        const overlayDeclaration = {
+          key: "overlay.badge",
+          sceneId: "overlay",
+          source: { kind: "dom", type: "element" },
+          placement: screenPlacement,
+        } satisfies WebGLDeclaration;
+        const overlayPass = {
+          id: "overlay.pass",
+          sceneId: "overlay",
+          cameraId: "overlay.camera",
+          order: 10,
+          clearDepth: true,
+        } satisfies WebGLRenderPassDeclaration;
+        const cameraFraming = {
+          fov: 50,
+          near: 0.1,
+          far: 2000,
+          position: [0, 0, 500],
+          target: [0, 0, 0],
+          zoom: 1,
+        } satisfies WebGLCameraFramingDeclaration;
+        "screen" satisfies WebGLSceneProjection;
+        "perspective-stage" satisfies WebGLSceneProjection;
+        "perspective" satisfies WebGLCameraType;
+        "screen" satisfies WebGLCameraMode;
+        "perspective-stage" satisfies WebGLCameraMode;
+        "screen-anchored" satisfies WebGLPlacementMode;
+        "screen-depth" satisfies WebGLPlacementMode;
+        "stage-local" satisfies WebGLPlacementMode;
+        "top-right" satisfies WebGLScreenAnchor;
+        [-32, 32] satisfies WebGLTuple2;
+        [0, 0, 500] satisfies WebGLTuple3;
 
         sceneDeclaration satisfies WebGLSceneDeclaration;
         cameraDeclaration satisfies WebGLCameraDeclaration;
@@ -511,6 +595,16 @@ describe("public package exports", () => {
         projection satisfies WebGLSceneProjection;
         cameraType satisfies WebGLCameraType;
         cameraMode satisfies WebGLCameraMode;
+        screenScene satisfies WebGLSceneDeclaration;
+        perspectiveScene satisfies WebGLSceneDeclaration;
+        screenCamera satisfies WebGLCameraDeclaration;
+        perspectiveCamera satisfies WebGLCameraDeclaration;
+        screenPlacement satisfies WebGLPlacementDeclaration;
+        perspectivePlacement satisfies WebGLPlacementDeclaration;
+        stagePlacement satisfies WebGLPlacementDeclaration;
+        overlayDeclaration satisfies WebGLDeclaration;
+        overlayPass satisfies WebGLRenderPassDeclaration;
+        cameraFraming satisfies WebGLCameraFramingDeclaration;
 		        const runtimeOptionsWithScrollAdapter = {
 	          container: document.createElement("div"),
 	          scrollAdapter,
@@ -637,6 +731,13 @@ describe("public package exports", () => {
         ({ key: "invalid-parent", parent: "root" } satisfies WebGLDeclaration);
         // @ts-expect-error public declarations do not accept public group objects.
         ({ key: "invalid-group", group: { key: "root" } } satisfies WebGLDeclaration);
+        declare const rawThreeCamera: unknown;
+        // @ts-expect-error camera descriptors do not accept raw Three camera handles.
+        ({ id: "raw.camera", sceneId: "world", camera: rawThreeCamera } satisfies WebGLCameraDeclaration);
+        // @ts-expect-error placement does not accept raw Object3D handles.
+        ({ key: "raw.object", object3D: {} } satisfies WebGLDeclaration);
+        // @ts-expect-error render passes do not accept raw render targets.
+        ({ sceneId: "world", renderTarget: {} } satisfies WebGLRenderPassDeclaration);
 
         const pointerDeclaration = {
           hover: true,

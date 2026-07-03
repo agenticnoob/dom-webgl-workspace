@@ -3272,6 +3272,134 @@ describe("runtime pipeline sync", () => {
     });
     runtime.dispose();
   });
+
+  test("projects screen anchored targets through the selected scene projection", async () => {
+    const overlayAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(
+      createObjectRecordingSceneAdapter(),
+      {
+        scenes: { overlay: overlayAdapter },
+        sceneProjection: { overlay: "screen" },
+        cameras: {
+          "overlay.camera": {
+            sceneId: "overlay",
+            type: "orthographic",
+            mode: "screen",
+          },
+        },
+      },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(0, 0, 10, 10),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "overlay.badge",
+      sceneId: "overlay",
+      source: { kind: "dom", type: "element" },
+      placement: {
+        mode: "screen-anchored",
+        anchor: "top-right",
+        offset: [-32, 32],
+        size: [180, 48],
+      },
+    });
+
+    await runtime.sync();
+
+    expect(readSceneObjectLastLayout(overlayAdapter, "overlay.badge")).toEqual({
+      x: 768,
+      y: 568,
+      z: 0,
+      width: 180,
+      height: 48,
+    });
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "overlay.badge",
+      sceneId: "overlay",
+      projection: "screen",
+      placementMode: "screen-anchored",
+    });
+
+    runtime.dispose();
+  });
+
+  test("keeps Level 1 dom anchored layout unchanged", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      measureElement: () => createLayoutMeasurement(100, 120, 220, 140),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "level1.surface",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(readSceneObjectLastLayout(sceneAdapter, "level1.surface")).toEqual({
+      x: 210,
+      y: 410,
+      width: 220,
+      height: 140,
+    });
+
+    runtime.dispose();
+  });
+
+  test("clears depth before passes that request clearDepth", async () => {
+    const clearDepth = vi.fn();
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "main",
+          generated: true,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+        },
+        {
+          id: "overlay.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 1,
+          clear: false,
+          clearDepth: true,
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+
+        return {
+          ...host,
+          renderer: {
+            ...host.renderer,
+            clearDepth,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(clearDepth).toHaveBeenCalledTimes(1);
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -3407,6 +3535,13 @@ function createRenderLayerRegistryStub(
   sceneAdapter: WebGLSceneAdapter,
   options: {
     scenes?: Record<string, WebGLSceneAdapter>;
+    sceneProjection?: Record<string, InternalRenderSceneEntry["projection"]>;
+    cameras?: Record<
+      string,
+      Pick<InternalRenderCameraEntry, "sceneId" | "type" | "mode"> &
+        Partial<InternalRenderCameraEntry>
+    >;
+    passes?: readonly InternalRenderPassEntry[];
   } = {},
 ): {
   registry: InternalRenderLayerRegistry;
@@ -3441,12 +3576,31 @@ function createRenderLayerRegistryStub(
     sceneId: "__dom-webgl-default__",
     cameraId: "__dom-webgl-default__",
     order: 0,
+    clear: false,
+    clearDepth: false,
   } satisfies InternalRenderPassEntry;
+  const camerasById = new Map<string, InternalRenderCameraEntry>([
+    [mainCamera.id, mainCamera],
+    ...Object.entries(options.cameras ?? {}).map(
+      ([id, camera]): [string, InternalRenderCameraEntry] => [
+        id,
+        {
+          id,
+          generated: camera.generated ?? false,
+          sceneId: camera.sceneId,
+          type: camera.type,
+          mode: camera.mode,
+          default: camera.default ?? true,
+          camera: camera.camera ?? {},
+        },
+      ],
+    ),
+  ]);
   const sceneAdapters = new Map<string, WebGLSceneAdapter>([
     ["__dom-webgl-default__", sceneAdapter],
     ...Object.entries(options.scenes ?? {}),
   ]);
-  const passes = [mainPass] as const;
+  const passes = options.passes ?? [mainPass];
   const registerScene = vi.fn();
   const registerCamera = vi.fn();
   const registerRenderPass = vi.fn();
@@ -3468,17 +3622,22 @@ function createRenderLayerRegistryStub(
           return mainScene;
         }
 
+        const defaultCamera = Array.from(camerasById.values()).find(
+          (camera) => camera.sceneId === id && camera.default,
+        );
+
         return {
           id,
           generated: false,
-          projection: "dom-aligned",
+          projection: options.sceneProjection?.[id] ?? "dom-aligned",
           scene: {},
           camera: {},
           sceneAdapter: sceneAdapters.get(id) ?? sceneAdapter,
+          ...(defaultCamera ? { defaultCameraId: defaultCamera.id } : {}),
         };
       },
-      getCamera() {
-        return mainCamera;
+      getCamera(id) {
+        return camerasById.get(id) ?? mainCamera;
       },
       getPasses() {
         return passes;

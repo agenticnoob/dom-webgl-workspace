@@ -221,13 +221,54 @@ export function updateObject3DLayout(
     return;
   }
 
-  setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
+  setVector3(
+    (object3D as { position?: unknown }).position,
+    layout.x,
+    layout.y,
+    layout.z ?? 0,
+  );
+  if (layout.rotation) {
+    setVector3(
+      (object3D as { rotation?: unknown }).rotation,
+      layout.rotation[0],
+      layout.rotation[1],
+      layout.rotation[2],
+    );
+  }
+  if (layout.scale !== undefined) {
+    applyProjectedScale((object3D as { scale?: unknown }).scale, layout);
+    return;
+  }
   setVector3(
     (object3D as { scale?: unknown }).scale,
     layout.width,
     layout.height,
     1,
   );
+}
+
+function applyProjectedScale(
+  scale: unknown,
+  layout: ReturnType<typeof projectDOMRectToSceneLayout>,
+): void {
+  if (typeof layout.scale === "number") {
+    setVector3(
+      scale,
+      layout.width * layout.scale,
+      layout.height * layout.scale,
+      layout.scale,
+    );
+    return;
+  }
+
+  if (layout.scale) {
+    setVector3(
+      scale,
+      layout.width * layout.scale[0],
+      layout.height * layout.scale[1],
+      layout.scale[2],
+    );
+  }
 }
 
 export function setObject3DVisible(object3D: unknown, visible: boolean): void {

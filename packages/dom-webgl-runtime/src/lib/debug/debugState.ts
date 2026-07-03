@@ -2,9 +2,11 @@ import type {
   WebGLDebugState,
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
+  WebGLPlacementMode,
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
+  WebGLSceneProjection,
   WebGLTargetPointerState,
   WebGLLifecycleState,
 } from "../types";
@@ -13,6 +15,8 @@ import type { TextureUploadTelemetry } from "../render/renderables/textureUpload
 export type DebugTargetState = {
   key: string;
   sceneId?: string;
+  projection?: WebGLSceneProjection;
+  placementMode?: WebGLPlacementMode;
   sourceKind: string;
   renderRole: WebGLRenderRole;
   resourceStatus: WebGLResourceStatus;
@@ -100,6 +104,14 @@ export function createDebugState(
 
       if (target.sceneId) {
         summary.sceneId = target.sceneId;
+      }
+
+      if (target.projection) {
+        summary.projection = target.projection;
+      }
+
+      if (target.placementMode) {
+        summary.placementMode = target.placementMode;
       }
 
       if (target.computedRenderOrder !== undefined) {

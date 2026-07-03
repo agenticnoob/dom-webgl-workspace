@@ -1,11 +1,16 @@
 import type { WebGLSceneAdapter } from "./sceneObject";
 import {
+  createManagedCamera,
   createManagedDomAlignedSceneAdapter,
+  type ManagedThreeCameraEntry,
   type ManagedThreeSceneAdapterEntry,
   type ThreeRendererHost,
 } from "./threeRenderer";
 import {
+  assertCameraMatchesSceneProjection,
   generatedRenderLayerId,
+  type NormalizedRenderLayerCameraDeclaration,
+  type NormalizedRenderLayerSceneDeclaration,
   normalizeRenderLayerCameraDeclaration,
   normalizeRenderLayerPassDeclaration,
   normalizeRenderLayerSceneDeclaration,
@@ -13,15 +18,18 @@ import {
 } from "./renderLayerDeclarations";
 import type {
   WebGLCameraDeclaration,
+  WebGLCameraMode,
+  WebGLCameraType,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
+  WebGLSceneProjection,
 } from "../types";
 import type { DOMViewportSize } from "./domProjection";
 
 export type InternalRenderSceneEntry = {
   readonly id: string;
   readonly generated: boolean;
-  readonly projection: "dom-aligned";
+  readonly projection: WebGLSceneProjection;
   readonly scene: object;
   readonly camera: object;
   readonly sceneAdapter: WebGLSceneAdapter;
@@ -34,10 +42,16 @@ export type InternalRenderCameraEntry = {
   readonly id: string;
   readonly generated: boolean;
   readonly sceneId: string;
-  readonly type: "orthographic";
-  readonly mode: "dom-aligned";
+  readonly type: WebGLCameraType;
+  readonly mode: WebGLCameraMode;
   readonly default: boolean;
   readonly camera: object;
+  readonly fov?: number;
+  readonly near?: number;
+  readonly far?: number;
+  readonly position?: readonly [number, number, number];
+  readonly target?: readonly [number, number, number];
+  readonly resize?: (viewport: DOMViewportSize) => void;
   readonly dispose?: () => void;
 };
 
@@ -47,6 +61,8 @@ export type InternalRenderPassEntry = {
   readonly sceneId: string;
   readonly cameraId?: string;
   readonly order: number;
+  readonly clear: boolean;
+  readonly clearDepth: boolean;
   readonly deferUntilCamera?: boolean;
 };
 
@@ -74,7 +90,13 @@ export type InternalRenderLayerRegistry = {
 };
 
 export type InternalRenderLayerRegistryOptions = {
-  createManagedSceneAdapter?(): ManagedThreeSceneAdapterEntry;
+  createManagedSceneAdapter?(
+    declaration: NormalizedRenderLayerSceneDeclaration,
+  ): ManagedThreeSceneAdapterEntry;
+  createManagedCamera?(
+    declaration: NormalizedRenderLayerCameraDeclaration,
+    scene: InternalRenderSceneEntry,
+  ): ManagedThreeCameraEntry;
 };
 
 export function createInternalRenderLayerRegistry(
@@ -87,6 +109,10 @@ export function createInternalRenderLayerRegistry(
   const createManagedSceneAdapter =
     options.createManagedSceneAdapter ??
     (() => createManagedDomAlignedSceneAdapter(rendererHost.renderer));
+  const createManagedCameraEntry =
+    options.createManagedCamera ??
+    ((declaration: NormalizedRenderLayerCameraDeclaration) =>
+      createManagedCamera(declaration));
   const mainScene = {
     id: generatedRenderLayerId,
     generated: true,
@@ -110,6 +136,8 @@ export function createInternalRenderLayerRegistry(
     sceneId: generatedRenderLayerId,
     cameraId: generatedRenderLayerId,
     order: 0,
+    clear: false,
+    clearDepth: false,
   } satisfies InternalRenderPassEntry;
   const scenesById = new Map<string, InternalRenderSceneEntry>([
     [mainScene.id, mainScene],
@@ -165,7 +193,7 @@ export function createInternalRenderLayerRegistry(
         throw new Error(`WebGL scene id "${normalized.id}" is already registered.`);
       }
 
-      const managed = createManagedSceneAdapter();
+      const managed = createManagedSceneAdapter(normalized);
       managed.resize(rendererHost.getViewportSize());
       const scene = {
         id: normalized.id,
@@ -230,6 +258,9 @@ export function createInternalRenderLayerRegistry(
         );
       }
 
+      assertCameraMatchesSceneProjection(scene, normalized);
+      const managedCamera = createManagedCameraEntry(normalized, scene);
+      managedCamera.resize(rendererHost.getViewportSize());
       const camera = {
         id: normalized.id,
         generated: false,
@@ -237,7 +268,14 @@ export function createInternalRenderLayerRegistry(
         type: normalized.type,
         mode: normalized.mode,
         default: normalized.default,
-        camera: scene.camera,
+        camera: managedCamera.camera,
+        ...(normalized.fov !== undefined ? { fov: normalized.fov } : {}),
+        ...(normalized.near !== undefined ? { near: normalized.near } : {}),
+        ...(normalized.far !== undefined ? { far: normalized.far } : {}),
+        ...(normalized.position ? { position: normalized.position } : {}),
+        ...(normalized.target ? { target: normalized.target } : {}),
+        resize: managedCamera.resize,
+        dispose: managedCamera.dispose,
       } satisfies InternalRenderCameraEntry;
       camerasById.set(camera.id, camera);
 
@@ -298,6 +336,11 @@ export function createInternalRenderLayerRegistry(
       for (const scene of scenesById.values()) {
         if (!scene.generated) {
           scene.resize?.(viewport);
+        }
+      }
+      for (const camera of camerasById.values()) {
+        if (!camera.generated) {
+          camera.resize?.(viewport);
         }
       }
     },

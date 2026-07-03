@@ -1,15 +1,13 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  assertCameraMatchesSceneProjection,
   normalizeRenderLayerCameraDeclaration,
   normalizeRenderLayerPassDeclaration,
   normalizeRenderLayerSceneDeclaration,
+  normalizeTargetPlacement,
   normalizeTargetSceneId,
 } from "../../../src/lib/renderer/renderLayerDeclarations";
-import type {
-  WebGLCameraDeclaration,
-  WebGLSceneDeclaration,
-} from "../../../src/lib/types";
 
 describe("render layer declaration normalization", () => {
   test("normalizes scene defaults without changing Level 1 main behavior", () => {
@@ -54,6 +52,8 @@ describe("render layer declaration normalization", () => {
       sceneId: "world",
       cameraId: "world.camera",
       order: 0,
+      clear: false,
+      clearDepth: false,
     });
   });
 
@@ -102,24 +102,167 @@ describe("render layer declaration normalization", () => {
     );
   });
 
-  test("rejects future projection and camera policies in Phase 2", () => {
-    const invalidSceneDeclaration: WebGLSceneDeclaration = {
+  test("normalizes screen scene camera pass and placement descriptors", () => {
+    expect(
+      normalizeRenderLayerSceneDeclaration({
+        id: " overlay ",
+        projection: "screen",
+        defaultCameraId: " overlay.camera ",
+      }),
+    ).toEqual({
+      id: "overlay",
+      projection: "screen",
+      defaultCameraId: "overlay.camera",
+      defaultPass: false,
+    });
+
+    expect(
+      normalizeRenderLayerCameraDeclaration({
+        id: " overlay.camera ",
+        sceneId: " overlay ",
+        type: "orthographic",
+        mode: "screen",
+        default: true,
+        zoom: 1.25,
+      }),
+    ).toEqual({
+      id: "overlay.camera",
+      sceneId: "overlay",
+      type: "orthographic",
+      mode: "screen",
+      default: true,
+      zoom: 1.25,
+    });
+
+    expect(
+      normalizeRenderLayerPassDeclaration({
+        sceneId: " overlay ",
+        cameraId: " overlay.camera ",
+        clearDepth: true,
+      }),
+    ).toEqual({
+      id: "overlay:overlay.camera:pass",
+      sceneId: "overlay",
+      cameraId: "overlay.camera",
+      order: 0,
+      clear: false,
+      clearDepth: true,
+    });
+
+    expect(
+      normalizeTargetPlacement({
+        mode: "screen-anchored",
+        anchor: "top-right",
+        offset: [-32, 32],
+        size: [180, 48],
+      }),
+    ).toEqual({
+      mode: "screen-anchored",
+      anchor: "top-right",
+      offset: [-32, 32],
+      size: [180, 48],
+    });
+  });
+
+  test("normalizes perspective stage camera and placement descriptors", () => {
+    expect(
+      normalizeRenderLayerSceneDeclaration({
+        id: "world",
+        projection: "perspective-stage",
+        defaultPass: true,
+      }),
+    ).toEqual({
       id: "world",
-      // @ts-expect-error Phase 2 does not expose perspective-stage projection.
       projection: "perspective-stage",
-    };
-    const invalidCameraDeclaration: WebGLCameraDeclaration = {
+      defaultPass: true,
+    });
+
+    expect(
+      normalizeRenderLayerCameraDeclaration({
+        id: "world.camera",
+        sceneId: "world",
+        type: "perspective",
+        mode: "perspective-stage",
+        fov: 50,
+        near: 0.1,
+        far: 2000,
+        position: [0, 0, 500],
+        target: [0, 0, 0],
+      }),
+    ).toEqual({
       id: "world.camera",
       sceneId: "world",
-      // @ts-expect-error Phase 2 does not expose perspective cameras.
       type: "perspective",
-    };
+      mode: "perspective-stage",
+      default: false,
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+    });
+
+    expect(normalizeTargetPlacement({ mode: "screen-depth", depth: 500 })).toEqual({
+      mode: "screen-depth",
+      depth: 500,
+      size: "dom",
+    });
+
+    expect(
+      normalizeTargetPlacement({
+        mode: "stage-local",
+        position: [0, 0, 0],
+        rotation: [0, Math.PI, 0],
+        scale: 1.2,
+        size: [240, 240],
+      }),
+    ).toEqual({
+      mode: "stage-local",
+      position: [0, 0, 0],
+      rotation: [0, Math.PI, 0],
+      scale: 1.2,
+      size: [240, 240],
+    });
+  });
+
+  test("rejects incompatible scene and camera policies", () => {
+    expect(() =>
+      assertCameraMatchesSceneProjection(
+        { id: "overlay", projection: "screen" },
+        {
+          id: "overlay.camera",
+          type: "orthographic",
+          mode: "dom-aligned",
+        },
+      ),
+    ).toThrow(
+      'WebGL camera "overlay.camera" uses orthographic/dom-aligned but scene "overlay" uses projection "screen".',
+    );
 
     expect(() =>
-      normalizeRenderLayerSceneDeclaration(invalidSceneDeclaration),
-    ).toThrow('Unsupported WebGL scene projection "perspective-stage".');
+      assertCameraMatchesSceneProjection(
+        { id: "overlay", projection: "screen" },
+        {
+          id: "overlay.camera",
+          type: "perspective",
+          mode: "perspective-stage",
+        },
+      ),
+    ).toThrow(
+      'WebGL camera "overlay.camera" uses perspective/perspective-stage but scene "overlay" uses projection "screen".',
+    );
+
     expect(() =>
-      normalizeRenderLayerCameraDeclaration(invalidCameraDeclaration),
-    ).toThrow('Unsupported WebGL camera type "perspective".');
+      assertCameraMatchesSceneProjection(
+        { id: "world", projection: "perspective-stage" },
+        {
+          id: "world.camera",
+          type: "orthographic",
+          mode: "screen",
+        },
+      ),
+    ).toThrow(
+      'WebGL camera "world.camera" uses orthographic/screen but scene "world" uses projection "perspective-stage".',
+    );
   });
 });

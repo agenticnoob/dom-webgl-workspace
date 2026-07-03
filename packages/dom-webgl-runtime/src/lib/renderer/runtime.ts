@@ -68,9 +68,10 @@ import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
 import {
-  projectDOMRectToSceneLayout,
+  type DOMViewportSize,
   type ProjectedDOMRect,
 } from "./domProjection";
+import { projectTargetLayout } from "./projectionPolicies";
 import { createLayoutPass, type ElementLayoutSnapshot } from "./layoutPass";
 import { compileOffscreenPolicy } from "./offscreenPolicy";
 import {
@@ -85,7 +86,11 @@ import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
-import { generatedRenderLayerId } from "./renderLayerDeclarations";
+import {
+  generatedRenderLayerId,
+  normalizeTargetPlacement,
+  normalizeTargetSceneId,
+} from "./renderLayerDeclarations";
 import {
   createRendererLoop,
   type RenderDirtyReason,
@@ -292,7 +297,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     projectLayout(descriptor, measurement, viewport) {
       return (
         transformProjectedLayoutsByTargetKey.get(descriptor.key) ??
-        projectDOMRectToSceneLayout(measurement, viewport)
+        projectTargetLayoutForDescriptor(descriptor, measurement, viewport)
       );
     },
     getEffectTarget(descriptor, renderable) {
@@ -508,10 +513,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
+        const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+        const scene = renderLayers.getScene(sceneId);
+        const placement = normalizeTargetPlacement(descriptor.declaration.placement);
 
         return {
           key: descriptor.key,
-          sceneId: descriptor.declaration.sceneId ?? generatedRenderLayerId,
+          sceneId,
+          projection: scene.projection,
+          placementMode: placement.mode,
           ...readTargetDebugRecord(descriptor, targetState),
           parentKey: layer?.parentKey,
           layerDepth: layer?.depth ?? 0,
@@ -538,7 +548,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    renderLayers.renderPasses((_pass, scene, camera) => {
+    renderLayers.renderPasses((pass, scene, camera) => {
+      if (pass.clear) {
+        rendererHost.renderer.clear?.();
+      }
+      if (pass.clearDepth) {
+        rendererHost.renderer.clearDepth?.();
+      }
       postprocessController.render(() => {
         scene.sceneAdapter.render(camera.camera);
       });
@@ -1211,17 +1227,22 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     layoutMeasurements: ReadonlyMap<string, ElementLayoutSnapshot>,
   ): void {
     const projectedLayoutsByKey = new Map<string, ProjectedDOMRect>();
-
-    for (const [key, measurement] of layoutMeasurements) {
-      projectedLayoutsByKey.set(
-        key,
-        projectDOMRectToSceneLayout(measurement, measurement.viewport),
-      );
-    }
-
     const descriptorsByKey = new Map(
       descriptors.map((descriptor) => [descriptor.key, descriptor]),
     );
+
+    for (const [key, measurement] of layoutMeasurements) {
+      const descriptor = descriptorsByKey.get(key);
+      if (!descriptor) {
+        continue;
+      }
+
+      projectedLayoutsByKey.set(
+        key,
+        projectTargetLayoutForDescriptor(descriptor, measurement, measurement.viewport),
+      );
+    }
+
     const plan = createTransformGroupPlan({
       descriptors,
       layersByKey: targetState.targetLayersByTargetKey,
@@ -1268,6 +1289,26 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     descriptor: TargetDescriptor,
   ): WebGLSceneAdapter {
     return renderLayers.getSceneAdapterForTarget(descriptor.declaration.sceneId);
+  }
+
+  function projectTargetLayoutForDescriptor(
+    descriptor: TargetDescriptor,
+    measurement: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect {
+    const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+    const scene = renderLayers.getScene(sceneId);
+    const camera = renderLayers.getCamera(
+      scene.defaultCameraId ?? generatedRenderLayerId,
+    );
+
+    return projectTargetLayout({
+      sceneProjection: scene.projection,
+      camera,
+      placement: normalizeTargetPlacement(descriptor.declaration.placement),
+      measurement,
+      viewport,
+    });
   }
 
   function readTransformGroupStateForDescriptor(
@@ -1347,7 +1388,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
+    setVector3(
+      (object3D as { position?: unknown }).position,
+      layout.x,
+      layout.y,
+      layout.z ?? 0,
+    );
   }
 
   function setVector3(

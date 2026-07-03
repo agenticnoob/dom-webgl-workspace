@@ -50,6 +50,51 @@ describe("WebGLCamera", () => {
       default: true,
     });
   });
+
+  test("forwards perspective camera declarations", async () => {
+    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "world" },
+            createElement(WebGLCamera, {
+              id: "world.camera",
+              type: "perspective",
+              mode: "perspective-stage",
+              fov: 50,
+              near: 0.1,
+              far: 2000,
+              position: [0, 0, 500],
+              target: [0, 0, 0],
+              default: true,
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerCamera).toHaveBeenCalledWith({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+      default: true,
+    });
+  });
 });
 
 function createTestRoot(): { root: Root; host: HTMLElement } {

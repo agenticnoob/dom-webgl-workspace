@@ -1,4 +1,5 @@
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
+import { PerspectiveCamera } from "three/src/cameras/PerspectiveCamera.js";
 import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
 import { Group } from "three/src/objects/Group.js";
@@ -11,6 +12,7 @@ import type {
   WebGLSceneObject,
 } from "./sceneObject";
 import type { DOMViewportSize } from "./domProjection";
+import type { NormalizedRenderLayerCameraDeclaration } from "./renderLayerDeclarations";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
@@ -19,6 +21,8 @@ export type ThreeRendererAdapter = {
   setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
   setClearAlpha?(alpha: number): void;
+  clear?(): void;
+  clearDepth?(): void;
   setRenderTarget?(target: object | null): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
@@ -63,6 +67,12 @@ export type ManagedThreeSceneAdapterEntry = {
   readonly scene: object;
   readonly camera: object;
   readonly sceneAdapter: WebGLSceneAdapter;
+  resize(viewport: DOMViewportSize): void;
+  dispose(): void;
+};
+
+export type ManagedThreeCameraEntry = {
+  readonly camera: object;
   resize(viewport: DOMViewportSize): void;
   dispose(): void;
 };
@@ -142,6 +152,12 @@ export function createThreeRendererHost(
 export function createManagedDomAlignedSceneAdapter(
   renderer: ThreeRendererAdapter,
 ): ManagedThreeSceneAdapterEntry {
+  return createManagedSceneAdapter(renderer);
+}
+
+export function createManagedSceneAdapter(
+  renderer: ThreeRendererAdapter,
+): ManagedThreeSceneAdapterEntry {
   const scene = new Scene();
   configureDefaultSceneLighting(scene);
   const camera = new OrthographicCamera(0, 800, 600, 0, 0.1, 1000);
@@ -156,6 +172,46 @@ export function createManagedDomAlignedSceneAdapter(
     },
     dispose() {
       clearSceneObjects(scene);
+    },
+  };
+}
+
+export function createManagedCamera(
+  declaration: NormalizedRenderLayerCameraDeclaration,
+): ManagedThreeCameraEntry {
+  if (declaration.type === "perspective") {
+    const camera = new PerspectiveCamera(
+      declaration.fov ?? 50,
+      1,
+      declaration.near ?? 0.1,
+      declaration.far ?? 2000,
+    );
+    configurePerspectiveCamera(camera, declaration, { width: 800, height: 600 });
+
+    return {
+      camera,
+      resize(viewport) {
+        configurePerspectiveCamera(camera, declaration, viewport);
+      },
+      dispose() {
+        return;
+      },
+    };
+  }
+
+  const camera = new OrthographicCamera(0, 800, 600, 0, 0.1, 1000);
+  configureManagedOrthographicCamera(camera, declaration, {
+    width: 800,
+    height: 600,
+  });
+
+  return {
+    camera,
+    resize(viewport) {
+      configureManagedOrthographicCamera(camera, declaration, viewport);
+    },
+    dispose() {
+      return;
     },
   };
 }
@@ -191,6 +247,12 @@ function createDefaultThreeRendererObjects(
       },
       setClearAlpha(alpha) {
         readRendererSetClearAlpha(renderer)?.(alpha);
+      },
+      clear() {
+        readRendererClear(renderer)?.();
+      },
+      clearDepth() {
+        readRendererClearDepth(renderer)?.();
       },
       setRenderTarget(target) {
         readRendererSetRenderTarget(renderer)?.(target);
@@ -432,6 +494,45 @@ function configureOrthographicCamera(
   }
 }
 
+function configureManagedOrthographicCamera(
+  camera: object,
+  _declaration: NormalizedRenderLayerCameraDeclaration,
+  viewport: DOMViewportSize,
+): void {
+  configureOrthographicCamera(camera, viewport.width, viewport.height);
+}
+
+function configurePerspectiveCamera(
+  camera: object,
+  declaration: NormalizedRenderLayerCameraDeclaration,
+  viewport: DOMViewportSize,
+): void {
+  Object.assign(camera, {
+    aspect: viewport.width / viewport.height,
+  });
+
+  const position = declaration.position ?? [0, 0, 500];
+  const target = declaration.target ?? [0, 0, 0];
+  const cameraPosition = (camera as { position?: { set?: unknown } }).position;
+
+  if (cameraPosition && typeof cameraPosition.set === "function") {
+    cameraPosition.set(position[0], position[1], position[2]);
+  }
+
+  const lookAt = (camera as { lookAt?: unknown }).lookAt;
+  if (typeof lookAt === "function") {
+    lookAt.call(camera, target[0], target[1], target[2]);
+  }
+
+  const updateProjectionMatrix = (camera as {
+    updateProjectionMatrix?: unknown;
+  }).updateProjectionMatrix;
+
+  if (typeof updateProjectionMatrix === "function") {
+    updateProjectionMatrix.call(camera);
+  }
+}
+
 function createThreeSceneAdapter(
   scene: object,
   camera: object,
@@ -609,6 +710,26 @@ function readRendererSetClearAlpha(
   }
 
   return setClearAlpha.bind(renderer) as (alpha: number) => void;
+}
+
+function readRendererClear(renderer: object): (() => void) | undefined {
+  const clear = (renderer as Record<string, unknown>).clear;
+
+  if (typeof clear !== "function") {
+    return undefined;
+  }
+
+  return clear.bind(renderer) as () => void;
+}
+
+function readRendererClearDepth(renderer: object): (() => void) | undefined {
+  const clearDepth = (renderer as Record<string, unknown>).clearDepth;
+
+  if (typeof clearDepth !== "function") {
+    return undefined;
+  }
+
+  return clearDepth.bind(renderer) as () => void;
 }
 
 function readRendererSetSize(

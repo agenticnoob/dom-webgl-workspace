@@ -8,9 +8,9 @@ Current implementation truth lives in `docs/STATUS.md`.
 
 The next strategic direction is
 `docs/roadmap/managed-render-system.md`: evolve the runtime from target-local
-capabilities into managed scenes, cameras, render passes, stage primitives,
-model animation, scoped input, and eventually dynamics/physics while keeping raw
-Three.js internals private.
+capabilities into managed scenes, cameras, projection policies, render passes,
+stage primitives, model animation, scoped input, and eventually dynamics/physics
+while keeping raw Three.js internals private.
 
 Completed phase plans and historical execution records are archived under
 `docs/archive/`. Treat archived files as evidence, not current API truth or live
@@ -599,10 +599,14 @@ Targets inside `WebGLScene` inherit that scene unless `webgl.sceneId` is set
 explicitly. A scene only needs a camera when it opts into rendering with
 `render` or `defaultPass`; the generated pass waits for the referenced/default
 camera before drawing. Unregistering or unmounting a managed scene releases
-targets still routed to that scene. Phase 2 managed scenes are DOM-aligned and
-cameras are orthographic/dom-aligned only; projection policies, stage-local
-placement, scene-native models, multiple camera projection policies,
-pass-scoped postprocess, and raw Three.js access remain out of scope.
+targets still routed to that scene.
+
+Managed scenes support explicit `projection: "dom-aligned" | "screen" |
+"perspective-stage"` policies. Targets can opt into `placement` modes such as
+`dom-anchored`, `screen-anchored`, `screen-depth`, and `stage-local`; render
+passes can request `clear` or `clearDepth`. These remain descriptor-driven and
+runtime-owned. Scene-native models, named stage primitives, pass-scoped
+postprocess, and raw Three.js access remain out of scope.
 
 ## Lifecycle And Fallback Visibility
 

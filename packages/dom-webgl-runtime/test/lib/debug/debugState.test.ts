@@ -183,6 +183,35 @@ describe("debug state", () => {
     expect(state.targets[0]).not.toHaveProperty("camera");
   });
 
+  test("copies projection and placement mode into public target summaries", () => {
+    expect(
+      createDebugState({
+        targetCount: 1,
+        renderableCount: 1,
+        currentScrollMode: "page",
+        pointer: createPointerState(),
+        targets: [
+          {
+            key: "overlay.badge",
+            sceneId: "overlay",
+            projection: "screen",
+            placementMode: "screen-anchored",
+            sourceKind: "dom/element",
+            renderRole: "surface",
+            resourceStatus: "ready",
+            lifecycleState: "active",
+            visible: true,
+          },
+        ],
+      }).targets[0],
+    ).toMatchObject({
+      key: "overlay.badge",
+      sceneId: "overlay",
+      projection: "screen",
+      placementMode: "screen-anchored",
+    });
+  });
+
   test("reports active gate fields only for gate scroll mode", () => {
     const gateState: DebugRuntimeState = {
       targetCount: 0,
