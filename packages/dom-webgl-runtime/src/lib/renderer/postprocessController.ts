@@ -483,8 +483,10 @@ function createDefaultEffectPass(): PostprocessEffectPass {
         vec3 color = base.rgb;
 
         if (uBlurRadius > 0.0 || uBloomStrength > 0.0) {
-          float blurRadius = mix(0.0, 3.0, uBlurRadius + uBloomRadius * 0.5);
-          vec3 blurred = sampleBlur(vUv, texel, blurRadius);
+          float bloomEnabled = step(0.0001, uBloomStrength);
+          float blurRadius = mix(0.0, 4.0, uBlurRadius);
+          float bloomRadius = mix(4.0, 18.0, uBloomRadius) * bloomEnabled;
+          vec3 blurred = sampleBlur(vUv, texel, max(blurRadius, bloomRadius));
 
           if (uBlurRadius > 0.0) {
             color = mix(color, blurred, uBlurRadius * 0.65);

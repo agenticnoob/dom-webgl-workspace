@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, test, vi } from "vitest";
 
 import { createPostprocessController } from "../../../src/lib/renderer/postprocessController";
@@ -422,6 +426,21 @@ describe("postprocess controller", () => {
     );
   });
 
+  test("keeps bloom spread visibly broader than generic blur", () => {
+    const source = readFileSync(
+      resolve(
+        dirname(readCurrentTestFilePath()),
+        "../../../src/lib/renderer/postprocessController.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain("float blurRadius = mix(0.0, 4.0, uBlurRadius);");
+    expect(source).toContain(
+      "float bloomRadius = mix(4.0, 18.0, uBloomRadius) * bloomEnabled;",
+    );
+  });
+
   test("creates default postprocess render targets with depth buffering", async () => {
     const renderTargetOptions: Array<{
       depthBuffer?: boolean;
@@ -485,6 +504,12 @@ describe("postprocess controller", () => {
     }
   });
 });
+
+function readCurrentTestFilePath(): string {
+  return import.meta.url.startsWith("file:")
+    ? fileURLToPath(import.meta.url)
+    : import.meta.url;
+}
 
 function isTestRenderTarget(target: object | null): target is TestRenderTarget {
   return (
