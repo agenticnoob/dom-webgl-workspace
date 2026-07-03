@@ -18,6 +18,12 @@ import type {
 import type { WebGLFrameInput, WebGLScrollAdapter } from "../../../src/lib/types";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
+import type {
+  InternalRenderCameraEntry,
+  InternalRenderLayerRegistry,
+  InternalRenderPassEntry,
+  InternalRenderSceneEntry,
+} from "../../../src/lib/renderer/renderLayerRegistry";
 import { createPostprocessController, type PostprocessController } from "../../../src/lib/renderer/postprocessController";
 
 type ElementMeasurement = {
@@ -49,6 +55,9 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
     dispose(): void;
   };
   postprocessController?: PostprocessController;
+  renderLayerRegistryFactory?: (
+    rendererHost: ThreeRendererHost,
+  ) => InternalRenderLayerRegistry;
 };
 
 type RuntimeWithPipelineSurface = WebGLRuntime & {
@@ -2988,6 +2997,26 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
     expect(unsubscribed).toBe(true);
   });
+
+  test("renders through the generated render layer pass list", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry, renderPasses } =
+      createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(renderPasses).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -3116,6 +3145,60 @@ function createRecordingSceneAdapter(): WebGLSceneAdapter & {
       return;
     },
     render: vi.fn(),
+  };
+}
+
+function createRenderLayerRegistryStub(sceneAdapter: WebGLSceneAdapter): {
+  registry: InternalRenderLayerRegistry;
+  renderPasses: ReturnType<typeof vi.fn>;
+} {
+  const mainScene = {
+    id: "main",
+    generated: true,
+    projection: "dom-aligned",
+    scene: {},
+    sceneAdapter,
+  } satisfies InternalRenderSceneEntry;
+  const mainCamera = {
+    id: "main",
+    generated: true,
+    type: "orthographic",
+    mode: "dom-aligned",
+    camera: {},
+  } satisfies InternalRenderCameraEntry;
+  const mainPass = {
+    id: "main",
+    generated: true,
+    sceneId: "main",
+    cameraId: "main",
+    order: 0,
+  } satisfies InternalRenderPassEntry;
+  const passes = [mainPass] as const;
+  const renderPasses = vi.fn(
+    (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
+      for (const pass of passes) {
+        renderPass(pass, mainScene, mainCamera);
+      }
+    },
+  );
+
+  return {
+    registry: {
+      getScene() {
+        return mainScene;
+      },
+      getCamera() {
+        return mainCamera;
+      },
+      getPasses() {
+        return passes;
+      },
+      getMainSceneAdapter() {
+        return mainScene.sceneAdapter;
+      },
+      renderPasses,
+    },
+    renderPasses,
   };
 }
 

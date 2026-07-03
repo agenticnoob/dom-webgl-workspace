@@ -82,6 +82,10 @@ import {
   type PostprocessController,
 } from "./postprocessController";
 import {
+  createInternalRenderLayerRegistry,
+  type InternalRenderLayerRegistry,
+} from "./renderLayerRegistry";
+import {
   createRendererLoop,
   type RenderDirtyReason,
   type RenderSchedulingMode,
@@ -121,6 +125,9 @@ type RuntimeInternalOptions = WebGLRuntimeOptions & {
   clock?: FrameClock;
   invalidationController?: DOMInvalidationController;
   postprocessController?: PostprocessController;
+  renderLayerRegistryFactory?: (
+    rendererHost: ThreeRendererHost,
+  ) => InternalRenderLayerRegistry;
 };
 
 type RuntimeScrollController = ScrollStateController &
@@ -172,6 +179,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const rendererHostFactory =
     internalOptions.rendererHostFactory ?? createThreeRendererHost;
   const rendererHost = rendererHostFactory(options.container);
+  const renderLayers =
+    internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
+    createInternalRenderLayerRegistry(rendererHost);
+  const mainScene = renderLayers.getScene("main");
+  const mainCamera = renderLayers.getCamera("main");
+  const mainSceneAdapter = renderLayers.getMainSceneAdapter();
   const registry = createTargetRegistry();
   let currentResourceLoadPriority: number | undefined;
   const resourceManager = createResourceManager({
@@ -223,8 +236,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.postprocessController ??
     createPostprocessController({
       renderer: rendererHost.renderer,
-      scene: rendererHost.scene,
-      camera: rendererHost.camera,
+      scene: mainScene.scene,
+      camera: mainCamera.camera,
       getViewportSize: () => rendererHost.getViewportSize(),
     });
   const targetState = createTargetRuntimeState(
@@ -243,7 +256,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const viewportLifecycle = createViewportLifecycle();
   const renderableFactoryContext: PipelineRenderableContext = {
     resourceManager,
-    sceneAdapter: rendererHost.sceneAdapter,
+    sceneAdapter: mainSceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
     getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
@@ -482,8 +495,10 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    postprocessController.render(() => {
-      rendererHost.sceneAdapter.render();
+    renderLayers.renderPasses((_pass, scene) => {
+      postprocessController.render(() => {
+        scene.sceneAdapter.render();
+      });
     });
   }
 
@@ -1159,8 +1174,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     >,
   ): void {
     if (
-      !rendererHost.sceneAdapter.createGroup ||
-      !rendererHost.sceneAdapter.addGroup
+      !mainSceneAdapter.createGroup ||
+      !mainSceneAdapter.addGroup
     ) {
       removeAllTransformGroups();
       return;
@@ -1184,12 +1199,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       let state = transformGroupsByKey.get(record.key);
 
       if (!state) {
-        const group = rendererHost.sceneAdapter.createGroup(record.key);
-        rendererHost.sceneAdapter.addGroup(group, parentGroup);
+        const group = mainSceneAdapter.createGroup(record.key);
+        mainSceneAdapter.addGroup(group, parentGroup);
         state = { group };
         transformGroupsByKey.set(record.key, state);
       } else {
-        rendererHost.sceneAdapter.setGroupParent?.(state.group, parentGroup);
+        mainSceneAdapter.setGroupParent?.(state.group, parentGroup);
       }
 
       updateTransformGroupPosition(state.group.object3D, record.layout);
@@ -1247,7 +1262,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const groupKey = transformAttachmentGroupByTargetKey.get(descriptor.key);
     const group = groupKey ? transformGroupsByKey.get(groupKey)?.group : undefined;
 
-    rendererHost.sceneAdapter.setObjectParent?.(sceneObject, group);
+    mainSceneAdapter.setObjectParent?.(sceneObject, group);
   }
 
   function readRuntimeEffectTarget(
@@ -1284,7 +1299,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    rendererHost.sceneAdapter.removeGroup?.(state.group);
+    mainSceneAdapter.removeGroup?.(state.group);
     transformGroupsByKey.delete(key);
   }
 

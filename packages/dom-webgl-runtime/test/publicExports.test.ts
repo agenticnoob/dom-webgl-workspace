@@ -71,6 +71,20 @@ describe("public package exports", () => {
         import type { DOMViewportSize } from "${importPath}";
         // @ts-expect-error Render policy ordering is internal.
         import type { SceneObjectOrdering } from "${importPath}";
+        // @ts-expect-error Render layer registry is internal runtime state.
+        import type { InternalRenderLayerRegistry } from "${importPath}";
+        // @ts-expect-error Internal render scenes are not public declarations.
+        import type { InternalRenderSceneEntry } from "${importPath}";
+        // @ts-expect-error Internal render cameras are not public declarations.
+        import type { InternalRenderCameraEntry } from "${importPath}";
+        // @ts-expect-error Internal render passes are not public declarations.
+        import type { InternalRenderPassEntry } from "${importPath}";
+        // @ts-expect-error WebGLScene is not a public Phase 1 API.
+        import type { WebGLScene } from "${importPath}";
+        // @ts-expect-error WebGLCamera is not a public Phase 1 API.
+        import type { WebGLCamera } from "${importPath}";
+        // @ts-expect-error WebGLRenderPass is not a public Phase 1 API.
+        import type { WebGLRenderPass } from "${importPath}";
 
 		        WebGLRuntime satisfies unknown;
 		        WebGLTarget satisfies unknown;
@@ -318,6 +332,20 @@ describe("public package exports", () => {
 	        import type { EffectComposer } from "${importPath}";
 	        // @ts-expect-error WebGLRenderTarget is internal postprocess state.
 	        import type { WebGLRenderTarget } from "${importPath}";
+        // @ts-expect-error Render layer registry is internal runtime state.
+        import type { InternalRenderLayerRegistry } from "${importPath}";
+        // @ts-expect-error Internal render scenes are not public declarations.
+        import type { InternalRenderSceneEntry } from "${importPath}";
+        // @ts-expect-error Internal render cameras are not public declarations.
+        import type { InternalRenderCameraEntry } from "${importPath}";
+        // @ts-expect-error Internal render passes are not public declarations.
+        import type { InternalRenderPassEntry } from "${importPath}";
+        // @ts-expect-error WebGLScene is not a public Phase 1 API.
+        import type { WebGLScene } from "${importPath}";
+        // @ts-expect-error WebGLCamera is not a public Phase 1 API.
+        import type { WebGLCamera } from "${importPath}";
+        // @ts-expect-error WebGLRenderPass is not a public Phase 1 API.
+        import type { WebGLRenderPass } from "${importPath}";
 
         createWebGLRuntime satisfies (
           options: WebGLRuntimeOptions,

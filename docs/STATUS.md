@@ -10,6 +10,9 @@ phase records are archived under [archive/](./archive/).
 - One runtime instance creates one fixed transparent WebGL canvas.
 - The current default host owns one main internal Three.js scene, one main
   orthographic camera, and one renderer.
+- Internally, the default Level 1 render path is represented as generated
+  `main` scene, `main` DOM-aligned camera, and `main` render pass entries.
+  These are not public declarations.
 - Public effect authoring goes through `defineWebGLEffect(...)` and the managed
   `ctx.object` facade.
 - Runtime internals remain private: renderer, scene, camera, Object3D, Mesh,
@@ -71,8 +74,9 @@ phase records are archived under [archive/](./archive/).
 The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
 Use that roadmap's `Roadmap Status` table as the source of truth for what has
 not started, what has a focused plan, what is in progress, and what is verified.
-Phase 1 now has a focused implementation plan for internal render layer
-foundations, but implementation has not started.
+Phase 1 internal render layer foundations are verified. The public API remains
+unchanged while the default Level 1 path now flows through internal generated
+scene/camera/pass entries.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
