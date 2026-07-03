@@ -13,15 +13,55 @@
 
 Build a DOM-first managed WebGL render system.
 
-DOM remains the authoring anchor. Consumers declare DOM targets, managed scenes,
-cameras, stage objects, lights, effects, and render passes. The runtime owns
-Three.js renderer, scene, camera, raw objects, materials, textures, render
-targets, render loop, resource lifetime, fallback visibility, scroll, pointer,
-and scheduling.
+DOM remains the authoring anchor. Consumers declare DOM targets first. When a
+page needs more structure, it can opt into managed scenes, cameras, stage
+objects, lights, effects, and render passes. The runtime owns Three.js renderer,
+scene, camera, raw objects, materials, textures, render targets, render loop,
+resource lifetime, fallback visibility, scroll, pointer, and scheduling.
 
 This is not a React Three Fiber clone and not a raw Three.js wrapper. The package
 may borrow Three.js and R3F vocabulary where it improves authoring clarity, but
 the public contract must stay descriptor-driven and runtime-managed.
+
+## DOM-First Boundary
+
+The roadmap must not move the product center away from DOM-driven authoring.
+Managed scene/camera/stage APIs are opt-in escalation paths for cases where the
+current DOM-target model is insufficient. Each level adds vocabulary, not a new
+default mental model.
+
+```text
+Level 1: DOM WebGL Target
+  - default path for docs, examples, and compatibility
+  - WebGLTarget is the shortest path; no user-authored scene/camera/pass needed
+  - DOM owns layout, content, accessibility, fallback, and lifecycle
+  - DOM rect projects into the implicit main scene and main pass
+  - target-local effects act through ctx.object
+  - no scene-native placement, camera controls, custom passes, or physics
+
+Level 2: DOM-Anchored Scene
+  - opt-in scene/camera vocabulary
+  - WebGLTarget still owns DOM fallback/lifecycle and defaults to dom-anchored
+  - objects still follow DOM rects through explicit projection policies
+  - useful for overlays, layer separation, and pass/postprocess scope
+  - scenes group targets and stage helpers; cameras are selected by passes
+
+Level 3: Stage-Local 3D Island
+  - advanced opt-in path
+  - WebGLModel/WebGLStage descriptors can ignore DOM rect placement
+  - useful for lit spaces, camera controls, physics, and real 3D interaction
+  - still runtime-managed and usually attached to DOM sections/timelines/lifecycle
+  - no raw Three.js ownership, even when behavior becomes scene-native
+```
+
+Design rule:
+
+```text
+Simple DOM target usage must remain the shortest and most documented path.
+Scene-native APIs must not make basic DOM-to-WebGL authoring harder.
+Level 3 capabilities must not leak raw Three.js ownership back into Level 1.
+If a feature only helps Level 3, it must be opt-in and absent from Level 1 setup.
+```
 
 ## Current Runtime Truth
 
@@ -55,7 +95,7 @@ the public contract must stay descriptor-driven and runtime-managed.
 ## Product Thesis
 
 The runtime should evolve from a set of target-local capabilities into a managed
-render system:
+render system while keeping DOM targets as the default authoring path:
 
 ```text
 DOM target
@@ -71,9 +111,10 @@ DOM target
 The public model should be:
 
 ```text
-WebGLTarget     -> belongs to a WebGLScene
-WebGLModel      -> optional scene-native model descriptor
-WebGLStage      -> scene-native managed primitive descriptor
+WebGLTarget     -> DOM-backed default authoring object
+WebGLScene      -> optional managed scene/layer descriptor
+WebGLModel      -> optional scene-native model descriptor, not a Target replacement
+WebGLStage      -> optional scene-native managed primitive descriptor
 WebGLCamera     -> belongs to a WebGLScene
 WebGLRenderPass -> renders one WebGLScene with one WebGLCamera
 Effect          -> acts on object, scene, camera, or runtime scope
@@ -90,6 +131,32 @@ WebGLRenderPass descriptor-> internal render(scene, camera) and framebuffer work
 ```
 
 Consumers should not receive the raw objects created by this mapping.
+
+## Target, Scene, and Model Relationship
+
+`WebGLTarget` remains the only default bridge from DOM to WebGL. It owns a real
+DOM element, source declaration, fallback visibility, lifecycle, layout
+measurement, target-local pointer state, and target-local effects. A
+`WebGLTarget` may belong to a managed `WebGLScene`, but it does not require one
+in user code.
+
+`WebGLScene` is an optional grouping and projection boundary. It can provide a
+camera default, pass scope, lighting environment, stage primitives, input routing
+scope, and timeline bindings. It is not a public `THREE.Scene`, and it must not
+turn every DOM target into scene graph authoring.
+
+There are two model paths:
+
+- `WebGLTarget` with `source: { kind: "model", type: "glb" }` is the DOM-first
+  model path. The model is fitted from the target's DOM rect, participates in
+  fallback/lifecycle behavior, and remains appropriate for content attached to
+  real page structure.
+- `WebGLModel` is the scene-native model path. It is opt-in, usually
+  `stage-local`, and has no DOM fallback or DOM rect unless it explicitly binds
+  to a DOM anchor/timeline through managed descriptors.
+
+This separation keeps the current model source from becoming obsolete while
+giving advanced scenes a cleaner way to declare pure 3D assets.
 
 ## Why This Direction
 
@@ -112,13 +179,64 @@ abstraction is a managed render model that can describe:
 ## Public API Direction
 
 Prefer a React component authoring layer that compiles into lower-level runtime
-descriptors.
+descriptors. The examples must show the escalation path in order: Level 1 first,
+then optional scene/pass structure, then stage-local 3D.
 
-Example direction:
+Level 1 stays scene-free in user code:
 
 ```tsx
 <WebGLRuntime>
-  <WebGLScene id="world">
+  <WebGLTarget
+    webgl={{
+      key: "hero-title",
+      source: { kind: "dom", type: "text" },
+      effects: [{ kind: "app.titleReveal" }],
+    }}
+  >
+    Hero Title
+  </WebGLTarget>
+</WebGLRuntime>
+```
+
+Level 2 adds managed scene/pass vocabulary while targets remain DOM-backed:
+
+```tsx
+<WebGLRuntime>
+  <WebGLScene id="main" projection="dom-aligned" defaultPass>
+    <WebGLTarget
+      webgl={{
+        key: "hero-model",
+        source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+        effects: [{ kind: "app.modelFloat" }],
+      }}
+    >
+      <div className="hero-model-fallback" aria-label="Hero model" />
+    </WebGLTarget>
+  </WebGLScene>
+
+  <WebGLScene id="overlay" projection="screen">
+    <WebGLCamera id="screen" default type="orthographic" mode="screen" />
+
+    <WebGLTarget
+      webgl={{
+        key: "hud-title",
+        source: { kind: "dom", type: "text" },
+      }}
+    >
+      HUD Title
+    </WebGLTarget>
+  </WebGLScene>
+
+  <WebGLRenderPass scene="overlay" camera="screen" clearDepth />
+</WebGLRuntime>
+```
+
+Level 3 adds scene-native stage/model descriptors only when a real 3D island is
+needed:
+
+```tsx
+<WebGLRuntime>
+  <WebGLScene id="world" projection="perspective-stage">
     <WebGLCamera
       id="main"
       default
@@ -147,35 +265,25 @@ Example direction:
       position={[0, 0, 160]}
     />
 
-    <WebGLTarget
-      webgl={{
-        key: "hero-model",
-        source: { kind: "model", type: "glb", src: "/models/hero.glb" },
-        effects: [{ kind: "app.modelFloat" }],
+    <WebGLModel
+      id="hero-model"
+      src="/models/hero.glb"
+      placement={{
+        mode: "stage-local",
+        position: [0, 0, 0],
       }}
+      effects={[{ kind: "app.modelFloat" }]}
     />
   </WebGLScene>
 
-  <WebGLScene id="overlay">
-    <WebGLCamera id="screen" default type="orthographic" mode="screen" />
-
-    <WebGLTarget
-      webgl={{
-        key: "hud-title",
-        source: { kind: "dom", type: "text" },
-      }}
-    >
-      HUD Title
-    </WebGLTarget>
-  </WebGLScene>
-
   <WebGLRenderPass scene="world" camera="main" />
-  <WebGLRenderPass scene="overlay" camera="screen" clearDepth />
 </WebGLRuntime>
 ```
 
 Rules:
 
+- `WebGLRuntime` auto-creates an implicit `main` scene, `main` camera, and main
+  pass for Level 1 usage.
 - `WebGLTarget` inherits the nearest `WebGLScene` by React context.
 - `WebGLScene` owns a default camera.
 - `WebGLTarget` belongs to a scene, not directly to a camera.
@@ -188,6 +296,8 @@ Rules:
 - `WebGLTarget` remains DOM-backed and owns fallback/lifecycle behavior.
 - Scene-native descriptors such as `WebGLModel`, `WebGLStagePlane`, and
   `WebGLLight` do not require DOM anchors or fallback DOM.
+- `WebGLModel` should be used only when a model is authored as scene-native. A
+  model that should follow DOM layout should stay a `WebGLTarget` model source.
 
 ## Concept Relationships
 
@@ -198,6 +308,7 @@ flowchart TD
   Camera["WebGLCamera descriptor"]
   Pass["WebGLRenderPass descriptor"]
   Target["WebGLTarget"]
+  Model["WebGLModel"]
   Stage["WebGLStage primitive"]
   Light["WebGLLight"]
   Effect["defineWebGLEffect"]
@@ -212,13 +323,16 @@ flowchart TD
   Runtime --> Pass
   Scene --> Camera
   Scene --> Target
+  Scene --> Model
   Scene --> Stage
   Scene --> Light
   Target --> Effect
+  Model --> Effect
 
   Scene --> InternalScene
   Camera --> InternalCamera
   Target --> InternalObject
+  Model --> InternalObject
   Stage --> InternalObject
   Light --> InternalObject
   Pass --> Renderer
@@ -467,8 +581,8 @@ Example direction:
 ```
 
 This is the bridge from DOM-first runtime to managed 3D scenes. It allows one
-scene to be purely Three-like in behavior while still using runtime-owned
-descriptors and lifecycle.
+scene to use scene-local 3D placement while still using runtime-owned descriptors
+and lifecycle.
 
 ## Render Pass Contract
 
@@ -497,15 +611,84 @@ type WebGLRenderPassDeclaration = {
 
 Default pass behavior:
 
-- Single scene/camera apps get one generated pass.
-- Only the default `main` scene receives an implicit generated pass.
+- Single scene/camera apps get one generated pass on one runtime canvas.
+- Only the default `main` scene receives an implicit generated pass, and only
+  when the app has not declared its own pass list.
 - Additional scenes must opt into rendering with `WebGLRenderPass` or
   `defaultPass`.
+- Additional cameras do not render anything by themselves. A camera becomes
+  visible only through a render pass.
+- Multiple scenes/cameras/passes compose into the same canvas by default. They do
+  not imply multiple runtime instances, multiple canvases, or consumer-owned
+  render loops.
 - Overlay passes default to `clearDepth: true`.
 - Minimap or picture-in-picture passes use `viewport`/scissor.
 - Postprocess is pass/canvas scoped, not object scoped.
+- Arbitrary render graphs, custom framebuffers, composer plugin chains, and raw
+  pass objects stay out of the default API.
+
+## Default vs Opt-In
+
+Keep these default and simple:
+
+- one `WebGLRuntime` creates one managed transparent canvas;
+- Level 1 authoring uses `WebGLTarget` without user-authored scene/camera/pass;
+- implicit `main` scene, `main` DOM-aligned orthographic camera, and generated
+  main pass preserve current behavior;
+- `WebGLTarget` placement defaults to `dom-anchored`;
+- native/browser scroll remains enough for ordinary pages;
+- target pointer behavior remains DOM-rect based through `ctx.pointer` and
+  `ctx.targetPointer`;
+- effects default to target-local `ctx.object` capabilities;
+- fallback visibility, resource lifetime, scheduling, and disposal stay
+  runtime-owned.
+
+Make these explicit opt-in capabilities:
+
+- user-declared `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass`;
+- additional scenes, additional cameras, overlay passes, minimap/viewport passes,
+  and pass-scoped postprocess;
+- `perspective-stage` projection and `stage-local` placement;
+- scene-native `WebGLModel`, stage primitives, lights, and materialized floors,
+  walls, or backdrops;
+- managed scroll timelines beyond basic progress keys;
+- camera controls, scene-level input routing, raycast/picking, colliders, and
+  physics;
+- declarative model clip defaults, crossfade, morph controls, and bone
+  attachment points;
+- any unsafe/unstable raw Three.js escape hatch, if it is ever accepted.
+
+Do not promote an opt-in capability to default unless it improves Level 1
+DOM-target usage without adding required concepts to existing consumers.
 
 ## Roadmap
+
+Phase dependency order:
+
+```text
+Phase 1 -> internal scene/camera/pass registries
+Phase 2 -> opt-in declarations that keep Level 1 unchanged
+Phase 3 -> projection and placement policies
+Phase 4 -> managed stage substrate for lit scene-native objects
+Phase 5 -> target routing, scroll timelines, and effect scopes
+Phase 6 -> pass/runtime postprocess scope correction
+Phase 7 -> managed model animation
+Phase 8 -> input routing and picking
+Phase 9 -> dynamics and physics
+Phase 10 -> unsafe escape hatch decision, only if still needed
+```
+
+Ordering rules:
+
+- Scroll timelines must exist before camera motion, progress-driven model
+  animation, and timeline-driven scene/stage controllers depend on them.
+- Input routing and picking require stable scene/camera/projection/stage
+  contracts. They should happen before physics, but they do not need to block
+  basic model clip animation.
+- Model animation can ship before 3D picking because clip playback, clip
+  scrubbing, crossfade, and morph controls are runtime/model concerns.
+- Physics waits until managed stage objects, colliders, input routing, and
+  lifecycle/disposal semantics are stable.
 
 ### Phase 0: Direction and Boundary Alignment
 
@@ -562,17 +745,24 @@ Acceptance criteria:
 - Debug state can still describe current target counts and renderable counts.
 - No consumer-visible multi-scene feature is required yet.
 
-### Phase 2: Component Declarations for Scene, Camera, and Pass
+### Phase 2: Opt-In Scene, Camera, and Pass Declarations
 
-Goal: add managed React declarations without exposing raw Three.js objects.
+Goal: add managed React declarations without exposing raw Three.js objects or
+making Level 1 users author scenes, cameras, or passes.
 
 Public direction:
 
 ```tsx
 <WebGLRuntime>
+  <WebGLTarget webgl={{ key: "title", source: titleSource }}>
+    Title
+  </WebGLTarget>
+
   <WebGLScene id="world">
     <WebGLCamera id="main" default type="perspective" />
-    <WebGLTarget webgl={{ key: "model", source }} />
+    <WebGLTarget webgl={{ key: "model", source }}>
+      <div className="model-fallback" />
+    </WebGLTarget>
   </WebGLScene>
 
   <WebGLRenderPass scene="world" />
@@ -582,9 +772,10 @@ Public direction:
 Rules:
 
 - `WebGLTarget` inherits nearest `WebGLScene`.
+- `WebGLTarget` outside any `WebGLScene` remains valid and uses the implicit
+  Level 1 `main` scene.
 - `WebGLScene` can declare a default camera.
 - `WebGLRenderPass` picks scene and camera.
-- Existing `WebGLTarget` outside any `WebGLScene` falls back to `main`.
 - Scenes other than `main` do not render unless explicitly passed.
 - Runtime descriptor API should support the same model without React context.
 
@@ -673,17 +864,21 @@ Acceptance criteria:
 - Runtime owns disposal for geometry, material, texture, light, and generated
   objects.
 
-### Phase 5: Target Routing and Effect Scope
+### Phase 5: Target Routing, Scroll Timelines, and Effect Scope
 
-Goal: make target, scene, camera, and runtime scopes explicit.
+Goal: make target, scene, camera, runtime, and timeline scopes explicit.
 
 Deliverables:
 
 - `WebGLTarget` routing by component context and descriptor fallback.
+- `WebGLScrollTimeline` / `WebGLScrollSection` direction as a managed progress
+  signal for targets, scenes, cameras, model animation, and stage objects.
 - Scope-specific effect context exploration:
   - `ctx.scene` for managed scene controls;
   - `ctx.camera` for explicit camera-bound controls;
   - `ctx.runtime` for canvas/pass scoped controls.
+- Keep `ScrollEffectSection` as compatibility sugar for target/effect pinned
+  sections while the broader timeline abstraction is designed.
 - Keep `ctx.object` focused on the current target/renderable.
 
 Rules:
@@ -691,6 +886,10 @@ Rules:
 - Do not keep adding renderer-level capabilities under `ctx.object`.
 - Do not make targets choose cameras by default.
 - Camera is selected by render pass, not object ownership.
+- Scroll libraries may provide progress signals, but they must not own the
+  renderer, scene, camera, render loop, or internal objects.
+- Timeline progress is consumed by managed effects/controllers; it does not
+  expose raw GSAP timelines as the runtime contract.
 - Target-local effects do not receive an implicit active camera in multi-pass
   scenes.
 - Camera effects/controllers must bind to an explicit camera descriptor or pass
@@ -699,6 +898,9 @@ Rules:
 Acceptance criteria:
 
 - Existing target-local effects keep working.
+- Existing `ScrollEffectSection` usage keeps working.
+- A scene, camera, target, image sequence, or model animation can consume the
+  same named timeline/progress signal through managed runtime state.
 - New scene/camera controls are clearly scoped and documented.
 - Public tests reject raw scene/camera access.
 
@@ -1055,7 +1257,7 @@ Do not borrow by default:
 Compatibility matters. Existing consumers should not need to understand scenes
 or passes.
 
-Default behavior remains:
+Level 1 default behavior remains:
 
 ```tsx
 <WebGLRuntime>
@@ -1079,9 +1281,11 @@ Only advanced users opt into:
 - additional scenes;
 - perspective stage cameras;
 - scene-native `stage-local` objects;
+- scene-native `WebGLModel` instead of DOM-backed model targets;
 - overlay scenes;
 - viewport/minimap passes;
 - pass-scoped postprocess;
+- managed scroll timelines beyond current progress keys;
 - managed model animation;
 - managed stage primitives;
 - interaction/collider/physics.
@@ -1129,6 +1333,11 @@ Do not make these default roadmap items:
   - Recommendation: `WebGLTarget` defaults to `dom-anchored`; stage primitives
     and scene-native models default to `stage-local`; overlay helpers default to
     `screen-anchored`.
+- Scroll timeline naming and scope.
+  - Recommendation: keep `ScrollEffectSection` as compatibility sugar, but make
+    the broader abstraction a managed `WebGLScrollTimeline` or
+    `WebGLScrollSection` progress signal that scenes, cameras, targets, models,
+    and stage objects can consume.
 
 ## Success Criteria
 
@@ -1162,11 +1371,11 @@ After review, choose one of these first implementation plans:
    - Best first step if the goal is validating public ergonomics quickly.
    - Requires careful compatibility tests.
 
-3. **Target Routing and Effect Scope**
+3. **Target Routing, Scroll Timelines, and Effect Scope**
    - Best first step after scene/camera/pass declarations if the goal is
-     unblocking later postprocess, camera, and runtime scopes.
+     unblocking later postprocess, camera, model animation, and runtime scopes.
    - Should define the `ctx.scene` / `ctx.camera` / `ctx.runtime` boundaries
-     before deeper capabilities depend on them.
+     and timeline ownership before deeper capabilities depend on them.
 
 4. **Managed Stage v1**
    - Best first step if the immediate product need is lit floor/wall/backdrop.
@@ -1176,7 +1385,9 @@ The safest sequence is:
 
 ```text
 Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5
+  -> Phase 6 -> Phase 7 -> Phase 8 -> Phase 9
 ```
 
-Then revisit postprocess, managed model animation, interaction, and dynamics with
-a stable render model.
+That keeps postprocess after scoped ownership, model animation after timeline
+signals, input routing before physics, and physics after stage/collider
+contracts.

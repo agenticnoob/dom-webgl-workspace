@@ -70,13 +70,33 @@ phase records are archived under [archive/](./archive/).
 
 The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
 
-The strategic direction is a DOM-first managed render system:
+The strategic direction is a DOM-first managed render system. `WebGLTarget`
+remains the shortest and default authoring path; Level 1 usage must not require
+user-authored scenes, cameras, or render passes. Managed scene/camera/stage APIs
+are opt-in escalation for DOM-anchored scenes and advanced stage-local 3D
+islands, not a replacement for DOM-driven authoring.
+
+Relationship rules from the active roadmap:
+
+- `WebGLTarget` remains the DOM-backed bridge for layout, fallback, lifecycle,
+  target pointer state, and target-local effects.
+- `WebGLScene` is an optional managed grouping/projection/pass boundary, not a
+  raw `THREE.Scene` or a new default authoring requirement.
+- `WebGLModel` is the opt-in scene-native model path for advanced 3D. Models
+  that should follow DOM layout remain `WebGLTarget` model sources.
+- One implicit `main` scene, DOM-aligned camera, and generated pass preserve
+  current behavior; additional scenes/cameras/passes render only when explicitly
+  declared.
+- Scroll timelines and scoped effect routing should land before progress-driven
+  model animation, input routing/picking, and physics. Physics remains last,
+  after managed stage/collider/input contracts exist.
 
 - managed scenes and cameras
 - managed render passes
 - explicit projection and placement modes
 - managed lit stage primitives
 - scoped effect contexts for object, scene, camera, and runtime
+- managed scroll timelines/progress signals
 - pass/runtime-scoped postprocess
 - managed model animation
 - managed input routing and picking
