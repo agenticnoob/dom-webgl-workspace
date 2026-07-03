@@ -1,0 +1,94 @@
+# Current Status
+
+**Last reviewed against:** `b37bd111 fix: broaden postprocess bloom spread`
+
+This is the active current-truth summary. Completed execution plans and older
+phase records are archived under [archive/](./archive/).
+
+## Runtime Truth
+
+- One runtime instance creates one fixed transparent WebGL canvas.
+- The current default host owns one main internal Three.js scene, one main
+  orthographic camera, and one renderer.
+- Public effect authoring goes through `defineWebGLEffect(...)` and the managed
+  `ctx.object` facade.
+- Runtime internals remain private: renderer, scene, camera, Object3D, Mesh,
+  Material, Texture, render targets, render loop, loader, mixer, raycaster, and
+  pass ordering are not public API.
+- Current source declaration is `source.kind: "dom" | "media" | "model"` plus
+  `source.type`.
+- `apps/example` is the only app workspace and is the downstream consumer
+  dogfood/tutorial surface.
+
+## Implemented Public Surface
+
+- DOM, media, and model sources:
+  - `dom/element`
+  - `dom/text`
+  - `media/image`
+  - `media/video`
+  - `media/image-sequence`
+  - `model/glb`
+- Managed `ctx.object` controls:
+  - transform, visibility, opacity
+  - material facade
+  - runtime-owned lights
+  - animation facade for GLB clips
+  - surface, text, texture, video, model modules
+  - model mesh/material handles
+  - model point layers
+  - material layer shaders
+  - postprocess requests
+- Target-scoped pointer contract:
+  - declarations use `pointer: { hover, press, click, drag }`
+  - `ctx.pointer` is runtime/canvas pointer state
+  - `ctx.targetPointer` is target-local pointer state
+- Transform groups:
+  - `transformScope: "subtree"` creates an internal runtime group
+  - no public scene graph, group, matrix, or raw Three.js handle is exposed
+
+## Active Caveats
+
+- `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
+  full WebGL canvas and should not be treated as target/model-local glow.
+- Model-local glow should use material/emissive controls and runtime-owned
+  lights unless whole-pass bloom is intentional.
+- `dom/element` surfaces are canvas texture planes and do not respond to Three.js
+  lighting. Lit floors, walls, and backdrops require future managed stage
+  primitives.
+- `model/glb` renderables are fitted to their DOM target by the runtime layout
+  pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
+  placement.
+- Scene-gated scroll remains an optional advanced scroll-locking capability.
+  Ordinary pinned scrub sections should use `@project/dom-webgl-scroll-adapters/react`,
+  `ScrollEffectSection`, stable `progressKey` values, and
+  `ctx.progress.get(progressKey)`.
+- Batching remains profile-gated. The current example does not prove draw calls
+  dominate enough compatible active planes to justify broad batching by default.
+
+## Active Direction
+
+The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
+
+The strategic direction is a DOM-first managed render system:
+
+- managed scenes and cameras
+- managed render passes
+- explicit projection and placement modes
+- managed lit stage primitives
+- scoped effect contexts for object, scene, camera, and runtime
+- pass/runtime-scoped postprocess
+- managed model animation
+- managed input routing and picking
+- dynamics/physics only after stage/collider contracts exist
+
+## Active Docs
+
+- [README.md](../README.md) - package overview and usage.
+- [00-goal.md](./00-goal.md) - architecture principles.
+- [roadmap/managed-render-system.md](./roadmap/managed-render-system.md) - next strategic roadmap.
+- [agent/package-onboarding.md](./agent/package-onboarding.md) - agent starting point.
+- [agent/package-usage.md](./agent/package-usage.md) - package contract reference.
+- [agent/effect-object-boundary.md](./agent/effect-object-boundary.md) - current effect boundary.
+- [examples/effect-authoring.md](./examples/effect-authoring.md) - consumer tutorial.
+- [performance/profile-notes.md](./performance/profile-notes.md) - profiling notes.

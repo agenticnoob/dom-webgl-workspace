@@ -4,106 +4,22 @@ DOM-first interactive WebGL runtime workspace.
 
 ## Status
 
-Phase 1 is complete through Task 37 in `docs/IMPLEMENTATION_PLAN.md`.
-Phase 2 scene-gated scroll in `docs/PHASE2_SCENE_GATE_PLAN.md` is a
-historical implemented capability, not the current core goal or recommended
-pinned-scroll route. For ordinary pinned sections that drive effects, use
-`@project/dom-webgl-scroll-adapters/react` with GSAP ScrollTrigger pin/scrub and
-a stable `progressKey`.
-Phase 3 visible renderables are complete through Task 72 in
-`docs/PHASE3_VISIBLE_RENDERABLE_PLAN.md`.
-Phase 3.5 runtime performance and stage correction is implemented in
-`docs/superpowers/plans/2026-06-18-phase-3-5-runtime-performance-and-stage.md`.
-Phase 4 has been narrowed to DOM layout/content mapping and responsive
-projection in
-`docs/superpowers/plans/2026-06-18-phase-4-dom-style-fidelity-responsive-mapping.md`;
-the forward architecture is now DOM layout/content driven WebGL effects, not
-general CSS-to-WebGL fidelity.
-Phase 5 historically added the first public minimum effect/material declaration
-shapes in `docs/superpowers/plans/2026-06-19-phase-5-effect-material-layer.md`;
-those concrete package-owned effects are superseded by the Phase 8 package
-boundary cleanup.
-Phase 6.2 in
-`docs/superpowers/plans/2026-06-19-phase-6-modular-surface-materials.md`
-historically added a minimal `surface` material declaration on top of the
-modular Phase 6.1 effect boundaries; it is now historical input, not a
-package-provided concrete visual effect.
-Phase 7 is implemented in
-`docs/superpowers/plans/2026-06-19-phase-7-effect-runtime-primitives.md`:
-it historically preserved the Phase 6 object-form declarations as compatibility
-input while moving internal effect dispatch to registry primitives. Its built-in
-plugin and public registry authoring model is superseded by Phase 8 and the
-package boundary cleanup; the selected forward contract removes object-form
-target effects and keeps only array-form effect declarations.
-Phase 8 is implemented in
-`docs/superpowers/plans/2026-06-19-phase-8-custom-effect-authoring-api.md`:
-`defineWebGLEffect(...)` and runtime-level `effects` are the public authoring
-API. Core registers no default visual effects, the package exports no concrete
-effect implementations, and example effects are consumer-owned code.
-Unified source capability handles are implemented in
-`docs/superpowers/plans/2026-06-21-unified-source-capability-handles.md`:
-custom effects can now control runtime-owned output handles for
-`dom/element`, `dom/text`, `media/image`, `media/video`, `media/image-sequence`,
-and `model/glb` without
-mutating source DOM or reaching into renderer internals.
-The visual capability API in
-`docs/superpowers/plans/2026-06-26-visual-effect-capability-api.md` is
-implemented: the same `defineWebGLEffect(...)` model now covers controlled
-material layers, source texture uniforms, text/media shader inputs, GLB mesh
-material handles, managed point layers, and named postprocess request handles
-while keeping renderer, scene, camera, composer, render targets, raw object3D/mesh/
-material/texture fields, and raw materials internal.
-Effect authoring direction is implemented in
-`docs/agent/effect-object-boundary.md`: `ctx.object` is now the primary managed
-Three-like facade for transform, visibility, opacity, material, lights,
-animation, postprocess, and surface/text/texture/video/model capabilities.
-Effect authors use `ctx.object` for all visual control and source-backed
-capabilities; source, target, and visual handles are internal runtime assembly
-details and are not part of the public effect context. Runtime owns raw Three.js
-renderer, scene, camera, objects, materials, textures, loaders, mixers, lights,
-render targets, lifecycle, disposal, pointer, scroll, and scheduling. The
-implementation records are
-`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md` and
-`docs/superpowers/plans/2026-07-02-effect-object-only-public-context.md`, with
-the managed Three-like object API in
-`docs/superpowers/plans/2026-07-02-managed-three-like-object-api.md`.
-The runtime performance roadmap in
-`docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`: profile and
-budget first, then demand-driven scheduling, resource/load pressure controls,
-bounded postprocess, and only then targeted batching if profiling proves it is
-needed. Runtime Performance Ownership V2 is implemented in
-`docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`:
-texture upload dirtiness is split from frame-only dirtiness; material uniforms
-update incrementally; effects can declare static/reactive/frame scheduling
-intent; renderer draw-call/texture stats, postprocess request count, and
-render-target size feed debug budget warnings without exposing raw renderer
-objects; resource loads are queue-limited and viewport-prioritized; plane
-renderables share internal geometry; animated model mixers are updated only
-while visible; and `docs/performance/profile-notes.md` records that batching
-remains profile-gated rather than implemented by default.
-Declarative WebGL transform groups are implemented in
-`docs/superpowers/plans/2026-07-01-webgl-transform-groups.md`:
-`transformScope: "subtree"` lets a parent target's effect transform control its
-WebGL subtree while child targets keep independent source, effects, textures,
-fallback lifecycle, and resource ownership.
-A 2026-07-01 React Doctor hygiene pass resolved the safe internal diagnostics:
-passive viewport scroll invalidation, bounded example image-sequence loading,
-single-pass debug/stage collection, and non-security cache-key naming for
-render/material reuse. It does not change public API, source declarations,
-effect handles, React runtime compatibility, or the profile-gated batching
-decision.
-Agent package onboarding starts at `docs/agent/package-onboarding.md`; agents
-should read that file first when integrating the package from zero.
-Detailed package usage rules live in `docs/agent/package-usage.md`.
-The forward effect authoring boundary lives in
-`docs/agent/effect-object-boundary.md`; use it before designing new effect
-capabilities so the package does not drift back into source-specific handle
-expansion.
-React-only effect authoring examples live in `apps/example` and
-`docs/examples/effect-authoring.md`; they are downstream consumer examples, not
-runtime package exports.
-Reusable architecture lessons from the sibling `codex-web` project are captured
-in `docs/CODEX_WEB_REFERENCE_LEARNINGS.md`.
+Current implementation truth lives in `docs/STATUS.md`.
+
+The next strategic direction is
+`docs/roadmap/managed-render-system.md`: evolve the runtime from target-local
+capabilities into managed scenes, cameras, render passes, stage primitives,
+model animation, scoped input, and eventually dynamics/physics while keeping raw
+Three.js internals private.
+
+Completed phase plans and historical execution records are archived under
+`docs/archive/`. Treat archived files as evidence, not current API truth or live
+backlog.
+
+Agent package onboarding starts at `docs/agent/package-onboarding.md`. Detailed
+package usage rules live in `docs/agent/package-usage.md`. The current effect
+authoring boundary lives in `docs/agent/effect-object-boundary.md`. React-only
+consumer examples live in `apps/example` and `docs/examples/effect-authoring.md`.
 
 Project boundary:
 
@@ -442,8 +358,8 @@ Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
 camera, objects, materials, textures, loaders, mixers, lights, render targets,
 scroll, pointer, lifecycle, disposal, and performance scheduling.
 
-The effect context exposes low-level runtime output handles for every supported
-source kind. Consumers can draw to canvas-backed element surfaces through
+The effect context exposes managed source-backed modules through `ctx.object`.
+Consumers can draw to canvas-backed element surfaces through
 `ctx.object.surface`, control WebGL text and glyph layout through
 `ctx.object.text`, transform image/video/sequence textures through
 `ctx.object.texture`, control video playback through `ctx.object.video`, inspect

@@ -52,12 +52,12 @@ collection in debug/stage helpers, and cache-key naming for non-security render
 reuse. It does not introduce React 19-only APIs, ES2023-only array helpers,
 public scene-graph handles, or automatic batching.
 
-The current effect context exposes low-level runtime output handles for every
+The current effect context exposes a managed `ctx.object` facade for every
 supported source kind. Consumers can draw to canvas-backed element surfaces,
 control WebGL text layers and glyph layout, transform image/video texture
-planes, control video playback, and inspect or manipulate GLB model handles
-through public effect context. These are primitives, not package-owned visual
-effects.
+planes, control video playback, and manipulate GLB model capabilities through
+controlled object modules. Source, target, and visual handles are internal
+runtime assembly details, not public effect context.
 
 The 2026-07-02 effect authoring direction correction is captured in
 `docs/agent/effect-object-boundary.md`. The runtime now exposes a controlled
@@ -69,9 +69,9 @@ effect context. Future visual capability work should continue under
 rotation, scale, visibility, opacity, texture/text/model modules, material,
 animation, lights, and postprocess through one runtime-owned object. Raw
 Three.js renderer, scene, camera, Object3D, mesh, material, texture, animation
-mixer, raycaster, composer, and loader instances remain internal.
-The refactor plan lives in
-`docs/superpowers/plans/2026-07-02-effect-object-facade-refactor.md`.
+mixer, raycaster, composer, and loader instances remain internal. The completed
+implementation plan is archived at
+`docs/archive/plans/superpowers/2026-07-02-effect-object-facade-refactor.md`.
 Managed Three-like object API is now the active public authoring direction:
 consumers use familiar vocabulary such as `position`, `rotation`, `scale`,
 `material`, `lights`, and `animation` through `ctx.object`, while the runtime
@@ -242,19 +242,17 @@ removed from the contract and do not compile.
 
 Current roadmap:
 
-- The next iteration roadmap lives in
-  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
-- The performance direction is scheduler and budget first: instrument runtime
-  cost, expose conservative development warnings, and avoid continuous
-  rendering for static pages before considering batching or renderer backends.
-- Runtime Performance Ownership V2 is implemented in
-  `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`.
-  Runtime-owned policy now splits pixel upload dirtiness from frame-only
-  dirtiness, updates material uniforms incrementally, lets effects declare
-  static/reactive/frame scheduling intent, reports renderer/postprocess budget
-  pressure through stable warning records, prioritizes queued resource loads by
-  viewport state, shares internal plane geometry, and updates internal model
-  animation mixers only while visible. `docs/performance/profile-notes.md`
+- Current implementation truth lives in `docs/STATUS.md`.
+- The next strategic roadmap lives in
+  `docs/roadmap/managed-render-system.md`.
+- Completed execution plans live under `docs/archive/` and are historical
+  evidence, not live backlog.
+- Runtime-owned performance policy now splits pixel upload dirtiness from
+  frame-only dirtiness, updates material uniforms incrementally, lets effects
+  declare static/reactive/frame scheduling intent, reports renderer/postprocess
+  budget pressure through stable warning records, prioritizes queued resource
+  loads by viewport state, shares internal plane geometry, and updates internal
+  model animation mixers only while visible. `docs/performance/profile-notes.md`
   records that batching is still deferred because the current profile does not
   prove draw calls dominate many compatible active planes.
 - WebGPU, multiple canvases, raw Three.js public handles, and a general
