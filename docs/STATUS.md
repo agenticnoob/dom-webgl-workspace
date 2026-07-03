@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** `b37bd111 fix: broaden postprocess bloom spread`
+**Last reviewed against:** `c890d975 docs: add managed render roadmap status guardrails`
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -71,6 +71,8 @@ phase records are archived under [archive/](./archive/).
 The next roadmap is [roadmap/managed-render-system.md](./roadmap/managed-render-system.md).
 Use that roadmap's `Roadmap Status` table as the source of truth for what has
 not started, what has a focused plan, what is in progress, and what is verified.
+Phase 1 now has a focused implementation plan for internal render layer
+foundations, but implementation has not started.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

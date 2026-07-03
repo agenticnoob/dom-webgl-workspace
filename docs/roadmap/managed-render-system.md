@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** `b37bd111 fix: broaden postprocess bloom spread`
+**Last reviewed against:** `c890d975 docs: add managed render roadmap status guardrails`
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -731,7 +731,7 @@ Status values:
 | Phase | Status | Focused Plan | Notes |
 | --- | --- | --- | --- |
 | Phase 0: Direction and Boundary Alignment | `[verified]` | n/a | Roadmap created, docs reorganized, DOM-first Level 1/2/3 boundary documented. |
-| Phase 1: Internal Render Layer Foundations | `[not-started]` | none | Next recommended implementation phase. |
+| Phase 1: Internal Render Layer Foundations | `[planned]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Focused plan exists; implementation not started. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[not-started]` | none | Depends on Phase 1. |
 | Phase 3: Projection Policies | `[not-started]` | none | Depends on Phase 1 and Phase 2. |
 | Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
@@ -815,8 +815,8 @@ Validation:
 
 ### Phase 1: Internal Render Layer Foundations
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[planned]`
+- **Focused plan:** [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md)
 - **Depends on:** Phase 0
 - **Last updated:** 2026-07-03
 - **Exit criteria:** internal scene/camera/pass registries exist with one generated
