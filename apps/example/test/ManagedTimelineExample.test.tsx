@@ -141,6 +141,9 @@ describe("ManagedTimelineExample", () => {
     expect(markup).toContain("example-managed-stage-timeline");
     expect(markup).toContain("pinned managed scene");
     expect(markup).toContain("Timeline driven card");
+    expect(markup).toMatch(
+      /<div data-webgl-scene="example\.managedStage\.scene"><article class="example-managed-stage-card">/,
+    );
     expect(scrollTimelineProps).toEqual([
       expect.objectContaining({
         as: "section",
@@ -244,8 +247,8 @@ describe("ManagedTimelineExample", () => {
         webgl: expect.objectContaining({
           key: "example.managedStage.card",
           source: { kind: "dom", type: "element" },
-          placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
-          lifecycle: { hideWhenReady: true, hideMode: "self" },
+          placement: { mode: "screen-depth", depth: 120, size: "dom" },
+          lifecycle: { hideWhenReady: true, hideMode: "subtree" },
           timeline: {
             id: "example.managedTimeline",
             active: { from: 0.2, to: 0.9 },

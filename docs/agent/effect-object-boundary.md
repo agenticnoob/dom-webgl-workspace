@@ -194,6 +194,11 @@ Model renderables are fit to their target rect by the runtime layout pass.
 controls, but writing them means the effect intentionally owns model placement
 and overrides the runtime fit transform.
 
+The same ownership rule applies to projected DOM surfaces. A `dom/element`
+target with `screen-depth` or `stage-local` placement receives a runtime-owned
+plane layout from the descriptor. Writing `ctx.object.scale` replaces that plane
+size; use it only when the effect intentionally owns surface sizing.
+
 `ctx.object.postprocess` is a managed runtime request facade, but current
 requests are runtime-canvas scoped. Target-local model glow should use material
 or mesh emissive controls plus runtime-owned lights unless a future

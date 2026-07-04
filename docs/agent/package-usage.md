@@ -383,8 +383,10 @@ Rules:
 - Use orthographic cameras for `dom-aligned` and `screen` scenes. Use
   perspective cameras with `mode: "perspective-stage"` for perspective-stage
   scenes.
-- `screen-depth` is the initial perspective DOM bridge. `screen-plane` remains
-  deferred.
+- `screen-depth` is the initial perspective DOM bridge. It uses the DOM rect for
+  screen position/size and projects that point along the active `WebGLCamera`
+  basis at the requested depth. Keep the scene default camera aligned with the
+  camera used by the scene render pass. `screen-plane` remains deferred.
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.
@@ -1308,6 +1310,11 @@ model bounds into the target rect. If an effect writes `ctx.object.position` or
 effect intentionally owns model placement; otherwise leave fit position/scale to
 the runtime and animate rotation, material, lights, animation, mesh handles, or
 managed point layers.
+
+For `dom/element` surfaces in managed scenes, placement descriptors such as
+`screen-depth` also produce a runtime-owned plane size. An effect that writes
+`ctx.object.scale` replaces that descriptor-projected size, so leave scale alone
+unless the effect intentionally owns the surface dimensions.
 
 When an effect needs model particles or generated model-local points, prefer
 `ctx.object.model?.points.create(...)`. The runtime owns attachment, ordering,

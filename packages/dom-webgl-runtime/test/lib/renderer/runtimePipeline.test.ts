@@ -3533,6 +3533,59 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("routes screen-depth targets through the perspective stage scene", async () => {
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(
+      createObjectRecordingSceneAdapter(),
+      {
+        scenes: { world: worldAdapter },
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            position: [0, 136, 560],
+            target: [0, -88, -40],
+          },
+        },
+      },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(220, 232, 360, 136),
+    });
+
+    runtime.registerTarget(document.createElement("article"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+    });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.card",
+    ]);
+    const layout = readRequiredSceneObjectLastLayout(worldAdapter, "world.card");
+    expect(layout.x).toBeCloseTo(0);
+    expect(layout.y).toBeCloseTo(94.0295);
+    expect(layout.z).toBeCloseTo(447.579);
+    expect(layout.width).toBeCloseTo(67.1483);
+    expect(layout.height).toBeCloseTo(25.366);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "world.card",
+      sceneId: "world",
+      projection: "perspective-stage",
+      placementMode: "screen-depth",
+    });
+
+    runtime.dispose();
+  });
+
   test("keeps Level 1 dom anchored layout unchanged", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -3850,6 +3903,7 @@ function createRenderLayerRegistryStub(
       ([id, camera]): [string, InternalRenderCameraEntry] => [
         id,
         {
+          ...camera,
           id,
           generated: camera.generated ?? false,
           sceneId: camera.sceneId,
@@ -4110,6 +4164,49 @@ function readSceneObjectLastLayout(
   }
 
   return undefined;
+}
+
+function readRequiredSceneObjectLastLayout(
+  sceneAdapter: { objects: WebGLSceneObject[] },
+  key: string,
+): {
+  x: number;
+  y: number;
+  z?: number;
+  width: number;
+  height: number;
+} {
+  const layout = readSceneObjectLastLayout(sceneAdapter, key);
+
+  if (!layout || typeof layout !== "object") {
+    throw new Error(`Missing scene object layout ${key}`);
+  }
+
+  if (
+    !("x" in layout) ||
+    !("y" in layout) ||
+    !("width" in layout) ||
+    !("height" in layout) ||
+    typeof layout.x !== "number" ||
+    typeof layout.y !== "number" ||
+    typeof layout.width !== "number" ||
+    typeof layout.height !== "number"
+  ) {
+    throw new Error(`Invalid scene object layout ${key}`);
+  }
+
+  const z = "z" in layout ? layout.z : undefined;
+  if (z !== undefined && typeof z !== "number") {
+    throw new Error(`Invalid scene object layout z ${key}`);
+  }
+
+  return {
+    x: layout.x,
+    y: layout.y,
+    ...(z !== undefined ? { z } : {}),
+    width: layout.width,
+    height: layout.height,
+  };
 }
 
 type TransformGroupObject3D = {

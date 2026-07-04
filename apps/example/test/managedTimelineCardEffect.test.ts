@@ -23,16 +23,11 @@ describe("managed timeline card effect", () => {
     expect(fixture.target.setVisible).toHaveBeenCalledWith(true);
     expect(fixture.target.setRotation).toHaveBeenCalledWith(0, expect.any(Number), 0);
     expect(fixture.target.setRotation.mock.calls[0]?.[1]).toBeGreaterThan(0.12);
-    expect(fixture.target.setScale).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fixture.target.setScale.mock.calls[0]?.[0]).toBeGreaterThan(0.95);
+    expect(fixture.target.setScale).not.toHaveBeenCalled();
     expect(fixture.target.setOpacity).toHaveBeenCalledWith(expect.any(Number));
   });
 
-  test("tilts and scales enough to be visible while the managed timeline advances", () => {
+  test("tilts without overriding the runtime-projected layout size", () => {
     const early = createManagedTimelineCardContext({ progress: 0.28 });
     const middle = createManagedTimelineCardContext({ progress: 0.64 });
 
@@ -41,12 +36,11 @@ describe("managed timeline card effect", () => {
 
     const earlyRotationY = early.target.setRotation.mock.calls[0]?.[1];
     const middleRotationY = middle.target.setRotation.mock.calls[0]?.[1];
-    const earlyScale = early.target.setScale.mock.calls[0]?.[0];
-    const middleScale = middle.target.setScale.mock.calls[0]?.[0];
 
     expect(earlyRotationY).toBeLessThan(-0.18);
     expect(middleRotationY).toBeGreaterThan(0.12);
-    expect(earlyScale).toBeLessThan(middleScale - 0.12);
+    expect(early.target.setScale).not.toHaveBeenCalled();
+    expect(middle.target.setScale).not.toHaveBeenCalled();
     expect(early.surfaceDraw).toHaveBeenCalledTimes(1);
     expect(middle.surfaceDraw).toHaveBeenCalledTimes(1);
   });

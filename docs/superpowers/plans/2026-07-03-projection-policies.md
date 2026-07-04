@@ -1006,7 +1006,14 @@ export function projectTargetLayout(input: ProjectTargetLayoutInput): ProjectedD
 }
 ```
 
-Use a small helper for screen-depth:
+Use a small helper for screen-depth.
+
+2026-07-04 follow-up: the simple `cameraZ - depth` sketch below is historical
+and should not be copied. Current implementation projects `screen-depth` through
+the active `WebGLCamera` basis (`position`/`target`, forward/right/up), because
+pitched `perspective-stage` cameras otherwise place scene-child DOM surfaces
+outside the view. The scene default camera should stay aligned with the render
+pass camera used for that scene.
 
 ```ts
 function projectScreenDepthLayout(input: ProjectTargetLayoutInput): ProjectedDOMRect {

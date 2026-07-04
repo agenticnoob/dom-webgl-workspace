@@ -108,9 +108,11 @@ phase records are archived under [archive/](./archive/).
 
 - Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
   shortest and default DOM-first path.
-- `screen-depth` is the first perspective-stage DOM bridge. `screen-plane`
-  remains deferred to the Phase 8 pre-step for screen-plane placement against
-  named stage planes.
+- `screen-depth` is the first perspective-stage DOM bridge. It projects DOM rect
+  screen position/size through the active `WebGLCamera` basis at a fixed depth;
+  the scene's default camera should stay aligned with the render pass camera.
+  `screen-plane` remains deferred to the Phase 8 pre-step for screen-plane
+  placement against named stage planes.
 - `stage-local` placement sets explicit scene-local layout for a target.
   Scene-native `WebGLModel` declarations remain future roadmap work.
 - `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
@@ -138,9 +140,10 @@ phase records are archived under [archive/](./archive/).
   by progress range. Active ranges do not override explicit effect visibility or
   `visible: false` declarations. They also do not make a nested `WebGLScene` a
   local clipped viewport. DOM-bound pass viewport/scissor remains Phase 6 work.
-- The managed timeline example keeps its visible `WebGLTarget` in the default
-  target pipeline and reads the same timeline progress signal as the managed
-  scene; it is not a scene-local or DOM-clipped viewport example.
+- The managed timeline example keeps its visible card as a scene-child
+  `WebGLTarget`; it inherits the managed scene, uses `screen-depth` placement,
+  and reads the same timeline progress signal as the managed scene. It is still
+  not a DOM-clipped viewport example.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

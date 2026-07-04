@@ -474,8 +474,8 @@ describe("effect authoring example app", () => {
     expect(finalTargetProps[5]?.webgl).toMatchObject({
       key: "example.managedStage.card",
       source: { kind: "dom", type: "element" },
-      placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
-      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+      lifecycle: { hideWhenReady: true, hideMode: "subtree" },
       timeline: {
         id: "example.managedTimeline",
         active: { from: 0.2, to: 0.9 },

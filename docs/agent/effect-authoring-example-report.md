@@ -132,6 +132,35 @@ by writing target scale from the effect.
 
 ## Friction And Counterintuitive Points
 
+- Managed timeline card dogfood should keep the card target inside the
+  `WebGLScene`. Moving it outside the scene only proves the default target
+  pipeline and defeats the scene-child inheritance dogfood. If the card is not
+  visible, debug the scene-child target in place.
+- For a scene-child `dom/element` card that still looks invisible or tiny, use
+  this order of checks: confirm React markup nests the `WebGLTarget` under
+  `WebGLScene`; confirm runtime debug state reports the target as `ready`,
+  `active`, `visible`, `sceneId: example.managedStage.scene`,
+  `projection: perspective-stage`, and `placementMode: screen-depth`; confirm
+  fallback DOM and descendants are hidden with `hideMode: "subtree"`; inspect
+  the `WebGLCamera` used by the scene (`default`/`defaultCameraId`) and keep it
+  aligned with `WebGLScene render.camera`; inspect `screen-depth` projection
+  against that camera's `position`/`target`; then inspect the effect for
+  `ctx.object.position` or `ctx.object.scale` writes that override the
+  runtime-projected plane layout.
+- The 2026-07-04 managed card failure had two causes: `screen-depth` originally
+  projected with a simplified `cameraZ - depth` formula instead of the
+  `WebGLCamera` basis, and `example.managedTimelineCard` called
+  `ctx.object.scale.setScalar(...)`, shrinking the projected surface to roughly
+  one scene unit. The fix kept the card as a scene-child `WebGLTarget`, made
+  `screen-depth` project through the active camera forward/right/up, kept the
+  scene camera declared as the default render camera, used `size: "dom"`, hid
+  the fallback subtree, and removed the effect scale write.
+- Use these docs before changing this area again: `docs/STATUS.md` for current
+  caveats, `docs/roadmap/managed-render-system.md` for phase scope,
+  `docs/agent/package-usage.md` for scene/placement contracts,
+  `docs/agent/effect-object-boundary.md` for `ctx.object` ownership,
+  `docs/examples/effect-authoring.md` for the consumer tutorial, and this
+  report for dogfood pitfalls.
 - The relationship between target `webgl.effects` data and runtime-level
   executable `effects` needs repeated documentation. It is easy to assume target
   declarations execute by themselves.

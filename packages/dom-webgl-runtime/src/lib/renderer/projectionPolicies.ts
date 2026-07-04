@@ -20,6 +20,17 @@ type StageLocalPlacement = Extract<
   NormalizedTargetPlacement,
   { mode: "stage-local" }
 >;
+type CameraBasis = {
+  readonly position: WebGLTuple3;
+  readonly forward: WebGLTuple3;
+  readonly right: WebGLTuple3;
+  readonly up: WebGLTuple3;
+};
+
+const defaultCameraPosition = [0, 0, 500] satisfies WebGLTuple3;
+const defaultCameraForward = [0, 0, -1] satisfies WebGLTuple3;
+const defaultCameraRight = [1, 0, 0] satisfies WebGLTuple3;
+const defaultCameraUp = [0, 1, 0] satisfies WebGLTuple3;
 
 export type DOMViewportSize = {
   width: number;
@@ -124,12 +135,15 @@ function projectScreenDepthLayout(
   const unitsPerPixel = verticalSpan / viewport.height;
   const centerX = measurement.left + measurement.width / 2;
   const centerY = measurement.top + measurement.height / 2;
-  const cameraZ = camera.position?.[2] ?? 500;
+  const basis = readCameraBasis(camera);
+  const offsetX = (centerX - viewport.width / 2) * unitsPerPixel;
+  const offsetY = (viewport.height / 2 - centerY) * unitsPerPixel;
+  const center = projectCameraDepthPoint(basis, depth, offsetX, offsetY);
 
   return {
-    x: (centerX - viewport.width / 2) * unitsPerPixel,
-    y: (viewport.height / 2 - centerY) * unitsPerPixel,
-    z: cameraZ - depth,
+    x: center[0],
+    y: center[1],
+    z: center[2],
     width: readProjectedSize(
       placement.size,
       measurement.width,
@@ -143,6 +157,72 @@ function projectScreenDepthLayout(
       1,
     ),
   };
+}
+
+function readCameraBasis(camera: ProjectionCameraState): CameraBasis {
+  const position = camera.position ?? defaultCameraPosition;
+  const forward = camera.target
+    ? normalizeVector(
+        subtractVector(camera.target, position),
+        defaultCameraForward,
+      )
+    : defaultCameraForward;
+  const right = normalizeVector(
+    crossVector(forward, defaultCameraUp),
+    defaultCameraRight,
+  );
+  const up = normalizeVector(crossVector(right, forward), defaultCameraUp);
+
+  return { position, forward, right, up };
+}
+
+function projectCameraDepthPoint(
+  basis: CameraBasis,
+  depth: number,
+  offsetX: number,
+  offsetY: number,
+): WebGLTuple3 {
+  return [
+    basis.position[0] +
+      basis.forward[0] * depth +
+      basis.right[0] * offsetX +
+      basis.up[0] * offsetY,
+    basis.position[1] +
+      basis.forward[1] * depth +
+      basis.right[1] * offsetX +
+      basis.up[1] * offsetY,
+    basis.position[2] +
+      basis.forward[2] * depth +
+      basis.right[2] * offsetX +
+      basis.up[2] * offsetY,
+  ];
+}
+
+function subtractVector(
+  left: WebGLTuple3,
+  right: WebGLTuple3,
+): WebGLTuple3 {
+  return [left[0] - right[0], left[1] - right[1], left[2] - right[2]];
+}
+
+function crossVector(left: WebGLTuple3, right: WebGLTuple3): WebGLTuple3 {
+  return [
+    left[1] * right[2] - left[2] * right[1],
+    left[2] * right[0] - left[0] * right[2],
+    left[0] * right[1] - left[1] * right[0],
+  ];
+}
+
+function normalizeVector(
+  vector: WebGLTuple3,
+  fallback: WebGLTuple3,
+): WebGLTuple3 {
+  const length = Math.hypot(vector[0], vector[1], vector[2]);
+  if (length <= 0.000001) {
+    return fallback;
+  }
+
+  return [vector[0] / length, vector[1] / length, vector[2] / length];
 }
 
 function projectStageLocalLayout(

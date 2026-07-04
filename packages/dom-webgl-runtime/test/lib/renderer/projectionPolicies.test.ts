@@ -65,6 +65,26 @@ describe("projection policies", () => {
     });
   });
 
+  test("projects screen-depth placement onto a tilted camera view plane", () => {
+    const layout = projectTargetLayout({
+      sceneProjection: "perspective-stage",
+      camera: {
+        type: "perspective",
+        mode: "perspective-stage",
+        fov: 50,
+        position: [0, 136, 560],
+        target: [0, -88, -40],
+      },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+      measurement: { left: 300, top: 250, width: 200, height: 100 },
+      viewport: { width: 800, height: 600 },
+    });
+
+    expect(layout.x).toBeCloseTo(0);
+    expect(layout.y).toBeCloseTo(94.0295);
+    expect(layout.z).toBeCloseTo(447.579);
+  });
+
   test("projects stage-local placement from explicit coordinates", () => {
     expect(
       projectTargetLayout({

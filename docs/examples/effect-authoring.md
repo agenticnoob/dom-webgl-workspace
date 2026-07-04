@@ -187,25 +187,26 @@ pinned sections.
           active: { from: 0.02, to: 0.92 },
         }}
       />
-    </WebGLScene>
-    <WebGLTarget
-      as="article"
-      webgl={{
-        key: "example.managedStage.card",
-        source: { kind: "dom", type: "element" },
-        placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.2, to: 0.9 },
-        },
-        effects: [
-          {
-            kind: "example.managedTimelineCard",
-            progressKey: "example.managedTimeline",
+      <WebGLTarget
+        as="article"
+        webgl={{
+          key: "example.managedStage.card",
+          source: { kind: "dom", type: "element" },
+          placement: { mode: "screen-depth", depth: 120, size: "dom" },
+          lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+          timeline: {
+            id: "example.managedTimeline",
+            active: { from: 0.2, to: 0.9 },
           },
-        ],
-      }}
-    />
+          effects: [
+            {
+              kind: "example.managedTimelineCard",
+              progressKey: "example.managedTimeline",
+            },
+          ],
+        }}
+      />
+    </WebGLScene>
   </WebGLScrollTimeline>
 </WebGLScrollRuntime>
 ```
@@ -305,6 +306,13 @@ invisible on the dark stage, and pointer input only activates target-local
 emissive smoke around the cursor. The example stops sending material uniforms
 after the trail decays to idle, so the effect remains interactive without
 keeping a settled target hot every frame.
+
+For managed-scene DOM surfaces such as `example.managedStage.card`, keep the
+target inside `WebGLScene` so it inherits the scene, and avoid writing
+`ctx.object.scale` from the effect unless the effect intentionally owns the
+projected plane size. The runtime-owned `screen-depth` placement already maps
+the DOM rect through the active `WebGLCamera`; keep the scene default camera and
+`WebGLScene render.camera` aligned.
 
 For GLB effects, use the same `ctx.object` entrypoint for transform, material,
 lights, and animation. `apps/example` dogfoods this with

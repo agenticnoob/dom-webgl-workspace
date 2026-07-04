@@ -117,10 +117,12 @@ Current example behavior:
   runway sibling just to hand scroll control back.
 - The example also dogfoods `WebGLScrollTimeline` with a pinned named managed
   timeline bound to a `WebGLScene`, stage planes, a stage box, scene-owned
-  lights, and a visible `WebGLTarget` in the default target pipeline reading the
-  same progress signal. It uses public React descriptors only and does not
-  present the nested scene as DOM-clipped or as a local target viewport; Phase 6
-  owns pass viewport/scissor.
+  lights, and a visible scene-child `WebGLTarget` that inherits the scene and
+  uses `screen-depth` placement while reading the same progress signal. It uses
+  public React descriptors only and does not present the nested scene as
+  DOM-clipped or as a local target viewport; Phase 6 owns pass viewport/scissor.
+  The card effect leaves `ctx.object.scale` untouched so the descriptor-projected
+  surface size stays owned by the runtime.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -622,9 +624,12 @@ targets still routed to that scene.
 Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 "perspective-stage"` policies. Targets can opt into `placement` modes such as
 `dom-anchored`, `screen-anchored`, `screen-depth`, and `stage-local`; render
-passes can request `clear` or `clearDepth`. These remain descriptor-driven and
-runtime-owned. Scene-native models, `screen-plane` placement, pass-scoped
-postprocess, and raw Three.js access remain out of scope.
+passes can request `clear` or `clearDepth`. `screen-depth` uses the DOM rect for
+screen position/size and projects that point along the active `WebGLCamera`
+basis at the requested depth, so the scene default camera should stay aligned
+with the render pass camera. These remain descriptor-driven and runtime-owned.
+Scene-native models, `screen-plane` placement, pass-scoped postprocess, and raw
+Three.js access remain out of scope.
 
 ## Managed Timeline Bindings
 

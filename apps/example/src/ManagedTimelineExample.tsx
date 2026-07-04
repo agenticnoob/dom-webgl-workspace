@@ -128,8 +128,8 @@ const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
 const managedStageCardWebgl = {
   key: "example.managedStage.card",
   source: { kind: "dom", type: "element" },
-  placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
-  lifecycle: { hideWhenReady: true, hideMode: "self" },
+  placement: { mode: "screen-depth", depth: 120, size: "dom" },
+  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
   timeline: targetTimelineBinding,
   effects: [
     {
@@ -153,8 +153,8 @@ export function ManagedTimelineExample() {
         <p className="example-kicker">pinned managed scene</p>
         <h2>滚动固定的声明式 3D 舞台</h2>
         <p>
-          同一个 timeline 驱动 scene、floor、backdrop、box、light；右侧卡片是
-          走默认 target 管线的 WebGLTarget。
+          同一个 timeline 驱动 scene、floor、backdrop、box、light；右侧卡片同样是
+          scene 内的 WebGLTarget，通过 screen-depth 投影进入 managed scene。
         </p>
       </div>
 
@@ -195,16 +195,16 @@ export function ManagedTimelineExample() {
           position={keyLightPosition}
           timeline={lightTimelineBinding}
         />
+        <WebGLTarget
+          as="article"
+          className="example-managed-stage-card"
+          webgl={managedStageCardWebgl}
+        >
+          <span>WebGLTarget</span>
+          <strong>Timeline driven card</strong>
+          <em>same progress signal</em>
+        </WebGLTarget>
       </WebGLScene>
-      <WebGLTarget
-        as="article"
-        className="example-managed-stage-card"
-        webgl={managedStageCardWebgl}
-      >
-        <span>WebGLTarget</span>
-        <strong>Timeline driven card</strong>
-        <em>same progress signal</em>
-      </WebGLTarget>
     </WebGLScrollTimeline>
   );
 }

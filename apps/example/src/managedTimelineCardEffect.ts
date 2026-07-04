@@ -28,7 +28,6 @@ export const exampleManagedTimelineCardEffect =
       ctx.object.visible = visible;
       ctx.object.opacity = visible ? 0.12 + presence * 0.88 : 0;
       ctx.object.rotation.set(0, -0.28 + travel * 0.46, 0);
-      ctx.object.scale.setScalar(0.7 + travel * 0.3);
       surface.draw(({ context, width, height }) => {
         drawTimelineCard(context, width, height, progress, presence);
       });
