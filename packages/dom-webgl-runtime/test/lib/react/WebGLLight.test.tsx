@@ -1,12 +1,14 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { WebGLSceneProvider } from "../../../src/lib/react/sceneContext";
 import type { WebGLRuntime } from "../../../src/index";
 
 const roots: Root[] = [];
 
-describe("WebGLCamera", () => {
+describe("WebGLLight", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -21,10 +23,8 @@ describe("WebGLCamera", () => {
     document.body.replaceChildren();
   });
 
-  test("registers a camera under the nearest WebGLScene", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
-      "../../../src/react"
-    );
+  test("registers a light under the nearest WebGLScene", async () => {
+    const { WebGLLight, WebGLRuntimeProvider } = await import("../../../src/react");
     const runtime = createRuntimeStub();
     const { root } = createTestRoot();
 
@@ -34,66 +34,48 @@ describe("WebGLCamera", () => {
           WebGLRuntimeProvider,
           { runtime },
           createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, { id: "world.camera", default: true }),
-          ),
-        ),
-      );
-    });
-
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
-      sceneId: "world",
-      type: undefined,
-      mode: undefined,
-      default: true,
-    });
-  });
-
-  test("forwards perspective camera declarations", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
-      "../../../src/react"
-    );
-    const runtime = createRuntimeStub();
-    const { root } = createTestRoot();
-
-    await act(async () => {
-      root.render(
-        createElement(
-          WebGLRuntimeProvider,
-          { runtime },
-          createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, {
-              id: "world.camera",
-              type: "perspective",
-              mode: "perspective-stage",
-              fov: 50,
-              near: 0.1,
-              far: 2000,
-              position: [0, 0, 500],
-              target: [0, 0, 0],
-              default: true,
+            WebGLSceneProvider,
+            { sceneId: "world" },
+            createElement(WebGLLight, {
+              id: "hero",
+              kind: "point",
+              intensity: 1.8,
+              position: [0, 0, 160],
             }),
           ),
         ),
       );
     });
 
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
+    expect(runtime.registerLight).toHaveBeenCalledWith({
+      id: "hero",
       sceneId: "world",
-      type: "perspective",
-      mode: "perspective-stage",
-      fov: 50,
-      near: 0.1,
-      far: 2000,
-      position: [0, 0, 500],
-      target: [0, 0, 0],
-      default: true,
+      kind: "point",
+      intensity: 1.8,
+      position: [0, 0, 160],
     });
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.unregisterLight).toHaveBeenCalledWith("hero");
+  });
+
+  test("requires an explicit or inherited scene", async () => {
+    const { WebGLLight, WebGLRuntimeProvider } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLLight, { id: "hero", kind: "point" }),
+        ),
+      ),
+    ).toThrow('WebGL light "hero" requires a scene prop or a parent WebGLScene.');
   });
 });
 
@@ -107,7 +89,8 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 }
 
 function createRuntimeStub(): WebGLRuntime & {
-  registerCamera: ReturnType<typeof vi.fn>;
+  registerLight: ReturnType<typeof vi.fn>;
+  unregisterLight: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

@@ -23,6 +23,15 @@ export {
   WebGLRenderPass,
   type WebGLRenderPassProps,
 } from "./lib/react/WebGLRenderPass";
+export {
+  WebGLStagePlane,
+  type WebGLStagePlaneProps,
+} from "./lib/react/WebGLStagePlane";
+export {
+  WebGLStageBox,
+  type WebGLStageBoxProps,
+} from "./lib/react/WebGLStageBox";
+export { WebGLLight, type WebGLLightProps } from "./lib/react/WebGLLight";
 export { useWebGLRuntime } from "./lib/react/useWebGLRuntime";
 export {
   WebGLDebugPanel,

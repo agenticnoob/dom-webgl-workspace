@@ -1,12 +1,13 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { WebGLRuntime } from "../../../src/index";
 
 const roots: Root[] = [];
 
-describe("WebGLCamera", () => {
+describe("WebGLStageBox", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -21,8 +22,8 @@ describe("WebGLCamera", () => {
     document.body.replaceChildren();
   });
 
-  test("registers a camera under the nearest WebGLScene", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+  test("registers a box with an explicit scene override", async () => {
+    const { WebGLRuntimeProvider, WebGLStageBox } = await import(
       "../../../src/react"
     );
     const runtime = createRuntimeStub();
@@ -33,67 +34,43 @@ describe("WebGLCamera", () => {
         createElement(
           WebGLRuntimeProvider,
           { runtime },
-          createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, { id: "world.camera", default: true }),
-          ),
+          createElement(WebGLStageBox, {
+            id: "box",
+            scene: "overlay",
+            size: [1, 2, 3],
+          }),
         ),
       );
     });
 
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
-      sceneId: "world",
-      type: undefined,
-      mode: undefined,
-      default: true,
+    expect(runtime.registerStagePrimitive).toHaveBeenCalledWith({
+      id: "box",
+      sceneId: "overlay",
+      kind: "box",
+      size: [1, 2, 3],
     });
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.unregisterStagePrimitive).toHaveBeenCalledWith("box");
   });
 
-  test("forwards perspective camera declarations", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
-      "../../../src/react"
-    );
+  test("requires an explicit or inherited scene", async () => {
+    const { WebGLRuntimeProvider, WebGLStageBox } = await import("../../../src/react");
     const runtime = createRuntimeStub();
-    const { root } = createTestRoot();
 
-    await act(async () => {
-      root.render(
+    expect(() =>
+      renderToStaticMarkup(
         createElement(
           WebGLRuntimeProvider,
           { runtime },
-          createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, {
-              id: "world.camera",
-              type: "perspective",
-              mode: "perspective-stage",
-              fov: 50,
-              near: 0.1,
-              far: 2000,
-              position: [0, 0, 500],
-              target: [0, 0, 0],
-              default: true,
-            }),
-          ),
+          createElement(WebGLStageBox, { id: "box" }),
         ),
-      );
-    });
-
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
-      sceneId: "world",
-      type: "perspective",
-      mode: "perspective-stage",
-      fov: 50,
-      near: 0.1,
-      far: 2000,
-      position: [0, 0, 500],
-      target: [0, 0, 0],
-      default: true,
-    });
+      ),
+    ).toThrow('WebGL stage box "box" requires a scene prop or a parent WebGLScene.');
   });
 });
 
@@ -107,7 +84,8 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 }
 
 function createRuntimeStub(): WebGLRuntime & {
-  registerCamera: ReturnType<typeof vi.fn>;
+  registerStagePrimitive: ReturnType<typeof vi.fn>;
+  unregisterStagePrimitive: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

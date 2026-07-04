@@ -1,12 +1,14 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { WebGLSceneProvider } from "../../../src/lib/react/sceneContext";
 import type { WebGLRuntime } from "../../../src/index";
 
 const roots: Root[] = [];
 
-describe("WebGLCamera", () => {
+describe("WebGLStagePlane", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -21,8 +23,8 @@ describe("WebGLCamera", () => {
     document.body.replaceChildren();
   });
 
-  test("registers a camera under the nearest WebGLScene", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+  test("registers a plane under the nearest WebGLScene", async () => {
+    const { WebGLRuntimeProvider, WebGLStagePlane } = await import(
       "../../../src/react"
     );
     const runtime = createRuntimeStub();
@@ -34,66 +36,49 @@ describe("WebGLCamera", () => {
           WebGLRuntimeProvider,
           { runtime },
           createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, { id: "world.camera", default: true }),
-          ),
-        ),
-      );
-    });
-
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
-      sceneId: "world",
-      type: undefined,
-      mode: undefined,
-      default: true,
-    });
-  });
-
-  test("forwards perspective camera declarations", async () => {
-    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
-      "../../../src/react"
-    );
-    const runtime = createRuntimeStub();
-    const { root } = createTestRoot();
-
-    await act(async () => {
-      root.render(
-        createElement(
-          WebGLRuntimeProvider,
-          { runtime },
-          createElement(
-            WebGLScene,
-            { id: "world" },
-            createElement(WebGLCamera, {
-              id: "world.camera",
-              type: "perspective",
-              mode: "perspective-stage",
-              fov: 50,
-              near: 0.1,
-              far: 2000,
-              position: [0, 0, 500],
-              target: [0, 0, 0],
-              default: true,
+            WebGLSceneProvider,
+            { sceneId: "world" },
+            createElement(WebGLStagePlane, {
+              id: "floor",
+              role: "floor",
+              size: [1200, 800],
             }),
           ),
         ),
       );
     });
 
-    expect(runtime.registerCamera).toHaveBeenCalledWith({
-      id: "world.camera",
+    expect(runtime.registerStagePrimitive).toHaveBeenCalledWith({
+      id: "floor",
       sceneId: "world",
-      type: "perspective",
-      mode: "perspective-stage",
-      fov: 50,
-      near: 0.1,
-      far: 2000,
-      position: [0, 0, 500],
-      target: [0, 0, 0],
-      default: true,
+      kind: "plane",
+      role: "floor",
+      size: [1200, 800],
     });
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(runtime.unregisterStagePrimitive).toHaveBeenCalledWith("floor");
+  });
+
+  test("requires an explicit or inherited scene", async () => {
+    const { WebGLRuntimeProvider, WebGLStagePlane } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLStagePlane, { id: "floor" }),
+        ),
+      ),
+    ).toThrow('WebGL stage plane "floor" requires a scene prop or a parent WebGLScene.');
   });
 });
 
@@ -107,7 +92,8 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 }
 
 function createRuntimeStub(): WebGLRuntime & {
-  registerCamera: ReturnType<typeof vi.fn>;
+  registerStagePrimitive: ReturnType<typeof vi.fn>;
+  unregisterStagePrimitive: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

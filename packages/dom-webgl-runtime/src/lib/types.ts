@@ -220,6 +220,74 @@ export type WebGLRenderPassDeclaration = {
   clearDepth?: boolean;
 };
 
+export type WebGLColorValue =
+  | string
+  | number
+  | readonly [number, number, number];
+
+export type WebGLStagePrimitiveKind = "plane" | "box";
+
+export type WebGLStagePlaneRole = "floor" | "wall" | "backdrop";
+
+export type WebGLStageMaterialDeclaration =
+  | {
+      kind?: "standard";
+      isMaterial?: never;
+      color?: WebGLColorValue;
+      emissive?: WebGLColorValue;
+      emissiveIntensity?: number;
+      opacity?: number;
+      metalness?: number;
+      roughness?: number;
+    }
+  | {
+      kind: "basic";
+      isMaterial?: never;
+      color?: WebGLColorValue;
+      opacity?: number;
+    };
+
+export type WebGLStagePrimitiveBaseDeclaration = {
+  id: string;
+  sceneId: string;
+  position?: WebGLTuple3;
+  rotation?: WebGLTuple3;
+  scale?: number | WebGLTuple3;
+  visible?: boolean;
+  material?: WebGLStageMaterialDeclaration;
+};
+
+export type WebGLStagePlaneDeclaration =
+  WebGLStagePrimitiveBaseDeclaration & {
+    kind: "plane";
+    role?: WebGLStagePlaneRole;
+    size?: WebGLTuple2;
+  };
+
+export type WebGLStageBoxDeclaration = WebGLStagePrimitiveBaseDeclaration & {
+  kind: "box";
+  size?: WebGLTuple3;
+};
+
+export type WebGLStagePrimitiveDeclaration =
+  | WebGLStagePlaneDeclaration
+  | WebGLStageBoxDeclaration;
+
+export type WebGLLightKind = "ambient" | "directional" | "point";
+
+export type WebGLLightDeclaration = {
+  id: string;
+  sceneId: string;
+  kind: WebGLLightKind;
+  color?: WebGLColorValue;
+  intensity?: number;
+  position?: WebGLTuple3;
+  target?: WebGLTuple3;
+  distance?: number;
+  decay?: number;
+  visible?: boolean;
+};
+
 export type WebGLDeclaration = {
   key: string;
   sceneId?: string;
@@ -281,6 +349,10 @@ export type WebGLRuntime = {
   unregisterCamera(id: string): void;
   registerRenderPass(declaration: WebGLRenderPassDeclaration): void;
   unregisterRenderPass(id: string): void;
+  registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
+  unregisterStagePrimitive(id: string): void;
+  registerLight(declaration: WebGLLightDeclaration): void;
+  unregisterLight(id: string): void;
   registerTarget(element: HTMLElement, declaration: WebGLDeclaration): void;
   unregisterTarget(key: string): void;
   sync(): void | Promise<void>;

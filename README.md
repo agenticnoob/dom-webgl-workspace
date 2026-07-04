@@ -553,9 +553,12 @@ import {
   defineWebGLEffect,
 } from "@project/dom-webgl-runtime";
 import {
+  WebGLLight,
   WebGLCamera,
   WebGLRuntime,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
 } from "@project/dom-webgl-runtime/react";
@@ -605,8 +608,55 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 "perspective-stage"` policies. Targets can opt into `placement` modes such as
 `dom-anchored`, `screen-anchored`, `screen-depth`, and `stage-local`; render
 passes can request `clear` or `clearDepth`. These remain descriptor-driven and
-runtime-owned. Scene-native models, named stage primitives, pass-scoped
+runtime-owned. Scene-native models, `screen-plane` placement, pass-scoped
 postprocess, and raw Three.js access remain out of scope.
+
+## Opt-In Managed Stage Primitives
+
+Use managed stage primitives only when a scene needs lit, scene-native geometry.
+They live under a `WebGLScene`, have no fallback DOM, and are registered as
+runtime-owned descriptors:
+
+```tsx
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStagePlane,
+} from "@project/dom-webgl-runtime/react";
+
+<WebGLRuntime effects={runtimeEffects}>
+  <WebGLScene
+    id="world"
+    projection="perspective-stage"
+    render={{ camera: "world.camera" }}
+  >
+    <WebGLCamera
+      id="world.camera"
+      default
+      type="perspective"
+      mode="perspective-stage"
+    />
+    <WebGLStagePlane
+      id="floor"
+      role="floor"
+      material={{ kind: "standard", color: "#05070a" }}
+    />
+    <WebGLLight
+      id="hero"
+      kind="point"
+      intensity={1.8}
+      position={[0, 0, 160]}
+    />
+  </WebGLScene>
+</WebGLRuntime>;
+```
+
+`WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` create internal Three.js
+meshes, geometry, materials, and lights without exposing raw handles. Do not
+pass raw Three.js meshes, materials, geometries, lights, scenes, cameras, or
+renderers. `screen-plane` placement is still deferred.
 
 ## Lifecycle And Fallback Visibility
 

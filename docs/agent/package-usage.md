@@ -78,6 +78,9 @@ import {
   type WebGLCameraFramingDeclaration,
   type WebGLCameraMode,
   type WebGLCameraType,
+  type WebGLColorValue,
+  type WebGLLightDeclaration,
+  type WebGLLightKind,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
   type WebGLPlacementDeclaration,
@@ -88,6 +91,12 @@ import {
   type WebGLScreenAnchor,
   type WebGLSceneDeclaration,
   type WebGLSceneProjection,
+  type WebGLStageBoxDeclaration,
+  type WebGLStageMaterialDeclaration,
+  type WebGLStagePlaneDeclaration,
+  type WebGLStagePlaneRole,
+  type WebGLStagePrimitiveDeclaration,
+  type WebGLStagePrimitiveKind,
   type WebGLTransformScope,
   type WebGLTuple2,
   type WebGLTuple3,
@@ -99,8 +108,11 @@ Use for React:
 ```tsx
 import {
   WebGLCamera,
+  WebGLLight,
   WebGLRuntime,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
 } from "<runtime-package>/react";
@@ -181,7 +193,7 @@ debug state.
 
 ## Runtime Setup
 
-There are four supported consumer routes.
+There are five supported consumer routes.
 
 ### 1. Plain Runtime
 
@@ -368,8 +380,8 @@ Rules:
 - Use orthographic cameras for `dom-aligned` and `screen` scenes. Use
   perspective cameras with `mode: "perspective-stage"` for perspective-stage
   scenes.
-- `screen-depth` is the initial perspective DOM bridge. `screen-plane` waits
-  for named managed stage planes.
+- `screen-depth` is the initial perspective DOM bridge. `screen-plane` remains
+  deferred.
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.
@@ -379,10 +391,107 @@ Rules:
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
-- Scene-native `WebGLModel`, named stage primitives, pass-scoped postprocess,
-  and scoped `ctx.scene`/`ctx.camera` effects remain later phases.
+- Scene-native `WebGLModel`, `screen-plane`, pass-scoped postprocess, and
+  scoped `ctx.scene`/`ctx.camera` effects remain later phases.
 
-### 3. High-Level Pinned Scroll React Adapter
+### 3. Opt-In Managed Stage Primitives
+
+Use stage primitives only after choosing a managed scene. `WebGLTarget` remains
+the default DOM-first path. Stage primitives are scene-native objects with no
+fallback DOM:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLLight,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLTarget
+        webgl={{ key: "hero.title", source: { kind: "dom", type: "text" } }}
+      >
+        DOM-first title
+      </WebGLTarget>
+
+      <WebGLScene
+        id="world"
+        projection="perspective-stage"
+        render={{ camera: "world.camera" }}
+      >
+        <WebGLCamera
+          id="world.camera"
+          default
+          type="perspective"
+          mode="perspective-stage"
+        />
+        <WebGLStagePlane
+          id="floor"
+          role="floor"
+          size={[1200, 800]}
+          material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+        />
+        <WebGLStageBox
+          id="plinth"
+          size={[180, 80, 180]}
+          position={[0, -120, -40]}
+          material={{ kind: "basic", color: "#111827" }}
+        />
+        <WebGLLight id="ambient" kind="ambient" intensity={0.2} />
+        <WebGLLight
+          id="hero"
+          kind="point"
+          intensity={1.8}
+          position={[0, 0, 160]}
+        />
+      </WebGLScene>
+    </WebGLRuntime>
+  );
+}
+```
+
+Vanilla:
+
+```ts
+runtime.registerStagePrimitive({
+  id: "floor",
+  sceneId: "world",
+  kind: "plane",
+  role: "floor",
+  size: [1200, 800],
+  material: { kind: "standard", color: "#05070a", roughness: 0.8 },
+});
+
+runtime.registerLight({
+  id: "hero",
+  sceneId: "world",
+  kind: "point",
+  intensity: 1.8,
+  position: [0, 0, 160],
+});
+```
+
+Rules:
+
+- `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` are descriptor
+  components, not raw Three.js wrappers.
+- In React, declare stage primitives under `WebGLScene` or pass an explicit
+  `scene` prop. Vanilla descriptors use `sceneId`.
+- The runtime creates and disposes internal Three meshes, geometry, materials,
+  and lights. Do not pass raw Three meshes, materials, geometries, lights,
+  scenes, cameras, renderers, or render-loop handles.
+- Phase 4 materials are solid-color `basic` or `standard` descriptors. Texture
+  descriptors for stage materials are not public yet.
+- `screen-plane` is still not available; use `screen-depth` or `stage-local`
+  until that placement mode lands.
+
+### 4. High-Level Pinned Scroll React Adapter
 
 For the normal "pinned section drives an effect" story, use
 `<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
@@ -468,7 +577,7 @@ Rules:
 - If `WebGLScrollRuntime` receives an advanced `scrollAdapter`, it bypasses its
   built-in smooth-stack creation and forwards that adapter to the runtime.
 
-### 4. Advanced Manual `scrollAdapter`
+### 5. Advanced Manual `scrollAdapter`
 
 Use a scroll adapter only when the application already owns a third-party
 scroll system:

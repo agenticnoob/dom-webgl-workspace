@@ -26,6 +26,9 @@ describe("public package exports", () => {
     expect(reactApi.WebGLScene).toEqual(expect.any(Function));
     expect(reactApi.WebGLCamera).toEqual(expect.any(Function));
     expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
+    expect(reactApi.WebGLStagePlane).toEqual(expect.any(Function));
+    expect(reactApi.WebGLStageBox).toEqual(expect.any(Function));
+    expect(reactApi.WebGLLight).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
@@ -57,21 +60,30 @@ describe("public package exports", () => {
       `
         import {
           WebGLCamera,
+          WebGLLight,
           WebGLRenderPass,
           WebGLRuntime,
           WebGLScene,
+          WebGLStageBox,
+          WebGLStagePlane,
           WebGLTarget,
         } from "${importPath}";
         import type {
           WebGLCameraProps,
+          WebGLLightProps,
           WebGLRenderPassProps,
           WebGLRuntimeProps,
           WebGLSceneProps,
           WebGLSceneRenderOptions,
+          WebGLStageBoxProps,
+          WebGLStagePlaneProps,
           WebGLTargetProps,
         } from "${importPath}";
         import type { ReactElement } from "react";
         import type { Camera as ThreeCamera } from "three/src/cameras/Camera.js";
+        import type { Light as ThreeLight } from "three/src/lights/Light.js";
+        import type { Material as ThreeMaterial } from "three/src/materials/Material.js";
+        import type { Mesh as ThreeMesh } from "three/src/objects/Mesh.js";
         import type { Scene as ThreeScene } from "three/src/scenes/Scene.js";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
@@ -102,6 +114,9 @@ describe("public package exports", () => {
         WebGLScene satisfies unknown;
         WebGLCamera satisfies unknown;
         WebGLRenderPass satisfies unknown;
+        WebGLStagePlane satisfies unknown;
+        WebGLStageBox satisfies unknown;
+        WebGLLight satisfies unknown;
         declare const effects: WebGLRuntimeProps["effects"];
         declare const progressSignals: WebGLRuntimeProps["progressSignals"];
 
@@ -141,6 +156,41 @@ describe("public package exports", () => {
               >
                 <div />
               </WebGLTarget>
+            </WebGLScene>
+
+            <WebGLScene
+              id="world.stage"
+              projection="perspective-stage"
+              render={{ camera: "world.stage.camera", clearDepth: true }}
+            >
+              <WebGLCamera
+                id="world.stage.camera"
+                default
+                type="perspective"
+                mode="perspective-stage"
+                position={[0, 0, 500]}
+                target={[0, 0, 0]}
+              />
+              <WebGLStagePlane
+                id="stage.floor"
+                role="floor"
+                size={[1200, 800]}
+                material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+              />
+              <WebGLStageBox
+                id="stage.box"
+                size={[120, 80, 120]}
+                position={[0, -40, 0]}
+                material={{ kind: "basic", color: "#ffffff", opacity: 0.5 }}
+              />
+              <WebGLLight id="stage.ambient" kind="ambient" intensity={0.2} />
+              <WebGLLight
+                id="stage.hero"
+                kind="point"
+                color="#7dd3fc"
+                intensity={1.8}
+                position={[0, 0, 160]}
+              />
             </WebGLScene>
 
             <WebGLScene id="overlay" render={{ camera: "overlay.camera", order: 1 }}>
@@ -195,6 +245,9 @@ describe("public package exports", () => {
 
         declare const rawScene: ThreeScene;
         declare const rawCamera: ThreeCamera;
+        declare const rawMesh: ThreeMesh;
+        declare const rawMaterial: ThreeMaterial;
+        declare const rawLight: ThreeLight;
 
         // @ts-expect-error WebGLScene does not accept a raw Three scene handle.
         const rawSceneProps = { id: "raw", scene: rawScene } satisfies WebGLSceneProps;
@@ -202,7 +255,16 @@ describe("public package exports", () => {
         // @ts-expect-error WebGLCamera does not accept a raw Three camera handle.
         const rawCameraProps = { id: "raw.camera", camera: rawCamera } satisfies WebGLCameraProps;
 
-	const props = {
+        // @ts-expect-error Stage planes do not accept raw Three mesh handles.
+        const rawMeshPlaneProps = { id: "raw.plane", mesh: rawMesh } satisfies WebGLStagePlaneProps;
+
+        // @ts-expect-error Stage material is a descriptor, not a raw Three material.
+        const rawMaterialPlaneProps = { id: "raw.material", material: rawMaterial } satisfies WebGLStagePlaneProps;
+
+        // @ts-expect-error WebGLLight is a descriptor, not a raw Three light wrapper.
+        const rawLightProps = { id: "raw.light", light: rawLight } satisfies WebGLLightProps;
+
+		const props = {
 	  webgl: {
 		    key: "hero.gate",
 		    scroll: {
@@ -295,6 +357,7 @@ describe("public package exports", () => {
                   WebGLCameraFramingDeclaration,
                   WebGLCameraMode,
                   WebGLCameraType,
+                  WebGLColorValue,
 					          WebGLDebugState,
 					          WebGLDeclaration,
 				          WebGLEffectAmbientLightRequest,
@@ -347,6 +410,8 @@ describe("public package exports", () => {
 			          WebGLEffectVector3Like,
 			          WebGLEffectVideoFacade,
 			          WebGLEffectVideoLayerHandle,
+                  WebGLLightDeclaration,
+                  WebGLLightKind,
 					          WebGLModelEffectHandle,
 					          WebGLModelMeshHandle,
 					          WebGLEffectsDeclaration,
@@ -379,6 +444,12 @@ describe("public package exports", () => {
           WebGLScrollAdapter,
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
+          WebGLStageBoxDeclaration,
+          WebGLStageMaterialDeclaration,
+          WebGLStagePlaneDeclaration,
+          WebGLStagePlaneRole,
+          WebGLStagePrimitiveDeclaration,
+          WebGLStagePrimitiveKind,
 	          WebGLScrollGateState,
 	          WebGLScrollMetrics,
           WebGLTransformScope,
@@ -506,6 +577,50 @@ describe("public package exports", () => {
           cameraId: "world.camera",
           order: 0,
         } satisfies WebGLRenderPassDeclaration;
+        const stageColor = "#05070a" satisfies WebGLColorValue;
+        const stagePlaneRole = "floor" satisfies WebGLStagePlaneRole;
+        const stagePrimitiveKind = "plane" satisfies WebGLStagePrimitiveKind;
+        const lightKind = "point" satisfies WebGLLightKind;
+        const standardStageMaterial = {
+          kind: "standard",
+          color: stageColor,
+          emissive: "#000000",
+          emissiveIntensity: 0.25,
+          opacity: 0.82,
+          metalness: 0.1,
+          roughness: 0.8,
+        } satisfies WebGLStageMaterialDeclaration;
+        const basicStageMaterial = {
+          kind: "basic",
+          color: 0xffffff,
+          opacity: 0.5,
+        } satisfies WebGLStageMaterialDeclaration;
+        const stagePlaneDeclaration = {
+          id: "stage.floor",
+          sceneId: "world",
+          kind: stagePrimitiveKind,
+          role: stagePlaneRole,
+          size: [1200, 800],
+          material: standardStageMaterial,
+        } satisfies WebGLStagePlaneDeclaration;
+        const stageBoxDeclaration = {
+          id: "stage.box",
+          sceneId: "world",
+          kind: "box",
+          size: [120, 80, 120],
+          position: [0, -40, 0],
+          material: basicStageMaterial,
+        } satisfies WebGLStageBoxDeclaration;
+        const stagePrimitiveDeclaration =
+          stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        const lightDeclaration = {
+          id: "stage.hero",
+          sceneId: "world",
+          kind: lightKind,
+          color: "#7dd3fc",
+          intensity: 1.8,
+          position: [0, 0, 160],
+        } satisfies WebGLLightDeclaration;
 
         const projection = "dom-aligned" satisfies WebGLSceneProjection;
         const cameraType = "orthographic" satisfies WebGLCameraType;
@@ -592,6 +707,13 @@ describe("public package exports", () => {
         sceneDeclaration satisfies WebGLSceneDeclaration;
         cameraDeclaration satisfies WebGLCameraDeclaration;
         passDeclaration satisfies WebGLRenderPassDeclaration;
+        stageColor satisfies WebGLColorValue;
+        standardStageMaterial satisfies WebGLStageMaterialDeclaration;
+        basicStageMaterial satisfies WebGLStageMaterialDeclaration;
+        stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        stageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        stagePrimitiveDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        lightDeclaration satisfies WebGLLightDeclaration;
         projection satisfies WebGLSceneProjection;
         cameraType satisfies WebGLCameraType;
         cameraMode satisfies WebGLCameraMode;
@@ -732,8 +854,17 @@ describe("public package exports", () => {
         // @ts-expect-error public declarations do not accept public group objects.
         ({ key: "invalid-group", group: { key: "root" } } satisfies WebGLDeclaration);
         declare const rawThreeCamera: unknown;
+        declare const rawThreeMesh: unknown;
+        declare const rawThreeMaterial: unknown;
+        declare const rawThreeLight: unknown;
         // @ts-expect-error camera descriptors do not accept raw Three camera handles.
         ({ id: "raw.camera", sceneId: "world", camera: rawThreeCamera } satisfies WebGLCameraDeclaration);
+        // @ts-expect-error stage primitive descriptors do not accept raw Three mesh handles.
+        ({ id: "raw.stage", sceneId: "world", kind: "plane", mesh: rawThreeMesh } satisfies WebGLStagePrimitiveDeclaration);
+        // @ts-expect-error stage material descriptors do not accept raw Three material handles.
+        ({ id: "raw.material", sceneId: "world", kind: "plane", material: rawThreeMaterial } satisfies WebGLStagePrimitiveDeclaration);
+        // @ts-expect-error light descriptors do not accept raw Three light handles.
+        ({ id: "raw.light", sceneId: "world", kind: "point", light: rawThreeLight } satisfies WebGLLightDeclaration);
         // @ts-expect-error placement does not accept raw Object3D handles.
         ({ key: "raw.object", object3D: {} } satisfies WebGLDeclaration);
         // @ts-expect-error render passes do not accept raw render targets.
@@ -1292,6 +1423,10 @@ describe("public package exports", () => {
 			          source: { kind: "model", type: "glb", src: "/product.glb" },
 			          effects: [{ kind: "custom.glbParticles", density: 0.6 }],
 			        });
+        customRuntime.registerStagePrimitive(stagePlaneDeclaration);
+        customRuntime.unregisterStagePrimitive(stagePlaneDeclaration.id);
+        customRuntime.registerLight(lightDeclaration);
+        customRuntime.unregisterLight(lightDeclaration.id);
 		        customRuntime.registerTarget(element, arrayEffectDeclaration);
 	        registeredTarget satisfies void;
         // @ts-expect-error public registration does not expose internal target descriptor state.

@@ -63,8 +63,11 @@ import {
 ```tsx
 import {
   WebGLCamera,
+  WebGLLight,
   WebGLRuntime,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
 } from "<runtime-package>/react";
@@ -175,8 +178,11 @@ when targets need explicit managed scene/pass ownership:
 ```tsx
 import {
   WebGLCamera,
+  WebGLLight,
   WebGLRuntime,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
 } from "<runtime-package>/react";
 
@@ -220,9 +226,83 @@ Rules:
   `screen-anchored`, `screen-depth`, or `stage-local` depending on the scene
   projection.
 - `WebGLRenderPass` can request runtime-owned `clear` or `clearDepth`.
-- Scene-native models, named stage primitives, `screen-plane`, pass-scoped
-  postprocess, and raw Three.js scene/camera/renderer handles remain future or
-  non-public.
+- Scene-native models, `screen-plane`, pass-scoped postprocess, and raw Three.js
+  scene/camera/renderer handles remain future or non-public.
+
+## Opt-In Managed Stage Integration
+
+Use stage primitives only after choosing a managed scene. `WebGLTarget` remains
+the default DOM-first path; stage primitives are scene-native objects with no
+fallback DOM:
+
+```tsx
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLTarget
+        webgl={{ key: "hero.title", source: { kind: "dom", type: "text" } }}
+      >
+        DOM-first title
+      </WebGLTarget>
+
+      <WebGLScene
+        id="world"
+        projection="perspective-stage"
+        render={{ camera: "world.camera" }}
+      >
+        <WebGLCamera
+          id="world.camera"
+          default
+          type="perspective"
+          mode="perspective-stage"
+        />
+        <WebGLStagePlane
+          id="floor"
+          role="floor"
+          size={[1200, 800]}
+          material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+        />
+        <WebGLStageBox
+          id="plinth"
+          size={[180, 80, 180]}
+          position={[0, -120, -40]}
+          material={{ kind: "basic", color: "#111827" }}
+        />
+        <WebGLLight id="ambient" kind="ambient" intensity={0.2} />
+        <WebGLLight
+          id="hero"
+          kind="point"
+          intensity={1.8}
+          position={[0, 0, 160]}
+        />
+      </WebGLScene>
+    </WebGLRuntime>
+  );
+}
+```
+
+Rules:
+
+- `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` are managed descriptors,
+  not raw Three.js wrappers.
+- Stage primitives are declared under `WebGLScene` or with an explicit `scene`
+  prop.
+- Vanilla consumers can call `runtime.registerStagePrimitive(...)` and
+  `runtime.registerLight(...)` with descriptor data.
+- Do not pass raw Three.js meshes, materials, geometries, lights, scenes,
+  cameras, renderers, or render-loop handles.
+- `screen-plane` is still not available; use `screen-depth` or `stage-local`
+  until the Phase 8 pre-step lands.
 
 ## Minimal Vanilla Integration
 

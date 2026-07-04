@@ -50,6 +50,10 @@ function createRuntimeStub(): WebGLRuntime {
     unregisterCamera() {},
     registerRenderPass() {},
     unregisterRenderPass() {},
+    registerStagePrimitive() {},
+    unregisterStagePrimitive() {},
+    registerLight() {},
+    unregisterLight() {},
     registerTarget() {
       throw new Error("not implemented in test");
     },

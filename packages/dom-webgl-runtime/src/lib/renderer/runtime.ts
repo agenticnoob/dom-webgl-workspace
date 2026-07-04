@@ -86,6 +86,7 @@ import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
+import { createStageObjectRegistry } from "./stageObjectRegistry";
 import {
   generatedRenderLayerId,
   normalizeTargetPlacement,
@@ -189,6 +190,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const renderLayers =
     internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
     createInternalRenderLayerRegistry(rendererHost);
+  const stageObjects = createStageObjectRegistry({
+    getSceneAdapter(sceneId) {
+      return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
+  });
   const mainScene = renderLayers.getScene(generatedRenderLayerId);
   const mainCamera = renderLayers.getCamera(generatedRenderLayerId);
   const mainSceneAdapter = renderLayers.getMainSceneAdapter();
@@ -363,6 +369,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const sceneId = id.trim();
 
       if (sceneId !== generatedRenderLayerId) {
+        stageObjects.unregisterScene(sceneId);
         unregisterTargetsForScene(sceneId);
       }
 
@@ -397,6 +404,36 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     },
     unregisterRenderPass(id) {
       renderLayers.unregisterRenderPass(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerStagePrimitive(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL stage primitive after runtime disposal.",
+        );
+      }
+
+      stageObjects.registerStagePrimitive(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterStagePrimitive(id) {
+      stageObjects.unregisterStagePrimitive(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerLight(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL light after runtime disposal.");
+      }
+
+      stageObjects.registerLight(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterLight(id) {
+      stageObjects.unregisterLight(id);
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
@@ -474,6 +511,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         pointerController.dispose();
         rendererLoop.dispose();
         postprocessController.dispose();
+        stageObjects.dispose();
         renderLayers.dispose();
         rendererHost.dispose();
         unmarkAllFallbackRoots();

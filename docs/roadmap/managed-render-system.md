@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 3 projection policies implementation
+**Last reviewed against:** Phase 4 managed stage primitives implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -746,7 +746,7 @@ Status values:
 | Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal generated scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
-| Phase 4: Managed Stage Primitives | `[not-started]` | none | Depends on Phase 3. |
+| Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
 | Phase 6: Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract. |
 | Phase 7: Managed Model Animation | `[not-started]` | none | Can start after Phase 5; advanced morph/bone work may depend on Phase 8/9. |
@@ -963,7 +963,8 @@ Deliverables:
 Resolved v1 decision:
 
 - `screen-depth` ships as the first perspective-stage DOM bridge.
-- `screen-plane` remains deferred until named managed stage planes exist.
+- `screen-plane` remains deferred to the Phase 8 pre-step for placement against
+  named stage planes.
 
 Acceptance criteria:
 
@@ -975,10 +976,10 @@ Acceptance criteria:
 
 ### Phase 4: Managed Stage Primitives
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md)
 - **Depends on:** Phase 3
-- **Last updated:** 2026-07-03
+- **Last updated:** 2026-07-04
 - **Exit criteria:** runtime-owned lit stage primitives can coexist with GLB
   models without exposing raw meshes, materials, or lights; Phase 3's deferred
   `screen-plane` placement decision is explicitly resolved or recorded as a
@@ -1018,6 +1019,18 @@ Initial primitive set:
 - material descriptors: `basic`, `standard`;
 - light descriptors: `ambient`, `directional`, `point`.
 
+Focused plan reminders:
+
+- Start with concrete React components such as `WebGLStagePlane` and
+  `WebGLStageBox`. Do not add a generic `<WebGLStage kind="...">` wrapper until
+  more primitive kinds prove that abstraction useful.
+- Initial stage materials are solid-color descriptor data. Do not add
+  `material.map`, texture URL, image texture, normal map, or roughness map
+  descriptors in Phase 4 unless the focused plan explicitly expands scope to
+  runtime-owned stage texture loading, caching, error handling, and disposal.
+- Scene-native `WebGLModel` is not part of Phase 4. Phase 4 only needs lit stage
+  primitives to coexist with existing GLB model targets.
+
 Phase 3 deferred `screen-plane` follow-up:
 
 - If Phase 4 introduces named stage planes, the focused Phase 4 plan must
@@ -1026,6 +1039,9 @@ Phase 3 deferred `screen-plane` follow-up:
 - If `screen-plane` would expand Phase 4 beyond the managed stage primitive
   substrate, the Phase 4 plan must record it as an explicit follow-up tied to
   named stage planes. Do not leave it as an implicit open question.
+- Focused plan decision: Phase 4 does not implement `screen-plane`; the exact
+  owner is a Phase 8 pre-step for screen-plane placement against named stage
+  planes before interactive picking state is exposed.
 
 Rules:
 
@@ -1044,6 +1060,9 @@ Acceptance criteria:
   stage primitives.
 - Runtime owns disposal for geometry, material, texture, light, and generated
   objects.
+- If Phase 4 keeps stage materials solid-color only, it should explicitly record
+  that no new stage textures are created; the future stage texture descriptor
+  plan owns any new texture loading and disposal contract.
 - The Phase 4 focused plan either implements `screen-plane` against named stage
   planes or documents the exact later phase/follow-up that will own it.
 
@@ -1153,7 +1172,7 @@ Acceptance criteria:
 - **Status:** `[not-started]`
 - **Focused plan:** none
 - **Depends on:** Phase 5
-- **Last updated:** 2026-07-03
+- **Last updated:** 2026-07-04
 - **Exit criteria:** complete animated GLB assets can play, scrub, blend, and
   expose morph controls through managed runtime APIs without exposing raw
   mixers, actions, bones, skeletons, or morph arrays.
@@ -1220,6 +1239,15 @@ Public direction:
 />
 ```
 
+Focused plan reminder:
+
+- Phase 7 owns the scene-native `WebGLModel` descriptor path. Start the focused
+  plan by deciding the minimal `WebGLModel` descriptor shell and how it reuses
+  runtime-owned model loading/lifecycle before layering clip defaults, scrubbing,
+  crossfade, morph controls, and rig diagnostics.
+- Keep DOM-backed model targets valid. `WebGLModel` is opt-in for scene-native
+  `stage-local` models, not a replacement for `WebGLTarget` model sources.
+
 Future effect direction:
 
 ```ts
@@ -1258,7 +1286,7 @@ Acceptance criteria:
 - **Status:** `[not-started]`
 - **Focused plan:** none
 - **Depends on:** Phase 3, Phase 4, Phase 5
-- **Last updated:** 2026-07-03
+- **Last updated:** 2026-07-04
 - **Exit criteria:** runtime-owned input routing supports object hit state,
   scene/camera empty-space controls, and pointer capture without exposing raw
   `Raycaster` or raw intersection objects.
@@ -1267,6 +1295,9 @@ Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
 
 Capabilities:
 
+- pre-step: `screen-plane` placement against named stage planes, using
+  runtime-owned camera/ray-to-plane math without exposing raw raycasters,
+  intersections, meshes, planes, or cameras;
 - runtime-owned input router with explicit priority;
 - scene-local pointer coordinates;
 - target-local pointer for projected targets;
@@ -1540,7 +1571,14 @@ Do not make these default roadmap items:
     not raw `THREE.Scene`.
 - First perspective projection policy.
   - Recommendation: start with `screen-depth` for lower implementation risk, then
-    add `screen-plane` when managed stage planes exist.
+    add `screen-plane` as a post-Phase 4 / pre-Phase 8 follow-up when named
+    managed stage planes exist and ray-to-plane math can share the interaction
+    substrate.
+- Stage material texture descriptors.
+  - Recommendation: keep Phase 4 stage materials solid-color only. Add
+    `material.map`, texture URL, image texture, normal map, and roughness map
+    descriptors only in a later focused plan that also owns runtime texture
+    loading, caching, ready/error state, and disposal.
 - Postprocess migration.
   - Recommendation: keep old API temporarily, add docs and examples for new
     pass/runtime-scoped API first.
@@ -1551,9 +1589,10 @@ Do not make these default roadmap items:
   - Recommendation: start with static descriptors plus progress-driven managed
     motion, not raw imperative camera mutation.
 - Model animation surface.
-  - Recommendation: keep the existing `ctx.object.animation` facade compatible,
-    then add declarative defaults, crossfade, clip scrubbing, and morph controls
-    as managed descriptors/facades.
+  - Recommendation: Phase 7 should first decide the minimal scene-native
+    `WebGLModel` descriptor shell, keep the existing `ctx.object.animation`
+    facade compatible, then add declarative defaults, crossfade, clip scrubbing,
+    and morph controls as managed descriptors/facades.
 - Interaction routing priority.
   - Recommendation: start with deterministic pointer capture and coarse
     object-vs-camera routing before adding mesh-level picking or physics drag.

@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 3 projection policies implementation
+**Last reviewed against:** Phase 4 managed stage primitives implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -72,23 +72,34 @@ phase records are archived under [archive/](./archive/).
     scene
   - target debug summaries can expose `sceneId`, `projection`, and
     `placementMode`, but not raw scene/camera/pass objects
+- Opt-in managed stage primitives and scene-owned lights:
+  - React exports `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
+  - vanilla runtime exposes `registerStagePrimitive`, `unregisterStagePrimitive`,
+    `registerLight`, and `unregisterLight`
+  - supported primitives are `plane` and `box`, with plane roles `floor`,
+    `wall`, and `backdrop`
+  - supported stage materials are descriptor-only `standard` and `basic`
+    solid-color materials
+  - supported scene-owned lights are `ambient`, `directional`, and `point`
+  - stage meshes, geometry, materials, groups, light targets, and lights are
+    runtime-owned and disposed by unregister, scene unregister, or runtime
+    dispose
 
 ## Active Caveats
 
 - Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
   shortest and default DOM-first path.
 - `screen-depth` is the first perspective-stage DOM bridge. `screen-plane`
-  remains deferred until named managed stage planes exist.
-- `stage-local` placement sets explicit scene-local layout for a target, but
-  named lit stage primitives and scene-native `WebGLModel` declarations remain
-  future roadmap work.
+  remains deferred to the Phase 8 pre-step for screen-plane placement against
+  named stage planes.
+- `stage-local` placement sets explicit scene-local layout for a target.
+  Scene-native `WebGLModel` declarations remain future roadmap work.
 - `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
   full WebGL canvas and should not be treated as target/model-local glow.
 - Model-local glow should use material/emissive controls and runtime-owned
   lights unless whole-pass bloom is intentional.
 - `dom/element` surfaces are canvas texture planes and do not respond to Three.js
-  lighting. Lit floors, walls, and backdrops require future managed stage
-  primitives.
+  lighting. Use managed stage primitives for lit floors, walls, and backdrops.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -107,10 +118,11 @@ not started, what has a focused plan, what is in progress, and what is verified.
 Phase 1 internal render layer foundations are verified. Phase 2 opt-in
 scene/camera/pass declarations are verified behind managed descriptors while
 the default Level 1 path still flows through internal generated
-scene/camera/pass entries. Phase 3 projection policies are implemented through
+scene/camera/pass entries. Phase 3 projection policies are verified through
 explicit scene projections, managed camera modes, target placement descriptors,
-and pass clear controls:
-[2026-07-03-projection-policies.md](./superpowers/plans/2026-07-03-projection-policies.md).
+and pass clear controls. Phase 4 managed stage primitives add scene-native
+plane/box descriptors and scene-owned lights without raw Three.js handles:
+[2026-07-04-managed-stage-primitives.md](./superpowers/plans/2026-07-04-managed-stage-primitives.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

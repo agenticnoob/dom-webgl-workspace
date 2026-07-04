@@ -3273,6 +3273,81 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("runtime registers stage primitives and lights into managed scenes", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      material: { kind: "standard", color: "#05070a" },
+    });
+    runtime.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "point",
+      intensity: 1.8,
+      position: [0, 0, 160],
+    });
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "floor",
+      "hero",
+    ]);
+    expect(runtime.getDebugState().targetCount).toBe(0);
+
+    runtime.unregisterStagePrimitive("floor");
+    runtime.unregisterLight("hero");
+
+    expect(worldAdapter.objects).toHaveLength(0);
+    runtime.dispose();
+  });
+
+  test("unregistering a managed scene releases stage primitives and lights first", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+    });
+    runtime.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "ambient",
+    });
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "floor",
+      "hero",
+    ]);
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(worldAdapter.objects).toHaveLength(0);
+    runtime.dispose();
+  });
+
   test("projects screen anchored targets through the selected scene projection", async () => {
     const overlayAdapter = createObjectRecordingSceneAdapter();
     const { registry } = createRenderLayerRegistryStub(
