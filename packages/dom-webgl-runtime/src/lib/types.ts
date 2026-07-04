@@ -225,6 +225,26 @@ export type WebGLCameraDeclaration = WebGLCameraFramingDeclaration & {
   default?: boolean;
 };
 
+export type WebGLPassViewportDeclaration =
+  | {
+      mode?: "canvas";
+    }
+  | {
+      mode: "dom-rect";
+      anchorId?: string;
+      scissor?: boolean;
+    };
+
+export type WebGLPostprocessDeclaration = {
+  bloom?: { strength?: number; radius?: number; threshold?: number };
+  grain?: { amount?: number };
+  blur?: { radius?: number };
+};
+
+export type WebGLPostprocessScopeDeclaration =
+  | { canvas: true; passId?: never }
+  | { passId: string; canvas?: never };
+
 export type WebGLRenderPassDeclaration = {
   id?: string;
   sceneId: string;
@@ -232,6 +252,8 @@ export type WebGLRenderPassDeclaration = {
   order?: number;
   clear?: boolean;
   clearDepth?: boolean;
+  viewport?: WebGLPassViewportDeclaration;
+  postprocess?: WebGLPostprocessDeclaration;
 };
 
 export type WebGLColorValue =
@@ -366,6 +388,8 @@ export type WebGLRuntime = {
   unregisterCamera(id: string): void;
   registerRenderPass(declaration: WebGLRenderPassDeclaration): void;
   unregisterRenderPass(id: string): void;
+  registerPassViewport(declaration: { id: string; element: HTMLElement }): void;
+  unregisterPassViewport(id: string): void;
   registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
   unregisterStagePrimitive(id: string): void;
   registerLight(declaration: WebGLLightDeclaration): void;
@@ -486,6 +510,20 @@ export type WebGLDebugLightSummary = {
   timeline?: WebGLDebugTimelineSummary;
 };
 
+export type WebGLDebugPostprocessRequestSummary = {
+  key: string;
+  scope: WebGLPostprocessScopeDeclaration;
+};
+
+export type WebGLDebugRenderPassSummary = {
+  id: string;
+  sceneId: string;
+  cameraId?: string;
+  viewportMode: "canvas" | "dom-rect";
+  viewportAnchorId?: string;
+  postprocess: boolean;
+};
+
 export type WebGLDebugState = {
   targetCount: number;
   renderableCount: number;
@@ -498,6 +536,8 @@ export type WebGLDebugState = {
   lightCount?: number;
   stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
   lights?: WebGLDebugLightSummary[];
+  renderPasses?: WebGLDebugRenderPassSummary[];
+  postprocessRequests?: WebGLDebugPostprocessRequestSummary[];
   targets: Array<{
     key: string;
     sceneId?: string;

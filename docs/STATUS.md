@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 5 target routing, scroll timelines, and effect scope implementation
+**Last reviewed against:** Phase 6 pass viewport and postprocess scope implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -41,7 +41,10 @@ phase records are archived under [archive/](./archive/).
   - model mesh/material handles
   - model point layers
   - material layer shaders
-  - postprocess requests
+- Runtime scope controls:
+  - `ctx.runtime.progress` for keyed progress signals
+  - `ctx.runtime.postprocess.request(...)` for explicit canvas/pass-scoped
+    bloom/grain/blur requests
 - Target-scoped pointer contract:
   - declarations use `pointer: { hover, press, click, drag }`
   - `ctx.pointer` is runtime/canvas pointer state
@@ -50,11 +53,13 @@ phase records are archived under [archive/](./archive/).
   - `transformScope: "subtree"` creates an internal runtime group
   - no public scene graph, group, matrix, or raw Three.js handle is exposed
 - Opt-in managed render declarations:
-  - React exports `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass`
+  - React exports `WebGLScene`, `WebGLCamera`, `WebGLRenderPass`, and
+    `WebGLPassViewport`
   - React scene-owned rendering is declared on `WebGLScene` with `render`;
     `WebGLRenderPass` remains the advanced explicit pass descriptor
   - vanilla runtime exposes `registerScene`, `registerCamera`, and
-    `registerRenderPass` plus matching unregister methods
+    `registerRenderPass` plus matching unregister methods; DOM viewport
+    anchors can be registered with `registerPassViewport`
   - `WebGLTarget` inherits the nearest React `WebGLScene` when `webgl.sceneId`
     is absent; vanilla targets can set `sceneId` explicitly
   - managed DOM-aligned scene cameras resize with the runtime viewport, and
@@ -65,13 +70,15 @@ phase records are archived under [archive/](./archive/).
     mode through descriptors, not raw `THREE.Camera` handles
   - target placement supports `dom-anchored`, `screen-anchored`,
     `screen-depth`, and `stage-local`
-  - render passes can request runtime-owned `clear` and `clearDepth`
+  - render passes can request runtime-owned `clear`, `clearDepth`, DOM-bound
+    `viewport`/scissor, and descriptor-level `postprocess`
   - scene-owned render declarations wait until the referenced/default camera is
     registered; scenes that do not opt into rendering do not require cameras
   - unregistering a managed scene releases live targets still routed to that
     scene
-  - target debug summaries can expose `sceneId`, `projection`, and
-    `placementMode`, but not raw scene/camera/pass objects
+  - debug summaries can expose descriptor-only target scene facts, render pass
+    viewport facts, and postprocess request scopes, but not raw
+    scene/camera/pass/renderer/composer/render-target objects
 - Opt-in managed stage primitives and scene-owned lights:
   - React exports `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
   - vanilla runtime exposes `registerStagePrimitive`, `unregisterStagePrimitive`,
@@ -90,8 +97,8 @@ phase records are archived under [archive/](./archive/).
   - public declarations can bind `timeline` data on `WebGLTarget`,
     `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
   - `WebGLCameraDeclaration` intentionally does not accept `timeline`; camera
-    motion/focus/framing remains future explicit camera/pass-bound controller
-    work
+    motion/focus/framing remains future Phase 6A explicit camera/pass-bound
+    controller work
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
   - `@project/dom-webgl-scroll-adapters/react` exports
@@ -115,16 +122,18 @@ phase records are archived under [archive/](./archive/).
   placement against named stage planes.
 - `stage-local` placement sets explicit scene-local layout for a target.
   Scene-native `WebGLModel` declarations remain future roadmap work.
-- `ctx.object.postprocess` is currently runtime-canvas scoped. It can affect the
-  full WebGL canvas and should not be treated as target/model-local glow.
+- `ctx.object.postprocess` was removed in Phase 6 because its name implied
+  object-local behavior. Effect-authored postprocess now uses
+  `ctx.runtime.postprocess.request(...)` with `{ canvas: true }` or
+  `{ passId }`.
 - Model-local glow should use material/emissive controls and runtime-owned
   lights unless whole-pass bloom is intentional.
 - `dom/element` surfaces are canvas texture planes and do not respond to Three.js
   lighting. Use managed stage primitives for lit floors, walls, and backdrops.
-- Nesting a `WebGLScene` or managed stage primitive section in React does not
-  create a local DOM viewport. DOM-bound pass viewport/scissor is future Phase 6
-  work; current examples should not present stage primitives as clipped to a
-  section unless they are only controlling visibility/activation.
+- `WebGLPassViewport` is only for opt-in managed scene/pass work. Level 1
+  `WebGLTarget` usage does not need viewport anchors. Nesting a `WebGLScene`
+  alone still does not create a local DOM viewport; the render pass must declare
+  `viewport: { mode: "dom-rect" }` and resolve to a registered viewport anchor.
 - Managed stage primitives and scene-owned lights are stable descriptors. Use
   them to declare scene substrate; do not drive high-frequency animation through
   React prop churn. Use timeline bindings and managed effect/controller state
@@ -139,7 +148,11 @@ phase records are archived under [archive/](./archive/).
 - Timeline bindings can hide/skip targets, scenes, stage primitives, and lights
   by progress range. Active ranges do not override explicit effect visibility or
   `visible: false` declarations. They also do not make a nested `WebGLScene` a
-  local clipped viewport. DOM-bound pass viewport/scissor remains Phase 6 work.
+  local clipped viewport; local pass clipping is the separate
+  `WebGLPassViewport` + pass `viewport` contract.
+- Camera motion/focus/framing is not part of target-local effects or Phase 5
+  timeline bindings. Progress-driven camera controllers are Phase 6A work;
+  pointer-driven orbit, pan, drag, and pointer parallax remain Phase 8 work.
 - The managed timeline example keeps its visible card as a scene-child
   `WebGLTarget`; it inherits the managed scene, uses `screen-depth` placement,
   and reads the same timeline progress signal as the managed scene. It is still
@@ -165,6 +178,14 @@ bindings for targets/scenes/stage primitives/lights, the `WebGLScrollTimeline`
 React adapter, and `ctx.runtime`/`ctx.scene` scope metadata while keeping camera
 timeline control out of `WebGLCameraDeclaration`:
 [2026-07-04-target-routing-scroll-timelines-effect-scope.md](./superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md).
+Phase 6 pass viewport and postprocess scope correction is verified and adds
+`WebGLPassViewport`, DOM-bound pass viewport/scissor, pass descriptor
+postprocess, `ctx.runtime.postprocess` scope, and descriptor-only debug
+summaries without adding raw Three.js access:
+[2026-07-04-pass-viewport-postprocess-scope.md](./superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md).
+Phase 6A managed camera controllers are not started; they should use Phase 5
+timeline ownership and Phase 6 pass scope rather than adding camera behavior to
+the Phase 6 plan.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -191,8 +212,8 @@ Relationship rules from the active roadmap:
 - Scroll timelines and scoped effect routing are now the base for
   progress-driven model animation, later input routing/picking, and physics.
   Physics remains last, after managed stage/collider/input contracts exist.
-- DOM-bound pass viewport/scissor belongs after Phase 5 scope/timeline ownership
-  and before local pinned stage examples are treated as complete.
+- DOM-bound pass viewport/scissor is available for opt-in managed passes through
+  `WebGLPassViewport` and pass `viewport` descriptors.
 
 - managed scenes and cameras
 - managed render passes

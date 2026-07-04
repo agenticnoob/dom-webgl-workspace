@@ -15,7 +15,7 @@ type TestEffectTargetHandle = {
 };
 
 type TestEffectVisualContext = {
-  requestPostprocess: WebGLEffectContext["object"]["postprocess"]["request"];
+  requestPostprocess: WebGLEffectContext["runtime"]["postprocess"]["request"];
 };
 
 type TestEffectContextOverrides = Omit<
@@ -94,7 +94,14 @@ export function createEffectContext(
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
     progress,
-    runtime: overrides.runtime ?? { progress },
+    runtime: overrides.runtime ?? {
+      progress,
+      postprocess: {
+        request(request) {
+          return visual.requestPostprocess(request);
+        },
+      },
+    },
     ...(overrides.scene !== undefined ? { scene: overrides.scene } : {}),
     time,
     delta,
@@ -104,7 +111,6 @@ export function createEffectContext(
         sourceKind,
         source,
         target,
-        visual,
       }),
     resources,
   } satisfies WebGLEffectContext;
@@ -258,7 +264,6 @@ function createTestEffectObject(options: {
   sourceKind: WebGLEffectContext["sourceKind"];
   source: TestEffectSourceHandle;
   target: TestEffectTargetHandle | undefined;
-  visual: TestEffectVisualContext;
 }): WebGLEffectContext["object"] {
   const transform = createTestTransform(options.target);
 
@@ -278,11 +283,6 @@ function createTestEffectObject(options: {
     },
     set opacity(value) {
       transform.opacity = value;
-    },
-    postprocess: {
-      request(request) {
-        return options.visual.requestPostprocess(request);
-      },
     },
     ...createTestObjectCapabilities(options.source),
   };

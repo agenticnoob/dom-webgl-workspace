@@ -497,6 +497,52 @@ describe("debug state", () => {
     expect(state).not.toHaveProperty("renderTarget");
   });
 
+  test("reports render pass viewport and postprocess scopes without raw internals", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      postprocessStats: {
+        activeRequests: 2,
+        passCount: 1,
+        maxRenderTargetSize: 320,
+        requests: [
+          { key: "hero.pass.fx", scope: { passId: "hero.pass" } },
+          { key: "canvas.fx", scope: { canvas: true } },
+        ],
+      },
+      renderPasses: [
+        {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          viewportMode: "dom-rect",
+          viewportAnchorId: "hero.viewport",
+          postprocess: true,
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.renderPasses).toEqual([
+      {
+        id: "hero.pass",
+        sceneId: "hero.scene",
+        cameraId: "hero.camera",
+        viewportMode: "dom-rect",
+        viewportAnchorId: "hero.viewport",
+        postprocess: true,
+      },
+    ]);
+    expect(state.postprocessRequests).toEqual([
+      { key: "hero.pass.fx", scope: { passId: "hero.pass" } },
+      { key: "canvas.fx", scope: { canvas: true } },
+    ]);
+    expect(state).not.toHaveProperty("composer");
+    expect(state).not.toHaveProperty("renderTarget");
+  });
+
   test("summarizes internal batching candidates without exposing a public batching API", () => {
     const targets = [
       createDebugTargetState("poster.a", "media/image"),
@@ -661,6 +707,55 @@ describe("debug state", () => {
         targets: [],
       }),
     );
+  });
+
+  test("runtime debug state reports managed pass viewport descriptors", async () => {
+    const runtime = await createRuntime({
+      pointerController: createPointerController(),
+      scrollState: createScrollStateController(),
+    });
+    const viewport = document.createElement("section");
+
+    runtime.registerScene({
+      id: "debug.scene",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "debug.camera",
+      sceneId: "debug.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerPassViewport({
+      id: "debug.viewport",
+      element: viewport,
+    });
+    runtime.registerRenderPass({
+      id: "debug.pass",
+      sceneId: "debug.scene",
+      cameraId: "debug.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "debug.viewport",
+        scissor: true,
+      },
+      postprocess: {
+        grain: { amount: 0.025 },
+      },
+    });
+
+    expect(runtime.getDebugState().renderPasses).toContainEqual({
+      id: "debug.pass",
+      sceneId: "debug.scene",
+      cameraId: "debug.camera",
+      viewportMode: "dom-rect",
+      viewportAnchorId: "debug.viewport",
+      postprocess: true,
+    });
+    expect(runtime.getDebugState()).not.toHaveProperty("camera");
+    expect(runtime.getDebugState()).not.toHaveProperty("renderTarget");
+
+    runtime.dispose();
   });
 
   test("runtime notifies debug listeners when async renderable updates fail", async () => {

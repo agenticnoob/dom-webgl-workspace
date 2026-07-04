@@ -10,7 +10,13 @@ import type {
   WebGLEffectPostprocessHandle,
   WebGLEffectPostprocessRequest,
   WebGLEffectVisualContext,
+  WebGLRuntimePostprocessRequest,
 } from "../effects/effectAuthoring";
+import type {
+  WebGLDebugPostprocessRequestSummary,
+  WebGLPostprocessDeclaration,
+  WebGLPostprocessScopeDeclaration,
+} from "../types";
 import {
   createRenderTargetPool,
   type DisposableRenderTarget,
@@ -21,8 +27,8 @@ import {
 export type PostprocessController = WebGLEffectVisualContext & {
   readonly activeRequestCount: number;
   inspect(): PostprocessControllerStats;
-  inspectRequests(): readonly WebGLEffectPostprocessRequest[];
-  render(renderBase: () => void): void;
+  inspectRequests(): readonly WebGLRuntimePostprocessRequest[];
+  render(context: PostprocessRenderContext, renderBase: () => void): void;
   dispose(): void;
 };
 
@@ -30,11 +36,18 @@ export type PostprocessControllerStats = {
   activeRequests: number;
   passCount: number;
   maxRenderTargetSize: number;
+  requests: WebGLDebugPostprocessRequestSummary[];
+};
+
+export type PostprocessRenderContext = {
+  passId?: string;
+  viewport?: PostprocessViewport;
+  descriptor?: WebGLPostprocessDeclaration;
 };
 
 type StoredPostprocessRequest = {
   token: symbol;
-  request: WebGLEffectPostprocessRequest;
+  request: WebGLRuntimePostprocessRequest;
 };
 
 type PostprocessRenderer = {
@@ -140,15 +153,34 @@ export function createPostprocessController(
     inspectRequests() {
       return Array.from(requestsByKey.values(), (entry) => cloneRequest(entry.request));
     },
-    render(renderBase) {
-      if (disposed || requestsByKey.size === 0 || !canRunPostprocess(options)) {
+    render(context, renderBase) {
+      if (
+        disposed ||
+        (!context.descriptor && requestsByKey.size === 0) ||
+        !canRunPostprocess(options)
+      ) {
         renderBase();
         return;
       }
 
-      const outputSize = readOutputSize(options.getViewportSize());
+      const outputSize = readOutputSize(context.viewport ?? options.getViewportSize());
       const request = compilePostprocessRequest(
-        Array.from(requestsByKey.values(), (entry) => entry.request),
+        [
+          ...Array.from(requestsByKey.values(), (entry) => entry.request).filter(
+            (entry) => requestMatchesPass(entry, context.passId),
+          ),
+          ...(context.descriptor
+            ? [
+                {
+                  key: `pass:${context.passId ?? "canvas"}:descriptor`,
+                  scope: context.passId
+                    ? { passId: context.passId }
+                    : { canvas: true },
+                  ...context.descriptor,
+                } satisfies WebGLRuntimePostprocessRequest,
+              ]
+            : []),
+        ],
       );
 
       if (!request) {
@@ -262,14 +294,36 @@ function createDisposedPostprocessHandle(): WebGLEffectPostprocessHandle {
 }
 
 function cloneRequest(
-  request: WebGLEffectPostprocessRequest,
-): WebGLEffectPostprocessRequest {
+  request: WebGLRuntimePostprocessRequest,
+): WebGLRuntimePostprocessRequest {
   return {
     key: request.key,
+    scope: cloneRequestScope(request.scope),
     ...(request.bloom ? { bloom: { ...request.bloom } } : {}),
     ...(request.grain ? { grain: { ...request.grain } } : {}),
     ...(request.blur ? { blur: { ...request.blur } } : {}),
   };
+}
+
+function cloneRequestScope(
+  scope: WebGLPostprocessScopeDeclaration,
+): WebGLPostprocessScopeDeclaration {
+  if ("canvas" in scope) {
+    return { canvas: true };
+  }
+
+  return { passId: scope.passId };
+}
+
+function requestMatchesPass(
+  request: WebGLRuntimePostprocessRequest,
+  passId: string | undefined,
+): boolean {
+  if ("canvas" in request.scope) {
+    return true;
+  }
+
+  return request.scope.passId === passId;
 }
 
 function inspectPostprocessState(
@@ -282,6 +336,7 @@ function inspectPostprocessState(
       activeRequests: 0,
       passCount: 0,
       maxRenderTargetSize: 0,
+      requests: [],
     };
   }
 
@@ -297,6 +352,10 @@ function inspectPostprocessState(
     maxRenderTargetSize: compiledRequest
       ? Math.max(outputSize.width, outputSize.height)
       : 0,
+    requests: requests.map((request) => ({
+      key: request.key,
+      scope: cloneRequestScope(request.scope),
+    })),
   };
 }
 

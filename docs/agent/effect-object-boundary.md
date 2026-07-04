@@ -130,7 +130,7 @@ ctx.object.model
 ctx.object.animation
 ctx.object.lights
 ctx.object.hitTest
-ctx.object.postprocess
+ctx.runtime.postprocess
 ```
 
 Capabilities that do not apply to the current source should be absent or return
@@ -199,10 +199,11 @@ target with `screen-depth` or `stage-local` placement receives a runtime-owned
 plane layout from the descriptor. Writing `ctx.object.scale` replaces that plane
 size; use it only when the effect intentionally owns surface sizing.
 
-`ctx.object.postprocess` is a managed runtime request facade, but current
-requests are runtime-canvas scoped. Target-local model glow should use material
-or mesh emissive controls plus runtime-owned lights unless a future
-target-scoped postprocess capability is explicitly designed.
+`ctx.runtime.postprocess` is a managed runtime request facade. Requests must
+declare explicit `{ canvas: true }` or `{ passId }` scope and are not
+target-local. Target-local model glow should use material or mesh emissive
+controls plus runtime-owned lights unless a future target-scoped postprocess
+capability is explicitly designed.
 Runtime-owned lights are keyed requests; repeated calls with the same key update
 the existing light and stay under runtime disposal ownership.
 

@@ -263,6 +263,48 @@ describe("createInternalRenderLayerRegistry", () => {
     expect(order).toEqual(["main", "overlay"]);
   });
 
+  test("stores pass viewport and postprocess descriptors without exposing renderer state", () => {
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+    );
+
+    registry.registerScene({ id: "hero.scene" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    registry.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+      postprocess: {
+        grain: { amount: 0.04 },
+      },
+    });
+
+    expect(registry.getPasses()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "hero.pass",
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+          postprocess: {
+            grain: { amount: 0.04 },
+          },
+        }),
+      ]),
+    );
+  });
+
   test("skips timeline-bound scene passes while the active range is inactive", () => {
     const mainAdapter = createSceneAdapter();
     const worldAdapter = createSceneAdapter();

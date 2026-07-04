@@ -2,6 +2,7 @@ import type { ElementLayoutSnapshot } from "../renderer/layoutPass";
 import type {
   WebGLEffectDeclaration,
   WebGLFrameInput,
+  WebGLPostprocessScopeDeclaration,
   WebGLProgressSignalSource,
   WebGLSceneProjection,
   WebGLTargetPointerState,
@@ -275,13 +276,21 @@ export type WebGLEffectPostprocessRequest = {
 };
 
 export type WebGLEffectPostprocessHandle = {
-  update(request: WebGLEffectPostprocessRequest): void;
+  update(request: WebGLRuntimePostprocessRequest): void;
   dispose(): void;
+};
+
+export type WebGLRuntimePostprocessRequest = WebGLEffectPostprocessRequest & {
+  scope: WebGLPostprocessScopeDeclaration;
+};
+
+export type WebGLEffectRuntimePostprocessFacade = {
+  request(request: WebGLRuntimePostprocessRequest): WebGLEffectPostprocessHandle;
 };
 
 export type WebGLEffectVisualContext = {
   requestPostprocess(
-    request: WebGLEffectPostprocessRequest,
+    request: WebGLRuntimePostprocessRequest,
   ): WebGLEffectPostprocessHandle;
 };
 
@@ -294,6 +303,12 @@ export type WebGLEffectTimelineScope = {
 
 export type WebGLEffectRuntimeScope = {
   readonly progress: WebGLProgressSignalSource;
+  readonly postprocess: WebGLEffectRuntimePostprocessFacade;
+};
+
+export type WebGLEffectRuntimeScopeSnapshot = {
+  readonly progress: WebGLProgressSignalSource;
+  readonly postprocess?: WebGLEffectRuntimePostprocessFacade;
 };
 
 export type WebGLEffectSceneScope = {
@@ -303,7 +318,7 @@ export type WebGLEffectSceneScope = {
 };
 
 export type WebGLEffectScopeSnapshot = {
-  readonly runtime: WebGLEffectRuntimeScope;
+  readonly runtime: WebGLEffectRuntimeScopeSnapshot;
   readonly scene?: WebGLEffectSceneScope;
 };
 

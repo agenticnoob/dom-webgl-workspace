@@ -101,7 +101,15 @@ function createManagedTimelineCardContext(options: {
     layout: { width: 360, height: 136 },
     scrollProgress: options.scrollProgress ?? 0,
     progress: { get: runtimeProgressGet },
-    runtime: { progress: { get: runtimeProgressGet } },
+    runtime: {
+      progress: { get: runtimeProgressGet },
+      postprocess: {
+        request: vi.fn(() => ({
+          update: vi.fn(),
+          dispose: vi.fn(),
+        })),
+      },
+    },
   });
 
   return {

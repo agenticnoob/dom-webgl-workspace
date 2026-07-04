@@ -4,8 +4,6 @@ import type {
   WebGLEffectMediaShaderInputs,
   WebGLEffectManagedObjectHandle,
   WebGLEffectPointLayerOptions,
-  WebGLEffectPostprocessHandle,
-  WebGLEffectPostprocessRequest,
   WebGLEffectSourceKind,
   WebGLEffectTextShaderInputs,
   WebGLEffectTextureTransform,
@@ -26,10 +24,6 @@ export type WebGLEffectVector3Like = {
 
 export type WebGLEffectScaleLike = WebGLEffectVector3Like & {
   setScalar(value: number): void;
-};
-
-export type WebGLEffectPostprocessFacade = {
-  request(request: WebGLEffectPostprocessRequest): WebGLEffectPostprocessHandle;
 };
 
 export type WebGLEffectTextureFacade = {
@@ -111,5 +105,4 @@ export type WebGLEffectObjectHandle = {
   texture?: WebGLEffectTextureFacade;
   video?: WebGLEffectVideoFacade;
   model?: WebGLEffectModelFacade;
-  postprocess: WebGLEffectPostprocessFacade;
 };

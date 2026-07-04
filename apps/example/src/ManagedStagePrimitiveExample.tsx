@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLPassViewport,
   WebGLScene,
   WebGLStageBox,
   WebGLStagePlane,
@@ -15,6 +16,8 @@ const stageSceneRender = {
   camera: "example.stage.camera",
   order: -10,
   clearDepth: true,
+  viewport: { mode: "dom-rect", scissor: true },
+  postprocess: { grain: { amount: 0.025 } },
 } satisfies WebGLSceneRenderOptions;
 
 const cameraPosition = [0, 120, 520] satisfies NonNullable<
@@ -90,7 +93,12 @@ export function ManagedStagePrimitiveExample() {
         </p>
       </div>
 
-      <div className="example-stage-viewport" aria-hidden="true">
+      <WebGLPassViewport
+        id="example.stage.viewport"
+        as="div"
+        className="example-stage-viewport"
+        aria-hidden="true"
+      >
         <WebGLScene
           id="example.stage.world"
           projection="perspective-stage"
@@ -121,7 +129,7 @@ export function ManagedStagePrimitiveExample() {
             position={keyLightPosition}
           />
         </WebGLScene>
-      </div>
+      </WebGLPassViewport>
     </section>
   );
 }

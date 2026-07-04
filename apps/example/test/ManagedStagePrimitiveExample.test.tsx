@@ -7,6 +7,7 @@ const cameraProps: CameraMockProps[] = [];
 const stagePlaneProps: StagePlaneMockProps[] = [];
 const stageBoxProps: StageBoxMockProps[] = [];
 const lightProps: LightMockProps[] = [];
+const passViewportProps: PassViewportMockProps[] = [];
 
 type SceneMockProps = {
   readonly id: string;
@@ -48,7 +49,20 @@ type LightMockProps = {
   readonly color?: string;
 };
 
+type PassViewportMockProps = {
+  readonly id: string;
+  readonly as?: string;
+  readonly className?: string;
+  readonly "aria-hidden"?: boolean | "true" | "false";
+  readonly children?: ReactNode;
+};
+
 vi.mock("@project/dom-webgl-runtime/react", () => ({
+  WebGLPassViewport: ({ children, ...props }: PassViewportMockProps) => {
+    const { as, ...domProps } = props;
+    passViewportProps.push({ ...props, children });
+    return createElement(as ?? "div", domProps, children);
+  },
   WebGLScene: ({ children, ...props }: SceneMockProps) => {
     sceneProps.push({ ...props, children });
     return createElement("div", { "data-webgl-scene": props.id }, children);
@@ -84,7 +98,19 @@ describe("ManagedStagePrimitiveExample", () => {
     expect(sceneProps[0]).toMatchObject({
       id: "example.stage.world",
       projection: "perspective-stage",
-      render: { camera: "example.stage.camera", order: -10, clearDepth: true },
+      render: {
+        camera: "example.stage.camera",
+        order: -10,
+        clearDepth: true,
+        viewport: { mode: "dom-rect", scissor: true },
+        postprocess: { grain: { amount: 0.025 } },
+      },
+    });
+    expect(passViewportProps[0]).toMatchObject({
+      id: "example.stage.viewport",
+      as: "div",
+      className: "example-stage-viewport",
+      "aria-hidden": "true",
     });
     expect(cameraProps).toEqual([
       expect.objectContaining({

@@ -19,6 +19,7 @@ import type {
 } from "./effectAuthoring";
 import type { WebGLEffectObjectHandle } from "./effectObject";
 import {
+  completeEffectScopes,
   createResourceManagedVisualContext,
   createWebGLEffectContext,
   readScrollProgress,
@@ -158,7 +159,10 @@ export function createWebGLEffectController(
       for (const effect of effects) {
         let context: WebGLEffectContext;
         const lights = readEffectLights(effect, target, options);
-        const scopes = readEffectScopes(options);
+        const scopes = completeEffectScopes(
+          readEffectScopes(options),
+          effect.visual,
+        );
 
         if (effect.reusableContext) {
           context = effect.reusableContext;
@@ -176,8 +180,6 @@ export function createWebGLEffectController(
             sourceKind,
             source,
             target,
-            visual: effect.visual,
-            resources: effect.resources,
             lights,
           });
         } else {

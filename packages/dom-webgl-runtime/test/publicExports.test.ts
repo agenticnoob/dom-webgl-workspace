@@ -26,6 +26,7 @@ describe("public package exports", () => {
     expect(reactApi.WebGLScene).toEqual(expect.any(Function));
     expect(reactApi.WebGLCamera).toEqual(expect.any(Function));
     expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
+    expect(reactApi.WebGLPassViewport).toEqual(expect.any(Function));
     expect(reactApi.WebGLStagePlane).toEqual(expect.any(Function));
     expect(reactApi.WebGLStageBox).toEqual(expect.any(Function));
     expect(reactApi.WebGLLight).toEqual(expect.any(Function));
@@ -61,6 +62,7 @@ describe("public package exports", () => {
         import {
           WebGLCamera,
           WebGLLight,
+          WebGLPassViewport,
           WebGLRenderPass,
           WebGLRuntime,
           WebGLScene,
@@ -71,6 +73,7 @@ describe("public package exports", () => {
         import type {
           WebGLCameraProps,
           WebGLLightProps,
+          WebGLPassViewportProps,
           WebGLRenderPassProps,
           WebGLRuntimeProps,
           WebGLSceneProps,
@@ -113,6 +116,7 @@ describe("public package exports", () => {
         WebGLTarget satisfies unknown;
         WebGLScene satisfies unknown;
         WebGLCamera satisfies unknown;
+        WebGLPassViewport satisfies unknown;
         WebGLRenderPass satisfies unknown;
         WebGLStagePlane satisfies unknown;
         WebGLStageBox satisfies unknown;
@@ -158,13 +162,55 @@ describe("public package exports", () => {
               </WebGLTarget>
             </WebGLScene>
 
+            <WebGLPassViewport id="world.stage.viewport" as="section">
+              <WebGLScene
+                id="world.stage"
+                projection="perspective-stage"
+                render={{
+                  camera: "world.stage.camera",
+                  clearDepth: true,
+                  viewport: { mode: "dom-rect" },
+                  postprocess: { grain: { amount: 0.04 } },
+                }}
+              >
+                <WebGLCamera
+                  id="world.stage.camera"
+                  default
+                  type="perspective"
+                  mode="perspective-stage"
+                  position={[0, 0, 500]}
+                  target={[0, 0, 0]}
+                />
+                <WebGLStagePlane
+                  id="stage.floor"
+                  role="floor"
+                  size={[1200, 800]}
+                  material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+                />
+                <WebGLStageBox
+                  id="stage.box"
+                  size={[120, 80, 120]}
+                  position={[0, -40, 0]}
+                  material={{ kind: "basic", color: "#ffffff", opacity: 0.5 }}
+                />
+                <WebGLLight id="stage.ambient" kind="ambient" intensity={0.2} />
+                <WebGLLight
+                  id="stage.hero"
+                  kind="point"
+                  color="#7dd3fc"
+                  intensity={1.8}
+                  position={[0, 0, 160]}
+                />
+              </WebGLScene>
+            </WebGLPassViewport>
+
             <WebGLScene
-              id="world.stage"
+              id="world.stage.legacy"
               projection="perspective-stage"
-              render={{ camera: "world.stage.camera", clearDepth: true }}
+              render={{ camera: "world.stage.legacy.camera", clearDepth: true }}
             >
               <WebGLCamera
-                id="world.stage.camera"
+                id="world.stage.legacy.camera"
                 default
                 type="perspective"
                 mode="perspective-stage"
@@ -258,8 +304,15 @@ describe("public package exports", () => {
           scene: "world",
           camera: "world.camera",
           order: 0,
+          viewport: { mode: "dom-rect", anchorId: "world.viewport", scissor: true },
+          postprocess: { grain: { amount: 0.04 } },
         } satisfies WebGLRenderPassProps;
         passProps satisfies WebGLRenderPassProps;
+        const passViewportProps = {
+          id: "world.viewport",
+          as: "section",
+        } satisfies WebGLPassViewportProps<"section">;
+        passViewportProps satisfies WebGLPassViewportProps<"section">;
 
         declare const rawScene: ThreeScene;
         declare const rawCamera: ThreeCamera;
@@ -407,9 +460,9 @@ describe("public package exports", () => {
 				          WebGLEffectPointLayerOptions,
 				          WebGLEffectPointLightRequest,
 				          WebGLEffectPostprocessHandle,
-				          WebGLEffectPostprocessRequest,
 				          WebGLEffectRenderableHandle,
 				          WebGLEffectResourceScope,
+				          WebGLEffectRuntimePostprocessFacade,
 				          WebGLEffectRuntimeScope,
 				          WebGLEffectSchedule,
 				          WebGLEffectSceneScope,
@@ -421,7 +474,6 @@ describe("public package exports", () => {
 					          WebGLEffectModelPointsFacade,
 					          WebGLEffectModelSamplingFacade,
 					          WebGLEffectObjectHandle,
-				          WebGLEffectPostprocessFacade,
 			          WebGLEffectSourceTextureShaderInput,
 			          WebGLEffectScaleLike,
 			          WebGLEffectSurfaceShaderInputs,
@@ -450,6 +502,7 @@ describe("public package exports", () => {
 	          WebGLOffscreenStrategy,
 	          WebGLPlacementDeclaration,
 	          WebGLPlacementMode,
+	          WebGLPassViewportDeclaration,
 		          WebGLDOMSourceDeclaration,
 		          WebGLMediaImageSequenceSourceDeclaration,
 		          WebGLMediaImageSourceDeclaration,
@@ -467,7 +520,10 @@ describe("public package exports", () => {
 	          WebGLTimelineBindingDeclaration,
 	          WebGLRenderRole,
 	          WebGLRenderPassDeclaration,
+	          WebGLPostprocessDeclaration,
+	          WebGLPostprocessScopeDeclaration,
 	          WebGLResourceStatus,
+	          WebGLRuntimePostprocessRequest,
 	          WebGLRuntime,
 	          WebGLRuntimeOptions,
           WebGLScrollAdapter,
@@ -505,7 +561,7 @@ describe("public package exports", () => {
         import type { WebGLEffectSourceHandle } from "${importPath}";
         // @ts-expect-error target handles are internal assembly details.
         import type { WebGLEffectTargetHandle } from "${importPath}";
-        // @ts-expect-error visual context is replaced by ctx.object.postprocess.
+        // @ts-expect-error visual context is replaced by ctx.runtime.postprocess.
         import type { WebGLEffectVisualContext } from "${importPath}";
 
         // @ts-expect-error Target registry is an internal pipeline helper.
@@ -617,6 +673,39 @@ describe("public package exports", () => {
           sceneId: "world",
           cameraId: "world.camera",
           order: 0,
+        } satisfies WebGLRenderPassDeclaration;
+        const passViewport = {
+          mode: "dom-rect",
+          anchorId: "hero.stage.viewport",
+          scissor: true,
+        } satisfies WebGLPassViewportDeclaration;
+        const passPostprocess = {
+          bloom: { strength: 0.35, radius: 0.18, threshold: 0.82 },
+          grain: { amount: 0.04 },
+          blur: { radius: 0.12 },
+        } satisfies WebGLPostprocessDeclaration;
+        const canvasPostprocessScope = {
+          canvas: true,
+        } satisfies WebGLPostprocessScopeDeclaration;
+        const passPostprocessScope = {
+          passId: "hero.pass",
+        } satisfies WebGLPostprocessScopeDeclaration;
+        const passScopedPostprocess = {
+          key: "hero.pass.fx",
+          scope: passPostprocessScope,
+          grain: { amount: 0.04 },
+        } satisfies WebGLRuntimePostprocessRequest;
+        const canvasScopedPostprocess = {
+          key: "runtime.fx",
+          scope: canvasPostprocessScope,
+          blur: { radius: 0.1 },
+        } satisfies WebGLRuntimePostprocessRequest;
+        const scopedPass = {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          viewport: passViewport,
+          postprocess: passPostprocess,
         } satisfies WebGLRenderPassDeclaration;
         const stageColor = "#05070a" satisfies WebGLColorValue;
         const stagePlaneRole = "floor" satisfies WebGLStagePlaneRole;
@@ -755,6 +844,13 @@ describe("public package exports", () => {
         sceneDeclaration satisfies WebGLSceneDeclaration;
         cameraDeclaration satisfies WebGLCameraDeclaration;
         passDeclaration satisfies WebGLRenderPassDeclaration;
+        passViewport satisfies WebGLPassViewportDeclaration;
+        passPostprocess satisfies WebGLPostprocessDeclaration;
+        canvasPostprocessScope satisfies WebGLPostprocessScopeDeclaration;
+        passPostprocessScope satisfies WebGLPostprocessScopeDeclaration;
+        passScopedPostprocess satisfies WebGLRuntimePostprocessRequest;
+        canvasScopedPostprocess satisfies WebGLRuntimePostprocessRequest;
+        scopedPass satisfies WebGLRenderPassDeclaration;
         stageColor satisfies WebGLColorValue;
         standardStageMaterial satisfies WebGLStageMaterialDeclaration;
         basicStageMaterial satisfies WebGLStageMaterialDeclaration;
@@ -921,6 +1017,14 @@ describe("public package exports", () => {
         ({ key: "raw.object", object3D: {} } satisfies WebGLDeclaration);
         // @ts-expect-error render passes do not accept raw render targets.
         ({ sceneId: "world", renderTarget: {} } satisfies WebGLRenderPassDeclaration);
+        // @ts-expect-error pass viewport accepts managed descriptors, not renderer state.
+        ({ mode: "dom-rect", renderer: {} } satisfies WebGLPassViewportDeclaration);
+        // @ts-expect-error pass-scoped postprocess accepts descriptor data, not composer passes.
+        ({ composer: {} } satisfies WebGLPostprocessDeclaration);
+        // @ts-expect-error postprocess scope names a managed pass, not a render target.
+        ({ key: "bad", scope: { renderTarget: {} } } satisfies WebGLRuntimePostprocessRequest);
+        // @ts-expect-error runtime postprocess requests must declare canvas/pass scope.
+        ({ key: "missing.scope", grain: { amount: 0.04 } } satisfies WebGLRuntimePostprocessRequest);
         declare const rawTimelineController: { progress(): number };
         // @ts-expect-error raw GSAP/controller objects are not timeline declarations.
         ({ id: "raw.timeline", timeline: rawTimelineController } satisfies WebGLSceneDeclaration);
@@ -959,6 +1063,12 @@ describe("public package exports", () => {
 	        publicCtx.resources satisfies WebGLEffectResourceScope;
 	        publicCtx.runtime satisfies WebGLEffectRuntimeScope;
 	        publicCtx.runtime.progress.get("section") satisfies number;
+	        publicCtx.runtime.postprocess satisfies WebGLEffectRuntimePostprocessFacade;
+	        publicCtx.runtime.postprocess.request({
+	          key: "type.runtime.postprocess",
+	          scope: { canvas: true },
+	          grain: { amount: 0.04 },
+	        }) satisfies WebGLEffectPostprocessHandle;
 	        publicCtx.scene?.id satisfies string | undefined;
 	        publicCtx.scene?.projection satisfies WebGLSceneProjection | undefined;
 	        publicCtx.scene?.timeline?.progress satisfies number | undefined;
@@ -999,10 +1109,10 @@ describe("public package exports", () => {
 
         // @ts-expect-error use ctx.object and ctx.sourceKind instead.
         publicCtx.source;
-        // @ts-expect-error use ctx.object transform controls instead.
-        publicCtx.target;
-        // @ts-expect-error use ctx.object.postprocess instead.
-        publicCtx.visual;
+	        // @ts-expect-error use ctx.object transform controls instead.
+	        publicCtx.target;
+	        // @ts-expect-error use ctx.runtime.postprocess instead.
+	        publicCtx.visual;
         // @ts-expect-error scene scope exposes managed metadata only, not raw Three scenes.
         publicCtx.scene?.scene;
         // @ts-expect-error target-local effects do not receive implicit camera scope.
@@ -1068,10 +1178,11 @@ describe("public package exports", () => {
 		 	              fadeInMs: 120,
 		 	              timeScale: 1,
 		 	            });
-		 	            ctx.object.postprocess.request({
-		 	              key: "custom.glow",
-		 	              bloom: { strength: 0.2 },
-		 	            });
+                    ctx.runtime.postprocess.request({
+                    key: "custom.glow",
+                    scope: { canvas: true },
+                    bloom: { strength: 0.2 },
+                    });
 				            ctx.object satisfies WebGLEffectObjectHandle;
 				            ctx.object.position satisfies WebGLEffectVector3Like;
 				            ctx.object.rotation satisfies WebGLEffectVector3Like;
@@ -1089,7 +1200,11 @@ describe("public package exports", () => {
 				            ctx.object.model?.points satisfies
 				              | WebGLEffectModelPointsFacade
 				              | undefined;
-				            ctx.object.postprocess satisfies WebGLEffectPostprocessFacade;
+                    // @ts-expect-error postprocess moved from ctx.object to ctx.runtime in Phase 6.
+                    ctx.object.postprocess.request({
+                    key: "custom.oldObjectPostprocess",
+                    grain: { amount: 0.04 },
+                    });
 				          },
 				        });
 
@@ -1128,10 +1243,11 @@ describe("public package exports", () => {
 		              timeScale: 1,
 		            });
 
-		            ctx.object.postprocess.request({
-		              key: "custom.softBloom",
-		              bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
-		            });
+                    ctx.runtime.postprocess.request({
+                    key: "custom.softBloom",
+                    scope: { canvas: true },
+                    bloom: { strength: 0.45, radius: 0.25, threshold: 0.7 },
+                    });
 		          },
 		        });
 
@@ -1143,10 +1259,11 @@ describe("public package exports", () => {
 				            ctx.object.position.set(0, 24, 0);
 				            ctx.object.rotation.y += ctx.delta / 1000;
 				            ctx.object.scale.setScalar(1.05);
-				            ctx.object.postprocess.request({
-				              key: "custom.soft",
-				              blur: { radius: 0.2 },
-				            });
+                    ctx.runtime.postprocess.request({
+                    key: "custom.soft",
+                    scope: { canvas: true },
+                    blur: { radius: 0.2 },
+                    });
 
 				            ctx.object.surface?.draw(({ context }) => {
 				              context.fillRect(0, 0, 1, 1);
@@ -1243,12 +1360,13 @@ describe("public package exports", () => {
 				          source: "model/glb",
 					          setup(ctx, params: { kind: "custom.glbParticles"; density?: number }) {
 				            ctx.resources satisfies WebGLEffectResourceScope;
-				            const postprocess = ctx.object.postprocess.request({
-				              key: "custom.glow",
-				              bloom: { strength: 0.6, radius: 0.2, threshold: 0.8 },
-				              grain: { amount: 0.05 },
-				              blur: { radius: 0.25 },
-				            } satisfies WebGLEffectPostprocessRequest);
+                    const postprocess = ctx.runtime.postprocess.request({
+                    key: "custom.glow",
+                    scope: { passId: "hero.pass" },
+                    bloom: { strength: 0.6, radius: 0.2, threshold: 0.8 },
+                    grain: { amount: 0.05 },
+                    blur: { radius: 0.25 },
+                    } satisfies WebGLRuntimePostprocessRequest);
 					            postprocess satisfies WebGLEffectPostprocessHandle;
 					            const model = ctx.object.model;
 					            if (model) {

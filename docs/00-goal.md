@@ -1458,10 +1458,11 @@ Current controlled visual capability API, delivered after Phase 8:
   `sampling.vertices`, and `points.create`. They do not expose `object3D`,
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
-- `ctx.object.postprocess.request(...)` exposes named bloom/grain/blur requests.
-  Current runtime truth is request/handle ownership, inspection, and bounded
-  internal bloom/grain/blur pass execution. Composer, pass ordering, and
-  render-target internals remain private.
+- `ctx.runtime.postprocess.request(...)` exposes named bloom/grain/blur requests
+  with explicit `{ canvas: true }` or `{ passId }` scope. Current runtime truth
+  is request/handle ownership, inspection, and bounded internal bloom/grain/blur
+  pass execution. Composer, pass ordering, and render-target internals remain
+  private.
 - Public APIs still do not expose renderer, scene, camera, raw `ShaderMaterial`,
   raw `Texture`, raw `EffectComposer`, raw `WebGLRenderTarget`, render-loop,
   arbitrary pass ordering, or renderer-state mutation.

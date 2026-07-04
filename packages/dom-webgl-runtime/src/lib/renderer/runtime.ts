@@ -85,6 +85,10 @@ import {
   type PostprocessController,
 } from "./postprocessController";
 import {
+  createPassViewportRegistry,
+  type ResolvedPassViewport,
+} from "./passViewportRegistry";
+import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
@@ -195,6 +199,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const renderLayers =
     internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
     createInternalRenderLayerRegistry(rendererHost);
+  const passViewports = createPassViewportRegistry();
   const stageObjects = createStageObjectRegistry({
     getSceneAdapter(sceneId) {
       return renderLayers.getSceneAdapterForTarget(sceneId);
@@ -420,6 +425,22 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
+    registerPassViewport(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL pass viewport after runtime disposal.",
+        );
+      }
+
+      passViewports.register(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterPassViewport(id) {
+      passViewports.unregister(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
     registerStagePrimitive(declaration) {
       if (disposed) {
         throw new Error(
@@ -523,6 +544,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         scrollState.dispose?.();
         pointerController.dispose();
         rendererLoop.dispose();
+        passViewports.dispose();
         postprocessController.dispose();
         stageObjects.dispose();
         renderLayers.dispose();
@@ -568,6 +590,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       postprocessStats: postprocessController.inspect(),
       stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
+      renderPasses: renderLayers.getPasses().map((pass) => ({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        ...(pass.cameraId ? { cameraId: pass.cameraId } : {}),
+        viewportMode:
+          pass.viewport?.mode === "dom-rect" ? "dom-rect" : "canvas",
+        ...(pass.viewport?.mode === "dom-rect"
+          ? { viewportAnchorId: pass.viewport.anchorId }
+          : {}),
+        postprocess: pass.postprocess !== undefined,
+      })),
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
@@ -615,10 +648,67 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       if (pass.clearDepth) {
         rendererHost.renderer.clearDepth?.();
       }
-      postprocessController.render(() => {
-        scene.sceneAdapter.render(camera.camera);
+
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      withResolvedPassViewport(resolvedViewport, () => {
+        postprocessController.render(
+          {
+            passId: pass.id,
+            viewport: readPostprocessViewport(resolvedViewport),
+            descriptor: pass.postprocess,
+          },
+          () => {
+            scene.sceneAdapter.render(camera.camera);
+          },
+        );
       });
     });
+  }
+
+  function readPostprocessViewport(
+    viewport: ResolvedPassViewport,
+  ): { width: number; height: number } {
+    if (viewport.mode === "canvas") {
+      return rendererHost.getViewportSize();
+    }
+
+    return {
+      width: viewport.rect.width,
+      height: viewport.rect.height,
+    };
+  }
+
+  function withResolvedPassViewport(
+    viewport: ResolvedPassViewport,
+    render: () => void,
+  ): void {
+    if (viewport.mode === "canvas") {
+      render();
+      return;
+    }
+
+    const runtimeViewport = rendererHost.getViewportSize();
+    const dpr = window.devicePixelRatio || 1;
+    const x = Math.round(viewport.rect.x * dpr);
+    const width = Math.round(viewport.rect.width * dpr);
+    const height = Math.round(viewport.rect.height * dpr);
+    const y = Math.round(
+      (runtimeViewport.height - viewport.rect.y - viewport.rect.height) * dpr,
+    );
+
+    rendererHost.renderer.setViewport?.(x, y, width, height);
+    rendererHost.renderer.setScissor?.(x, y, width, height);
+    rendererHost.renderer.setScissorTest?.(viewport.scissor);
+
+    try {
+      render();
+    } finally {
+      const fullWidth = Math.round(runtimeViewport.width * dpr);
+      const fullHeight = Math.round(runtimeViewport.height * dpr);
+      rendererHost.renderer.setScissorTest?.(false);
+      rendererHost.renderer.setViewport?.(0, 0, fullWidth, fullHeight);
+      rendererHost.renderer.setScissor?.(0, 0, fullWidth, fullHeight);
+    }
   }
 
   function rendererLoopRequestFrame(reason: RenderDirtyReason): void {

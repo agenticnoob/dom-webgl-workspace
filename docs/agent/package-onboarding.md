@@ -226,10 +226,13 @@ Rules:
 - Targets can declare `placement: { mode: "dom-anchored" }`,
   `screen-anchored`, `screen-depth`, or `stage-local` depending on the scene
   projection.
-- `WebGLRenderPass` can request runtime-owned `clear` or `clearDepth`.
-- Scene-native models, `screen-plane`, DOM-bound pass viewport/scissor,
-  pass-scoped postprocess, and raw Three.js scene/camera/renderer handles remain
-  future or non-public.
+- `WebGLRenderPass` can request runtime-owned `clear`, `clearDepth`, DOM-bound
+  `viewport`/scissor, and descriptor-level `postprocess`.
+- `WebGLPassViewport` registers a DOM rect anchor for a managed render pass.
+  Use it only for opt-in managed scene/pass work; Level 1 `WebGLTarget` usage
+  does not need it.
+- Scene-native models, `screen-plane`, raw Three.js scene/camera/renderer
+  handles, and camera-scoped controllers remain future or non-public.
 - `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot. Camera
   motion/focus/framing needs a future explicit camera/pass-bound controller.
 
@@ -375,8 +378,8 @@ Rules:
 - Binding a target/scene/stage/light timeline can activate or hide
   runtime-owned work. Active ranges do not override explicit effect visibility
   or `visible: false` declarations, and they do not clip a managed scene to the
-  surrounding DOM section.
-  DOM-bound pass viewport/scissor belongs to Phase 6.
+  surrounding DOM section. Local pass clipping uses `WebGLPassViewport` plus
+  pass `viewport: { mode: "dom-rect" }`.
 - Effects can read the same signal through `ctx.progress.get(key)` or
   `ctx.runtime.progress.get(key)`. Effects inside a managed scene also receive
   optional `ctx.scene` metadata and timeline snapshot. These are managed
@@ -456,7 +459,6 @@ Object modules:
   layers.
 - `ctx.object.lights`: keyed runtime-owned ambient, directional, and point light
   requests. Reusing a key updates the existing light.
-- `ctx.object.postprocess`: named postprocess requests.
 
 Current visual capability surface:
 
@@ -473,8 +475,10 @@ Current visual capability surface:
   `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
   `sampling.vertices`, and `points.create`; do not rely on `object3D`, `mesh`,
   `material`, or `texture` fields.
-- `ctx.object.postprocess.request(...)` submits named bloom/grain/blur requests
-  owned by the runtime.
+- `ctx.runtime.postprocess.request(...)` submits named bloom/grain/blur
+  requests owned by the runtime with explicit `{ canvas: true }` or `{ passId }`
+  scope. `ctx.object.postprocess` was removed because it read as object-local
+  while the implementation was canvas scoped.
 - `ctx.object.lights?.point(...)`, `.directional(...)`, and `.ambient(...)`
   submit keyed runtime-owned light requests. Dynamic light params should be
   redeclared with the same key from `update`.
@@ -696,9 +700,9 @@ Run a browser smoke check for visual work when the change affects a rendered app
   `source.loader.draco.decoderPath` and matching decoder files served by the
   app. The runtime owns the loader instance, but the app owns static asset
   placement.
-- Canvas-wide blur/dimming: `ctx.object.postprocess` is currently
-  runtime-canvas scoped, not target-scoped. Do not use it for a single model glow
-  unless affecting the whole WebGL canvas is intended.
+- Canvas/pass-wide blur/dimming: `ctx.runtime.postprocess` is scoped to a
+  canvas or managed pass, not a single target. Do not use it for a single model
+  glow unless affecting that whole scope is intended.
 - Invisible model after an effect update: `ctx.object.position` and
   `ctx.object.scale` override the runtime model fit transform. Leave model
   placement to the runtime unless the effect intentionally owns it.

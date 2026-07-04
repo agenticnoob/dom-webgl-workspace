@@ -384,8 +384,8 @@ Consumers can draw to canvas-backed element surfaces through
 or manipulate GLB model mesh handles and managed point layers through
 `ctx.object.model`, adjust controlled material fields through
 `ctx.object.material`, request runtime-owned lights through `ctx.object.lights`,
-drive model clips through `ctx.object.animation`, and request named
-runtime-owned postprocess handles through `ctx.object.postprocess`. Current
+drive model clips through `ctx.object.animation`, and request explicit
+canvas/pass-scoped postprocess through `ctx.runtime.postprocess`. Current
 postprocess support owns request/handle lifecycle and executes bounded internal
 bloom/grain/blur passes without exposing composer, pass-order, or render-target
 internals.
@@ -406,7 +406,7 @@ Capability matrix:
 | `media/image-sequence` | frame-addressable media texture controls |
 | `model/glb` | controlled mesh handles, material facade, sampled vertices, managed point layers, animation facade |
 | runtime lights | `ctx.object.lights` for keyed runtime-owned ambient/directional/point light requests |
-| runtime postprocess | `ctx.object.postprocess.request(...)` for named bloom/grain/blur request handles |
+| runtime/pass postprocess | `ctx.runtime.postprocess.request(...)` for explicit canvas/pass-scoped bloom/grain/blur requests |
 
 Runtime owns material, texture, geometry, render-target, postprocess request,
 and managed-object lifecycle. Effects update public handles/requests and
@@ -592,6 +592,7 @@ explicit scene/pass ownership, wrap it in a managed scene and camera:
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLPassViewport,
   WebGLRuntime,
   WebGLScene,
   WebGLStageBox,
@@ -615,6 +616,25 @@ import {
 </WebGLRuntime>;
 ```
 
+When a managed pass must render inside a DOM-owned rectangle, wrap the DOM owner
+with `WebGLPassViewport` and let the pass resolve that anchor:
+
+```tsx
+<WebGLPassViewport id="hero.stage.viewport" as="section">
+  <WebGLScene
+    id="hero.stage"
+    projection="perspective-stage"
+    render={{
+      camera: "hero.camera",
+      viewport: { mode: "dom-rect" },
+      postprocess: { grain: { amount: 0.025 } },
+    }}
+  >
+    <WebGLCamera id="hero.camera" default type="perspective" />
+  </WebGLScene>
+</WebGLPassViewport>
+```
+
 Targets inside `WebGLScene` inherit that scene unless `webgl.sceneId` is set
 explicitly. A scene only needs a camera when it opts into rendering with
 `render` or `defaultPass`; the generated pass waits for the referenced/default
@@ -627,9 +647,10 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 passes can request `clear` or `clearDepth`. `screen-depth` uses the DOM rect for
 screen position/size and projects that point along the active `WebGLCamera`
 basis at the requested depth, so the scene default camera should stay aligned
-with the render pass camera. These remain descriptor-driven and runtime-owned.
-Scene-native models, `screen-plane` placement, pass-scoped postprocess, and raw
-Three.js access remain out of scope.
+with the render pass camera. Render passes can also declare DOM-bound
+`viewport`/scissor and descriptor-level `postprocess`. These remain
+descriptor-driven and runtime-owned. Scene-native models, `screen-plane`
+placement, camera controllers, and raw Three.js access remain out of scope.
 
 ## Managed Timeline Bindings
 

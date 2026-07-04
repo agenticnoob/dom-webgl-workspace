@@ -2,6 +2,7 @@ import { useContext, useEffect } from "react";
 
 import type { WebGLRenderPassDeclaration } from "../types";
 
+import { WebGLPassViewportContext } from "./passViewportContext";
 import { WebGLSceneContext } from "./sceneContext";
 import { useWebGLRuntime } from "./useWebGLRuntime";
 
@@ -12,6 +13,8 @@ export type WebGLRenderPassProps = {
   order?: number;
   clear?: boolean;
   clearDepth?: boolean;
+  viewport?: WebGLRenderPassDeclaration["viewport"];
+  postprocess?: WebGLRenderPassDeclaration["postprocess"];
 };
 
 export function WebGLRenderPass({
@@ -21,9 +24,12 @@ export function WebGLRenderPass({
   order,
   clear,
   clearDepth,
+  viewport,
+  postprocess,
 }: WebGLRenderPassProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
+  const inheritedPassViewportId = useContext(WebGLPassViewportContext);
   const sceneId = scene ?? inheritedSceneId;
 
   useEffect(() => {
@@ -33,6 +39,10 @@ export function WebGLRenderPass({
       );
     }
 
+    const normalizedViewport = resolveReactPassViewport(
+      viewport,
+      inheritedPassViewportId,
+    );
     const declaration: WebGLRenderPassDeclaration = {
       id,
       sceneId,
@@ -40,6 +50,8 @@ export function WebGLRenderPass({
       order,
       clear,
       clearDepth,
+      viewport: normalizedViewport,
+      postprocess,
     };
 
     runtime.registerRenderPass(declaration);
@@ -49,7 +61,31 @@ export function WebGLRenderPass({
         id?.trim() ?? `${sceneId.trim()}:${camera?.trim() ?? "default"}:pass`,
       );
     };
-  }, [runtime, id, sceneId, camera, order, clear, clearDepth]);
+  }, [
+    runtime,
+    id,
+    sceneId,
+    camera,
+    order,
+    clear,
+    clearDepth,
+    viewport,
+    postprocess,
+    inheritedPassViewportId,
+  ]);
 
   return null;
+}
+
+export function resolveReactPassViewport(
+  viewport: WebGLRenderPassDeclaration["viewport"],
+  inheritedAnchorId: string | undefined,
+): WebGLRenderPassDeclaration["viewport"] {
+  if (!viewport || viewport.mode !== "dom-rect" || viewport.anchorId) {
+    return viewport;
+  }
+
+  return inheritedAnchorId
+    ? { ...viewport, anchorId: inheritedAnchorId }
+    : viewport;
 }

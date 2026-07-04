@@ -1211,7 +1211,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("passes controlled postprocess requests through the effect object facade", async () => {
+  test("passes controlled postprocess requests through the runtime scope facade", async () => {
     const postprocessController = createPostprocessController();
     const runtime = await createPipelineRuntime({
       postprocessController,
@@ -1220,14 +1220,16 @@ describe("runtime pipeline sync", () => {
           kind: "custom.postprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.object.postprocess.request({
+            return ctx.runtime.postprocess.request({
               key: "custom.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.4 },
             });
           },
           update(_ctx, handle) {
             handle.update({
               key: "custom.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.8 },
               blur: { radius: 0.2 },
             });
@@ -1248,6 +1250,7 @@ describe("runtime pipeline sync", () => {
     expect(postprocessController.inspectRequests()).toEqual([
       {
         key: "custom.glow",
+        scope: { canvas: true },
         bloom: { strength: 0.8 },
         blur: { radius: 0.2 },
       },
@@ -1269,7 +1272,7 @@ describe("runtime pipeline sync", () => {
     }));
     const postprocessController = createStubPostprocessController({
       requestPostprocess,
-      render(renderBase) {
+      render(_context, renderBase) {
         renderOrder.push("postprocess:before");
         renderBase();
         renderOrder.push("postprocess:after");
@@ -1287,8 +1290,9 @@ describe("runtime pipeline sync", () => {
           kind: "custom.pipelinePostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.object.postprocess.request({
+            return ctx.runtime.postprocess.request({
               key: "pipeline.glow",
+              scope: { passId: "__dom-webgl-default__" },
               bloom: { strength: 0.3 },
             });
           },
@@ -1308,6 +1312,7 @@ describe("runtime pipeline sync", () => {
 
     expect(requestPostprocess).toHaveBeenCalledWith({
       key: "pipeline.glow",
+      scope: { passId: "__dom-webgl-default__" },
       bloom: { strength: 0.3 },
     });
     expect(renderOrder).toEqual([
@@ -1341,8 +1346,9 @@ describe("runtime pipeline sync", () => {
           kind: "custom.defaultPostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.object.postprocess.request({
+            return ctx.runtime.postprocess.request({
               key: "default.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.35 },
             });
           },
@@ -3111,6 +3117,69 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("renders a pass inside a DOM-bound viewport with scissor and restores canvas viewport", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 40,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 220,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(render).toHaveBeenCalled();
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
   test("routes targets with sceneId to the managed scene adapter", async () => {
     const mainAdapter = createObjectRecordingSceneAdapter();
     const worldAdapter = createObjectRecordingSceneAdapter();
@@ -4347,6 +4416,7 @@ function createStubPostprocessController(
         activeRequests: overrides.activeRequestCount ?? 0,
         passCount: 0,
         maxRenderTargetSize: 0,
+        requests: [],
       })),
     inspectRequests: vi.fn(() => []),
     requestPostprocess:
@@ -4357,7 +4427,7 @@ function createStubPostprocessController(
       })),
     render:
       overrides.render ??
-      vi.fn((renderBase: () => void) => {
+      vi.fn((_context, renderBase: () => void) => {
         renderBase();
       }),
     dispose: overrides.dispose ?? vi.fn(),

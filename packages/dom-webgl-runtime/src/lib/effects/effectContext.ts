@@ -3,7 +3,8 @@ import { createTargetPointerState } from "../input/targetPointer";
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../types";
 import type {
   WebGLEffectContext,
-  WebGLEffectPostprocessRequest,
+  WebGLEffectRuntimeScope,
+  WebGLRuntimePostprocessRequest,
   WebGLEffectResourceScope,
   WebGLEffectScopeSnapshot,
   WebGLEffectSourceHandle,
@@ -36,7 +37,7 @@ const emptyProgressSignals: WebGLProgressSignalSource = {
 };
 
 const emptyVisualContext: WebGLEffectVisualContext = {
-  requestPostprocess(_request: WebGLEffectPostprocessRequest) {
+  requestPostprocess(_request: WebGLRuntimePostprocessRequest) {
     return {
       update() {},
       dispose() {},
@@ -52,7 +53,10 @@ export function createWebGLEffectContext(
     createResourceManagedVisualContext(options.visual, options.resources);
 
   const progress = createProgressSignals(options.progressSignals);
-  const scopes = options.scopes ?? { runtime: { progress } };
+  const scopes = completeEffectScopes(
+    options.scopes ?? { runtime: { progress } },
+    visual,
+  );
 
   return {
     key: options.key,
@@ -72,11 +76,26 @@ export function createWebGLEffectContext(
       sourceKind: options.sourceKind,
       source: options.source,
       target: options.target,
-      visual,
-      resources: options.resources,
       lights: options.lights,
     }),
     resources: options.resources,
+  };
+}
+
+export function completeEffectScopes(
+  scopes: WebGLEffectScopeSnapshot,
+  visual: WebGLEffectVisualContext,
+): WebGLEffectScopeSnapshot & { runtime: WebGLEffectRuntimeScope } {
+  return {
+    ...scopes,
+    runtime: {
+      ...scopes.runtime,
+      postprocess: {
+        request(request) {
+          return visual.requestPostprocess(request);
+        },
+      },
+    },
   };
 }
 

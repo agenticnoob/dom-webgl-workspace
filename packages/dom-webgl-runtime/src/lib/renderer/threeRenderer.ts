@@ -23,6 +23,9 @@ export type ThreeRendererAdapter = {
   setClearAlpha?(alpha: number): void;
   clear?(): void;
   clearDepth?(): void;
+  setViewport?(x: number, y: number, width: number, height: number): void;
+  setScissor?(x: number, y: number, width: number, height: number): void;
+  setScissorTest?(enabled: boolean): void;
   setRenderTarget?(target: object | null): void;
   render?(scene: object, camera: object): void;
   dispose(): void;

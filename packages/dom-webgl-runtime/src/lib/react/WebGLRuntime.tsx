@@ -146,6 +146,8 @@ function createPendingRuntime(): RuntimeInstance {
     unregisterCamera() {},
     registerRenderPass() {},
     unregisterRenderPass() {},
+    registerPassViewport() {},
+    unregisterPassViewport() {},
     registerStagePrimitive() {},
     unregisterStagePrimitive() {},
     registerLight() {},

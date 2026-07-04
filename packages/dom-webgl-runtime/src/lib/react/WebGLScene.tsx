@@ -1,7 +1,9 @@
-import { createElement, useLayoutEffect, type ReactNode } from "react";
+import { createElement, useContext, useLayoutEffect, type ReactNode } from "react";
 
-import type { WebGLSceneDeclaration } from "../types";
+import type { WebGLRenderPassDeclaration, WebGLSceneDeclaration } from "../types";
 
+import { WebGLPassViewportContext } from "./passViewportContext";
+import { resolveReactPassViewport } from "./WebGLRenderPass";
 import { WebGLSceneProvider } from "./sceneContext";
 import { useWebGLRuntime } from "./useWebGLRuntime";
 
@@ -11,6 +13,8 @@ export type WebGLSceneRenderOptions = {
   order?: number;
   clear?: boolean;
   clearDepth?: boolean;
+  viewport?: WebGLRenderPassDeclaration["viewport"];
+  postprocess?: WebGLRenderPassDeclaration["postprocess"];
 };
 
 export type WebGLSceneProps = WebGLSceneDeclaration & {
@@ -28,6 +32,7 @@ export function WebGLScene({
   children,
 }: WebGLSceneProps) {
   const runtime = useWebGLRuntime();
+  const inheritedPassViewportId = useContext(WebGLPassViewportContext);
   const renderOptions =
     typeof render === "object" && render !== null ? render : undefined;
   const sceneDefaultPass =
@@ -43,6 +48,10 @@ export function WebGLScene({
     });
 
     if (renderOptions) {
+      const normalizedViewport = resolveReactPassViewport(
+        renderOptions.viewport,
+        inheritedPassViewportId,
+      );
       runtime.registerRenderPass({
         id: renderOptions.id,
         sceneId: id,
@@ -50,6 +59,8 @@ export function WebGLScene({
         order: renderOptions.order,
         clear: renderOptions.clear,
         clearDepth: renderOptions.clearDepth,
+        viewport: normalizedViewport,
+        postprocess: renderOptions.postprocess,
       });
     }
 
@@ -74,6 +85,9 @@ export function WebGLScene({
     renderOptions?.order,
     renderOptions?.clear,
     renderOptions?.clearDepth,
+    renderOptions?.viewport,
+    renderOptions?.postprocess,
+    inheritedPassViewportId,
   ]);
 
   return createElement(WebGLSceneProvider, { sceneId: id }, children);

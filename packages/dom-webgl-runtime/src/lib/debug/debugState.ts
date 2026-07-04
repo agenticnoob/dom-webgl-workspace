@@ -1,5 +1,7 @@
 import type {
   WebGLDebugLightSummary,
+  WebGLDebugPostprocessRequestSummary,
+  WebGLDebugRenderPassSummary,
   WebGLDebugState,
   WebGLDebugStagePrimitiveSummary,
   WebGLPerformanceBudget,
@@ -45,6 +47,7 @@ export type DebugRuntimeState = {
   postprocessStats?: DebugPostprocessStats;
   stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
   lights?: readonly WebGLDebugLightSummary[];
+  renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
 };
 
@@ -60,6 +63,7 @@ export type DebugPostprocessStats = {
   activeRequests: number;
   passCount: number;
   maxRenderTargetSize: number;
+  requests?: readonly WebGLDebugPostprocessRequestSummary[];
 };
 
 export type BatchCandidateSummary = {
@@ -172,6 +176,31 @@ export function createDebugState(
           }
         : {}),
     }));
+  }
+
+  if (runtimeState.renderPasses && runtimeState.renderPasses.length > 0) {
+    state.renderPasses = runtimeState.renderPasses.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      ...(entry.cameraId ? { cameraId: entry.cameraId } : {}),
+      viewportMode: entry.viewportMode,
+      ...(entry.viewportAnchorId
+        ? { viewportAnchorId: entry.viewportAnchorId }
+        : {}),
+      postprocess: entry.postprocess,
+    }));
+  }
+
+  if (
+    runtimeState.postprocessStats?.requests &&
+    runtimeState.postprocessStats.requests.length > 0
+  ) {
+    state.postprocessRequests = runtimeState.postprocessStats.requests.map(
+      (request) => ({
+        key: request.key,
+        scope: { ...request.scope },
+      }),
+    );
   }
 
   if (warnings.length > 0) {

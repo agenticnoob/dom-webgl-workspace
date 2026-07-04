@@ -68,7 +68,11 @@ describe("defineWebGLEffect", () => {
       kind: "custom.objectOnlySyntax",
       update(ctx) {
         ctx.object.opacity = 0.8;
-        ctx.object.postprocess.request({ key: "soft", grain: { amount: 0.1 } });
+        ctx.runtime.postprocess.request({
+          key: "soft",
+          scope: { canvas: true },
+          grain: { amount: 0.1 },
+        });
 
         // @ts-expect-error source is no longer public effect context.
         ctx.source;

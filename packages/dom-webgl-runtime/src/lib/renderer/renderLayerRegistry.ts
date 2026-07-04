@@ -22,6 +22,8 @@ import type {
   WebGLCameraDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
+  WebGLPassViewportDeclaration,
+  WebGLPostprocessDeclaration,
   WebGLProgressSignalSource,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
@@ -68,6 +70,8 @@ export type InternalRenderPassEntry = {
   readonly order: number;
   readonly clear: boolean;
   readonly clearDepth: boolean;
+  readonly viewport?: WebGLPassViewportDeclaration;
+  readonly postprocess?: WebGLPostprocessDeclaration;
   readonly deferUntilCamera?: boolean;
 };
 

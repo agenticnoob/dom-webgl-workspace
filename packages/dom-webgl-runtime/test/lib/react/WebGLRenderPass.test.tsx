@@ -90,6 +90,88 @@ describe("WebGLRenderPass", () => {
       clearDepth: true,
     });
   });
+
+  test("forwards viewport and postprocess render pass declarations", async () => {
+    const { WebGLRenderPass, WebGLRuntimeProvider } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLRenderPass, {
+            id: "hero.pass",
+            scene: "hero.scene",
+            camera: "hero.camera",
+            viewport: {
+              mode: "dom-rect",
+              anchorId: "hero.viewport",
+              scissor: true,
+            },
+            postprocess: {
+              grain: { amount: 0.04 },
+            },
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerRenderPass).toHaveBeenCalledWith({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      order: undefined,
+      clear: undefined,
+      clearDepth: undefined,
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+      postprocess: {
+        grain: { amount: 0.04 },
+      },
+    });
+  });
+
+  test("uses the nearest pass viewport context when dom-rect anchorId is omitted", async () => {
+    const { WebGLPassViewport, WebGLRenderPass, WebGLRuntimeProvider } =
+      await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLPassViewport,
+            { id: "hero.viewport" },
+            createElement(WebGLRenderPass, {
+              id: "hero.pass",
+              scene: "hero.scene",
+              camera: "hero.camera",
+              viewport: { mode: "dom-rect" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerRenderPass).toHaveBeenCalledWith(
+      expect.objectContaining({
+        viewport: {
+          mode: "dom-rect",
+          anchorId: "hero.viewport",
+        },
+      }),
+    );
+  });
 });
 
 function createTestRoot(): { root: Root; host: HTMLElement } {
@@ -113,6 +195,8 @@ function createRuntimeStub(): WebGLRuntime & {
     unregisterCamera: vi.fn(),
     registerRenderPass: vi.fn(),
     unregisterRenderPass: vi.fn(),
+    registerPassViewport: vi.fn(),
+    unregisterPassViewport: vi.fn(),
     registerStagePrimitive: vi.fn(),
     unregisterStagePrimitive: vi.fn(),
     registerLight: vi.fn(),

@@ -4,6 +4,8 @@ import type {
   WebGLCameraType,
   WebGLDOMAnchoredPlacementDeclaration,
   WebGLPlacementDeclaration,
+  WebGLPassViewportDeclaration,
+  WebGLPostprocessDeclaration,
   WebGLScreenAnchor,
   WebGLScreenAnchoredPlacementDeclaration,
   WebGLScreenDepthPlacementDeclaration,
@@ -50,6 +52,8 @@ export type NormalizedRenderLayerPassDeclaration = {
   order: number;
   clear: boolean;
   clearDepth: boolean;
+  viewport?: WebGLPassViewportDeclaration;
+  postprocess?: WebGLPostprocessDeclaration;
 };
 
 export type NormalizedTargetPlacement =
@@ -159,6 +163,7 @@ export function normalizeRenderLayerPassDeclaration(
     : `${sceneId}:${cameraId ?? "default"}:pass`;
 
   assertNotReservedGeneratedId(id, "render pass");
+  const viewport = normalizePassViewport(declaration.viewport);
 
   return {
     id,
@@ -167,6 +172,45 @@ export function normalizeRenderLayerPassDeclaration(
     order: normalizeOrder(declaration.order),
     clear: declaration.clear ?? false,
     clearDepth: declaration.clearDepth ?? false,
+    ...(viewport ? { viewport } : {}),
+    ...(declaration.postprocess
+      ? { postprocess: clonePostprocessDeclaration(declaration.postprocess) }
+      : {}),
+  };
+}
+
+function normalizePassViewport(
+  viewport: WebGLPassViewportDeclaration | undefined,
+): WebGLPassViewportDeclaration | undefined {
+  if (!viewport || !isDOMRectPassViewport(viewport)) {
+    return undefined;
+  }
+
+  if (!viewport.anchorId) {
+    throw new Error("WebGL render pass dom-rect viewport requires an anchorId.");
+  }
+
+  const anchorId = normalizePublicId(viewport.anchorId, "pass viewport anchor");
+  return {
+    mode: "dom-rect",
+    anchorId,
+    scissor: viewport.scissor ?? true,
+  };
+}
+
+function isDOMRectPassViewport(
+  viewport: WebGLPassViewportDeclaration,
+): viewport is Extract<WebGLPassViewportDeclaration, { mode: "dom-rect" }> {
+  return "mode" in viewport && viewport.mode === "dom-rect";
+}
+
+function clonePostprocessDeclaration(
+  declaration: WebGLPostprocessDeclaration,
+): WebGLPostprocessDeclaration {
+  return {
+    ...(declaration.bloom ? { bloom: { ...declaration.bloom } } : {}),
+    ...(declaration.grain ? { grain: { ...declaration.grain } } : {}),
+    ...(declaration.blur ? { blur: { ...declaration.blur } } : {}),
   };
 }
 

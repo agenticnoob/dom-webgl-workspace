@@ -1,13 +1,12 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { WebGLRuntime } from "../../../src/index";
 
 const roots: Root[] = [];
 
-describe("WebGLStageBox", () => {
+describe("WebGLPassViewport", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -22,8 +21,8 @@ describe("WebGLStageBox", () => {
     document.body.replaceChildren();
   });
 
-  test("registers a box with an explicit scene override", async () => {
-    const { WebGLRuntimeProvider, WebGLStageBox } = await import(
+  test("registers and unregisters a pass viewport anchor", async () => {
+    const { WebGLPassViewport, WebGLRuntimeProvider } = await import(
       "../../../src/react"
     );
     const runtime = createRuntimeStub();
@@ -34,22 +33,18 @@ describe("WebGLStageBox", () => {
         createElement(
           WebGLRuntimeProvider,
           { runtime },
-          createElement(WebGLStageBox, {
-            id: "box",
-            scene: "overlay",
-            size: [1, 2, 3],
-            timeline: "hero.3d",
+          createElement(WebGLPassViewport, {
+            id: "hero.viewport",
+            as: "section",
+            className: "hero-stage",
           }),
         ),
       );
     });
 
-    expect(runtime.registerStagePrimitive).toHaveBeenCalledWith({
-      id: "box",
-      sceneId: "overlay",
-      kind: "box",
-      size: [1, 2, 3],
-      timeline: "hero.3d",
+    expect(runtime.registerPassViewport).toHaveBeenCalledWith({
+      id: "hero.viewport",
+      element: expect.any(HTMLElement),
     });
 
     act(() => {
@@ -57,22 +52,31 @@ describe("WebGLStageBox", () => {
     });
     roots.splice(roots.indexOf(root), 1);
 
-    expect(runtime.unregisterStagePrimitive).toHaveBeenCalledWith("box");
+    expect(runtime.unregisterPassViewport).toHaveBeenCalledWith("hero.viewport");
   });
 
-  test("requires an explicit or inherited scene", async () => {
-    const { WebGLRuntimeProvider, WebGLStageBox } = await import("../../../src/react");
+  test("renders arbitrary children inside the DOM viewport owner", async () => {
+    const { WebGLPassViewport, WebGLRuntimeProvider } = await import(
+      "../../../src/react"
+    );
     const runtime = createRuntimeStub();
+    const { root, host } = createTestRoot();
 
-    expect(() =>
-      renderToStaticMarkup(
+    await act(async () => {
+      root.render(
         createElement(
           WebGLRuntimeProvider,
           { runtime },
-          createElement(WebGLStageBox, { id: "box" }),
+          createElement(
+            WebGLPassViewport,
+            { id: "hero.viewport", as: "section" },
+            createElement("p", null, "普通 DOM 内容"),
+          ),
         ),
-      ),
-    ).toThrow('WebGL stage box "box" requires a scene prop or a parent WebGLScene.');
+      );
+    });
+
+    expect(host.textContent).toContain("普通 DOM 内容");
   });
 });
 
@@ -86,8 +90,8 @@ function createTestRoot(): { root: Root; host: HTMLElement } {
 }
 
 function createRuntimeStub(): WebGLRuntime & {
-  registerStagePrimitive: ReturnType<typeof vi.fn>;
-  unregisterStagePrimitive: ReturnType<typeof vi.fn>;
+  registerPassViewport: ReturnType<typeof vi.fn>;
+  unregisterPassViewport: ReturnType<typeof vi.fn>;
 } {
   return {
     container: document.createElement("div"),

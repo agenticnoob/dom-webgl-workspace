@@ -109,8 +109,9 @@ Model-specific cautions:
 
 - A compressed GLB still needs declarative `source.loader.draco.decoderPath` and
   decoder files served from the app public asset root.
-- `ctx.object.postprocess` is runtime-canvas scoped today. Do not use it for a
-  target-local model glow unless changing the whole WebGL canvas is intended.
+- `ctx.runtime.postprocess` is canvas/pass scoped, not target scoped. Do not
+  use it for a target-local model glow unless changing the whole canvas or pass
+  is intended.
 - Runtime layout fits `model/glb` bounds into the target rect. Writing
   `ctx.object.position` or `ctx.object.scale` takes ownership of placement and
   can move the model out of view.

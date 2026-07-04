@@ -225,9 +225,10 @@ by writing target scale from the effect.
 - A Draco-compressed GLB can look like a runtime bug when the asset loads without
   decoder config. The fix is not a loader callback escape hatch; declare
   `loader: { draco: { decoderPath } }` and serve the decoder files.
-- Postprocess requests are easy to over-scope. Current `ctx.object.postprocess`
-  requests affect the runtime canvas. The model glow example avoids bloom so it
-  does not dim or blur unrelated WebGL targets.
+- Postprocess requests are easy to over-scope. Effect-authored requests now use
+  `ctx.runtime.postprocess` with explicit canvas/pass scope; they are still not
+  target-local. The model glow example avoids bloom so it does not dim or blur
+  unrelated WebGL targets.
 - A DOM background on a ready model target can occlude the fixed WebGL canvas.
   Use a WebGL `dom/element` surface backdrop when the model needs a darker
   stage.

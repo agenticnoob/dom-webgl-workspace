@@ -485,8 +485,25 @@ renderable even when no card effect is active in the viewport.
 The managed timeline dogfood uses a pinned full-canvas section, separately from
 the pinned image-sequence section. It binds a named progress signal to a managed
 scene, stage primitives, scene-owned lights, and a default-pipeline WebGL target
-surface. It intentionally does not describe the nested scene as DOM-clipped or as
-a local target viewport, because DOM-bound pass viewport/scissor is Phase 6 work.
+surface. The managed stage primitive dogfood now uses `WebGLPassViewport` so
+the managed pass is clipped to the DOM-owned viewport without creating another
+canvas or exposing renderer viewport/scissor calls:
+
+```tsx
+<WebGLPassViewport id="example.stage.viewport" as="div" className="example-stage-viewport">
+  <WebGLScene
+    id="example.stage.world"
+    projection="perspective-stage"
+    render={{
+      camera: "example.stage.camera",
+      viewport: { mode: "dom-rect", scissor: true },
+      postprocess: { grain: { amount: 0.025 } },
+    }}
+  >
+    <WebGLCamera id="example.stage.camera" default type="perspective" />
+  </WebGLScene>
+</WebGLPassViewport>
+```
 
 These are intentionally small. They are examples of the contract, not official
 package effects.
@@ -506,10 +523,10 @@ package effects.
   files in the app public directory. `/models/4.glb` uses
   `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching
   decoder files under `apps/example/public/draco/gltf`.
-- `ctx.object.postprocess` currently affects the whole runtime WebGL canvas.
-  The model glow example avoids it, so the subtle glow comes from
-  `example.modelFloatGlow` emissive material and point light without changing
-  unrelated WebGL targets.
+- `ctx.runtime.postprocess` affects the declared canvas or managed pass scope,
+  not a single target. The model glow example avoids it, so the subtle glow
+  comes from `example.modelFloatGlow` emissive material and point light without
+  changing unrelated WebGL targets.
 - `model/glb` renderables are fit to their target rect by the runtime layout
   pass. `example.modelFloatGlow` avoids writing `ctx.object.position` and
   `ctx.object.scale` so it does not override that fit transform.

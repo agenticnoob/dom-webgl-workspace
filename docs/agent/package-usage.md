@@ -273,6 +273,7 @@ React:
 ```tsx
 import {
   WebGLCamera,
+  WebGLPassViewport,
   WebGLRuntime,
   WebGLScene,
   WebGLTarget,
@@ -368,6 +369,31 @@ Perspective-stage scenes use a perspective camera and an explicit placement:
 </WebGLScene>
 ```
 
+DOM-bound managed passes:
+
+```tsx
+<WebGLPassViewport id="hero.stage.viewport" as="section">
+  <WebGLScene
+    id="hero.stage"
+    projection="perspective-stage"
+    render={{
+      camera: "hero.camera",
+      viewport: { mode: "dom-rect", scissor: true },
+      postprocess: { grain: { amount: 0.025 } },
+    }}
+  >
+    <WebGLCamera
+      id="hero.camera"
+      default
+      type="perspective"
+      mode="perspective-stage"
+      position={[0, 0, 700]}
+      target={[0, 0, 0]}
+    />
+  </WebGLScene>
+</WebGLPassViewport>
+```
+
 Rules:
 
 - `WebGLTarget` inside `WebGLScene` inherits that scene unless
@@ -390,16 +416,24 @@ Rules:
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.
+- `WebGLPassViewport` registers a DOM rect anchor for a managed render pass.
+  Use it only for opt-in managed scene/pass work; Level 1 `WebGLTarget` usage
+  does not need it.
+- Pass `viewport: { mode: "dom-rect" }` uses the nearest React
+  `WebGLPassViewport` anchor when nested under one. Vanilla render pass
+  descriptors must provide `anchorId`.
+- Pass postprocess belongs on `WebGLRenderPass` / `WebGLScene render`, or in
+  effects through `ctx.runtime.postprocess.request(...)` with an explicit
+  `{ canvas: true }` or `{ passId }` scope.
 - A scene only needs a camera when it opts into rendering with `render` or
   `defaultPass`; the generated pass waits until the referenced/default camera
   is registered.
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
-- Scene-native `WebGLModel`, `screen-plane`, DOM-bound pass viewport/scissor,
-  pass-scoped postprocess, and camera-scoped effects/controllers remain later
-  phases. `ctx.scene` exists today as managed scene metadata/timeline scope,
-  not as a raw scene control handle.
+- Scene-native `WebGLModel`, `screen-plane`, and camera-scoped
+  effects/controllers remain later phases. `ctx.scene` exists today as managed
+  scene metadata/timeline scope, not as a raw scene control handle.
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -568,7 +602,8 @@ Rules:
   visibility; it does not override `visible: false` or
   `ctx.object.visible = false`.
 - Timeline bindings do not make a nested `WebGLScene` a DOM-clipped local
-  viewport. DOM-bound pass viewport/scissor belongs to Phase 6.
+  viewport. Local pass clipping uses `WebGLPassViewport` plus pass
+  `viewport: { mode: "dom-rect" }`.
 - Effects can read progress through `ctx.progress.get(key)` or
   `ctx.runtime.progress.get(key)`. Effects inside a managed scene receive
   optional `ctx.scene` metadata and timeline snapshot.
@@ -1032,8 +1067,9 @@ Rules:
   `product.galleryTilt`.
 - Do not use generic global names such as `fade`, `rotate`, or `particles`.
 - Use `source` on the definition to restrict compatible source kinds.
-- Use `ctx.object` for visual transform, visibility, opacity, postprocess, and
-  source-backed capability modules.
+- Use `ctx.object` for visual transform, visibility, opacity, and
+  source-backed capability modules. Use `ctx.runtime.postprocess` for explicit
+  canvas/pass-scoped postprocess requests.
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
@@ -1192,7 +1228,6 @@ Object modules:
 - `ctx.object.video`: video playback controls.
 - `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
   layers.
-- `ctx.object.postprocess`: named postprocess requests.
 
 DOM text remains the source of content, accessibility, and fallback.
 `ctx.object.text.setText(...)` and `ctx.object.text.setGlyphs(...)` affect only the WebGL
@@ -1265,8 +1300,9 @@ Model helper rules:
 Runtime-scoped visual requests:
 
 ```ts
-const handle = ctx.object.postprocess.request({
+const handle = ctx.runtime.postprocess.request({
   key: "app.softGlow",
+  scope: { canvas: true },
   bloom: { strength: 0.45, radius: 0.2, threshold: 0.8 },
   grain: { amount: 0.04 },
 });
@@ -1280,10 +1316,12 @@ inspection, bounded internal bloom/grain/blur pass execution, and budget
 warnings for request count and render-target size. The runtime owns pass
 scheduling, render-target pooling, and resolution budgets; consumers do not
 receive composer, pass-order, pass object, or render-target handles.
-Postprocess requests are runtime-canvas scoped today. Do not use
-`ctx.object.postprocess` when the visual requirement is a strictly target-local
-model glow; prefer material/mesh emissive values and runtime-owned lights until
-a future target-scoped postprocess capability exists.
+Effect-authored postprocess requests must declare `scope: { canvas: true }` or
+`scope: { passId: "managed.pass.id" }`. `ctx.object.postprocess` was removed in
+Phase 6 because the name implied object-local behavior while the implementation
+was canvas scoped. For a strictly target-local model glow, prefer material/mesh
+emissive values and runtime-owned lights until a target-scoped postprocess
+capability is explicitly designed.
 
 ## Object Transform Handles
 
@@ -1487,9 +1525,9 @@ skill:
 - Draco model invisible or loader error: a compressed GLB declares no
   `loader.draco` config, or the app does not serve decoder files at
   `decoderPath`.
-- Canvas becomes dim or blurry after one target is ready: an effect requested
-  `ctx.object.postprocess` for what was actually a target-local glow. Current
-  postprocess is runtime-canvas scoped.
+- Canvas/pass becomes dim or blurry after one target is ready: an effect
+  requested `ctx.runtime.postprocess` with a canvas or pass scope for what was
+  actually a target-local glow.
 - Model disappears after a glow/rotation effect: the effect writes
   `ctx.object.position` or `ctx.object.scale` and overrides the runtime's model
   fit transform.

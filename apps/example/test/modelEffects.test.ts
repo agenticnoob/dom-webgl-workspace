@@ -157,6 +157,9 @@ describe("model example effects", () => {
     });
     const baseContext = createEffectContext({
       key: "example.model.float-glow",
+      visual: {
+        requestPostprocess: postprocess.request,
+      },
       source: {
         kind: "model",
         type: "glb",
@@ -188,7 +191,6 @@ describe("model example effects", () => {
         ...baseContext.object,
         material,
         lights,
-        postprocess,
       },
     } satisfies WebGLEffectContext;
 

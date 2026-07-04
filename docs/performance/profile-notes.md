@@ -28,7 +28,10 @@
 
 ## Limitations
 
-- The current `apps/example` does not include an effect that calls `ctx.object.postprocess.request(...)`; the postprocess scenario below is a current-app proxy and records `activePostprocessRequests: 0`.
+- The current `apps/example` uses descriptor-level pass postprocess in the
+  managed stage dogfood, but does not include an effect-authored
+  `ctx.runtime.postprocess.request(...)` scenario; the postprocess scenario
+  below is a current-app proxy and records `activePostprocessRequests: 0`.
 - The current `apps/example` does not include a dedicated many-plane stress fixture; the stress row below samples the existing top-of-page plane stack and records the largest visible compatible family proxy as `2`.
 - Raw Three.js renderer info, render targets, composer passes, textures, and geometry objects remain internal by design. Renderer texture/program/buffer counts below are browser-level WebGL proxy counters, not exposed runtime API.
 - Injected monkey patches can perturb timing; treat these numbers as local-dev directional evidence, not production profiler output.

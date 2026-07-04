@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 
 import { createWebGLEffectObject } from "../../../src/lib/effects/effectObjectContext";
-import { createWebGLEffectResourceScope } from "../../../src/lib/effects/effectResources";
 import type {
   WebGLEffectCanvasDrawer,
   WebGLEffectCanvasSurfaceHandle,
@@ -9,13 +8,11 @@ import type {
   WebGLEffectSourceHandle,
   WebGLEffectSurfaceShaderInputs,
   WebGLEffectTargetHandle,
-  WebGLEffectVisualContext,
 } from "../../../src/lib/effects/effectAuthoring";
 
 describe("createWebGLEffectObject", () => {
-  test("creates a controlled object facade with transform and postprocess", () => {
+  test("creates a controlled object facade with transform controls", () => {
     const targetCalls: string[] = [];
-    const postprocessCalls: string[] = [];
     const source = {
       kind: "dom",
       type: "element",
@@ -26,16 +23,12 @@ describe("createWebGLEffectObject", () => {
       sourceKind: "dom/element",
       source,
       target: createTarget(targetCalls),
-      resources: createWebGLEffectResourceScope(),
-      visual: createVisual(postprocessCalls),
     });
 
     object.position.set(4, 5, 6);
-    object.postprocess.request({ key: "soft", grain: { amount: 0.1 } });
 
     expect(object.sourceKind).toBe("dom/element");
     expect(targetCalls).toEqual(["position:4,5,6"]);
-    expect(postprocessCalls).toEqual(["soft"]);
   });
 
   test("merges source capabilities into the controlled object facade", () => {
@@ -50,8 +43,6 @@ describe("createWebGLEffectObject", () => {
     const object = createWebGLEffectObject({
       sourceKind: "dom/element",
       source,
-      resources: createWebGLEffectResourceScope(),
-      visual: createVisual([]),
     });
 
     expect(object.surface).toBe(surface);
@@ -76,7 +67,6 @@ describe("createWebGLEffectObject", () => {
         lightCalls.push(`remove:${key}`);
       },
     };
-    const resources = createWebGLEffectResourceScope();
     const source = {
       kind: "dom",
       type: "element",
@@ -85,8 +75,6 @@ describe("createWebGLEffectObject", () => {
     const object = createWebGLEffectObject({
       sourceKind: "dom/element",
       source,
-      resources,
-      visual: createVisual([]),
       lights,
     });
 
@@ -111,18 +99,6 @@ function createTarget(calls: string[]): WebGLEffectTargetHandle {
     setRotation() {},
     setScale() {},
     setOpacity() {},
-  };
-}
-
-function createVisual(calls: string[]): WebGLEffectVisualContext {
-  return {
-    requestPostprocess(request) {
-      calls.push(request.key);
-      return {
-        update() {},
-        dispose() {},
-      };
-    },
   };
 }
 

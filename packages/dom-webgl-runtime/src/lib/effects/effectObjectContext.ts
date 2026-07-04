@@ -1,9 +1,7 @@
 import type {
-  WebGLEffectResourceScope,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
-  WebGLEffectVisualContext,
 } from "./effectAuthoring";
 import type { WebGLEffectObjectHandle } from "./effectObject";
 import { createEffectObjectCapabilities } from "./effectObjectCapabilities";
@@ -13,8 +11,6 @@ export type WebGLEffectObjectOptions = {
   sourceKind: WebGLEffectSourceKind;
   source: WebGLEffectSourceHandle;
   target?: WebGLEffectTargetHandle;
-  visual: WebGLEffectVisualContext;
-  resources: WebGLEffectResourceScope;
   lights?: WebGLEffectObjectHandle["lights"];
 };
 
@@ -40,11 +36,6 @@ export function createWebGLEffectObject(
     },
     set opacity(value) {
       transform.opacity = value;
-    },
-    postprocess: {
-      request(request) {
-        return options.visual.requestPostprocess(request);
-      },
     },
     lights: options.lights,
     ...capabilities,

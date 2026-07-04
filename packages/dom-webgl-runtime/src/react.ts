@@ -24,6 +24,10 @@ export {
   type WebGLRenderPassProps,
 } from "./lib/react/WebGLRenderPass";
 export {
+  WebGLPassViewport,
+  type WebGLPassViewportProps,
+} from "./lib/react/WebGLPassViewport";
+export {
   WebGLStagePlane,
   type WebGLStagePlaneProps,
 } from "./lib/react/WebGLStagePlane";
