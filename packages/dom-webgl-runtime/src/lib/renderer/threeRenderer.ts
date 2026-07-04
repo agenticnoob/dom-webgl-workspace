@@ -226,6 +226,7 @@ function createDefaultThreeRendererObjects(
     powerPreference: "high-performance",
     canvas,
   });
+  renderer.autoClear = false;
   readRendererSetClearAlpha(renderer)?.(0);
   configureDefaultSceneLighting(scene);
 

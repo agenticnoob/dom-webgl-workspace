@@ -658,6 +658,18 @@ meshes, geometry, materials, and lights without exposing raw handles. Do not
 pass raw Three.js meshes, materials, geometries, lights, scenes, cameras, or
 renderers. `screen-plane` placement is still deferred.
 
+React nesting communicates managed scene ownership; it does not create a local
+DOM viewport for that scene. Managed stage primitives currently render through
+the runtime canvas and can be activated or hidden by higher-level scroll state,
+but DOM-bound viewport/scissor clipping is a later Phase 6 capability.
+
+Treat `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` props as stable
+scene declarations. They can mount, unmount, or change in ordinary React flows,
+but they are not the high-frequency animation path. For animated stage, scene,
+or camera behavior, keep descriptor identity stable and route motion through
+managed effects/controllers or future Phase 5 timeline scope rather than
+recreating meshes and lights every frame.
+
 ## Lifecycle And Fallback Visibility
 
 Targets may tune fallback hiding through the public lifecycle declaration:

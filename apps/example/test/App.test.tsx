@@ -8,6 +8,11 @@ const runtimeProps: RuntimeMockProps[] = [];
 const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
 const scrollSectionProps: ScrollEffectSectionMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
+const sceneProps: SceneMockProps[] = [];
+const cameraProps: CameraMockProps[] = [];
+const stagePlaneProps: StagePlaneMockProps[] = [];
+const stageBoxProps: StageBoxMockProps[] = [];
+const lightProps: LightMockProps[] = [];
 const roots: Root[] = [];
 
 vi.mock("gsap", () => ({
@@ -66,6 +71,45 @@ type TargetMockProps = {
   };
 };
 
+type SceneMockProps = {
+  readonly id: string;
+  readonly projection?: string;
+  readonly render?: Record<string, unknown>;
+  readonly children?: ReactNode;
+};
+
+type CameraMockProps = {
+  readonly id: string;
+  readonly default?: boolean;
+  readonly type?: string;
+  readonly mode?: string;
+  readonly position?: readonly [number, number, number];
+  readonly target?: readonly [number, number, number];
+};
+
+type StagePlaneMockProps = {
+  readonly id: string;
+  readonly role?: string;
+  readonly size?: readonly [number, number];
+  readonly position?: readonly [number, number, number];
+  readonly material?: Record<string, unknown>;
+};
+
+type StageBoxMockProps = {
+  readonly id: string;
+  readonly size?: readonly [number, number, number];
+  readonly position?: readonly [number, number, number];
+  readonly material?: Record<string, unknown>;
+};
+
+type LightMockProps = {
+  readonly id: string;
+  readonly kind: string;
+  readonly intensity?: number;
+  readonly position?: readonly [number, number, number];
+  readonly color?: string;
+};
+
 vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   WebGLScrollRuntime: (props: ScrollRuntimeMockProps) => {
     scrollRuntimeProps.push(props);
@@ -99,6 +143,26 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
   WebGLTarget: ({ as = "div", children, webgl, ...props }: TargetMockProps) => {
     targetProps.push({ as, children, webgl });
     return createElement(as, props, children);
+  },
+  WebGLScene: ({ children, ...props }: SceneMockProps) => {
+    sceneProps.push({ ...props, children });
+    return createElement("div", { "data-webgl-scene": props.id }, children);
+  },
+  WebGLCamera: (props: CameraMockProps) => {
+    cameraProps.push(props);
+    return null;
+  },
+  WebGLStagePlane: (props: StagePlaneMockProps) => {
+    stagePlaneProps.push(props);
+    return null;
+  },
+  WebGLStageBox: (props: StageBoxMockProps) => {
+    stageBoxProps.push(props);
+    return null;
+  },
+  WebGLLight: (props: LightMockProps) => {
+    lightProps.push(props);
+    return null;
   },
   WebGLDebugPanel: () => null,
   useWebGLDebugState: () => {
@@ -139,6 +203,11 @@ describe("effect authoring example app", () => {
     scrollRuntimeProps.length = 0;
     scrollSectionProps.length = 0;
     targetProps.length = 0;
+    sceneProps.length = 0;
+    cameraProps.length = 0;
+    stagePlaneProps.length = 0;
+    stageBoxProps.length = 0;
+    lightProps.length = 0;
     for (const root of roots.splice(0)) {
       act(() => {
         root.unmount();
@@ -178,6 +247,29 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-stage-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.stage.world",
+        projection: "perspective-stage",
+        render: { camera: "example.stage.camera", order: -10, clearDepth: true },
+      }),
+    );
+    expect(cameraProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.stage.camera",
+        mode: "perspective-stage",
+      }),
+    );
+    expect(stagePlaneProps.map(({ id }) => id)).toEqual([
+      "example.stage.floor",
+      "example.stage.backdrop",
+    ]);
+    expect(stageBoxProps.map(({ id }) => id)).toEqual(["example.stage.plinth"]);
+    expect(lightProps.map(({ id }) => id)).toEqual([
+      "example.stage.ambient",
+      "example.stage.key",
+    ]);
 
     const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
     expect(firstDescriptionToggle).not.toBeNull();

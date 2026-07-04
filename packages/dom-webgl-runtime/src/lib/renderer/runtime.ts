@@ -524,6 +524,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.getState();
     const scroll = scrollState.getState();
+    const stageObjectDebugState = disposed
+      ? { stagePrimitives: [], lights: [] }
+      : stageObjects.inspect();
 
     if (disposed) {
       return createDebugState({
@@ -532,6 +535,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         ...readDebugScrollState(scroll),
         pointer: frameInput.pointer,
         performanceBudget: options.performanceBudget,
+        stagePrimitives: [],
+        lights: [],
         targets: [],
       });
     }
@@ -548,6 +553,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       ).flat(),
       rendererStats: rendererHost.readRendererStats(),
       postprocessStats: postprocessController.inspect(),
+      stagePrimitives: stageObjectDebugState.stagePrimitives,
+      lights: stageObjectDebugState.lights,
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
@@ -585,6 +592,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     if (disposed) {
       return;
     }
+
+    rendererHost.renderer.clear?.();
 
     renderLayers.renderPasses((pass, scene, camera) => {
       if (pass.clear) {

@@ -183,6 +183,37 @@ describe("debug state", () => {
     expect(state.targets[0]).not.toHaveProperty("camera");
   });
 
+  test("copies managed stage and light inventory without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      stagePrimitives: [
+        { id: "floor", sceneId: "world", kind: "plane" },
+        { id: "plinth", sceneId: "world", kind: "box" },
+      ],
+      lights: [
+        { id: "ambient", sceneId: "world", kind: "ambient" },
+        { id: "hero", sceneId: "world", kind: "point" },
+      ],
+      targets: [],
+    });
+
+    expect(state.stagePrimitiveCount).toBe(2);
+    expect(state.lightCount).toBe(2);
+    expect(state.stagePrimitives).toEqual([
+      { id: "floor", sceneId: "world", kind: "plane" },
+      { id: "plinth", sceneId: "world", kind: "box" },
+    ]);
+    expect(state.lights).toEqual([
+      { id: "ambient", sceneId: "world", kind: "ambient" },
+      { id: "hero", sceneId: "world", kind: "point" },
+    ]);
+    expect(state.stagePrimitives?.[0]).not.toHaveProperty("object3D");
+    expect(state.lights?.[0]).not.toHaveProperty("light");
+  });
+
   test("copies projection and placement mode into public target summaries", () => {
     expect(
       createDebugState({

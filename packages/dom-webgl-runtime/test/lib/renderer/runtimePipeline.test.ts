@@ -3304,11 +3304,21 @@ describe("runtime pipeline sync", () => {
       "hero",
     ]);
     expect(runtime.getDebugState().targetCount).toBe(0);
+    expect(runtime.getDebugState()).toMatchObject({
+      stagePrimitiveCount: 1,
+      lightCount: 1,
+      stagePrimitives: [{ id: "floor", sceneId: "world", kind: "plane" }],
+      lights: [{ id: "hero", sceneId: "world", kind: "point" }],
+    });
 
     runtime.unregisterStagePrimitive("floor");
     runtime.unregisterLight("hero");
 
     expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().stagePrimitiveCount).toBeUndefined();
+    expect(runtime.getDebugState().lightCount).toBeUndefined();
+    expect(runtime.getDebugState().stagePrimitives).toBeUndefined();
+    expect(runtime.getDebugState().lights).toBeUndefined();
     runtime.dispose();
   });
 
@@ -3473,6 +3483,64 @@ describe("runtime pipeline sync", () => {
     runtime.sync();
 
     expect(clearDepth).toHaveBeenCalledTimes(1);
+    runtime.dispose();
+  });
+
+  test("clears the canvas once before rendering ordered passes", async () => {
+    const operations: string[] = [];
+    const clear = vi.fn(() => {
+      operations.push("clear");
+    });
+    const sceneAdapter = {
+      ...createRecordingSceneAdapter(),
+      render: vi.fn(() => {
+        operations.push("render");
+      }),
+    } satisfies WebGLSceneAdapter;
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "stage.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: -10,
+          clear: false,
+          clearDepth: false,
+        },
+        {
+          id: "main",
+          generated: true,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+
+        return {
+          ...host,
+          renderer: {
+            ...host.renderer,
+            clear,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(clear).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(2);
+    expect(operations).toEqual(["clear", "render", "render"]);
     runtime.dispose();
   });
 });

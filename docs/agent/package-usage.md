@@ -391,8 +391,9 @@ Rules:
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
-- Scene-native `WebGLModel`, `screen-plane`, pass-scoped postprocess, and
-  scoped `ctx.scene`/`ctx.camera` effects remain later phases.
+- Scene-native `WebGLModel`, `screen-plane`, DOM-bound pass viewport/scissor,
+  pass-scoped postprocess, and scoped `ctx.scene`/`ctx.camera` effects remain
+  later phases.
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -483,6 +484,13 @@ Rules:
   components, not raw Three.js wrappers.
 - In React, declare stage primitives under `WebGLScene` or pass an explicit
   `scene` prop. Vanilla descriptors use `sceneId`.
+- React nesting communicates scene ownership only. It does not clip a managed
+  scene to the containing DOM section; DOM-bound viewport/scissor is Phase 6
+  work.
+- Treat stage primitive and light props as stable scene declarations. Ordinary
+  React updates are supported through mount/unmount registration, but
+  high-frequency animation should use managed runtime state, effects, or future
+  Phase 5 timeline/controller scope instead of prop churn.
 - The runtime creates and disposes internal Three meshes, geometry, materials,
   and lights. Do not pass raw Three meshes, materials, geometries, lights,
   scenes, cameras, renderers, or render-loop handles.

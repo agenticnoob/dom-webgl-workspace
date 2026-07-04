@@ -666,10 +666,13 @@ type WebGLRenderPassDeclaration = {
   clear?: boolean;
   clearDepth?: boolean;
   viewport?: {
-    x: number | string;
-    y: number | string;
-    width: number | string;
-    height: number | string;
+    mode?: "canvas" | "dom-rect";
+    anchor?: string;
+    x?: number | string;
+    y?: number | string;
+    width?: number | string;
+    height?: number | string;
+    scissor?: boolean;
   };
   postprocess?: WebGLPostprocessDeclaration;
 };
@@ -687,7 +690,11 @@ Default pass behavior:
   not imply multiple runtime instances, multiple canvases, or consumer-owned
   render loops.
 - Overlay passes default to `clearDepth: true`.
-- Minimap or picture-in-picture passes use `viewport`/scissor.
+- Minimap or picture-in-picture passes use explicit `viewport`/scissor.
+- DOM-bound local scene passes use runtime-measured DOM rects plus scissor; they
+  are not CSS `overflow` clipping and they do not create additional canvases.
+  This is the missing capability for a pinned section whose managed stage scene
+  animates inside a DOM region and then scrolls away with that region.
 - Postprocess is pass/canvas scoped, not object scoped.
 - Arbitrary render graphs, custom framebuffers, composer plugin chains, and raw
   pass objects stay out of the default API.
@@ -747,8 +754,8 @@ Status values:
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
 | Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
-| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2 and Phase 3; required before later scoped controls. |
-| Phase 6: Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract. |
+| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2, Phase 3, and Phase 4; required before later scoped controls can route targets, stage objects, cameras, and timelines. |
+| Phase 6: Pass Viewport And Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract; owns DOM-bound pass viewport/scissor before local stage examples ship. |
 | Phase 7: Managed Model Animation | `[not-started]` | none | Can start after Phase 5; advanced morph/bone work may depend on Phase 8/9. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
@@ -774,7 +781,7 @@ Phase 2 -> opt-in declarations that keep Level 1 unchanged
 Phase 3 -> projection and placement policies
 Phase 4 -> managed stage substrate for lit scene-native objects
 Phase 5 -> target routing, scroll timelines, and effect scopes
-Phase 6 -> pass/runtime postprocess scope correction
+Phase 6 -> pass viewport/scissor plus runtime/pass postprocess scope correction
 Phase 7 -> managed model animation
 Phase 8 -> input routing and picking
 Phase 9 -> dynamics and physics
@@ -785,6 +792,9 @@ Ordering rules:
 
 - Scroll timelines must exist before camera motion, progress-driven model
   animation, and timeline-driven scene/stage controllers depend on them.
+- DOM-bound pass viewport/scissor depends on Phase 5 scope/timeline ownership:
+  Phase 5 decides when a pinned scene/pass is active, and Phase 6 decides where
+  that pass is clipped on the canvas.
 - Input routing and picking require stable scene/camera/projection/stage
   contracts. They should happen before physics, but they do not need to block
   basic model clip animation.
@@ -1070,7 +1080,7 @@ Acceptance criteria:
 
 - **Status:** `[not-started]`
 - **Focused plan:** none
-- **Depends on:** Phase 2, Phase 3
+- **Depends on:** Phase 2, Phase 3, Phase 4
 - **Last updated:** 2026-07-03
 - **Exit criteria:** target, scene, camera, runtime, and timeline scopes are
   explicit; current `ScrollEffectSection` usage remains compatible.
@@ -1089,6 +1099,20 @@ Deliverables:
 - Keep `ScrollEffectSection` as compatibility sugar for target/effect pinned
   sections while the broader timeline abstraction is designed.
 - Keep `ctx.object` focused on the current target/renderable.
+- Pinned managed stage examples should only control scene/pass/stage
+  visibility, timeline progress, and scoped controller state in Phase 5. They
+  should not pretend that a `WebGLScene` nested under a DOM element is locally
+  clipped; DOM-bound pass viewport/scissor belongs to Phase 6.
+
+Focused plan reminders:
+
+- Stage primitive and scene-owned light descriptors are stable declarations.
+  React prop churn should not become the high-frequency animation path; Phase 5
+  should route timeline/effect/controller state through managed runtime state
+  instead of repeatedly unregistering and recreating stage meshes or lights.
+- Phase 5 should preserve the Phase 4 debug inventory shape for stage
+  primitives and lights, and add deeper routing diagnostics only when the
+  focused scope needs them.
 
 Rules:
 
@@ -1110,20 +1134,43 @@ Acceptance criteria:
 - Existing `ScrollEffectSection` usage keeps working.
 - A scene, camera, target, image sequence, or model animation can consume the
   same named timeline/progress signal through managed runtime state.
+- Pinned scene/stage visibility can be driven by managed timeline scope without
+  React descriptor churn.
 - New scene/camera controls are clearly scoped and documented.
 - Public tests reject raw scene/camera access.
 
-### Phase 6: Postprocess Scope Correction
+### Phase 6: Pass Viewport And Postprocess Scope Correction
 
 - **Status:** `[not-started]`
 - **Focused plan:** none
 - **Depends on:** Phase 5
-- **Last updated:** 2026-07-03
-- **Exit criteria:** postprocess has pass/runtime-scoped public naming and
-  examples no longer read as object-local unless explicitly marked as legacy
-  compatibility.
+- **Last updated:** 2026-07-04
+- **Exit criteria:** DOM-bound pass viewport/scissor works without additional
+  canvases or raw renderer access; postprocess has pass/runtime-scoped public
+  naming; examples no longer read as object-local unless explicitly marked as
+  legacy compatibility.
 
-Goal: move postprocess out of object-local mental model.
+Goal: make render-pass scope concrete: where a pass draws, when it composes, and
+which pass/canvas owns postprocess.
+
+Local DOM viewport/scissor direction:
+
+- A managed stage scene that appears inside a pinned DOM section needs a
+  runtime-owned pass viewport bound to that section's measured DOM rect.
+- The DOM element provides the rectangle; the WebGL pass uses renderer-owned
+  viewport/scissor state. CSS `overflow`, DOM opacity, or wrapper layout must
+  not be treated as WebGL clipping.
+- This is distinct from Phase 8 `screen-plane`: viewport/scissor clips where a
+  pass is visible; `screen-plane` maps DOM or pointer coordinates onto a named
+  stage plane.
+- Phase 5 should decide the active scene/pass/timeline scope for pinned
+  sections. Phase 6 should make the active pass render only inside the owned DOM
+  rect and then scroll away with that rect.
+- The focused plan should choose the smallest declarative API, such as a
+  DOM-bound `viewport` descriptor or a React owner component, without exposing
+  raw renderer viewport/scissor calls.
+
+Postprocess scope issue:
 
 Current issue:
 
@@ -1163,6 +1210,9 @@ Migration:
 
 Acceptance criteria:
 
+- A pass can render into a runtime-measured DOM rect with scissor enabled, so a
+  pinned managed stage example can animate inside its section instead of the full
+  canvas.
 - Model-local glow examples use material/emissive/lights, not canvas bloom.
 - Canvas/pass postprocess examples explicitly communicate whole-pass scope.
 - Debug state reports active postprocess requests by pass/canvas scope.
@@ -1582,6 +1632,12 @@ Do not make these default roadmap items:
 - Postprocess migration.
   - Recommendation: keep old API temporarily, add docs and examples for new
     pass/runtime-scoped API first.
+- DOM-bound pass viewport/scissor.
+  - Recommendation: assign this to Phase 6 after Phase 5 timeline/scope
+    ownership exists. A pinned stage section needs Phase 5 for active
+    scene/pass/stage state and Phase 6 for runtime-owned DOM rect measurement,
+    viewport/scissor application, and scroll-away clipping. Do not treat a
+    nested `WebGLScene` as a local DOM viewport until this exists.
 - Multi-scene internal representation.
   - Recommendation: allow multiple internal scene entries, but do not require one
     internal Three `Scene` per public scene if a lighter internal layer is enough.
@@ -1620,6 +1676,8 @@ The roadmap is successful when:
 - complete animated GLB assets can play, scrub, blend, and expose morph controls
   through managed runtime APIs;
 - overlay/HUD content can render without interfering with world depth/lighting;
+- a managed scene/pass can be clipped to a DOM-owned viewport/scissor region for
+  pinned sections, picture-in-picture, or minimaps without extra canvases;
 - postprocess scope is clear and no longer reads as object-local;
 - interaction and dynamics have stable scene/collider substrate before they ship;
 - public tests continue to reject raw Three.js ownership leaks.
@@ -1628,25 +1686,13 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-After review, choose one of these first implementation plans:
+Phase 1 through Phase 4 are verified. The next focused implementation plan
+should be Phase 5: Target Routing, Scroll Timelines, and Effect Scope.
 
-1. **Internal Render Layer Foundations**
-   - Best first step if the goal is low-risk architecture preparation.
-   - No user-visible API changes.
-
-2. **Scene/Camera/Pass Component Declarations**
-   - Best first step if the goal is validating public ergonomics quickly.
-   - Requires careful compatibility tests.
-
-3. **Target Routing, Scroll Timelines, and Effect Scope**
-   - Best first step after scene/camera/pass declarations if the goal is
-     unblocking later postprocess, camera, model animation, and runtime scopes.
-   - Should define the `ctx.scene` / `ctx.camera` / `ctx.runtime` boundaries
-     and timeline ownership before deeper capabilities depend on them.
-
-4. **Managed Stage v1**
-   - Best first step if the immediate product need is lit floor/wall/backdrop.
-   - Should still define minimal scene/camera ownership before implementation.
+Phase 5 should define timeline ownership, scene/pass/stage activation, and the
+managed scope boundaries that later APIs depend on. Phase 6 should follow with
+DOM-bound pass viewport/scissor and postprocess scope correction before local
+pinned stage examples are presented as complete.
 
 The safest sequence is:
 

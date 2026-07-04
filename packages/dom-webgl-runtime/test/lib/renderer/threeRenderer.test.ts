@@ -40,12 +40,17 @@ describe("createThreeRendererHost", () => {
     const rendererSetClearAlpha = vi.fn();
     const scene = { kind: "scene" };
     const camera = { kind: "camera" };
+    const renderer = {
+      canvas: document.createElement("canvas"),
+      autoClear: true,
+      setClearAlpha: rendererSetClearAlpha,
+      dispose: rendererDispose,
+    };
     const WebGLRenderer = vi.fn(
-      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
-        canvas: options.canvas,
-        setClearAlpha: rendererSetClearAlpha,
-        dispose: rendererDispose,
-      }),
+      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => {
+        renderer.canvas = options.canvas;
+        return renderer;
+      },
     );
     const Scene = vi.fn(() => scene);
     const OrthographicCamera = vi.fn(() => camera);
@@ -71,6 +76,7 @@ describe("createThreeRendererHost", () => {
       canvas: host.canvas,
     });
     expect(rendererSetClearAlpha).toHaveBeenCalledWith(0);
+    expect(renderer.autoClear).toBe(false);
     expect(Scene).toHaveBeenCalledTimes(1);
     expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
     expect(host.scene).toBe(scene);

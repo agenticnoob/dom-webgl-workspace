@@ -13,6 +13,7 @@ import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
+import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
@@ -76,6 +77,7 @@ export default function App() {
 
         <div className="example-stack">
           <SnapshotElementExamples />
+          <ManagedStagePrimitiveExample />
 
           <section className="example-row">
             <EffectDescription source="dom/text" title="文字波浪">

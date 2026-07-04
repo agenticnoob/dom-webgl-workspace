@@ -226,8 +226,9 @@ Rules:
   `screen-anchored`, `screen-depth`, or `stage-local` depending on the scene
   projection.
 - `WebGLRenderPass` can request runtime-owned `clear` or `clearDepth`.
-- Scene-native models, `screen-plane`, pass-scoped postprocess, and raw Three.js
-  scene/camera/renderer handles remain future or non-public.
+- Scene-native models, `screen-plane`, DOM-bound pass viewport/scissor,
+  pass-scoped postprocess, and raw Three.js scene/camera/renderer handles remain
+  future or non-public.
 
 ## Opt-In Managed Stage Integration
 
@@ -297,6 +298,13 @@ Rules:
   not raw Three.js wrappers.
 - Stage primitives are declared under `WebGLScene` or with an explicit `scene`
   prop.
+- React nesting communicates scene ownership only. It does not clip a managed
+  scene to the containing DOM section; DOM-bound viewport/scissor is Phase 6
+  work.
+- Keep stage primitive and light descriptor identity stable. Do not animate
+  floor, box, or light values by rebuilding React descriptors every frame; use
+  managed runtime/effect/controller state or wait for Phase 5 scope where the
+  dynamic behavior belongs.
 - Vanilla consumers can call `runtime.registerStagePrimitive(...)` and
   `runtime.registerLight(...)` with descriptor data.
 - Do not pass raw Three.js meshes, materials, geometries, lights, scenes,

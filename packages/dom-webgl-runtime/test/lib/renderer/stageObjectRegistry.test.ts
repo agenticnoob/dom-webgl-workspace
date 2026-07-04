@@ -129,6 +129,30 @@ describe("stage object registry", () => {
     expect(floorObject.dispose).toHaveBeenCalledTimes(1);
     expect(heroLightObject.dispose).toHaveBeenCalledTimes(1);
   });
+
+  test("inspects descriptor-only stage and light summaries", () => {
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      primitiveObject: createSceneObject("primitive:floor"),
+      lightObject: createSceneObject("light:hero"),
+    });
+
+    registry.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+    });
+    registry.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "point",
+    });
+
+    expect(registry.inspect()).toEqual({
+      stagePrimitives: [{ id: "floor", sceneId: "world", kind: "plane" }],
+      lights: [{ id: "hero", sceneId: "world", kind: "point" }],
+    });
+  });
 });
 
 function createRegistry(options: {

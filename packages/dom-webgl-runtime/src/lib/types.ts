@@ -449,6 +449,18 @@ export type WebGLLifecycleState =
   | "disposed"
   | "error";
 
+export type WebGLDebugStagePrimitiveSummary = {
+  id: string;
+  sceneId: string;
+  kind: WebGLStagePrimitiveKind;
+};
+
+export type WebGLDebugLightSummary = {
+  id: string;
+  sceneId: string;
+  kind: WebGLLightKind;
+};
+
 export type WebGLDebugState = {
   targetCount: number;
   renderableCount: number;
@@ -457,6 +469,10 @@ export type WebGLDebugState = {
   sceneProgress?: number;
   pointer: WebGLPointerState;
   warnings?: WebGLPerformanceWarning[];
+  stagePrimitiveCount?: number;
+  lightCount?: number;
+  stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
+  lights?: WebGLDebugLightSummary[];
   targets: Array<{
     key: string;
     sceneId?: string;

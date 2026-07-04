@@ -84,6 +84,8 @@ phase records are archived under [archive/](./archive/).
   - stage meshes, geometry, materials, groups, light targets, and lights are
     runtime-owned and disposed by unregister, scene unregister, or runtime
     dispose
+  - debug state can report descriptor-only stage primitive and light inventory
+    counts/ids without exposing raw Three.js objects
 
 ## Active Caveats
 
@@ -100,6 +102,14 @@ phase records are archived under [archive/](./archive/).
   lights unless whole-pass bloom is intentional.
 - `dom/element` surfaces are canvas texture planes and do not respond to Three.js
   lighting. Use managed stage primitives for lit floors, walls, and backdrops.
+- Nesting a `WebGLScene` or managed stage primitive section in React does not
+  create a local DOM viewport. DOM-bound pass viewport/scissor is future Phase 6
+  work; current examples should not present stage primitives as clipped to a
+  section unless they are only controlling visibility/activation.
+- Managed stage primitives and scene-owned lights are stable descriptors. Use
+  them to declare scene substrate; do not drive high-frequency animation through
+  React prop churn. Phase 5 owns timeline/effect/controller routing for dynamic
+  stage, scene, and camera behavior.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -149,6 +159,8 @@ Relationship rules from the active roadmap:
 - Scroll timelines and scoped effect routing should land before progress-driven
   model animation, input routing/picking, and physics. Physics remains last,
   after managed stage/collider/input contracts exist.
+- DOM-bound pass viewport/scissor belongs after Phase 5 scope/timeline ownership
+  and before local pinned stage examples are treated as complete.
 
 - managed scenes and cameras
 - managed render passes

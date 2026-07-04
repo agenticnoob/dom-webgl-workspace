@@ -1,5 +1,7 @@
 import type {
+  WebGLDebugLightSummary,
   WebGLDebugState,
+  WebGLDebugStagePrimitiveSummary,
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
   WebGLPlacementMode,
@@ -41,6 +43,8 @@ export type DebugRuntimeState = {
   textureTelemetry?: readonly TextureUploadTelemetry[];
   rendererStats?: DebugRendererStats;
   postprocessStats?: DebugPostprocessStats;
+  stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
+  lights?: readonly WebGLDebugLightSummary[];
   targets: readonly DebugTargetState[];
 };
 
@@ -129,6 +133,24 @@ export function createDebugState(
       return summary;
     }),
   };
+
+  if (runtimeState.stagePrimitives && runtimeState.stagePrimitives.length > 0) {
+    state.stagePrimitiveCount = runtimeState.stagePrimitives.length;
+    state.stagePrimitives = runtimeState.stagePrimitives.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      kind: entry.kind,
+    }));
+  }
+
+  if (runtimeState.lights && runtimeState.lights.length > 0) {
+    state.lightCount = runtimeState.lights.length;
+    state.lights = runtimeState.lights.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      kind: entry.kind,
+    }));
+  }
 
   if (warnings.length > 0) {
     state.warnings = warnings;

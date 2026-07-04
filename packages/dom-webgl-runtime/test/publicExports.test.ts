@@ -209,6 +209,24 @@ describe("public package exports", () => {
 
         levelTwoElement satisfies ReactElement;
 
+        // Stable scene declarations keep descriptor identity stable across renders.
+        const stableStageMaterial = {
+          kind: "standard",
+          color: "#05070a",
+          roughness: 0.8,
+        } satisfies WebGLStagePlaneProps["material"];
+
+        const stableStagePlane = (
+          <WebGLStagePlane
+            id="stable.floor"
+            scene="world.stage"
+            role="floor"
+            material={stableStageMaterial}
+          />
+        );
+
+        stableStagePlane satisfies unknown;
+
         const sceneRender = {
           camera: "world.camera",
           order: 0,
@@ -264,8 +282,14 @@ describe("public package exports", () => {
         // @ts-expect-error WebGLLight is a descriptor, not a raw Three light wrapper.
         const rawLightProps = { id: "raw.light", light: rawLight } satisfies WebGLLightProps;
 
-		const props = {
-	  webgl: {
+        const updateCallbackPlaneProps = {
+          id: "raw.update",
+          // @ts-expect-error Stage components do not expose an imperative update callback.
+          onUpdate() {},
+        } satisfies WebGLStagePlaneProps;
+
+			const props = {
+		  webgl: {
 		    key: "hero.gate",
 		    scroll: {
 		      type: "gate",

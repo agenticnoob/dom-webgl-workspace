@@ -16,6 +16,7 @@
   --color-overlay-text: #f4f4f5;
   --color-overlay-muted: #a1a1aa;
   --color-text-primary: #172124;
+  --color-text-secondary: rgba(23, 33, 36, 0.68);
   --color-text-ghost: #05030a;
   --color-border-default: rgba(23, 33, 36, 0.32);
   --color-border-subtle: rgba(23, 33, 36, 0.18);
@@ -384,6 +385,38 @@ body {
   font-size: clamp(48px, 8vw, 112px);
   font-weight: 700;
   line-height: 0.92;
+}
+
+.example-stage-dogfood {
+  align-items: stretch;
+  min-height: 520px;
+}
+
+.example-stage-copy {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  max-width: 420px;
+}
+
+.example-stage-copy h2 {
+  margin: 0;
+  max-width: 12ch;
+  color: var(--color-text-primary);
+  font-size: clamp(2rem, 6vw, 4.25rem);
+  line-height: 0.95;
+}
+
+.example-stage-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.example-stage-viewport {
+  min-height: 420px;
+  flex: 1 1 420px;
 }
 
 @media (max-width: 760px) {

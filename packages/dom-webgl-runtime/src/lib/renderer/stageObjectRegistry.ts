@@ -1,4 +1,6 @@
 import type {
+  WebGLDebugLightSummary,
+  WebGLDebugStagePrimitiveSummary,
   WebGLLightDeclaration,
   WebGLStagePrimitiveDeclaration,
 } from "../types";
@@ -26,7 +28,13 @@ export type StageObjectRegistry = {
   registerLight(declaration: WebGLLightDeclaration): void;
   unregisterLight(id: string): void;
   unregisterScene(sceneId: string): void;
+  inspect(): StageObjectRegistryDebugState;
   dispose(): void;
+};
+
+export type StageObjectRegistryDebugState = {
+  stagePrimitives: WebGLDebugStagePrimitiveSummary[];
+  lights: WebGLDebugLightSummary[];
 };
 
 export type StageObjectRegistryOptions = {
@@ -37,16 +45,24 @@ export type StageObjectRegistryOptions = {
   createLightObject?(declaration: NormalizedLightDeclaration): WebGLSceneObject;
 };
 
-type StageRegistryEntry = {
+type RegistryEntry = {
   sceneId: string;
   controller: WebGLSceneObjectController;
+};
+
+type StagePrimitiveRegistryEntry = RegistryEntry & {
+  kind: WebGLStagePrimitiveDeclaration["kind"];
+};
+
+type LightRegistryEntry = RegistryEntry & {
+  kind: WebGLLightDeclaration["kind"];
 };
 
 export function createStageObjectRegistry(
   options: StageObjectRegistryOptions,
 ): StageObjectRegistry {
-  const primitiveEntries = new Map<string, StageRegistryEntry>();
-  const lightEntries = new Map<string, StageRegistryEntry>();
+  const primitiveEntries = new Map<string, StagePrimitiveRegistryEntry>();
+  const lightEntries = new Map<string, LightRegistryEntry>();
   const createPrimitiveObject =
     options.createPrimitiveObject ?? createManagedStagePrimitiveObject;
   const createLightObject = options.createLightObject ?? createManagedLightObject;
@@ -68,6 +84,7 @@ export function createStageObjectRegistry(
       controller.attach();
       primitiveEntries.set(normalized.id, {
         sceneId: normalized.sceneId,
+        kind: normalized.kind,
         controller,
       });
     },
@@ -88,6 +105,7 @@ export function createStageObjectRegistry(
       controller.attach();
       lightEntries.set(normalized.id, {
         sceneId: normalized.sceneId,
+        kind: normalized.kind,
         controller,
       });
     },
@@ -100,6 +118,20 @@ export function createStageObjectRegistry(
       unregisterEntriesForScene(primitiveEntries, normalizedSceneId);
       unregisterEntriesForScene(lightEntries, normalizedSceneId);
     },
+    inspect(): StageObjectRegistryDebugState {
+      return {
+        stagePrimitives: Array.from(primitiveEntries, ([id, entry]) => ({
+          id,
+          sceneId: entry.sceneId,
+          kind: entry.kind,
+        })),
+        lights: Array.from(lightEntries, ([id, entry]) => ({
+          id,
+          sceneId: entry.sceneId,
+          kind: entry.kind,
+        })),
+      };
+    },
     dispose(): void {
       disposeEntries(primitiveEntries);
       disposeEntries(lightEntries);
@@ -107,8 +139,8 @@ export function createStageObjectRegistry(
   };
 }
 
-function unregisterEntry(
-  entries: Map<string, StageRegistryEntry>,
+function unregisterEntry<TEntry extends RegistryEntry>(
+  entries: Map<string, TEntry>,
   id: string,
 ): void {
   const normalizedId = id.trim();
@@ -122,8 +154,8 @@ function unregisterEntry(
   entries.delete(normalizedId);
 }
 
-function unregisterEntriesForScene(
-  entries: Map<string, StageRegistryEntry>,
+function unregisterEntriesForScene<TEntry extends RegistryEntry>(
+  entries: Map<string, TEntry>,
   sceneId: string,
 ): void {
   for (const [id, entry] of [...entries]) {
@@ -136,7 +168,9 @@ function unregisterEntriesForScene(
   }
 }
 
-function disposeEntries(entries: Map<string, StageRegistryEntry>): void {
+function disposeEntries<TEntry extends RegistryEntry>(
+  entries: Map<string, TEntry>,
+): void {
   for (const entry of entries.values()) {
     entry.controller.dispose();
   }
