@@ -34,7 +34,7 @@ In scope:
 
 - Add a managed timeline binding declaration that can be used by targets,
   scenes, stage primitives, and scene-owned lights.
-- Document that camera controllers should later reuse the same timeline signal,
+- Document that Phase 6A camera controllers should reuse the same timeline signal,
   but do not add `timeline` to `WebGLCameraDeclaration` in Phase 5.
 - Add a runtime normalizer for timeline bindings with clear defaults.
 - Preserve current `WebGLProgressSignalSource` as the only runtime progress input contract.
@@ -65,9 +65,9 @@ Out of scope:
 - React composition owns DOM refs for scroll timelines; runtime core never queries DOM selectors for React consumers.
 - Scroll libraries can produce progress signals but cannot own renderer, scene, camera, render loop, or internal objects.
 - Scene/stage declarations stay stable. High-frequency progress changes update runtime-managed state, not React descriptor props.
-- Camera declarations stay descriptor-only in Phase 5. Future camera motion
-  should use an explicit camera controller or camera/pass-bound descriptor that
-  consumes the same named timeline signal.
+- Camera declarations stay descriptor-only in Phase 5. Phase 6A owns future
+  camera motion/focus/framing through an explicit camera controller or
+  camera/pass-bound descriptor that consumes the same named timeline signal.
 - `ctx.runtime` and `ctx.scene` expose managed metadata/facades only.
 - Target effects do not receive an implicit active camera. Camera controls must be explicit descriptor/controller work, not a side effect of target ownership.
 - All new public types must be exported through package entrypoints and covered by `publicExports.test.ts`.
@@ -121,9 +121,9 @@ type WebGLDeclaration = {
 ```
 
 Phase 5 deliberately does not add `timeline` to `WebGLCameraDeclaration`.
-Camera progress/motion/focus/framing remains a later explicit camera-controller
-or camera/pass-bound descriptor step. This avoids shipping a camera timeline
-field that has no behavior yet.
+Camera progress/motion/focus/framing remains Phase 6A explicit
+camera-controller or camera/pass-bound descriptor work. This avoids shipping a
+camera timeline field that has no behavior yet.
 
 Effect context additions:
 
@@ -887,7 +887,7 @@ Document:
 - Timeline bindings are descriptor data and consume `WebGLProgressSignalSource`.
 - Phase 5 timeline bindings apply to targets, scenes, stage primitives, and
   scene-owned lights, not camera declarations.
-- Future camera controllers should reuse named timeline signals through an
+- Phase 6A camera controllers should reuse named timeline signals through an
   explicit camera/pass-bound API instead of a Phase 5 camera `timeline` prop.
 - `ctx.runtime` and `ctx.scene` are managed scopes, not raw runtime/scene handles.
 - `ctx.camera` is not implicit for target-local effects.
@@ -951,7 +951,7 @@ git diff --check
 - Scene activation can be mistaken for DOM clipping. Docs and examples must clearly say Phase 6 owns viewport/scissor.
 - `ctx.scene` can invite raw scene expectations. Public types and docs must state that it is managed metadata/facade only.
 - Camera scope is tempting to add implicitly. Do not expose `ctx.camera` or
-  `WebGLCameraDeclaration.timeline` until a later explicit camera controller or
+  `WebGLCameraDeclaration.timeline` until a Phase 6A explicit camera controller or
   pass binding gives camera timeline consumption concrete behavior.
 - React `WebGLScrollTimeline` could duplicate `ScrollEffectSection`. Implement it as the shared primitive and leave `ScrollEffectSection` as compatibility sugar.
 - Timeline progress changes can over-render if every update forces continuous frame mode. Keep using existing `progressSignals.subscribe` and dirty frame requests.
@@ -962,6 +962,7 @@ git diff --check
 User decision: narrow Phase 5 so timeline bindings land for targets, scenes,
 stage primitives, and scene-owned lights only. Do not add
 `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, or camera motion in
-this phase. Future camera behavior should use an explicit camera-controller or
-camera/pass-bound descriptor that reuses the named timeline signal once the
-camera behavior itself is designed.
+this phase. Phase 6A owns progress-driven camera motion/focus/framing, any
+future `WebGLCameraDeclaration.timeline`, and the explicit camera/pass-bound
+controller API. Pointer parallax, orbit, pan, and empty-space drag camera
+controllers remain Phase 8 work.
