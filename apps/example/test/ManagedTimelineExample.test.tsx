@@ -214,16 +214,6 @@ describe("ManagedTimelineExample", () => {
           active: { from: 0.02, to: 0.86 },
         },
       }),
-      expect.objectContaining({
-        id: "example.managedStage.cardBackplate",
-        size: [430, 220, 12],
-        position: [230, -64, 70],
-        material: { kind: "basic", color: "#f2c656", opacity: 0.96 },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.2, to: 0.9 },
-        },
-      }),
     ]);
     expect(lightProps).toEqual([
       expect.objectContaining({

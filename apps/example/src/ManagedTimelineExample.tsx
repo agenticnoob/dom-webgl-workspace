@@ -120,17 +120,6 @@ const plinthMaterial = {
   color: "#566b61",
   roughness: 0.56,
 } satisfies NonNullable<WebGLStageBoxProps["material"]>;
-const cardBackplateSize = [430, 220, 12] satisfies NonNullable<
-  WebGLStageBoxProps["size"]
->;
-const cardBackplatePosition = [230, -64, 70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
->;
-const cardBackplateMaterial = {
-  kind: "basic",
-  color: "#f2c656",
-  opacity: 0.96,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
 
 const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
   WebGLLightProps["position"]
@@ -191,13 +180,6 @@ export function ManagedTimelineExample() {
           position={plinthPosition}
           material={plinthMaterial}
           timeline={plinthTimelineBinding}
-        />
-        <WebGLStageBox
-          id="example.managedStage.cardBackplate"
-          size={cardBackplateSize}
-          position={cardBackplatePosition}
-          material={cardBackplateMaterial}
-          timeline={targetTimelineBinding}
         />
         <WebGLLight
           id="example.managedStage.ambient"
