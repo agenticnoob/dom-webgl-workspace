@@ -43,6 +43,7 @@ export type PostprocessRenderContext = {
   passId?: string;
   viewport?: PostprocessViewport;
   descriptor?: WebGLPostprocessDeclaration;
+  prepareOutput?: () => void;
 };
 
 type StoredPostprocessRequest = {
@@ -217,6 +218,7 @@ export function createPostprocessController(
           options.renderer.setRenderTarget?.(null);
         }
 
+        context.prepareOutput?.();
         pass.render({
           renderer: options.renderer,
           scene: options.scene,

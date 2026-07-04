@@ -38,12 +38,18 @@ describe("createThreeRendererHost", () => {
   test("uses Three.js objects on the default host path without requiring a real GPU in tests", async () => {
     const rendererDispose = vi.fn();
     const rendererSetClearAlpha = vi.fn();
+    const rendererSetViewport = vi.fn();
+    const rendererSetScissor = vi.fn();
+    const rendererSetScissorTest = vi.fn();
     const scene = { kind: "scene" };
     const camera = { kind: "camera" };
     const renderer = {
       canvas: document.createElement("canvas"),
       autoClear: true,
       setClearAlpha: rendererSetClearAlpha,
+      setViewport: rendererSetViewport,
+      setScissor: rendererSetScissor,
+      setScissorTest: rendererSetScissorTest,
       dispose: rendererDispose,
     };
     const WebGLRenderer = vi.fn(
@@ -82,11 +88,20 @@ describe("createThreeRendererHost", () => {
     expect(host.scene).toBe(scene);
     expect(host.camera).toBe(camera);
     expect(host.sceneAdapter).toEqual(expect.any(Object));
+    expect(host.renderer.setViewport).toEqual(expect.any(Function));
+    expect(host.renderer.setScissor).toEqual(expect.any(Function));
+    expect(host.renderer.setScissorTest).toEqual(expect.any(Function));
+    host.renderer.setViewport?.(20, 30, 320, 180);
+    host.renderer.setScissor?.(20, 30, 320, 180);
+    host.renderer.setScissorTest?.(true);
     host.sceneAdapter.render();
 
     host.dispose();
     host.dispose();
 
+    expect(rendererSetViewport).toHaveBeenCalledWith(20, 30, 320, 180);
+    expect(rendererSetScissor).toHaveBeenCalledWith(20, 30, 320, 180);
+    expect(rendererSetScissorTest).toHaveBeenCalledWith(true);
     expect(rendererDispose).toHaveBeenCalledTimes(1);
     expect(container.querySelector("canvas")).toBeNull();
   });

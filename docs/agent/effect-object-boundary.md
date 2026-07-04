@@ -14,10 +14,11 @@ The current public effect context exposes `ctx.object`, `ctx.resources`,
 `ctx.time`, `ctx.delta`, `ctx.key`, and `ctx.sourceKind`.
 
 `ctx.object` is the public authoring handle for transform, visibility, opacity,
-postprocess, and surface/text/texture/video/model source-backed capabilities.
-Source, target, and visual handles are internal runtime assembly details. They
-are not part of the public effect context and are not exported from the package
-root as effect authoring API.
+material, lights, animation, and surface/text/texture/video/model source-backed
+capabilities. `ctx.runtime.postprocess` owns explicit canvas/pass-scoped
+postprocess requests. Source, target, and visual handles are internal runtime
+assembly details. They are not part of the public effect context and are not
+exported from the package root as effect authoring API.
 
 The public authoring model is managed Three-like API: consumers use familiar
 Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
@@ -71,8 +72,9 @@ defineWebGLEffect({
     object.model?.meshes.forEach((mesh) => {
       mesh.material.opacity = 0.9;
     });
-    object.postprocess.request({
-      key: "app.heroGlow",
+    ctx.runtime.postprocess.request({
+      key: "app.heroPassBloom",
+      scope: { passId: "hero.pass" },
       bloom: { strength: 0.35 },
     });
   },

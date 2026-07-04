@@ -501,9 +501,13 @@ The managed timeline dogfood uses a pinned full-canvas section, separately from
 the pinned image-sequence section. It binds a named progress signal to a managed
 scene, a perspective-stage camera controller, stage primitives, scene-owned
 lights, and a default-pipeline WebGL target surface. The managed stage primitive
-dogfood now uses `WebGLPassViewport` so the managed pass is clipped to the
-DOM-owned viewport without creating another canvas or exposing renderer
-viewport/scissor calls:
+dogfood now uses `WebGLPassViewport` so the managed pass is clipped to a DOM
+rect on the same runtime canvas without exposing renderer viewport/scissor
+calls. The runtime intersects that DOM rect with the current canvas viewport;
+the full DOM rect still defines the pass mapping, so partially visible passes
+are clipped rather than compressed into the visible intersection. When the
+stage section is fully offscreen, this pass is skipped rather than drawn behind
+earlier sections:
 
 ```tsx
 <WebGLPassViewport id="example.stage.viewport" as="div" className="example-stage-viewport">
@@ -513,7 +517,11 @@ viewport/scissor calls:
     render={{
       camera: "example.stage.camera",
       viewport: { mode: "dom-rect", scissor: true },
-      postprocess: { grain: { amount: 0.025 } },
+      postprocess: {
+        bloom: { strength: 0.48, radius: 0.34, threshold: 0.42 },
+        grain: { amount: 0.12 },
+        blur: { radius: 0.06 },
+      },
     }}
   >
     <WebGLCamera
@@ -521,11 +529,6 @@ viewport/scissor calls:
       default
       type="perspective"
       mode="perspective-stage"
-      controller={{
-        timeline: { id: "example.managedTimeline", range: { from: 0.12, to: 0.88 } },
-        to: { position: [0, 96, 520], target: [0, 36, 0], fov: 34 },
-        easing: "smoothstep",
-      }}
     />
   </WebGLScene>
 </WebGLPassViewport>

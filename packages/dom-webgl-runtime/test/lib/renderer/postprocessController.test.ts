@@ -187,12 +187,20 @@ describe("postprocess controller", () => {
       renderOrder.push("base-render");
     });
 
-    controller.render({}, renderBase);
+    controller.render(
+      {
+        prepareOutput() {
+          renderOrder.push("prepare-output");
+        },
+      },
+      renderBase,
+    );
 
     expect(renderOrder).toEqual([
       "target:postprocess.lowres",
       "base-render",
       "target:screen",
+      "prepare-output",
       "effect-pass",
     ]);
     expect(pool.acquire).toHaveBeenCalledWith("postprocess", 1024, 768);

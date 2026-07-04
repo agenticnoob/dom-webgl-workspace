@@ -30,6 +30,33 @@ describe("pass viewport registry", () => {
     });
   });
 
+  test("preserves offscreen DOM coordinates for renderer-side clipping", () => {
+    const registry = createPassViewportRegistry();
+    const element = {
+      getBoundingClientRect() {
+        return {
+          left: -24,
+          top: -48,
+          width: 320,
+          height: 180,
+          right: 296,
+          bottom: 132,
+        };
+      },
+    } as HTMLElement;
+
+    registry.register({ id: "hero.viewport", element });
+
+    expect(
+      registry.resolve({ mode: "dom-rect", anchorId: "hero.viewport" }),
+    ).toEqual({
+      mode: "dom-rect",
+      anchorId: "hero.viewport",
+      scissor: true,
+      rect: { x: -24, y: -48, width: 320, height: 180 },
+    });
+  });
+
   test("returns canvas mode for missing or canvas viewport declarations", () => {
     const registry = createPassViewportRegistry();
 

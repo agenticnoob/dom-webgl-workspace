@@ -180,6 +180,15 @@ type RuntimeTransformGroupState = {
   effectTargetObject3D?: unknown;
 };
 
+type ActiveResolvedPassViewport =
+  | { mode: "canvas" }
+  | {
+      mode: "dom-rect";
+      scissor: boolean;
+      viewportRect: { x: number; y: number; width: number; height: number };
+      scissorRect: { x: number; y: number; width: number; height: number };
+    };
+
 type BrowserDOMGlobals = typeof globalThis & {
   window?: unknown;
   document?: {
@@ -651,12 +660,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       }
 
       const resolvedViewport = passViewports.resolve(pass.viewport);
-      withResolvedPassViewport(resolvedViewport, () => {
+      const activeViewport = resolveActivePassViewport(resolvedViewport);
+      if (!activeViewport) {
+        return;
+      }
+
+      withResolvedPassViewport(activeViewport, () => {
         postprocessController.render(
           {
             passId: pass.id,
-            viewport: readPostprocessViewport(resolvedViewport),
+            viewport: readPostprocessViewport(activeViewport),
             descriptor: pass.postprocess,
+            prepareOutput() {
+              applyResolvedPassViewport(activeViewport);
+            },
           },
           () => {
             scene.sceneAdapter.render(camera.camera);
@@ -667,20 +684,128 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   }
 
   function readPostprocessViewport(
-    viewport: ResolvedPassViewport,
+    viewport: ActiveResolvedPassViewport,
   ): { width: number; height: number } {
     if (viewport.mode === "canvas") {
       return rendererHost.getViewportSize();
     }
 
     return {
-      width: viewport.rect.width,
-      height: viewport.rect.height,
+      width: viewport.viewportRect.width,
+      height: viewport.viewportRect.height,
     };
   }
 
-  function withResolvedPassViewport(
+  function resolveActivePassViewport(
     viewport: ResolvedPassViewport,
+  ): ActiveResolvedPassViewport | undefined {
+    if (viewport.mode === "canvas") {
+      return viewport;
+    }
+
+    const runtimeViewport = rendererHost.getViewportSize();
+    const canvasRect = readCanvasViewportRect(runtimeViewport);
+    const left = Math.max(canvasRect.x, viewport.rect.x);
+    const top = Math.max(canvasRect.y, viewport.rect.y);
+    const right = Math.min(
+      canvasRect.x + canvasRect.width,
+      viewport.rect.x + viewport.rect.width,
+    );
+    const bottom = Math.min(
+      canvasRect.y + canvasRect.height,
+      viewport.rect.y + viewport.rect.height,
+    );
+    const width = right - left;
+    const height = bottom - top;
+
+    if (width <= 0 || height <= 0) {
+      return undefined;
+    }
+
+    return {
+      mode: "dom-rect",
+      scissor: viewport.scissor,
+      viewportRect: {
+        x: viewport.rect.x - canvasRect.x,
+        y: viewport.rect.y - canvasRect.y,
+        width: viewport.rect.width,
+        height: viewport.rect.height,
+      },
+      scissorRect: {
+        x: left - canvasRect.x,
+        y: top - canvasRect.y,
+        width,
+        height,
+      },
+    };
+  }
+
+  function readCanvasViewportRect(runtimeViewport: DOMViewportSize): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const rect = rendererHost.canvas.getBoundingClientRect();
+    const width = readPositiveFiniteNumber(rect.width, runtimeViewport.width);
+    const height = readPositiveFiniteNumber(rect.height, runtimeViewport.height);
+
+    return {
+      x: readFiniteNumber(rect.left, 0),
+      y: readFiniteNumber(rect.top, 0),
+      width,
+      height,
+    };
+  }
+
+  function readFiniteNumber(value: number, fallback: number): number {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function readPositiveFiniteNumber(value: number, fallback: number): number {
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  }
+
+  function applyResolvedPassViewport(viewport: ActiveResolvedPassViewport): void {
+    if (viewport.mode === "canvas") {
+      return;
+    }
+
+    const runtimeViewport = rendererHost.getViewportSize();
+    const viewportX = Math.round(viewport.viewportRect.x);
+    const viewportWidth = Math.round(viewport.viewportRect.width);
+    const viewportHeight = Math.round(viewport.viewportRect.height);
+    const viewportY = Math.round(
+      runtimeViewport.height -
+        viewport.viewportRect.y -
+        viewport.viewportRect.height,
+    );
+    const scissorX = Math.round(viewport.scissorRect.x);
+    const scissorWidth = Math.round(viewport.scissorRect.width);
+    const scissorHeight = Math.round(viewport.scissorRect.height);
+    const scissorY = Math.round(
+      runtimeViewport.height -
+        viewport.scissorRect.y -
+        viewport.scissorRect.height,
+    );
+
+    rendererHost.renderer.setViewport?.(
+      viewportX,
+      viewportY,
+      viewportWidth,
+      viewportHeight,
+    );
+    rendererHost.renderer.setScissor?.(
+      scissorX,
+      scissorY,
+      scissorWidth,
+      scissorHeight,
+    );
+    rendererHost.renderer.setScissorTest?.(viewport.scissor);
+  }
+
+  function withResolvedPassViewport(
+    viewport: ActiveResolvedPassViewport,
     render: () => void,
   ): void {
     if (viewport.mode === "canvas") {
@@ -688,24 +813,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    const runtimeViewport = rendererHost.getViewportSize();
-    const dpr = window.devicePixelRatio || 1;
-    const x = Math.round(viewport.rect.x * dpr);
-    const width = Math.round(viewport.rect.width * dpr);
-    const height = Math.round(viewport.rect.height * dpr);
-    const y = Math.round(
-      (runtimeViewport.height - viewport.rect.y - viewport.rect.height) * dpr,
-    );
-
-    rendererHost.renderer.setViewport?.(x, y, width, height);
-    rendererHost.renderer.setScissor?.(x, y, width, height);
-    rendererHost.renderer.setScissorTest?.(viewport.scissor);
+    applyResolvedPassViewport(viewport);
 
     try {
       render();
     } finally {
-      const fullWidth = Math.round(runtimeViewport.width * dpr);
-      const fullHeight = Math.round(runtimeViewport.height * dpr);
+      const runtimeViewport = rendererHost.getViewportSize();
+      const fullWidth = Math.round(runtimeViewport.width);
+      const fullHeight = Math.round(runtimeViewport.height);
       rendererHost.renderer.setScissorTest?.(false);
       rendererHost.renderer.setViewport?.(0, 0, fullWidth, fullHeight);
       rendererHost.renderer.setScissor?.(0, 0, fullWidth, fullHeight);

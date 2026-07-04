@@ -279,6 +279,15 @@ function createDefaultThreeRendererObjects(
       setRenderTarget(target) {
         readRendererSetRenderTarget(renderer)?.(target);
       },
+      setViewport(x, y, width, height) {
+        readRendererSetViewport(renderer)?.(x, y, width, height);
+      },
+      setScissor(x, y, width, height) {
+        readRendererSetScissor(renderer)?.(x, y, width, height);
+      },
+      setScissorTest(enabled) {
+        readRendererSetScissorTest(renderer)?.(enabled);
+      },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
       },
@@ -807,4 +816,50 @@ function readRendererSetRenderTarget(
   }
 
   return setRenderTarget.bind(renderer) as (target: object | null) => void;
+}
+
+function readRendererSetViewport(
+  renderer: object,
+): ((x: number, y: number, width: number, height: number) => void) | undefined {
+  const setViewport = (renderer as Record<string, unknown>).setViewport;
+
+  if (typeof setViewport !== "function") {
+    return undefined;
+  }
+
+  return setViewport.bind(renderer) as (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => void;
+}
+
+function readRendererSetScissor(
+  renderer: object,
+): ((x: number, y: number, width: number, height: number) => void) | undefined {
+  const setScissor = (renderer as Record<string, unknown>).setScissor;
+
+  if (typeof setScissor !== "function") {
+    return undefined;
+  }
+
+  return setScissor.bind(renderer) as (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => void;
+}
+
+function readRendererSetScissorTest(
+  renderer: object,
+): ((enabled: boolean) => void) | undefined {
+  const setScissorTest = (renderer as Record<string, unknown>).setScissorTest;
+
+  if (typeof setScissorTest !== "function") {
+    return undefined;
+  }
+
+  return setScissorTest.bind(renderer) as (enabled: boolean) => void;
 }

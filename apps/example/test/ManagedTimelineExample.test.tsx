@@ -58,8 +58,24 @@ type CameraMockProps = {
   readonly default?: boolean;
   readonly type?: string;
   readonly mode?: string;
+  readonly fov?: number;
   readonly position?: readonly [number, number, number];
   readonly target?: readonly [number, number, number];
+  readonly controller?: {
+    readonly timeline: {
+      readonly id: string;
+      readonly range?: {
+        readonly from: number;
+        readonly to: number;
+      };
+    };
+    readonly to: {
+      readonly position?: readonly [number, number, number];
+      readonly target?: readonly [number, number, number];
+      readonly fov?: number;
+    };
+    readonly easing?: string;
+  };
 };
 
 type StagePlaneMockProps = {
@@ -133,13 +149,14 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
 }));
 
 describe("ManagedTimelineExample", () => {
-  test("dogfoods pinned scene timeline, stage objects, lights, and a timeline target", async () => {
+  test("dogfoods pinned scene timeline, camera controller, stage objects, lights, and a timeline target", async () => {
     const { ManagedTimelineExample } = await import("../src/ManagedTimelineExample");
 
     const markup = renderToStaticMarkup(createElement(ManagedTimelineExample));
 
     expect(markup).toContain("example-managed-stage-timeline");
     expect(markup).toContain("pinned managed scene");
+    expect(markup).toContain("camera、scene、floor、backdrop、box、light");
     expect(markup).toContain("Timeline driven card");
     expect(markup).toMatch(
       /<div data-webgl-scene="example\.managedStage\.scene"><article class="example-managed-stage-card">/,
@@ -177,8 +194,21 @@ describe("ManagedTimelineExample", () => {
         default: true,
         type: "perspective",
         mode: "perspective-stage",
+        fov: 42,
         position: [0, 136, 560],
         target: [0, -88, -40],
+        controller: {
+          timeline: {
+            id: "example.managedTimeline",
+            range: { from: 0.12, to: 0.88 },
+          },
+          to: {
+            position: [0, 96, 520],
+            target: [0, 36, 0],
+            fov: 34,
+          },
+          easing: "smoothstep",
+        },
       }),
     ]);
     expect(cameraProps[0]).not.toHaveProperty("timeline");

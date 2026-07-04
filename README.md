@@ -117,13 +117,20 @@ Current example behavior:
   whole trigger section; the example no longer appends a synthetic post-pinned
   runway sibling just to hand scroll control back.
 - The example also dogfoods `WebGLScrollTimeline` with a pinned named managed
-  timeline bound to a `WebGLScene`, stage planes, a stage box, scene-owned
-  lights, and a visible scene-child `WebGLTarget` that inherits the scene and
-  uses `screen-depth` placement while reading the same progress signal. It uses
-  public React descriptors only and does not present the nested scene as
+  timeline bound to a `WebGLScene`, a `WebGLCamera.controller`, stage planes, a
+  stage box, scene-owned lights, and a visible scene-child `WebGLTarget` that
+  inherits the scene and uses `screen-depth` placement while reading the same
+  progress signal. It uses public React descriptors only and does not present
+  the nested scene as
   DOM-clipped or as a local target viewport; Phase 6 owns pass viewport/scissor.
   The card effect leaves `ctx.object.scale` untouched so the descriptor-projected
   surface size stays owned by the runtime.
+- The managed stage primitive example is mounted in the current catalog and
+  dogfoods `WebGLPassViewport` with pass `viewport: { mode: "dom-rect",
+  scissor: true }` plus descriptor-level `bloom`/`grain`/`blur` postprocess.
+  It still uses the same runtime canvas; the pass is clipped to the visible DOM
+  rect without remapping or compressing the pass, and skipped while fully
+  offscreen rather than rendered into a second local canvas.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -628,13 +635,22 @@ with `WebGLPassViewport` and let the pass resolve that anchor:
     render={{
       camera: "hero.camera",
       viewport: { mode: "dom-rect" },
-      postprocess: { grain: { amount: 0.025 } },
+      postprocess: {
+        bloom: { strength: 0.48, radius: 0.34, threshold: 0.42 },
+        grain: { amount: 0.12 },
+        blur: { radius: 0.06 },
+      },
     }}
   >
     <WebGLCamera id="hero.camera" default type="perspective" />
   </WebGLScene>
 </WebGLPassViewport>
 ```
+
+The runtime intersects the DOM rect with the visible canvas viewport each frame.
+The original pass viewport still defines the render mapping; the intersection
+is only the scissor clip. If there is no intersection, the pass and its
+descriptor-level postprocess are skipped for that frame.
 
 Targets inside `WebGLScene` inherit that scene unless `webgl.sceneId` is set
 explicitly. A scene only needs a camera when it opts into rendering with
@@ -781,7 +797,10 @@ renderers. `screen-plane` placement is still deferred.
 React nesting communicates managed scene ownership; it does not create a local
 DOM viewport for that scene. Managed stage primitives currently render through
 the runtime canvas and can be activated or hidden by higher-level scroll state,
-but DOM-bound viewport/scissor clipping is a later Phase 6 capability.
+and DOM-bound viewport/scissor clipping is available through `WebGLPassViewport`
+plus a pass `viewport: { mode: "dom-rect" }` descriptor. Fully offscreen
+DOM-bound passes are skipped rather than drawn as canvas-wide backgrounds.
+Partially visible passes are clipped, not compressed into the visible slice.
 
 Treat `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` props as stable
 scene declarations. They can mount, unmount, or change in ordinary React flows,

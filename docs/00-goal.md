@@ -82,10 +82,10 @@ updates the existing runtime-owned ambient, directional, or point light rather
 than exposing raw light objects or effect-owned light lifecycle.
 Compressed model assets use declarative loader config and app-served decoder
 files; effects do not receive loader callbacks. Runtime postprocess requests are
-currently scoped to the runtime canvas, not one model target. Model renderables
-are fit to their target rect by the runtime layout pass, so effects should write
-`ctx.object.position` or `ctx.object.scale` only when they intentionally take
-over placement.
+explicitly scoped to the runtime canvas or to a managed render pass, not one
+model target. Model renderables are fit to their target rect by the runtime
+layout pass, so effects should write `ctx.object.position` or
+`ctx.object.scale` only when they intentionally take over placement.
 
 ## Purpose
 

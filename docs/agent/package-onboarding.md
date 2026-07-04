@@ -231,6 +231,9 @@ Rules:
 - `WebGLPassViewport` registers a DOM rect anchor for a managed render pass.
   Use it only for opt-in managed scene/pass work; Level 1 `WebGLTarget` usage
   does not need it.
+- DOM-bound pass viewports use the full anchor rect for pass mapping and the
+  visible canvas intersection as the scissor clip. They are clipped, not
+  compressed into the visible slice, and fully offscreen passes are skipped.
 - Scene-native models, `screen-plane`, raw Three.js scene/camera/renderer
   handles, orthographic/screen camera controllers, and pass-bound camera
   controller scope remain future or non-public.
@@ -307,8 +310,8 @@ Rules:
 - Stage primitives are declared under `WebGLScene` or with an explicit `scene`
   prop.
 - React nesting communicates scene ownership only. It does not clip a managed
-  scene to the containing DOM section; DOM-bound viewport/scissor is Phase 6
-  work.
+  scene to the containing DOM section by itself; local pass clipping uses
+  `WebGLPassViewport` plus pass `viewport: { mode: "dom-rect" }`.
 - Keep stage primitive and light descriptor identity stable. Do not animate
   floor, box, or light values by rebuilding React descriptors every frame; use
   timeline bindings plus managed runtime/effect/controller state for
@@ -395,7 +398,9 @@ Rules:
   runtime-owned work. Active ranges do not override explicit effect visibility
   or `visible: false` declarations, and they do not clip a managed scene to the
   surrounding DOM section. Local pass clipping uses `WebGLPassViewport` plus
-  pass `viewport: { mode: "dom-rect" }`.
+  pass `viewport: { mode: "dom-rect" }`; the runtime clips to the visible
+  canvas intersection without compressing the pass into that intersection, and
+  skips it while fully offscreen.
 - Effects can read the same signal through `ctx.progress.get(key)` or
   `ctx.runtime.progress.get(key)`. Effects inside a managed scene also receive
   optional `ctx.scene` metadata and timeline snapshot. These are managed

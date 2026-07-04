@@ -94,6 +94,7 @@ describe("ManagedStagePrimitiveExample", () => {
     const markup = renderToStaticMarkup(createElement(ManagedStagePrimitiveExample));
 
     expect(markup).toContain("example-stage-dogfood");
+    expect(markup).toContain("同一张 runtime canvas");
     expect(sceneProps).toHaveLength(1);
     expect(sceneProps[0]).toMatchObject({
       id: "example.stage.world",
@@ -103,7 +104,11 @@ describe("ManagedStagePrimitiveExample", () => {
         order: -10,
         clearDepth: true,
         viewport: { mode: "dom-rect", scissor: true },
-        postprocess: { grain: { amount: 0.025 } },
+        postprocess: {
+          bloom: { strength: 0.88, radius: 0.58, threshold: 0.18 },
+          grain: { amount: 0.2 },
+          blur: { radius: 0.12 },
+        },
       },
     });
     expect(passViewportProps[0]).toMatchObject({
@@ -128,14 +133,14 @@ describe("ManagedStagePrimitiveExample", () => {
         role: "floor",
         size: [900, 520],
         position: [0, -180, 0],
-        material: { kind: "standard", color: "#111827", roughness: 0.84 },
+        material: { kind: "standard", color: "#0f172a", roughness: 0.64 },
       }),
       expect.objectContaining({
         id: "example.stage.backdrop",
         role: "backdrop",
         size: [900, 420],
         position: [0, 20, -260],
-        material: { kind: "standard", color: "#172554", roughness: 0.72 },
+        material: { kind: "standard", color: "#1d4ed8", roughness: 0.48 },
       }),
     ]);
     expect(stageBoxProps).toEqual([
@@ -143,17 +148,30 @@ describe("ManagedStagePrimitiveExample", () => {
         id: "example.stage.plinth",
         size: [180, 96, 180],
         position: [0, -128, -40],
-        material: { kind: "standard", color: "#475569", roughness: 0.58 },
+        material: { kind: "standard", color: "#f6c453", roughness: 0.38 },
+      }),
+      expect.objectContaining({
+        id: "example.stage.bloomRail",
+        size: [520, 18, 22],
+        position: [0, -34, -236],
+        material: { kind: "basic", color: "#f8fafc" },
       }),
     ]);
     expect(lightProps).toEqual([
-      { id: "example.stage.ambient", kind: "ambient", intensity: 0.28 },
+      { id: "example.stage.ambient", kind: "ambient", intensity: 0.38 },
       {
         id: "example.stage.key",
         kind: "point",
         color: "#7dd3fc",
-        intensity: 1.8,
+        intensity: 2.6,
         position: [120, 80, 160],
+      },
+      {
+        id: "example.stage.rim",
+        kind: "point",
+        color: "#fef3c7",
+        intensity: 1.9,
+        position: [-220, -12, 120],
       },
     ]);
   });

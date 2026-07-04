@@ -137,6 +137,11 @@ phase records are archived under [archive/](./archive/).
   `WebGLTarget` usage does not need viewport anchors. Nesting a `WebGLScene`
   alone still does not create a local DOM viewport; the render pass must declare
   `viewport: { mode: "dom-rect" }` and resolve to a registered viewport anchor.
+  The runtime clips that anchor rect to the visible canvas viewport each frame;
+  the original anchor rect still defines the pass mapping, so partially visible
+  passes are clipped rather than compressed into the visible slice. Fully
+  offscreen pass viewports are skipped instead of drawing behind unrelated DOM
+  sections.
 - Managed stage primitives and scene-owned lights are stable descriptors. Use
   them to declare scene substrate; do not drive high-frequency animation through
   React prop churn. Use timeline bindings and managed effect/controller state
@@ -160,10 +165,16 @@ phase records are archived under [archive/](./archive/).
   framing boxes, and pass-bound camera controller scope are deferred possible
   camera-controller iterations. Pointer-driven orbit, pan, drag, pointer
   parallax, and empty-space camera controls remain Phase 8 work.
-- The managed timeline example keeps its visible card as a scene-child
-  `WebGLTarget`; it inherits the managed scene, uses `screen-depth` placement,
-  and reads the same timeline progress signal as the managed scene. It is still
-  not a DOM-clipped viewport example.
+- The managed timeline example drives a `WebGLCamera.controller`, scene, stage
+  primitives, lights, and a visible scene-child `WebGLTarget` from the same
+  named timeline. The card inherits the managed scene, uses `screen-depth`
+  placement, and is still not a DOM-clipped viewport example.
+- The managed stage primitive example is mounted in `apps/example` and dogfoods
+  `WebGLPassViewport` with pass `viewport: { mode: "dom-rect", scissor: true }`
+  and descriptor-level bloom/grain/blur postprocess. It remains one runtime
+  canvas; the pass is clipped by the visible DOM rect without remapping into
+  the visible slice, instead of becoming a second canvas or drawing as a
+  full-canvas background while offscreen.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

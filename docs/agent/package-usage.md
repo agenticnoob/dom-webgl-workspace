@@ -383,7 +383,11 @@ DOM-bound managed passes:
     render={{
       camera: "hero.camera",
       viewport: { mode: "dom-rect", scissor: true },
-      postprocess: { grain: { amount: 0.025 } },
+      postprocess: {
+        bloom: { strength: 0.48, radius: 0.34, threshold: 0.42 },
+        grain: { amount: 0.12 },
+        blur: { radius: 0.06 },
+      },
     }}
   >
     <WebGLCamera
@@ -426,6 +430,11 @@ Rules:
 - Pass `viewport: { mode: "dom-rect" }` uses the nearest React
   `WebGLPassViewport` anchor when nested under one. Vanilla render pass
   descriptors must provide `anchorId`.
+- DOM-bound pass viewports are clipped to the currently visible canvas area.
+  The full anchor rect still defines the pass viewport mapping, while the
+  visible intersection is used as the scissor clip. If the anchor rect is fully
+  outside the canvas viewport, the pass and its descriptor-level postprocess are
+  skipped for that frame.
 - Pass postprocess belongs on `WebGLRenderPass` / `WebGLScene render`, or in
   effects through `ctx.runtime.postprocess.request(...)` with an explicit
   `{ canvas: true }` or `{ passId }` scope.
@@ -532,8 +541,9 @@ Rules:
 - In React, declare stage primitives under `WebGLScene` or pass an explicit
   `scene` prop. Vanilla descriptors use `sceneId`.
 - React nesting communicates scene ownership only. It does not clip a managed
-  scene to the containing DOM section; DOM-bound viewport/scissor is Phase 6
-  work.
+  scene to the containing DOM section by itself; DOM-bound viewport/scissor
+  clipping uses `WebGLPassViewport` plus a pass
+  `viewport: { mode: "dom-rect" }` descriptor.
 - Treat stage primitive and light props as stable scene declarations. Ordinary
   React updates are supported through mount/unmount registration, but
   high-frequency animation should use timeline bindings plus managed runtime
@@ -627,7 +637,9 @@ Rules:
   `ctx.object.visible = false`.
 - Timeline bindings do not make a nested `WebGLScene` a DOM-clipped local
   viewport. Local pass clipping uses `WebGLPassViewport` plus pass
-  `viewport: { mode: "dom-rect" }`.
+  `viewport: { mode: "dom-rect" }`; the runtime clips the pass to the visible
+  canvas intersection without compressing the pass into that intersection, and
+  skips it while fully offscreen.
 - Effects can read progress through `ctx.progress.get(key)` or
   `ctx.runtime.progress.get(key)`. Effects inside a managed scene receive
   optional `ctx.scene` metadata and timeline snapshot.

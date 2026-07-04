@@ -3184,6 +3184,449 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("clips DOM-bound pass viewports to the visible canvas area without compressing the pass", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: -20,
+        top: -40,
+        width: 320,
+        height: 180,
+        right: 300,
+        bottom: 140,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 0, 460, 300, 140);
+    expect(render).toHaveBeenCalled();
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("keeps pass postprocess output sized to the full DOM-bound viewport while clipping output", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const postprocessController = createStubPostprocessController({
+      render: vi.fn((context, renderBase: () => void) => {
+        expect(context.viewport).toEqual({ width: 320, height: 180 });
+        renderBase();
+        setViewport(0, 0, 800, 600);
+        setScissor(0, 0, 800, 600);
+        setScissorTest(false);
+        context.prepareOutput?.();
+      }),
+    });
+    const { registry } = createRenderLayerRegistryStub(createRecordingSceneAdapter(), {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+          postprocess: { grain: { amount: 0.1 } },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      postprocessController,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: -20,
+        top: -40,
+        width: 320,
+        height: 180,
+        right: 300,
+        bottom: 140,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 0, 460, 300, 140);
+    expect(setScissorTest).toHaveBeenNthCalledWith(2, false);
+    expect(setViewport).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissor).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissorTest).toHaveBeenNthCalledWith(3, true);
+    expect(setViewport).toHaveBeenNthCalledWith(3, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(3, 0, 460, 300, 140);
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("passes CSS logical viewport coordinates to Three when DPR is above one", async () => {
+    const originalDevicePixelRatio = window.devicePixelRatio;
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 2,
+    });
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    let runtime: RuntimeWithPipelineSurface | undefined;
+
+    try {
+      runtime = await createPipelineRuntime({
+        rendererHostFactory(container) {
+          const host = createRendererHostStub(container);
+          return {
+            ...host,
+            getViewportSize: () => ({ width: 800, height: 600 }),
+            renderer: {
+              ...host.renderer,
+              render,
+              setViewport,
+              setScissor,
+              setScissorTest,
+            },
+          };
+        },
+      });
+      const anchor = document.createElement("section");
+      anchor.getBoundingClientRect = () =>
+        ({
+          left: 20,
+          top: 40,
+          width: 320,
+          height: 180,
+          right: 340,
+          bottom: 220,
+        }) as DOMRect;
+
+      runtime.registerScene({ id: "hero.scene" });
+      runtime.registerCamera({
+        id: "hero.camera",
+        sceneId: "hero.scene",
+        default: true,
+      });
+      runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+      runtime.registerRenderPass({
+        id: "hero.pass",
+        sceneId: "hero.scene",
+        cameraId: "hero.camera",
+        viewport: {
+          mode: "dom-rect",
+          anchorId: "hero.viewport",
+          scissor: true,
+        },
+      });
+
+      await runtime.sync();
+
+      expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+      expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+      expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+      expect(render).toHaveBeenCalled();
+      expect(setScissorTest).toHaveBeenLastCalledWith(false);
+      expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+      expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    } finally {
+      runtime?.dispose();
+      Object.defineProperty(window, "devicePixelRatio", {
+        configurable: true,
+        value: originalDevicePixelRatio,
+      });
+    }
+  });
+
+  test("maps DOM-bound pass viewport window coordinates into canvas coordinates", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        Object.defineProperty(host.canvas, "getBoundingClientRect", {
+          configurable: true,
+          value: () =>
+            ({
+              x: 100,
+              y: 50,
+              left: 100,
+              top: 50,
+              right: 900,
+              bottom: 650,
+              width: 800,
+              height: 600,
+              toJSON: () => undefined,
+            }) as DOMRect,
+        });
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 120,
+        top: 90,
+        width: 320,
+        height: 180,
+        right: 440,
+        bottom: 270,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(render).toHaveBeenCalled();
+
+    runtime.dispose();
+  });
+
+  test("reapplies DOM-bound pass viewport before postprocess outputs to the canvas", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const postprocessController = createStubPostprocessController({
+      render: vi.fn((context, renderBase: () => void) => {
+        renderBase();
+        setViewport(0, 0, 800, 600);
+        setScissor(0, 0, 800, 600);
+        setScissorTest(false);
+        context.prepareOutput?.();
+      }),
+    });
+    const { registry } = createRenderLayerRegistryStub(createRecordingSceneAdapter(), {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+          postprocess: { grain: { amount: 0.1 } },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      postprocessController,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 40,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 220,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissorTest).toHaveBeenNthCalledWith(2, false);
+    expect(setViewport).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissor).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissorTest).toHaveBeenNthCalledWith(3, true);
+    expect(setViewport).toHaveBeenNthCalledWith(3, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(3, 20, 380, 320, 180);
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("skips DOM-bound render passes while their viewport is fully outside the canvas", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 760,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 940,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.render).not.toHaveBeenCalled();
+    expect(setViewport).not.toHaveBeenCalled();
+    expect(setScissor).not.toHaveBeenCalled();
+    expect(setScissorTest).not.toHaveBeenCalled();
+
+    runtime.dispose();
+  });
+
   test("routes targets with sceneId to the managed scene adapter", async () => {
     const mainAdapter = createObjectRecordingSceneAdapter();
     const worldAdapter = createObjectRecordingSceneAdapter();

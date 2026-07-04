@@ -14,6 +14,7 @@ const cameraProps: CameraMockProps[] = [];
 const stagePlaneProps: StagePlaneMockProps[] = [];
 const stageBoxProps: StageBoxMockProps[] = [];
 const lightProps: LightMockProps[] = [];
+const passViewportProps: PassViewportMockProps[] = [];
 const roots: Root[] = [];
 
 vi.mock("gsap", () => ({
@@ -125,6 +126,14 @@ type LightMockProps = {
   readonly timeline?: Record<string, unknown>;
 };
 
+type PassViewportMockProps = {
+  readonly id: string;
+  readonly as?: keyof HTMLElementTagNameMap;
+  readonly className?: string;
+  readonly "aria-hidden"?: boolean | "true" | "false";
+  readonly children?: ReactNode;
+};
+
 vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   WebGLScrollRuntime: (props: ScrollRuntimeMockProps) => {
     scrollRuntimeProps.push(props);
@@ -189,6 +198,10 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
     lightProps.push(props);
     return null;
   },
+  WebGLPassViewport: ({ as = "div", children, ...props }: PassViewportMockProps) => {
+    passViewportProps.push({ as, children, ...props });
+    return createElement(as, props, children);
+  },
   WebGLDebugPanel: () => null,
   useWebGLDebugState: () => {
     const [state, setState] = useState<WebGLDebugState>({
@@ -234,6 +247,7 @@ describe("effect authoring example app", () => {
     stagePlaneProps.length = 0;
     stageBoxProps.length = 0;
     lightProps.length = 0;
+    passViewportProps.length = 0;
     for (const root of roots.splice(0)) {
       act(() => {
         root.unmount();
@@ -273,9 +287,35 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
-    expect(host.querySelector(".example-stage-dogfood")).toBeNull();
+    expect(host.querySelector(".example-stage-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-stage-viewport")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-timeline-dogfood")).toBeNull();
     expect(host.querySelector(".example-managed-stage-timeline")).toBeInstanceOf(HTMLElement);
+    expect(passViewportProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.stage.viewport",
+        as: "div",
+        className: "example-stage-viewport",
+        "aria-hidden": "true",
+      }),
+    );
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.stage.world",
+        projection: "perspective-stage",
+        render: {
+          camera: "example.stage.camera",
+          order: -10,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
+          postprocess: {
+            bloom: { strength: 0.88, radius: 0.58, threshold: 0.18 },
+            grain: { amount: 0.2 },
+            blur: { radius: 0.12 },
+          },
+        },
+      }),
+    );
     expect(sceneProps).toContainEqual(
       expect.objectContaining({
         id: "example.managedStage.scene",
@@ -297,13 +337,20 @@ describe("effect authoring example app", () => {
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.managedStage.floor",
       "example.managedStage.backdrop",
+      "example.stage.floor",
+      "example.stage.backdrop",
     ]);
     expect(stageBoxProps.map(({ id }) => id)).toEqual([
       "example.managedStage.plinth",
+      "example.stage.plinth",
+      "example.stage.bloomRail",
     ]);
     expect(lightProps.map(({ id }) => id)).toEqual([
       "example.managedStage.ambient",
       "example.managedStage.key",
+      "example.stage.ambient",
+      "example.stage.key",
+      "example.stage.rim",
     ]);
     expect(stagePlaneProps.find(({ id }) => id === "example.managedStage.floor")).toMatchObject({
       timeline: {

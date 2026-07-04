@@ -47,7 +47,7 @@ Window totals are counters accumulated during each sampling window. Per-frame va
 | pinned section | 18254 | 21 | 3 / 3 | 96 | 16.67 / 16.80 / 16.80 ms | 194 / 2.02 | 97 / 1.01 | 966 / 10.06 | 21 / 4 / 15 | 0 | n/a | 0 | Pinned section stays frame-stable. |
 | image sequence | 12736 | 21 | 2 / 2 | 43 | 37.99 / 50.00 / 50.10 ms | 88 / 2.05 | 86 / 2.00 | 364 / 8.47 | 23 / 5 / 19 | 0 | n/a | 0 | Texture upload activity is the main visible counter in this window. |
 | GLB model | 15820 | 21 | 2 / 2 | 97 | 16.66 / 16.70 / 16.80 ms | 196 / 2.02 | 98 / 1.01 | 898 / 9.26 | 23 / 5 / 19 | 0 | n/a | 0 | Model section stays frame-stable; no draw-call dominance. |
-| postprocess active target proxy | 9127 | 21 | 5 / 5 | 39 | 41.45 / 50.10 / 83.30 ms | 200 / 5.13 | 144 / 3.69 | 460 / 11.79 | 29 / 6 / 19 | 0 | n/a | 1 | Current app has no postprocess requester; this is the image hover-reveal area, not a true postprocess-active target. |
+| postprocess active target proxy | 9127 | 21 | 5 / 5 | 39 | 41.45 / 50.10 / 83.30 ms | 200 / 5.13 | 144 / 3.69 | 460 / 11.79 | 29 / 6 / 19 | 0 | n/a | 1 | Historical proxy captured before the managed stage pass dogfood; this image hover-reveal area is not a true postprocess-active target. |
 | many plane targets stress proxy | 0 | 21 | 2 / 2 | 96 | 16.67 / 16.70 / 16.80 ms | 194 / 2.02 | 97 / 1.01 | 900 / 9.38 | 31 / 7 / 19 | 0 | 2 | 0 | Existing page is not a many-plane stress fixture; batching remains unproven. |
 
 ## Resource Notes

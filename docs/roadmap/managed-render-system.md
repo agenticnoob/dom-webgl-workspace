@@ -758,7 +758,7 @@ Status values:
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
 | Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control intentionally stayed out of Phase 5 and is handled by Phase 6A. |
-| Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
+| Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, clip-not-compress browser correction, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
 | Phase 7: Managed Model Animation | `[not-started]` | none | Recommended next after Phase 6A; advanced morph/bone work may depend on Phase 8/9. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
@@ -1246,6 +1246,9 @@ Acceptance criteria:
 - A pass can render into a runtime-measured DOM rect with scissor enabled, so a
   pinned managed stage example can animate inside its section instead of the full
   canvas.
+- The full DOM rect defines the pass mapping, while the current visible canvas
+  intersection defines the scissor clip. Partially visible passes are clipped
+  rather than compressed, and fully offscreen passes are skipped.
 - Model-local glow examples use material/emissive/lights, not canvas bloom.
 - Canvas/pass postprocess examples explicitly communicate whole-pass scope.
 - Debug state reports active postprocess requests by pass/canvas scope.
@@ -1709,14 +1712,15 @@ Do not make these default roadmap items:
     descriptors only in a later focused plan that also owns runtime texture
     loading, caching, ready/error state, and disposal.
 - Postprocess migration.
-  - Recommendation: keep old API temporarily, add docs and examples for new
-    pass/runtime-scoped API first.
+  - Decision: use `ctx.runtime.postprocess.request(...)` and descriptor-level
+    pass/canvas postprocess. The old object-local-looking
+    `ctx.object.postprocess` facade is removed.
 - DOM-bound pass viewport/scissor.
-  - Recommendation: assign this to Phase 6 after Phase 5 timeline/scope
-    ownership exists. A pinned stage section needs Phase 5 for active
-    scene/pass/stage state and Phase 6 for runtime-owned DOM rect measurement,
-    viewport/scissor application, and scroll-away clipping. Do not treat a
-    nested `WebGLScene` as a local DOM viewport until this exists.
+  - Decision: Phase 6 owns runtime DOM rect measurement, viewport/scissor
+    application, and scroll-away clipping through `WebGLPassViewport` plus pass
+    `viewport: { mode: "dom-rect" }`. A nested `WebGLScene` still communicates
+    scene ownership only; local DOM clipping requires the explicit pass viewport
+    contract.
 - Multi-scene internal representation.
   - Recommendation: allow multiple internal scene entries, but do not require one
     internal Three `Scene` per public scene if a lighter internal layer is enough.

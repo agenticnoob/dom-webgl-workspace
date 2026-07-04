@@ -165,7 +165,7 @@ export function ManagedTimelineExample() {
         <p className="example-kicker">pinned managed scene</p>
         <h2>滚动固定的声明式 3D 舞台</h2>
         <p>
-          同一个 timeline 驱动 scene、floor、backdrop、box、light；右侧卡片同样是
+          同一个 timeline 驱动 camera、scene、floor、backdrop、box、light；右侧卡片同样是
           scene 内的 WebGLTarget，通过 screen-depth 投影进入 managed scene。
         </p>
       </div>

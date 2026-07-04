@@ -17,7 +17,11 @@ const stageSceneRender = {
   order: -10,
   clearDepth: true,
   viewport: { mode: "dom-rect", scissor: true },
-  postprocess: { grain: { amount: 0.025 } },
+  postprocess: {
+    bloom: { strength: 0.88, radius: 0.58, threshold: 0.18 },
+    grain: { amount: 0.2 },
+    blur: { radius: 0.12 },
+  },
 } satisfies WebGLSceneRenderOptions;
 
 const cameraPosition = [0, 120, 520] satisfies NonNullable<
@@ -35,8 +39,8 @@ const floorPosition = [0, -180, 0] satisfies NonNullable<
 >;
 const floorMaterial = {
   kind: "standard",
-  color: "#111827",
-  roughness: 0.84,
+  color: "#0f172a",
+  roughness: 0.64,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
 const floorPlaneProps = {
   id: "example.stage.floor",
@@ -54,8 +58,8 @@ const backdropPosition = [0, 20, -260] satisfies NonNullable<
 >;
 const backdropMaterial = {
   kind: "standard",
-  color: "#172554",
-  roughness: 0.72,
+  color: "#1d4ed8",
+  roughness: 0.48,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
 const backdropPlaneProps = {
   id: "example.stage.backdrop",
@@ -73,11 +77,25 @@ const plinthPosition = [0, -128, -40] satisfies NonNullable<
 >;
 const plinthMaterial = {
   kind: "standard",
-  color: "#475569",
-  roughness: 0.58,
+  color: "#f6c453",
+  roughness: 0.38,
+} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+
+const bloomRailSize = [520, 18, 22] satisfies NonNullable<
+  WebGLStageBoxProps["size"]
+>;
+const bloomRailPosition = [0, -34, -236] satisfies NonNullable<
+  WebGLStageBoxProps["position"]
+>;
+const bloomRailMaterial = {
+  kind: "basic",
+  color: "#f8fafc",
 } satisfies NonNullable<WebGLStageBoxProps["material"]>;
 
 const keyLightPosition = [120, 80, 160] satisfies NonNullable<
+  WebGLCameraProps["position"]
+>;
+const rimLightPosition = [-220, -12, 120] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
 
@@ -88,8 +106,8 @@ export function ManagedStagePrimitiveExample() {
         <p className="example-kicker">managed stage</p>
         <h2>声明式灯光和舞台几何</h2>
         <p>
-          这个例子只通过公共 React 描述符声明 floor、backdrop、box 和 scene-owned
-          lights；runtime 仍拥有 Three.js mesh、material、light 和 dispose。
+          同一张 runtime canvas 里，只有右侧 pass 按 DOM rect 裁剪；grain、blur
+          和 bloom 来自 pass descriptor，不是局部 canvas。
         </p>
       </div>
 
@@ -120,13 +138,26 @@ export function ManagedStagePrimitiveExample() {
             position={plinthPosition}
             material={plinthMaterial}
           />
-          <WebGLLight id="example.stage.ambient" kind="ambient" intensity={0.28} />
+          <WebGLStageBox
+            id="example.stage.bloomRail"
+            size={bloomRailSize}
+            position={bloomRailPosition}
+            material={bloomRailMaterial}
+          />
+          <WebGLLight id="example.stage.ambient" kind="ambient" intensity={0.38} />
           <WebGLLight
             id="example.stage.key"
             kind="point"
             color="#7dd3fc"
-            intensity={1.8}
+            intensity={2.6}
             position={keyLightPosition}
+          />
+          <WebGLLight
+            id="example.stage.rim"
+            kind="point"
+            color="#fef3c7"
+            intensity={1.9}
+            position={rimLightPosition}
           />
         </WebGLScene>
       </WebGLPassViewport>

@@ -96,5 +96,5 @@ function normalizeViewportAnchorId(id: string): string {
 }
 
 function normalizeViewportNumber(value: number): number {
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
+  return Number.isFinite(value) ? value : 0;
 }
