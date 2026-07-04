@@ -72,11 +72,13 @@ type TargetMockProps = {
   webgl: {
     key: string;
     source?: Record<string, unknown>;
+    placement?: Record<string, unknown>;
     renderRole?: string;
     effects?: readonly Record<string, unknown>[];
     lifecycle?: Record<string, unknown>;
     scroll?: { readonly type?: unknown };
     transformScope?: "self" | "subtree";
+    timeline?: Record<string, unknown>;
   };
 };
 
@@ -111,6 +113,7 @@ type StageBoxMockProps = {
   readonly size?: readonly [number, number, number];
   readonly position?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
+  readonly timeline?: Record<string, unknown>;
 };
 
 type LightMockProps = {
@@ -270,55 +273,64 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
-    expect(host.querySelector(".example-stage-dogfood")).toBeInstanceOf(HTMLElement);
-    expect(host.querySelector(".example-timeline-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-stage-dogfood")).toBeNull();
+    expect(host.querySelector(".example-timeline-dogfood")).toBeNull();
+    expect(host.querySelector(".example-managed-stage-timeline")).toBeInstanceOf(HTMLElement);
     expect(sceneProps).toContainEqual(
       expect.objectContaining({
-        id: "example.stage.world",
+        id: "example.managedStage.scene",
         projection: "perspective-stage",
-        render: { camera: "example.stage.camera", order: -10, clearDepth: true },
-      }),
-    );
-    expect(sceneProps).toContainEqual(
-      expect.objectContaining({
-        id: "example.timeline.scene",
-        projection: "perspective-stage",
-        render: { camera: "example.timeline.camera", order: -8, clearDepth: true },
+        render: { camera: "example.managedStage.camera", order: -8, clearDepth: true },
         timeline: {
           id: "example.managedTimeline",
-          active: { from: 0.08, to: 0.94 },
+          active: { from: 0.02, to: 0.94 },
         },
       }),
     );
     expect(cameraProps).toContainEqual(
       expect.objectContaining({
-        id: "example.stage.camera",
+        id: "example.managedStage.camera",
         mode: "perspective-stage",
       }),
     );
-    expect(cameraProps.find(({ id }) => id === "example.timeline.camera")).not.toHaveProperty("timeline");
+    expect(cameraProps.find(({ id }) => id === "example.managedStage.camera")).not.toHaveProperty("timeline");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
-      "example.stage.floor",
-      "example.stage.backdrop",
-      "example.timeline.floor",
-      "example.timeline.backdrop",
+      "example.managedStage.floor",
+      "example.managedStage.backdrop",
     ]);
-    expect(stageBoxProps.map(({ id }) => id)).toEqual(["example.stage.plinth"]);
+    expect(stageBoxProps.map(({ id }) => id)).toEqual([
+      "example.managedStage.plinth",
+      "example.managedStage.cardBackplate",
+    ]);
     expect(lightProps.map(({ id }) => id)).toEqual([
-      "example.stage.ambient",
-      "example.stage.key",
-      "example.timeline.key",
+      "example.managedStage.ambient",
+      "example.managedStage.key",
     ]);
-    expect(stagePlaneProps.find(({ id }) => id === "example.timeline.floor")).toMatchObject({
+    expect(stagePlaneProps.find(({ id }) => id === "example.managedStage.floor")).toMatchObject({
       timeline: {
         id: "example.managedTimeline",
-        active: { from: 0.18, to: 0.88 },
+        active: { from: 0.02, to: 0.9 },
       },
     });
-    expect(lightProps.find(({ id }) => id === "example.timeline.key")).toMatchObject({
+    expect(stageBoxProps.find(({ id }) => id === "example.managedStage.plinth")).toMatchObject({
       timeline: {
         id: "example.managedTimeline",
-        active: { from: 0.34, to: 1 },
+        active: { from: 0.02, to: 0.86 },
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.managedStage.cardBackplate")).toMatchObject({
+      size: [430, 220, 12],
+      position: [230, -64, 70],
+      material: { kind: "basic", color: "#f2c656", opacity: 0.96 },
+      timeline: {
+        id: "example.managedTimeline",
+        active: { from: 0.2, to: 0.9 },
+      },
+    });
+    expect(lightProps.find(({ id }) => id === "example.managedStage.key")).toMatchObject({
+      timeline: {
+        id: "example.managedTimeline",
+        active: { from: 0.02, to: 0.92 },
       },
     });
 
@@ -339,7 +351,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-26);
+    const finalTargetProps = targetProps.slice(-27);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -347,6 +359,7 @@ describe("effect authoring example app", () => {
       "example.surface.video-background",
       "example.surface.ghost-cursor",
       "example.surface.waves",
+      "example.managedStage.card",
       "example.text.wave",
       "example.text.reveal",
       "example.text.spotlight",
@@ -375,6 +388,7 @@ describe("effect authoring example app", () => {
       "section",
       "section",
       "section",
+      "article",
       "p",
       "p",
       "p",
@@ -398,6 +412,7 @@ describe("effect authoring example app", () => {
       "p",
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.source)).toEqual([
+      { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
@@ -442,6 +457,7 @@ describe("effect authoring example app", () => {
       "example.surfaceVideoBackground",
       "example.surfaceGhostCursor",
       "example.surfaceWaves",
+      "example.managedTimelineCard",
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
@@ -464,37 +480,53 @@ describe("effect authoring example app", () => {
       "example.modelFloatGlow",
       "example.pinnedReveal",
     ]);
-    expect(finalTargetProps[16]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[17]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[5]?.webgl).toMatchObject({
+      key: "example.managedStage.card",
+      source: { kind: "dom", type: "element" },
+      placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
+      lifecycle: { hideWhenReady: true, hideMode: "self" },
+      timeline: {
+        id: "example.managedTimeline",
+        active: { from: 0.2, to: 0.9 },
+      },
+      effects: [
+        {
+          kind: "example.managedTimelineCard",
+          progressKey: "example.managedTimeline",
+        },
+      ],
+    });
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();
-    expect(finalTargetProps[17]?.webgl.lifecycle).toEqual({
-      hideWhenReady: true,
-      hideMode: "self",
-    });
-    expect(finalTargetProps[17]?.webgl.effects?.[0]).toMatchObject({
-      kind: "example.mediaPointerParallax",
-      bleed: 0.08,
-      strength: 0.72,
-    });
     expect(finalTargetProps[18]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
-    expect(finalTargetProps[18]?.webgl).toMatchObject({
+    expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
+      kind: "example.mediaPointerParallax",
+      bleed: 0.08,
+      strength: 0.72,
+    });
+    expect(finalTargetProps[19]?.webgl.lifecycle).toEqual({
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+    expect(finalTargetProps[19]?.webgl).toMatchObject({
       key: "example.image-sequence.card",
       source: { kind: "dom", type: "element" },
       transformScope: "subtree",
     });
-    expect(finalTargetProps[18]?.webgl).not.toHaveProperty("renderRole");
-    expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[19]?.webgl).not.toHaveProperty("renderRole");
+    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 96,
       minOpacity: 0.72,
       maxOpacity: 1,
     });
-    expect(finalTargetProps[18]?.webgl.effects?.[1]).toMatchObject({
+    expect(finalTargetProps[19]?.webgl.effects?.[1]).toMatchObject({
       kind: "example.sequenceCardBorderGlow",
       edgeSensitivity: 0.28,
       colorSensitivity: 0.48,
@@ -502,7 +534,7 @@ describe("effect authoring example app", () => {
       glowIntensity: 1,
       fillOpacity: 0.46,
     });
-    expect(finalTargetProps[19]?.webgl).toMatchObject({
+    expect(finalTargetProps[20]?.webgl).toMatchObject({
       key: "example.image-sequence.card.title",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -514,7 +546,7 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[20]?.webgl).toMatchObject({
+    expect(finalTargetProps[21]?.webgl).toMatchObject({
       key: "example.image-sequence.card.description",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -537,11 +569,12 @@ describe("effect authoring example app", () => {
       "example.managedTimeline",
     ]);
     expect(scrollTimelineProps[0]).toMatchObject({
-      className: "example-row example-timeline-dogfood",
-      end: "bottom top",
+      className: "example-row example-managed-stage-timeline",
+      end: "+=240%",
       id: "example.managedTimeline",
+      pin: true,
       scrub: true,
-      start: "top bottom",
+      start: "top top",
     });
     expect(scrollTimelineProps[0]?.progressKey).toBeUndefined();
     expect(scrollSectionProps.at(-2)).toMatchObject({
@@ -559,14 +592,14 @@ describe("effect authoring example app", () => {
     const pinnedSection = host.querySelector(".example-pinned-row");
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
-    expect(finalTargetProps[23]?.webgl).toMatchObject({
+    expect(finalTargetProps[24]?.webgl).toMatchObject({
       key: "example.model.dark-scene",
       source: { kind: "dom", type: "element" },
       renderRole: "surface",
       lifecycle: { hideWhenReady: true, hideMode: "self" },
       effects: [{ kind: "example.modelDarkScene" }],
     });
-    expect(finalTargetProps[24]?.webgl).toMatchObject({
+    expect(finalTargetProps[25]?.webgl).toMatchObject({
       key: "example.model.float-glow",
       source: {
         kind: "model",
@@ -584,22 +617,27 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[25]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[26]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
 
-    const firstSequenceCardEffects = finalTargetProps[18]?.webgl.effects;
+    const firstSequenceCardEffects = finalTargetProps[19]?.webgl.effects;
     await act(async () => {
       root.render(createElement(App));
     });
 
-    const firstPinnedTarget = finalTargetProps[25];
+    const firstManagedStageTarget = finalTargetProps[5];
+    const firstPinnedTarget = finalTargetProps[26];
     const secondSequenceCardTarget = targetProps
-      .slice(-26)
+      .slice(-27)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
+    const secondManagedStageTarget = targetProps
+      .slice(-27)
+      .find(({ webgl }) => webgl.key === "example.managedStage.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);
+    expect(secondManagedStageTarget?.webgl.effects).toBe(firstManagedStageTarget?.webgl.effects);
     expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");
     expect(secondPinnedTarget?.webgl.effects).toBe(firstPinnedTarget?.webgl.effects);
   });

@@ -138,6 +138,9 @@ phase records are archived under [archive/](./archive/).
   by progress range. Active ranges do not override explicit effect visibility or
   `visible: false` declarations. They also do not make a nested `WebGLScene` a
   local clipped viewport. DOM-bound pass viewport/scissor remains Phase 6 work.
+- The managed timeline example keeps its visible `WebGLTarget` in the default
+  target pipeline and reads the same timeline progress signal as the managed
+  scene; it is not a scene-local or DOM-clipped viewport example.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

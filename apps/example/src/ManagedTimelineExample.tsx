@@ -7,139 +7,222 @@ import {
   WebGLLight,
   WebGLCamera,
   WebGLScene,
+  WebGLStageBox,
   WebGLStagePlane,
+  WebGLTarget,
   type WebGLCameraProps,
   type WebGLLightProps,
   type WebGLSceneProps,
   type WebGLSceneRenderOptions,
+  type WebGLStageBoxProps,
   type WebGLStagePlaneProps,
+  type WebGLTargetProps,
 } from "@project/dom-webgl-runtime/react";
 
 const managedTimelineId = "example.managedTimeline";
-const timelineStart = "top bottom" satisfies NonNullable<
+const timelineStart = "top top" satisfies NonNullable<
   WebGLScrollTimelineProps["start"]
 >;
-const timelineEnd = "bottom top" satisfies NonNullable<
+const timelineEnd = "+=240%" satisfies NonNullable<
   WebGLScrollTimelineProps["end"]
 >;
 
 const timelineSceneRender = {
-  camera: "example.timeline.camera",
+  camera: "example.managedStage.camera",
   order: -8,
   clearDepth: true,
 } satisfies WebGLSceneRenderOptions;
 const timelineSceneBinding = {
   id: managedTimelineId,
-  active: { from: 0.08, to: 0.94 },
+  active: { from: 0.02, to: 0.94 },
 } satisfies NonNullable<WebGLSceneProps["timeline"]>;
 
 const floorTimelineBinding = {
   id: managedTimelineId,
-  active: { from: 0.18, to: 0.88 },
+  active: { from: 0.02, to: 0.9 },
 } satisfies NonNullable<WebGLStagePlaneProps["timeline"]>;
 const backdropTimelineBinding = {
   id: managedTimelineId,
-  active: { from: 0.26, to: 0.92 },
+  active: { from: 0.02, to: 0.94 },
 } satisfies NonNullable<WebGLStagePlaneProps["timeline"]>;
+const plinthTimelineBinding = {
+  id: managedTimelineId,
+  active: { from: 0.02, to: 0.86 },
+} satisfies NonNullable<WebGLStageBoxProps["timeline"]>;
+const ambientTimelineBinding = {
+  id: managedTimelineId,
+  active: { from: 0.02, to: 0.94 },
+} satisfies NonNullable<WebGLLightProps["timeline"]>;
 const lightTimelineBinding = {
   id: managedTimelineId,
-  active: { from: 0.34, to: 1 },
+  active: { from: 0.02, to: 0.92 },
 } satisfies NonNullable<WebGLLightProps["timeline"]>;
+const targetTimelineBinding = {
+  id: managedTimelineId,
+  active: { from: 0.2, to: 0.9 },
+} satisfies NonNullable<WebGLTargetProps<"article">["webgl"]["timeline"]>;
 
-const cameraPosition = [0, 96, 480] satisfies NonNullable<
+const cameraPosition = [0, 136, 560] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
-const cameraTarget = [0, -70, -40] satisfies NonNullable<
+const cameraTarget = [0, -88, -40] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 
-const floorSize = [780, 420] satisfies NonNullable<
+const floorSize = [920, 520] satisfies NonNullable<
   WebGLStagePlaneProps["size"]
 >;
-const floorPosition = [0, -160, 0] satisfies NonNullable<
+const floorPosition = [0, -178, 0] satisfies NonNullable<
   WebGLStagePlaneProps["position"]
 >;
 const floorMaterial = {
   kind: "standard",
-  color: "#13251f",
-  roughness: 0.8,
+  color: "#16241f",
+  roughness: 0.82,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+const floorPlaneProps = {
+  id: "example.managedStage.floor",
+  role: "floor",
+  size: floorSize,
+  position: floorPosition,
+  material: floorMaterial,
+  timeline: floorTimelineBinding,
+} satisfies WebGLStagePlaneProps;
 
-const backdropSize = [780, 360] satisfies NonNullable<
+const backdropSize = [920, 430] satisfies NonNullable<
   WebGLStagePlaneProps["size"]
 >;
-const backdropPosition = [0, 4, -250] satisfies NonNullable<
+const backdropPosition = [0, 18, -290] satisfies NonNullable<
   WebGLStagePlaneProps["position"]
 >;
 const backdropMaterial = {
   kind: "standard",
-  color: "#234036",
-  roughness: 0.68,
+  color: "#1f3a32",
+  roughness: 0.7,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+const backdropPlaneProps = {
+  id: "example.managedStage.backdrop",
+  role: "backdrop",
+  size: backdropSize,
+  position: backdropPosition,
+  material: backdropMaterial,
+  timeline: backdropTimelineBinding,
+} satisfies WebGLStagePlaneProps;
 
-const keyLightPosition = [-160, 120, 180] satisfies NonNullable<
+const plinthSize = [220, 96, 180] satisfies NonNullable<
+  WebGLStageBoxProps["size"]
+>;
+const plinthPosition = [0, -130, -56] satisfies NonNullable<
+  WebGLStageBoxProps["position"]
+>;
+const plinthMaterial = {
+  kind: "standard",
+  color: "#566b61",
+  roughness: 0.56,
+} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+const cardBackplateSize = [430, 220, 12] satisfies NonNullable<
+  WebGLStageBoxProps["size"]
+>;
+const cardBackplatePosition = [230, -64, 70] satisfies NonNullable<
+  WebGLStageBoxProps["position"]
+>;
+const cardBackplateMaterial = {
+  kind: "basic",
+  color: "#f2c656",
+  opacity: 0.96,
+} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+
+const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
+
+const managedStageCardWebgl = {
+  key: "example.managedStage.card",
+  source: { kind: "dom", type: "element" },
+  placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
+  lifecycle: { hideWhenReady: true, hideMode: "self" },
+  timeline: targetTimelineBinding,
+  effects: [
+    {
+      kind: "example.managedTimelineCard",
+      progressKey: managedTimelineId,
+    },
+  ],
+} satisfies WebGLTargetProps<"article">["webgl"];
 
 export function ManagedTimelineExample() {
   return (
     <WebGLScrollTimeline
       id={managedTimelineId}
-      className="example-row example-timeline-dogfood"
+      className="example-row example-managed-stage-timeline"
       start={timelineStart}
       end={timelineEnd}
+      pin
       scrub
     >
-      <div className="example-timeline-copy">
-        <p className="example-kicker">managed timeline</p>
-        <h2>命名滚动 timeline 驱动 managed scene</h2>
+      <div className="example-managed-stage-copy">
+        <p className="example-kicker">pinned managed scene</p>
+        <h2>滚动固定的声明式 3D 舞台</h2>
         <p>
-          这个例子只声明一个 app-owned progress 名字；scene、stage primitive 和
-          light 绑定同一个 timeline，runtime 决定舞台对象何时参与渲染。
+          同一个 timeline 驱动 scene、floor、backdrop、box、light；右侧卡片是
+          走默认 target 管线的 WebGLTarget。
         </p>
       </div>
 
-      <div className="example-timeline-stage" aria-hidden="true">
-        <WebGLScene
-          id="example.timeline.scene"
-          projection="perspective-stage"
-          render={timelineSceneRender}
-          timeline={timelineSceneBinding}
-        >
-          <WebGLCamera
-            id="example.timeline.camera"
-            default
-            type="perspective"
-            mode="perspective-stage"
-            position={cameraPosition}
-            target={cameraTarget}
-          />
-          <WebGLStagePlane
-            id="example.timeline.floor"
-            role="floor"
-            size={floorSize}
-            position={floorPosition}
-            material={floorMaterial}
-            timeline={floorTimelineBinding}
-          />
-          <WebGLStagePlane
-            id="example.timeline.backdrop"
-            role="backdrop"
-            size={backdropSize}
-            position={backdropPosition}
-            material={backdropMaterial}
-            timeline={backdropTimelineBinding}
-          />
-          <WebGLLight
-            id="example.timeline.key"
-            kind="point"
-            color="#f6c453"
-            intensity={1.7}
-            position={keyLightPosition}
-            timeline={lightTimelineBinding}
-          />
-        </WebGLScene>
-      </div>
+      <WebGLScene
+        id="example.managedStage.scene"
+        projection="perspective-stage"
+        render={timelineSceneRender}
+        timeline={timelineSceneBinding}
+      >
+        <WebGLCamera
+          id="example.managedStage.camera"
+          default
+          type="perspective"
+          mode="perspective-stage"
+          position={cameraPosition}
+          target={cameraTarget}
+        />
+        <WebGLStagePlane {...floorPlaneProps} />
+        <WebGLStagePlane {...backdropPlaneProps} />
+        <WebGLStageBox
+          id="example.managedStage.plinth"
+          size={plinthSize}
+          position={plinthPosition}
+          material={plinthMaterial}
+          timeline={plinthTimelineBinding}
+        />
+        <WebGLStageBox
+          id="example.managedStage.cardBackplate"
+          size={cardBackplateSize}
+          position={cardBackplatePosition}
+          material={cardBackplateMaterial}
+          timeline={targetTimelineBinding}
+        />
+        <WebGLLight
+          id="example.managedStage.ambient"
+          kind="ambient"
+          intensity={0.24}
+          timeline={ambientTimelineBinding}
+        />
+        <WebGLLight
+          id="example.managedStage.key"
+          kind="point"
+          color="#f6c453"
+          intensity={1.85}
+          position={keyLightPosition}
+          timeline={lightTimelineBinding}
+        />
+      </WebGLScene>
+      <WebGLTarget
+        as="article"
+        className="example-managed-stage-card"
+        webgl={managedStageCardWebgl}
+      >
+        <span>WebGLTarget</span>
+        <strong>Timeline driven card</strong>
+        <em>same progress signal</em>
+      </WebGLTarget>
     </WebGLScrollTimeline>
   );
 }

@@ -19,6 +19,7 @@ export type ExampleEffectParams = {
     amplitude?: number;
     speed?: number;
   };
+  "example.managedTimelineCard": { progressKey: string };
   "example.pinnedReveal": { progressKey: string; color?: string };
   "example.sequenceCardSlide": {
     progressKey: string;
@@ -64,6 +65,7 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.surfaceVideoBackground", videoSrc: "/example/bg.mp4", opacity: 0.84 },
   { kind: "example.surfaceGhostCursor", trailLength: 32, color: "#b497cf", opacity: 0.9 },
   { kind: "example.surfaceWaves", lineColor: "#172124", opacity: 0.82 },
+  { kind: "example.managedTimelineCard", progressKey: "example.managedTimeline" },
   { kind: "example.textWave", amplitude: 7 },
   { kind: "example.textReveal", color: "#d95f42" },
   { kind: "example.textSpotlight", color: "#f6c453", radius: 180 },

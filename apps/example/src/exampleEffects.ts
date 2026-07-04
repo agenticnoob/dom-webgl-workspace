@@ -29,6 +29,7 @@ export {
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
+export { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 export {
   exampleSequenceCardBorderGlowEffect,
   exampleSequenceCardSlideEffect,
@@ -52,6 +53,7 @@ import {
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
+import { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 import {
   exampleSequenceCardBorderGlowEffect,
@@ -80,6 +82,7 @@ export const exampleEffects = [
   exampleSurfaceVideoBackgroundEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfaceWavesEffect,
+  exampleManagedTimelineCardEffect,
   exampleTextWaveEffect,
   exampleTextRevealEffect,
   exampleTextSpotlightEffect,

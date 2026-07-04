@@ -35,6 +35,13 @@ const floorMaterial = {
   color: "#111827",
   roughness: 0.84,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+const floorPlaneProps = {
+  id: "example.stage.floor",
+  role: "floor",
+  size: floorSize,
+  position: floorPosition,
+  material: floorMaterial,
+} satisfies WebGLStagePlaneProps;
 
 const backdropSize = [900, 420] satisfies NonNullable<
   WebGLStagePlaneProps["size"]
@@ -47,6 +54,13 @@ const backdropMaterial = {
   color: "#172554",
   roughness: 0.72,
 } satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+const backdropPlaneProps = {
+  id: "example.stage.backdrop",
+  role: "backdrop",
+  size: backdropSize,
+  position: backdropPosition,
+  material: backdropMaterial,
+} satisfies WebGLStagePlaneProps;
 
 const plinthSize = [180, 96, 180] satisfies NonNullable<
   WebGLStageBoxProps["size"]
@@ -90,20 +104,8 @@ export function ManagedStagePrimitiveExample() {
             position={cameraPosition}
             target={cameraTarget}
           />
-          <WebGLStagePlane
-            id="example.stage.floor"
-            role="floor"
-            size={floorSize}
-            position={floorPosition}
-            material={floorMaterial}
-          />
-          <WebGLStagePlane
-            id="example.stage.backdrop"
-            role="backdrop"
-            size={backdropSize}
-            position={backdropPosition}
-            material={backdropMaterial}
-          />
+          <WebGLStagePlane {...floorPlaneProps} />
+          <WebGLStagePlane {...backdropPlaneProps} />
           <WebGLStageBox
             id="example.stage.plinth"
             size={plinthSize}

@@ -10,6 +10,7 @@ describe("example effect catalog", () => {
       "example.surfaceVideoBackground",
       "example.surfaceGhostCursor",
       "example.surfaceWaves",
+      "example.managedTimelineCard",
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
@@ -63,6 +64,10 @@ describe("example effect catalog", () => {
       kind: "example.surfaceVideoBackground",
       videoSrc: "/example/bg.mp4",
       opacity: 0.84,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.managedTimelineCard",
+      progressKey: "example.managedTimeline",
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.textSpotlight",

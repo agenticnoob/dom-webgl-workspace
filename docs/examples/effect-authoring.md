@@ -153,34 +153,59 @@ pinned sections.
 
 ```tsx
 <WebGLScrollRuntime effects={exampleEffects} smooth={exampleSmoothScrollOptions}>
-  <WebGLScrollTimeline id="example.managedTimeline" start="top bottom" end="bottom top" scrub>
+  <WebGLScrollTimeline id="example.managedTimeline" start="top top" end="+=240%" pin scrub>
     <WebGLScene
-      id="example.timeline.scene"
+      id="example.managedStage.scene"
       projection="perspective-stage"
-      render={{ camera: "example.timeline.camera", order: -8, clearDepth: true }}
+      render={{ camera: "example.managedStage.camera", order: -8, clearDepth: true }}
       timeline={{
         id: "example.managedTimeline",
-        active: { from: 0.08, to: 0.94 },
+        active: { from: 0.02, to: 0.94 },
       }}
     >
-      <WebGLCamera id="example.timeline.camera" default type="perspective" />
+      <WebGLCamera id="example.managedStage.camera" default type="perspective" />
       <WebGLStagePlane
-        id="example.timeline.floor"
+        id="example.managedStage.floor"
         role="floor"
         timeline={{
           id: "example.managedTimeline",
-          active: { from: 0.18, to: 0.88 },
+          active: { from: 0.02, to: 0.9 },
+        }}
+      />
+      <WebGLStageBox
+        id="example.managedStage.plinth"
+        timeline={{
+          id: "example.managedTimeline",
+          active: { from: 0.02, to: 0.86 },
         }}
       />
       <WebGLLight
-        id="example.timeline.key"
+        id="example.managedStage.key"
         kind="point"
         timeline={{
           id: "example.managedTimeline",
-          active: { from: 0.34, to: 1 },
+          active: { from: 0.02, to: 0.92 },
         }}
       />
     </WebGLScene>
+    <WebGLTarget
+      as="article"
+      webgl={{
+        key: "example.managedStage.card",
+        source: { kind: "dom", type: "element" },
+        placement: { mode: "screen-depth", depth: 120, size: [360, 136] },
+        timeline: {
+          id: "example.managedTimeline",
+          active: { from: 0.2, to: 0.9 },
+        },
+        effects: [
+          {
+            kind: "example.managedTimelineCard",
+            progressKey: "example.managedTimeline",
+          },
+        ],
+      }}
+    />
   </WebGLScrollTimeline>
 </WebGLScrollRuntime>
 ```
@@ -449,10 +474,11 @@ scrub section rather than global page scroll.
 `WebGLScrollRuntime` receives a notifying progress source from the scroll
 adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
 renderable even when no card effect is active in the viewport.
-The managed timeline row dogfoods `WebGLScrollTimeline` separately from the
-pinned image-sequence section. It binds a named progress signal to a managed
-scene, stage planes, and a light; it intentionally does not describe the nested
-scene as DOM-clipped, because DOM-bound pass viewport/scissor is Phase 6 work.
+The managed timeline dogfood uses a pinned full-canvas section, separately from
+the pinned image-sequence section. It binds a named progress signal to a managed
+scene, stage primitives, scene-owned lights, and a default-pipeline WebGL target
+surface. It intentionally does not describe the nested scene as DOM-clipped or as
+a local target viewport, because DOM-bound pass viewport/scissor is Phase 6 work.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.

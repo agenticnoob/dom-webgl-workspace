@@ -115,9 +115,11 @@ Current example behavior:
   transparent so the WebGL canvas remains visible. The pinned row itself is the
   whole trigger section; the example no longer appends a synthetic post-pinned
   runway sibling just to hand scroll control back.
-- The example also dogfoods `WebGLScrollTimeline` with a named managed timeline
-  bound to a `WebGLScene`, stage planes, and a light. It uses public React
-  descriptors only and does not present the nested scene as DOM-clipped; Phase 6
+- The example also dogfoods `WebGLScrollTimeline` with a pinned named managed
+  timeline bound to a `WebGLScene`, stage planes, a stage box, scene-owned
+  lights, and a visible `WebGLTarget` in the default target pipeline reading the
+  same progress signal. It uses public React descriptors only and does not
+  present the nested scene as DOM-clipped or as a local target viewport; Phase 6
   owns pass viewport/scissor.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
@@ -126,9 +128,9 @@ Current example behavior:
   `example.surfaceVideoBackground`, `example.surfaceGhostCursor`,
   `example.surfaceWaves`, `example.textWave`, `example.textReveal`,
   `example.textSpotlight`, `example.textPressure`, `example.textScramble`,
-  `example.textSpotlightPressureScrambleWave`, `example.imagePan`,
-  `example.imageZoom`, `example.imageKenBurns`, `example.imageHoverReveal`,
-  `example.mediaPointerParallax`,
+  `example.textSpotlightPressureScrambleWave`,
+  `example.managedTimelineCard`, `example.imagePan`, `example.imageZoom`,
+  `example.imageKenBurns`, `example.imageHoverReveal`, `example.mediaPointerParallax`,
   `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
   `example.sequenceCardBorderGlow`, `example.modelSpin`, and
   `example.modelFloat`, `example.modelFloatGlow`, plus the pinned-scroll
