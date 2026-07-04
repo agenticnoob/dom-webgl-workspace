@@ -97,6 +97,8 @@ import {
   type WebGLStagePlaneRole,
   type WebGLStagePrimitiveDeclaration,
   type WebGLStagePrimitiveKind,
+  type WebGLTimelineBindingDeclaration,
+  type WebGLProgressSignalSource,
   type WebGLTransformScope,
   type WebGLTuple2,
   type WebGLTuple3,
@@ -124,6 +126,7 @@ Use for the high-level pinned scroll React adapter:
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
+  WebGLScrollTimeline,
 } from "<scroll-adapters-package>/react";
 ```
 
@@ -392,8 +395,9 @@ Rules:
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
 - Scene-native `WebGLModel`, `screen-plane`, DOM-bound pass viewport/scissor,
-  pass-scoped postprocess, and scoped `ctx.scene`/`ctx.camera` effects remain
-  later phases.
+  pass-scoped postprocess, and camera-scoped effects/controllers remain later
+  phases. `ctx.scene` exists today as managed scene metadata/timeline scope,
+  not as a raw scene control handle.
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -489,8 +493,8 @@ Rules:
   work.
 - Treat stage primitive and light props as stable scene declarations. Ordinary
   React updates are supported through mount/unmount registration, but
-  high-frequency animation should use managed runtime state, effects, or future
-  Phase 5 timeline/controller scope instead of prop churn.
+  high-frequency animation should use timeline bindings plus managed runtime
+  state, effects, or controllers instead of prop churn.
 - The runtime creates and disposes internal Three meshes, geometry, materials,
   and lights. Do not pass raw Three meshes, materials, geometries, lights,
   scenes, cameras, renderers, or render-loop handles.
@@ -499,7 +503,78 @@ Rules:
 - `screen-plane` is still not available; use `screen-depth` or `stage-local`
   until that placement mode lands.
 
-### 4. High-Level Pinned Scroll React Adapter
+### 4. Managed Scroll Timelines And Scope Metadata
+
+Use named timelines when one progress signal should drive targets, managed
+scenes, stage primitives, scene-owned lights, or effects. The runtime consumes
+`WebGLProgressSignalSource`; the React scroll adapter can create that signal
+with a DOM-owned section ref.
+
+```tsx
+import {
+  WebGLScrollRuntime,
+  WebGLScrollTimeline,
+} from "<scroll-adapters-package>/react";
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLScene,
+  WebGLStagePlane,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLScrollRuntime effects={runtimeEffects}>
+      <WebGLScrollTimeline id="hero.timeline" start="top bottom" end="bottom top" scrub>
+        <WebGLScene
+          id="hero.scene"
+          projection="perspective-stage"
+          render={{ camera: "hero.camera" }}
+          timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
+        >
+          <WebGLCamera id="hero.camera" default type="perspective" />
+          <WebGLStagePlane
+            id="hero.floor"
+            role="floor"
+            timeline={{ id: "hero.timeline", active: { from: 0.2, to: 1 } }}
+          />
+          <WebGLLight
+            id="hero.key"
+            kind="point"
+            timeline={{ id: "hero.timeline", active: { from: 0.35, to: 1 } }}
+          />
+        </WebGLScene>
+      </WebGLScrollTimeline>
+    </WebGLScrollRuntime>
+  );
+}
+```
+
+Rules:
+
+- `timeline` accepts a string id or `{ id, progressKey?, active? }`.
+- `active.from` and `active.to` are normalized 0..1 bounds. Missing bounds
+  default to 0 and 1.
+- `WebGLScrollTimeline` defaults its `progressKey` to `id`.
+- `ScrollEffectSection` remains compatible sugar for ordinary target/effect
+  pinned sections that only need a `progressKey`.
+- `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
+  `WebGLLight` can bind timelines. `WebGLCamera` cannot.
+- Timeline bindings can activate/skip targets, scene passes, stage primitives,
+  and lights by progress range without rebuilding descriptors every frame.
+  Entering an active range restores only the declaration/effect-owned
+  visibility; it does not override `visible: false` or
+  `ctx.object.visible = false`.
+- Timeline bindings do not make a nested `WebGLScene` a DOM-clipped local
+  viewport. DOM-bound pass viewport/scissor belongs to Phase 6.
+- Effects can read progress through `ctx.progress.get(key)` or
+  `ctx.runtime.progress.get(key)`. Effects inside a managed scene receive
+  optional `ctx.scene` metadata and timeline snapshot.
+- `ctx.runtime` and `ctx.scene` are managed scope metadata. They are not raw
+  renderer, scene, pass, camera, or object handles, and there is no implicit
+  `ctx.camera`.
+
+### 5. High-Level Pinned Scroll React Adapter
 
 For the normal "pinned section drives an effect" story, use
 `<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
@@ -560,6 +635,8 @@ export function App() {
 Rules:
 
 - Effects read section progress with `ctx.progress.get(progressKey)`.
+- Effects can also read the same source through
+  `ctx.runtime.progress.get(progressKey)`.
 - Missing progress keys read as `0`.
 - Let `ScrollEffectSection` own GSAP ScrollTrigger `pin`/`scrub` for ordinary
   pinned effects.
@@ -585,7 +662,7 @@ Rules:
 - If `WebGLScrollRuntime` receives an advanced `scrollAdapter`, it bypasses its
   built-in smooth-stack creation and forwards that adapter to the runtime.
 
-### 5. Advanced Manual `scrollAdapter`
+### 6. Advanced Manual `scrollAdapter`
 
 Use a scroll adapter only when the application already owns a third-party
 scroll system:
@@ -1058,10 +1135,22 @@ Use context fields as the single runtime truth:
 - `ctx.scroll`: page or gate scroll state.
 - `ctx.scrollProgress`: active progress value for current scroll mode.
 - `ctx.progress`: keyed progress signals from the runtime.
+- `ctx.runtime`: runtime scope metadata and progress signal access.
+- `ctx.scene`: optional managed scene metadata and timeline snapshot.
 - `ctx.time`: runtime time in milliseconds.
 - `ctx.delta`: frame delta in milliseconds.
 - `ctx.object`: controlled visual facade and source-backed capability modules.
 - `ctx.resources`: effect-owned resource scope.
+
+Scope rule:
+
+- `ctx.runtime.progress.get(key)` reads the same keyed progress source as
+  `ctx.progress.get(key)`.
+- `ctx.scene` is present only when the target/update is routed through a managed
+  scene scope. It exposes descriptor metadata and timeline state, not a raw
+  Three.js scene.
+- There is no implicit `ctx.camera`; future camera motion/focus/framing must use
+  explicit camera/pass-bound descriptors or controllers.
 
 Pointer rule:
 

@@ -9,9 +9,9 @@ source-specific effect handles.
 ## Current Truth
 
 The current public effect context exposes `ctx.object`, `ctx.resources`,
-`ctx.pointer`, `ctx.targetPointer`, `ctx.progress`, `ctx.layout`, `ctx.input`,
-`ctx.scroll`, `ctx.scrollProgress`, `ctx.time`, `ctx.delta`, `ctx.key`, and
-`ctx.sourceKind`.
+`ctx.pointer`, `ctx.targetPointer`, `ctx.progress`, `ctx.runtime`,
+`ctx.scene`, `ctx.layout`, `ctx.input`, `ctx.scroll`, `ctx.scrollProgress`,
+`ctx.time`, `ctx.delta`, `ctx.key`, and `ctx.sourceKind`.
 
 `ctx.object` is the public authoring handle for transform, visibility, opacity,
 postprocess, and surface/text/texture/video/model source-backed capabilities.
@@ -24,6 +24,14 @@ Three.js vocabulary such as `position`, `rotation`, `scale`, `material`,
 `lights`, and `animation`, while the runtime owns raw Three.js renderer, scene,
 camera, objects, materials, textures, loaders, mixers, lights, render targets,
 scroll, pointer, lifecycle, disposal, and performance scheduling.
+
+`ctx.runtime` and `ctx.scene` are managed scope metadata, not raw handles.
+`ctx.runtime.progress.get(key)` reads the same keyed progress source as
+`ctx.progress.get(key)`. `ctx.scene` is optional and exposes descriptor
+metadata plus the scene timeline snapshot when the current target/update is
+routed through a managed scene. There is no implicit `ctx.camera`; camera
+motion/focus/framing must use future explicit camera/pass-bound descriptors or
+controllers.
 
 ## Product Thesis
 
@@ -129,6 +137,18 @@ Capabilities that do not apply to the current source should be absent or return
 a clear controlled diagnostic. They should not force users back into a separate
 source-handle mental model.
 
+Scope metadata sits beside `ctx.object`:
+
+```ts
+ctx.runtime.progress.get("hero.timeline");
+ctx.scene?.timeline?.progress;
+ctx.scene?.timeline?.active;
+```
+
+These scopes are read-only runtime facts and managed routing metadata today.
+They do not expose raw scene, camera, pass, renderer, composer, or object
+instances.
+
 ## Direction For Existing Handles
 
 Source, target, and visual handles should be treated as internal implementation
@@ -197,6 +217,6 @@ The effect object refactor is correct when:
   available through optional modules below `ctx.object`;
 - examples and docs teach `ctx.object` as the primary effect authoring model;
 - public tests reject raw Three.js imports, raw renderer/scene/camera/object
-  access, and loader escape hatches;
+  access, implicit `ctx.camera`, and loader escape hatches;
 - existing runtime ownership of canvas, scroll, pointer, resources, render loop,
   fallback visibility, and performance scheduling remains intact.

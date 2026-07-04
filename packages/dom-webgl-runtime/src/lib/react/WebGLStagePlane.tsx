@@ -22,6 +22,7 @@ export function WebGLStagePlane({
   scale,
   visible,
   material,
+  timeline,
 }: WebGLStagePlaneProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -45,12 +46,25 @@ export function WebGLStagePlane({
       ...(scale !== undefined ? { scale } : {}),
       ...(visible !== undefined ? { visible } : {}),
       ...(material !== undefined ? { material } : {}),
+      ...(timeline !== undefined ? { timeline } : {}),
     });
 
     return () => {
       runtime.unregisterStagePrimitive(id);
     };
-  }, [runtime, id, sceneId, role, size, position, rotation, scale, visible, material]);
+  }, [
+    runtime,
+    id,
+    sceneId,
+    role,
+    size,
+    position,
+    rotation,
+    scale,
+    visible,
+    material,
+    timeline,
+  ]);
 
   return null;
 }

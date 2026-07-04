@@ -410,7 +410,9 @@ describe("public package exports", () => {
 				          WebGLEffectPostprocessRequest,
 				          WebGLEffectRenderableHandle,
 				          WebGLEffectResourceScope,
+				          WebGLEffectRuntimeScope,
 				          WebGLEffectSchedule,
+				          WebGLEffectSceneScope,
 				          WebGLEffectContentBoxShaderInput,
 					          WebGLEffectMediaShaderInputs,
 					          WebGLEffectObjectFitShaderInput,
@@ -460,6 +462,9 @@ describe("public package exports", () => {
 	          WebGLPointerState,
 	          WebGLTargetPointerState,
 	          WebGLProgressSignalSource,
+	          WebGLEffectTimelineScope,
+	          WebGLTimelineActiveRangeDeclaration,
+	          WebGLTimelineBindingDeclaration,
 	          WebGLRenderRole,
 	          WebGLRenderPassDeclaration,
 	          WebGLResourceStatus,
@@ -581,10 +586,22 @@ describe("public package exports", () => {
             return key === "section.reveal" ? 0.5 : 0;
           },
         } satisfies WebGLProgressSignalSource;
+        const timelineActiveRange = {
+          from: 0.2,
+          to: 0.8,
+        } satisfies WebGLTimelineActiveRangeDeclaration;
+        const sceneTimeline =
+          "hero.3d" satisfies WebGLTimelineBindingDeclaration;
+        const activeTimeline = {
+          id: "hero.3d",
+          progressKey: "scroll.hero",
+          active: timelineActiveRange,
+        } satisfies WebGLTimelineBindingDeclaration;
         const sceneDeclaration = {
           id: "world",
           defaultCameraId: "world.camera",
           defaultPass: true,
+          timeline: activeTimeline,
         } satisfies WebGLSceneDeclaration;
 
         const cameraDeclaration = {
@@ -626,6 +643,7 @@ describe("public package exports", () => {
           role: stagePlaneRole,
           size: [1200, 800],
           material: standardStageMaterial,
+          timeline: sceneTimeline,
         } satisfies WebGLStagePlaneDeclaration;
         const stageBoxDeclaration = {
           id: "stage.box",
@@ -644,6 +662,7 @@ describe("public package exports", () => {
           color: "#7dd3fc",
           intensity: 1.8,
           position: [0, 0, 160],
+          timeline: sceneTimeline,
         } satisfies WebGLLightDeclaration;
 
         const projection = "dom-aligned" satisfies WebGLSceneProjection;
@@ -701,6 +720,11 @@ describe("public package exports", () => {
           source: { kind: "dom", type: "element" },
           placement: screenPlacement,
         } satisfies WebGLDeclaration;
+        const timelineDeclaration = {
+          key: "timeline.target",
+          timeline: activeTimeline,
+          source: { kind: "dom", type: "element" },
+        } satisfies WebGLDeclaration;
         const overlayPass = {
           id: "overlay.pass",
           sceneId: "overlay",
@@ -738,6 +762,9 @@ describe("public package exports", () => {
         stageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
         stagePrimitiveDeclaration satisfies WebGLStagePrimitiveDeclaration;
         lightDeclaration satisfies WebGLLightDeclaration;
+        timelineActiveRange satisfies WebGLTimelineActiveRangeDeclaration;
+        sceneTimeline satisfies WebGLTimelineBindingDeclaration;
+        activeTimeline satisfies WebGLTimelineBindingDeclaration;
         projection satisfies WebGLSceneProjection;
         cameraType satisfies WebGLCameraType;
         cameraMode satisfies WebGLCameraMode;
@@ -749,6 +776,7 @@ describe("public package exports", () => {
         perspectivePlacement satisfies WebGLPlacementDeclaration;
         stagePlacement satisfies WebGLPlacementDeclaration;
         overlayDeclaration satisfies WebGLDeclaration;
+        timelineDeclaration satisfies WebGLDeclaration;
         overlayPass satisfies WebGLRenderPassDeclaration;
         cameraFraming satisfies WebGLCameraFramingDeclaration;
 		        const runtimeOptionsWithScrollAdapter = {
@@ -893,6 +921,11 @@ describe("public package exports", () => {
         ({ key: "raw.object", object3D: {} } satisfies WebGLDeclaration);
         // @ts-expect-error render passes do not accept raw render targets.
         ({ sceneId: "world", renderTarget: {} } satisfies WebGLRenderPassDeclaration);
+        declare const rawTimelineController: { progress(): number };
+        // @ts-expect-error raw GSAP/controller objects are not timeline declarations.
+        ({ id: "raw.timeline", timeline: rawTimelineController } satisfies WebGLSceneDeclaration);
+        // @ts-expect-error camera declarations do not accept timeline in Phase 5.
+        ({ id: "camera.timeline", sceneId: "world", timeline: "hero.3d" } satisfies WebGLCameraDeclaration);
 
         const pointerDeclaration = {
           hover: true,
@@ -924,6 +957,13 @@ describe("public package exports", () => {
 	        publicCtx.object.lights satisfies WebGLEffectLightsFacade | undefined;
 	        publicCtx.object.animation satisfies WebGLEffectAnimationFacade | undefined;
 	        publicCtx.resources satisfies WebGLEffectResourceScope;
+	        publicCtx.runtime satisfies WebGLEffectRuntimeScope;
+	        publicCtx.runtime.progress.get("section") satisfies number;
+	        publicCtx.scene?.id satisfies string | undefined;
+	        publicCtx.scene?.projection satisfies WebGLSceneProjection | undefined;
+	        publicCtx.scene?.timeline?.progress satisfies number | undefined;
+	        publicCtx.scene satisfies WebGLEffectSceneScope | undefined;
+	        publicCtx.scene?.timeline satisfies WebGLEffectTimelineScope | undefined;
 	        publicCtx.targetPointer.localX satisfies number;
 	        publicCtx.progress.get("section") satisfies number;
 	        const colorValue = "#7dd3fc" satisfies WebGLEffectColorValue;
@@ -963,6 +1003,10 @@ describe("public package exports", () => {
         publicCtx.target;
         // @ts-expect-error use ctx.object.postprocess instead.
         publicCtx.visual;
+        // @ts-expect-error scene scope exposes managed metadata only, not raw Three scenes.
+        publicCtx.scene?.scene;
+        // @ts-expect-error target-local effects do not receive implicit camera scope.
+        publicCtx.camera;
 
         // @ts-expect-error pointer.move is an event-level name, not the public target pointer contract.
         ({ move: true } satisfies WebGLPointerDeclaration);

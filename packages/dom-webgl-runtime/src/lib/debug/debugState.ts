@@ -140,6 +140,17 @@ export function createDebugState(
       id: entry.id,
       sceneId: entry.sceneId,
       kind: entry.kind,
+      ...(entry.timeline
+        ? {
+            timeline: {
+              id: entry.timeline.id,
+              progressKey: entry.timeline.progressKey,
+              ...(entry.timeline.active !== undefined
+                ? { active: entry.timeline.active }
+                : {}),
+            },
+          }
+        : {}),
     }));
   }
 
@@ -149,6 +160,17 @@ export function createDebugState(
       id: entry.id,
       sceneId: entry.sceneId,
       kind: entry.kind,
+      ...(entry.timeline
+        ? {
+            timeline: {
+              id: entry.timeline.id,
+              progressKey: entry.timeline.progressKey,
+              ...(entry.timeline.active !== undefined
+                ? { active: entry.timeline.active }
+                : {}),
+            },
+          }
+        : {}),
     }));
   }
 

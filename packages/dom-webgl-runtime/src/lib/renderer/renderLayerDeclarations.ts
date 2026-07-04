@@ -14,6 +14,10 @@ import type {
   WebGLTuple2,
   WebGLTuple3,
 } from "../types";
+import {
+  normalizeTimelineBinding,
+  type NormalizedTimelineBinding,
+} from "../timeline/timelineDeclarations";
 
 export const generatedRenderLayerId = "__dom-webgl-default__";
 
@@ -22,6 +26,7 @@ export type NormalizedRenderLayerSceneDeclaration = {
   projection: WebGLSceneProjection;
   defaultCameraId?: string;
   defaultPass: boolean;
+  timeline?: NormalizedTimelineBinding;
 };
 
 export type NormalizedRenderLayerCameraDeclaration = {
@@ -85,6 +90,9 @@ export function normalizeRenderLayerSceneDeclaration(
     projection,
     ...(defaultCameraId ? { defaultCameraId } : {}),
     defaultPass: declaration.defaultPass ?? false,
+    ...(declaration.timeline
+      ? { timeline: normalizeTimelineBinding(declaration.timeline) }
+      : {}),
   };
 }
 

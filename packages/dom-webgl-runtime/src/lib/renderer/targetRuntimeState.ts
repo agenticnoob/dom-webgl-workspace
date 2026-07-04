@@ -24,6 +24,7 @@ export type TargetRuntimeState = {
   parkedAtByTargetKey: Map<string, number>;
   parkedVisibilityByTargetKey: Map<string, boolean>;
   effectVisibilityByTargetKey: Map<string, boolean>;
+  timelineActiveByTargetKey: Map<string, boolean>;
   lifecycleVersionByTargetKey: Map<string, number>;
   effectControllersByTargetKey: Map<string, WebGLEffectController>;
   debugRecordsByTargetKey: Map<string, TargetDebugRecord>;
@@ -44,6 +45,7 @@ export function createTargetRuntimeState(
     parkedAtByTargetKey: new Map<string, number>(),
     parkedVisibilityByTargetKey: new Map<string, boolean>(),
     effectVisibilityByTargetKey: new Map<string, boolean>(),
+    timelineActiveByTargetKey: new Map<string, boolean>(),
     lifecycleVersionByTargetKey: new Map<string, number>(),
     effectControllersByTargetKey: new Map<string, WebGLEffectController>(),
     debugRecordsByTargetKey: new Map<string, TargetDebugRecord>(),
@@ -73,6 +75,7 @@ export function disposeTargetRuntimeState(state: TargetRuntimeState): void {
     state.parkedAtByTargetKey.clear();
     state.parkedVisibilityByTargetKey.clear();
     state.effectVisibilityByTargetKey.clear();
+    state.timelineActiveByTargetKey.clear();
     state.lifecycleVersionByTargetKey.clear();
     state.targetLayersByTargetKey.clear();
     state.orderingsByTargetKey.clear();
@@ -101,6 +104,7 @@ export function disposeTargetRenderable(
   effectController?.dispose();
   state.effectControllersByTargetKey.delete(key);
   state.effectVisibilityByTargetKey.delete(key);
+  state.timelineActiveByTargetKey.delete(key);
 
   if (!renderable) {
     state.debugRecordsByTargetKey.delete(key);
@@ -175,6 +179,7 @@ export function disposeOffscreenRenderable(
   state.renderablesByTargetKey.delete(input.key);
   state.parkedAtByTargetKey.delete(input.key);
   state.parkedVisibilityByTargetKey.delete(input.key);
+  state.timelineActiveByTargetKey.delete(input.key);
   state.lifecycleVersionByTargetKey.delete(input.key);
   state.targetLayersByTargetKey.delete(input.key);
   state.orderingsByTargetKey.delete(input.key);
@@ -191,7 +196,7 @@ export function createTrackedEffectTarget(
   return {
     setVisible(visible) {
       state.effectVisibilityByTargetKey.set(key, visible);
-      target.setVisible(visible);
+      target.setVisible(readEffectiveTargetVisibility(state, key, visible));
     },
     setPosition(x, y, z) {
       target.setPosition(x, y, z);
@@ -247,5 +252,16 @@ export function readRenderableVisibilityForPark(
     state.effectVisibilityByTargetKey.get(key) ??
     renderable.sceneObjectController?.visible ??
     true
+  );
+}
+
+export function readEffectiveTargetVisibility(
+  state: TargetRuntimeState,
+  key: string,
+  fallback = true,
+): boolean {
+  return (
+    (state.effectVisibilityByTargetKey.get(key) ?? fallback) &&
+    (state.timelineActiveByTargetKey.get(key) ?? true)
   );
 }

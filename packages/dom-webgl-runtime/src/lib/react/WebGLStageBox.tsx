@@ -21,6 +21,7 @@ export function WebGLStageBox({
   scale,
   visible,
   material,
+  timeline,
 }: WebGLStageBoxProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -43,12 +44,24 @@ export function WebGLStageBox({
       ...(scale !== undefined ? { scale } : {}),
       ...(visible !== undefined ? { visible } : {}),
       ...(material !== undefined ? { material } : {}),
+      ...(timeline !== undefined ? { timeline } : {}),
     });
 
     return () => {
       runtime.unregisterStagePrimitive(id);
     };
-  }, [runtime, id, sceneId, size, position, rotation, scale, visible, material]);
+  }, [
+    runtime,
+    id,
+    sceneId,
+    size,
+    position,
+    rotation,
+    scale,
+    visible,
+    material,
+    timeline,
+  ]);
 
   return null;
 }

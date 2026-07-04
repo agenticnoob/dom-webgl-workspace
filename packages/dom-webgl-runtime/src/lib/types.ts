@@ -123,6 +123,19 @@ export type WebGLProgressSignalSource = {
   subscribe?(listener: () => void): () => void;
 };
 
+export type WebGLTimelineActiveRangeDeclaration = {
+  readonly from?: number;
+  readonly to?: number;
+};
+
+export type WebGLTimelineBindingDeclaration =
+  | string
+  | {
+      readonly id: string;
+      readonly progressKey?: string;
+      readonly active?: WebGLTimelineActiveRangeDeclaration;
+    };
+
 export type WebGLTuple2 = readonly [number, number];
 
 export type WebGLTuple3 = readonly [number, number, number];
@@ -201,6 +214,7 @@ export type WebGLSceneDeclaration = {
   projection?: WebGLSceneProjection;
   defaultCameraId?: string;
   defaultPass?: boolean;
+  timeline?: WebGLTimelineBindingDeclaration;
 };
 
 export type WebGLCameraDeclaration = WebGLCameraFramingDeclaration & {
@@ -255,6 +269,7 @@ export type WebGLStagePrimitiveBaseDeclaration = {
   scale?: number | WebGLTuple3;
   visible?: boolean;
   material?: WebGLStageMaterialDeclaration;
+  timeline?: WebGLTimelineBindingDeclaration;
 };
 
 export type WebGLStagePlaneDeclaration =
@@ -286,11 +301,13 @@ export type WebGLLightDeclaration = {
   distance?: number;
   decay?: number;
   visible?: boolean;
+  timeline?: WebGLTimelineBindingDeclaration;
 };
 
 export type WebGLDeclaration = {
   key: string;
   sceneId?: string;
+  timeline?: WebGLTimelineBindingDeclaration;
   placement?: WebGLPlacementDeclaration;
   source?: WebGLSourceDeclaration;
   renderRole?: WebGLRenderRole;
@@ -449,16 +466,24 @@ export type WebGLLifecycleState =
   | "disposed"
   | "error";
 
+export type WebGLDebugTimelineSummary = {
+  id: string;
+  progressKey: string;
+  active?: boolean;
+};
+
 export type WebGLDebugStagePrimitiveSummary = {
   id: string;
   sceneId: string;
   kind: WebGLStagePrimitiveKind;
+  timeline?: WebGLDebugTimelineSummary;
 };
 
 export type WebGLDebugLightSummary = {
   id: string;
   sceneId: string;
   kind: WebGLLightKind;
+  timeline?: WebGLDebugTimelineSummary;
 };
 
 export type WebGLDebugState = {

@@ -42,6 +42,7 @@ describe("WebGLStagePlane", () => {
               id: "floor",
               role: "floor",
               size: [1200, 800],
+              timeline: "hero.3d",
             }),
           ),
         ),
@@ -54,6 +55,7 @@ describe("WebGLStagePlane", () => {
       kind: "plane",
       role: "floor",
       size: [1200, 800],
+      timeline: "hero.3d",
     });
 
     act(() => {

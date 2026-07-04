@@ -128,6 +128,34 @@ describe("WebGLTarget", () => {
     });
   });
 
+  test("forwards timeline declarations through the public webgl prop", async () => {
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const webgl: WebGLDeclaration = {
+      key: "story.timeline",
+      timeline: { id: "hero.3d", active: { from: 0.2, to: 0.8 } },
+    };
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLTarget, {
+            webgl,
+            id: "story-timeline",
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(
+      host.querySelector("#story-timeline"),
+      webgl,
+    );
+  });
+
   test("forwards lifecycle fallback declarations through the public webgl prop", async () => {
     const { WebGLRuntimeProvider, WebGLTarget } = await import("../../../src/react");
     const runtime = createRuntimeStub();

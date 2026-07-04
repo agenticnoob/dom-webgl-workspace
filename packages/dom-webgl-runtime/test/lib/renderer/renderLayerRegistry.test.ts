@@ -263,6 +263,63 @@ describe("createInternalRenderLayerRegistry", () => {
     expect(order).toEqual(["main", "overlay"]);
   });
 
+  test("skips timeline-bound scene passes while the active range is inactive", () => {
+    const mainAdapter = createSceneAdapter();
+    const worldAdapter = createSceneAdapter();
+    const order: string[] = [];
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(mainAdapter),
+      {
+        createManagedSceneAdapter() {
+          return {
+            scene: { label: "world-scene" },
+            camera: { label: "world-camera" },
+            sceneAdapter: worldAdapter,
+            resize() {
+              return;
+            },
+            dispose() {
+              return;
+            },
+          };
+        },
+      },
+    );
+
+    mainAdapter.render.mockImplementation(() => order.push("main"));
+    worldAdapter.render.mockImplementation(() => order.push("world"));
+    registry.registerScene({
+      id: "world",
+      defaultPass: true,
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+    registry.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+    });
+
+    expect(registry.getScene("world").timeline).toEqual({
+      id: "hero.3d",
+      progressKey: "hero.3d",
+      active: { from: 0.25, to: 0.75 },
+    });
+
+    registry.updateTimelineState({ get: () => 0.1 });
+    registry.renderPasses((_pass, scene) => {
+      scene.sceneAdapter.render();
+    });
+
+    expect(order).toEqual(["main"]);
+
+    registry.updateTimelineState({ get: () => 0.5 });
+    registry.renderPasses((_pass, scene) => {
+      scene.sceneAdapter.render();
+    });
+
+    expect(order).toEqual(["main", "main", "world"]);
+  });
+
   test("throws controlled diagnostics for duplicates and unresolved references", () => {
     const registry = createInternalRenderLayerRegistry(
       createRendererHostStub(createSceneAdapter()),

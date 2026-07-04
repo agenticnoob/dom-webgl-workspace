@@ -7,6 +7,7 @@ import type { WebGLDebugState } from "@project/dom-webgl-runtime";
 const runtimeProps: RuntimeMockProps[] = [];
 const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
 const scrollSectionProps: ScrollEffectSectionMockProps[] = [];
+const scrollTimelineProps: ScrollTimelineMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
@@ -50,6 +51,14 @@ type ScrollEffectSectionMockProps = {
   readonly start?: string;
 };
 
+type ScrollTimelineMockProps = Omit<
+  ScrollEffectSectionMockProps,
+  "progressKey"
+> & {
+  readonly id: string;
+  readonly progressKey?: string;
+};
+
 type RuntimeMockProps = {
   children?: ReactNode;
   effects?: readonly unknown[];
@@ -75,6 +84,7 @@ type SceneMockProps = {
   readonly id: string;
   readonly projection?: string;
   readonly render?: Record<string, unknown>;
+  readonly timeline?: Record<string, unknown>;
   readonly children?: ReactNode;
 };
 
@@ -93,6 +103,7 @@ type StagePlaneMockProps = {
   readonly size?: readonly [number, number];
   readonly position?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
+  readonly timeline?: Record<string, unknown>;
 };
 
 type StageBoxMockProps = {
@@ -108,6 +119,7 @@ type LightMockProps = {
   readonly intensity?: number;
   readonly position?: readonly [number, number, number];
   readonly color?: string;
+  readonly timeline?: Record<string, unknown>;
 };
 
 vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
@@ -124,6 +136,16 @@ vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   }: ScrollEffectSectionMockProps) => {
     scrollSectionProps.push({ as, children, className, progressKey, ...props });
     return createElement(as, { className, "data-progress-key": progressKey }, children);
+  },
+  WebGLScrollTimeline: ({
+    as = "section",
+    children,
+    className,
+    id,
+    ...props
+  }: ScrollTimelineMockProps) => {
+    scrollTimelineProps.push({ as, children, className, id, ...props });
+    return createElement(as, { className, "data-timeline-id": id }, children);
   },
   useScrollEffectProgressStore: () => ({
     source: {
@@ -202,6 +224,7 @@ describe("effect authoring example app", () => {
     runtimeProps.length = 0;
     scrollRuntimeProps.length = 0;
     scrollSectionProps.length = 0;
+    scrollTimelineProps.length = 0;
     targetProps.length = 0;
     sceneProps.length = 0;
     cameraProps.length = 0;
@@ -248,11 +271,23 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-stage-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-timeline-dogfood")).toBeInstanceOf(HTMLElement);
     expect(sceneProps).toContainEqual(
       expect.objectContaining({
         id: "example.stage.world",
         projection: "perspective-stage",
         render: { camera: "example.stage.camera", order: -10, clearDepth: true },
+      }),
+    );
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.timeline.scene",
+        projection: "perspective-stage",
+        render: { camera: "example.timeline.camera", order: -8, clearDepth: true },
+        timeline: {
+          id: "example.managedTimeline",
+          active: { from: 0.08, to: 0.94 },
+        },
       }),
     );
     expect(cameraProps).toContainEqual(
@@ -261,15 +296,31 @@ describe("effect authoring example app", () => {
         mode: "perspective-stage",
       }),
     );
+    expect(cameraProps.find(({ id }) => id === "example.timeline.camera")).not.toHaveProperty("timeline");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
+      "example.timeline.floor",
+      "example.timeline.backdrop",
     ]);
     expect(stageBoxProps.map(({ id }) => id)).toEqual(["example.stage.plinth"]);
     expect(lightProps.map(({ id }) => id)).toEqual([
       "example.stage.ambient",
       "example.stage.key",
+      "example.timeline.key",
     ]);
+    expect(stagePlaneProps.find(({ id }) => id === "example.timeline.floor")).toMatchObject({
+      timeline: {
+        id: "example.managedTimeline",
+        active: { from: 0.18, to: 0.88 },
+      },
+    });
+    expect(lightProps.find(({ id }) => id === "example.timeline.key")).toMatchObject({
+      timeline: {
+        id: "example.managedTimeline",
+        active: { from: 0.34, to: 1 },
+      },
+    });
 
     const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
     expect(firstDescriptionToggle).not.toBeNull();
@@ -482,6 +533,17 @@ describe("effect authoring example app", () => {
       "example.video.scrub",
       "example.pinned.reveal",
     ]);
+    expect(scrollTimelineProps.map(({ id }) => id)).toEqual([
+      "example.managedTimeline",
+    ]);
+    expect(scrollTimelineProps[0]).toMatchObject({
+      className: "example-row example-timeline-dogfood",
+      end: "bottom top",
+      id: "example.managedTimeline",
+      scrub: true,
+      start: "top bottom",
+    });
+    expect(scrollTimelineProps[0]?.progressKey).toBeUndefined();
     expect(scrollSectionProps.at(-2)).toMatchObject({
       className: "example-row example-video-scrub-row",
       end: "+=900%",

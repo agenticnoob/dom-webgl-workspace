@@ -419,6 +419,43 @@ body {
   flex: 1 1 420px;
 }
 
+.example-timeline-dogfood {
+  display: grid;
+  grid-template-columns: minmax(0, 0.86fr) minmax(320px, 1.14fr);
+  align-items: stretch;
+  min-height: 620px;
+  background: #dbe5df;
+}
+
+.example-timeline-copy {
+  display: grid;
+  align-content: center;
+  gap: var(--space-4);
+  max-width: 460px;
+  padding: var(--space-10);
+}
+
+.example-timeline-copy h2 {
+  margin: 0;
+  max-width: 13ch;
+  color: var(--color-text-primary);
+  font-size: clamp(2rem, 5.4vw, 4.5rem);
+  line-height: 0.95;
+}
+
+.example-timeline-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.example-timeline-stage {
+  min-height: 520px;
+  border-left: 1px solid rgba(23, 33, 36, 0.16);
+  background: #0f1d18;
+}
+
 @media (max-width: 760px) {
   .example-intro {
     padding: var(--space-8) var(--space-4);
@@ -461,5 +498,19 @@ body {
   .example-video-scrub-row .example-media {
     height: 100vh;
     min-height: 100vh;
+  }
+
+  .example-timeline-dogfood {
+    grid-template-columns: 1fr;
+  }
+
+  .example-timeline-copy {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .example-timeline-stage {
+    min-height: 420px;
+    border-left: 0;
+    border-top: 1px solid rgba(23, 33, 36, 0.16);
   }
 }

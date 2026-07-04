@@ -25,6 +25,28 @@ describe("render layer declaration normalization", () => {
     });
   });
 
+  test("normalizes scene timeline metadata", () => {
+    expect(
+      normalizeRenderLayerSceneDeclaration({
+        id: " world ",
+        timeline: {
+          id: " hero.3d ",
+          progressKey: " scroll.hero ",
+          active: { from: 0.2, to: 0.8 },
+        },
+      }),
+    ).toEqual({
+      id: "world",
+      projection: "dom-aligned",
+      defaultPass: false,
+      timeline: {
+        id: "hero.3d",
+        progressKey: "scroll.hero",
+        active: { from: 0.2, to: 0.8 },
+      },
+    });
+  });
+
   test("normalizes camera defaults under an explicit scene", () => {
     expect(
       normalizeRenderLayerCameraDeclaration({

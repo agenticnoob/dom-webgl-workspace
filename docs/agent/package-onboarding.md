@@ -77,6 +77,7 @@ import {
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
+  WebGLScrollTimeline,
 } from "<scroll-adapters-package>/react";
 ```
 
@@ -229,6 +230,8 @@ Rules:
 - Scene-native models, `screen-plane`, DOM-bound pass viewport/scissor,
   pass-scoped postprocess, and raw Three.js scene/camera/renderer handles remain
   future or non-public.
+- `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot. Camera
+  motion/focus/framing needs a future explicit camera/pass-bound controller.
 
 ## Opt-In Managed Stage Integration
 
@@ -303,14 +306,81 @@ Rules:
   work.
 - Keep stage primitive and light descriptor identity stable. Do not animate
   floor, box, or light values by rebuilding React descriptors every frame; use
-  managed runtime/effect/controller state or wait for Phase 5 scope where the
-  dynamic behavior belongs.
+  timeline bindings plus managed runtime/effect/controller state for
+  progress-driven activation.
 - Vanilla consumers can call `runtime.registerStagePrimitive(...)` and
   `runtime.registerLight(...)` with descriptor data.
 - Do not pass raw Three.js meshes, materials, geometries, lights, scenes,
   cameras, renderers, or render-loop handles.
 - `screen-plane` is still not available; use `screen-depth` or `stage-local`
   until the Phase 8 pre-step lands.
+
+## Managed Timeline Bindings
+
+Use named timelines when the same scroll/progress signal should drive targets,
+managed scenes, stage primitives, scene-owned lights, or effects. The scroll
+adapter provides the React convenience component; runtime core only sees a
+`WebGLProgressSignalSource`.
+
+```tsx
+import {
+  WebGLScrollRuntime,
+  WebGLScrollTimeline,
+} from "<scroll-adapters-package>/react";
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLScene,
+  WebGLStagePlane,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLScrollRuntime effects={runtimeEffects}>
+      <WebGLScrollTimeline id="hero.timeline" start="top bottom" end="bottom top" scrub>
+        <WebGLScene
+          id="hero.scene"
+          projection="perspective-stage"
+          render={{ camera: "hero.camera" }}
+          timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
+        >
+          <WebGLCamera id="hero.camera" default type="perspective" />
+          <WebGLStagePlane
+            id="hero.floor"
+            role="floor"
+            timeline={{ id: "hero.timeline", active: { from: 0.2, to: 1 } }}
+          />
+          <WebGLLight
+            id="hero.key"
+            kind="point"
+            timeline={{ id: "hero.timeline", active: { from: 0.35, to: 1 } }}
+          />
+        </WebGLScene>
+      </WebGLScrollTimeline>
+    </WebGLScrollRuntime>
+  );
+}
+```
+
+Rules:
+
+- `timeline` accepts a string id or `{ id, progressKey?, active? }`.
+- `WebGLScrollTimeline` defaults `progressKey` to `id`; pass `progressKey`
+  only when the runtime key must differ from the public timeline id.
+- `active.from` and `active.to` are normalized progress bounds from 0 to 1.
+- `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
+  `WebGLLight` can bind timelines.
+- `WebGLCamera` does not accept `timeline`; future camera behavior must bind to
+  an explicit camera/pass controller.
+- Binding a target/scene/stage/light timeline can activate or hide
+  runtime-owned work. Active ranges do not override explicit effect visibility
+  or `visible: false` declarations, and they do not clip a managed scene to the
+  surrounding DOM section.
+  DOM-bound pass viewport/scissor belongs to Phase 6.
+- Effects can read the same signal through `ctx.progress.get(key)` or
+  `ctx.runtime.progress.get(key)`. Effects inside a managed scene also receive
+  optional `ctx.scene` metadata and timeline snapshot. These are managed
+  metadata scopes, not raw Three.js handles.
 
 ## Minimal Vanilla Integration
 
@@ -473,6 +543,7 @@ import { WebGLTarget } from "<runtime-package>/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
+  WebGLScrollTimeline,
 } from "<scroll-adapters-package>/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -521,8 +592,11 @@ export function App() {
 Rules:
 
 - Keep `progressKey` stable.
-- Effects read progress with `ctx.progress.get(progressKey)`.
+- Effects read progress with `ctx.progress.get(progressKey)` or
+  `ctx.runtime.progress.get(progressKey)`.
 - Let GSAP ScrollTrigger own `pin` and `scrub` through `ScrollEffectSection`.
+- Use `WebGLScrollTimeline` when the progress signal should also bind to
+  managed scenes, stage primitives, lights, or future managed controllers.
 - Do not mutate mounted `webgl.effects` on every scroll update.
 - Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
   post-pinned runway sibling just to release scroll.

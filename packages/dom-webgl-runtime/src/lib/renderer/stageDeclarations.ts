@@ -8,6 +8,10 @@ import type {
   WebGLTuple2,
   WebGLTuple3,
 } from "../types";
+import {
+  normalizeTimelineBinding,
+  type NormalizedTimelineBinding,
+} from "../timeline/timelineDeclarations";
 
 export type NormalizedStageMaterialDeclaration =
   | {
@@ -37,6 +41,7 @@ export type NormalizedStagePrimitiveDeclaration =
       scale: number | WebGLTuple3;
       visible: boolean;
       material: NormalizedStageMaterialDeclaration;
+      timeline?: NormalizedTimelineBinding;
     }
   | {
       id: string;
@@ -48,6 +53,7 @@ export type NormalizedStagePrimitiveDeclaration =
       scale: number | WebGLTuple3;
       visible: boolean;
       material: NormalizedStageMaterialDeclaration;
+      timeline?: NormalizedTimelineBinding;
     };
 
 export type NormalizedLightDeclaration = {
@@ -61,6 +67,7 @@ export type NormalizedLightDeclaration = {
   distance: number;
   decay: number;
   visible: boolean;
+  timeline?: NormalizedTimelineBinding;
 };
 
 export function normalizeStagePrimitiveDeclaration(
@@ -79,6 +86,7 @@ export function normalizeStagePrimitiveDeclaration(
   const scale = normalizeScale(declaration.scale, "stage primitive scale");
   const visible = declaration.visible ?? true;
   const material = normalizeStageMaterialDeclaration(declaration.material);
+  const timeline = normalizeTimelineBinding(declaration.timeline);
 
   switch (declaration.kind) {
     case "plane": {
@@ -104,6 +112,7 @@ export function normalizeStagePrimitiveDeclaration(
         scale,
         visible,
         material,
+        ...(timeline ? { timeline } : {}),
       };
     }
     case "box":
@@ -125,6 +134,7 @@ export function normalizeStagePrimitiveDeclaration(
         scale,
         visible,
         material,
+        ...(timeline ? { timeline } : {}),
       };
   }
 }
@@ -151,6 +161,9 @@ export function normalizeLightDeclaration(
     ),
     decay: normalizeNonNegativeNumber(declaration.decay, 2, "light decay"),
     visible: declaration.visible ?? true,
+    ...(declaration.timeline
+      ? { timeline: normalizeTimelineBinding(declaration.timeline) }
+      : {}),
   };
 }
 

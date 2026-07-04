@@ -28,10 +28,14 @@ describe("WebGLScene", () => {
 
     await act(async () => {
       root.render(
-        createElement(
-          WebGLRuntimeProvider,
-          { runtime },
-          createElement(WebGLScene, { id: "world", defaultPass: true }),
+          createElement(
+            WebGLRuntimeProvider,
+            { runtime },
+          createElement(WebGLScene, {
+            id: "world",
+            defaultPass: true,
+            timeline: "hero.3d",
+          }),
         ),
       );
     });
@@ -41,6 +45,7 @@ describe("WebGLScene", () => {
       projection: undefined,
       defaultCameraId: undefined,
       defaultPass: true,
+      timeline: "hero.3d",
     });
 
     act(() => {

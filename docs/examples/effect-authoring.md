@@ -51,10 +51,18 @@ Use public package entrypoints only:
 
 ```tsx
 import { defineWebGLEffect } from "@project/dom-webgl-runtime";
-import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStagePlane,
+  WebGLTarget,
+} from "@project/dom-webgl-runtime/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
+  WebGLScrollTimeline,
 } from "@project/dom-webgl-scroll-adapters/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 ```
@@ -135,6 +143,57 @@ Rules:
 - Do not read Lenis directly from effects; effects keep using `ctx.scroll` and
   `ctx.scrollProgress`, or `ctx.progress.get(progressKey)` for keyed section
   progress.
+
+## Managed Timeline Scene Path
+
+For a named progress signal that should also drive managed scenes, stage
+primitives, lights, or future controllers, use `WebGLScrollTimeline`.
+`ScrollEffectSection` remains the short compatibility path for target/effect
+pinned sections.
+
+```tsx
+<WebGLScrollRuntime effects={exampleEffects} smooth={exampleSmoothScrollOptions}>
+  <WebGLScrollTimeline id="example.managedTimeline" start="top bottom" end="bottom top" scrub>
+    <WebGLScene
+      id="example.timeline.scene"
+      projection="perspective-stage"
+      render={{ camera: "example.timeline.camera", order: -8, clearDepth: true }}
+      timeline={{
+        id: "example.managedTimeline",
+        active: { from: 0.08, to: 0.94 },
+      }}
+    >
+      <WebGLCamera id="example.timeline.camera" default type="perspective" />
+      <WebGLStagePlane
+        id="example.timeline.floor"
+        role="floor"
+        timeline={{
+          id: "example.managedTimeline",
+          active: { from: 0.18, to: 0.88 },
+        }}
+      />
+      <WebGLLight
+        id="example.timeline.key"
+        kind="point"
+        timeline={{
+          id: "example.managedTimeline",
+          active: { from: 0.34, to: 1 },
+        }}
+      />
+    </WebGLScene>
+  </WebGLScrollTimeline>
+</WebGLScrollRuntime>
+```
+
+The binding is descriptor data: `timeline` accepts a string id or
+`{ id, progressKey?, active? }`. Active ranges use `from`/`to` in normalized
+0..1 progress. `WebGLCamera` does not accept timeline data; camera movement
+belongs to future explicit camera/pass-bound controllers.
+
+Effects can read the same signal through `ctx.progress.get(key)` or
+`ctx.runtime.progress.get(key)`. Effects routed through a managed scene also get
+optional `ctx.scene` metadata and timeline state. These are managed facts, not
+raw Three.js handles.
 
 ## Register Effects Once
 
@@ -390,6 +449,10 @@ scrub section rather than global page scroll.
 `WebGLScrollRuntime` receives a notifying progress source from the scroll
 adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
 renderable even when no card effect is active in the viewport.
+The managed timeline row dogfoods `WebGLScrollTimeline` separately from the
+pinned image-sequence section. It binds a named progress signal to a managed
+scene, stage planes, and a light; it intentionally does not describe the nested
+scene as DOM-clipped, because DOM-bound pass viewport/scissor is Phase 6 work.
 
 These are intentionally small. They are examples of the contract, not official
 package effects.
@@ -402,6 +465,9 @@ package effects.
   are removed.
 - `ctx.object.text` affects WebGL output only; it does not mutate DOM text.
 - Effects should no-op when the needed `ctx.object.*` capability module is absent.
+- `ctx.runtime` and optional `ctx.scene` expose managed progress/scope metadata,
+  not raw runtime, scene, camera, pass, or renderer handles.
+- `WebGLCamera` has no timeline prop, and there is no implicit `ctx.camera`.
 - Draco-compressed GLB files need both declarative loader config and decoder
   files in the app public directory. `/models/4.glb` uses
   `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching

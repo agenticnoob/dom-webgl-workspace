@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 4 managed stage primitives implementation
+**Last reviewed against:** Phase 5 target routing, scroll timelines, and effect scope implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -86,6 +86,23 @@ phase records are archived under [archive/](./archive/).
     dispose
   - debug state can report descriptor-only stage primitive and light inventory
     counts/ids without exposing raw Three.js objects
+- Managed timeline bindings and effect scope metadata:
+  - public declarations can bind `timeline` data on `WebGLTarget`,
+    `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
+  - `WebGLCameraDeclaration` intentionally does not accept `timeline`; camera
+    motion/focus/framing remains future explicit camera/pass-bound controller
+    work
+  - timeline bindings consume runtime `WebGLProgressSignalSource` values and
+    normalize optional active ranges with `from`/`to`
+  - `@project/dom-webgl-scroll-adapters/react` exports
+    `WebGLScrollTimeline` as the broader named progress section, while
+    `ScrollEffectSection` remains compatibility sugar for target/effect pinned
+    sections
+  - targets, render passes, and stage primitives/lights can activate from
+    timeline ranges without React descriptor churn
+  - effect contexts expose `ctx.runtime.progress` and optional
+    `ctx.scene` metadata/timeline snapshots; they do not expose raw scenes,
+    cameras, passes, or a `ctx.camera` field
 
 ## Active Caveats
 
@@ -108,15 +125,19 @@ phase records are archived under [archive/](./archive/).
   section unless they are only controlling visibility/activation.
 - Managed stage primitives and scene-owned lights are stable descriptors. Use
   them to declare scene substrate; do not drive high-frequency animation through
-  React prop churn. Phase 5 owns timeline/effect/controller routing for dynamic
-  stage, scene, and camera behavior.
+  React prop churn. Use timeline bindings and managed effect/controller state
+  for progress-driven scene, stage, and light activation.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
 - Scene-gated scroll remains an optional advanced scroll-locking capability.
   Ordinary pinned scrub sections should use `@project/dom-webgl-scroll-adapters/react`,
-  `ScrollEffectSection`, stable `progressKey` values, and
-  `ctx.progress.get(progressKey)`.
+  `ScrollEffectSection` or `WebGLScrollTimeline`, stable progress ids, and
+  `ctx.progress.get(progressKey)` / `ctx.runtime.progress.get(progressKey)`.
+- Timeline bindings can hide/skip targets, scenes, stage primitives, and lights
+  by progress range. Active ranges do not override explicit effect visibility or
+  `visible: false` declarations. They also do not make a nested `WebGLScene` a
+  local clipped viewport. DOM-bound pass viewport/scissor remains Phase 6 work.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 
@@ -133,6 +154,11 @@ explicit scene projections, managed camera modes, target placement descriptors,
 and pass clear controls. Phase 4 managed stage primitives add scene-native
 plane/box descriptors and scene-owned lights without raw Three.js handles:
 [2026-07-04-managed-stage-primitives.md](./superpowers/plans/2026-07-04-managed-stage-primitives.md).
+Phase 5 target routing, scroll timelines, and effect scope adds named timeline
+bindings for targets/scenes/stage primitives/lights, the `WebGLScrollTimeline`
+React adapter, and `ctx.runtime`/`ctx.scene` scope metadata while keeping camera
+timeline control out of `WebGLCameraDeclaration`:
+[2026-07-04-target-routing-scroll-timelines-effect-scope.md](./superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -156,9 +182,9 @@ Relationship rules from the active roadmap:
 - One internal generated default scene, DOM-aligned camera, and generated pass
   preserve current behavior. The generated ids are reserved internally, so
   consumer ids such as `main` are ordinary managed ids.
-- Scroll timelines and scoped effect routing should land before progress-driven
-  model animation, input routing/picking, and physics. Physics remains last,
-  after managed stage/collider/input contracts exist.
+- Scroll timelines and scoped effect routing are now the base for
+  progress-driven model animation, later input routing/picking, and physics.
+  Physics remains last, after managed stage/collider/input contracts exist.
 - DOM-bound pass viewport/scissor belongs after Phase 5 scope/timeline ownership
   and before local pinned stage examples are treated as complete.
 

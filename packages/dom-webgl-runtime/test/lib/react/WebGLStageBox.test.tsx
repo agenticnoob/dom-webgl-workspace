@@ -38,6 +38,7 @@ describe("WebGLStageBox", () => {
             id: "box",
             scene: "overlay",
             size: [1, 2, 3],
+            timeline: "hero.3d",
           }),
         ),
       );
@@ -48,6 +49,7 @@ describe("WebGLStageBox", () => {
       sceneId: "overlay",
       kind: "box",
       size: [1, 2, 3],
+      timeline: "hero.3d",
     });
 
     act(() => {

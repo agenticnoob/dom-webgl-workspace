@@ -153,6 +153,89 @@ describe("stage object registry", () => {
       lights: [{ id: "hero", sceneId: "world", kind: "point" }],
     });
   });
+
+  test("updates active timeline-bound stage and light visibility", () => {
+    const floorObject = createSceneObject("primitive:floor");
+    const heroLightObject = createSceneObject("light:hero");
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      primitiveObject: floorObject,
+      lightObject: heroLightObject,
+    });
+
+    registry.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+    registry.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "point",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    registry.updateTimelineState({ get: () => 0.1 });
+
+    expect(floorObject.setVisible).toHaveBeenCalledWith(false);
+    expect(heroLightObject.setVisible).toHaveBeenCalledWith(false);
+
+    registry.updateTimelineState({ get: () => 0.5 });
+
+    expect(floorObject.setVisible).toHaveBeenCalledWith(true);
+    expect(heroLightObject.setVisible).toHaveBeenCalledWith(true);
+  });
+
+  test("keeps declaration visible false when active timeline becomes true", () => {
+    const floorObject = createSceneObject("primitive:floor");
+    const heroLightObject = createSceneObject("light:hero");
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      primitiveObject: floorObject,
+      lightObject: heroLightObject,
+    });
+
+    registry.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      visible: false,
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+    registry.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "point",
+      visible: false,
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    registry.updateTimelineState({ get: () => 0.5 });
+
+    expect(floorObject.setVisible).toHaveBeenCalledWith(false);
+    expect(heroLightObject.setVisible).toHaveBeenCalledWith(false);
+  });
+
+  test("does not toggle visibility for timeline bindings without active ranges", () => {
+    const floorObject = createSceneObject("primitive:floor");
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      primitiveObject: floorObject,
+      lightObject: createSceneObject("light:hero"),
+    });
+
+    registry.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      timeline: "hero.3d",
+    });
+
+    registry.updateTimelineState({ get: () => 0 });
+
+    expect(floorObject.setVisible).not.toHaveBeenCalled();
+  });
 });
 
 function createRegistry(options: {

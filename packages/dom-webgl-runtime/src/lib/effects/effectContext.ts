@@ -5,6 +5,7 @@ import type {
   WebGLEffectContext,
   WebGLEffectPostprocessRequest,
   WebGLEffectResourceScope,
+  WebGLEffectScopeSnapshot,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
@@ -22,6 +23,7 @@ export type WebGLEffectContextOptions = {
   target?: WebGLEffectTargetHandle;
   resources: WebGLEffectResourceScope;
   progressSignals?: WebGLProgressSignalSource;
+  scopes?: WebGLEffectScopeSnapshot;
   visual?: WebGLEffectVisualContext;
   managedVisual?: WebGLEffectVisualContext;
   lights?: WebGLEffectObjectHandle["lights"];
@@ -49,6 +51,9 @@ export function createWebGLEffectContext(
     options.managedVisual ??
     createResourceManagedVisualContext(options.visual, options.resources);
 
+  const progress = createProgressSignals(options.progressSignals);
+  const scopes = options.scopes ?? { runtime: { progress } };
+
   return {
     key: options.key,
     sourceKind: options.sourceKind,
@@ -58,7 +63,9 @@ export function createWebGLEffectContext(
     targetPointer: createTargetPointerState(options.input, options.layout),
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
-    progress: createProgressSignals(options.progressSignals),
+    progress,
+    runtime: scopes.runtime,
+    ...(scopes.scene ? { scene: scopes.scene } : {}),
     time: options.input.time,
     delta: options.input.delta,
     object: createWebGLEffectObject({

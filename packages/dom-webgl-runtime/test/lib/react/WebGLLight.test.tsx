@@ -41,6 +41,7 @@ describe("WebGLLight", () => {
               kind: "point",
               intensity: 1.8,
               position: [0, 0, 160],
+              timeline: "hero.3d",
             }),
           ),
         ),
@@ -53,6 +54,7 @@ describe("WebGLLight", () => {
       kind: "point",
       intensity: 1.8,
       position: [0, 0, 160],
+      timeline: "hero.3d",
     });
 
     act(() => {

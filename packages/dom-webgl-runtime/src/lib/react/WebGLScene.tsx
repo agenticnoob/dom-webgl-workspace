@@ -23,6 +23,7 @@ export function WebGLScene({
   projection,
   defaultCameraId,
   defaultPass,
+  timeline,
   render,
   children,
 }: WebGLSceneProps) {
@@ -38,6 +39,7 @@ export function WebGLScene({
       projection,
       defaultCameraId,
       defaultPass: sceneDefaultPass,
+      timeline,
     });
 
     if (renderOptions) {
@@ -66,6 +68,7 @@ export function WebGLScene({
     projection,
     defaultCameraId,
     sceneDefaultPass,
+    timeline,
     renderOptions?.id,
     renderOptions?.camera,
     renderOptions?.order,

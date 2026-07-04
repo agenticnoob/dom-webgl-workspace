@@ -214,6 +214,67 @@ describe("debug state", () => {
     expect(state.lights?.[0]).not.toHaveProperty("light");
   });
 
+  test("copies descriptor-only timeline summaries without raw progress handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      stagePrimitives: [
+        {
+          id: "floor",
+          sceneId: "world",
+          kind: "plane",
+          timeline: {
+            id: "hero.3d",
+            progressKey: "hero.3d",
+            active: false,
+          },
+        },
+      ],
+      lights: [
+        {
+          id: "hero",
+          sceneId: "world",
+          kind: "point",
+          timeline: {
+            id: "hero.3d",
+            progressKey: "hero.3d",
+            active: true,
+          },
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.stagePrimitives).toEqual([
+      {
+        id: "floor",
+        sceneId: "world",
+        kind: "plane",
+        timeline: {
+          id: "hero.3d",
+          progressKey: "hero.3d",
+          active: false,
+        },
+      },
+    ]);
+    expect(state.lights).toEqual([
+      {
+        id: "hero",
+        sceneId: "world",
+        kind: "point",
+        timeline: {
+          id: "hero.3d",
+          progressKey: "hero.3d",
+          active: true,
+        },
+      },
+    ]);
+    expect(state.stagePrimitives?.[0].timeline).not.toHaveProperty("source");
+    expect(state.lights?.[0].timeline).not.toHaveProperty("timeline");
+  });
+
   test("copies projection and placement mode into public target summaries", () => {
     expect(
       createDebugState({

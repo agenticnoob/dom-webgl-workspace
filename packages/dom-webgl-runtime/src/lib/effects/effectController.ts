@@ -11,6 +11,7 @@ import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
   WebGLEffectResourceScope,
+  WebGLEffectScopeSnapshot,
   WebGLEffectSchedule,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
@@ -52,6 +53,7 @@ export type WebGLEffectControllerOptions = {
   getTarget?(): WebGLEffectTarget | undefined;
   registry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
+  readScopes?(): WebGLEffectScopeSnapshot;
   visual?: WebGLEffectVisualContext;
   createLights?: WebGLEffectLightsFactory;
 };
@@ -156,6 +158,7 @@ export function createWebGLEffectController(
       for (const effect of effects) {
         let context: WebGLEffectContext;
         const lights = readEffectLights(effect, target, options);
+        const scopes = readEffectScopes(options);
 
         if (effect.reusableContext) {
           context = effect.reusableContext;
@@ -165,6 +168,8 @@ export function createWebGLEffectController(
           context.targetPointer = createTargetPointerState(input, layout);
           context.scroll = input.scroll;
           context.scrollProgress = readScrollProgress(input.scroll);
+          context.runtime = scopes.runtime;
+          context.scene = scopes.scene;
           context.time = input.time;
           context.delta = input.delta;
           context.object = createWebGLEffectObject({
@@ -185,6 +190,7 @@ export function createWebGLEffectController(
             target,
             resources: effect.resources,
             progressSignals: options.progressSignals,
+            scopes,
             managedVisual: effect.visual,
             lights,
           });
@@ -235,6 +241,27 @@ function readEffectLights(
   });
   return effect.lights;
 }
+
+function readEffectScopes(
+  options: WebGLEffectControllerOptions,
+): WebGLEffectScopeSnapshot {
+  const scopes = options.readScopes?.();
+  if (scopes) {
+    return scopes;
+  }
+
+  return {
+    runtime: {
+      progress: options.progressSignals ?? emptyProgressSignals,
+    },
+  };
+}
+
+const emptyProgressSignals: WebGLProgressSignalSource = {
+  get() {
+    return 0;
+  },
+};
 
 const zeroObjectPosition = { x: 0, y: 0, z: 0 };
 

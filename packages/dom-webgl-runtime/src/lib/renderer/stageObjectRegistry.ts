@@ -2,8 +2,11 @@ import type {
   WebGLDebugLightSummary,
   WebGLDebugStagePrimitiveSummary,
   WebGLLightDeclaration,
+  WebGLProgressSignalSource,
   WebGLStagePrimitiveDeclaration,
 } from "../types";
+import type { NormalizedTimelineBinding } from "../timeline/timelineDeclarations";
+import { readTimelineProgress } from "../timeline/timelineDeclarations";
 
 import {
   createManagedLightObject,
@@ -28,6 +31,7 @@ export type StageObjectRegistry = {
   registerLight(declaration: WebGLLightDeclaration): void;
   unregisterLight(id: string): void;
   unregisterScene(sceneId: string): void;
+  updateTimelineState(progressSignals: WebGLProgressSignalSource): void;
   inspect(): StageObjectRegistryDebugState;
   dispose(): void;
 };
@@ -47,7 +51,10 @@ export type StageObjectRegistryOptions = {
 
 type RegistryEntry = {
   sceneId: string;
+  visible: boolean;
   controller: WebGLSceneObjectController;
+  timeline?: NormalizedTimelineBinding;
+  timelineActive?: boolean;
 };
 
 type StagePrimitiveRegistryEntry = RegistryEntry & {
@@ -85,6 +92,8 @@ export function createStageObjectRegistry(
       primitiveEntries.set(normalized.id, {
         sceneId: normalized.sceneId,
         kind: normalized.kind,
+        visible: normalized.visible,
+        ...(normalized.timeline ? { timeline: normalized.timeline } : {}),
         controller,
       });
     },
@@ -106,6 +115,8 @@ export function createStageObjectRegistry(
       lightEntries.set(normalized.id, {
         sceneId: normalized.sceneId,
         kind: normalized.kind,
+        visible: normalized.visible,
+        ...(normalized.timeline ? { timeline: normalized.timeline } : {}),
         controller,
       });
     },
@@ -118,17 +129,23 @@ export function createStageObjectRegistry(
       unregisterEntriesForScene(primitiveEntries, normalizedSceneId);
       unregisterEntriesForScene(lightEntries, normalizedSceneId);
     },
+    updateTimelineState(progressSignals): void {
+      updateTimelineEntries(primitiveEntries, progressSignals);
+      updateTimelineEntries(lightEntries, progressSignals);
+    },
     inspect(): StageObjectRegistryDebugState {
       return {
         stagePrimitives: Array.from(primitiveEntries, ([id, entry]) => ({
           id,
           sceneId: entry.sceneId,
           kind: entry.kind,
+          ...(entry.timeline ? { timeline: readDebugTimeline(entry) } : {}),
         })),
         lights: Array.from(lightEntries, ([id, entry]) => ({
           id,
           sceneId: entry.sceneId,
           kind: entry.kind,
+          ...(entry.timeline ? { timeline: readDebugTimeline(entry) } : {}),
         })),
       };
     },
@@ -136,6 +153,39 @@ export function createStageObjectRegistry(
       disposeEntries(primitiveEntries);
       disposeEntries(lightEntries);
     },
+  };
+}
+
+function updateTimelineEntries<TEntry extends RegistryEntry>(
+  entries: Map<string, TEntry>,
+  progressSignals: WebGLProgressSignalSource,
+): void {
+  for (const entry of entries.values()) {
+    if (!entry.timeline?.active) {
+      continue;
+    }
+
+    const snapshot = readTimelineProgress(entry.timeline, progressSignals);
+    entry.timelineActive = snapshot.active;
+    entry.controller.setVisible(entry.visible && snapshot.active);
+  }
+}
+
+function readDebugTimeline(entry: RegistryEntry): {
+  id: string;
+  progressKey: string;
+  active?: boolean;
+} {
+  const timeline = entry.timeline;
+
+  if (!timeline) {
+    throw new Error("Expected timeline metadata for debug summary.");
+  }
+
+  return {
+    id: timeline.id,
+    progressKey: timeline.progressKey,
+    ...(entry.timelineActive !== undefined ? { active: entry.timelineActive } : {}),
   };
 }
 

@@ -30,6 +30,8 @@ import {
   createWebGLEffectController,
   type WebGLEffectController,
 } from "../effects/effectController";
+import type { WebGLEffectScopeSnapshot } from "../effects/effectAuthoring";
+import { createWebGLEffectScopeSnapshot } from "../effects/effectScopes";
 import {
   createWebGLEffectRegistry,
   type WebGLEffectRegistry,
@@ -108,6 +110,7 @@ import {
   disposeOffscreenRenderable,
   disposeTargetRenderable,
   disposeTargetRuntimeState,
+  readEffectiveTargetVisibility,
   readLifecycleVersion,
   readRenderableVisibilityForPark,
   restoreFallbackVisibility,
@@ -117,6 +120,7 @@ import {
   type TargetRuntimeState,
 } from "./targetRuntimeState";
 import type { WebGLSceneAdapter, WebGLSceneGroup } from "./sceneObject";
+import { readTimelineProgress } from "../timeline/timelineDeclarations";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -156,6 +160,7 @@ type PipelineRenderableContext = RenderableFactoryContext & {
     descriptor: TargetDescriptor,
     renderable: Renderable,
   ): WebGLEffectTarget | undefined;
+  readEffectScopes?(descriptor: TargetDescriptor): WebGLEffectScopeSnapshot;
 };
 
 type SyncFrameResult = {
@@ -309,6 +314,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getEffectTarget(descriptor, renderable) {
       return readRuntimeEffectTarget(descriptor, renderable);
     },
+    readEffectScopes(descriptor) {
+      return readRuntimeEffectScopes(descriptor);
+    },
   };
   let nextScanOrder = 0;
   let disposed = false;
@@ -332,6 +340,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const unsubscribeProgressSignals = options.progressSignals?.subscribe?.(() => {
     rendererLoopRequestFrame("scroll");
   });
+  const emptyProgressSignals: WebGLProgressSignalSource = {
+    get() {
+      return 0;
+    },
+  };
 
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
@@ -850,6 +863,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             layoutMeasurement,
             mergeRenderDirtyReasons(effectDirtyReasons, ["resource-ready"]),
           );
+          syncTargetTimelineState(descriptor, renderable);
         }
         syncDebugRecordFromRenderable(debugRecord, renderable);
         syncFallbackVisibility(targetState, descriptor, renderable);
@@ -889,6 +903,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         layoutMeasurement,
         effectDirtyReasons,
       );
+      syncTargetTimelineState(descriptor, renderable);
     }
     syncDebugRecordFromRenderable(debugRecord, renderable);
     syncFallbackVisibility(targetState, descriptor, renderable);
@@ -932,12 +947,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     try {
       const descriptors = listTargetsInScanOrder(registry);
       const frameInput = frameInputSource.update();
+      const progressSignals = readProgressSignals();
       let requiresContinuousRendering = frameInput.scroll.mode === "gate";
 
       layoutScrollOffset += frameInput.scroll.velocity;
       syncTargetLayerOrdering(descriptors);
       rendererHost.resizeIfNeeded();
       renderLayers.resize(rendererHost.getViewportSize());
+      renderLayers.updateTimelineState(progressSignals);
+      stageObjects.updateTimelineState(progressSignals);
       const dirtyKeys = invalidationController.consumeDirtyKeys();
 
       const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
@@ -1338,6 +1356,43 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     return renderLayers.getSceneAdapterForTarget(descriptor.declaration.sceneId);
   }
 
+  function readProgressSignals(): WebGLProgressSignalSource {
+    return options.progressSignals ?? emptyProgressSignals;
+  }
+
+  function readRuntimeEffectScopes(
+    descriptor: TargetDescriptor,
+  ): WebGLEffectScopeSnapshot {
+    const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+    const scene = renderLayers.getScene(sceneId);
+
+    return createWebGLEffectScopeSnapshot({
+      progressSignals: readProgressSignals(),
+      scene: {
+        id: scene.id,
+        projection: scene.projection,
+        ...(scene.timeline ? { timeline: scene.timeline } : {}),
+      },
+    });
+  }
+
+  function syncTargetTimelineState(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): void {
+    const timeline = descriptor.declaration.timeline;
+    if (!timeline?.active) {
+      targetState.timelineActiveByTargetKey.delete(descriptor.key);
+      return;
+    }
+
+    const snapshot = readTimelineProgress(timeline, readProgressSignals());
+    targetState.timelineActiveByTargetKey.set(descriptor.key, snapshot.active);
+    renderable.setVisible(
+      readEffectiveTargetVisibility(targetState, descriptor.key),
+    );
+  }
+
   function projectTargetLayoutForDescriptor(
     descriptor: TargetDescriptor,
     measurement: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">,
@@ -1685,6 +1740,17 @@ function createPipelineRenderable(
     },
     registry: context.effectRegistry,
     progressSignals: context.progressSignals,
+    readScopes: () =>
+      context.readEffectScopes?.(descriptor) ??
+      createWebGLEffectScopeSnapshot({
+        progressSignals:
+          context.progressSignals ??
+          {
+            get() {
+              return 0;
+            },
+          },
+      }),
     visual: context.postprocessController,
     createLights: createManagedLightsFacade,
   });

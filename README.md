@@ -50,6 +50,11 @@ Current runtime behavior:
   `WebGLRenderPass` remains available for advanced explicit pass descriptors.
   This does not replace the Level 1 `WebGLTarget` path, and it does not expose
   raw Three.js scene, camera, renderer, pass, or object handles.
+- Targets, managed scenes, stage primitives, and scene-owned lights can bind to
+  named timeline descriptors backed by runtime progress signals. Timeline
+  active ranges can activate or skip target, scene, stage, and light work
+  without React prop churn. Cameras intentionally do not accept `timeline`;
+  camera motion remains a future explicit camera/pass-bound controller concern.
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
@@ -110,6 +115,10 @@ Current example behavior:
   transparent so the WebGL canvas remains visible. The pinned row itself is the
   whole trigger section; the example no longer appends a synthetic post-pinned
   runway sibling just to hand scroll control back.
+- The example also dogfoods `WebGLScrollTimeline` with a named managed timeline
+  bound to a `WebGLScene`, stage planes, and a light. It uses public React
+  descriptors only and does not present the nested scene as DOM-clipped; Phase 6
+  owns pass viewport/scissor.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -547,21 +556,21 @@ Example assets live under `apps/example/public` and are referenced through
 Use only public package entrypoints:
 
 ```ts
-import type { WebGLDeclaration, WebGLDebugState } from "@project/dom-webgl-runtime";
+import type {
+  WebGLDeclaration,
+  WebGLDebugState,
+  WebGLProgressSignalSource,
+  WebGLTimelineBindingDeclaration,
+} from "@project/dom-webgl-runtime";
 import {
   createWebGLRuntime,
   defineWebGLEffect,
 } from "@project/dom-webgl-runtime";
 import {
-  WebGLLight,
-  WebGLCamera,
-  WebGLRuntime,
-  WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
-  WebGLTarget,
-  useWebGLRuntime,
-} from "@project/dom-webgl-runtime/react";
+  ScrollEffectSection,
+  WebGLScrollRuntime,
+  WebGLScrollTimeline,
+} from "@project/dom-webgl-scroll-adapters/react";
 ```
 
 `apps/example` must not import from `packages/dom-webgl-runtime/src/*`.
@@ -577,10 +586,14 @@ explicit scene/pass ownership, wrap it in a managed scene and camera:
 
 ```tsx
 import {
+  WebGLLight,
   WebGLCamera,
   WebGLRuntime,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
+  useWebGLRuntime,
 } from "@project/dom-webgl-runtime/react";
 
 <WebGLRuntime effects={runtimeEffects}>
@@ -610,6 +623,63 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 passes can request `clear` or `clearDepth`. These remain descriptor-driven and
 runtime-owned. Scene-native models, `screen-plane` placement, pass-scoped
 postprocess, and raw Three.js access remain out of scope.
+
+## Managed Timeline Bindings
+
+Runtime progress signals are keyed by string. A timeline binding is descriptor
+data that points a target, scene, stage primitive, or light at one of those
+signals:
+
+```tsx
+import {
+  WebGLScrollRuntime,
+  WebGLScrollTimeline,
+} from "@project/dom-webgl-scroll-adapters/react";
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLScene,
+  WebGLStagePlane,
+} from "@project/dom-webgl-runtime/react";
+
+<WebGLScrollRuntime effects={runtimeEffects}>
+  <WebGLScrollTimeline id="hero.timeline" start="top bottom" end="bottom top" scrub>
+    <WebGLScene
+      id="hero.scene"
+      projection="perspective-stage"
+      render={{ camera: "hero.camera" }}
+      timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
+    >
+      <WebGLCamera id="hero.camera" default type="perspective" />
+      <WebGLStagePlane
+        id="hero.floor"
+        role="floor"
+        timeline={{ id: "hero.timeline", active: { from: 0.2, to: 1 } }}
+      />
+      <WebGLLight
+        id="hero.key"
+        kind="point"
+        timeline={{ id: "hero.timeline", active: { from: 0.35, to: 1 } }}
+      />
+    </WebGLScene>
+  </WebGLScrollTimeline>
+</WebGLScrollRuntime>;
+```
+
+`timeline` accepts either a string id or `{ id, progressKey?, active? }`.
+`active.from` and `active.to` are normalized 0..1 progress bounds.
+`WebGLScrollTimeline` defaults `progressKey` to `id`; `ScrollEffectSection`
+remains compatible sugar for existing target/effect pinned sections.
+For targets, stage primitives, and lights, an inactive range hides the
+runtime-owned object; entering the active range restores only the declaration or
+effect-owned visibility, so `visible: false` and `ctx.object.visible = false`
+remain authoritative.
+
+Effects can read the same signal through `ctx.progress.get(key)` or
+`ctx.runtime.progress.get(key)`. If an effect runs inside a managed scene,
+`ctx.scene` exposes descriptor metadata and that scene timeline snapshot. These
+scope objects are managed metadata, not raw scene/pass/camera handles, and there
+is no implicit `ctx.camera`.
 
 ## Opt-In Managed Stage Primitives
 
@@ -666,9 +736,10 @@ but DOM-bound viewport/scissor clipping is a later Phase 6 capability.
 Treat `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` props as stable
 scene declarations. They can mount, unmount, or change in ordinary React flows,
 but they are not the high-frequency animation path. For animated stage, scene,
-or camera behavior, keep descriptor identity stable and route motion through
-managed effects/controllers or future Phase 5 timeline scope rather than
-recreating meshes and lights every frame.
+or light behavior, keep descriptor identity stable and route activation through
+timeline bindings or managed effects/controllers rather than recreating meshes
+and lights every frame. Camera behavior remains future explicit
+camera/pass-bound controller work.
 
 ## Lifecycle And Fallback Visibility
 
@@ -768,7 +839,8 @@ want wheel/touch input to stop page scroll and drive `sceneProgress`.
 They are not the recommended way to build a pinned section that drives an
 effect. For that story, use `@project/dom-webgl-scroll-adapters/react`,
 `WebGLScrollRuntime`, `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`,
-and `ctx.progress.get(progressKey)`.
+`WebGLScrollTimeline`, and `ctx.progress.get(progressKey)` /
+`ctx.runtime.progress.get(progressKey)`.
 
 Declare a scene gate through the same public `webgl` object used by regular
 targets:

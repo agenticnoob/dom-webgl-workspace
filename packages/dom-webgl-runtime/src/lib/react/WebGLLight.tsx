@@ -20,6 +20,7 @@ export function WebGLLight({
   distance,
   decay,
   visible,
+  timeline,
 }: WebGLLightProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -43,6 +44,7 @@ export function WebGLLight({
       ...(distance !== undefined ? { distance } : {}),
       ...(decay !== undefined ? { decay } : {}),
       ...(visible !== undefined ? { visible } : {}),
+      ...(timeline !== undefined ? { timeline } : {}),
     });
 
     return () => {
@@ -60,6 +62,7 @@ export function WebGLLight({
     distance,
     decay,
     visible,
+    timeline,
   ]);
 
   return null;

@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 4 managed stage primitives implementation
+**Last reviewed against:** Phase 5 target routing, scroll timelines, and effect scope implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -413,16 +413,17 @@ The effect context should eventually make scope explicit:
 
 ```text
 ctx.object  -> current target/renderable object facade
-ctx.scene   -> managed scene/layer scoped controls
-ctx.camera  -> controls for a specific managed camera context
-ctx.runtime -> runtime/canvas scoped controls
+ctx.scene   -> managed scene/layer metadata and future scoped controls
+ctx.camera  -> future explicit camera/pass-bound controller context
+ctx.runtime -> runtime/canvas scoped metadata and controls
 ```
 
 This does not mean all scopes need to ship at once. It means new capabilities
 should be placed according to their real ownership:
 
 - target transform, material, texture, text, model modules: `ctx.object`;
-- scene lighting, environment, stage coordination: `ctx.scene`;
+- scene metadata, timeline state, lighting/environment/stage coordination:
+  `ctx.scene`;
 - camera progress/motion/focus/framing: camera-scoped descriptors or
   `ctx.camera` only when bound to a specific camera/pass context;
 - render pass and canvas-wide postprocess: `ctx.runtime` or pass-scoped API.
@@ -754,7 +755,7 @@ Status values:
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
 | Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
-| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[not-started]` | none | Depends on Phase 2, Phase 3, and Phase 4; required before later scoped controls can route targets, stage objects, cameras, and timelines. |
+| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control remains future explicit controller work. |
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[not-started]` | none | Depends on Phase 5 scope model and pass contract; owns DOM-bound pass viewport/scissor before local stage examples ship. |
 | Phase 7: Managed Model Animation | `[not-started]` | none | Can start after Phase 5; advanced morph/bone work may depend on Phase 8/9. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
@@ -1078,24 +1079,28 @@ Acceptance criteria:
 
 ### Phase 5: Target Routing, Scroll Timelines, and Effect Scope
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md)
 - **Depends on:** Phase 2, Phase 3, Phase 4
-- **Last updated:** 2026-07-03
-- **Exit criteria:** target, scene, camera, runtime, and timeline scopes are
-  explicit; current `ScrollEffectSection` usage remains compatible.
+- **Last updated:** 2026-07-04
+- **Exit criteria:** target, scene, runtime, and timeline scopes are explicit;
+  camera timeline/control ownership is documented for later explicit
+  controller work; current `ScrollEffectSection` usage remains compatible.
 
-Goal: make target, scene, camera, runtime, and timeline scopes explicit.
+Goal: make target, scene, runtime, and timeline scopes explicit while recording
+camera timeline/control ownership as later explicit camera-controller work.
 
 Deliverables:
 
 - `WebGLTarget` routing by component context and descriptor fallback.
-- `WebGLScrollTimeline` / `WebGLScrollSection` direction as a managed progress
-  signal for targets, scenes, cameras, model animation, and stage objects.
+- `WebGLScrollTimeline` direction as a managed progress signal for targets,
+  scenes, model animation, and stage objects.
+  Camera controllers should later reuse the same named timeline signal, but
+  Phase 5 must not add `timeline` to `WebGLCameraDeclaration`.
 - Scope-specific effect context exploration:
   - `ctx.scene` for managed scene controls;
-  - `ctx.camera` for explicit camera-bound controls;
   - `ctx.runtime` for canvas/pass scoped controls.
+  `ctx.camera` remains future explicit camera/pass-bound controller work.
 - Keep `ScrollEffectSection` as compatibility sugar for target/effect pinned
   sections while the broader timeline abstraction is designed.
 - Keep `ctx.object` focused on the current target/renderable.
@@ -1104,15 +1109,25 @@ Deliverables:
   should not pretend that a `WebGLScene` nested under a DOM element is locally
   clipped; DOM-bound pass viewport/scissor belongs to Phase 6.
 
-Focused plan reminders:
+Completion notes:
 
-- Stage primitive and scene-owned light descriptors are stable declarations.
-  React prop churn should not become the high-frequency animation path; Phase 5
-  should route timeline/effect/controller state through managed runtime state
-  instead of repeatedly unregistering and recreating stage meshes or lights.
-- Phase 5 should preserve the Phase 4 debug inventory shape for stage
-  primitives and lights, and add deeper routing diagnostics only when the
-  focused scope needs them.
+- Public `timeline` bindings exist on `WebGLTarget`, `WebGLScene`,
+  `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`.
+- `WebGLCameraDeclaration` intentionally does not have `timeline`; camera
+  motion/focus/framing will consume named timeline signals only through a later
+  explicit camera/pass-bound controller.
+- `WebGLScrollTimeline` is the broader React scroll timeline component.
+  `ScrollEffectSection` remains compatibility sugar for target/effect pinned
+  sections.
+- Target renderables, scene render passes, and stage primitive/light
+  controllers can consume active timeline ranges without React descriptor churn.
+  Active ranges compose with effect/declaration visibility instead of forcing
+  hidden objects visible.
+- Effect contexts expose `ctx.runtime.progress` and optional `ctx.scene`
+  descriptor/timeline metadata. They do not expose raw scenes, cameras, passes,
+  renderers, or `ctx.camera`.
+- Phase 4 debug inventory shape is preserved and extended only with
+  descriptor-only timeline summaries for stage primitives and lights.
 
 Rules:
 
@@ -1127,16 +1142,21 @@ Rules:
   scenes.
 - Camera effects/controllers must bind to an explicit camera descriptor or pass
   context.
+- `WebGLCameraDeclaration` does not receive a `timeline` field in Phase 5.
 
 Acceptance criteria:
 
 - Existing target-local effects keep working.
 - Existing `ScrollEffectSection` usage keeps working.
-- A scene, camera, target, image sequence, or model animation can consume the
-  same named timeline/progress signal through managed runtime state.
+- A scene, target, stage primitive/light, image sequence, or later model
+  animation can consume the same named timeline/progress signal through managed
+  runtime state.
+- Future camera controllers have documented ownership for reusing the same
+  named timeline signal, but camera declarations remain behavior-free in
+  Phase 5.
 - Pinned scene/stage visibility can be driven by managed timeline scope without
   React descriptor churn.
-- New scene/camera controls are clearly scoped and documented.
+- New scene scope metadata is clearly scoped and documented.
 - Public tests reject raw scene/camera access.
 
 ### Phase 6: Pass Viewport And Postprocess Scope Correction
@@ -1163,9 +1183,9 @@ Local DOM viewport/scissor direction:
 - This is distinct from Phase 8 `screen-plane`: viewport/scissor clips where a
   pass is visible; `screen-plane` maps DOM or pointer coordinates onto a named
   stage plane.
-- Phase 5 should decide the active scene/pass/timeline scope for pinned
-  sections. Phase 6 should make the active pass render only inside the owned DOM
-  rect and then scroll away with that rect.
+- Phase 5 decides the active scene/pass/timeline scope for pinned sections.
+  Phase 6 should make the active pass render only inside the owned DOM rect and
+  then scroll away with that rect.
 - The focused plan should choose the smallest declarative API, such as a
   DOM-bound `viewport` descriptor or a React owner component, without exposing
   raw renderer viewport/scissor calls.
@@ -1517,10 +1537,9 @@ Long-term naming direction:
 
 - `ScrollEffectSection` may remain as compatibility sugar for target/effect
   pinned sections.
-- The broader abstraction should be `WebGLScrollTimeline` or
-  `WebGLScrollSection`.
-- Scene, camera, target, image-sequence, and stage-local objects should all be
-  able to consume the same timeline signal.
+- The broader abstraction is `WebGLScrollTimeline`.
+- Scenes, targets, image sequences, stage-local objects, and later explicit
+  camera controllers should all be able to consume the same timeline signal.
 
 Camera motion should be declared as managed progress-driven behavior or authored
 inside effects/controllers that stay within runtime-owned facades.
@@ -1657,10 +1676,9 @@ Do not make these default roadmap items:
     and scene-native models default to `stage-local`; overlay helpers default to
     `screen-anchored`.
 - Scroll timeline naming and scope.
-  - Recommendation: keep `ScrollEffectSection` as compatibility sugar, but make
-    the broader abstraction a managed `WebGLScrollTimeline` or
-    `WebGLScrollSection` progress signal that scenes, cameras, targets, models,
-    and stage objects can consume.
+  - Phase 5 result: keep `ScrollEffectSection` as compatibility sugar, and use
+    `WebGLScrollTimeline` as the broader progress signal that scenes, targets,
+    stage objects, effects, and later model/camera controllers can consume.
 
 ## Success Criteria
 
@@ -1686,13 +1704,13 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-Phase 1 through Phase 4 are verified. The next focused implementation plan
-should be Phase 5: Target Routing, Scroll Timelines, and Effect Scope.
+Phase 1 through Phase 5 are verified. Phase 5 defines timeline ownership,
+scene/pass/stage activation, and the managed `ctx.runtime`/`ctx.scene` scope
+metadata that later APIs depend on.
 
-Phase 5 should define timeline ownership, scene/pass/stage activation, and the
-managed scope boundaries that later APIs depend on. Phase 6 should follow with
-DOM-bound pass viewport/scissor and postprocess scope correction before local
-pinned stage examples are presented as complete.
+The next implementation loop should be Phase 6: DOM-bound pass viewport/scissor
+and postprocess scope correction before local pinned stage examples are
+presented as complete.
 
 The safest sequence is:
 

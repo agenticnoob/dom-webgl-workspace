@@ -50,6 +50,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
       const reactEntry = await import("@project/dom-webgl-scroll-adapters/react");
 
       expect(reactEntry).toHaveProperty("WebGLScrollRuntime");
+      expect(reactEntry).toHaveProperty("WebGLScrollTimeline");
       expect(reactEntry).toHaveProperty("ScrollEffectSection");
       expect(reactEntry).toHaveProperty("createScrollEffectProgressStore");
     } finally {
@@ -157,6 +158,61 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
     expect(progressSignals.get("hero.reveal")).toBe(0);
     expect(smooth.triggerInstance.kill).toHaveBeenCalledTimes(1);
+  });
+
+  test("WebGLScrollTimeline writes progress by id while ScrollEffectSection stays compatible", async () => {
+    const { ScrollEffectSection, WebGLScrollRuntime, WebGLScrollTimeline } =
+      await import("@project/dom-webgl-scroll-adapters/react");
+    const { root } = createTestRoot();
+    const timelineSmooth = createSmoothDeps();
+    const sectionSmooth = createSmoothDeps();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLScrollRuntime,
+          undefined,
+          createElement(
+            WebGLScrollTimeline,
+            {
+              id: "hero.3d",
+              ScrollTrigger: timelineSmooth.ScrollTrigger,
+            },
+            "Timeline section",
+          ),
+          createElement(
+            ScrollEffectSection,
+            {
+              progressKey: "hero.reveal",
+              ScrollTrigger: sectionSmooth.ScrollTrigger,
+            },
+            "Compatibility section",
+          ),
+        ),
+      );
+    });
+
+    const progressSignals = readProgressSignals();
+    expect(timelineSmooth.ScrollTrigger.create).toHaveBeenCalledTimes(1);
+    expect(sectionSmooth.ScrollTrigger.create).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      timelineSmooth.readTriggerVars()?.onUpdate?.({ progress: 0.35 });
+      sectionSmooth.readTriggerVars()?.onUpdate?.({ progress: 0.75 });
+    });
+
+    expect(progressSignals.get("hero.3d")).toBe(0.35);
+    expect(progressSignals.get("hero.reveal")).toBe(0.75);
+
+    act(() => {
+      root.unmount();
+    });
+    roots.splice(roots.indexOf(root), 1);
+
+    expect(progressSignals.get("hero.3d")).toBe(0);
+    expect(progressSignals.get("hero.reveal")).toBe(0);
+    expect(timelineSmooth.triggerInstance.kill).toHaveBeenCalledTimes(1);
+    expect(sectionSmooth.triggerInstance.kill).toHaveBeenCalledTimes(1);
   });
 });
 

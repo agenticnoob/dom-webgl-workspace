@@ -71,6 +71,29 @@ describe("createTargetDescriptor", () => {
     });
   });
 
+  test("normalizes target timeline declarations before registration", () => {
+    const element = document.createElement("section");
+
+    const descriptor = createTargetDescriptor(
+      element,
+      {
+        key: "hero.surface",
+        timeline: {
+          id: " hero.timeline ",
+          progressKey: " scroll.hero ",
+          active: { from: 0.2, to: 0.8 },
+        },
+      },
+      0,
+    );
+
+    expect(descriptor.declaration.timeline).toEqual({
+      id: "hero.timeline",
+      progressKey: "scroll.hero",
+      active: { from: 0.2, to: 0.8 },
+    });
+  });
+
   test("throws before registration when gate scroll declarations are invalid", () => {
     const element = document.createElement("div");
 

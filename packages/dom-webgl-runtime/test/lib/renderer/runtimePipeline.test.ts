@@ -3051,6 +3051,43 @@ describe("runtime pipeline sync", () => {
     expect(unsubscribed).toBe(true);
   });
 
+  test("progress signal notifications refresh runtime timeline state", async () => {
+    let progress = 0;
+    let notifyProgress = () => {};
+    const progressSignals = {
+      get() {
+        return progress;
+      },
+      subscribe(listener: () => void) {
+        notifyProgress = listener;
+        return () => {};
+      },
+    };
+    const loopHost = createLoopRecordingHost();
+    const { registry, updateTimelineState } = createRenderLayerRegistryStub(
+      loopHost.sceneAdapter,
+    );
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      progressSignals,
+    });
+
+    loopHost.tick(16);
+
+    expect(updateTimelineState).toHaveBeenCalledWith(progressSignals);
+
+    updateTimelineState.mockClear();
+    progress = 1;
+    notifyProgress();
+    loopHost.tick(32);
+
+    expect(updateTimelineState).toHaveBeenCalledWith(progressSignals);
+    runtime.dispose();
+  });
+
   test("renders through the generated render layer pass list", async () => {
     const sceneAdapter = createRecordingSceneAdapter();
     const { registry, renderPasses } =
@@ -3319,6 +3356,90 @@ describe("runtime pipeline sync", () => {
     expect(runtime.getDebugState().lightCount).toBeUndefined();
     expect(runtime.getDebugState().stagePrimitives).toBeUndefined();
     expect(runtime.getDebugState().lights).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("runtime updates timeline-bound stage object visibility from progress signals", async () => {
+    let progress = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+      id: "floor",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "hero.3d",
+        active: false,
+      },
+    });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+      timeline: {
+        active: true,
+      },
+    });
+    runtime.dispose();
+  });
+
+  test("runtime updates timeline-bound target visibility from progress signals", async () => {
+    let progress = 0;
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return createRenderLayerRegistryStub(sceneAdapter).registry;
+      },
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    const target = document.createElement("section");
+
+    runtime.registerTarget(target, {
+      key: "target.timeline",
+      source: { kind: "dom", type: "element" },
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
     runtime.dispose();
   });
 
@@ -3695,6 +3816,7 @@ function createRenderLayerRegistryStub(
   unregisterCamera: ReturnType<typeof vi.fn>;
   registerRenderPass: ReturnType<typeof vi.fn>;
   unregisterRenderPass: ReturnType<typeof vi.fn>;
+  updateTimelineState: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "__dom-webgl-default__",
@@ -3750,6 +3872,7 @@ function createRenderLayerRegistryStub(
   const unregisterScene = vi.fn();
   const unregisterCamera = vi.fn();
   const unregisterRenderPass = vi.fn();
+  const updateTimelineState = vi.fn();
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
@@ -3799,6 +3922,7 @@ function createRenderLayerRegistryStub(
       unregisterCamera,
       registerRenderPass,
       unregisterRenderPass,
+      updateTimelineState,
       resize: vi.fn(),
       renderPasses,
       dispose: vi.fn(),
@@ -3810,6 +3934,7 @@ function createRenderLayerRegistryStub(
     unregisterCamera,
     registerRenderPass,
     unregisterRenderPass,
+    updateTimelineState,
   };
 }
 

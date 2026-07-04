@@ -265,6 +265,80 @@ describe("createWebGLEffectController", () => {
     expect(disposeProgress).toBe(0.75);
   });
 
+  test("refreshes managed runtime and scene scopes across reusable context updates", () => {
+    let progressValue = 0.25;
+    const progressSignals = {
+      get(key) {
+        return key === "hero.3d" ? progressValue : 0;
+      },
+    } satisfies WebGLProgressSignalSource;
+    const scopeSnapshots: Array<{
+      runtimeProgress: number;
+      sceneId: string | undefined;
+      projection: string | undefined;
+      timelineProgress: number | undefined;
+      timelineActive: boolean | undefined;
+    }> = [];
+    const controller = createWebGLEffectController({
+      key: "custom.scoped",
+      declaration: [{ kind: "custom.scopeReader" }],
+      source: createElementSnapshotSource(),
+      getSource: () => createElementEffectSource(),
+      target: createEffectTarget(),
+      progressSignals,
+      readScopes() {
+        return {
+          runtime: { progress: progressSignals },
+          scene: {
+            id: "world",
+            projection: "perspective-stage",
+            timeline: {
+              id: "hero.3d",
+              progressKey: "hero.3d",
+              progress: progressSignals.get("hero.3d"),
+              active: progressValue >= 0.2 && progressValue <= 0.8,
+            },
+          },
+        };
+      },
+      registry: createWebGLEffectRegistry([
+        defineWebGLEffect({
+          kind: "custom.scopeReader",
+          update(ctx) {
+            scopeSnapshots.push({
+              runtimeProgress: ctx.runtime.progress.get("hero.3d"),
+              sceneId: ctx.scene?.id,
+              projection: ctx.scene?.projection,
+              timelineProgress: ctx.scene?.timeline?.progress,
+              timelineActive: ctx.scene?.timeline?.active,
+            });
+          },
+        }),
+      ]),
+    });
+
+    controller.update(createFrameInput(), createLayoutSnapshot());
+    progressValue = 0.9;
+    controller.update(createFrameInput(), createLayoutSnapshot());
+
+    expect(scopeSnapshots).toEqual([
+      {
+        runtimeProgress: 0.25,
+        sceneId: "world",
+        projection: "perspective-stage",
+        timelineProgress: 0.25,
+        timelineActive: true,
+      },
+      {
+        runtimeProgress: 0.9,
+        sceneId: "world",
+        projection: "perspective-stage",
+        timelineProgress: 0.9,
+        timelineActive: false,
+      },
+    ]);
+  });
+
   test("keeps scrollProgress mapped to page and gate scroll modes", () => {
     const scrollProgress: number[] = [];
     const controller = createWebGLEffectController({

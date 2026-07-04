@@ -16,10 +16,13 @@ import {
   normalizeRenderLayerSceneDeclaration,
   normalizeTargetSceneId,
 } from "./renderLayerDeclarations";
+import type { NormalizedTimelineBinding } from "../timeline/timelineDeclarations";
+import { readTimelineProgress } from "../timeline/timelineDeclarations";
 import type {
   WebGLCameraDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
+  WebGLProgressSignalSource,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
   WebGLSceneProjection,
@@ -34,6 +37,8 @@ export type InternalRenderSceneEntry = {
   readonly camera: object;
   readonly sceneAdapter: WebGLSceneAdapter;
   readonly defaultCameraId?: string;
+  readonly timeline?: NormalizedTimelineBinding;
+  readonly timelineActive?: boolean;
   readonly resize?: (viewport: DOMViewportSize) => void;
   readonly dispose?: () => void;
 };
@@ -78,6 +83,7 @@ export type InternalRenderLayerRegistry = {
   unregisterCamera(id: string): void;
   registerRenderPass(declaration: WebGLRenderPassDeclaration): void;
   unregisterRenderPass(id: string): void;
+  updateTimelineState(progressSignals: WebGLProgressSignalSource): void;
   resize(viewport: DOMViewportSize): void;
   renderPasses(
     renderPass: (
@@ -203,6 +209,7 @@ export function createInternalRenderLayerRegistry(
         camera: managed.camera,
         sceneAdapter: managed.sceneAdapter,
         defaultCameraId: normalized.defaultCameraId,
+        ...(normalized.timeline ? { timeline: normalized.timeline } : {}),
         resize: managed.resize,
         dispose: managed.dispose,
       } satisfies InternalRenderSceneEntry;
@@ -332,6 +339,19 @@ export function createInternalRenderLayerRegistry(
 
       passesById.delete(pass.id);
     },
+    updateTimelineState(progressSignals) {
+      for (const scene of scenesById.values()) {
+        if (!scene.timeline?.active) {
+          continue;
+        }
+
+        const snapshot = readTimelineProgress(scene.timeline, progressSignals);
+        scenesById.set(scene.id, {
+          ...scene,
+          timelineActive: snapshot.active,
+        });
+      }
+    },
     resize(viewport) {
       for (const scene of scenesById.values()) {
         if (!scene.generated) {
@@ -358,6 +378,10 @@ export function createInternalRenderLayerRegistry(
           throw new Error(
             `WebGL render pass "${pass.id}" references unknown scene "${pass.sceneId}".`,
           );
+        }
+
+        if (scene.timeline?.active && scene.timelineActive === false) {
+          continue;
         }
 
         if ((!camera || !cameraId) && pass.deferUntilCamera) {
@@ -429,6 +453,10 @@ function omitDefaultCameraId(
     scene: scene.scene,
     camera: scene.camera,
     sceneAdapter: scene.sceneAdapter,
+    ...(scene.timeline ? { timeline: scene.timeline } : {}),
+    ...(scene.timelineActive !== undefined
+      ? { timelineActive: scene.timelineActive }
+      : {}),
     ...(scene.dispose ? { dispose: scene.dispose } : {}),
     ...(scene.resize ? { resize: scene.resize } : {}),
   };

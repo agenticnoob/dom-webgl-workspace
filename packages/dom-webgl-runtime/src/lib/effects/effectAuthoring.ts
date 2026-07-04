@@ -3,6 +3,7 @@ import type {
   WebGLEffectDeclaration,
   WebGLFrameInput,
   WebGLProgressSignalSource,
+  WebGLSceneProjection,
   WebGLTargetPointerState,
 } from "../types";
 import type { WebGLEffectMaterialFacade } from "./effectMaterial";
@@ -284,6 +285,28 @@ export type WebGLEffectVisualContext = {
   ): WebGLEffectPostprocessHandle;
 };
 
+export type WebGLEffectTimelineScope = {
+  readonly id: string;
+  readonly progressKey: string;
+  readonly progress: number;
+  readonly active: boolean;
+};
+
+export type WebGLEffectRuntimeScope = {
+  readonly progress: WebGLProgressSignalSource;
+};
+
+export type WebGLEffectSceneScope = {
+  readonly id: string;
+  readonly projection: WebGLSceneProjection;
+  readonly timeline?: WebGLEffectTimelineScope;
+};
+
+export type WebGLEffectScopeSnapshot = {
+  readonly runtime: WebGLEffectRuntimeScope;
+  readonly scene?: WebGLEffectSceneScope;
+};
+
 export type WebGLEffectSourceHandle =
   | {
       kind: "dom";
@@ -338,6 +361,8 @@ export type WebGLEffectContext = {
   scroll: WebGLFrameInput["scroll"];
   scrollProgress: number;
   progress: WebGLProgressSignalSource;
+  runtime: WebGLEffectRuntimeScope;
+  scene?: WebGLEffectSceneScope;
   time: number;
   delta: number;
   object: WebGLEffectObjectHandle;

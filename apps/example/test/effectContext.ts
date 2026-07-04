@@ -63,6 +63,7 @@ export function createEffectContext(
   const targetPointer =
     overrides.targetPointer ?? createTargetPointerState(pointer, layout, time);
   const sourceKind = overrides.sourceKind ?? readEffectSourceKind(source);
+  const progress = overrides.progress ?? { get: () => 0 };
   const visual = overrides.visual ?? {
     requestPostprocess: vi.fn(() => ({
       update: vi.fn(),
@@ -92,7 +93,9 @@ export function createEffectContext(
     targetPointer,
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
-    progress: overrides.progress ?? { get: () => 0 },
+    progress,
+    runtime: overrides.runtime ?? { progress },
+    ...(overrides.scene !== undefined ? { scene: overrides.scene } : {}),
     time,
     delta,
     object:

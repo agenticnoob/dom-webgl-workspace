@@ -36,6 +36,43 @@ describe("managed stage declaration normalization", () => {
     });
   });
 
+  test("normalizes primitive and light timeline metadata", () => {
+    expect(
+      normalizeStagePrimitiveDeclaration({
+        id: "floor",
+        sceneId: "world",
+        kind: "plane",
+        timeline: {
+          id: " hero.3d ",
+          progressKey: " scroll.hero ",
+          active: { from: 0.1, to: 0.9 },
+        },
+      }),
+    ).toMatchObject({
+      id: "floor",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "scroll.hero",
+        active: { from: 0.1, to: 0.9 },
+      },
+    });
+
+    expect(
+      normalizeLightDeclaration({
+        id: "hero",
+        sceneId: "world",
+        kind: "point",
+        timeline: " hero.3d ",
+      }),
+    ).toMatchObject({
+      id: "hero",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "hero.3d",
+      },
+    });
+  });
+
   test("normalizes box and basic material declarations", () => {
     expect(
       normalizeStagePrimitiveDeclaration({
