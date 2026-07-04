@@ -178,6 +178,29 @@ export type WebGLCameraFramingDeclaration = {
   zoom?: number;
 };
 
+export type WebGLCameraControllerFrameDeclaration = {
+  readonly position?: WebGLTuple3;
+  readonly target?: WebGLTuple3;
+  readonly fov?: number;
+};
+
+export type WebGLCameraControllerTimelineDeclaration =
+  | string
+  | {
+      readonly id: string;
+      readonly progressKey?: string;
+      readonly range?: WebGLTimelineActiveRangeDeclaration;
+    };
+
+export type WebGLCameraControllerEasing = "linear" | "smoothstep";
+
+export type WebGLCameraControllerDeclaration = {
+  readonly timeline: WebGLCameraControllerTimelineDeclaration;
+  readonly from?: WebGLCameraControllerFrameDeclaration;
+  readonly to: WebGLCameraControllerFrameDeclaration;
+  readonly easing?: WebGLCameraControllerEasing;
+};
+
 export type WebGLDOMAnchoredPlacementDeclaration = {
   mode?: "dom-anchored";
 };
@@ -223,6 +246,7 @@ export type WebGLCameraDeclaration = WebGLCameraFramingDeclaration & {
   type?: WebGLCameraType;
   mode?: WebGLCameraMode;
   default?: boolean;
+  controller?: WebGLCameraControllerDeclaration;
 };
 
 export type WebGLPassViewportDeclaration =
@@ -515,6 +539,15 @@ export type WebGLDebugPostprocessRequestSummary = {
   scope: WebGLPostprocessScopeDeclaration;
 };
 
+export type WebGLDebugCameraControllerSummary = {
+  cameraId: string;
+  sceneId: string;
+  timelineId: string;
+  progressKey: string;
+  progress: number;
+  applied: boolean;
+};
+
 export type WebGLDebugRenderPassSummary = {
   id: string;
   sceneId: string;
@@ -536,6 +569,7 @@ export type WebGLDebugState = {
   lightCount?: number;
   stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
   lights?: WebGLDebugLightSummary[];
+  cameraControllers?: WebGLDebugCameraControllerSummary[];
   renderPasses?: WebGLDebugRenderPassSummary[];
   postprocessRequests?: WebGLDebugPostprocessRequestSummary[];
   targets: Array<{

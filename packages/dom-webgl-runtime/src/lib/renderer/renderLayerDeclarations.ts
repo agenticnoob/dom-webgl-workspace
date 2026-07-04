@@ -20,6 +20,10 @@ import {
   normalizeTimelineBinding,
   type NormalizedTimelineBinding,
 } from "../timeline/timelineDeclarations";
+import {
+  normalizeCameraControllerDeclaration,
+  type NormalizedCameraControllerDeclaration,
+} from "./cameraControllerDeclarations";
 
 export const generatedRenderLayerId = "__dom-webgl-default__";
 
@@ -43,6 +47,7 @@ export type NormalizedRenderLayerCameraDeclaration = {
   position?: WebGLTuple3;
   target?: WebGLTuple3;
   zoom?: number;
+  controller?: NormalizedCameraControllerDeclaration;
 };
 
 export type NormalizedRenderLayerPassDeclaration = {
@@ -147,6 +152,9 @@ export function normalizeRenderLayerCameraDeclaration(
       : {}),
     ...(declaration.zoom !== undefined
       ? { zoom: normalizePositiveNumber(declaration.zoom, 1, "camera zoom") }
+      : {}),
+    ...(declaration.controller
+      ? { controller: normalizeCameraControllerDeclaration(declaration.controller) }
       : {}),
   };
 }

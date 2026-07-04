@@ -232,9 +232,11 @@ Rules:
   Use it only for opt-in managed scene/pass work; Level 1 `WebGLTarget` usage
   does not need it.
 - Scene-native models, `screen-plane`, raw Three.js scene/camera/renderer
-  handles, and camera-scoped controllers remain future or non-public.
-- `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot. Camera
-  motion/focus/framing needs a future explicit camera/pass-bound controller.
+  handles, orthographic/screen camera controllers, and pass-bound camera
+  controller scope remain future or non-public.
+- `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot accept a
+  top-level `timeline`. For progress-driven camera motion/focus/framing, put
+  one nested `controller` descriptor on a managed `perspective-stage` camera.
 
 ## Opt-In Managed Stage Integration
 
@@ -347,7 +349,20 @@ export function App() {
           render={{ camera: "hero.camera" }}
           timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
         >
-          <WebGLCamera id="hero.camera" default type="perspective" />
+          <WebGLCamera
+            id="hero.camera"
+            default
+            type="perspective"
+            mode="perspective-stage"
+            controller={{
+              timeline: {
+                id: "hero.timeline",
+                range: { from: 0.15, to: 0.85 },
+              },
+              to: { position: [0, 80, 520], target: [0, 32, 0], fov: 36 },
+              easing: "smoothstep",
+            }}
+          />
           <WebGLStagePlane
             id="hero.floor"
             role="floor"
@@ -372,9 +387,10 @@ Rules:
   only when the runtime key must differ from the public timeline id.
 - `active.from` and `active.to` are normalized progress bounds from 0 to 1.
 - `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
-  `WebGLLight` can bind timelines.
-- `WebGLCamera` does not accept `timeline`; future camera behavior must bind to
-  an explicit camera/pass controller.
+  `WebGLLight` can bind top-level timelines.
+- `WebGLCamera` does not accept top-level `timeline`; use nested
+  `controller.timeline` on a managed `perspective-stage` camera for
+  progress-driven `position`, `target`, and `fov`.
 - Binding a target/scene/stage/light timeline can activate or hide
   runtime-owned work. Active ranges do not override explicit effect visibility
   or `visible: false` declarations, and they do not clip a managed scene to the
@@ -600,7 +616,7 @@ Rules:
   `ctx.runtime.progress.get(progressKey)`.
 - Let GSAP ScrollTrigger own `pin` and `scrub` through `ScrollEffectSection`.
 - Use `WebGLScrollTimeline` when the progress signal should also bind to
-  managed scenes, stage primitives, lights, or future managed controllers.
+  managed scenes, stage primitives, lights, or managed camera controllers.
 - Do not mutate mounted `webgl.effects` on every scroll update.
 - Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
   post-pinned runway sibling just to release scroll.

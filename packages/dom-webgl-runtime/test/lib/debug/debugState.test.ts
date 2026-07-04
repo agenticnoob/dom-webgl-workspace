@@ -275,6 +275,40 @@ describe("debug state", () => {
     expect(state.lights?.[0].timeline).not.toHaveProperty("timeline");
   });
 
+  test("copies descriptor-only camera controller summaries without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      cameraControllers: [
+        {
+          cameraId: "hero.camera",
+          sceneId: "hero.scene",
+          timelineId: "hero.timeline",
+          progressKey: "hero.progress",
+          progress: 0.5,
+          applied: true,
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.cameraControllers).toEqual([
+      {
+        cameraId: "hero.camera",
+        sceneId: "hero.scene",
+        timelineId: "hero.timeline",
+        progressKey: "hero.progress",
+        progress: 0.5,
+        applied: true,
+      },
+    ]);
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("camera");
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("matrix");
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("controls");
+  });
+
   test("copies projection and placement mode into public target summaries", () => {
     expect(
       createDebugState({
@@ -754,6 +788,56 @@ describe("debug state", () => {
     });
     expect(runtime.getDebugState()).not.toHaveProperty("camera");
     expect(runtime.getDebugState()).not.toHaveProperty("renderTarget");
+
+    runtime.dispose();
+  });
+
+  test("runtime exposes descriptor-only camera controller summaries", async () => {
+    const runtime = await createRuntime({
+      pointerController: createPointerController(),
+      scrollState: createScrollStateController(),
+      progressSignals: {
+        get: vi.fn(() => 0.5),
+      },
+    });
+
+    runtime.registerScene({
+      id: "debug.scene",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "debug.camera",
+      sceneId: "debug.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: {
+          id: "debug.timeline",
+          progressKey: "debug.progress",
+        },
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().cameraControllers).toContainEqual({
+      cameraId: "debug.camera",
+      sceneId: "debug.scene",
+      timelineId: "debug.timeline",
+      progressKey: "debug.progress",
+      progress: 0.5,
+      applied: true,
+    });
+    expect(runtime.getDebugState()).not.toHaveProperty("camera");
+    expect(runtime.getDebugState()).not.toHaveProperty("controls");
 
     runtime.dispose();
   });

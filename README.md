@@ -53,8 +53,9 @@ Current runtime behavior:
 - Targets, managed scenes, stage primitives, and scene-owned lights can bind to
   named timeline descriptors backed by runtime progress signals. Timeline
   active ranges can activate or skip target, scene, stage, and light work
-  without React prop churn. Cameras intentionally do not accept `timeline`;
-  camera motion remains a future explicit camera/pass-bound controller concern.
+  without React prop churn. Cameras intentionally do not accept top-level
+  `timeline`; managed perspective-stage cameras can declare a nested
+  `controller` for progress-driven `position`, `target`, and `fov` changes.
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
@@ -647,10 +648,14 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 passes can request `clear` or `clearDepth`. `screen-depth` uses the DOM rect for
 screen position/size and projects that point along the active `WebGLCamera`
 basis at the requested depth, so the scene default camera should stay aligned
-with the render pass camera. Render passes can also declare DOM-bound
+with the render pass camera. A managed perspective-stage camera can use a
+nested `controller` descriptor for timeline-driven `position`, `target`, and
+`fov`; the runtime applies that camera frame before `screen-depth` projection
+and pass rendering. Render passes can also declare DOM-bound
 `viewport`/scissor and descriptor-level `postprocess`. These remain
 descriptor-driven and runtime-owned. Scene-native models, `screen-plane`
-placement, camera controllers, and raw Three.js access remain out of scope.
+placement, orthographic/screen camera controllers, pass-bound camera controller
+scope, and raw Three.js access remain out of scope.
 
 ## Managed Timeline Bindings
 
@@ -678,7 +683,18 @@ import {
       render={{ camera: "hero.camera" }}
       timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
     >
-      <WebGLCamera id="hero.camera" default type="perspective" />
+      <WebGLCamera
+        id="hero.camera"
+        default
+        type="perspective"
+        mode="perspective-stage"
+        fov={42}
+        controller={{
+          timeline: { id: "hero.timeline", range: { from: 0.15, to: 0.85 } },
+          to: { position: [0, 80, 520], target: [0, 32, 0], fov: 36 },
+          easing: "smoothstep",
+        }}
+      />
       <WebGLStagePlane
         id="hero.floor"
         role="floor"
@@ -708,6 +724,12 @@ Effects can read the same signal through `ctx.progress.get(key)` or
 `ctx.scene` exposes descriptor metadata and that scene timeline snapshot. These
 scope objects are managed metadata, not raw scene/pass/camera handles, and there
 is no implicit `ctx.camera`.
+
+`WebGLCamera` still has no top-level `timeline` prop. Use the nested
+`controller.timeline` descriptor on a managed `perspective-stage` camera for
+camera motion/focus/framing. v1 controller support is intentionally limited to
+one camera-owned controller per camera and does not expose raw Three.js cameras,
+controls, matrices, pass-bound scope, or pointer-driven orbit/pan behavior.
 
 ## Opt-In Managed Stage Primitives
 
@@ -766,8 +788,9 @@ scene declarations. They can mount, unmount, or change in ordinary React flows,
 but they are not the high-frequency animation path. For animated stage, scene,
 or light behavior, keep descriptor identity stable and route activation through
 timeline bindings or managed effects/controllers rather than recreating meshes
-and lights every frame. Camera behavior remains future explicit
-camera/pass-bound controller work.
+and lights every frame. Camera behavior uses the explicit nested
+`WebGLCamera.controller` descriptor; pass-bound camera controller scope remains
+deferred.
 
 ## Lifecycle And Fallback Visibility
 

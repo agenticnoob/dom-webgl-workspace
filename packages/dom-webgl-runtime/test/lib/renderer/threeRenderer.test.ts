@@ -403,6 +403,51 @@ describe("createThreeRendererHost", () => {
     expect(perspectiveCamera.updateProjectionMatrix).toHaveBeenCalled();
   });
 
+  test("applies managed perspective camera framing without exposing raw camera handles", async () => {
+    const perspectiveCamera = {
+      aspect: 0,
+      fov: 50,
+      position: { set: vi.fn() },
+      lookAt: vi.fn(),
+      updateProjectionMatrix: vi.fn(),
+    };
+    const PerspectiveCamera = vi.fn(() => perspectiveCamera);
+
+    vi.doMock("three/src/cameras/PerspectiveCamera.js", () => ({
+      PerspectiveCamera,
+    }));
+
+    const { createManagedCamera } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+    });
+
+    managed.applyFraming(
+      {
+        position: [0, 120, 520],
+        target: [0, 48, 0],
+        fov: 34,
+      },
+      { width: 390, height: 844 },
+    );
+
+    expect(perspectiveCamera.aspect).toBe(390 / 844);
+    expect(perspectiveCamera.position.set).toHaveBeenLastCalledWith(0, 120, 520);
+    expect(perspectiveCamera.lookAt).toHaveBeenLastCalledWith(0, 48, 0);
+    expect(perspectiveCamera.fov).toBe(34);
+    expect(perspectiveCamera.updateProjectionMatrix).toHaveBeenCalled();
+  });
+
   test("caps renderer pixel ratio at 1.5", async () => {
     const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
     const setPixelRatio = vi.fn();

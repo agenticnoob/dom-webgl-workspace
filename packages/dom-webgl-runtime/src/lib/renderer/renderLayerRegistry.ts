@@ -16,12 +16,19 @@ import {
   normalizeRenderLayerSceneDeclaration,
   normalizeTargetSceneId,
 } from "./renderLayerDeclarations";
+import {
+  readCameraControllerFrame,
+  readCameraControllerProgress,
+  type NormalizedCameraControllerDeclaration,
+  type NormalizedCameraControllerFrameDeclaration,
+} from "./cameraControllerDeclarations";
 import type { NormalizedTimelineBinding } from "../timeline/timelineDeclarations";
 import { readTimelineProgress } from "../timeline/timelineDeclarations";
 import type {
   WebGLCameraDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
+  WebGLDebugCameraControllerSummary,
   WebGLPassViewportDeclaration,
   WebGLPostprocessDeclaration,
   WebGLProgressSignalSource,
@@ -58,7 +65,13 @@ export type InternalRenderCameraEntry = {
   readonly far?: number;
   readonly position?: readonly [number, number, number];
   readonly target?: readonly [number, number, number];
+  readonly controller?: NormalizedCameraControllerDeclaration;
+  readonly controllerBaseFrame?: NormalizedCameraControllerFrameDeclaration;
   readonly resize?: (viewport: DOMViewportSize) => void;
+  readonly applyFraming?: (
+    framing: NormalizedCameraControllerFrameDeclaration,
+    viewport: DOMViewportSize,
+  ) => void;
   readonly dispose?: () => void;
 };
 
@@ -88,6 +101,8 @@ export type InternalRenderLayerRegistry = {
   registerRenderPass(declaration: WebGLRenderPassDeclaration): void;
   unregisterRenderPass(id: string): void;
   updateTimelineState(progressSignals: WebGLProgressSignalSource): void;
+  updateCameraControllers(progressSignals: WebGLProgressSignalSource): boolean;
+  inspectCameraControllers(): readonly WebGLDebugCameraControllerSummary[];
   resize(viewport: DOMViewportSize): void;
   renderPasses(
     renderPass: (
@@ -158,6 +173,14 @@ export function createInternalRenderLayerRegistry(
   const passesById = new Map<string, InternalRenderPassEntry>([
     [mainPass.id, mainPass],
   ]);
+  const appliedControllerFramesByCameraId = new Map<
+    string,
+    NormalizedCameraControllerFrameDeclaration
+  >();
+  const cameraControllerSnapshotsByCameraId = new Map<
+    string,
+    { readonly progress: number; readonly applied: boolean }
+  >();
 
   return {
     getScene(id) {
@@ -247,8 +270,11 @@ export function createInternalRenderLayerRegistry(
 
       for (const [cameraId, camera] of camerasById) {
         if (camera.sceneId === scene.id) {
+          resetCameraController(camera);
           camera.dispose?.();
           camerasById.delete(cameraId);
+          appliedControllerFramesByCameraId.delete(cameraId);
+          cameraControllerSnapshotsByCameraId.delete(cameraId);
         }
       }
 
@@ -270,6 +296,7 @@ export function createInternalRenderLayerRegistry(
       }
 
       assertCameraMatchesSceneProjection(scene, normalized);
+      assertCameraControllerSupported(normalized);
       const managedCamera = createManagedCameraEntry(normalized, scene);
       managedCamera.resize(rendererHost.getViewportSize());
       const camera = {
@@ -285,7 +312,14 @@ export function createInternalRenderLayerRegistry(
         ...(normalized.far !== undefined ? { far: normalized.far } : {}),
         ...(normalized.position ? { position: normalized.position } : {}),
         ...(normalized.target ? { target: normalized.target } : {}),
+        ...(normalized.controller
+          ? {
+              controller: normalized.controller,
+              controllerBaseFrame: readCameraControllerBaseFrame(normalized),
+            }
+          : {}),
         resize: managedCamera.resize,
+        applyFraming: managedCamera.applyFraming,
         dispose: managedCamera.dispose,
       } satisfies InternalRenderCameraEntry;
       camerasById.set(camera.id, camera);
@@ -304,8 +338,11 @@ export function createInternalRenderLayerRegistry(
         return;
       }
 
+      resetCameraController(camera);
       camera.dispose?.();
       camerasById.delete(camera.id);
+      appliedControllerFramesByCameraId.delete(camera.id);
+      cameraControllerSnapshotsByCameraId.delete(camera.id);
 
       const scene = scenesById.get(camera.sceneId);
       if (scene?.defaultCameraId === camera.id) {
@@ -355,6 +392,62 @@ export function createInternalRenderLayerRegistry(
           timelineActive: snapshot.active,
         });
       }
+    },
+    updateCameraControllers(progressSignals) {
+      let changed = false;
+      const viewport = rendererHost.getViewportSize();
+
+      for (const camera of camerasById.values()) {
+        if (!camera.controller || !camera.controllerBaseFrame) {
+          continue;
+        }
+
+        const progress = readCameraControllerProgress(
+          camera.controller,
+          progressSignals,
+        );
+        const frame = readCameraControllerFrame(
+          camera.controller,
+          camera.controllerBaseFrame,
+          progress,
+        );
+        const previous = appliedControllerFramesByCameraId.get(camera.id);
+
+        cameraControllerSnapshotsByCameraId.set(camera.id, {
+          progress,
+          applied: true,
+        });
+
+        if (cameraControllerFramesEqual(previous, frame)) {
+          continue;
+        }
+
+        camera.applyFraming?.(frame, viewport);
+        appliedControllerFramesByCameraId.set(camera.id, frame);
+        changed = true;
+      }
+
+      return changed;
+    },
+    inspectCameraControllers() {
+      return Array.from(camerasById.values()).flatMap((camera) => {
+        if (!camera.controller) {
+          return [];
+        }
+
+        const snapshot = cameraControllerSnapshotsByCameraId.get(camera.id);
+
+        return [
+          {
+            cameraId: camera.id,
+            sceneId: camera.sceneId,
+            timelineId: camera.controller.timeline.id,
+            progressKey: camera.controller.timeline.progressKey,
+            progress: snapshot?.progress ?? 0,
+            applied: snapshot?.applied ?? false,
+          },
+        ];
+      });
     },
     resize(viewport) {
       for (const scene of scenesById.values()) {
@@ -416,8 +509,11 @@ export function createInternalRenderLayerRegistry(
 
       for (const camera of Array.from(camerasById.values())) {
         if (!camera.generated) {
+          resetCameraController(camera);
           camera.dispose?.();
           camerasById.delete(camera.id);
+          appliedControllerFramesByCameraId.delete(camera.id);
+          cameraControllerSnapshotsByCameraId.delete(camera.id);
         }
       }
 
@@ -445,6 +541,66 @@ export function createInternalRenderLayerRegistry(
 
     return undefined;
   }
+
+  function resetCameraController(camera: InternalRenderCameraEntry): void {
+    if (!camera.controllerBaseFrame) {
+      return;
+    }
+
+    camera.applyFraming?.(camera.controllerBaseFrame, rendererHost.getViewportSize());
+  }
+}
+
+function assertCameraControllerSupported(
+  camera: NormalizedRenderLayerCameraDeclaration,
+): void {
+  if (!camera.controller) {
+    return;
+  }
+
+  if (camera.type === "perspective" && camera.mode === "perspective-stage") {
+    return;
+  }
+
+  throw new Error(
+    `WebGL camera controller "${camera.id}" requires a managed perspective-stage camera.`,
+  );
+}
+
+function readCameraControllerBaseFrame(
+  camera: NormalizedRenderLayerCameraDeclaration,
+): NormalizedCameraControllerFrameDeclaration {
+  return {
+    position: camera.position ?? [0, 0, 500],
+    target: camera.target ?? [0, 0, 0],
+    fov: camera.fov ?? 50,
+  };
+}
+
+function cameraControllerFramesEqual(
+  left: NormalizedCameraControllerFrameDeclaration | undefined,
+  right: NormalizedCameraControllerFrameDeclaration,
+): boolean {
+  if (!left) {
+    return false;
+  }
+
+  return (
+    tuple3Equal(left.position, right.position) &&
+    tuple3Equal(left.target, right.target) &&
+    left.fov === right.fov
+  );
+}
+
+function tuple3Equal(
+  left: readonly [number, number, number] | undefined,
+  right: readonly [number, number, number] | undefined,
+): boolean {
+  if (left === undefined || right === undefined) {
+    return left === right;
+  }
+
+  return left[0] === right[0] && left[1] === right[1] && left[2] === right[2];
 }
 
 function omitDefaultCameraId(

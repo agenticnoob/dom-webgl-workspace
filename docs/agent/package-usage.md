@@ -74,6 +74,10 @@ import {
   type WebGLEffectContext,
   type WebGLEffectDefinition,
   type WebGLEffectSchedule,
+  type WebGLCameraControllerDeclaration,
+  type WebGLCameraControllerEasing,
+  type WebGLCameraControllerFrameDeclaration,
+  type WebGLCameraControllerTimelineDeclaration,
   type WebGLCameraDeclaration,
   type WebGLCameraFramingDeclaration,
   type WebGLCameraMode,
@@ -431,9 +435,12 @@ Rules:
 - `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
-- Scene-native `WebGLModel`, `screen-plane`, and camera-scoped
-  effects/controllers remain later phases. `ctx.scene` exists today as managed
-  scene metadata/timeline scope, not as a raw scene control handle.
+- A managed `perspective-stage` camera can declare one nested `controller`
+  descriptor for progress-driven `position`, `target`, and `fov`. Scene-native
+  `WebGLModel`, `screen-plane`, orthographic/screen camera controllers,
+  pass-bound controller scope, and camera-scoped effects remain later phases.
+  `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
+  raw scene control handle.
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -568,7 +575,20 @@ export function App() {
           render={{ camera: "hero.camera" }}
           timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
         >
-          <WebGLCamera id="hero.camera" default type="perspective" />
+          <WebGLCamera
+            id="hero.camera"
+            default
+            type="perspective"
+            mode="perspective-stage"
+            controller={{
+              timeline: {
+                id: "hero.timeline",
+                range: { from: 0.15, to: 0.85 },
+              },
+              to: { position: [0, 80, 520], target: [0, 32, 0], fov: 36 },
+              easing: "smoothstep",
+            }}
+          />
           <WebGLStagePlane
             id="hero.floor"
             role="floor"
@@ -595,7 +615,11 @@ Rules:
 - `ScrollEffectSection` remains compatible sugar for ordinary target/effect
   pinned sections that only need a `progressKey`.
 - `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
-  `WebGLLight` can bind timelines. `WebGLCamera` cannot.
+  `WebGLLight` can bind top-level timelines. `WebGLCamera` cannot.
+- Use nested `WebGLCamera.controller.timeline` on managed
+  `perspective-stage` cameras when the same progress signal should drive camera
+  `position`, `target`, or `fov`. Vanilla consumers pass the same `controller`
+  data to `runtime.registerCamera(...)`.
 - Timeline bindings can activate/skip targets, scene passes, stage primitives,
   and lights by progress range without rebuilding descriptors every frame.
   Entering an active range restores only the declaration/effect-owned
@@ -1187,8 +1211,10 @@ Scope rule:
 - `ctx.scene` is present only when the target/update is routed through a managed
   scene scope. It exposes descriptor metadata and timeline state, not a raw
   Three.js scene.
-- There is no implicit `ctx.camera`; future camera motion/focus/framing must use
-  explicit camera/pass-bound descriptors or controllers.
+- There is no implicit `ctx.camera`; progress-driven camera motion/focus/framing
+  uses the explicit nested `WebGLCamera.controller` descriptor. Pass-bound,
+  pointer-driven, orthographic, and screen-overlay camera controllers remain
+  future work.
 
 Pointer rule:
 

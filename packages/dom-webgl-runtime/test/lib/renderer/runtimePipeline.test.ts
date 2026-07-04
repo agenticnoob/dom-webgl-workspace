@@ -15,7 +15,11 @@ import type {
   WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
 } from "../../../src/lib/source/sourceDescriptor";
-import type { WebGLFrameInput, WebGLScrollAdapter } from "../../../src/lib/types";
+import type {
+  WebGLFrameInput,
+  WebGLProgressSignalSource,
+  WebGLScrollAdapter,
+} from "../../../src/lib/types";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
 import type {
@@ -3655,6 +3659,71 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("updates camera controllers before screen-depth projection and pass rendering", async () => {
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, renderPasses, updateCameraControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        scenes: { world: worldAdapter },
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            position: [0, 0, 500],
+            target: [0, 0, 0],
+            fov: 50,
+          },
+        },
+        updateCameraControllers(_progressSignals, camerasById) {
+          const camera = camerasById.get("world.camera");
+
+          if (!camera) {
+            throw new Error("Missing test camera");
+          }
+
+          camerasById.set("world.camera", {
+            ...camera,
+            position: [0, 120, 520],
+            target: [0, 0, 0],
+            fov: 30,
+          });
+
+          return true;
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(300, 250, 200, 100),
+    });
+
+    runtime.registerTarget(document.createElement("article"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+    });
+
+    await runtime.sync();
+
+    const layout = readRequiredSceneObjectLastLayout(worldAdapter, "world.card");
+    const unitsPerPixel = (2 * 120 * Math.tan((30 * Math.PI) / 360)) / 600;
+    const cameraDistance = Math.hypot(120, 520);
+    expect(layout.y).toBeCloseTo(120 - (120 / cameraDistance) * 120);
+    expect(layout.z).toBeCloseTo(520 - (520 / cameraDistance) * 120);
+    expect(layout.width).toBeCloseTo(200 * unitsPerPixel);
+    expect(layout.height).toBeCloseTo(100 * unitsPerPixel);
+    expect(updateCameraControllers).toHaveBeenCalledTimes(1);
+    expect(renderPasses).toHaveBeenCalled();
+    expect(updateCameraControllers.mock.invocationCallOrder[0]).toBeLessThan(
+      renderPasses.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+
+    runtime.dispose();
+  });
+
   test("keeps Level 1 dom anchored layout unchanged", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -3928,6 +3997,10 @@ function createRenderLayerRegistryStub(
         Partial<InternalRenderCameraEntry>
     >;
     passes?: readonly InternalRenderPassEntry[];
+    updateCameraControllers?: (
+      progressSignals: WebGLProgressSignalSource,
+      camerasById: Map<string, InternalRenderCameraEntry>,
+    ) => boolean;
   } = {},
 ): {
   registry: InternalRenderLayerRegistry;
@@ -3939,6 +4012,7 @@ function createRenderLayerRegistryStub(
   registerRenderPass: ReturnType<typeof vi.fn>;
   unregisterRenderPass: ReturnType<typeof vi.fn>;
   updateTimelineState: ReturnType<typeof vi.fn>;
+  updateCameraControllers: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "__dom-webgl-default__",
@@ -3996,6 +4070,10 @@ function createRenderLayerRegistryStub(
   const unregisterCamera = vi.fn();
   const unregisterRenderPass = vi.fn();
   const updateTimelineState = vi.fn();
+  const updateCameraControllers = vi.fn(
+    (progressSignals: WebGLProgressSignalSource) =>
+      options.updateCameraControllers?.(progressSignals, camerasById) ?? false,
+  );
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
@@ -4046,6 +4124,10 @@ function createRenderLayerRegistryStub(
       registerRenderPass,
       unregisterRenderPass,
       updateTimelineState,
+      updateCameraControllers,
+      inspectCameraControllers() {
+        return [];
+      },
       resize: vi.fn(),
       renderPasses,
       dispose: vi.fn(),
@@ -4058,6 +4140,7 @@ function createRenderLayerRegistryStub(
     registerRenderPass,
     unregisterRenderPass,
     updateTimelineState,
+    updateCameraControllers,
   };
 }
 

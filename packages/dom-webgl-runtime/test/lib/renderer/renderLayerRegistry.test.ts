@@ -82,6 +82,9 @@ describe("createInternalRenderLayerRegistry", () => {
             resize() {
               return;
             },
+            applyFraming() {
+              return;
+            },
             dispose() {
               return;
             },
@@ -155,6 +158,9 @@ describe("createInternalRenderLayerRegistry", () => {
           return {
             camera: perspectiveCamera,
             resize: resizeCamera,
+            applyFraming() {
+              return;
+            },
             dispose() {
               return;
             },
@@ -183,6 +189,101 @@ describe("createInternalRenderLayerRegistry", () => {
     registry.resize({ width: 390, height: 844 });
 
     expect(resizeCamera).toHaveBeenCalledWith({ width: 390, height: 844 });
+  });
+
+  test("updates managed perspective camera controllers from progress signals", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+
+    expect(registry.updateCameraControllers({ get: () => 0.5 })).toBe(true);
+    expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
+      {
+        position: [0, 60, 610],
+        target: [0, 24, 0],
+        fov: 39,
+      },
+      { width: 800, height: 600 },
+    );
+    expect(registry.inspectCameraControllers()).toEqual([
+      {
+        cameraId: "hero.camera",
+        sceneId: "hero.scene",
+        timelineId: "hero.timeline",
+        progressKey: "hero.timeline",
+        progress: 0.5,
+        applied: true,
+      },
+    ]);
+
+    expect(registry.updateCameraControllers({ get: () => 0.5 })).toBe(false);
+
+    registry.unregisterCamera("hero.camera");
+
+    expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
+      {
+        position: [0, 0, 700],
+        target: [0, 0, 0],
+        fov: 44,
+      },
+      { width: 800, height: 600 },
+    );
+    expect(managedCamera.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects camera controllers outside perspective-stage managed cameras", () => {
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+    );
+
+    registry.registerScene({ id: "overlay", projection: "screen" });
+
+    expect(() =>
+      registry.registerCamera({
+        id: "overlay.camera",
+        sceneId: "overlay",
+        type: "orthographic",
+        mode: "screen",
+        default: true,
+        controller: {
+          timeline: "overlay.timeline",
+          to: { fov: 34 },
+        },
+      }),
+    ).toThrow(
+      'WebGL camera controller "overlay.camera" requires a managed perspective-stage camera.',
+    );
   });
 
   test("allows user-managed scenes named main without replacing the generated default", () => {

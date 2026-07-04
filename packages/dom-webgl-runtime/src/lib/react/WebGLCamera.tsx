@@ -20,6 +20,7 @@ export function WebGLCamera({
   position,
   target,
   zoom,
+  controller,
   default: isDefault,
 }: WebGLCameraProps) {
   const runtime = useWebGLRuntime();
@@ -44,6 +45,7 @@ export function WebGLCamera({
       position,
       target,
       zoom,
+      controller,
       default: isDefault,
     });
 
@@ -62,6 +64,7 @@ export function WebGLCamera({
     position,
     target,
     zoom,
+    controller,
     isDefault,
   ]);
 

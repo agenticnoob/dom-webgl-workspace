@@ -601,6 +601,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
           : {}),
         postprocess: pass.postprocess !== undefined,
       })),
+      cameraControllers: renderLayers.inspectCameraControllers(),
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
@@ -1046,13 +1047,15 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       renderLayers.resize(rendererHost.getViewportSize());
       renderLayers.updateTimelineState(progressSignals);
       stageObjects.updateTimelineState(progressSignals);
+      const cameraControllerChanged =
+        renderLayers.updateCameraControllers(progressSignals);
       const dirtyKeys = invalidationController.consumeDirtyKeys();
 
       const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
       syncTransformGroups(descriptors, layoutMeasurements);
 
       const pendingUpdates: Array<Promise<void>> = [];
-      let didSynchronousUpdate = false;
+      let didSynchronousUpdate = cameraControllerChanged;
       const viewportHeight = window.innerHeight || 600;
 
       for (const descriptor of descriptors) {

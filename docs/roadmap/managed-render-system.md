@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 5 target routing, scroll timelines, and effect scope implementation
+**Last reviewed against:** Phase 6 pass viewport and postprocess scope implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -415,7 +415,7 @@ The effect context should eventually make scope explicit:
 ```text
 ctx.object  -> current target/renderable object facade
 ctx.scene   -> managed scene/layer metadata and future scoped controls
-ctx.camera  -> future explicit camera/pass-bound controller context, never implicit
+ctx.camera  -> future explicit camera-scoped metadata/controller context, never implicit
 ctx.runtime -> runtime/canvas scoped metadata and controls
 ```
 
@@ -425,8 +425,9 @@ should be placed according to their real ownership:
 - target transform, material, texture, text, model modules: `ctx.object`;
 - scene metadata, timeline state, lighting/environment/stage coordination:
   `ctx.scene`;
-- camera progress/motion/focus/framing: Phase 6A camera-scoped descriptors or
-  `ctx.camera` only when bound to a specific camera/pass context;
+- camera progress/motion/focus/framing: Phase 6A `WebGLCamera.controller`
+  descriptors or future explicit camera-scoped metadata only when bound to a
+  specific managed camera;
 - render pass and canvas-wide postprocess: `ctx.runtime` or pass-scoped API.
 
 Target-local effects should not assume an implicit "current camera" in
@@ -756,10 +757,10 @@ Status values:
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
 | Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
-| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control remains future explicit controller work. |
+| Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control intentionally stayed out of Phase 5 and is handled by Phase 6A. |
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
-| Phase 6A: Managed Camera Controllers | `[not-started]` | none | Owns progress-driven camera motion/focus/framing, explicit camera/pass-bound controller API, and the decision on any future `WebGLCameraDeclaration.timeline`; pointer-driven camera interaction remains Phase 8. |
-| Phase 7: Managed Model Animation | `[not-started]` | none | Can start after Phase 5; advanced morph/bone work may depend on Phase 8/9. |
+| Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
+| Phase 7: Managed Model Animation | `[not-started]` | none | Recommended next after Phase 6A; advanced morph/bone work may depend on Phase 8/9. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
@@ -796,13 +797,14 @@ Ordering rules:
 
 - Scroll timelines must exist before camera motion, progress-driven model
   animation, and timeline-driven scene/stage controllers depend on them.
-- Progress-driven camera motion, focus, framing, any future
-  `WebGLCameraDeclaration.timeline`, and explicit camera/pass-bound controller
-  descriptors belong to Phase 6A after Phase 5 timeline ownership and Phase 6
-  pass scope are stable.
-- Pointer-driven camera interaction such as parallax, orbit, pan, and empty-space
-  drag remains Phase 8 work because it depends on input routing and
-  object-vs-camera priority.
+- Progress-driven camera motion, focus, and framing belong to Phase 6A after
+  Phase 5 timeline ownership and Phase 6 pass scope are stable. The verified
+  v1 API is a single optional `WebGLCamera.controller` descriptor per camera,
+  not a top-level `WebGLCameraDeclaration.timeline` field and not a pass-bound
+  controller surface.
+- Pointer-driven camera interactions such as parallax, orbit, pan, drag, and
+  empty-space camera controls remain Phase 8 work because they depend on input
+  routing and object-vs-camera priority.
 - DOM-bound pass viewport/scissor depends on Phase 5 scope/timeline ownership:
   Phase 5 decides when a pinned scene/pass is active, and Phase 6 decides where
   that pass is clipped on the canvas.
@@ -1110,7 +1112,8 @@ Deliverables:
 - Scope-specific effect context exploration:
   - `ctx.scene` for managed scene controls;
   - `ctx.runtime` for canvas/pass scoped controls.
-  `ctx.camera` remains Phase 6A explicit camera/pass-bound controller work.
+  `ctx.camera` remains absent; Phase 6A owns explicit camera-scoped controller
+  declarations through `WebGLCamera.controller`.
 - Keep `ScrollEffectSection` as compatibility sugar for target/effect pinned
   sections while the broader timeline abstraction is designed.
 - Keep `ctx.object` focused on the current target/renderable.
@@ -1123,9 +1126,9 @@ Completion notes:
 
 - Public `timeline` bindings exist on `WebGLTarget`, `WebGLScene`,
   `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`.
-- `WebGLCameraDeclaration` intentionally does not have `timeline`; camera
-  motion/focus/framing will consume named timeline signals only through a Phase
-  6A explicit camera/pass-bound controller.
+- `WebGLCameraDeclaration` intentionally does not have top-level `timeline`;
+  camera motion/focus/framing will consume named timeline signals only through a
+  Phase 6A `WebGLCamera.controller` descriptor.
 - `WebGLScrollTimeline` is the broader React scroll timeline component.
   `ScrollEffectSection` remains compatibility sugar for target/effect pinned
   sections.
@@ -1150,8 +1153,9 @@ Rules:
   expose raw GSAP timelines as the runtime contract.
 - Target-local effects do not receive an implicit active camera in multi-pass
   scenes.
-- Phase 6A camera effects/controllers must bind to an explicit camera descriptor
-  or pass context.
+- Phase 6A camera controllers must bind to an explicit managed camera
+  descriptor. Pass-bound controller scope is deferred until real multi-pass
+  needs prove it is necessary.
 - `WebGLCameraDeclaration` does not receive a `timeline` field in Phase 5.
 
 Acceptance criteria:
@@ -1248,37 +1252,44 @@ Acceptance criteria:
 
 ### Phase 6A: Managed Camera Controllers
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md)
 - **Depends on:** Phase 5, Phase 6
 - **Last updated:** 2026-07-04
 - **Exit criteria:** progress-driven camera motion/focus/framing can be declared
-  through managed camera/pass-bound APIs without exposing raw cameras,
-  controls, matrices, render loop hooks, or target-local implicit camera scope.
+  through managed `WebGLCamera.controller` data without exposing raw cameras,
+  controls, matrices, render loop hooks, pass-bound controller scope, or
+  target-local implicit camera scope.
 
 Goal: add explicit managed camera behavior for scenes that need timeline-driven
 framing while keeping Level 1 `WebGLTarget` usage camera-free.
 
 Deliverables:
 
-- A focused API decision between a separate camera-controller descriptor and any
-  future `WebGLCameraDeclaration.timeline` field.
+- A focused API decision: Phase 6A v1 puts one optional `controller` descriptor
+  on `WebGLCamera` rather than adding a separate React controller component,
+  separate runtime controller registration, or top-level camera `timeline`.
 - Progress-driven camera motion, focus, and framing that consume named timeline
   signals created by Phase 5.
-- Camera/pass-bound effect or controller context that can address one declared
-  camera or pass without creating target-local implicit `ctx.camera`.
+- Camera-owned controller state that addresses one declared camera without
+  creating target-local implicit `ctx.camera`.
 - Public type and runtime tests proving raw Three.js `Camera`, controls, matrix,
   and render loop handles are not exposed.
-- Documentation explaining that camera behavior is explicit scene/pass work, not
-  target ownership.
+- Documentation explaining that camera behavior is explicit managed camera work,
+  not target ownership.
 
 Rules:
 
-- Prefer an explicit controller descriptor over adding behavior directly to the
-  static camera declaration unless the focused plan proves the declaration field
-  is clearer.
-- If `WebGLCameraDeclaration.timeline` is added later, it belongs to this phase
-  and must have concrete motion/focus/framing semantics.
+- Prefer one nested `WebGLCamera.controller` descriptor in v1. Do not add a
+  separate `WebGLCameraController` component or runtime
+  `registerCameraController(...)` method until multiple-controller or
+  pass-bound scope requirements are proven.
+- Do not add top-level `WebGLCameraDeclaration.timeline`. Timeline input for
+  Phase 6A lives inside `WebGLCamera.controller.timeline`, where it has concrete
+  motion/focus/framing semantics.
+- Do not add orthographic zoom controllers, screen overlay camera controllers,
+  complex framing-box helpers, or per-pass/viewport camera controller scope in
+  Phase 6A v1. Record these as later possible camera-controller iterations.
 - Do not add pointer-driven orbit, pan, drag, or pointer parallax here; those
   remain Phase 8 input-routing work.
 - Do not expose raw Three.js cameras, `OrbitControls`, matrices, projection
@@ -1421,6 +1432,8 @@ Capabilities:
 - managed raycast/hit-test request API;
 - pickable descriptors for stage primitives and models;
 - camera interaction controllers for pointer parallax, orbit, pan, and drag;
+- empty-space pointer camera controls with explicit priority against object
+  hover, press, click, drag, pointer capture, and future physics constraints;
 - optional collider descriptors on stage primitives and models;
 - events or effect-readable hit state.
 
@@ -1709,10 +1722,15 @@ Do not make these default roadmap items:
     internal Three `Scene` per public scene if a lighter internal layer is enough.
 - Camera controls.
   - Recommendation: keep Phase 5 and Phase 6 behavior-free for cameras. Assign
-    progress-driven camera motion/focus/framing, any future
-    `WebGLCameraDeclaration.timeline`, and explicit camera/pass-bound controller
-    descriptors to Phase 6A. Assign pointer parallax, orbit, pan, and
-    empty-space drag camera controllers to Phase 8 interaction routing.
+    progress-driven camera motion/focus/framing to Phase 6A through a single
+    optional `WebGLCamera.controller` descriptor. Do not add top-level
+    `WebGLCameraDeclaration.timeline`, a separate `WebGLCameraController`
+    component, `registerCameraController(...)`, or pass-bound controller scope
+    in Phase 6A v1. Record orthographic zoom, screen overlay camera control,
+    complex framing boxes, and per-pass/viewport camera controller scope as
+    later possible camera-controller iterations. Assign pointer parallax, orbit,
+    pan, drag, and empty-space camera controllers to Phase 8 interaction
+    routing.
 - Model animation surface.
   - Recommendation: Phase 7 should first decide the minimal scene-native
     `WebGLModel` descriptor shell, keep the existing `ctx.object.animation`
@@ -1755,13 +1773,15 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-Phase 1 through Phase 6 are verified. Phase 6 defines DOM-bound pass viewport
-ownership and runtime/pass postprocess scope without exposing raw renderer,
-composer, render target, scene, camera, or pass handles.
+Phase 1 through Phase 6A are verified. Phase 6A defines explicit
+progress-driven managed camera controllers without exposing raw renderer,
+composer, render target, scene, camera, pass, controls, matrix, or render-loop
+handles.
 
-The next suggested implementation loop is Phase 6A: managed camera controllers.
-It should consume Phase 5 timeline ownership and Phase 6 pass scope, without
-adding camera behavior back into target-local effects.
+The next suggested implementation loop is Phase 7: managed model animation. It
+should build on existing `ctx.object.animation` and runtime-owned mixer
+ownership without exposing raw mixers, actions, bones, skeletons, or morph
+target arrays.
 
 The safest sequence is:
 

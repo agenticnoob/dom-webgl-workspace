@@ -224,6 +224,53 @@ describe("render layer declaration normalization", () => {
       target: [0, 0, 0],
     });
 
+    expect(
+      normalizeRenderLayerCameraDeclaration({
+        id: "world.controller.camera",
+        sceneId: "world",
+        type: "perspective",
+        mode: "perspective-stage",
+        position: [0, 0, 700],
+        target: [0, 0, 0],
+        fov: 44,
+        controller: {
+          timeline: {
+            id: " hero.timeline ",
+            progressKey: " hero.progress ",
+            range: { from: 0.1, to: 0.9 },
+          },
+          to: {
+            position: [0, 120, 520],
+            target: [0, 48, 0],
+            fov: 34,
+          },
+          easing: "smoothstep",
+        },
+      }),
+    ).toEqual({
+      id: "world.controller.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: false,
+      fov: 44,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      controller: {
+        timeline: {
+          id: "hero.timeline",
+          progressKey: "hero.progress",
+          range: { from: 0.1, to: 0.9 },
+        },
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+        easing: "smoothstep",
+      },
+    });
+
     expect(normalizeTargetPlacement({ mode: "screen-depth", depth: 500 })).toEqual({
       mode: "screen-depth",
       depth: 500,
@@ -245,6 +292,23 @@ describe("render layer declaration normalization", () => {
       scale: 1.2,
       size: [240, 240],
     });
+  });
+
+  test("rejects invalid camera controller declarations during camera normalization", () => {
+    expect(() =>
+      normalizeRenderLayerCameraDeclaration({
+        id: "world.camera",
+        sceneId: "world",
+        type: "perspective",
+        mode: "perspective-stage",
+        controller: {
+          timeline: "hero.timeline",
+          to: {},
+        },
+      }),
+    ).toThrow(
+      'WebGL camera controller "to" must include position, target, or fov.',
+    );
   });
 
   test("rejects incompatible scene and camera policies", () => {

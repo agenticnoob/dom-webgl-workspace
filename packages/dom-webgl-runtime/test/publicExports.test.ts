@@ -299,6 +299,47 @@ describe("public package exports", () => {
         } satisfies WebGLCameraProps;
         cameraProps satisfies WebGLCameraProps;
 
+        const cameraWithControllerProps = {
+          id: "hero.camera",
+          default: true,
+          type: "perspective",
+          mode: "perspective-stage",
+          position: [0, 0, 700],
+          target: [0, 0, 0],
+          fov: 44,
+          controller: {
+            timeline: {
+              id: "hero.timeline",
+              range: { from: 0.1, to: 0.9 },
+            },
+            to: {
+              position: [0, 120, 520],
+              target: [0, 48, 0],
+              fov: 34,
+            },
+            easing: "smoothstep",
+          },
+        } satisfies WebGLCameraProps;
+        cameraWithControllerProps satisfies WebGLCameraProps;
+
+        const cameraTimelineProps = {
+          id: "hero.camera",
+          // @ts-expect-error WebGLCamera does not accept top-level timeline behavior.
+          timeline: "hero.timeline",
+        } satisfies WebGLCameraProps;
+        cameraTimelineProps satisfies WebGLCameraProps;
+
+        const passBoundControllerProps = {
+          id: "hero.camera",
+          controller: {
+            timeline: "hero.timeline",
+            // @ts-expect-error Camera controllers do not accept pass-bound public scope in v1.
+            pass: "hero.pass",
+            to: { fov: 34 },
+          },
+        } satisfies WebGLCameraProps;
+        passBoundControllerProps satisfies WebGLCameraProps;
+
         const passProps = {
           id: "world.pass",
           scene: "world",
@@ -325,6 +366,17 @@ describe("public package exports", () => {
 
         // @ts-expect-error WebGLCamera does not accept a raw Three camera handle.
         const rawCameraProps = { id: "raw.camera", camera: rawCamera } satisfies WebGLCameraProps;
+
+        const rawControllerProps = {
+          id: "raw.controller",
+          controller: {
+            timeline: "hero.timeline",
+            // @ts-expect-error Camera controllers do not accept raw Three camera handles.
+            camera: rawCamera,
+            to: { fov: 34 },
+          },
+        } satisfies WebGLCameraProps;
+        rawControllerProps satisfies WebGLCameraProps;
 
         // @ts-expect-error Stage planes do not accept raw Three mesh handles.
         const rawMeshPlaneProps = { id: "raw.plane", mesh: rawMesh } satisfies WebGLStagePlaneProps;
@@ -431,6 +483,10 @@ describe("public package exports", () => {
 		        } from "${importPath}";
 				        import type {
                   WebGLCameraDeclaration,
+                  WebGLCameraControllerDeclaration,
+                  WebGLCameraControllerEasing,
+                  WebGLCameraControllerFrameDeclaration,
+                  WebGLCameraControllerTimelineDeclaration,
                   WebGLCameraFramingDeclaration,
                   WebGLCameraMode,
                   WebGLCameraType,
@@ -667,6 +723,38 @@ describe("public package exports", () => {
           type: "orthographic",
           mode: "dom-aligned",
         } satisfies WebGLCameraDeclaration;
+        const cameraControllerFrame = {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        } satisfies WebGLCameraControllerFrameDeclaration;
+        const cameraControllerTimeline = {
+          id: "hero.timeline",
+          progressKey: "hero.progress",
+          range: timelineActiveRange,
+        } satisfies WebGLCameraControllerTimelineDeclaration;
+        const cameraControllerEasing =
+          "smoothstep" satisfies WebGLCameraControllerEasing;
+        const cameraController = {
+          timeline: cameraControllerTimeline,
+          to: cameraControllerFrame,
+          easing: cameraControllerEasing,
+        } satisfies WebGLCameraControllerDeclaration;
+        const cameraWithController = {
+          id: "hero.camera",
+          sceneId: "world",
+          default: true,
+          type: "perspective",
+          mode: "perspective-stage",
+          position: [0, 0, 700],
+          target: [0, 0, 0],
+          fov: 44,
+          controller: cameraController,
+        } satisfies WebGLCameraDeclaration;
+        // @ts-expect-error WebGLCameraDeclaration keeps top-level timeline out of camera ownership.
+        cameraWithController.timeline;
+        // @ts-expect-error Camera controllers do not accept pass-bound public scope in v1.
+        cameraController.pass;
 
         const passDeclaration = {
           id: "world.pass",

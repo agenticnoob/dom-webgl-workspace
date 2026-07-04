@@ -1,5 +1,6 @@
 import type {
   WebGLDebugLightSummary,
+  WebGLDebugCameraControllerSummary,
   WebGLDebugPostprocessRequestSummary,
   WebGLDebugRenderPassSummary,
   WebGLDebugState,
@@ -47,6 +48,7 @@ export type DebugRuntimeState = {
   postprocessStats?: DebugPostprocessStats;
   stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
   lights?: readonly WebGLDebugLightSummary[];
+  cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
   renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
 };
@@ -188,6 +190,20 @@ export function createDebugState(
         ? { viewportAnchorId: entry.viewportAnchorId }
         : {}),
       postprocess: entry.postprocess,
+    }));
+  }
+
+  if (
+    runtimeState.cameraControllers &&
+    runtimeState.cameraControllers.length > 0
+  ) {
+    state.cameraControllers = runtimeState.cameraControllers.map((entry) => ({
+      cameraId: entry.cameraId,
+      sceneId: entry.sceneId,
+      timelineId: entry.timelineId,
+      progressKey: entry.progressKey,
+      progress: entry.progress,
+      applied: entry.applied,
     }));
   }
 

@@ -30,8 +30,9 @@ scroll, pointer, lifecycle, disposal, and performance scheduling.
 `ctx.progress.get(key)`. `ctx.scene` is optional and exposes descriptor
 metadata plus the scene timeline snapshot when the current target/update is
 routed through a managed scene. There is no implicit `ctx.camera`; camera
-motion/focus/framing must use future explicit camera/pass-bound descriptors or
-controllers.
+motion/focus/framing uses explicit managed camera descriptors such as nested
+`WebGLCamera.controller`, not target-local effect context. Pass-bound and
+pointer-driven camera controllers remain future work.
 
 ## Product Thesis
 

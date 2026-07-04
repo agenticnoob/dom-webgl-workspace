@@ -95,6 +95,63 @@ describe("WebGLCamera", () => {
       default: true,
     });
   });
+
+  test("forwards managed camera controller declarations", async () => {
+    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "hero.scene" },
+            createElement(WebGLCamera, {
+              id: "hero.camera",
+              type: "perspective",
+              mode: "perspective-stage",
+              position: [0, 0, 700],
+              target: [0, 0, 0],
+              fov: 44,
+              default: true,
+              controller: {
+                timeline: "hero.timeline",
+                to: {
+                  position: [0, 120, 520],
+                  target: [0, 48, 0],
+                  fov: 34,
+                },
+              },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerCamera).toHaveBeenCalledWith({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      default: true,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+  });
 });
 
 function createTestRoot(): { root: Root; host: HTMLElement } {

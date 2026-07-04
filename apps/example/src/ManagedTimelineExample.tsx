@@ -68,6 +68,18 @@ const cameraPosition = [0, 136, 560] satisfies NonNullable<
 const cameraTarget = [0, -88, -40] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
+const cameraController = {
+  timeline: {
+    id: managedTimelineId,
+    range: { from: 0.12, to: 0.88 },
+  },
+  to: {
+    position: [0, 96, 520],
+    target: [0, 36, 0],
+    fov: 34,
+  },
+  easing: "smoothstep",
+} satisfies NonNullable<WebGLCameraProps["controller"]>;
 
 const floorSize = [920, 520] satisfies NonNullable<
   WebGLStagePlaneProps["size"]
@@ -171,6 +183,8 @@ export function ManagedTimelineExample() {
           mode="perspective-stage"
           position={cameraPosition}
           target={cameraTarget}
+          fov={42}
+          controller={cameraController}
         />
         <WebGLStagePlane {...floorPlaneProps} />
         <WebGLStagePlane {...backdropPlaneProps} />

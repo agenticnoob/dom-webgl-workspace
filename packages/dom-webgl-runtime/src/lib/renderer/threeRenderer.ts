@@ -13,6 +13,7 @@ import type {
 } from "./sceneObject";
 import type { DOMViewportSize } from "./domProjection";
 import type { NormalizedRenderLayerCameraDeclaration } from "./renderLayerDeclarations";
+import type { WebGLCameraControllerFrameDeclaration } from "../types";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
@@ -77,6 +78,10 @@ export type ManagedThreeSceneAdapterEntry = {
 export type ManagedThreeCameraEntry = {
   readonly camera: object;
   resize(viewport: DOMViewportSize): void;
+  applyFraming(
+    framing: WebGLCameraControllerFrameDeclaration,
+    viewport: DOMViewportSize,
+  ): void;
   dispose(): void;
 };
 
@@ -196,6 +201,16 @@ export function createManagedCamera(
       resize(viewport) {
         configurePerspectiveCamera(camera, declaration, viewport);
       },
+      applyFraming(framing, viewport) {
+        const nextDeclaration = {
+          ...declaration,
+          ...(framing.fov !== undefined ? { fov: framing.fov } : {}),
+          ...(framing.position ? { position: framing.position } : {}),
+          ...(framing.target ? { target: framing.target } : {}),
+        } satisfies NormalizedRenderLayerCameraDeclaration;
+
+        configurePerspectiveCamera(camera, nextDeclaration, viewport);
+      },
       dispose() {
         return;
       },
@@ -212,6 +227,9 @@ export function createManagedCamera(
     camera,
     resize(viewport) {
       configureManagedOrthographicCamera(camera, declaration, viewport);
+    },
+    applyFraming() {
+      return;
     },
     dispose() {
       return;
@@ -513,6 +531,7 @@ function configurePerspectiveCamera(
 ): void {
   Object.assign(camera, {
     aspect: viewport.width / viewport.height,
+    ...(declaration.fov !== undefined ? { fov: declaration.fov } : {}),
   });
 
   const position = declaration.position ?? [0, 0, 500];

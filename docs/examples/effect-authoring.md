@@ -147,7 +147,7 @@ Rules:
 ## Managed Timeline Scene Path
 
 For a named progress signal that should also drive managed scenes, stage
-primitives, lights, or future controllers, use `WebGLScrollTimeline`.
+primitives, lights, or camera controllers, use `WebGLScrollTimeline`.
 `ScrollEffectSection` remains the short compatibility path for target/effect
 pinned sections.
 
@@ -163,7 +163,21 @@ pinned sections.
         active: { from: 0.02, to: 0.94 },
       }}
     >
-      <WebGLCamera id="example.managedStage.camera" default type="perspective" />
+      <WebGLCamera
+        id="example.managedStage.camera"
+        default
+        type="perspective"
+        mode="perspective-stage"
+        fov={42}
+        controller={{
+          timeline: {
+            id: "example.managedTimeline",
+            range: { from: 0.12, to: 0.88 },
+          },
+          to: { position: [0, 96, 520], target: [0, 36, 0], fov: 34 },
+          easing: "smoothstep",
+        }}
+      />
       <WebGLStagePlane
         id="example.managedStage.floor"
         role="floor"
@@ -213,8 +227,9 @@ pinned sections.
 
 The binding is descriptor data: `timeline` accepts a string id or
 `{ id, progressKey?, active? }`. Active ranges use `from`/`to` in normalized
-0..1 progress. `WebGLCamera` does not accept timeline data; camera movement
-belongs to future explicit camera/pass-bound controllers.
+0..1 progress. `WebGLCamera` does not accept top-level timeline data; camera
+movement/focus/framing uses the nested `controller.timeline` descriptor on a
+managed `perspective-stage` camera.
 
 Effects can read the same signal through `ctx.progress.get(key)` or
 `ctx.runtime.progress.get(key)`. Effects routed through a managed scene also get
@@ -484,10 +499,11 @@ adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
 renderable even when no card effect is active in the viewport.
 The managed timeline dogfood uses a pinned full-canvas section, separately from
 the pinned image-sequence section. It binds a named progress signal to a managed
-scene, stage primitives, scene-owned lights, and a default-pipeline WebGL target
-surface. The managed stage primitive dogfood now uses `WebGLPassViewport` so
-the managed pass is clipped to the DOM-owned viewport without creating another
-canvas or exposing renderer viewport/scissor calls:
+scene, a perspective-stage camera controller, stage primitives, scene-owned
+lights, and a default-pipeline WebGL target surface. The managed stage primitive
+dogfood now uses `WebGLPassViewport` so the managed pass is clipped to the
+DOM-owned viewport without creating another canvas or exposing renderer
+viewport/scissor calls:
 
 ```tsx
 <WebGLPassViewport id="example.stage.viewport" as="div" className="example-stage-viewport">
@@ -500,7 +516,17 @@ canvas or exposing renderer viewport/scissor calls:
       postprocess: { grain: { amount: 0.025 } },
     }}
   >
-    <WebGLCamera id="example.stage.camera" default type="perspective" />
+    <WebGLCamera
+      id="example.stage.camera"
+      default
+      type="perspective"
+      mode="perspective-stage"
+      controller={{
+        timeline: { id: "example.managedTimeline", range: { from: 0.12, to: 0.88 } },
+        to: { position: [0, 96, 520], target: [0, 36, 0], fov: 34 },
+        easing: "smoothstep",
+      }}
+    />
   </WebGLScene>
 </WebGLPassViewport>
 ```
@@ -518,7 +544,9 @@ package effects.
 - Effects should no-op when the needed `ctx.object.*` capability module is absent.
 - `ctx.runtime` and optional `ctx.scene` expose managed progress/scope metadata,
   not raw runtime, scene, camera, pass, or renderer handles.
-- `WebGLCamera` has no timeline prop, and there is no implicit `ctx.camera`.
+- `WebGLCamera` has no top-level timeline prop. Use nested
+  `controller.timeline` for managed camera motion, and keep effects free of
+  implicit `ctx.camera`.
 - Draco-compressed GLB files need both declarative loader config and decoder
   files in the app public directory. `/models/4.glb` uses
   `loader: { draco: { decoderPath: "/draco/gltf/" } }` plus the matching

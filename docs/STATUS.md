@@ -96,9 +96,10 @@ phase records are archived under [archive/](./archive/).
 - Managed timeline bindings and effect scope metadata:
   - public declarations can bind `timeline` data on `WebGLTarget`,
     `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
-  - `WebGLCameraDeclaration` intentionally does not accept `timeline`; camera
-    motion/focus/framing remains future Phase 6A explicit camera/pass-bound
-    controller work
+  - `WebGLCameraDeclaration` intentionally does not accept top-level
+    `timeline`; managed perspective-stage cameras can declare one nested
+    `controller` that reads progress and drives `position`, `target`, and `fov`
+    before `screen-depth` projection and pass rendering
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
   - `@project/dom-webgl-scroll-adapters/react` exports
@@ -107,6 +108,8 @@ phase records are archived under [archive/](./archive/).
     sections
   - targets, render passes, and stage primitives/lights can activate from
     timeline ranges without React descriptor churn
+  - debug state can report descriptor-only camera controller summaries without
+    exposing raw camera objects, matrices, controls, or render-loop hooks
   - effect contexts expose `ctx.runtime.progress` and optional
     `ctx.scene` metadata/timeline snapshots; they do not expose raw scenes,
     cameras, passes, or a `ctx.camera` field
@@ -151,8 +154,12 @@ phase records are archived under [archive/](./archive/).
   local clipped viewport; local pass clipping is the separate
   `WebGLPassViewport` + pass `viewport` contract.
 - Camera motion/focus/framing is not part of target-local effects or Phase 5
-  timeline bindings. Progress-driven camera controllers are Phase 6A work;
-  pointer-driven orbit, pan, drag, and pointer parallax remain Phase 8 work.
+  target/scene timeline bindings. Progress-driven perspective-stage camera
+  motion now uses the Phase 6A nested `WebGLCamera.controller` descriptor.
+  Orthographic zoom controllers, screen overlay camera controllers, complex
+  framing boxes, and pass-bound camera controller scope are deferred possible
+  camera-controller iterations. Pointer-driven orbit, pan, drag, pointer
+  parallax, and empty-space camera controls remain Phase 8 work.
 - The managed timeline example keeps its visible card as a scene-child
   `WebGLTarget`; it inherits the managed scene, uses `screen-depth` placement,
   and reads the same timeline progress signal as the managed scene. It is still
@@ -183,9 +190,12 @@ Phase 6 pass viewport and postprocess scope correction is verified and adds
 postprocess, `ctx.runtime.postprocess` scope, and descriptor-only debug
 summaries without adding raw Three.js access:
 [2026-07-04-pass-viewport-postprocess-scope.md](./superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md).
-Phase 6A managed camera controllers are not started; they should use Phase 5
-timeline ownership and Phase 6 pass scope rather than adding camera behavior to
-the Phase 6 plan.
+Phase 6A managed camera controllers are verified and add a single optional
+`WebGLCamera.controller` descriptor for progress-driven perspective-stage
+`position`/`target`/`fov`, without adding top-level
+`WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller
+scope, raw camera handles, or pointer-driven interaction:
+[2026-07-04-managed-camera-controllers.md](./superpowers/plans/2026-07-04-managed-camera-controllers.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

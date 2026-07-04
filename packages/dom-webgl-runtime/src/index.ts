@@ -79,6 +79,10 @@ export type {
 export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLCameraDeclaration,
+  WebGLCameraControllerDeclaration,
+  WebGLCameraControllerEasing,
+  WebGLCameraControllerFrameDeclaration,
+  WebGLCameraControllerTimelineDeclaration,
   WebGLCameraFramingDeclaration,
   WebGLCameraMode,
   WebGLCameraType,
