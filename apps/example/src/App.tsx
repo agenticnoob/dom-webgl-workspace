@@ -78,8 +78,8 @@ export default function App() {
 
         <div className="example-stack">
           <SnapshotElementExamples />
-          <ManagedTimelineExample />
           <ManagedStagePrimitiveExample />
+          <ManagedTimelineExample />
 
           <section className="example-row">
             <EffectDescription source="dom/text" title="文字波浪">

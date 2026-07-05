@@ -9,6 +9,7 @@ const cameraProps: CameraMockProps[] = [];
 const stagePlaneProps: StagePlaneMockProps[] = [];
 const stageBoxProps: StageBoxMockProps[] = [];
 const lightProps: LightMockProps[] = [];
+const passViewportProps: PassViewportMockProps[] = [];
 
 type TimelineMockProps = {
   readonly id: string;
@@ -50,6 +51,13 @@ type SceneMockProps = {
   readonly projection?: string;
   readonly render?: Record<string, unknown>;
   readonly timeline?: TimelineMockProps;
+  readonly children?: ReactNode;
+};
+
+type PassViewportMockProps = {
+  readonly id: string;
+  readonly as?: keyof HTMLElementTagNameMap;
+  readonly className?: string;
   readonly children?: ReactNode;
 };
 
@@ -122,6 +130,14 @@ vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
 }));
 
 vi.mock("@project/dom-webgl-runtime/react", () => ({
+  WebGLPassViewport: ({
+    as = "div",
+    children,
+    ...props
+  }: PassViewportMockProps) => {
+    passViewportProps.push({ as, children, ...props });
+    return createElement(as, props, children);
+  },
   WebGLTarget: ({ as = "div", children, className, webgl }: TargetMockProps) => {
     targetProps.push({ as, children, className, webgl });
     return createElement(as, { className }, children);
@@ -149,15 +165,16 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
 }));
 
 describe("ManagedTimelineExample", () => {
-  test("dogfoods pinned scene timeline, camera controller, stage objects, lights, and a timeline target", async () => {
+  test("dogfoods pinned viewport progress without timeline-gating visible scene objects", async () => {
     const { ManagedTimelineExample } = await import("../src/ManagedTimelineExample");
 
     const markup = renderToStaticMarkup(createElement(ManagedTimelineExample));
 
     expect(markup).toContain("example-managed-stage-timeline");
     expect(markup).toContain("pinned managed scene");
-    expect(markup).toContain("camera、scene、floor、backdrop、box、light");
+    expect(markup).toContain("camera 和右侧卡片效果");
     expect(markup).toContain("Timeline driven card");
+    expect(markup).toContain("example-managed-stage-viewport");
     expect(markup).toMatch(
       /<div data-webgl-scene="example\.managedStage\.scene"><article class="example-managed-stage-card">/,
     );
@@ -173,6 +190,13 @@ describe("ManagedTimelineExample", () => {
       }),
     ]);
     expect(scrollTimelineProps[0]?.progressKey).toBeUndefined();
+    expect(passViewportProps).toEqual([
+      expect.objectContaining({
+        id: "example.managedStage.viewport",
+        as: "div",
+        className: "example-managed-stage-viewport",
+      }),
+    ]);
     expect(sceneProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.scene",
@@ -181,13 +205,11 @@ describe("ManagedTimelineExample", () => {
           camera: "example.managedStage.camera",
           order: -8,
           clearDepth: true,
-        },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.94 },
+          viewport: { mode: "dom-rect", scissor: true },
         },
       }),
     ]);
+    expect(sceneProps[0]).not.toHaveProperty("timeline");
     expect(cameraProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.camera",
@@ -219,10 +241,6 @@ describe("ManagedTimelineExample", () => {
         size: [920, 520],
         position: [0, -178, 0],
         material: { kind: "standard", color: "#16241f", roughness: 0.82 },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.9 },
-        },
       }),
       expect.objectContaining({
         id: "example.managedStage.backdrop",
@@ -230,33 +248,23 @@ describe("ManagedTimelineExample", () => {
         size: [920, 430],
         position: [0, 18, -290],
         material: { kind: "standard", color: "#1f3a32", roughness: 0.7 },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.94 },
-        },
       }),
     ]);
+    expect(stagePlaneProps.every((props) => props.timeline === undefined)).toBe(true);
     expect(stageBoxProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.plinth",
         size: [220, 96, 180],
         position: [0, -130, -56],
         material: { kind: "standard", color: "#566b61", roughness: 0.56 },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.86 },
-        },
       }),
     ]);
+    expect(stageBoxProps.every((props) => props.timeline === undefined)).toBe(true);
     expect(lightProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.ambient",
         kind: "ambient",
         intensity: 0.24,
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.94 },
-        },
       }),
       expect.objectContaining({
         id: "example.managedStage.key",
@@ -264,12 +272,9 @@ describe("ManagedTimelineExample", () => {
         color: "#f6c453",
         intensity: 1.85,
         position: [-180, 160, 220],
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.92 },
-        },
       }),
     ]);
+    expect(lightProps.every((props) => props.timeline === undefined)).toBe(true);
     expect(targetProps).toEqual([
       expect.objectContaining({
         as: "article",
@@ -279,10 +284,6 @@ describe("ManagedTimelineExample", () => {
           source: { kind: "dom", type: "element" },
           placement: { mode: "screen-depth", depth: 120, size: "dom" },
           lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-          timeline: {
-            id: "example.managedTimeline",
-            active: { from: 0.2, to: 0.9 },
-          },
           effects: [
             {
               kind: "example.managedTimelineCard",
@@ -292,5 +293,6 @@ describe("ManagedTimelineExample", () => {
         }),
       }),
     ]);
+    expect(targetProps[0]?.webgl).not.toHaveProperty("timeline");
   });
 });

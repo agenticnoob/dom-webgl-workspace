@@ -56,6 +56,18 @@ describe("managed timeline card effect", () => {
     expect(fixture.surfaceSetOpacity).toHaveBeenCalledWith(0);
   });
 
+  test("holds the final visible state through the end of the pinned timeline", () => {
+    const fixture = createManagedTimelineCardContext({ progress: 1 });
+
+    exampleManagedTimelineCardEffect.update(fixture.context, undefined, params);
+
+    expect(fixture.target.setVisible).toHaveBeenCalledWith(true);
+    expect(fixture.target.setOpacity).toHaveBeenCalledWith(1);
+    expect(fixture.surfaceSetVisible).toHaveBeenCalledWith(true);
+    expect(fixture.surfaceSetOpacity).toHaveBeenCalledWith(1);
+    expect(fixture.target.setRotation).toHaveBeenCalledWith(0, 0.18, 0);
+  });
+
   test("falls back to target scroll progress when the managed timeline signal is not available", () => {
     const fixture = createManagedTimelineCardContext({
       progress: 0,

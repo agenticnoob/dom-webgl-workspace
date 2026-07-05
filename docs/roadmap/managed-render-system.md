@@ -1780,7 +1780,8 @@ Do not implement this entire roadmap in one pass.
 Phase 1 through Phase 6A are verified. Phase 6A defines explicit
 progress-driven managed camera controllers without exposing raw renderer,
 composer, render target, scene, camera, pass, controls, matrix, or render-loop
-handles.
+handles. Managed camera controller framing is also preserved across runtime
+camera resize/reframing passes while progress is unchanged.
 
 The next suggested implementation loop is Phase 7: managed model animation. It
 should build on existing `ctx.object.animation` and runtime-owned mixer

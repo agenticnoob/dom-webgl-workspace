@@ -117,14 +117,19 @@ Current example behavior:
   whole trigger section; the example no longer appends a synthetic post-pinned
   runway sibling just to hand scroll control back.
 - The example also dogfoods `WebGLScrollTimeline` with a pinned named managed
-  timeline bound to a `WebGLScene`, a `WebGLCamera.controller`, stage planes, a
-  stage box, scene-owned lights, and a visible scene-child `WebGLTarget` that
-  inherits the scene and uses `screen-depth` placement while reading the same
-  progress signal. It uses public React descriptors only and does not present
-  the nested scene as
-  DOM-clipped or as a local target viewport; Phase 6 owns pass viewport/scissor.
-  The card effect leaves `ctx.object.scale` untouched so the descriptor-projected
-  surface size stays owned by the runtime.
+  timeline that feeds a `WebGLCamera.controller` and the card effect. The scene,
+  stage planes, stage box, scene-owned lights, and visible scene-child
+  `WebGLTarget` display directly; the card inherits the scene and uses
+  `screen-depth` placement. The scene is wrapped in `WebGLPassViewport` and
+  declares pass `viewport: { mode: "dom-rect", scissor: true }`, so the managed
+  timeline pass is clipped to the pinned section DOM rect on the shared runtime
+  canvas.
+  The card effect enters from the named progress signal and then holds its final
+  visible state until the viewport clips the pass away; it leaves
+  `ctx.object.scale` untouched so the descriptor-projected surface size stays
+  owned by the runtime. In the catalog, the separate managed stage primitive
+  example is placed before this pinned timeline so the timeline does not exit
+  directly into another similar 3D stage pass.
 - The managed stage primitive example is mounted in the current catalog and
   dogfoods `WebGLPassViewport` with pass `viewport: { mode: "dom-rect",
   scissor: true }` plus descriptor-level `bloom`/`grain`/`blur` postprocess.
@@ -664,10 +669,12 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 passes can request `clear` or `clearDepth`. `screen-depth` uses the DOM rect for
 screen position/size and projects that point along the active `WebGLCamera`
 basis at the requested depth, so the scene default camera should stay aligned
-with the render pass camera. A managed perspective-stage camera can use a
-nested `controller` descriptor for timeline-driven `position`, `target`, and
-`fov`; the runtime applies that camera frame before `screen-depth` projection
-and pass rendering. Render passes can also declare DOM-bound
+  with the render pass camera. A managed perspective-stage camera can use a
+  nested `controller` descriptor for timeline-driven `position`, `target`, and
+  `fov`; the runtime applies that camera frame before `screen-depth` projection
+  and pass rendering, and re-applies it after managed camera resize so a
+  scroll-held camera does not snap back to its declaration base frame while
+  progress is unchanged. Render passes can also declare DOM-bound
 `viewport`/scissor and descriptor-level `postprocess`. These remain
 descriptor-driven and runtime-owned. Scene-native models, `screen-plane`
 placement, orthographic/screen camera controllers, pass-bound camera controller
@@ -745,7 +752,9 @@ is no implicit `ctx.camera`.
 `controller.timeline` descriptor on a managed `perspective-stage` camera for
 camera motion/focus/framing. v1 controller support is intentionally limited to
 one camera-owned controller per camera and does not expose raw Three.js cameras,
-controls, matrices, pass-bound scope, or pointer-driven orbit/pan behavior.
+controls, matrices, pass-bound scope, or pointer-driven orbit/pan behavior. The
+runtime preserves the currently applied controller frame across managed camera
+resize/reframing passes even when the source progress signal is unchanged.
 
 ## Opt-In Managed Stage Primitives
 

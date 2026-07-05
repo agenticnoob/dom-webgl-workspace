@@ -449,7 +449,9 @@ Rules:
   `WebGLModel`, `screen-plane`, orthographic/screen camera controllers,
   pass-bound controller scope, and camera-scoped effects remain later phases.
   `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
-  raw scene control handle.
+  raw scene control handle. Runtime-owned controller framing is re-applied after
+  managed camera resize, so a scroll-held camera keeps the current controller
+  frame when progress stops changing.
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -629,7 +631,8 @@ Rules:
 - Use nested `WebGLCamera.controller.timeline` on managed
   `perspective-stage` cameras when the same progress signal should drive camera
   `position`, `target`, or `fov`. Vanilla consumers pass the same `controller`
-  data to `runtime.registerCamera(...)`.
+  data to `runtime.registerCamera(...)`. Controller framing survives managed
+  camera resize/reframing passes even when the progress signal has not changed.
 - Timeline bindings can activate/skip targets, scene passes, stage primitives,
   and lights by progress range without rebuilding descriptors every frame.
   Entering an active range restores only the declaration/effect-owned
@@ -1226,7 +1229,8 @@ Scope rule:
 - There is no implicit `ctx.camera`; progress-driven camera motion/focus/framing
   uses the explicit nested `WebGLCamera.controller` descriptor. Pass-bound,
   pointer-driven, orthographic, and screen-overlay camera controllers remain
-  future work.
+  future work. Runtime camera resize does not reset an already-applied controller
+  frame while progress is unchanged.
 
 Pointer rule:
 

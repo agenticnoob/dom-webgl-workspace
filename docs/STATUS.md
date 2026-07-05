@@ -161,14 +161,24 @@ phase records are archived under [archive/](./archive/).
 - Camera motion/focus/framing is not part of target-local effects or Phase 5
   target/scene timeline bindings. Progress-driven perspective-stage camera
   motion now uses the Phase 6A nested `WebGLCamera.controller` descriptor.
+  Controller framing is re-applied after managed camera resize so a scroll-held
+  camera does not snap back to its declaration base frame when scroll progress
+  stops changing.
   Orthographic zoom controllers, screen overlay camera controllers, complex
   framing boxes, and pass-bound camera controller scope are deferred possible
   camera-controller iterations. Pointer-driven orbit, pan, drag, pointer
   parallax, and empty-space camera controls remain Phase 8 work.
-- The managed timeline example drives a `WebGLCamera.controller`, scene, stage
-  primitives, lights, and a visible scene-child `WebGLTarget` from the same
-  named timeline. The card inherits the managed scene, uses `screen-depth`
-  placement, and is still not a DOM-clipped viewport example.
+- The managed timeline example uses the same named progress signal for a
+  `WebGLCamera.controller` and the card effect, while the scene, stage
+  primitives, lights, and visible scene-child `WebGLTarget` display directly.
+  The card inherits the managed scene, uses `screen-depth` placement, and the
+  scene pass uses `WebGLPassViewport` with
+  `viewport: { mode: "dom-rect", scissor: true }` so the pinned section DOM rect
+  clips the managed pass on the shared runtime canvas. The card effect enters
+  from the named progress signal and holds its final visible state through the
+  end of the pinned timeline. The separate managed stage primitive dogfood is
+  ordered before this pinned timeline so the timeline exit does not hand off
+  directly into another similar 3D stage pass.
 - The managed stage primitive example is mounted in `apps/example` and dogfoods
   `WebGLPassViewport` with pass `viewport: { mode: "dom-rect", scissor: true }`
   and descriptor-level bloom/grain/blur postprocess. It remains one runtime

@@ -291,12 +291,30 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-stage-viewport")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-timeline-dogfood")).toBeNull();
     expect(host.querySelector(".example-managed-stage-timeline")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-managed-stage-viewport")).toBeInstanceOf(HTMLElement);
+    expect(
+      Array.from(
+        host.querySelectorAll(
+          ".example-stage-dogfood, .example-managed-stage-timeline",
+        ),
+        (element) => element.classList.contains("example-stage-dogfood")
+          ? "stage"
+          : "timeline",
+      ),
+    ).toEqual(["stage", "timeline"]);
     expect(passViewportProps).toContainEqual(
       expect.objectContaining({
         id: "example.stage.viewport",
         as: "div",
         className: "example-stage-viewport",
         "aria-hidden": "true",
+      }),
+    );
+    expect(passViewportProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.managedStage.viewport",
+        as: "div",
+        className: "example-managed-stage-viewport",
       }),
     );
     expect(sceneProps).toContainEqual(
@@ -320,13 +338,15 @@ describe("effect authoring example app", () => {
       expect.objectContaining({
         id: "example.managedStage.scene",
         projection: "perspective-stage",
-        render: { camera: "example.managedStage.camera", order: -8, clearDepth: true },
-        timeline: {
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.94 },
+        render: {
+          camera: "example.managedStage.camera",
+          order: -8,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
         },
       }),
     );
+    expect(sceneProps.find(({ id }) => id === "example.managedStage.scene")).not.toHaveProperty("timeline");
     expect(cameraProps).toContainEqual(
       expect.objectContaining({
         id: "example.managedStage.camera",
@@ -335,41 +355,34 @@ describe("effect authoring example app", () => {
     );
     expect(cameraProps.find(({ id }) => id === "example.managedStage.camera")).not.toHaveProperty("timeline");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
-      "example.managedStage.floor",
-      "example.managedStage.backdrop",
       "example.stage.floor",
       "example.stage.backdrop",
+      "example.managedStage.floor",
+      "example.managedStage.backdrop",
     ]);
     expect(stageBoxProps.map(({ id }) => id)).toEqual([
-      "example.managedStage.plinth",
       "example.stage.plinth",
       "example.stage.bloomRail",
+      "example.managedStage.plinth",
     ]);
     expect(lightProps.map(({ id }) => id)).toEqual([
-      "example.managedStage.ambient",
-      "example.managedStage.key",
       "example.stage.ambient",
       "example.stage.key",
       "example.stage.rim",
+      "example.managedStage.ambient",
+      "example.managedStage.key",
     ]);
-    expect(stagePlaneProps.find(({ id }) => id === "example.managedStage.floor")).toMatchObject({
-      timeline: {
-        id: "example.managedTimeline",
-        active: { from: 0.02, to: 0.9 },
-      },
-    });
-    expect(stageBoxProps.find(({ id }) => id === "example.managedStage.plinth")).toMatchObject({
-      timeline: {
-        id: "example.managedTimeline",
-        active: { from: 0.02, to: 0.86 },
-      },
-    });
-    expect(lightProps.find(({ id }) => id === "example.managedStage.key")).toMatchObject({
-      timeline: {
-        id: "example.managedTimeline",
-        active: { from: 0.02, to: 0.92 },
-      },
-    });
+    expect(
+      stagePlaneProps
+        .filter(({ id }) => id.startsWith("example.managedStage."))
+        .every((prop) => prop.timeline === undefined),
+    ).toBe(true);
+    expect(stageBoxProps.find(({ id }) => id === "example.managedStage.plinth")).not.toHaveProperty("timeline");
+    expect(
+      lightProps
+        .filter(({ id }) => id.startsWith("example.managedStage."))
+        .every((prop) => prop.timeline === undefined),
+    ).toBe(true);
 
     const firstDescriptionToggle = host.querySelector<HTMLButtonElement>(".example-effect-pill");
     expect(firstDescriptionToggle).not.toBeNull();
@@ -523,10 +536,6 @@ describe("effect authoring example app", () => {
       source: { kind: "dom", type: "element" },
       placement: { mode: "screen-depth", depth: 120, size: "dom" },
       lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-      timeline: {
-        id: "example.managedTimeline",
-        active: { from: 0.2, to: 0.9 },
-      },
       effects: [
         {
           kind: "example.managedTimelineCard",
@@ -534,6 +543,7 @@ describe("effect authoring example app", () => {
         },
       ],
     });
+    expect(finalTargetProps[5]?.webgl).not.toHaveProperty("timeline");
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();

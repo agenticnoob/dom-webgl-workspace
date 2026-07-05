@@ -438,9 +438,18 @@ body {
 }
 
 .example-managed-stage-timeline {
+  position: relative;
   min-height: 100dvh;
   overflow: hidden;
   background: transparent;
+}
+
+.example-managed-stage-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
 }
 
 .example-managed-stage-copy {

@@ -458,6 +458,9 @@ export function createInternalRenderLayerRegistry(
       for (const camera of camerasById.values()) {
         if (!camera.generated) {
           camera.resize?.(viewport);
+          if (camera.controller) {
+            appliedControllerFramesByCameraId.delete(camera.id);
+          }
         }
       }
     },

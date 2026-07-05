@@ -262,6 +262,58 @@ describe("createInternalRenderLayerRegistry", () => {
     expect(managedCamera.dispose).toHaveBeenCalledTimes(1);
   });
 
+  test("reapplies controller framing after managed camera resize resets base framing", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+
+    expect(registry.updateCameraControllers({ get: () => 0.5 })).toBe(true);
+    managedCamera.applyFraming.mockClear();
+
+    registry.resize({ width: 800, height: 600 });
+
+    expect(registry.updateCameraControllers({ get: () => 0.5 })).toBe(true);
+    expect(managedCamera.applyFraming).toHaveBeenCalledWith(
+      {
+        position: [0, 60, 610],
+        target: [0, 24, 0],
+        fov: 39,
+      },
+      { width: 800, height: 600 },
+    );
+  });
+
   test("rejects camera controllers outside perspective-stage managed cameras", () => {
     const registry = createInternalRenderLayerRegistry(
       createRendererHostStub(createSceneAdapter()),

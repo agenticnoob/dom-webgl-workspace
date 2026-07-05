@@ -20,9 +20,8 @@ export const exampleManagedTimelineCardEffect =
 
       const progress = readManagedTimelineProgress(ctx, params.progressKey);
       const entry = smoothstep(0.12, 0.38, progress);
-      const exit = smoothstep(0.78, 0.94, progress);
       const travel = smoothstep(0.2, 0.68, progress);
-      const presence = clampNumber(entry * (1 - exit), 0, 1, 0);
+      const presence = clampNumber(entry, 0, 1, 0);
       const visible = (ctx.scene?.timeline?.active ?? true) && presence > 0.02;
 
       ctx.object.visible = visible;

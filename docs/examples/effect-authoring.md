@@ -54,6 +54,7 @@ import { defineWebGLEffect } from "@project/dom-webgl-runtime";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLPassViewport,
   WebGLRuntime,
   WebGLScene,
   WebGLStagePlane,
@@ -154,82 +155,67 @@ pinned sections.
 ```tsx
 <WebGLScrollRuntime effects={exampleEffects} smooth={exampleSmoothScrollOptions}>
   <WebGLScrollTimeline id="example.managedTimeline" start="top top" end="+=240%" pin scrub>
-    <WebGLScene
-      id="example.managedStage.scene"
-      projection="perspective-stage"
-      render={{ camera: "example.managedStage.camera", order: -8, clearDepth: true }}
-      timeline={{
-        id: "example.managedTimeline",
-        active: { from: 0.02, to: 0.94 },
-      }}
-    >
-      <WebGLCamera
-        id="example.managedStage.camera"
-        default
-        type="perspective"
-        mode="perspective-stage"
-        fov={42}
-        controller={{
-          timeline: {
-            id: "example.managedTimeline",
-            range: { from: 0.12, to: 0.88 },
-          },
-          to: { position: [0, 96, 520], target: [0, 36, 0], fov: 34 },
-          easing: "smoothstep",
+    <WebGLPassViewport id="example.managedStage.viewport" as="div">
+      <WebGLScene
+        id="example.managedStage.scene"
+        projection="perspective-stage"
+        render={{
+          camera: "example.managedStage.camera",
+          order: -8,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
         }}
-      />
-      <WebGLStagePlane
-        id="example.managedStage.floor"
-        role="floor"
-        timeline={{
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.9 },
-        }}
-      />
-      <WebGLStageBox
-        id="example.managedStage.plinth"
-        timeline={{
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.86 },
-        }}
-      />
-      <WebGLLight
-        id="example.managedStage.key"
-        kind="point"
-        timeline={{
-          id: "example.managedTimeline",
-          active: { from: 0.02, to: 0.92 },
-        }}
-      />
-      <WebGLTarget
-        as="article"
-        webgl={{
-          key: "example.managedStage.card",
-          source: { kind: "dom", type: "element" },
-          placement: { mode: "screen-depth", depth: 120, size: "dom" },
-          lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-          timeline: {
-            id: "example.managedTimeline",
-            active: { from: 0.2, to: 0.9 },
-          },
-          effects: [
-            {
-              kind: "example.managedTimelineCard",
-              progressKey: "example.managedTimeline",
+      >
+        <WebGLCamera
+          id="example.managedStage.camera"
+          default
+          type="perspective"
+          mode="perspective-stage"
+          fov={42}
+          controller={{
+            timeline: {
+              id: "example.managedTimeline",
+              range: { from: 0.12, to: 0.88 },
             },
-          ],
-        }}
-      />
-    </WebGLScene>
+            to: { position: [0, 96, 520], target: [0, 36, 0], fov: 34 },
+            easing: "smoothstep",
+          }}
+        />
+        <WebGLStagePlane
+          id="example.managedStage.floor"
+          role="floor"
+        />
+        <WebGLStageBox id="example.managedStage.plinth" />
+        <WebGLLight
+          id="example.managedStage.key"
+          kind="point"
+        />
+        <WebGLTarget
+          as="article"
+          webgl={{
+            key: "example.managedStage.card",
+            source: { kind: "dom", type: "element" },
+            placement: { mode: "screen-depth", depth: 120, size: "dom" },
+            lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+            effects: [
+              {
+                kind: "example.managedTimelineCard",
+                progressKey: "example.managedTimeline",
+              },
+            ],
+          }}
+        />
+      </WebGLScene>
+    </WebGLPassViewport>
   </WebGLScrollTimeline>
 </WebGLScrollRuntime>
 ```
 
-The binding is descriptor data: `timeline` accepts a string id or
-`{ id, progressKey?, active? }`. Active ranges use `from`/`to` in normalized
-0..1 progress. `WebGLCamera` does not accept top-level timeline data; camera
-movement/focus/framing uses the nested `controller.timeline` descriptor on a
-managed `perspective-stage` camera.
+The named timeline is still descriptor data, but this example does not use
+`timeline.active` to gate visible scene objects. The stage and lights display
+directly inside the clipped pass. `WebGLCamera` does not accept top-level
+timeline data; camera movement/focus/framing uses the nested
+`controller.timeline` descriptor on a managed `perspective-stage` camera.
 
 Effects can read the same signal through `ctx.progress.get(key)` or
 `ctx.runtime.progress.get(key)`. Effects routed through a managed scene also get
@@ -497,17 +483,22 @@ scrub section rather than global page scroll.
 `WebGLScrollRuntime` receives a notifying progress source from the scroll
 adapter, so ScrollTrigger scrub progress wakes the on-demand image-sequence
 renderable even when no card effect is active in the viewport.
-The managed timeline dogfood uses a pinned full-canvas section, separately from
-the pinned image-sequence section. It binds a named progress signal to a managed
-scene, a perspective-stage camera controller, stage primitives, scene-owned
-lights, and a default-pipeline WebGL target surface. The managed stage primitive
-dogfood now uses `WebGLPassViewport` so the managed pass is clipped to a DOM
-rect on the same runtime canvas without exposing renderer viewport/scissor
-calls. The runtime intersects that DOM rect with the current canvas viewport;
-the full DOM rect still defines the pass mapping, so partially visible passes
-are clipped rather than compressed into the visible intersection. When the
-stage section is fully offscreen, this pass is skipped rather than drawn behind
-earlier sections:
+The managed timeline dogfood uses a pinned `WebGLPassViewport` section,
+separately from the pinned image-sequence section. It feeds a named progress
+signal to a perspective-stage camera controller and the default-pipeline WebGL
+target surface effect, while the managed scene, stage primitives, and
+scene-owned lights display directly. The card effect holds its final visible
+state at progress `1`; the section leaves by pass viewport clipping rather than
+an effect-level exit fade. In the example catalog, the separate managed stage
+primitive dogfood is mounted before this timeline so the timeline exit is not
+immediately followed by another similar 3D stage pass.
+The managed stage primitive dogfood also uses `WebGLPassViewport` so managed
+passes are clipped to DOM rects on the same runtime canvas without exposing
+renderer viewport/scissor calls. The runtime intersects each DOM rect with the
+current canvas viewport; the full DOM rect still defines the pass mapping, so
+partially visible passes are clipped rather than compressed into the visible
+intersection. When a section is fully offscreen, its pass is skipped rather than
+drawn behind earlier sections:
 
 ```tsx
 <WebGLPassViewport id="example.stage.viewport" as="div" className="example-stage-viewport">
