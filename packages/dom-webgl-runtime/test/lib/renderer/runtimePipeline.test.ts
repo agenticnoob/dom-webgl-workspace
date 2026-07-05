@@ -3926,6 +3926,137 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("runtime registers scene-native models into managed scenes", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const sourceScene = new Group();
+    const clonedScene = new Group();
+    const clone = vi.spyOn(sourceScene, "clone").mockReturnValue(clonedScene);
+    const loadModel = vi.fn(async () => ({
+      scene: sourceScene,
+      animations: [{ name: "Idle" }],
+    }));
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      loadModel,
+    });
+
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      position: [1, 2, 3],
+      rotation: [0, 1, 0],
+      scale: 2,
+    });
+
+    expect(worldAdapter.objects).toHaveLength(0);
+
+    await runtime.sync();
+
+    expect(loadModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "model",
+        type: "glb",
+        src: "/models/Sprint.glb",
+      }),
+    );
+    expect(clone).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "character",
+    ]);
+    const root = worldAdapter.objects[0]?.object3D as Group;
+    expect(root.children[0]).toBe(clonedScene);
+    expect(root.position.toArray()).toEqual([1, 2, 3]);
+    expect(root.rotation.toArray()).toEqual([0, 1, 0, "XYZ"]);
+    expect(root.scale.toArray()).toEqual([2, 2, 2]);
+    expect(runtime.getDebugState()).toMatchObject({
+      modelCount: 1,
+      models: [
+        {
+          id: "character",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "ready",
+          visible: true,
+          clips: ["Idle"],
+          activeClips: [],
+        },
+      ],
+    });
+
+    runtime.unregisterModel("character");
+
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().modelCount).toBeUndefined();
+    expect(runtime.getDebugState().models).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("runtime updates timeline-bound model visibility and releases models with scenes", async () => {
+    let progress = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      loadModel: async () => ({ scene: new Group() }),
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "hero.3d",
+        active: false,
+      },
+    });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      timeline: { active: true },
+    });
+
+    const sceneObject = worldAdapter.objects[0];
+    const dispose = vi.spyOn(sceneObject!, "dispose");
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().models).toBeUndefined();
+    runtime.dispose();
+  });
+
   test("runtime updates timeline-bound target visibility from progress signals", async () => {
     let progress = 0;
     const sceneAdapter = createObjectRecordingSceneAdapter();

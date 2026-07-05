@@ -6,6 +6,7 @@ import {
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLModel,
   WebGLPassViewport,
   WebGLScene,
   WebGLStageBox,
@@ -13,6 +14,7 @@ import {
   WebGLTarget,
   type WebGLCameraProps,
   type WebGLLightProps,
+  type WebGLModelProps,
   type WebGLSceneRenderOptions,
   type WebGLStageBoxProps,
   type WebGLStagePlaneProps,
@@ -106,6 +108,18 @@ const plinthMaterial = {
 const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
+const sprintModelPosition = [0, -92, -36] satisfies NonNullable<
+  WebGLModelProps["position"]
+>;
+const sprintModelRotation = [0, 0, 0] satisfies NonNullable<
+  WebGLModelProps["rotation"]
+>;
+const sprintModelLoader = {
+  draco: { decoderPath: "/draco/gltf/" },
+} satisfies NonNullable<WebGLModelProps["loader"]>;
+const sprintModelAnimation = {
+  defaultClip: { clip: "BagArmature.001", loop: "repeat", fadeInMs: 160 },
+} satisfies NonNullable<WebGLModelProps["animation"]>;
 
 const managedStageCardWebgl = {
   key: "example.managedStage.card",
@@ -134,7 +148,7 @@ export function ManagedTimelineExample() {
         <p className="example-kicker">pinned managed scene</p>
         <h2>滚动固定的声明式 3D 舞台</h2>
         <p>
-          同一个 timeline 驱动 camera 和右侧卡片效果；scene、floor、backdrop、box、light
+          同一个 timeline 驱动 camera 和右侧卡片效果；scene、floor、backdrop、box、model、light
           直接展示，并通过 section rect 裁剪在 pinned viewport 内。
         </p>
       </div>
@@ -166,6 +180,15 @@ export function ManagedTimelineExample() {
             size={plinthSize}
             position={plinthPosition}
             material={plinthMaterial}
+          />
+          <WebGLModel
+            id="example.managedStage.sprint"
+            src="/models/Sprint.glb"
+            loader={sprintModelLoader}
+            position={sprintModelPosition}
+            rotation={sprintModelRotation}
+            scale={44}
+            animation={sprintModelAnimation}
           />
           <WebGLLight
             id="example.managedStage.ambient"

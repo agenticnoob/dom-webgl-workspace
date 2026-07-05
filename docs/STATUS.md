@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 6 pass viewport and postprocess scope implementation
+**Last reviewed against:** Phase 7 managed model animation implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -93,6 +93,24 @@ phase records are archived under [archive/](./archive/).
     dispose
   - debug state can report descriptor-only stage primitive and light inventory
     counts/ids without exposing raw Three.js objects
+- Opt-in scene-native managed models:
+  - React exports `WebGLModel`; vanilla runtime exposes `registerModel` and
+    `unregisterModel`
+  - `WebGLModel` belongs to a managed scene, loads GLB sources through the
+    runtime resource manager, and can declare scene-local `position`,
+    `rotation`, `scale`, `visible`, `timeline`, and `loader` descriptors
+  - `WebGLModel.animation` supports a default clip, progress-driven clip
+    scrubbing, timeline-weighted clip blending, and timeline/constant morph
+    weights
+  - `ctx.object.animation` keeps the controlled clip facade for DOM-backed
+    `model/glb` targets, including `clips`, `play`, `scrub`, `blend`,
+    `crossFade`, `stop`, `stopAll`, and `setTime`
+  - `ctx.object.model` can expose controlled morph target names/weights and
+    named rig bones when the loaded model provides them
+  - debug state can report descriptor-only model inventory, resource status,
+    timeline activity, available clips, active clips, morph names, bone names,
+    and missing clip/morph diagnostics without exposing raw GLTF, mixer,
+    action, mesh, skeleton, or morph arrays
 - Managed timeline bindings and effect scope metadata:
   - public declarations can bind `timeline` data on `WebGLTarget`,
     `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
@@ -124,7 +142,10 @@ phase records are archived under [archive/](./archive/).
   `screen-plane` remains deferred to the Phase 8 pre-step for screen-plane
   placement against named stage planes.
 - `stage-local` placement sets explicit scene-local layout for a target.
-  Scene-native `WebGLModel` declarations remain future roadmap work.
+  Scene-native `WebGLModel` is available for managed-scene GLB assets that do
+  not need DOM fallback or target-local effects. Models that should follow DOM
+  layout, fallback visibility, target-local pointer state, or target effects
+  should remain `WebGLTarget` model sources.
 - `ctx.object.postprocess` was removed in Phase 6 because its name implied
   object-local behavior. Effect-authored postprocess now uses
   `ctx.runtime.postprocess.request(...)` with `{ canvas: true }` or
@@ -146,6 +167,11 @@ phase records are archived under [archive/](./archive/).
   them to declare scene substrate; do not drive high-frequency animation through
   React prop churn. Use timeline bindings and managed effect/controller state
   for progress-driven scene, stage, and light activation.
+- Scene-native `WebGLModel` descriptors are stable declarations. Use timeline
+  bindings and model animation descriptors for progress-driven clip/morph
+  updates rather than React prop churn. Phase 7 v1 does not add target-local
+  `effects` to `WebGLModel`; scene-native model effects remain a Phase 8
+  pre-step design topic.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -217,6 +243,17 @@ Phase 6A managed camera controllers are verified and add a single optional
 `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller
 scope, raw camera handles, or pointer-driven interaction:
 [2026-07-04-managed-camera-controllers.md](./superpowers/plans/2026-07-04-managed-camera-controllers.md).
+Phase 7 managed model animation is verified in this working branch. The focused
+plan keeps DOM-backed `WebGLTarget` model sources valid while adding the opt-in
+scene-native `WebGLModel` descriptor path, enhanced managed animation facade,
+morph controls, and descriptor-only diagnostics:
+[2026-07-05-managed-model-animation.md](./superpowers/plans/2026-07-05-managed-model-animation.md).
+`apps/example` dogfoods `Sprint.glb` through public `WebGLModel` with Draco
+loader configuration and a default clip. Phase 7 v1 defers additive layers,
+bone attachments, IK, action graphs, animation state machines, and
+scene-native model effects. The roadmap places scene-native model effect scope
+design as a Phase 8 pre-step before picking/hit state, because those effects
+need explicit object/scene/runtime scope rather than DOM-target semantics.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

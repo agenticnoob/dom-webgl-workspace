@@ -323,6 +323,8 @@ function createRuntimeStub(): WebGLRuntime & {
     unregisterStagePrimitive: vi.fn(),
     registerLight: vi.fn(),
     unregisterLight: vi.fn(),
+    registerModel: vi.fn(),
+    unregisterModel: vi.fn(),
     registerTarget: vi.fn((element: HTMLElement, declaration: WebGLDeclaration) =>
       createTargetDescriptor(element, declaration, 0),
     ),

@@ -30,6 +30,7 @@ describe("public package exports", () => {
     expect(reactApi.WebGLStagePlane).toEqual(expect.any(Function));
     expect(reactApi.WebGLStageBox).toEqual(expect.any(Function));
     expect(reactApi.WebGLLight).toEqual(expect.any(Function));
+    expect(reactApi.WebGLModel).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
   });
 
@@ -68,6 +69,7 @@ describe("public package exports", () => {
           WebGLScene,
           WebGLStageBox,
           WebGLStagePlane,
+          WebGLModel,
           WebGLTarget,
         } from "${importPath}";
         import type {
@@ -80,6 +82,7 @@ describe("public package exports", () => {
           WebGLSceneRenderOptions,
           WebGLStageBoxProps,
           WebGLStagePlaneProps,
+          WebGLModelProps,
           WebGLTargetProps,
         } from "${importPath}";
         import type { ReactElement } from "react";
@@ -200,6 +203,21 @@ describe("public package exports", () => {
                   color="#7dd3fc"
                   intensity={1.8}
                   position={[0, 0, 160]}
+                />
+                <WebGLModel
+                  id="stage.character"
+                  src="/models/Sprint.glb"
+                  position={[0, -120, 0]}
+                  scale={[120, 120, 120]}
+                  animation={{
+                    defaultClip: { clip: "MainSkeleton.001", loop: "repeat" },
+                    blend: {
+                      from: "MainSkeleton.001",
+                      to: "BagArmature.001",
+                      timeline: "hero.timeline",
+                      fadeMs: 180,
+                    },
+                  }}
                 />
               </WebGLScene>
             </WebGLPassViewport>
@@ -354,6 +372,29 @@ describe("public package exports", () => {
           as: "section",
         } satisfies WebGLPassViewportProps<"section">;
         passViewportProps satisfies WebGLPassViewportProps<"section">;
+        const modelProps = {
+          id: "character",
+          src: "/models/Sprint.glb",
+          position: [0, -120, 0],
+          scale: [120, 120, 120],
+          animation: {
+            defaultClip: { clip: "MainSkeleton.001", loop: "repeat" },
+          },
+        } satisfies WebGLModelProps;
+        modelProps satisfies WebGLModelProps;
+        const modelWithExplicitSceneProps = {
+          id: "character.explicit",
+          scene: "world.stage",
+          src: "/models/Sprint.glb",
+        } satisfies WebGLModelProps;
+        modelWithExplicitSceneProps satisfies WebGLModelProps;
+        const modelEffectsProps = {
+          id: "character.effects",
+          src: "/models/Sprint.glb",
+          // @ts-expect-error scene-native WebGLModel does not accept target-local effects in Phase 7 v1.
+          effects: [{ kind: "app.modelEffect" }],
+        } satisfies WebGLModelProps;
+        modelEffectsProps satisfies WebGLModelProps;
 
         declare const rawScene: ThreeScene;
         declare const rawCamera: ThreeCamera;
@@ -491,12 +532,17 @@ describe("public package exports", () => {
                   WebGLCameraMode,
                   WebGLCameraType,
                   WebGLColorValue,
+                  WebGLDebugModelDiagnostic,
+                  WebGLDebugModelSummary,
 					          WebGLDebugState,
 					          WebGLDeclaration,
-				          WebGLEffectAmbientLightRequest,
-				          WebGLEffectAnimationFacade,
-				          WebGLEffectAnimationPlayOptions,
-				          WebGLEffectCanvasDrawer,
+                  WebGLEffectAmbientLightRequest,
+                  WebGLEffectAnimationFacade,
+                  WebGLEffectAnimationBlendOptions,
+                  WebGLEffectAnimationCrossfadeOptions,
+                  WebGLEffectAnimationPlayOptions,
+                  WebGLEffectAnimationScrubOptions,
+                  WebGLEffectCanvasDrawer,
 				          WebGLEffectCanvasSurfaceHandle,
 				          WebGLEffectContext,
 				          WebGLEffectDefinition,
@@ -525,11 +571,13 @@ describe("public package exports", () => {
 				          WebGLEffectContentBoxShaderInput,
 					          WebGLEffectMediaShaderInputs,
 					          WebGLEffectObjectFitShaderInput,
-					          WebGLEffectModelFacade,
-					          WebGLEffectModelMeshesFacade,
-					          WebGLEffectModelPointsFacade,
-					          WebGLEffectModelSamplingFacade,
-					          WebGLEffectObjectHandle,
+                      WebGLEffectModelFacade,
+                      WebGLEffectModelMeshesFacade,
+                      WebGLEffectModelMorphsFacade,
+                      WebGLEffectModelPointsFacade,
+                      WebGLEffectModelRigFacade,
+                      WebGLEffectModelSamplingFacade,
+                      WebGLEffectObjectHandle,
 			          WebGLEffectSourceTextureShaderInput,
 			          WebGLEffectScaleLike,
 			          WebGLEffectSurfaceShaderInputs,
@@ -546,9 +594,16 @@ describe("public package exports", () => {
 			          WebGLEffectVideoLayerHandle,
                   WebGLLightDeclaration,
                   WebGLLightKind,
-					          WebGLModelEffectHandle,
-					          WebGLModelMeshHandle,
-					          WebGLEffectsDeclaration,
+                  WebGLModelEffectHandle,
+                  WebGLModelAnimationDeclaration,
+                  WebGLModelAnimationLoop,
+                  WebGLModelClipBlendDeclaration,
+                  WebGLModelClipPlaybackDeclaration,
+                  WebGLModelClipScrubDeclaration,
+                  WebGLModelDeclaration,
+                  WebGLModelMeshHandle,
+                  WebGLModelMorphWeightDeclaration,
+                  WebGLEffectsDeclaration,
 				          WebGLFrameInput,
 				          WebGLGateScrollBehavior,
 				          WebGLPerformanceBudget,
@@ -604,6 +659,11 @@ describe("public package exports", () => {
 	          WebGLTuple2,
 	          WebGLTuple3,
 		        } from "${importPath}";
+        type ThreeAnimationAction = { readonly __rawAnimationAction: unique symbol };
+        type ThreeAnimationMixer = { readonly __rawAnimationMixer: unique symbol };
+        type ThreeObject3D = { readonly __rawObject3D: unique symbol };
+        type ThreeBone = { readonly __rawBone: unique symbol };
+        type ThreeSkeleton = { readonly __rawSkeleton: unique symbol };
 
         // @ts-expect-error legacy material declarations are no longer public exports.
         import type { WebGLMaterialDeclaration } from "${importPath}";
@@ -841,6 +901,90 @@ describe("public package exports", () => {
           position: [0, 0, 160],
           timeline: sceneTimeline,
         } satisfies WebGLLightDeclaration;
+        const modelLoop = "repeat" satisfies WebGLModelAnimationLoop;
+        const modelDefaultClip = {
+          clip: "MainSkeleton.001",
+          loop: modelLoop,
+          timeScale: 1,
+          fadeInMs: 120,
+          fadeOutMs: 80,
+          clampWhenFinished: true,
+        } satisfies WebGLModelClipPlaybackDeclaration;
+        const modelScrub = {
+          clip: "MainSkeleton.001",
+          timeline: activeTimeline,
+          durationSeconds: 1.4,
+          range: timelineActiveRange,
+        } satisfies WebGLModelClipScrubDeclaration;
+        const modelBlend = {
+          from: "MainSkeleton.001",
+          to: "BagArmature.001",
+          timeline: "hero.3d",
+          fadeMs: 240,
+          range: timelineActiveRange,
+        } satisfies WebGLModelClipBlendDeclaration;
+        const modelMorphWeight = {
+          name: "Smile",
+          timeline: "hero.3d",
+          from: 0,
+          to: 1,
+        } satisfies WebGLModelMorphWeightDeclaration;
+        const modelAnimation = {
+          defaultClip: modelDefaultClip,
+          scrub: modelScrub,
+          blend: modelBlend,
+          morphs: [modelMorphWeight],
+        } satisfies WebGLModelAnimationDeclaration;
+        const modelDeclaration = {
+          id: "character",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          loader: { draco: { decoderPath: "/draco/" } },
+          position: [0, -120, 0],
+          rotation: [0, Math.PI, 0],
+          scale: [120, 120, 120],
+          visible: true,
+          timeline: activeTimeline,
+          animation: modelAnimation,
+        } satisfies WebGLModelDeclaration;
+        declare const rawMixer: ThreeAnimationMixer;
+        declare const rawAction: ThreeAnimationAction;
+        declare const rawBone: ThreeBone;
+        declare const rawSkeleton: ThreeSkeleton;
+        declare const rawObject3D: ThreeObject3D;
+        // @ts-expect-error model declarations do not accept raw Object3D handles.
+        ({ id: "raw.model", sceneId: "world", src: "/raw.glb", object3D: rawObject3D } satisfies WebGLModelDeclaration);
+        // @ts-expect-error model declarations do not accept raw AnimationMixer handles.
+        ({ id: "raw.mixer", sceneId: "world", src: "/raw.glb", mixer: rawMixer } satisfies WebGLModelDeclaration);
+        const rawActionClip = {
+          clip: "Idle",
+          // @ts-expect-error clip playback declarations do not accept raw AnimationAction handles.
+          action: rawAction,
+        } satisfies WebGLModelClipPlaybackDeclaration;
+        rawActionClip satisfies WebGLModelClipPlaybackDeclaration;
+        // @ts-expect-error model declarations do not accept raw Skeleton handles.
+        ({ id: "raw.skeleton", sceneId: "world", src: "/raw.glb", skeleton: rawSkeleton } satisfies WebGLModelDeclaration);
+        const rawBoneMorph = {
+          name: "Smile",
+          // @ts-expect-error morph descriptors do not accept raw Bone handles.
+          bone: rawBone,
+        } satisfies WebGLModelMorphWeightDeclaration;
+        rawBoneMorph satisfies WebGLModelMorphWeightDeclaration;
+        const rawMorphArray = {
+          name: "Smile",
+          // @ts-expect-error morph descriptors do not accept raw morphTargetInfluences arrays.
+          morphTargetInfluences: [0],
+        } satisfies WebGLModelMorphWeightDeclaration;
+        rawMorphArray satisfies WebGLModelMorphWeightDeclaration;
+        ({
+          id: "raw.loader",
+          sceneId: "world",
+          src: "/raw.glb",
+          loader: {
+            // @ts-expect-error loader callbacks are not public escape hatches.
+            configureLoader() {},
+          },
+        } satisfies WebGLModelDeclaration);
 
         const projection = "dom-aligned" satisfies WebGLSceneProjection;
         const cameraType = "orthographic" satisfies WebGLCameraType;
@@ -946,6 +1090,12 @@ describe("public package exports", () => {
         stageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
         stagePrimitiveDeclaration satisfies WebGLStagePrimitiveDeclaration;
         lightDeclaration satisfies WebGLLightDeclaration;
+        modelDefaultClip satisfies WebGLModelClipPlaybackDeclaration;
+        modelScrub satisfies WebGLModelClipScrubDeclaration;
+        modelBlend satisfies WebGLModelClipBlendDeclaration;
+        modelMorphWeight satisfies WebGLModelMorphWeightDeclaration;
+        modelAnimation satisfies WebGLModelAnimationDeclaration;
+        modelDeclaration satisfies WebGLModelDeclaration;
         timelineActiveRange satisfies WebGLTimelineActiveRangeDeclaration;
         sceneTimeline satisfies WebGLTimelineBindingDeclaration;
         activeTimeline satisfies WebGLTimelineBindingDeclaration;
@@ -1193,7 +1343,17 @@ describe("public package exports", () => {
 	          position: [0, 0, 1],
 	          follow: "none",
 	        } satisfies WebGLEffectPointLightRequest);
-	        ({ loop: "once", fadeInMs: 120, timeScale: 1 } satisfies WebGLEffectAnimationPlayOptions);
+		({
+		  loop: "once",
+		  fadeInMs: 120,
+		  fadeOutMs: 80,
+		  clampWhenFinished: true,
+		  timeScale: 1,
+		} satisfies WebGLEffectAnimationPlayOptions);
+        ({ timeSeconds: 0.4 } satisfies WebGLEffectAnimationScrubOptions);
+        ({ progress: 0.5, durationSeconds: 1.4 } satisfies WebGLEffectAnimationScrubOptions);
+        ({ weight: 0.5, loop: "repeat", timeScale: 1 } satisfies WebGLEffectAnimationBlendOptions);
+        ({ fadeMs: 180, loop: "repeat", timeScale: 1 } satisfies WebGLEffectAnimationCrossfadeOptions);
 
         // @ts-expect-error use ctx.object and ctx.sourceKind instead.
         publicCtx.source;
@@ -1330,6 +1490,17 @@ describe("public package exports", () => {
 		              fadeInMs: 120,
 		              timeScale: 1,
 		            });
+                    ctx.object.animation?.scrub("Walk", {
+                      progress: ctx.runtime.progress.get("hero.timeline"),
+                      durationSeconds: 1.4,
+                    });
+                    ctx.object.animation?.blend("Idle", "Walk", {
+                      weight: ctx.runtime.progress.get("hero.timeline"),
+                      loop: "repeat",
+                    });
+                    ctx.object.animation?.crossFade("Idle", "Walk", {
+                      fadeMs: 180,
+                    });
 
                     ctx.runtime.postprocess.request({
                     key: "custom.softBloom",
@@ -1623,12 +1794,18 @@ describe("public package exports", () => {
 	              model satisfies WebGLEffectModelFacade;
 	              model.src satisfies string | undefined;
 	              model.sampling.vertices({ maxPoints: 64 });
-	              model.points.create({
-	                positions: model.sampling.vertices({ maxPoints: 16 }),
-	              });
-	              model.meshes.forEach((mesh) => {
-	                mesh.restoreMaterial();
-	              });
+		              model.points.create({
+		                positions: model.sampling.vertices({ maxPoints: 16 }),
+		              });
+                  model.morphs?.names() satisfies readonly string[] | undefined;
+                  model.morphs?.get("Smile") satisfies number | undefined;
+                  model.morphs?.set("Smile", 0.5);
+                  model.rig?.bones() satisfies readonly string[] | undefined;
+                  model.morphs satisfies WebGLEffectModelMorphsFacade | undefined;
+                  model.rig satisfies WebGLEffectModelRigFacade | undefined;
+		              model.meshes.forEach((mesh) => {
+		                mesh.restoreMaterial();
+		              });
 	              function acceptModelKey<TKey extends keyof WebGLEffectModelFacade>(
 	                _key: TKey,
 	              ): void {}
@@ -1683,7 +1860,7 @@ describe("public package exports", () => {
           scroll: gateScroll,
         } satisfies WebGLDeclaration;
 
-	        declare const runtime: WebGLRuntime;
+		declare const runtime: WebGLRuntime;
 	        declare const element: HTMLElement;
 	        const registeredTarget = runtime.registerTarget(element, declaration);
 		        const runtimeOptions = {
@@ -1701,6 +1878,8 @@ describe("public package exports", () => {
         customRuntime.unregisterStagePrimitive(stagePlaneDeclaration.id);
         customRuntime.registerLight(lightDeclaration);
         customRuntime.unregisterLight(lightDeclaration.id);
+        customRuntime.registerModel(modelDeclaration);
+        customRuntime.unregisterModel(modelDeclaration.id);
 		        customRuntime.registerTarget(element, arrayEffectDeclaration);
 	        registeredTarget satisfies void;
         // @ts-expect-error public registration does not expose internal target descriptor state.
@@ -1777,12 +1956,31 @@ describe("public package exports", () => {
 		        acceptPerformanceWarningTarget("postprocessRequests");
 		        // @ts-expect-error raw renderer info objects are not public performance warnings.
 		        acceptPerformanceWarningTarget("rendererInfo");
+        const modelDebugDiagnostic = {
+          kind: "missing-clip",
+          name: "Walk",
+        } satisfies WebGLDebugModelDiagnostic;
+        const modelDebugSummary = {
+          id: "hero.model",
+          sceneId: "world",
+          src: "/models/hero.glb",
+          resourceStatus: "ready",
+          visible: true,
+          timeline: { id: "hero.timeline", progressKey: "hero.timeline", active: true },
+          clips: ["Idle", "Walk"],
+          activeClips: ["Idle"],
+          morphs: ["Smile"],
+          bones: ["Head"],
+          diagnostics: [modelDebugDiagnostic],
+        } satisfies WebGLDebugModelSummary;
 	        const debugState = {
 	          targetCount: 1,
 	          renderableCount: 1,
 	          currentScrollMode: "page",
 	          pointer: frame.pointer,
 	          warnings: [performanceWarning],
+          modelCount: 1,
+          models: [modelDebugSummary],
 	          targets: [
             {
               key: declaration.key,

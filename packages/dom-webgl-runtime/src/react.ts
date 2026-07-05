@@ -36,6 +36,7 @@ export {
   type WebGLStageBoxProps,
 } from "./lib/react/WebGLStageBox";
 export { WebGLLight, type WebGLLightProps } from "./lib/react/WebGLLight";
+export { WebGLModel, type WebGLModelProps } from "./lib/react/WebGLModel";
 export { useWebGLRuntime } from "./lib/react/useWebGLRuntime";
 export {
   WebGLDebugPanel,

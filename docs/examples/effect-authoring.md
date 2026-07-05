@@ -328,6 +328,14 @@ example keeps the glowing model smaller by constraining the DOM target rect
 instead of writing `ctx.object.scale`. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
 
+For scene-native model dogfood, `apps/example` also mounts `/models/Sprint.glb`
+with public `WebGLModel` inside the managed timeline scene. That example uses
+declarative Draco loader configuration and a default GLB clip descriptor; it
+does not use target-local effects because scene-native `WebGLModel` effects are
+deferred to a later scope design. Keep DOM-following model visuals on
+`WebGLTarget` model sources, and use `WebGLModel` only for managed-scene GLB
+assets that do not need DOM fallback or target-local pointer state.
+
 Pointer contract:
 
 - `ctx.pointer` is runtime/canvas pointer state.

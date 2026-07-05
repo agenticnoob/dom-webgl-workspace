@@ -69,22 +69,63 @@ export type WebGLEffectModelPointsFacade = {
   create(options: WebGLEffectPointLayerOptions): WebGLEffectManagedObjectHandle;
 };
 
+export type WebGLEffectModelMorphsFacade = {
+  names(): readonly string[];
+  get(name: string): number | undefined;
+  set(name: string, weight: number): void;
+};
+
+export type WebGLEffectModelRigFacade = {
+  bones(): readonly string[];
+};
+
 export type WebGLEffectModelFacade = {
   readonly src: string;
   meshes: WebGLEffectModelMeshesFacade;
   sampling: WebGLEffectModelSamplingFacade;
   points: WebGLEffectModelPointsFacade;
+  morphs?: WebGLEffectModelMorphsFacade;
+  rig?: WebGLEffectModelRigFacade;
 };
 
 export type WebGLEffectAnimationPlayOptions = {
   loop?: "once" | "repeat";
   fadeInMs?: number;
+  fadeOutMs?: number;
+  clampWhenFinished?: boolean;
   timeScale?: number;
+};
+
+export type WebGLEffectAnimationScrubOptions =
+  | { readonly timeSeconds: number }
+  | { readonly progress: number; readonly durationSeconds: number };
+
+export type WebGLEffectAnimationBlendOptions = {
+  readonly weight: number;
+  readonly loop?: "once" | "repeat";
+  readonly timeScale?: number;
+};
+
+export type WebGLEffectAnimationCrossfadeOptions = {
+  readonly fadeMs?: number;
+  readonly loop?: "once" | "repeat";
+  readonly timeScale?: number;
 };
 
 export type WebGLEffectAnimationFacade = {
   clips(): readonly string[];
   play(name: string, options?: WebGLEffectAnimationPlayOptions): void;
+  scrub(name: string, options: WebGLEffectAnimationScrubOptions): void;
+  blend(
+    from: string,
+    to: string,
+    options: WebGLEffectAnimationBlendOptions,
+  ): void;
+  crossFade(
+    from: string,
+    to: string,
+    options?: WebGLEffectAnimationCrossfadeOptions,
+  ): void;
   stop(name: string): void;
   stopAll(): void;
   setTime(seconds: number): void;

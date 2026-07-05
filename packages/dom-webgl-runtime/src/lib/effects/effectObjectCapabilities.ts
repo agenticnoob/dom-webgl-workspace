@@ -119,6 +119,8 @@ function createModelCapabilities(
           return source.model.createPointLayer(options);
         },
       },
+      morphs: source.model.morphs,
+      rig: source.model.rig,
     },
   };
 }

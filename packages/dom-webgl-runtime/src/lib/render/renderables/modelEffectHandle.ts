@@ -15,16 +15,23 @@ import type {
 import type { WebGLEffectAnimationFacade } from "../../effects/effectObject";
 import { createManagedMaterialFacade } from "./managedMaterialControls";
 import { createMaterialLayer } from "./materialLayer";
+import {
+  createModelMorphControls,
+  type ModelMorphControls,
+} from "./modelMorphControls";
 import { createObject3DControls } from "./object3DControls";
 
 export type ModelEffectHandleOptions = {
   animation?: WebGLEffectAnimationFacade;
+  morphControls?: ModelMorphControls;
 };
 
 export function createModelEffectHandle(
   object3D: unknown,
   options: ModelEffectHandleOptions = {},
 ): WebGLModelEffectHandle {
+  const morphControls = options.morphControls ?? createModelMorphControls(object3D);
+
   return {
     ...createObject3DControls(object3D, {
       scaleZ: "x",
@@ -32,6 +39,12 @@ export function createModelEffectHandle(
     }),
     get animation() {
       return options.animation;
+    },
+    get morphs() {
+      return morphControls.morphs;
+    },
+    get rig() {
+      return morphControls.rig;
     },
     getMeshes() {
       return collectMeshHandles(object3D);

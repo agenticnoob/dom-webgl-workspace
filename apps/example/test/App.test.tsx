@@ -14,6 +14,7 @@ const cameraProps: CameraMockProps[] = [];
 const stagePlaneProps: StagePlaneMockProps[] = [];
 const stageBoxProps: StageBoxMockProps[] = [];
 const lightProps: LightMockProps[] = [];
+const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
 const roots: Root[] = [];
 
@@ -126,6 +127,17 @@ type LightMockProps = {
   readonly timeline?: Record<string, unknown>;
 };
 
+type ModelMockProps = {
+  readonly id: string;
+  readonly src: string;
+  readonly loader?: Record<string, unknown>;
+  readonly position?: readonly [number, number, number];
+  readonly rotation?: readonly [number, number, number];
+  readonly scale?: number | readonly [number, number, number];
+  readonly animation?: Record<string, unknown>;
+  readonly timeline?: Record<string, unknown>;
+};
+
 type PassViewportMockProps = {
   readonly id: string;
   readonly as?: keyof HTMLElementTagNameMap;
@@ -198,6 +210,10 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
     lightProps.push(props);
     return null;
   },
+  WebGLModel: (props: ModelMockProps) => {
+    modelProps.push(props);
+    return null;
+  },
   WebGLPassViewport: ({ as = "div", children, ...props }: PassViewportMockProps) => {
     passViewportProps.push({ as, children, ...props });
     return createElement(as, props, children);
@@ -247,6 +263,7 @@ describe("effect authoring example app", () => {
     stagePlaneProps.length = 0;
     stageBoxProps.length = 0;
     lightProps.length = 0;
+    modelProps.length = 0;
     passViewportProps.length = 0;
     for (const root of roots.splice(0)) {
       act(() => {
@@ -371,6 +388,19 @@ describe("effect authoring example app", () => {
       "example.stage.rim",
       "example.managedStage.ambient",
       "example.managedStage.key",
+    ]);
+    expect(modelProps).toEqual([
+      expect.objectContaining({
+        id: "example.managedStage.sprint",
+        src: "/models/Sprint.glb",
+        loader: { draco: { decoderPath: "/draco/gltf/" } },
+        position: [0, -92, -36],
+        rotation: [0, 0, 0],
+        scale: 44,
+        animation: {
+          defaultClip: { clip: "BagArmature.001", loop: "repeat", fadeInMs: 160 },
+        },
+      }),
     ]);
     expect(
       stagePlaneProps

@@ -92,6 +92,7 @@ import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
+import { createManagedModelRegistry } from "./managedModelRegistry";
 import { createStageObjectRegistry } from "./stageObjectRegistry";
 import {
   generatedRenderLayerId,
@@ -222,6 +223,14 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const resourceManager = createResourceManager({
     ...(options.performanceBudget ?? {}),
     readPriority: () => currentResourceLoadPriority,
+  });
+  const managedModels = createManagedModelRegistry({
+    resourceManager,
+    loadModel: internalOptions.loadModel,
+    modelLoader: options.modelLoader,
+    getSceneAdapter(sceneId) {
+      return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
   });
   const scrollState =
     internalOptions.scrollState ??
@@ -397,6 +406,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       if (sceneId !== generatedRenderLayerId) {
         stageObjects.unregisterScene(sceneId);
+        managedModels.unregisterScene(sceneId);
         unregisterTargetsForScene(sceneId);
       }
 
@@ -480,6 +490,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
+    registerModel(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL model after runtime disposal.");
+      }
+
+      managedModels.registerModel(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterModel(id) {
+      managedModels.unregisterModel(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
     registerTarget(element, declaration) {
       if (disposed) {
         throw new Error("Cannot register a WebGL target after runtime disposal.");
@@ -556,6 +580,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         passViewports.dispose();
         postprocessController.dispose();
         stageObjects.dispose();
+        managedModels.dispose();
         renderLayers.dispose();
         rendererHost.dispose();
         unmarkAllFallbackRoots();
@@ -571,6 +596,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const stageObjectDebugState = disposed
       ? { stagePrimitives: [], lights: [] }
       : stageObjects.inspect();
+    const modelDebugState = disposed ? { models: [] } : managedModels.inspect();
 
     if (disposed) {
       return createDebugState({
@@ -581,6 +607,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         performanceBudget: options.performanceBudget,
         stagePrimitives: [],
         lights: [],
+        models: [],
         targets: [],
       });
     }
@@ -599,6 +626,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       postprocessStats: postprocessController.inspect(),
       stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
+      models: modelDebugState.models,
       renderPasses: renderLayers.getPasses().map((pass) => ({
         id: pass.id,
         sceneId: pass.sceneId,
@@ -1172,6 +1200,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const pendingUpdates: Array<Promise<void>> = [];
       let didSynchronousUpdate = cameraControllerChanged;
       const viewportHeight = window.innerHeight || 600;
+      const modelUpdate = managedModels.update(frameInput, progressSignals);
+
+      if (isPromiseLike(modelUpdate)) {
+        pendingUpdates.push(
+          Promise.resolve(modelUpdate).then(() => {
+            rendererLoopRequestFrame("resource-ready");
+          }),
+        );
+      } else if (modelUpdate) {
+        requiresContinuousRendering = true;
+      }
 
       for (const descriptor of descriptors) {
         let debugRecord = readTargetDebugRecord(descriptor, targetState);
@@ -2185,7 +2224,7 @@ function readClock(): number {
   return performance.now();
 }
 
-function isPromiseLike(result: void | Promise<void>): result is Promise<void> {
+function isPromiseLike<T>(result: T | Promise<T>): result is Promise<T> {
   return Boolean(
     result &&
       typeof result === "object" &&

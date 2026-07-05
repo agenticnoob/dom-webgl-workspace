@@ -9,6 +9,7 @@ const cameraProps: CameraMockProps[] = [];
 const stagePlaneProps: StagePlaneMockProps[] = [];
 const stageBoxProps: StageBoxMockProps[] = [];
 const lightProps: LightMockProps[] = [];
+const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
 
 type TimelineMockProps = {
@@ -113,6 +114,17 @@ type LightMockProps = {
   readonly timeline?: TimelineMockProps;
 };
 
+type ModelMockProps = {
+  readonly id: string;
+  readonly src: string;
+  readonly loader?: Record<string, unknown>;
+  readonly position?: readonly [number, number, number];
+  readonly rotation?: readonly [number, number, number];
+  readonly scale?: number | readonly [number, number, number];
+  readonly animation?: Record<string, unknown>;
+  readonly timeline?: TimelineMockProps;
+};
+
 vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   WebGLScrollTimeline: ({
     as = "section",
@@ -160,6 +172,10 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
   },
   WebGLLight: (props: LightMockProps) => {
     lightProps.push(props);
+    return null;
+  },
+  WebGLModel: (props: ModelMockProps) => {
+    modelProps.push(props);
     return null;
   },
 }));
@@ -260,6 +276,20 @@ describe("ManagedTimelineExample", () => {
       }),
     ]);
     expect(stageBoxProps.every((props) => props.timeline === undefined)).toBe(true);
+    expect(modelProps).toEqual([
+      expect.objectContaining({
+        id: "example.managedStage.sprint",
+        src: "/models/Sprint.glb",
+        loader: { draco: { decoderPath: "/draco/gltf/" } },
+        position: [0, -92, -36],
+        rotation: [0, 0, 0],
+        scale: 44,
+        animation: {
+          defaultClip: { clip: "BagArmature.001", loop: "repeat", fadeInMs: 160 },
+        },
+      }),
+    ]);
+    expect(modelProps[0]).not.toHaveProperty("timeline");
     expect(lightProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.ambient",

@@ -50,6 +50,11 @@ Current runtime behavior:
   `WebGLRenderPass` remains available for advanced explicit pass descriptors.
   This does not replace the Level 1 `WebGLTarget` path, and it does not expose
   raw Three.js scene, camera, renderer, pass, or object handles.
+- Applications can opt into scene-native `WebGLModel` descriptors inside
+  managed scenes. The runtime loads GLB assets, owns cloned scene objects,
+  mixers, clip playback, morph weights, debug summaries, and release on
+  unregister/scene unregister/runtime dispose. DOM-following GLB content still
+  uses `WebGLTarget` with `source: { kind: "model", type: "glb" }`.
 - Targets, managed scenes, stage primitives, and scene-owned lights can bind to
   named timeline descriptors backed by runtime progress signals. Timeline
   active ranges can activate or skip target, scene, stage, and light work
@@ -85,6 +90,10 @@ Current runtime behavior:
   model, internal texture-size telemetry, renderer draw calls, renderer texture
   count, postprocess request count, or postprocess render-target size exceeds
   configured limits.
+- Debug state can also report descriptor-only scene-native model inventory,
+  resource status, timeline state, clips, active clips, morph names, bone names,
+  and missing clip/morph diagnostics without exposing raw GLTF, mixers, actions,
+  skeletons, or morph arrays.
 - Image, video, and model resources are cached by normalized resource key.
   Relative/app-local URLs keep path/search/hash normalization; absolute
   HTTP(S) and protocol-relative URLs preserve origin to avoid cross-origin
@@ -417,7 +426,7 @@ Capability matrix:
 | `media/image` | object-fit aware texture controls, media shader inputs, and `createMaterialLayer(...)` |
 | `media/video` | image capabilities plus playback controls |
 | `media/image-sequence` | frame-addressable media texture controls |
-| `model/glb` | controlled mesh handles, material facade, sampled vertices, managed point layers, animation facade |
+| `model/glb` | controlled mesh handles, material facade, sampled vertices, managed point layers, animation facade, optional morph/rig facades |
 | runtime lights | `ctx.object.lights` for keyed runtime-owned ambient/directional/point light requests |
 | runtime/pass postprocess | `ctx.runtime.postprocess.request(...)` for explicit canvas/pass-scoped bloom/grain/blur requests |
 
@@ -437,6 +446,44 @@ serve the matching decoder files from that path; effects do not receive loader
 callbacks or raw loader instances. Old explicit declarations
 (`snapshot/mode`, `image`, `video`, `image-sequence`, `model/format`) are not
 supported.
+
+Scene-native models use managed scene descriptors instead of DOM target
+descriptors:
+
+```tsx
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera id="hero.camera" default type="perspective" mode="perspective-stage" />
+  <WebGLModel
+    id="hero.character"
+    src="/models/character.glb"
+    loader={{ draco: { decoderPath: "/draco/gltf/" } }}
+    position={[0, -90, -40]}
+    scale={44}
+    animation={{
+      defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
+      scrub: {
+        clip: "Walk",
+        timeline: { id: "hero.timeline" },
+        durationSeconds: 1.4,
+      },
+      blend: {
+        from: "Idle",
+        to: "Walk",
+        timeline: { id: "hero.timeline" },
+      },
+      morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
+    }}
+  />
+</WebGLScene>
+```
+
+`WebGLModel` does not accept target-local `effects` in Phase 7 v1. Use it for
+managed-scene GLB assets that do not need DOM fallback, target-local pointer
+state, or DOM layout. Keep DOM-following models as `WebGLTarget` model sources.
 
 Preferred declaration form:
 
@@ -605,6 +652,7 @@ explicit scene/pass ownership, wrap it in a managed scene and camera:
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLModel,
   WebGLPassViewport,
   WebGLRuntime,
   WebGLScene,
@@ -676,9 +724,10 @@ basis at the requested depth, so the scene default camera should stay aligned
   scroll-held camera does not snap back to its declaration base frame while
   progress is unchanged. Render passes can also declare DOM-bound
 `viewport`/scissor and descriptor-level `postprocess`. These remain
-descriptor-driven and runtime-owned. Scene-native models, `screen-plane`
-placement, orthographic/screen camera controllers, pass-bound camera controller
-scope, and raw Three.js access remain out of scope.
+descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
+available for managed-scene GLB assets; scene-native model effects,
+`screen-plane` placement, orthographic/screen camera controllers, pass-bound
+camera controller scope, and raw Three.js access remain out of scope.
 
 ## Managed Timeline Bindings
 

@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 6 pass viewport and postprocess scope implementation
+**Last reviewed against:** Phase 7 managed model animation implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -760,8 +760,8 @@ Status values:
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control intentionally stayed out of Phase 5 and is handled by Phase 6A. |
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, clip-not-compress browser correction, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
-| Phase 7: Managed Model Animation | `[not-started]` | none | Recommended next after Phase 6A; advanced morph/bone work may depend on Phase 8/9. |
-| Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage contracts. |
+| Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects are intentionally deferred to Phase 8 scope design instead of shipping as target-local effects. |
+| Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage/model contracts; should begin with scene-native object/effect scope design for `WebGLModel` before picking state is exposed. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
@@ -1300,10 +1300,10 @@ Rules:
 
 ### Phase 7: Managed Model Animation
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md)
 - **Depends on:** Phase 5
-- **Last updated:** 2026-07-04
+- **Last updated:** 2026-07-05
 - **Exit criteria:** complete animated GLB assets can play, scrub, blend, and
   expose morph controls through managed runtime APIs without exposing raw
   mixers, actions, bones, skeletons, or morph arrays.
@@ -1312,15 +1312,27 @@ Goal: turn complete animated GLB assets into managed runtime-driven behavior
 without exposing raw `AnimationMixer`, `AnimationAction`, `Bone`, `Skeleton`, or
 morph target arrays.
 
-Current baseline:
+Implemented v1:
 
-- The runtime already supports basic model clip playback through
-  `ctx.object.animation`.
-- The runtime creates and owns the `AnimationMixer` for GLB `animations`.
-- Effects can list clips, play clips, stop clips, stop all clips, and set mixer
-  time.
-- Mixers update through runtime scheduling and stop updating when the model is
-  not visible.
+- DOM-backed `WebGLTarget` model sources remain valid and keep their DOM layout,
+  fallback, lifecycle, target-local effects, and `ctx.object` model facade.
+- Scene-native `WebGLModel` descriptors are available for managed scenes through
+  React and vanilla `registerModel`/`unregisterModel`.
+- The runtime loads GLB sources, creates cloned runtime scene objects, owns
+  `AnimationMixer` lifecycle, and releases models on unregister, scene
+  unregister, or runtime dispose.
+- `WebGLModel.animation` supports a default clip, progress-driven clip scrubbing,
+  timeline-weighted clip blending, and timeline/constant morph weights.
+- `ctx.object.animation` supports `clips`, `play`, `scrub`, `blend`,
+  `crossFade`, `stop`, `stopAll`, and `setTime`.
+- `ctx.object.model` can expose controlled morph names/weights and named rig
+  bones when present on a loaded model.
+- Debug state can report model ids, scene ids, resource status, timeline
+  activity, available clips, active clips, morph names, bone names, and missing
+  clip/morph diagnostics without exposing raw GLTF, mixer, action, skeleton, or
+  morph arrays.
+- `apps/example` dogfoods `Sprint.glb` through public `WebGLModel`, declarative
+  Draco loader configuration, and a default clip.
 
 Model asset requirements:
 
@@ -1333,27 +1345,34 @@ Model asset requirements:
 - Physics-driven movement requires colliders and belongs to Phase 9, not this
   phase.
 
-Capabilities:
+Capability surface:
 
-- Declarative clip defaults on model descriptors:
+- Implemented declarative clip defaults on model descriptors:
   - clip name;
   - loop mode;
   - time scale;
   - fade in/out;
   - clamp when finished.
-- Progress-driven clip scrubbing from scroll timelines or effect progress.
-- Clip blending and crossfade between named actions.
-- Additive animation layer descriptors for breathing, idle overlays, or small
-  secondary motion.
-- Managed morph target facade:
+- Implemented progress-driven clip scrubbing from timeline progress.
+- Implemented timeline-weighted clip blending between named actions.
+- Implemented controlled `ctx.object.animation.crossFade(...)` for effect
+  authors that need an imperative transition inside the managed facade.
+- Implemented managed morph target facade:
   - list targets;
   - set target weight by name;
-  - animate target weights from progress or time.
-- Managed rig metadata:
-  - list named clips, morph targets, and optionally named bones;
-  - expose capability diagnostics for missing clips/morphs/bones.
-- Optional managed attachment points for named bones without exposing raw
-  `Bone` objects.
+  - animate target weights from timeline progress or constants.
+- Implemented managed rig metadata for named bone listing.
+- Implemented descriptor-only diagnostics for missing clips and morph targets.
+
+Deferred:
+
+- Additive animation layer descriptors for breathing, idle overlays, or small
+  secondary motion.
+- Bone attachments and named bone target controls.
+- IK, action graphs, and animation state machines.
+- Scene-native `WebGLModel` target-local effects; Phase 8 must first design
+  explicit scene-native object/effect scope.
+- Procedural character animation for static or unrigged assets.
 
 Public direction:
 
@@ -1361,11 +1380,20 @@ Public direction:
 <WebGLModel
   id="character"
   src="/models/character.glb"
-  placement="stage-local"
+  position={[0, -80, 0]}
+  scale={44}
   animation={{
-    defaultClip: "Idle",
-    loop: "repeat",
-    transitions: [{ from: "Idle", to: "Walk", fadeMs: 240 }],
+    defaultClip: { clip: "Idle", loop: "repeat" },
+    scrub: {
+      clip: "Walk",
+      timeline: { id: "hero.timeline" },
+      durationSeconds: 1.4,
+    },
+    blend: {
+      from: "Idle",
+      to: "Walk",
+      timeline: { id: "hero.timeline" },
+    },
   }}
 />
 ```
@@ -1378,6 +1406,16 @@ Focused plan reminder:
   crossfade, morph controls, and rig diagnostics.
 - Keep DOM-backed model targets valid. `WebGLModel` is opt-in for scene-native
   `stage-local` models, not a replacement for `WebGLTarget` model sources.
+- Confirmed v1 scope decision: use `Sprint.glb` for app-level clip/skin dogfood,
+  but do not implement additive animation layers, bone attachments, IK, action
+  graphs, or animation state machines in Phase 7 v1. Record those as deferred
+  future animation capability areas.
+- Confirmed v1 effect-scope decision: scene-native `WebGLModel` does not accept
+  target-local `effects` in Phase 7 v1. Later scene-native model effects need a
+  separate API discussion instead of copying the DOM-target effect contract
+  unchanged. Roadmap placement: treat that discussion as a Phase 8 pre-step
+  because it needs scene-native object identity, scene scope, and future hit
+  state to compose cleanly.
 
 Future effect direction:
 
@@ -1406,9 +1444,11 @@ Acceptance criteria:
 
 - A complete animated GLB can declare and play a default clip without custom
   effect code.
-- An effect can scrub a named clip from a timeline/progress signal.
-- Two clips can crossfade through managed options.
-- A named morph target can be driven by progress or time without raw mesh access.
+- A model descriptor can scrub a named clip from a timeline/progress signal.
+- Two clips can blend through managed options; effect authors can call
+  `ctx.object.animation?.crossFade(...)` without raw actions.
+- A named morph target can be driven by timeline progress or a constant weight
+  without raw mesh access.
 - Debug state can report available clips and active clips for a model.
 - Existing basic `ctx.object.animation` effects keep working.
 
@@ -1426,6 +1466,12 @@ Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
 
 Capabilities:
 
+- pre-step: scene-native object/effect scope design for `WebGLModel` effects.
+  This should decide whether custom scene-native model behavior is expressed as
+  a scene-object effect scope, a model controller descriptor, or a constrained
+  `WebGLModel` facade. It must not copy DOM-target `effects` unchanged, because
+  scene-native models do not own DOM fallback, DOM layout, target-local pointer
+  state, or target lifecycle;
 - pre-step: `screen-plane` placement against named stage planes, using
   runtime-owned camera/ray-to-plane math without exposing raw raycasters,
   intersections, meshes, planes, or cameras;
@@ -1443,6 +1489,9 @@ Capabilities:
 Rules:
 
 - Objects do not capture DOM events directly.
+- Scene-native `WebGLModel` effects must have explicit object/scene/runtime
+  scope. Do not add implicit DOM-target layout, fallback, or `ctx.targetPointer`
+  semantics to scene-native models.
 - Do not expose raw raycaster or intersection objects.
 - Do not expose raw camera controls as the default contract.
 - Do not promise inverse-transformed picking for all transform-group cases until

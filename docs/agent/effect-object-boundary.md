@@ -175,6 +175,8 @@ Prefer this pattern:
 
 ```ts
 ctx.object.animation?.play("Idle");
+ctx.object.animation?.crossFade("Idle", "Walk", { fadeMs: 180 });
+ctx.object.model?.morphs?.set("Smile", 0.65);
 ctx.object.lights?.directional("rim", { intensity: 1.5 });
 ctx.object.hitTest?.({ mode: "mesh" });
 ctx.object.model?.variants.apply("Dark");
@@ -188,9 +190,21 @@ policy are still valid runtime-owned asset capabilities. They are not replaced
 by `ctx.object`.
 
 Compressed models use declarative loader config, not loader callbacks. A source
-may declare `loader.draco.decoderPath`, while the consuming app serves decoder
-files from that static path and the runtime owns `GLTFLoader`/`DRACOLoader`
-instances and disposal.
+or scene-native `WebGLModel` can declare
+`loader: { draco: { decoderPath } }`; the app still serves matching decoder
+files from its public/static asset root.
+
+DOM-backed `model/glb` targets still use `WebGLTarget` for DOM layout,
+fallback, lifecycle, target pointer state, and target-local effects.
+Scene-native `WebGLModel` is separate: it belongs to a managed scene, can
+declare scene-local transform/timeline/animation descriptors, and does not
+accept target-local `effects` in Phase 7 v1.
+
+`ctx.object.animation` exposes controlled clip methods (`clips`, `play`,
+`scrub`, `blend`, `crossFade`, `stop`, `stopAll`, `setTime`). `ctx.object.model`
+can expose controlled mesh handles, point layers, morph names/weights, and
+named rig bones. Effects still do not receive raw mixers, actions, bones,
+skeletons, meshes, or morph arrays.
 
 Model renderables are fit to their target rect by the runtime layout pass.
 `ctx.object.position` and `ctx.object.scale` remain valid managed transform

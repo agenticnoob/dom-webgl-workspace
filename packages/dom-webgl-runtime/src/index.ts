@@ -63,11 +63,16 @@ export type {
   WebGLEffectMaterialLayerOptions,
 } from "./lib/effects/effectMaterial";
 export type {
+  WebGLEffectAnimationBlendOptions,
+  WebGLEffectAnimationCrossfadeOptions,
   WebGLEffectAnimationFacade,
   WebGLEffectAnimationPlayOptions,
+  WebGLEffectAnimationScrubOptions,
   WebGLEffectModelFacade,
   WebGLEffectModelMeshesFacade,
+  WebGLEffectModelMorphsFacade,
   WebGLEffectModelPointsFacade,
+  WebGLEffectModelRigFacade,
   WebGLEffectModelSamplingFacade,
   WebGLEffectObjectHandle,
   WebGLEffectScaleLike,
@@ -76,7 +81,6 @@ export type {
   WebGLEffectVector3Like,
   WebGLEffectVideoFacade,
 } from "./lib/effects/effectObject";
-export type { WebGLDebugState } from "./lib/types";
 export type {
   WebGLCameraDeclaration,
   WebGLCameraControllerDeclaration,
@@ -87,6 +91,9 @@ export type {
   WebGLCameraMode,
   WebGLCameraType,
   WebGLColorValue,
+  WebGLDebugModelDiagnostic,
+  WebGLDebugModelSummary,
+  WebGLDebugState,
   WebGLDeclaration,
   WebGLDOMAnchoredPlacementDeclaration,
   WebGLEffectsDeclaration,
@@ -101,6 +108,13 @@ export type {
   WebGLMediaVideoPlaybackDeclaration,
   WebGLMediaVideoSourceDeclaration,
   WebGLModelLoaderDeclaration,
+  WebGLModelAnimationDeclaration,
+  WebGLModelAnimationLoop,
+  WebGLModelClipBlendDeclaration,
+  WebGLModelClipPlaybackDeclaration,
+  WebGLModelClipScrubDeclaration,
+  WebGLModelDeclaration,
+  WebGLModelMorphWeightDeclaration,
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,

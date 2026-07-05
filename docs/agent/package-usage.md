@@ -896,6 +896,61 @@ such as `THREE.GLTFLoader: No DRACOLoader instance provided` or decoder 404s.
 For example, `apps/example` serves `/models/4.glb` with decoder files under
 `/draco/gltf/` and declares `loader: { draco: { decoderPath: "/draco/gltf/" } }`.
 
+Scene-native GLB models can be declared inside a managed scene with
+`WebGLModel`. This path is for stage-local 3D assets that do not need DOM
+fallback, target-local pointer state, or target-local effects. Models that
+should follow a DOM element's layout and fallback lifecycle should stay as
+`WebGLTarget` model sources.
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLModel,
+  WebGLScene,
+} from "@project/dom-webgl-runtime/react";
+
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera
+    id="hero.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+    position={[0, 120, 520]}
+    target={[0, -80, 0]}
+  />
+  <WebGLModel
+    id="hero.character"
+    src="/models/character.glb"
+    loader={{ draco: { decoderPath: "/draco/gltf/" } }}
+    position={[0, -90, -40]}
+    scale={44}
+    animation={{
+      defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
+      scrub: {
+        clip: "Walk",
+        timeline: { id: "hero.timeline" },
+        durationSeconds: 1.4,
+      },
+      blend: {
+        from: "Idle",
+        to: "Walk",
+        timeline: { id: "hero.timeline" },
+      },
+      morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
+    }}
+  />
+</WebGLScene>;
+```
+
+The same capability is available to vanilla consumers through
+`runtime.registerModel(...)` / `runtime.unregisterModel(id)`. `WebGLModel`
+does not accept target-local `effects` in Phase 7 v1; scene-native model effect
+scope is a later design topic.
+
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must
 provide a full-length frame array before registering the target; entries can
@@ -1333,11 +1388,17 @@ Model helper rules:
   app-authored particle or point-layer effects.
 - `model.points.create({ positions, color, size, material })` returns a
   managed handle whose generated geometry/material lifecycle is runtime-owned.
+- `model.morphs?.names()`, `.get(name)`, and `.set(name, weight)` expose named
+  morph target weights when the loaded model provides morph targets.
+- `model.rig?.bones()` lists named bones when the loaded model provides them.
+- `ctx.object.animation` exposes controlled clip methods: `clips`, `play`,
+  `scrub`, `blend`, `crossFade`, `stop`, `stopAll`, and `setTime`.
 - Effects do not receive raw model root objects, raw mesh traversal, or raw
   point-cloud objects.
 - GLB models with an internal loaded shape that includes both `animations` and
-  a runtime/adapter-provided `mixer` are advanced by runtime-owned scheduling
-  while the target is visible. Consumers still do not receive mixer handles.
+  a runtime-owned mixer are advanced by runtime-owned scheduling while the
+  target/model is visible. Consumers still do not receive mixer handles,
+  actions, skeletons, bones, or raw morph arrays.
 
 Runtime-scoped visual requests:
 

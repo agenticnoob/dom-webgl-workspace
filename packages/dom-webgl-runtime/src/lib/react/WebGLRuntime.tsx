@@ -152,6 +152,8 @@ function createPendingRuntime(): RuntimeInstance {
     unregisterStagePrimitive() {},
     registerLight() {},
     unregisterLight() {},
+    registerModel() {},
+    unregisterModel() {},
     registerTarget(_element: HTMLElement, _declaration: WebGLDeclaration) {},
     unregisterTarget() {},
     sync() {},

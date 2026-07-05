@@ -234,9 +234,13 @@ Rules:
 - DOM-bound pass viewports use the full anchor rect for pass mapping and the
   visible canvas intersection as the scissor clip. They are clipped, not
   compressed into the visible slice, and fully offscreen passes are skipped.
-- Scene-native models, `screen-plane`, raw Three.js scene/camera/renderer
-  handles, orthographic/screen camera controllers, and pass-bound camera
-  controller scope remain future or non-public.
+- Scene-native `WebGLModel` is available for managed-scene GLB assets that do
+  not need DOM fallback, target-local pointer state, target-local effects, or
+  DOM layout. Models that should follow DOM layout remain `WebGLTarget` model
+  sources.
+- `screen-plane`, raw Three.js scene/camera/renderer handles,
+  orthographic/screen camera controllers, pass-bound camera controller scope,
+  and scene-native model effects remain future or non-public.
 - `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot accept a
   top-level `timeline`. For progress-driven camera motion/focus/framing, put
   one nested `controller` descriptor on a managed `perspective-stage` camera.
@@ -450,6 +454,43 @@ For Draco-compressed GLBs, declare `loader: { draco: { decoderPath } }` and
 serve the matching decoder files from the app public/static directory. The
 runtime owns loader instances; effects do not receive loader callbacks.
 
+Scene-native GLBs are declared with `WebGLModel` under a managed scene:
+
+```tsx
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera id="hero.camera" default type="perspective" mode="perspective-stage" />
+  <WebGLModel
+    id="hero.character"
+    src="/models/character.glb"
+    loader={{ draco: { decoderPath: "/draco/gltf/" } }}
+    position={[0, -90, -40]}
+    scale={44}
+    animation={{
+      defaultClip: { clip: "Idle", loop: "repeat" },
+      scrub: {
+        clip: "Walk",
+        timeline: { id: "hero.timeline" },
+        durationSeconds: 1.4,
+      },
+      blend: {
+        from: "Idle",
+        to: "Walk",
+        timeline: { id: "hero.timeline" },
+      },
+      morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
+    }}
+  />
+</WebGLScene>
+```
+
+Vanilla integrations can use `runtime.registerModel(...)` and
+`runtime.unregisterModel(id)`. `WebGLModel` does not accept target-local
+`effects` in Phase 7 v1.
+
 Effect authors use `ctx.object` for visual control and source-backed
 capabilities. Source, target, and visual handles are internal runtime assembly
 details, not public effect authoring API.
@@ -478,8 +519,10 @@ Object modules:
 - `ctx.object.texture`: media src/frame metadata, shader inputs, texture
   transform, invalidate, and material-layer controls.
 - `ctx.object.video`: video playback controls.
-- `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
-  layers.
+- `ctx.object.model`: model src, mesh list, vertex sampling, managed point
+  layers, optional morph controls, and optional rig metadata.
+- `ctx.object.animation`: controlled GLB clip methods including `clips`,
+  `play`, `scrub`, `blend`, `crossFade`, `stop`, `stopAll`, and `setTime`.
 - `ctx.object.lights`: keyed runtime-owned ambient, directional, and point light
   requests. Reusing a key updates the existing light.
 
@@ -493,7 +536,8 @@ Current visual capability surface:
 - Texture/video modules keep object-fit and playback controls public without
   exposing raw Three textures.
 - GLB object modules expose controlled mesh handles, material restore, vertex samples,
-  and managed point layers.
+  managed point layers, optional morph target weights, optional bone names, and
+  runtime-owned animation controls.
 - Public handles are capability handles: use methods such as `draw`,
   `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
   `sampling.vertices`, and `points.create`; do not rely on `object3D`, `mesh`,

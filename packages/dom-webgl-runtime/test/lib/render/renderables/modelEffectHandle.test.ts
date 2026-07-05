@@ -158,6 +158,9 @@ describe("createModelEffectHandle", () => {
     const animation = {
       clips: vi.fn(() => ["Idle"]),
       play: vi.fn(),
+      scrub: vi.fn(),
+      blend: vi.fn(),
+      crossFade: vi.fn(),
       stop: vi.fn(),
       stopAll: vi.fn(),
       setTime: vi.fn(),
@@ -168,6 +171,26 @@ describe("createModelEffectHandle", () => {
 
     expect(animation.play).toHaveBeenCalledWith("Idle", { loop: "repeat" });
     expect("mixer" in handle).toBe(false);
+  });
+
+  test("exposes morph and rig facades without raw internals", () => {
+    const mesh = {
+      morphTargetDictionary: { Smile: 0 },
+      morphTargetInfluences: [0],
+    };
+    const bone = {
+      isBone: true,
+      name: "Root",
+    };
+    const root = { children: [mesh, bone] };
+    const handle = createModelEffectHandle(root);
+
+    expect(handle.morphs?.names()).toEqual(["Smile"]);
+    handle.morphs?.set("Smile", 0.75);
+    expect(mesh.morphTargetInfluences).toEqual([0.75]);
+    expect(handle.rig?.bones()).toEqual(["Root"]);
+    expect("morphTargetInfluences" in (handle.morphs ?? {})).toBe(false);
+    expect("bone" in (handle.rig ?? {})).toBe(false);
   });
 
   test("creates managed point layers and disposes generated geometry/material once", () => {

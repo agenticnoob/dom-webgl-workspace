@@ -72,6 +72,49 @@ export type WebGLModelSourceDeclaration = {
   loader?: WebGLModelLoaderDeclaration;
 };
 
+export type WebGLModelAnimationLoop = "once" | "repeat";
+
+export type WebGLModelClipPlaybackDeclaration =
+  | string
+  | {
+      readonly clip: string;
+      readonly loop?: WebGLModelAnimationLoop;
+      readonly timeScale?: number;
+      readonly fadeInMs?: number;
+      readonly fadeOutMs?: number;
+      readonly clampWhenFinished?: boolean;
+    };
+
+export type WebGLModelClipScrubDeclaration = {
+  readonly clip: string;
+  readonly timeline: WebGLTimelineBindingDeclaration;
+  readonly durationSeconds?: number;
+  readonly range?: WebGLTimelineActiveRangeDeclaration;
+};
+
+export type WebGLModelClipBlendDeclaration = {
+  readonly from: string;
+  readonly to: string;
+  readonly timeline: WebGLTimelineBindingDeclaration;
+  readonly fadeMs?: number;
+  readonly range?: WebGLTimelineActiveRangeDeclaration;
+};
+
+export type WebGLModelMorphWeightDeclaration = {
+  readonly name: string;
+  readonly weight?: number;
+  readonly timeline?: WebGLTimelineBindingDeclaration;
+  readonly from?: number;
+  readonly to?: number;
+};
+
+export type WebGLModelAnimationDeclaration = {
+  readonly defaultClip?: WebGLModelClipPlaybackDeclaration;
+  readonly scrub?: WebGLModelClipScrubDeclaration;
+  readonly blend?: WebGLModelClipBlendDeclaration;
+  readonly morphs?: readonly WebGLModelMorphWeightDeclaration[];
+};
+
 export type WebGLPageScrollBehavior = {
   type?: "page";
 };
@@ -350,6 +393,19 @@ export type WebGLLightDeclaration = {
   timeline?: WebGLTimelineBindingDeclaration;
 };
 
+export type WebGLModelDeclaration = {
+  readonly id: string;
+  readonly sceneId: string;
+  readonly src: string;
+  readonly loader?: WebGLModelLoaderDeclaration;
+  readonly position?: WebGLTuple3;
+  readonly rotation?: WebGLTuple3;
+  readonly scale?: number | WebGLTuple3;
+  readonly visible?: boolean;
+  readonly timeline?: WebGLTimelineBindingDeclaration;
+  readonly animation?: WebGLModelAnimationDeclaration;
+};
+
 export type WebGLDeclaration = {
   key: string;
   sceneId?: string;
@@ -418,6 +474,8 @@ export type WebGLRuntime = {
   unregisterStagePrimitive(id: string): void;
   registerLight(declaration: WebGLLightDeclaration): void;
   unregisterLight(id: string): void;
+  registerModel(declaration: WebGLModelDeclaration): void;
+  unregisterModel(id: string): void;
   registerTarget(element: HTMLElement, declaration: WebGLDeclaration): void;
   unregisterTarget(key: string): void;
   sync(): void | Promise<void>;
@@ -534,6 +592,25 @@ export type WebGLDebugLightSummary = {
   timeline?: WebGLDebugTimelineSummary;
 };
 
+export type WebGLDebugModelDiagnostic = {
+  kind: "missing-clip" | "missing-morph" | "missing-bone";
+  name: string;
+};
+
+export type WebGLDebugModelSummary = {
+  id: string;
+  sceneId: string;
+  src: string;
+  resourceStatus: WebGLResourceStatus;
+  visible: boolean;
+  timeline?: WebGLDebugTimelineSummary;
+  clips: readonly string[];
+  activeClips: readonly string[];
+  morphs?: readonly string[];
+  bones?: readonly string[];
+  diagnostics?: readonly WebGLDebugModelDiagnostic[];
+};
+
 export type WebGLDebugPostprocessRequestSummary = {
   key: string;
   scope: WebGLPostprocessScopeDeclaration;
@@ -567,8 +644,10 @@ export type WebGLDebugState = {
   warnings?: WebGLPerformanceWarning[];
   stagePrimitiveCount?: number;
   lightCount?: number;
+  modelCount?: number;
   stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
   lights?: WebGLDebugLightSummary[];
+  models?: WebGLDebugModelSummary[];
   cameraControllers?: WebGLDebugCameraControllerSummary[];
   renderPasses?: WebGLDebugRenderPassSummary[];
   postprocessRequests?: WebGLDebugPostprocessRequestSummary[];

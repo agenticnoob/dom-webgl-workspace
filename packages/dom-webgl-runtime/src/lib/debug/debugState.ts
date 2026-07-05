@@ -1,6 +1,7 @@
 import type {
   WebGLDebugLightSummary,
   WebGLDebugCameraControllerSummary,
+  WebGLDebugModelSummary,
   WebGLDebugPostprocessRequestSummary,
   WebGLDebugRenderPassSummary,
   WebGLDebugState,
@@ -48,6 +49,7 @@ export type DebugRuntimeState = {
   postprocessStats?: DebugPostprocessStats;
   stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
   lights?: readonly WebGLDebugLightSummary[];
+  models?: readonly WebGLDebugModelSummary[];
   cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
   renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
@@ -180,6 +182,30 @@ export function createDebugState(
     }));
   }
 
+  if (runtimeState.models && runtimeState.models.length > 0) {
+    state.modelCount = runtimeState.models.length;
+    state.models = runtimeState.models.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      src: entry.src,
+      resourceStatus: entry.resourceStatus,
+      visible: entry.visible,
+      clips: entry.clips.slice(),
+      activeClips: entry.activeClips.slice(),
+      ...(entry.timeline ? { timeline: { ...entry.timeline } } : {}),
+      ...(entry.morphs ? { morphs: entry.morphs.slice() } : {}),
+      ...(entry.bones ? { bones: entry.bones.slice() } : {}),
+      ...(entry.diagnostics
+        ? {
+            diagnostics: entry.diagnostics.map((diagnostic) => ({
+              kind: diagnostic.kind,
+              name: diagnostic.name,
+            })),
+          }
+        : {}),
+    }));
+  }
+
   if (runtimeState.renderPasses && runtimeState.renderPasses.length > 0) {
     state.renderPasses = runtimeState.renderPasses.map((entry) => ({
       id: entry.id,
@@ -282,9 +308,12 @@ function createPerformanceWarnings(
     activeVideos: activeTargets.filter((target) =>
       isSourceKind(target, "media/video"),
     ).length,
-    activeModels: activeTargets.filter((target) =>
-      isSourceKind(target, "model/glb"),
-    ).length,
+    activeModels:
+      activeTargets.filter((target) => isSourceKind(target, "model/glb"))
+        .length +
+      (runtimeState.models ?? []).filter(
+        (model) => model.visible && model.resourceStatus === "ready",
+      ).length,
   };
   const warnings: WebGLPerformanceWarning[] = [];
   const maxTextureSize = readMaxTextureSize(runtimeState.textureTelemetry ?? []);

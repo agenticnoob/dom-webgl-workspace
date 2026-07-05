@@ -246,6 +246,9 @@ describe("createEffectObjectCapabilities", () => {
     const animation = {
       clips: vi.fn(() => ["Idle"]),
       play: vi.fn(),
+      scrub: vi.fn(),
+      blend: vi.fn(),
+      crossFade: vi.fn(),
       stop: vi.fn(),
       stopAll: vi.fn(),
       setTime: vi.fn(),
@@ -270,6 +273,42 @@ describe("createEffectObjectCapabilities", () => {
     createEffectObjectCapabilities(source).animation?.play("Idle");
 
     expect(animation.play).toHaveBeenCalledWith("Idle");
+  });
+
+  test("maps model morph and rig facades to object.model", () => {
+    const morphs = {
+      names: vi.fn(() => ["Smile"]),
+      get: vi.fn(() => 0.4),
+      set: vi.fn(),
+    };
+    const rig = {
+      bones: vi.fn(() => ["Root"]),
+    };
+    const model = {
+      ...createModel(
+        [],
+        createMesh("Body"),
+        new Float32Array(),
+        createManagedObject(),
+      ),
+      morphs,
+      rig,
+    } satisfies WebGLModelEffectHandle;
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("div"),
+      src: "/model.glb",
+      model,
+    } satisfies WebGLEffectSourceHandle;
+
+    const objectModel = createEffectObjectCapabilities(source).model;
+
+    expect(objectModel?.morphs?.names()).toEqual(["Smile"]);
+    expect(objectModel?.morphs?.get("Smile")).toBe(0.4);
+    objectModel?.morphs?.set("Smile", 0.9);
+    expect(objectModel?.rig?.bones()).toEqual(["Root"]);
+    expect(morphs.set).toHaveBeenCalledWith("Smile", 0.9);
   });
 });
 
