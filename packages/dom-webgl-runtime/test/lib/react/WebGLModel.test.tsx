@@ -101,6 +101,39 @@ describe("WebGLModel", () => {
     });
   });
 
+  test("passes prepare descriptors through to the runtime", async () => {
+    const { WebGLModel, WebGLRuntimeProvider } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLSceneProvider,
+            { sceneId: "world" },
+            createElement(WebGLModel, {
+              id: "character",
+              src: "/models/Sprint.glb",
+              prepare: { renderWarmup: "idle" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "character",
+        sceneId: "world",
+        src: "/models/Sprint.glb",
+        prepare: { renderWarmup: "idle" },
+      }),
+    );
+  });
+
   test("requires an explicit or inherited scene", async () => {
     const { WebGLModel, WebGLRuntimeProvider } = await import("../../../src/react");
     const runtime = createRuntimeStub();

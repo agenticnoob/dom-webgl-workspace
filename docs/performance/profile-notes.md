@@ -87,6 +87,25 @@ Window totals are counters accumulated during each sampling window. Per-frame va
   batching/instancing remains profile-gated until a dedicated stress fixture or
   production-mobile profile proves draw calls dominate.
 
+## Phase 7B Model Prepare Browser Check
+
+- Date: 2026-07-06
+- Branch: `codex/managed-render-roadmap-iteration`
+- Scenario: `apps/example` managed model dogfood row, 1280x720 headless Chromium
+  at device pixel ratio 2, local Vite dev server.
+- Debug state result: `example.managedModel.sprint` reached
+  `resourceStatus: "ready"`, `activeClips: ["MainSkeleton.001"]`, and
+  `prepare.renderWarmup: "complete"` with no `MainSkeleton.001` missing-clip
+  diagnostic.
+- Pixel result: cropped model viewport contained 84,655 non-background pixels
+  and 233 changed pixels across screenshots separated by 700 ms.
+- Scroll-entry trace result: 2.69 s scripted scroll-entry window had no
+  multi-second main-thread task; longest main-thread task in the marked window
+  was 308.51 ms.
+- Interpretation: Phase 7B removes the obvious first-visible model stall for
+  the current dogfood row. The remaining sub-second tasks should be treated as
+  local-dev profile evidence, not a production-mobile budget.
+
 ## Verification
 
 - `npm run test -- --run`: passed (91 files / 541 tests).

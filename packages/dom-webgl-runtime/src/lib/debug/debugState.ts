@@ -193,6 +193,9 @@ export function createDebugState(
       clips: entry.clips.slice(),
       activeClips: entry.activeClips.slice(),
       ...(entry.timeline ? { timeline: { ...entry.timeline } } : {}),
+      ...(entry.prepare
+        ? { prepare: { renderWarmup: entry.prepare.renderWarmup } }
+        : {}),
       ...(entry.morphs ? { morphs: entry.morphs.slice() } : {}),
       ...(entry.bones ? { bones: entry.bones.slice() } : {}),
       ...(entry.diagnostics

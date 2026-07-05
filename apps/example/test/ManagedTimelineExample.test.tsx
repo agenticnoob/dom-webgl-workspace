@@ -276,20 +276,7 @@ describe("ManagedTimelineExample", () => {
       }),
     ]);
     expect(stageBoxProps.every((props) => props.timeline === undefined)).toBe(true);
-    expect(modelProps).toEqual([
-      expect.objectContaining({
-        id: "example.managedStage.sprint",
-        src: "/models/Sprint.glb",
-        loader: { draco: { decoderPath: "/draco/gltf/" } },
-        position: [0, -92, -36],
-        rotation: [0, 0, 0],
-        scale: 44,
-        animation: {
-          defaultClip: { clip: "BagArmature.001", loop: "repeat", fadeInMs: 160 },
-        },
-      }),
-    ]);
-    expect(modelProps[0]).not.toHaveProperty("timeline");
+    expect(modelProps).toEqual([]);
     expect(lightProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.ambient",

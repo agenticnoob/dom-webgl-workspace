@@ -709,6 +709,42 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         );
       });
     });
+    renderModelWarmups();
+  }
+
+  function renderModelWarmups(): void {
+    const requests = managedModels.consumeRenderWarmupRequests();
+    if (requests.length === 0) {
+      return;
+    }
+
+    const pending = new Set(requests.map((request) => request.sceneId));
+
+    renderLayers.renderPasses((pass, scene, camera) => {
+      if (!pending.has(pass.sceneId)) {
+        return;
+      }
+
+      withResolvedPassViewport(readWarmupViewport(), () => {
+        scene.sceneAdapter.render(camera.camera);
+      });
+
+      for (const request of requests) {
+        if (request.sceneId === pass.sceneId) {
+          managedModels.markRenderWarmupComplete(request.id);
+        }
+      }
+      pending.delete(pass.sceneId);
+    });
+  }
+
+  function readWarmupViewport(): ActiveResolvedPassViewport {
+    return {
+      mode: "dom-rect",
+      scissor: true,
+      viewportRect: { x: 0, y: 0, width: 1, height: 1 },
+      scissorRect: { x: 0, y: 0, width: 1, height: 1 },
+    };
   }
 
   function readPostprocessViewport(

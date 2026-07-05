@@ -85,6 +85,10 @@ import {
   type WebGLColorValue,
   type WebGLLightDeclaration,
   type WebGLLightKind,
+  type WebGLModelAnimationDeclaration,
+  type WebGLModelDeclaration,
+  type WebGLModelLoaderDeclaration,
+  type WebGLModelPrepareDeclaration,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
   type WebGLPlacementDeclaration,
@@ -115,6 +119,7 @@ Use for React:
 import {
   WebGLCamera,
   WebGLLight,
+  WebGLModel,
   WebGLRuntime,
   WebGLScene,
   WebGLStageBox,
@@ -928,6 +933,7 @@ import {
     loader={{ draco: { decoderPath: "/draco/gltf/" } }}
     position={[0, -90, -40]}
     scale={44}
+    prepare={{ renderWarmup: "idle" }}
     animation={{
       defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
       scrub: {
@@ -949,7 +955,11 @@ import {
 The same capability is available to vanilla consumers through
 `runtime.registerModel(...)` / `runtime.unregisterModel(id)`. `WebGLModel`
 does not accept target-local `effects` in Phase 7 v1; scene-native model effect
-scope is a later design topic.
+scope is a later design topic. `prepare={{ renderWarmup: "idle" }}` is a
+descriptor-only first-render warmup request. It does not expose renderer,
+scene, camera, render target, render loop, loader, mixer, action, skeleton, or
+mesh handles, and it does not add DOM fallback, DOM rect lifecycle, target
+pointer state, or target-local effects.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must

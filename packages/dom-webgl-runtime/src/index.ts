@@ -115,6 +115,7 @@ export type {
   WebGLModelClipScrubDeclaration,
   WebGLModelDeclaration,
   WebGLModelMorphWeightDeclaration,
+  WebGLModelPrepareDeclaration,
   WebGLModelSourceDeclaration,
   WebGLPointerDeclaration,
   WebGLPointerState,

@@ -115,6 +115,10 @@ export type WebGLModelAnimationDeclaration = {
   readonly morphs?: readonly WebGLModelMorphWeightDeclaration[];
 };
 
+export type WebGLModelPrepareDeclaration = {
+  readonly renderWarmup?: "idle";
+};
+
 export type WebGLPageScrollBehavior = {
   type?: "page";
 };
@@ -404,6 +408,7 @@ export type WebGLModelDeclaration = {
   readonly visible?: boolean;
   readonly timeline?: WebGLTimelineBindingDeclaration;
   readonly animation?: WebGLModelAnimationDeclaration;
+  readonly prepare?: WebGLModelPrepareDeclaration;
 };
 
 export type WebGLDeclaration = {
@@ -604,6 +609,9 @@ export type WebGLDebugModelSummary = {
   resourceStatus: WebGLResourceStatus;
   visible: boolean;
   timeline?: WebGLDebugTimelineSummary;
+  prepare?: {
+    readonly renderWarmup?: "pending" | "complete";
+  };
   clips: readonly string[];
   activeClips: readonly string[];
   morphs?: readonly string[];

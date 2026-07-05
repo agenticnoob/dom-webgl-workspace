@@ -139,6 +139,14 @@ Current example behavior:
   owned by the runtime. In the catalog, the separate managed stage primitive
   example is placed before this pinned timeline so the timeline does not exit
   directly into another similar 3D stage pass.
+- The Phase 7 managed model animation dogfood is a separate catalog row between
+  the stage primitive example and the pinned managed timeline. It mounts
+  `/models/Sprint.glb` through public `WebGLModel` in its own
+  `example.managedModel.*` scene with declarative Draco loader configuration
+  and the `MainSkeleton.001` default clip. It also requests
+  `prepare={{ renderWarmup: "idle" }}` so the runtime performs a tiny managed
+  first-render warmup after load, clone, attachment, and animation setup.
+  Model animation coverage is not mixed into the timeline/stage dogfood row.
 - The managed stage primitive example is mounted in the current catalog and
   dogfoods `WebGLPassViewport` with pass `viewport: { mode: "dom-rect",
   scissor: true }` plus descriptor-level `bloom`/`grain`/`blur` postprocess.
@@ -248,6 +256,9 @@ Current visual behavior:
   of writing `ctx.object.scale`.
   They do not create raw loaders, scenes, cameras, lights, materials, mixers,
   composers, render targets, or render loops.
+- The scene-native `WebGLModel` dogfood is separate from those DOM-following GLB
+  target examples: `ManagedModelAnimationExample` mounts `/models/Sprint.glb`
+  in its own managed scene and does not use target-local effects.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -463,6 +474,7 @@ descriptors:
     loader={{ draco: { decoderPath: "/draco/gltf/" } }}
     position={[0, -90, -40]}
     scale={44}
+    prepare={{ renderWarmup: "idle" }}
     animation={{
       defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
       scrub: {
@@ -483,7 +495,12 @@ descriptors:
 
 `WebGLModel` does not accept target-local `effects` in Phase 7 v1. Use it for
 managed-scene GLB assets that do not need DOM fallback, target-local pointer
-state, or DOM layout. Keep DOM-following models as `WebGLTarget` model sources.
+state, or DOM layout. `prepare={{ renderWarmup: "idle" }}` is not
+`WebGLTarget.lifecycle`: it does not create DOM fallback, DOM rect fitting,
+target pointer state, or target-local effects. It only asks the runtime to
+perform a tiny internal render after the GLB is loaded, cloned, attached, and
+animation setup has run. Keep DOM-following models as `WebGLTarget` model
+sources.
 
 Preferred declaration form:
 
@@ -725,9 +742,11 @@ basis at the requested depth, so the scene default camera should stay aligned
   progress is unchanged. Render passes can also declare DOM-bound
 `viewport`/scissor and descriptor-level `postprocess`. These remain
 descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
-available for managed-scene GLB assets; scene-native model effects,
-`screen-plane` placement, orthographic/screen camera controllers, pass-bound
-camera controller scope, and raw Three.js access remain out of scope.
+available for managed-scene GLB assets and can request
+`prepare={{ renderWarmup: "idle" }}` for managed first-render warmup;
+scene-native model effects, `screen-plane` placement, orthographic/screen
+camera controllers, pass-bound camera controller scope, and raw Three.js access
+remain out of scope.
 
 ## Managed Timeline Bindings
 

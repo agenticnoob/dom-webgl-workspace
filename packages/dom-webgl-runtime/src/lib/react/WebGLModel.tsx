@@ -20,6 +20,7 @@ export function WebGLModel({
   visible,
   timeline,
   animation,
+  prepare,
 }: WebGLModelProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -43,6 +44,7 @@ export function WebGLModel({
       ...(visible !== undefined ? { visible } : {}),
       ...(timeline !== undefined ? { timeline } : {}),
       ...(animation !== undefined ? { animation } : {}),
+      ...(prepare !== undefined ? { prepare } : {}),
     });
 
     return () => {
@@ -60,6 +62,7 @@ export function WebGLModel({
     visible,
     timeline,
     animation,
+    prepare,
   ]);
 
   return null;

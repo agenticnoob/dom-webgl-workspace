@@ -13,6 +13,7 @@ import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
+import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
 import { ManagedTimelineExample } from "./ManagedTimelineExample";
 import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
@@ -79,6 +80,7 @@ export default function App() {
         <div className="example-stack">
           <SnapshotElementExamples />
           <ManagedStagePrimitiveExample />
+          <ManagedModelAnimationExample />
           <ManagedTimelineExample />
 
           <section className="example-row">

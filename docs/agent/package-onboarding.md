@@ -55,6 +55,10 @@ import {
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
+  type WebGLModelAnimationDeclaration,
+  type WebGLModelDeclaration,
+  type WebGLModelLoaderDeclaration,
+  type WebGLModelPrepareDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
 } from "<runtime-package>";
@@ -64,6 +68,7 @@ import {
 import {
   WebGLCamera,
   WebGLLight,
+  WebGLModel,
   WebGLRuntime,
   WebGLScene,
   WebGLStageBox,
@@ -469,6 +474,7 @@ Scene-native GLBs are declared with `WebGLModel` under a managed scene:
     loader={{ draco: { decoderPath: "/draco/gltf/" } }}
     position={[0, -90, -40]}
     scale={44}
+    prepare={{ renderWarmup: "idle" }}
     animation={{
       defaultClip: { clip: "Idle", loop: "repeat" },
       scrub: {
@@ -489,7 +495,10 @@ Scene-native GLBs are declared with `WebGLModel` under a managed scene:
 
 Vanilla integrations can use `runtime.registerModel(...)` and
 `runtime.unregisterModel(id)`. `WebGLModel` does not accept target-local
-`effects` in Phase 7 v1.
+`effects` in Phase 7 v1. `prepare={{ renderWarmup: "idle" }}` is a
+scene-native first-render warmup request only. It is not
+`WebGLTarget.lifecycle`, and it does not add DOM fallback, DOM rect fitting,
+target pointer state, target-local effects, or raw renderer hooks.
 
 Effect authors use `ctx.object` for visual control and source-backed
 capabilities. Source, target, and visual handles are internal runtime assembly

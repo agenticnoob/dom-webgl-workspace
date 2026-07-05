@@ -213,7 +213,7 @@ describe("public package exports", () => {
                     defaultClip: { clip: "MainSkeleton.001", loop: "repeat" },
                     blend: {
                       from: "MainSkeleton.001",
-                      to: "BagArmature.001",
+                      to: "Walk",
                       timeline: "hero.timeline",
                       fadeMs: 180,
                     },
@@ -603,6 +603,7 @@ describe("public package exports", () => {
                   WebGLModelDeclaration,
                   WebGLModelMeshHandle,
                   WebGLModelMorphWeightDeclaration,
+                  WebGLModelPrepareDeclaration,
                   WebGLEffectsDeclaration,
 				          WebGLFrameInput,
 				          WebGLGateScrollBehavior,
@@ -918,7 +919,7 @@ describe("public package exports", () => {
         } satisfies WebGLModelClipScrubDeclaration;
         const modelBlend = {
           from: "MainSkeleton.001",
-          to: "BagArmature.001",
+          to: "Walk",
           timeline: "hero.3d",
           fadeMs: 240,
           range: timelineActiveRange,
@@ -935,6 +936,9 @@ describe("public package exports", () => {
           blend: modelBlend,
           morphs: [modelMorphWeight],
         } satisfies WebGLModelAnimationDeclaration;
+        const modelPrepare = {
+          renderWarmup: "idle",
+        } satisfies WebGLModelPrepareDeclaration;
         const modelDeclaration = {
           id: "character",
           sceneId: "world",
@@ -946,6 +950,7 @@ describe("public package exports", () => {
           visible: true,
           timeline: activeTimeline,
           animation: modelAnimation,
+          prepare: modelPrepare,
         } satisfies WebGLModelDeclaration;
         declare const rawMixer: ThreeAnimationMixer;
         declare const rawAction: ThreeAnimationAction;
@@ -985,6 +990,10 @@ describe("public package exports", () => {
             configureLoader() {},
           },
         } satisfies WebGLModelDeclaration);
+        ({
+          // @ts-expect-error prepare descriptors must not expose raw render hooks.
+          renderLoop() {},
+        } satisfies WebGLModelPrepareDeclaration);
 
         const projection = "dom-aligned" satisfies WebGLSceneProjection;
         const cameraType = "orthographic" satisfies WebGLCameraType;

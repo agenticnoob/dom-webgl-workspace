@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 7 managed model animation implementation
+**Last reviewed against:** Phase 7B model animation correction and prepare verification
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -102,6 +102,9 @@ phase records are archived under [archive/](./archive/).
   - `WebGLModel.animation` supports a default clip, progress-driven clip
     scrubbing, timeline-weighted clip blending, and timeline/constant morph
     weights
+  - `WebGLModel.prepare.renderWarmup` can request a descriptor-only internal
+    first-render warmup after load, skeleton-safe clone, attachment, and
+    animation setup
   - `ctx.object.animation` keeps the controlled clip facade for DOM-backed
     `model/glb` targets, including `clips`, `play`, `scrub`, `blend`,
     `crossFade`, `stop`, `stopAll`, and `setTime`
@@ -169,7 +172,10 @@ phase records are archived under [archive/](./archive/).
   for progress-driven scene, stage, and light activation.
 - Scene-native `WebGLModel` descriptors are stable declarations. Use timeline
   bindings and model animation descriptors for progress-driven clip/morph
-  updates rather than React prop churn. Phase 7 v1 does not add target-local
+  updates rather than React prop churn. `prepare.renderWarmup` is scoped to a
+  tiny managed first-render warmup and does not add `WebGLTarget.lifecycle`,
+  DOM fallback, DOM rect fitting, target pointer state, target-local effects, or
+  raw render hooks to `WebGLModel`. Phase 7 v1 does not add target-local
   `effects` to `WebGLModel`; scene-native model effects remain a Phase 8
   pre-step design topic.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
@@ -243,17 +249,19 @@ Phase 6A managed camera controllers are verified and add a single optional
 `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller
 scope, raw camera handles, or pointer-driven interaction:
 [2026-07-04-managed-camera-controllers.md](./superpowers/plans/2026-07-04-managed-camera-controllers.md).
-Phase 7 managed model animation is verified in this working branch. The focused
-plan keeps DOM-backed `WebGLTarget` model sources valid while adding the opt-in
-scene-native `WebGLModel` descriptor path, enhanced managed animation facade,
-morph controls, and descriptor-only diagnostics:
+Phase 7 established the scene-native `WebGLModel` descriptor path, runtime model
+registry, descriptor animation/morph controls, and descriptor-only diagnostics
+while keeping DOM-backed `WebGLTarget` model sources valid:
 [2026-07-05-managed-model-animation.md](./superpowers/plans/2026-07-05-managed-model-animation.md).
-`apps/example` dogfoods `Sprint.glb` through public `WebGLModel` with Draco
-loader configuration and a default clip. Phase 7 v1 defers additive layers,
-bone attachments, IK, action graphs, animation state machines, and
-scene-native model effects. The roadmap places scene-native model effect scope
-design as a Phase 8 pre-step before picking/hit state, because those effects
-need explicit object/scene/runtime scope rather than DOM-target semantics.
+Phase 7B is verified and corrects the model animation dogfood to play
+`Sprint.glb`'s main skeleton clip, use skeleton-safe GLB scene cloning, and add
+a minimal descriptor-only `WebGLModel.prepare.renderWarmup` path:
+[2026-07-05-phase-7-model-animation-correction-model-prepare.md](./superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md).
+The next roadmap phase remains Phase 8. It should start with scene-native
+model effect scope design before picking/hit state, because those effects need
+explicit object/scene/runtime scope rather than DOM-target semantics. Phase 7
+still defers additive layers, bone attachments, IK, action graphs, and animation
+state machines.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

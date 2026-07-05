@@ -135,6 +135,7 @@ type ModelMockProps = {
   readonly rotation?: readonly [number, number, number];
   readonly scale?: number | readonly [number, number, number];
   readonly animation?: Record<string, unknown>;
+  readonly prepare?: Record<string, unknown>;
   readonly timeline?: Record<string, unknown>;
 };
 
@@ -306,24 +307,40 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-stage-dogfood")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-stage-viewport")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-managed-model-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-managed-model-viewport")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-timeline-dogfood")).toBeNull();
     expect(host.querySelector(".example-managed-stage-timeline")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-managed-stage-viewport")).toBeInstanceOf(HTMLElement);
     expect(
       Array.from(
         host.querySelectorAll(
-          ".example-stage-dogfood, .example-managed-stage-timeline",
+          ".example-stage-dogfood, .example-managed-model-dogfood, .example-managed-stage-timeline",
         ),
-        (element) => element.classList.contains("example-stage-dogfood")
-          ? "stage"
-          : "timeline",
+        (element) => {
+          if (element.classList.contains("example-stage-dogfood")) {
+            return "stage";
+          }
+          if (element.classList.contains("example-managed-model-dogfood")) {
+            return "model";
+          }
+          return "timeline";
+        },
       ),
-    ).toEqual(["stage", "timeline"]);
+    ).toEqual(["stage", "model", "timeline"]);
     expect(passViewportProps).toContainEqual(
       expect.objectContaining({
         id: "example.stage.viewport",
         as: "div",
         className: "example-stage-viewport",
+        "aria-hidden": "true",
+      }),
+    );
+    expect(passViewportProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.managedModel.viewport",
+        as: "div",
+        className: "example-managed-model-viewport",
         "aria-hidden": "true",
       }),
     );
@@ -353,6 +370,18 @@ describe("effect authoring example app", () => {
     );
     expect(sceneProps).toContainEqual(
       expect.objectContaining({
+        id: "example.managedModel.scene",
+        projection: "perspective-stage",
+        render: {
+          camera: "example.managedModel.camera",
+          order: -9,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
+        },
+      }),
+    );
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
         id: "example.managedStage.scene",
         projection: "perspective-stage",
         render: {
@@ -364,6 +393,12 @@ describe("effect authoring example app", () => {
       }),
     );
     expect(sceneProps.find(({ id }) => id === "example.managedStage.scene")).not.toHaveProperty("timeline");
+    expect(cameraProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.managedModel.camera",
+        mode: "perspective-stage",
+      }),
+    );
     expect(cameraProps).toContainEqual(
       expect.objectContaining({
         id: "example.managedStage.camera",
@@ -386,20 +421,23 @@ describe("effect authoring example app", () => {
       "example.stage.ambient",
       "example.stage.key",
       "example.stage.rim",
+      "example.managedModel.ambient",
+      "example.managedModel.key",
       "example.managedStage.ambient",
       "example.managedStage.key",
     ]);
     expect(modelProps).toEqual([
       expect.objectContaining({
-        id: "example.managedStage.sprint",
+        id: "example.managedModel.sprint",
         src: "/models/Sprint.glb",
-        loader: { draco: { decoderPath: "/draco/gltf/" } },
-        position: [0, -92, -36],
+        loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
+        position: [240, -60, -80],
         rotation: [0, 0, 0],
-        scale: 44,
+        scale: 8,
         animation: {
-          defaultClip: { clip: "BagArmature.001", loop: "repeat", fadeInMs: 160 },
+          defaultClip: { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
         },
+        prepare: { renderWarmup: "idle" },
       }),
     ]);
     expect(

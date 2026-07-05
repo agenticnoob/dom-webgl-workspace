@@ -72,8 +72,8 @@
     chunks.
   - `apps/example/public/models/Sprint.glb` exists and is the confirmed app
     dogfood asset for clip/skin animation. Its GLB JSON has many animation
-    clips, including `MainSkeleton.001`, `BagArmature.001`, and many named
-    object clips, plus skins named `MainSkeleton.001` and `BagArmature.001`.
+    clips, including `MainSkeleton.001`, a small sub-rig clip, and many named
+    object clips, plus corresponding main and sub-rig skins.
     It has no morph targets.
   - Morph target behavior still needs synthetic loaded-model fixtures or a
     later app-local morph asset; do not claim `Sprint.glb` proves morph visual
@@ -675,9 +675,9 @@ Expected after implementation: pass.
 ### Task 9: Example And Browser Dogfood
 
 **Files:**
-- Optional create: `apps/example/src/ManagedModelAnimationExample.tsx`
-- Optional modify: `apps/example/src/App.tsx`
-- Optional modify: `apps/example/src/styles.css`
+- Create/modify: `apps/example/src/ManagedModelAnimationExample.tsx`
+- Modify: `apps/example/src/App.tsx`
+- Modify: `apps/example/src/example.css`
 - Modify docs even if app dogfood is deferred:
   `docs/examples/effect-authoring.md`
 
@@ -686,9 +686,10 @@ Expected after implementation: pass.
     skin animation dogfood;
   - morph behavior still uses synthetic loaded-model test fixtures unless a
     later app-local morph asset is explicitly approved.
-- [ ] If route A is approved, create an example section that uses:
-  `WebGLScrollTimeline`, `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`,
-  `WebGLLight`, `WebGLStagePlane`, and `WebGLModel`.
+- [ ] If route A is approved, create a dedicated Phase 7 example section that
+  uses `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`, `WebGLLight`, and
+  `WebGLModel`. Do not mix this dogfood into the pinned managed timeline,
+  camera-controller, or stage primitive examples.
 - [ ] Use a stable known clip from `Sprint.glb` for the first example. Prefer a
   clear top-level clip such as `MainSkeleton.001` for default playback if visual
   inspection confirms it drives the intended character/object motion.

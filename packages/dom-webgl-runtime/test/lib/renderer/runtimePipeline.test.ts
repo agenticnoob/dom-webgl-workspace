@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { AnimationClip } from "three/src/animation/AnimationClip.js";
 import { Group } from "three/src/objects/Group.js";
 
 import type { ScrollStateController } from "../../../src/lib/input/frameInput";
@@ -4054,6 +4055,143 @@ describe("runtime pipeline sync", () => {
     expect(dispose).toHaveBeenCalledTimes(1);
     expect(worldAdapter.objects).toHaveLength(0);
     expect(runtime.getDebugState().models).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("performs a tiny render warmup for prepared scene-native models", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "canvas" },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    runtime.sync();
+
+    expect(render).toHaveBeenCalled();
+    expect(setViewport).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissor).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissorTest).toHaveBeenCalledWith(true);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      prepare: { renderWarmup: "complete" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("retries prepared model warmup until a matching render pass exists", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    runtime.sync();
+
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      prepare: { renderWarmup: "pending" },
+    });
+
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "canvas" },
+    });
+
+    runtime.sync();
+
+    expect(setViewport).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissor).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissorTest).toHaveBeenCalledWith(true);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      prepare: { renderWarmup: "complete" },
+    });
+
     runtime.dispose();
   });
 

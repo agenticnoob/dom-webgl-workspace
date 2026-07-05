@@ -224,6 +224,46 @@ describe("managed model registry", () => {
     expect(morphTarget.morphTargetInfluences[0]).toBe(0.5);
   });
 
+  test("tracks render warmup requests for prepared models", async () => {
+    const worldAdapter = createSceneAdapter();
+    const registry = createRegistry({
+      worldAdapter,
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await registry.update({ delta: 16 }, { get: () => 0 });
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      id: "character",
+      prepare: { renderWarmup: "pending" },
+      activeClips: ["MainSkeleton.001"],
+    });
+    expect(registry.consumeRenderWarmupRequests()).toEqual([
+      { id: "character", sceneId: "world" },
+    ]);
+    expect(registry.consumeRenderWarmupRequests()).toEqual([
+      { id: "character", sceneId: "world" },
+    ]);
+
+    registry.markRenderWarmupComplete("character");
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      prepare: { renderWarmup: "complete" },
+    });
+    expect(registry.consumeRenderWarmupRequests()).toEqual([]);
+  });
+
   test("reports missing animation clips and morph targets", async () => {
     const worldAdapter = createSceneAdapter();
     const sourceScene = new Group();

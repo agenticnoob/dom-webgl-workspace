@@ -328,13 +328,20 @@ example keeps the glowing model smaller by constraining the DOM target rect
 instead of writing `ctx.object.scale`. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
 
-For scene-native model dogfood, `apps/example` also mounts `/models/Sprint.glb`
-with public `WebGLModel` inside the managed timeline scene. That example uses
-declarative Draco loader configuration and a default GLB clip descriptor; it
-does not use target-local effects because scene-native `WebGLModel` effects are
-deferred to a later scope design. Keep DOM-following model visuals on
-`WebGLTarget` model sources, and use `WebGLModel` only for managed-scene GLB
-assets that do not need DOM fallback or target-local pointer state.
+For scene-native model dogfood, `apps/example` mounts `/models/Sprint.glb` with
+public `WebGLModel` in a dedicated `ManagedModelAnimationExample` row and its
+own `example.managedModel.*` scene. That example uses declarative Draco loader
+configuration, the `MainSkeleton.001` default GLB clip descriptor, and
+`prepare={{ renderWarmup: "idle" }}`. The prepare descriptor is not
+`WebGLTarget.lifecycle`: it does not create DOM fallback, DOM rect fitting,
+target pointer state, or target-local effects. It only asks the runtime to
+perform a tiny internal render after the GLB is loaded, cloned, attached, and
+animation setup has run. The example does not use target-local effects and is
+not mixed into the pinned managed timeline or stage primitive dogfood rows.
+Scene-native `WebGLModel` effects are deferred to a later scope design. Keep
+DOM-following model visuals on `WebGLTarget` model sources, and use
+`WebGLModel` only for managed-scene GLB assets that do not need DOM fallback or
+target-local pointer state.
 
 Pointer contract:
 
