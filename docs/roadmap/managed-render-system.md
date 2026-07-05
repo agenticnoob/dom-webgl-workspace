@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 7B model animation correction and prepare verification
+**Last reviewed against:** Phase 7C explicit default clips verification
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -762,6 +762,7 @@ Status values:
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
 | Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects are intentionally deferred to Phase 8 scope design instead of shipping as target-local effects. |
 | Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate the main Sprint skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
+| Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage/model contracts; should begin with scene-native object/effect scope design for `WebGLModel` before picking state is exposed. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
@@ -790,6 +791,7 @@ Phase 6 -> pass viewport/scissor plus runtime/pass postprocess scope correction
 Phase 6A -> progress-driven managed camera controllers
 Phase 7 -> managed model animation
 Phase 7B -> model animation correction and render warmup prepare
+Phase 7C -> explicit multi-clip defaults
 Phase 8 -> input routing and picking
 Phase 9 -> dynamics and physics
 Phase 10 -> unsafe escape hatch decision, only if still needed
@@ -817,6 +819,9 @@ Ordering rules:
   scrubbing, crossfade, and morph controls are runtime/model concerns.
 - Model animation dogfood must be visibly correct, skeleton-safe, and prepared
   enough to avoid obvious first-visible stalls before Phase 8 starts.
+- Explicit multi-clip defaults remain model animation work, not picking work.
+  They should stay descriptor-driven and must not become `playAllClips`, action
+  graphs, or raw mixer access.
 - Physics waits until managed stage objects, colliders, input routing, and
   lifecycle/disposal semantics are stable.
 
@@ -1325,8 +1330,9 @@ Implemented v1:
 - The runtime loads GLB sources, creates cloned runtime scene objects, owns
   `AnimationMixer` lifecycle, and releases models on unregister, scene
   unregister, or runtime dispose.
-- `WebGLModel.animation` supports a default clip, progress-driven clip scrubbing,
-  timeline-weighted clip blending, and timeline/constant morph weights.
+- `WebGLModel.animation` supports a default clip, explicit default clips,
+  progress-driven clip scrubbing, timeline-weighted clip blending, and
+  timeline/constant morph weights.
 - `ctx.object.animation` supports `clips`, `play`, `scrub`, `blend`,
   `crossFade`, `stop`, `stopAll`, and `setTime`.
 - `ctx.object.model` can expose controlled morph names/weights and named rig
@@ -1336,9 +1342,9 @@ Implemented v1:
   clip/morph diagnostics without exposing raw GLTF, mixer, action, skeleton, or
   morph arrays.
 - `apps/example` dogfoods `Sprint.glb` through public `WebGLModel`, declarative
-  Draco loader configuration, and a default clip in a dedicated
+  Draco loader configuration, and explicit default clips in a dedicated
   `ManagedModelAnimationExample` / `example.managedModel.*` scene. Keep this
-  Phase 7 dogfood separate from pinned timeline, camera-controller, and stage
+  model dogfood separate from pinned timeline, camera-controller, and stage
   primitive rows.
 
 Model asset requirements:
@@ -1386,11 +1392,15 @@ Public direction:
 ```tsx
 <WebGLModel
   id="character"
-  src="/models/character.glb"
+  src="/models/Sprint.glb"
   position={[0, -80, 0]}
   scale={44}
   animation={{
-    defaultClip: { clip: "Idle", loop: "repeat" },
+    defaultClips: [
+      { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+      { clip: "SpeedLines.001", loop: "repeat" },
+      { clip: "BagArmature.001", loop: "repeat" },
+    ],
     scrub: {
       clip: "Walk",
       timeline: { id: "hero.timeline" },
@@ -1498,6 +1508,39 @@ Rules:
   targets, or render-loop hooks.
 - Do not add picking, drag, camera interaction, or physics here; those remain
   Phase 8 and Phase 9 work after Phase 7B is verified.
+
+### Phase 7C: Explicit Default Clips
+
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md)
+- **Depends on:** Phase 7B
+- **Last updated:** 2026-07-06
+- **Exit criteria:** `WebGLModel.animation.defaultClips` can start several
+  explicitly named clips once, reports active clips and missing clip diagnostics,
+  preserves `defaultClip`, and dogfoods Sprint's main skeleton, speed lines, and
+  bag clips without exposing raw animation internals.
+
+Goal: add intentional multi-clip startup for exported GLB assets whose visible
+motion is split across several named clips.
+
+Scope:
+
+- Add `defaultClips?: readonly WebGLModelClipPlaybackDeclaration[]` beside the
+  existing `defaultClip` shorthand.
+- Normalize `defaultClip` and `defaultClips` into one internal ordered list.
+- Start each declared default clip once through the existing runtime-owned
+  animation controller.
+- Use the Phase 7 model dogfood to declare `MainSkeleton.001`,
+  `SpeedLines.001`, and `BagArmature.001` explicitly.
+- Keep active clip and missing clip debug state descriptor-only.
+
+Rules:
+
+- This is explicit multi-clip startup, not `playAllClips`.
+- `defaultClip` remains the single-clip shorthand.
+- Do not infer clip names from GLB assets.
+- Do not add action graphs, state machines, clip weights, retargeting, or raw
+  `AnimationMixer` / `AnimationAction` access.
 
 ### Phase 8: Interaction and Picking
 
@@ -1873,11 +1916,12 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-Phase 1 through Phase 7B define the managed render foundation through
+Phase 1 through Phase 7C define the managed render foundation through
 scene-native `WebGLModel`, runtime-owned model registry, descriptor animation
 controls, corrected model dogfood, skeleton-safe clone, and descriptor-only
 render warmup without exposing raw mixers, actions, bones, skeletons, renderers,
-or morph target arrays.
+or morph target arrays. Phase 7C adds explicit multi-clip defaults before
+Phase 8 picking starts.
 
 The next suggested implementation loop is Phase 8: interaction and picking.
 Start with scene-native object/effect scope design for `WebGLModel` before
@@ -1887,10 +1931,11 @@ The safest sequence is:
 
 ```text
 Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5
-  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 8 -> Phase 9
+  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 7C -> Phase 8 -> Phase 9
 ```
 
 That keeps postprocess after scoped ownership, model animation after timeline
-signals, Phase 7B correction before picking, progress-driven camera controls
-after pass scope, input routing before pointer-driven camera interaction and
-physics, and physics after stage/collider contracts.
+signals, Phase 7B correction and Phase 7C explicit multi-clip defaults before
+picking, progress-driven camera controls after pass scope, input routing before
+pointer-driven camera interaction and physics, and physics after stage/collider
+contracts.

@@ -35,7 +35,11 @@ const sprintModelLoader = {
   draco: { decoderPath: "/draco/gltf/", preload: true },
 } satisfies NonNullable<WebGLModelProps["loader"]>;
 const sprintModelAnimation = {
-  defaultClip: { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+  defaultClips: [
+    { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+    { clip: "SpeedLines.001", loop: "repeat" },
+    { clip: "BagArmature.001", loop: "repeat" },
+  ],
 } satisfies NonNullable<WebGLModelProps["animation"]>;
 const sprintModelPrepare = {
   renderWarmup: "idle",
@@ -52,7 +56,7 @@ export function ManagedModelAnimationExample() {
         <p className="example-kicker">managed model animation</p>
         <h2>Phase 7 模型动画独立验证</h2>
         <p>
-          Sprint.glb 通过 public WebGLModel 声明进入 scene，Draco loader 和默认 clip
+          Sprint.glb 通过 public WebGLModel 声明进入 scene，Draco loader 和显式默认 clips
           都是 descriptor 数据，不混进 pinned timeline 或 stage primitive 示例。
         </p>
       </div>

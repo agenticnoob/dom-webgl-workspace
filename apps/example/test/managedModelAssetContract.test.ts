@@ -2,7 +2,21 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
 
+const dogfoodClipNames = [
+  "MainSkeleton.001",
+  "SpeedLines.001",
+  "BagArmature.001",
+] as const;
+
 describe("managed model dogfood asset contract", () => {
+  test("uses explicit Sprint clips that exist in the GLB", () => {
+    const glb = readGLBJSON("apps/example/public/models/Sprint.glb");
+
+    for (const clip of dogfoodClipNames) {
+      expect(readAnimation(glb, clip).channels.length).toBeGreaterThan(0);
+    }
+  });
+
   test("uses the Sprint main skeleton clip for visible animation dogfood", () => {
     const glb = readGLBJSON("apps/example/public/models/Sprint.glb");
     const mainSkeleton = readAnimation(glb, "MainSkeleton.001");

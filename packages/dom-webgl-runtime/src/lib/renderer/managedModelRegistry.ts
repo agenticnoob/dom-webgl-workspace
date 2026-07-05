@@ -90,7 +90,7 @@ type NormalizedModelDeclaration = {
 };
 
 type NormalizedModelAnimationDeclaration = {
-  readonly defaultClip?: NormalizedModelClipPlaybackDeclaration;
+  readonly defaultClips: readonly NormalizedModelClipPlaybackDeclaration[];
   readonly scrub?: NormalizedModelClipScrubDeclaration;
   readonly blend?: NormalizedModelClipBlendDeclaration;
   readonly morphs: readonly NormalizedModelMorphWeightDeclaration[];
@@ -137,7 +137,7 @@ type ManagedModelEntry = {
   readonly animation?: ModelAnimationController;
   readonly loadPromise?: Promise<boolean>;
   readonly timelineSnapshot?: TimelineProgressSnapshot;
-  readonly defaultClipStarted?: boolean;
+  readonly defaultClipsStarted?: boolean;
   readonly renderWarmup?: "pending" | "complete";
   readonly disposed?: boolean;
   readonly error?: unknown;
@@ -363,9 +363,12 @@ function normalizeModelAnimationDeclaration(
   declaration: WebGLModelAnimationDeclaration,
 ): NormalizedModelAnimationDeclaration {
   return {
-    ...(declaration.defaultClip
-      ? { defaultClip: normalizeClipPlaybackDeclaration(declaration.defaultClip) }
-      : {}),
+    defaultClips: [
+      ...(declaration.defaultClip
+        ? [normalizeClipPlaybackDeclaration(declaration.defaultClip)]
+        : []),
+      ...(declaration.defaultClips ?? []).map(normalizeClipPlaybackDeclaration),
+    ],
     ...(declaration.scrub
       ? { scrub: normalizeClipScrubDeclaration(declaration.scrub) }
       : {}),
@@ -495,9 +498,15 @@ function updateEntryAnimation(
     return;
   }
 
-  if (animation && declaration.defaultClip && !entry.defaultClipStarted) {
-    animation.play(declaration.defaultClip.clip, declaration.defaultClip.options);
-    Object.assign(entry, { defaultClipStarted: true });
+  if (
+    animation &&
+    declaration.defaultClips.length > 0 &&
+    !entry.defaultClipsStarted
+  ) {
+    for (const clip of declaration.defaultClips) {
+      animation.play(clip.clip, clip.options);
+    }
+    Object.assign(entry, { defaultClipsStarted: true });
   }
 
   if (animation && declaration.scrub) {

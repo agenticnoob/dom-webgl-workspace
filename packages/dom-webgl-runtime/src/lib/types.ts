@@ -110,6 +110,7 @@ export type WebGLModelMorphWeightDeclaration = {
 
 export type WebGLModelAnimationDeclaration = {
   readonly defaultClip?: WebGLModelClipPlaybackDeclaration;
+  readonly defaultClips?: readonly WebGLModelClipPlaybackDeclaration[];
   readonly scrub?: WebGLModelClipScrubDeclaration;
   readonly blend?: WebGLModelClipBlendDeclaration;
   readonly morphs?: readonly WebGLModelMorphWeightDeclaration[];

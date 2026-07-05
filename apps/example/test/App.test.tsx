@@ -435,7 +435,11 @@ describe("effect authoring example app", () => {
         rotation: [0, 0, 0],
         scale: 8,
         animation: {
-          defaultClip: { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+          defaultClips: [
+            { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+            { clip: "SpeedLines.001", loop: "repeat" },
+            { clip: "BagArmature.001", loop: "repeat" },
+          ],
         },
         prepare: { renderWarmup: "idle" },
       }),

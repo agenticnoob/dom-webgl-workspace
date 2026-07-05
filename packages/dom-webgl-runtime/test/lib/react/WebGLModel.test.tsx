@@ -134,6 +134,51 @@ describe("WebGLModel", () => {
     );
   });
 
+  test("passes explicit default clips through as descriptor data", async () => {
+    const { WebGLModel, WebGLRuntimeProvider } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLSceneProvider,
+            { sceneId: "world" },
+            createElement(WebGLModel, {
+              id: "character",
+              src: "/models/Sprint.glb",
+              animation: {
+                defaultClips: [
+                  { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+                  { clip: "SpeedLines.001", loop: "repeat" },
+                  "BagArmature.001",
+                ],
+              },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "character",
+        sceneId: "world",
+        src: "/models/Sprint.glb",
+        animation: {
+          defaultClips: [
+            { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+            { clip: "SpeedLines.001", loop: "repeat" },
+            "BagArmature.001",
+          ],
+        },
+      }),
+    );
+  });
+
   test("requires an explicit or inherited scene", async () => {
     const { WebGLModel, WebGLRuntimeProvider } = await import("../../../src/react");
     const runtime = createRuntimeStub();

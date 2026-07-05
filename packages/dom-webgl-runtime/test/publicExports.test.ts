@@ -379,6 +379,11 @@ describe("public package exports", () => {
           scale: [120, 120, 120],
           animation: {
             defaultClip: { clip: "MainSkeleton.001", loop: "repeat" },
+            defaultClips: [
+              { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+              { clip: "SpeedLines.001", loop: "repeat" },
+              "BagArmature.001",
+            ],
           },
         } satisfies WebGLModelProps;
         modelProps satisfies WebGLModelProps;
@@ -902,6 +907,11 @@ describe("public package exports", () => {
           position: [0, 0, 160],
           timeline: sceneTimeline,
         } satisfies WebGLLightDeclaration;
+        declare const rawMixer: ThreeAnimationMixer;
+        declare const rawAction: ThreeAnimationAction;
+        declare const rawBone: ThreeBone;
+        declare const rawSkeleton: ThreeSkeleton;
+        declare const rawObject3D: ThreeObject3D;
         const modelLoop = "repeat" satisfies WebGLModelAnimationLoop;
         const modelDefaultClip = {
           clip: "MainSkeleton.001",
@@ -911,6 +921,11 @@ describe("public package exports", () => {
           fadeOutMs: 80,
           clampWhenFinished: true,
         } satisfies WebGLModelClipPlaybackDeclaration;
+        const explicitDefaultClips = [
+          { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+          { clip: "SpeedLines.001", loop: "repeat" },
+          "BagArmature.001",
+        ] satisfies WebGLModelClipPlaybackDeclaration[];
         const modelScrub = {
           clip: "MainSkeleton.001",
           timeline: activeTimeline,
@@ -932,10 +947,18 @@ describe("public package exports", () => {
         } satisfies WebGLModelMorphWeightDeclaration;
         const modelAnimation = {
           defaultClip: modelDefaultClip,
+          defaultClips: explicitDefaultClips,
           scrub: modelScrub,
           blend: modelBlend,
           morphs: [modelMorphWeight],
         } satisfies WebGLModelAnimationDeclaration;
+        modelAnimation.defaultClips?.map((clip) =>
+          typeof clip === "string" ? clip : clip.clip,
+        );
+        // @ts-expect-error model animation descriptors must not expose raw mixers.
+        ({ mixer: rawMixer } satisfies WebGLModelAnimationDeclaration);
+        // @ts-expect-error defaultClips must be an explicit readonly list of playback declarations.
+        ({ defaultClips: true } satisfies WebGLModelAnimationDeclaration);
         const modelPrepare = {
           renderWarmup: "idle",
         } satisfies WebGLModelPrepareDeclaration;
@@ -952,11 +975,6 @@ describe("public package exports", () => {
           animation: modelAnimation,
           prepare: modelPrepare,
         } satisfies WebGLModelDeclaration;
-        declare const rawMixer: ThreeAnimationMixer;
-        declare const rawAction: ThreeAnimationAction;
-        declare const rawBone: ThreeBone;
-        declare const rawSkeleton: ThreeSkeleton;
-        declare const rawObject3D: ThreeObject3D;
         // @ts-expect-error model declarations do not accept raw Object3D handles.
         ({ id: "raw.model", sceneId: "world", src: "/raw.glb", object3D: rawObject3D } satisfies WebGLModelDeclaration);
         // @ts-expect-error model declarations do not accept raw AnimationMixer handles.

@@ -224,6 +224,72 @@ describe("managed model registry", () => {
     expect(morphTarget.morphTargetInfluences[0]).toBe(0.5);
   });
 
+  test("starts legacy and explicit default clips once in declaration order", async () => {
+    const worldAdapter = createSceneAdapter();
+    const registry = createRegistry({
+      worldAdapter,
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [
+          new AnimationClip("Idle", 1, []),
+          new AnimationClip("MainSkeleton.001", 1, []),
+          new AnimationClip("SpeedLines.001", 1, []),
+          new AnimationClip("BagArmature.001", 1, []),
+        ],
+      }),
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: {
+        defaultClip: { clip: "Idle", loop: "repeat" },
+        defaultClips: [
+          { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+          { clip: "SpeedLines.001", loop: "repeat" },
+          "BagArmature.001",
+        ],
+      },
+    });
+
+    await registry.update({ delta: 16 }, { get: () => 0 });
+    await registry.update({ delta: 16 }, { get: () => 0 });
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      clips: ["Idle", "MainSkeleton.001", "SpeedLines.001", "BagArmature.001"],
+      activeClips: ["Idle", "MainSkeleton.001", "SpeedLines.001", "BagArmature.001"],
+    });
+  });
+
+  test("reports missing explicit default clips without throwing", async () => {
+    const worldAdapter = createSceneAdapter();
+    const registry = createRegistry({
+      worldAdapter,
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: {
+        defaultClips: ["MainSkeleton.001", "MissingSceneClip"],
+      },
+    });
+
+    await registry.update({ delta: 16 }, { get: () => 0 });
+    await registry.update({ delta: 16 }, { get: () => 0 });
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      activeClips: ["MainSkeleton.001"],
+      diagnostics: [{ kind: "missing-clip", name: "MissingSceneClip" }],
+    });
+  });
+
   test("tracks render warmup requests for prepared models", async () => {
     const worldAdapter = createSceneAdapter();
     const registry = createRegistry({

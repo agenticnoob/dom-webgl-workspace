@@ -929,13 +929,17 @@ import {
   />
   <WebGLModel
     id="hero.character"
-    src="/models/character.glb"
+    src="/models/Sprint.glb"
     loader={{ draco: { decoderPath: "/draco/gltf/" } }}
     position={[0, -90, -40]}
     scale={44}
     prepare={{ renderWarmup: "idle" }}
     animation={{
-      defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
+      defaultClips: [
+        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+        { clip: "SpeedLines.001", loop: "repeat" },
+        { clip: "BagArmature.001", loop: "repeat" },
+      ],
       scrub: {
         clip: "Walk",
         timeline: { id: "hero.timeline" },
@@ -951,6 +955,11 @@ import {
   />
 </WebGLScene>;
 ```
+
+Use `defaultClips` only for clips the app intentionally wants to start together.
+It is not a `playAllClips` shortcut, and the runtime does not infer which
+exported GLB clips are meaningful. The single `defaultClip` shorthand remains
+valid for existing one-clip startup.
 
 The same capability is available to vanilla consumers through
 `runtime.registerModel(...)` / `runtime.unregisterModel(id)`. `WebGLModel`

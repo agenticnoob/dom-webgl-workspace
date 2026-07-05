@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 7B model animation correction and prepare verification
+**Last reviewed against:** Phase 7C explicit default clips verification
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -99,9 +99,9 @@ phase records are archived under [archive/](./archive/).
   - `WebGLModel` belongs to a managed scene, loads GLB sources through the
     runtime resource manager, and can declare scene-local `position`,
     `rotation`, `scale`, `visible`, `timeline`, and `loader` descriptors
-  - `WebGLModel.animation` supports a default clip, progress-driven clip
-    scrubbing, timeline-weighted clip blending, and timeline/constant morph
-    weights
+  - `WebGLModel.animation` supports a default clip, explicit default clips,
+    progress-driven clip scrubbing, timeline-weighted clip blending, and
+    timeline/constant morph weights
   - `WebGLModel.prepare.renderWarmup` can request a descriptor-only internal
     first-render warmup after load, skeleton-safe clone, attachment, and
     animation setup
@@ -172,12 +172,14 @@ phase records are archived under [archive/](./archive/).
   for progress-driven scene, stage, and light activation.
 - Scene-native `WebGLModel` descriptors are stable declarations. Use timeline
   bindings and model animation descriptors for progress-driven clip/morph
-  updates rather than React prop churn. `prepare.renderWarmup` is scoped to a
-  tiny managed first-render warmup and does not add `WebGLTarget.lifecycle`,
-  DOM fallback, DOM rect fitting, target pointer state, target-local effects, or
-  raw render hooks to `WebGLModel`. Phase 7 v1 does not add target-local
-  `effects` to `WebGLModel`; scene-native model effects remain a Phase 8
-  pre-step design topic.
+  updates rather than React prop churn. `animation.defaultClips` starts only the
+  clips the app explicitly lists; it is not a `playAllClips` shortcut and does
+  not infer meaningful clips from the GLB. `prepare.renderWarmup` is scoped to
+  a tiny managed first-render warmup and does not add
+  `WebGLTarget.lifecycle`, DOM fallback, DOM rect fitting, target pointer state,
+  target-local effects, or raw render hooks to `WebGLModel`. Phase 7 v1 does
+  not add target-local `effects` to `WebGLModel`; scene-native model effects
+  remain a Phase 8 pre-step design topic.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -257,11 +259,15 @@ Phase 7B is verified and corrects the model animation dogfood to play
 `Sprint.glb`'s main skeleton clip, use skeleton-safe GLB scene cloning, and add
 a minimal descriptor-only `WebGLModel.prepare.renderWarmup` path:
 [2026-07-05-phase-7-model-animation-correction-model-prepare.md](./superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md).
-The next roadmap phase remains Phase 8. It should start with scene-native
-model effect scope design before picking/hit state, because those effects need
-explicit object/scene/runtime scope rather than DOM-target semantics. Phase 7
-still defers additive layers, bone attachments, IK, action graphs, and animation
-state machines.
+Phase 7C is verified and adds explicit
+`WebGLModel.animation.defaultClips` for intentional multi-clip defaults while
+preserving `defaultClip`:
+[2026-07-06-phase-7c-explicit-default-clips.md](./superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md).
+It does not add `playAllClips`, animation graphs, state machines, raw
+mixer/action access, additive layers, bone attachments, IK, or retargeting. After
+Phase 7C, Phase 8 should start with scene-native model effect scope design
+before picking/hit state, because those effects need explicit
+object/scene/runtime scope rather than DOM-target semantics.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require

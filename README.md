@@ -143,8 +143,9 @@ Current example behavior:
   the stage primitive example and the pinned managed timeline. It mounts
   `/models/Sprint.glb` through public `WebGLModel` in its own
   `example.managedModel.*` scene with declarative Draco loader configuration
-  and the `MainSkeleton.001` default clip. It also requests
-  `prepare={{ renderWarmup: "idle" }}` so the runtime performs a tiny managed
+  and explicit `defaultClips` for `MainSkeleton.001`, `SpeedLines.001`, and
+  `BagArmature.001`. It also requests `prepare={{ renderWarmup: "idle" }}` so
+  the runtime performs a tiny managed
   first-render warmup after load, clone, attachment, and animation setup.
   Model animation coverage is not mixed into the timeline/stage dogfood row.
 - The managed stage primitive example is mounted in the current catalog and
@@ -258,7 +259,8 @@ Current visual behavior:
   composers, render targets, or render loops.
 - The scene-native `WebGLModel` dogfood is separate from those DOM-following GLB
   target examples: `ManagedModelAnimationExample` mounts `/models/Sprint.glb`
-  in its own managed scene and does not use target-local effects.
+  in its own managed scene with explicit `defaultClips` for the main skeleton,
+  speed lines, and bag rig, and does not use target-local effects.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -470,13 +472,17 @@ descriptors:
   <WebGLCamera id="hero.camera" default type="perspective" mode="perspective-stage" />
   <WebGLModel
     id="hero.character"
-    src="/models/character.glb"
+    src="/models/Sprint.glb"
     loader={{ draco: { decoderPath: "/draco/gltf/" } }}
     position={[0, -90, -40]}
     scale={44}
     prepare={{ renderWarmup: "idle" }}
     animation={{
-      defaultClip: { clip: "Idle", loop: "repeat", fadeInMs: 160 },
+      defaultClips: [
+        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
+        { clip: "SpeedLines.001", loop: "repeat" },
+        { clip: "BagArmature.001", loop: "repeat" },
+      ],
       scrub: {
         clip: "Walk",
         timeline: { id: "hero.timeline" },
@@ -492,6 +498,11 @@ descriptors:
   />
 </WebGLScene>
 ```
+
+Use `defaultClips` only for clips the app intentionally wants to start together.
+It is not a `playAllClips` shortcut, and the runtime does not infer which
+exported GLB clips are meaningful. The single `defaultClip` shorthand remains
+valid for existing one-clip startup.
 
 `WebGLModel` does not accept target-local `effects` in Phase 7 v1. Use it for
 managed-scene GLB assets that do not need DOM fallback, target-local pointer
@@ -743,6 +754,7 @@ basis at the requested depth, so the scene default camera should stay aligned
 `viewport`/scissor and descriptor-level `postprocess`. These remain
 descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
 available for managed-scene GLB assets and can request
+`animation.defaultClips` for intentional multi-clip startup and
 `prepare={{ renderWarmup: "idle" }}` for managed first-render warmup;
 scene-native model effects, `screen-plane` placement, orthographic/screen
 camera controllers, pass-bound camera controller scope, and raw Three.js access

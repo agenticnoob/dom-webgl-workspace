@@ -331,13 +331,17 @@ camera, light, material, mixer, composer, render target, or render loop.
 For scene-native model dogfood, `apps/example` mounts `/models/Sprint.glb` with
 public `WebGLModel` in a dedicated `ManagedModelAnimationExample` row and its
 own `example.managedModel.*` scene. That example uses declarative Draco loader
-configuration, the `MainSkeleton.001` default GLB clip descriptor, and
-`prepare={{ renderWarmup: "idle" }}`. The prepare descriptor is not
-`WebGLTarget.lifecycle`: it does not create DOM fallback, DOM rect fitting,
-target pointer state, or target-local effects. It only asks the runtime to
-perform a tiny internal render after the GLB is loaded, cloned, attached, and
-animation setup has run. The example does not use target-local effects and is
-not mixed into the pinned managed timeline or stage primitive dogfood rows.
+configuration, explicit `defaultClips` for `MainSkeleton.001`,
+`SpeedLines.001`, and `BagArmature.001`, and
+`prepare={{ renderWarmup: "idle" }}`. Use `defaultClips` only for clips the app
+intentionally wants to start together. It is not a `playAllClips` shortcut, and
+the runtime does not infer which exported GLB clips are meaningful. The prepare
+descriptor is not `WebGLTarget.lifecycle`: it does not create DOM fallback, DOM
+rect fitting, target pointer state, or target-local effects. It only asks the
+runtime to perform a tiny internal render after the GLB is loaded, cloned,
+attached, and animation setup has run. The example does not use target-local
+effects and is not mixed into the pinned managed timeline or stage primitive
+dogfood rows.
 Scene-native `WebGLModel` effects are deferred to a later scope design. Keep
 DOM-following model visuals on `WebGLTarget` model sources, and use
 `WebGLModel` only for managed-scene GLB assets that do not need DOM fallback or
