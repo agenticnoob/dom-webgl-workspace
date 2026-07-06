@@ -126,6 +126,7 @@ type StagePlaneMockProps = {
   readonly timeline?: Record<string, unknown>;
   readonly effects?: readonly Record<string, unknown>[];
   readonly interaction?: Record<string, unknown>;
+  readonly physics?: Record<string, unknown>;
 };
 
 type StageBoxMockProps = {
@@ -134,6 +135,8 @@ type StageBoxMockProps = {
   readonly position?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
   readonly timeline?: Record<string, unknown>;
+  readonly interaction?: Record<string, unknown>;
+  readonly physics?: Record<string, unknown>;
 };
 
 type LightMockProps = {
@@ -501,6 +504,7 @@ describe("effect authoring example app", () => {
       "example.stage.plinth",
       "example.stage.bloomRail",
       "example.managedStage.plinth",
+      "example.interaction.crate",
     ]);
     expect(lightProps.map(({ id }) => id)).toEqual([
       "example.stage.ambient",

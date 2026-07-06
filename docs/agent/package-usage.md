@@ -82,9 +82,11 @@ import {
   type WebGLCameraFramingDeclaration,
   type WebGLCameraMode,
   type WebGLCameraType,
+  type WebGLColliderDeclaration,
   type WebGLColorValue,
   type WebGLDebugModelPrepareLoadState,
   type WebGLDebugModelPrepareSummary,
+  type WebGLDebugPhysicsSummary,
   type WebGLLightDeclaration,
   type WebGLLightKind,
   type WebGLModelAnimationDeclaration,
@@ -93,6 +95,7 @@ import {
   type WebGLModelPrepareDeclaration,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
+  type WebGLPhysicsDeclaration,
   type WebGLPlacementDeclaration,
   type WebGLPlacementMode,
   type WebGLRenderPassDeclaration,
@@ -939,6 +942,8 @@ import {
   WebGLCamera,
   WebGLModel,
   WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
 } from "@project/dom-webgl-runtime/react";
 
 <WebGLScene
@@ -994,6 +999,67 @@ Use `hitTest: "mesh"` when hover/click should track visible stage/model
 geometry. Use `hitTest: "bounds"` for coarse object-level hit regions. Both
 modes stay descriptor-owned; effects still do not receive raw raycasters or
 intersection objects.
+
+Scene-native physics is descriptor-only on managed stage/model objects:
+
+```tsx
+<WebGLScene
+  id="physics.stage"
+  projection="perspective-stage"
+  render={{ camera: "physics.camera" }}
+>
+  <WebGLCamera
+    id="physics.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+  />
+  <WebGLStagePlane
+    id="physics.floor"
+    role="floor"
+    size={[1200, 800]}
+    position={[0, -180, 0]}
+    physics={{
+      body: { type: "static" },
+      collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+    }}
+  />
+  <WebGLStageBox
+    id="physics.crate"
+    size={[72, 72, 72]}
+    position={[0, -90, 0]}
+    interaction={{
+      pickable: {
+        hitTest: "bounds",
+        pointer: { hover: true, press: true, drag: true },
+      },
+    }}
+    physics={{
+      body: { type: "dynamic", mass: 1.6, damping: 0.04 },
+      collider: { kind: "box", size: [72, 72, 72] },
+      pointerDrag: true,
+    }}
+  />
+  <WebGLModel
+    id="physics.character"
+    src="/models/Sprint.glb"
+    physics={{
+      body: { type: "kinematic" },
+      collider: { kind: "sphere", radius: 18 },
+      constraints: [{ kind: "anchor", target: [0, -90, 0], stiffness: 0.2 }],
+    }}
+  />
+</WebGLScene>
+```
+
+Supported body types are `static`, `dynamic`, and `kinematic`. Supported
+colliders are `bounds`, `box`, `sphere`, and `plane`. Supported constraints are
+`anchor` and `spring`; `pointerDrag` creates a runtime-owned drag force from
+managed object hit state. The runtime owns integration, simple static plane/box
+collision response, transform writes, scheduling, debug summaries, and disposal.
+This is Level 3 scene-native physics only: do not add Level 1 `WebGLTarget`
+physics, raw body handles, raw physics-engine access, dynamic-vs-dynamic
+impulses, joints, or collision callbacks.
 
 Use `defaultClips` only for clips the app intentionally wants to start together.
 It is not a `playAllClips` shortcut, and the runtime does not infer which

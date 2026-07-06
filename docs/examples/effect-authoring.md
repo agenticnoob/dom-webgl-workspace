@@ -349,9 +349,10 @@ managed timeline or stage primitive dogfood rows.
 
 Scene-native `WebGLModel` effects use explicit scene-object scope through
 `defineWebGLSceneObjectEffect(...)`. `apps/example` dogfoods this in
-`ManagedInteractionExample`: the stage floor and scene-native
-`/models/hero.glb` both declare `interaction.pickable`, their scene-object
-effects read `ctx.objectPointer`, and the same managed camera dogfoods Phase 8B
+`ManagedInteractionExample`: the stage floor, dynamic crate, and scene-native
+`/models/hero.glb` all declare `interaction.pickable`, the floor and model
+scene-object effects read `ctx.objectPointer`, the crate declares
+descriptor-only `physics.pointerDrag`, and the same managed camera dogfoods
 `controller.pointer` gestures for primary-drag orbit, secondary-drag pan,
 Alt + primary-drag dolly, camera parallax, damping, and double-click reset.
 The dogfood still omits `screen-plane` DOM targets.
@@ -585,6 +586,10 @@ package effects.
 - `model/glb` renderables are fit to their target rect by the runtime layout
   pass. `example.modelFloatGlow` avoids writing `ctx.object.position` and
   `ctx.object.scale` so it does not override that fit transform.
+- Scene-native `physics` is descriptor-owned and runtime-updated. If a stage or
+  model object declares physics, avoid writing `ctx.object.position` from a
+  scene-object effect on the same object unless the effect intentionally takes
+  over placement from the physics update.
 - Runtime lights are keyed requests. Calling `ctx.object.lights?.point(...)`
   again with the same key updates the existing light instead of requiring a new
   effect-owned handle.

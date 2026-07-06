@@ -10,6 +10,10 @@ import type {
   WebGLTuple3,
 } from "../types";
 import {
+  normalizePhysicsDeclaration,
+  type NormalizedPhysicsDeclaration,
+} from "./physicsDeclarations";
+import {
   normalizeTimelineBinding,
   type NormalizedTimelineBinding,
 } from "../timeline/timelineDeclarations";
@@ -50,6 +54,7 @@ export type NormalizedStagePrimitiveDeclaration =
       timeline?: NormalizedTimelineBinding;
       effects?: WebGLEffectsDeclaration;
       interaction?: NormalizedSceneObjectInteractionDeclaration;
+      physics?: NormalizedPhysicsDeclaration;
     }
   | {
       id: string;
@@ -64,6 +69,7 @@ export type NormalizedStagePrimitiveDeclaration =
       timeline?: NormalizedTimelineBinding;
       effects?: WebGLEffectsDeclaration;
       interaction?: NormalizedSceneObjectInteractionDeclaration;
+      physics?: NormalizedPhysicsDeclaration;
     };
 
 export type NormalizedLightDeclaration = {
@@ -99,6 +105,7 @@ export function normalizeStagePrimitiveDeclaration(
   const timeline = normalizeTimelineBinding(declaration.timeline);
   const effects = normalizeSceneObjectEffects(declaration.effects);
   const interaction = normalizeSceneObjectInteraction(declaration.interaction);
+  const physics = normalizePhysicsDeclaration(declaration.physics);
 
   switch (declaration.kind) {
     case "plane": {
@@ -127,6 +134,7 @@ export function normalizeStagePrimitiveDeclaration(
         ...(timeline ? { timeline } : {}),
         ...(effects ? { effects } : {}),
         ...(interaction ? { interaction } : {}),
+        ...(physics ? { physics } : {}),
       };
     }
     case "box":
@@ -151,6 +159,7 @@ export function normalizeStagePrimitiveDeclaration(
         ...(timeline ? { timeline } : {}),
         ...(effects ? { effects } : {}),
         ...(interaction ? { interaction } : {}),
+        ...(physics ? { physics } : {}),
       };
   }
 }

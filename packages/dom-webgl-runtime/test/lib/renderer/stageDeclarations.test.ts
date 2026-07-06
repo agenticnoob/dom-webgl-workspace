@@ -95,6 +95,48 @@ describe("managed stage declaration normalization", () => {
     });
   });
 
+  test("normalizes physics declarations on stage primitives", () => {
+    expect(
+      normalizeStagePrimitiveDeclaration({
+        id: "box",
+        sceneId: "world",
+        kind: "box",
+        physics: {
+          body: { type: "dynamic", mass: 1, damping: 0.08 },
+          collider: { kind: "box", size: [120, 20, 120] },
+          pointerDrag: true,
+          constraints: [
+            {
+              kind: "spring",
+              target: [0, 20, 0],
+              restLength: 0,
+              stiffness: 0.18,
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      physics: {
+        body: {
+          type: "dynamic",
+          mass: 1,
+          damping: 0.08,
+          velocity: [0, 0, 0],
+        },
+        collider: { kind: "box", size: [120, 20, 120], center: [0, 0, 0] },
+        pointerDrag: { stiffness: 0.24, damping: 0.18, maxForce: 1600 },
+        constraints: [
+          {
+            kind: "spring",
+            target: [0, 20, 0],
+            restLength: 0,
+            stiffness: 0.18,
+          },
+        ],
+      },
+    });
+  });
+
   test("normalizes light defaults", () => {
     expect(
       normalizeLightDeclaration({

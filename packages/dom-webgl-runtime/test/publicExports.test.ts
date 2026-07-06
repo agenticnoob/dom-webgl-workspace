@@ -678,6 +678,14 @@ describe("public package exports", () => {
 				          WebGLGateScrollBehavior,
 				          WebGLPerformanceBudget,
 				          WebGLPerformanceWarning,
+                  WebGLColliderDeclaration,
+                  WebGLDebugPhysicsBodySummary,
+                  WebGLDebugPhysicsSummary,
+                  WebGLPhysicsBodyDeclaration,
+                  WebGLPhysicsBodyType,
+                  WebGLPhysicsConstraintDeclaration,
+                  WebGLPhysicsDeclaration,
+                  WebGLPhysicsPointerDragDeclaration,
 		          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
@@ -963,6 +971,46 @@ describe("public package exports", () => {
           position: [0, -40, 0],
           material: basicStageMaterial,
         } satisfies WebGLStageBoxDeclaration;
+        const physicsBodyType = "dynamic" satisfies WebGLPhysicsBodyType;
+        const physicsBody = {
+          type: physicsBodyType,
+          mass: 1,
+          velocity: [0, 0, 0],
+          damping: 0.08,
+        } satisfies WebGLPhysicsBodyDeclaration;
+        const physicsCollider = {
+          kind: "box",
+          size: [120, 20, 120],
+        } satisfies WebGLColliderDeclaration;
+        const physicsConstraint = {
+          kind: "spring",
+          target: [0, 20, 0],
+          restLength: 0,
+          stiffness: 0.18,
+        } satisfies WebGLPhysicsConstraintDeclaration;
+        const physicsPointerDrag = {
+          stiffness: 0.28,
+          damping: 0.16,
+          maxForce: 1800,
+        } satisfies WebGLPhysicsPointerDragDeclaration;
+        const stagePhysics = {
+          body: physicsBody,
+          collider: physicsCollider,
+          pointerDrag: physicsPointerDrag,
+          constraints: [physicsConstraint],
+        } satisfies WebGLPhysicsDeclaration;
+        const physicsStageBoxDeclaration = {
+          id: "stage.physics.box",
+          sceneId: "world",
+          kind: "box",
+          physics: stagePhysics,
+        } satisfies WebGLStageBoxDeclaration;
+        const invalidPhysics = {
+          body: { type: "dynamic" },
+          // @ts-expect-error public physics descriptors cannot expose raw engine bodies.
+          rigidBody: {},
+        } satisfies WebGLPhysicsDeclaration;
+        invalidPhysics satisfies WebGLPhysicsDeclaration;
         const stagePrimitiveDeclaration =
           stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
         const lightDeclaration = {
@@ -1038,9 +1086,10 @@ describe("public package exports", () => {
           rotation: [0, Math.PI, 0],
           scale: [120, 120, 120],
           visible: true,
-			          timeline: activeTimeline,
-			          animation: modelAnimation,
-			          prepare: modelPrepare,
+				          timeline: activeTimeline,
+				          animation: modelAnimation,
+				          prepare: modelPrepare,
+                  physics: stagePhysics,
                 interaction: {
                   pickable: {
                     hitTest: "bounds",
@@ -1205,6 +1254,51 @@ describe("public package exports", () => {
         modelMorphWeight satisfies WebGLModelMorphWeightDeclaration;
         modelAnimation satisfies WebGLModelAnimationDeclaration;
         modelDeclaration satisfies WebGLModelDeclaration;
+        physicsStageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        const physicsDebugBody = {
+          id: "stage.physics.box",
+          sceneId: "world",
+          sourceKind: "stage/box",
+          type: "dynamic",
+          active: true,
+          collider: { kind: "box" },
+          position: [0, 80, 0],
+          velocity: [0, -8, 0],
+          constraints: 1,
+          pointerDrag: true,
+        } satisfies WebGLDebugPhysicsBodySummary;
+        const physicsDebug = {
+          bodyCount: 1,
+          activeBodyCount: 1,
+          collisionCount: 0,
+          bodies: [physicsDebugBody],
+        } satisfies WebGLDebugPhysicsSummary;
+        const debugWithPhysics = {
+          targetCount: 0,
+          renderableCount: 0,
+          currentScrollMode: "page",
+          pointer: {
+            x: 0,
+            y: 0,
+            normalizedX: 0,
+            normalizedY: 0,
+            isInside: false,
+            isDown: false,
+            downTime: 0,
+            pressDuration: 0,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragDeltaX: 0,
+            dragDeltaY: 0,
+            clickCount: 0,
+            buttons: [],
+            modifiers: { shift: false, alt: false, ctrl: false, meta: false },
+          },
+          physics: physicsDebug,
+          targets: [],
+        } satisfies WebGLDebugState;
+        debugWithPhysics.physics satisfies WebGLDebugPhysicsSummary | undefined;
         timelineActiveRange satisfies WebGLTimelineActiveRangeDeclaration;
         sceneTimeline satisfies WebGLTimelineBindingDeclaration;
         activeTimeline satisfies WebGLTimelineBindingDeclaration;

@@ -104,6 +104,7 @@ import {
   readModelPrepareDecision,
   type ModelPreparePass,
 } from "./modelPreparePolicy";
+import { createPhysicsWorld } from "./physicsWorld";
 import { createStageObjectRegistry } from "./stageObjectRegistry";
 import {
   generatedRenderLayerId,
@@ -259,6 +260,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return interactionRouter.getObjectPointerState(objectId);
     },
   });
+  const physicsWorld = createPhysicsWorld();
   const scrollState =
     internalOptions.scrollState ??
     createScrollController({
@@ -609,6 +611,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         rendererLoop.dispose();
         passViewports.dispose();
         postprocessController.dispose();
+        physicsWorld.dispose();
         stageObjects.dispose();
         managedModels.dispose();
         interactionRouter.dispose();
@@ -628,6 +631,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       ? { stagePrimitives: [], lights: [] }
       : stageObjects.inspect();
     const modelDebugState = disposed ? { models: [] } : managedModels.inspect();
+    const physicsDebugState = disposed ? undefined : physicsWorld.inspect();
 
     if (disposed) {
       return createDebugState({
@@ -658,6 +662,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
       models: modelDebugState.models,
+      ...(physicsDebugState ? { physics: physicsDebugState } : {}),
       interaction: readInteractionDebugSummary(),
       renderPasses: renderLayers.getPasses().map((pass) => ({
         id: pass.id,
@@ -1427,8 +1432,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       } else if (modelUpdate) {
         requiresContinuousRendering = true;
       }
+      const physicsUpdate = physicsWorld.update({
+        frameInput,
+        candidates: [
+          ...stageObjects.collectPhysicsCandidates(),
+          ...managedModels.collectPhysicsCandidates(),
+        ],
+      });
+      didSynchronousUpdate = didSynchronousUpdate || physicsUpdate.changed;
       requiresContinuousRendering =
         requiresContinuousRendering ||
+        physicsUpdate.requiresContinuousRendering ||
         stageEffectsContinuous ||
         cameraGestureUpdate.summary?.active === true ||
         cameraGestureUpdate.requiresContinuousRendering ||

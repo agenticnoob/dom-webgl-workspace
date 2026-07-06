@@ -55,11 +55,14 @@ import {
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
+  type WebGLColliderDeclaration,
   type WebGLDebugModelPrepareSummary,
+  type WebGLDebugPhysicsSummary,
   type WebGLModelAnimationDeclaration,
   type WebGLModelDeclaration,
   type WebGLModelLoaderDeclaration,
   type WebGLModelPrepareDeclaration,
+  type WebGLPhysicsDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
 } from "<runtime-package>";
@@ -247,11 +250,19 @@ Rules:
   scene-object `effects` plus `interaction.pickable`. Register these effects
   with `defineWebGLSceneObjectEffect(...)`; they receive `ctx.objectPointer`,
   not DOM `layout` or `ctx.targetPointer`.
+- Scene-native `WebGLModel` and stage primitive descriptors can declare
+  descriptor-only `physics`. The runtime owns body state, simple
+  static/dynamic/kinematic integration, bounds/box/sphere/plane colliders,
+  anchor/spring constraints, pointer-drag forces, transform writes, debug, and
+  disposal. Do not add Level 1 `WebGLTarget` physics, raw body handles, or raw
+  physics-engine access.
 - The current `apps/example` managed interaction dogfood keeps
-  `example.interaction.floor` and `example.interaction.hero` pickable, while the
-  same managed camera dogfoods Phase 8B orbit, pan, dolly, camera-scoped
-  parallax, damping, and reset. Do not reintroduce `screen-plane` DOM targets
-  when the goal is to isolate picking/camera coordinate drift.
+  `example.interaction.floor`, `example.interaction.crate`, and
+  `example.interaction.hero` pickable. The floor is a static physics plane, the
+  crate is a dynamic pointer-draggable physics box, and the same managed camera
+  dogfoods orbit, pan, dolly, camera-scoped parallax, damping, and reset. Do
+  not reintroduce `screen-plane` DOM targets when the goal is to isolate
+  picking/camera/physics coordinate drift.
 - Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
   mouse wheel zoom, and touch pinch zoom remain future or non-public.
@@ -315,12 +326,21 @@ export function App() {
           role="floor"
           size={[1200, 800]}
           material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+          physics={{
+            body: { type: "static" },
+            collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+          }}
         />
         <WebGLStageBox
           id="plinth"
           size={[180, 80, 180]}
           position={[0, -120, -40]}
           material={{ kind: "basic", color: "#111827" }}
+          physics={{
+            body: { type: "dynamic", damping: 0.04 },
+            collider: { kind: "box", size: [180, 80, 180] },
+            pointerDrag: true,
+          }}
         />
         <WebGLLight id="ambient" kind="ambient" intensity={0.2} />
         <WebGLLight
@@ -348,6 +368,10 @@ Rules:
   floor, box, or light values by rebuilding React descriptors every frame; use
   timeline bindings plus managed runtime/effect/controller state for
   progress-driven activation.
+- Physics descriptors are stable scene-native declarations. Runtime-owned
+  physics can write object transforms each frame, so avoid fighting it with
+  effect-owned `ctx.object.position` writes on the same object unless the effect
+  intentionally takes over placement.
 - Vanilla consumers can call `runtime.registerStagePrimitive(...)` and
   `runtime.registerLight(...)` with descriptor data.
 - Do not pass raw Three.js meshes, materials, geometries, lights, scenes,

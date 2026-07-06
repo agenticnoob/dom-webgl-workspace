@@ -47,6 +47,11 @@ describe("WebGLModel", () => {
                 defaultClip: { clip: "Run", loop: "repeat", fadeInMs: 120 },
                 morphs: [{ name: "Smile", weight: 0.65 }],
               },
+              physics: {
+                body: { type: "kinematic" },
+                collider: { kind: "sphere", radius: 18 },
+                constraints: [{ kind: "anchor", target: [0, 12, -40], stiffness: 0.2 }],
+              },
             }),
           ),
         ),
@@ -64,6 +69,11 @@ describe("WebGLModel", () => {
       animation: {
         defaultClip: { clip: "Run", loop: "repeat", fadeInMs: 120 },
         morphs: [{ name: "Smile", weight: 0.65 }],
+      },
+      physics: {
+        body: { type: "kinematic" },
+        collider: { kind: "sphere", radius: 18 },
+        constraints: [{ kind: "anchor", target: [0, 12, -40], stiffness: 0.2 }],
       },
     });
 

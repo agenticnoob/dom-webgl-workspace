@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   defineWebGLSceneObjectEffect,
   type WebGLEffectScopeSnapshot,
+  type WebGLSceneObjectPointerState,
 } from "../../../src/lib/effects/effectAuthoring";
 import {
   createWebGLEffectRegistry,
@@ -315,6 +316,69 @@ describe("stage object registry", () => {
     });
   });
 
+  test("collects physics candidates for stage primitives", () => {
+    const floorObject = createSceneObject("primitive:floor");
+    const boxObject = createSceneObject("primitive:box");
+    const objectPointer = createObjectPointerState();
+    const registry = createStageObjectRegistry({
+      getSceneAdapter() {
+        return createSceneAdapter();
+      },
+      createPrimitiveObject(declaration) {
+        return declaration.id === "floor" ? floorObject : boxObject;
+      },
+      createLightObject() {
+        return createSceneObject("light:hero");
+      },
+      readObjectPointerState() {
+        return objectPointer;
+      },
+    });
+
+    registry.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+    });
+    registry.registerStagePrimitive({
+      id: "box",
+      sceneId: "world",
+      kind: "box",
+      physics: {
+        body: { type: "dynamic" },
+        collider: { kind: "box", size: [10, 10, 10] },
+        pointerDrag: true,
+      },
+    });
+
+    expect(registry.collectPhysicsCandidates()).toEqual([
+      expect.objectContaining({
+        id: "box",
+        sceneId: "world",
+        sourceKind: "stage/box",
+        object: boxObject,
+        objectPointer,
+        physics: expect.objectContaining({
+          body: expect.objectContaining({ type: "dynamic" }),
+          collider: expect.objectContaining({ kind: "box" }),
+          pointerDrag: expect.objectContaining({ stiffness: 0.24 }),
+        }),
+      }),
+    ]);
+
+    registry.unregisterStagePrimitive("box");
+    expect(registry.collectPhysicsCandidates()).toEqual([]);
+
+    registry.registerStagePrimitive({
+      id: "box",
+      sceneId: "world",
+      kind: "box",
+      physics: { body: { type: "dynamic" } },
+    });
+    registry.unregisterScene("world");
+    expect(registry.collectPhysicsCandidates()).toEqual([]);
+  });
+
   test("updates active timeline-bound stage and light visibility", () => {
     const floorObject = createSceneObject("primitive:floor");
     const heroLightObject = createSceneObject("light:hero");
@@ -479,5 +543,19 @@ function createFrameInput(): WebGLFrameInput {
       buttons: [],
       modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
+  };
+}
+
+function createObjectPointerState(): WebGLSceneObjectPointerState {
+  return {
+    isHovered: false,
+    isPressed: true,
+    isDragging: true,
+    wasClicked: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragDeltaX: 4,
+    dragDeltaY: 2,
+    hit: { point: [1, 2, 3], distance: 4 },
   };
 }

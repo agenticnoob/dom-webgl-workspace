@@ -5,6 +5,7 @@ import { Group } from "three/src/objects/Group.js";
 import {
   defineWebGLSceneObjectEffect,
   type WebGLEffectScopeSnapshot,
+  type WebGLSceneObjectPointerState,
 } from "../../../src/lib/effects/effectAuthoring";
 import {
   createWebGLEffectRegistry,
@@ -134,6 +135,66 @@ describe("managed model registry", () => {
         },
       },
     });
+  });
+
+  test("collects physics candidates for loaded scene-native models", async () => {
+    const worldAdapter = createSceneAdapter();
+    const objectPointer = createObjectPointerState();
+    const registry = createRegistry({
+      worldAdapter,
+      loadModel: async () => ({ scene: new Group() }),
+      readObjectPointerState() {
+        return objectPointer;
+      },
+    });
+
+    registry.registerModel({
+      id: "plain",
+      sceneId: "world",
+      src: "/models/plain.glb",
+    });
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      physics: {
+        body: { type: "dynamic" },
+        collider: { kind: "sphere", radius: 10 },
+        pointerDrag: true,
+      },
+    });
+
+    expect(registry.collectPhysicsCandidates()).toEqual([]);
+
+    await registry.update({ delta: 16 }, { get: () => 0 });
+
+    expect(registry.collectPhysicsCandidates()).toEqual([
+      expect.objectContaining({
+        id: "character",
+        sceneId: "world",
+        sourceKind: "model/glb",
+        object: worldAdapter.objects[1],
+        objectPointer,
+        physics: expect.objectContaining({
+          body: expect.objectContaining({ type: "dynamic" }),
+          collider: expect.objectContaining({ kind: "sphere", radius: 10 }),
+          pointerDrag: expect.objectContaining({ stiffness: 0.24 }),
+        }),
+      }),
+    ]);
+
+    registry.unregisterModel("character");
+    expect(registry.collectPhysicsCandidates()).toEqual([]);
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      physics: { body: { type: "dynamic" } },
+    });
+    await registry.update({ delta: 16 }, { get: () => 0 });
+    registry.unregisterScene("world");
+    expect(registry.collectPhysicsCandidates()).toEqual([]);
   });
 
   test("replaces duplicate model ids and releases previous scene objects", async () => {
@@ -580,6 +641,7 @@ function createRegistry(options: {
   loadModel?: (source: WebGLModelSourceDescriptor) => Promise<unknown>;
   effectRegistry?: WebGLEffectRegistry;
   readEffectScopes?(sceneId: string): WebGLEffectScopeSnapshot;
+  readObjectPointerState?(objectId: string): WebGLSceneObjectPointerState;
 }): ManagedModelRegistry {
   return createManagedModelRegistry({
     resourceManager: createResourceManager(),
@@ -594,6 +656,9 @@ function createRegistry(options: {
     ...(options.effectRegistry ? { effectRegistry: options.effectRegistry } : {}),
     ...(options.readEffectScopes
       ? { readEffectScopes: options.readEffectScopes }
+      : {}),
+    ...(options.readObjectPointerState
+      ? { readObjectPointerState: options.readObjectPointerState }
       : {}),
   });
 }
@@ -674,5 +739,19 @@ function createFrameInput(): WebGLFrameInput {
       buttons: [],
       modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
+  };
+}
+
+function createObjectPointerState(): WebGLSceneObjectPointerState {
+  return {
+    isHovered: false,
+    isPressed: true,
+    isDragging: true,
+    wasClicked: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragDeltaX: 4,
+    dragDeltaY: 2,
+    hit: { point: [1, 2, 3], distance: 4 },
   };
 }

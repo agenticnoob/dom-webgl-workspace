@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 8B camera gesture persistence verification
+**Last reviewed against:** Phase 9 dynamics and physics implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -127,6 +127,19 @@ phase records are archived under [archive/](./archive/).
     and receive `ctx.objectPointer`, `ctx.object`, `ctx.scene`, and
     `ctx.runtime` without raw intersections, raycasters, cameras, or
     `ctx.targetPointer`
+- Opt-in scene-native dynamics/physics:
+  - `WebGLStagePlane`, `WebGLStageBox`, and `WebGLModel` can declare
+    descriptor-only `physics`
+  - supported body types are `static`, `dynamic`, and `kinematic`
+  - supported collider descriptors are `bounds`, `box`, `sphere`, and `plane`
+  - supported constraints are `anchor` and `spring`; `pointerDrag` feeds a
+    runtime-owned spring constraint from Phase 8 object hit/drag state
+  - the runtime owns body state, integration, simple static collision response,
+    transform writes, frame scheduling, debug summaries, and disposal
+  - debug state can report descriptor-only physics body counts, active body
+    counts, collisions, positions, velocities, collider kind, constraint count,
+    and pointer-drag activity without exposing a physics engine or raw Three.js
+    objects
 - Managed timeline bindings and effect scope metadata:
   - public declarations can bind `timeline` data on `WebGLTarget`,
     `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
@@ -208,6 +221,15 @@ phase records are archived under [archive/](./archive/).
   target-local effects, or raw render hooks to `WebGLModel`. Scene-native model
   effects are available only through explicit scene-object effects; they do not
   receive DOM layout, fallback, or `ctx.targetPointer`.
+- Scene-native physics descriptors are stable declarations on managed
+  stage/model objects only. They are not Level 1 `WebGLTarget` physics, not a
+  raw physics engine escape hatch, and not a full rigid-body solver. The v1
+  implementation is intentionally small: gravity/velocity/damping,
+  anchor/spring constraints, pointer-drag forces, static plane/box collision
+  response, runtime-owned transform writes, and descriptor-only debug.
+  Dynamic-vs-dynamic impulses, collision callbacks/events, joints, compound
+  colliders, external physics adapters, wheel/pinch physics controls, and
+  public body handles remain out of scope.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -259,11 +281,13 @@ phase records are archived under [archive/](./archive/).
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
 - The managed interaction example is mounted in `apps/example` and now serves
-  as the Phase 8B dogfood surface with one pickable `WebGLStagePlane` floor and
-  one pickable scene-native `/models/hero.glb` model. It keeps the managed
-  `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`, minimal lights, floor/model
-  scene-object effects registered with `defineWebGLSceneObjectEffect(...)`,
-  pass-local DOM-rect gesture framing/picking, model press/drag capture, and
+  as the Phase 8B/Phase 9 dogfood surface with a pickable static-physics
+  `WebGLStagePlane` floor, a pickable dynamic-physics `WebGLStageBox` crate,
+  and one pickable scene-native `/models/hero.glb` model. It keeps the managed
+  `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`, minimal lights,
+  floor/model scene-object effects registered with
+  `defineWebGLSceneObjectEffect(...)`, pass-local DOM-rect gesture
+  framing/picking, model press/drag capture, crate pointer-drag physics, and
   rich `controller.pointer` camera gestures: primary-drag orbit,
   secondary-drag pan, Alt + primary-drag dolly, camera parallax, damping, and
   double-click reset. It still omits `screen-plane` DOM targets.
@@ -333,6 +357,10 @@ orbit drag:
 Phase 8B verifies advanced managed camera gestures after Phase 8 input routing
 is stable:
 [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](./superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md).
+Phase 9 adds a focused descriptor-only scene-native dynamics/physics slice with
+runtime-owned body, collider, constraint, pointer-drag, transform, debug,
+scheduling, and disposal semantics:
+[2026-07-07-phase-9-dynamics-physics.md](./superpowers/plans/2026-07-07-phase-9-dynamics-physics.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -357,8 +385,9 @@ Relationship rules from the active roadmap:
   preserve current behavior. The generated ids are reserved internally, so
   consumer ids such as `main` are ordinary managed ids.
 - Scroll timelines and scoped effect routing are now the base for
-  progress-driven model animation, later input routing/picking, and physics.
-  Physics remains last, after managed stage/collider/input contracts exist.
+  progress-driven model animation, input routing/picking, and physics.
+  Physics is opt-in Level 3 scene-native work built against verified managed
+  stage, picking, object hit state, and camera gesture priority.
 - DOM-bound pass viewport/scissor is available for opt-in managed passes through
   `WebGLPassViewport` and pass `viewport` descriptors.
 
@@ -371,7 +400,7 @@ Relationship rules from the active roadmap:
 - managed model animation
 - managed input routing and picking
 - advanced managed camera gestures
-- dynamics/physics only after stage/collider contracts exist
+- scene-native dynamics/physics only through managed descriptors
 
 ## Active Docs
 

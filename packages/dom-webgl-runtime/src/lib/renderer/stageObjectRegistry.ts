@@ -36,6 +36,7 @@ import {
 import { createSceneObjectEffectObject } from "./sceneObjectEffectObject";
 import type { ScreenPlanePlacementPlane } from "./screenPlanePlacement";
 import type { ManagedHitCandidate } from "./interactionRouter";
+import type { ManagedPhysicsCandidate } from "./physicsWorld";
 import {
   createSceneObjectController,
   type WebGLSceneAdapter,
@@ -43,6 +44,7 @@ import {
   type WebGLSceneObjectController,
 } from "./sceneObject";
 import type { WebGLEffectsDeclaration } from "../types";
+import type { NormalizedPhysicsDeclaration } from "./physicsDeclarations";
 
 export type StageObjectRegistry = {
   registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
@@ -53,6 +55,7 @@ export type StageObjectRegistry = {
   updateTimelineState(progressSignals: WebGLProgressSignalSource): void;
   updateEffects(input: WebGLFrameInput): boolean;
   collectHitCandidates(): ManagedHitCandidate[];
+  collectPhysicsCandidates(): ManagedPhysicsCandidate[];
   readStagePlane(
     planeId: string,
     sceneId: string,
@@ -90,6 +93,7 @@ type StagePrimitiveRegistryEntry = RegistryEntry & {
   kind: WebGLStagePrimitiveDeclaration["kind"];
   effects?: WebGLEffectsDeclaration;
   interaction?: NormalizedSceneObjectInteractionDeclaration;
+  physics?: NormalizedPhysicsDeclaration;
   screenPlane?: ScreenPlanePlacementPlane;
 };
 
@@ -156,6 +160,7 @@ export function createStageObjectRegistry(
         ...(normalized.timeline ? { timeline: normalized.timeline } : {}),
         ...(normalized.effects ? { effects: normalized.effects } : {}),
         ...(normalized.interaction ? { interaction: normalized.interaction } : {}),
+        ...(normalized.physics ? { physics: normalized.physics } : {}),
         ...(screenPlane ? { screenPlane } : {}),
         ...(effectController ? { effectController } : {}),
         controller,
@@ -228,6 +233,26 @@ export function createStageObjectRegistry(
             hitTest: pickable.hitTest,
             pickable: true,
             pointer: pickable.pointer,
+          },
+        ];
+      });
+    },
+    collectPhysicsCandidates(): ManagedPhysicsCandidate[] {
+      return Array.from(primitiveEntries).flatMap(([id, entry]) => {
+        if (!entry.physics?.body || !readEffectiveVisibility(entry)) {
+          return [];
+        }
+
+        return [
+          {
+            id,
+            sceneId: entry.sceneId,
+            sourceKind: readStagePrimitiveSourceKind(entry.kind),
+            object: entry.controller.object,
+            physics: entry.physics,
+            ...(options.readObjectPointerState
+              ? { objectPointer: options.readObjectPointerState(id) }
+              : {}),
           },
         ];
       });

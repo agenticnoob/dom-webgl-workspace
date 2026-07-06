@@ -60,8 +60,13 @@ import {
   normalizeSceneObjectInteraction,
   type NormalizedSceneObjectInteractionDeclaration,
 } from "./sceneObjectInteractionDeclarations";
+import {
+  normalizePhysicsDeclaration,
+  type NormalizedPhysicsDeclaration,
+} from "./physicsDeclarations";
 import { createSceneObjectEffectObject } from "./sceneObjectEffectObject";
 import type { ManagedHitCandidate } from "./interactionRouter";
+import type { ManagedPhysicsCandidate } from "./physicsWorld";
 import {
   createSceneObjectController,
   type WebGLSceneAdapter,
@@ -80,6 +85,7 @@ export type ManagedModelRegistry = {
   ): boolean | Promise<boolean>;
   consumeRenderWarmupRequests(): ManagedModelPrepareRequest[];
   collectHitCandidates(): ManagedHitCandidate[];
+  collectPhysicsCandidates(): ManagedPhysicsCandidate[];
   markRenderWarmupComplete(id: string): void;
   inspect(): ManagedModelRegistryDebugState;
   dispose(): void;
@@ -128,6 +134,7 @@ type NormalizedModelDeclaration = {
   readonly prepare?: NormalizedModelPrepareDeclaration;
   readonly effects?: WebGLEffectsDeclaration;
   readonly interaction?: NormalizedSceneObjectInteractionDeclaration;
+  readonly physics?: NormalizedPhysicsDeclaration;
 };
 
 type NormalizedModelAnimationDeclaration = {
@@ -314,6 +321,34 @@ export function createManagedModelRegistry(
         ];
       });
     },
+    collectPhysicsCandidates(): ManagedPhysicsCandidate[] {
+      return Array.from(entries.values()).flatMap((entry) => {
+        if (
+          !entry.declaration.physics?.body ||
+          !entry.controller ||
+          !readEffectiveVisibility(entry)
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            id: entry.declaration.id,
+            sceneId: entry.declaration.sceneId,
+            sourceKind: "model/glb",
+            object: entry.controller.object,
+            physics: entry.declaration.physics,
+            ...(options.readObjectPointerState
+              ? {
+                  objectPointer: options.readObjectPointerState(
+                    entry.declaration.id,
+                  ),
+                }
+              : {}),
+          },
+        ];
+      });
+    },
     markRenderWarmupComplete(id): void {
       const entry = entries.get(id.trim());
       if (entry?.renderWarmup === "pending") {
@@ -471,6 +506,7 @@ function normalizeModelDeclaration(
   const prepare = normalizeModelPrepareDeclaration(declaration.prepare);
   const effects = normalizeSceneObjectEffects(declaration.effects);
   const interaction = normalizeSceneObjectInteraction(declaration.interaction);
+  const physics = normalizePhysicsDeclaration(declaration.physics);
 
   return {
     id,
@@ -495,6 +531,7 @@ function normalizeModelDeclaration(
     ...(prepare ? { prepare } : {}),
     ...(effects ? { effects } : {}),
     ...(interaction ? { interaction } : {}),
+    ...(physics ? { physics } : {}),
   };
 }
 

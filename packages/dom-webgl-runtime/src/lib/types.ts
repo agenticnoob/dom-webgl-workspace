@@ -210,6 +210,69 @@ export type WebGLTuple2 = readonly [number, number];
 
 export type WebGLTuple3 = readonly [number, number, number];
 
+export type WebGLPhysicsBodyType = "static" | "dynamic" | "kinematic";
+
+export type WebGLPhysicsBodyDeclaration = {
+  readonly type?: WebGLPhysicsBodyType;
+  readonly mass?: number;
+  readonly velocity?: WebGLTuple3;
+  readonly gravityScale?: number;
+  readonly damping?: number;
+  readonly restitution?: number;
+  readonly friction?: number;
+};
+
+export type WebGLColliderDeclaration =
+  | {
+      readonly kind?: "bounds";
+      readonly padding?: number | WebGLTuple3;
+    }
+  | {
+      readonly kind: "box";
+      readonly size?: WebGLTuple3;
+      readonly center?: WebGLTuple3;
+    }
+  | {
+      readonly kind: "sphere";
+      readonly radius?: number;
+      readonly center?: WebGLTuple3;
+    }
+  | {
+      readonly kind: "plane";
+      readonly normal?: WebGLTuple3;
+      readonly offset?: number;
+    };
+
+export type WebGLPhysicsConstraintDeclaration =
+  | {
+      readonly kind: "anchor";
+      readonly target: WebGLTuple3;
+      readonly stiffness?: number;
+      readonly damping?: number;
+    }
+  | {
+      readonly kind: "spring";
+      readonly target: WebGLTuple3;
+      readonly restLength?: number;
+      readonly stiffness?: number;
+      readonly damping?: number;
+    };
+
+export type WebGLPhysicsPointerDragDeclaration =
+  | boolean
+  | {
+      readonly stiffness?: number;
+      readonly damping?: number;
+      readonly maxForce?: number;
+    };
+
+export type WebGLPhysicsDeclaration = {
+  readonly body?: WebGLPhysicsBodyDeclaration;
+  readonly collider?: false | WebGLColliderDeclaration;
+  readonly constraints?: readonly WebGLPhysicsConstraintDeclaration[];
+  readonly pointerDrag?: WebGLPhysicsPointerDragDeclaration;
+};
+
 export type WebGLSceneProjection =
   | "dom-aligned"
   | "screen"
@@ -470,6 +533,7 @@ export type WebGLStagePrimitiveBaseDeclaration = {
   timeline?: WebGLTimelineBindingDeclaration;
   effects?: WebGLEffectsDeclaration;
   interaction?: WebGLSceneObjectInteractionDeclaration;
+  physics?: WebGLPhysicsDeclaration;
 };
 
 export type WebGLStagePlaneDeclaration =
@@ -518,6 +582,7 @@ export type WebGLModelDeclaration = {
   readonly prepare?: WebGLModelPrepareDeclaration;
   readonly effects?: WebGLEffectsDeclaration;
   readonly interaction?: WebGLSceneObjectInteractionDeclaration;
+  readonly physics?: WebGLPhysicsDeclaration;
 };
 
 export type WebGLDeclaration = {
@@ -800,6 +865,26 @@ export type WebGLDebugInteractionSummary = {
   };
 };
 
+export type WebGLDebugPhysicsBodySummary = {
+  readonly id: string;
+  readonly sceneId: string;
+  readonly sourceKind: WebGLSceneObjectEffectSourceKind;
+  readonly type: WebGLPhysicsBodyType;
+  readonly active: boolean;
+  readonly collider?: { readonly kind: "bounds" | "box" | "sphere" | "plane" };
+  readonly position: WebGLTuple3;
+  readonly velocity: WebGLTuple3;
+  readonly constraints: number;
+  readonly pointerDrag: boolean;
+};
+
+export type WebGLDebugPhysicsSummary = {
+  readonly bodyCount: number;
+  readonly activeBodyCount: number;
+  readonly collisionCount: number;
+  readonly bodies: readonly WebGLDebugPhysicsBodySummary[];
+};
+
 export type WebGLDebugRenderPassSummary = {
   id: string;
   sceneId: string;
@@ -825,6 +910,7 @@ export type WebGLDebugState = {
   models?: WebGLDebugModelSummary[];
   cameraControllers?: WebGLDebugCameraControllerSummary[];
   interaction?: WebGLDebugInteractionSummary;
+  physics?: WebGLDebugPhysicsSummary;
   renderPasses?: WebGLDebugRenderPassSummary[];
   postprocessRequests?: WebGLDebugPostprocessRequestSummary[];
   targets: Array<{

@@ -3,6 +3,7 @@ import type {
   WebGLDebugCameraControllerSummary,
   WebGLDebugInteractionSummary,
   WebGLDebugModelSummary,
+  WebGLDebugPhysicsSummary,
   WebGLDebugPostprocessRequestSummary,
   WebGLDebugRenderPassSummary,
   WebGLDebugSceneObjectInteractionSummary,
@@ -54,6 +55,7 @@ export type DebugRuntimeState = {
   models?: readonly WebGLDebugModelSummary[];
   cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
   interaction?: WebGLDebugInteractionSummary;
+  physics?: WebGLDebugPhysicsSummary;
   renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
 };
@@ -227,6 +229,10 @@ export function createDebugState(
     state.interaction = cloneInteractionSummary(runtimeState.interaction);
   }
 
+  if (runtimeState.physics && runtimeState.physics.bodyCount > 0) {
+    state.physics = clonePhysicsSummary(runtimeState.physics);
+  }
+
   if (runtimeState.renderPasses && runtimeState.renderPasses.length > 0) {
     state.renderPasses = runtimeState.renderPasses.map((entry) => ({
       id: entry.id,
@@ -276,6 +282,28 @@ export function createDebugState(
   }
 
   return state;
+}
+
+function clonePhysicsSummary(
+  physics: WebGLDebugPhysicsSummary,
+): WebGLDebugPhysicsSummary {
+  return {
+    bodyCount: physics.bodyCount,
+    activeBodyCount: physics.activeBodyCount,
+    collisionCount: physics.collisionCount,
+    bodies: physics.bodies.map((body) => ({
+      id: body.id,
+      sceneId: body.sceneId,
+      sourceKind: body.sourceKind,
+      type: body.type,
+      active: body.active,
+      ...(body.collider ? { collider: { kind: body.collider.kind } } : {}),
+      position: [body.position[0], body.position[1], body.position[2]],
+      velocity: [body.velocity[0], body.velocity[1], body.velocity[2]],
+      constraints: body.constraints,
+      pointerDrag: body.pointerDrag,
+    })),
+  };
 }
 
 function cloneSceneObjectInteraction(

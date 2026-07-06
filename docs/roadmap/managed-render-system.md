@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 8B camera gesture persistence verification
+**Last reviewed against:** Phase 9 dynamics and physics implementation
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -217,7 +217,7 @@ giving advanced scenes a cleaner way to declare pure 3D assets.
 The current system has strong DOM-to-WebGL anchoring, but it lacks a public
 space/stage/world concept. That leads to repeated one-off capability requests:
 model glow, lit backdrop, wall/floor, target-local bloom, postprocess scope,
-picking, and future physics.
+picking, and managed physics.
 
 The missing abstraction is not another `ctx.object.model.*` method. The missing
 abstraction is a managed render model that can describe:
@@ -479,8 +479,8 @@ Consumption scopes:
   pointer-driven parallax, dolly, orbit/trackball-style managed controllers.
 - `ctx.object`: target/object hover, press, click, drag, local pointer state, and
   object-local progress.
-- future physics scope: drag constraints, forces, impulses, collision events,
-  and body transforms.
+- physics scope: drag constraints, forces, and body transforms; richer
+  impulses/collision events remain future explicit scope.
 
 Routing priority should be explicit:
 
@@ -766,7 +766,7 @@ Status values:
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
 | Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
-| Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model; realistic inertia, constraints, forces, and physics drag stay here rather than Phase 8B. |
+| Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, pointer-drag forces, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
 Rules for future updates:
@@ -1708,30 +1708,37 @@ Acceptance criteria:
 - Pointer gesture frames persist after movement stops or release, and true
   managed camera resize re-applies the current gesture frame rather than
   snapping back to the declaration base frame.
-- `apps/example/src/ManagedInteractionExample.tsx` remains the Phase 8B dogfood:
-  object picking covers one floor plus one scene-native hero model, while the
+- `apps/example/src/ManagedInteractionExample.tsx` remains the managed
+  interaction dogfood: object picking covers one static-physics floor, one
+  dynamic pointer-draggable crate, and one scene-native hero model, while the
   same managed camera validates orbit, pan, dolly, camera parallax, damping,
   and reset through public React descriptors.
 
 ### Phase 9: Dynamics and Physics
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
-- **Depends on:** Phase 4, Phase 8
-- **Last updated:** 2026-07-03
-- **Exit criteria:** managed dynamics or physics can drive eligible stage-local
-  objects through runtime-owned transforms, constraints, and lifecycle.
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md)
+- **Depends on:** Phase 4, Phase 8, Phase 8B
+- **Last updated:** 2026-07-07
+- **Exit criteria:** managed dynamics/physics drives eligible scene-native
+  stage/model objects through runtime-owned transforms, constraints, debug, and
+  lifecycle.
 
-Goal: add motion systems after stage and collider contracts exist.
+Result: Phase 9 adds a small runtime-owned physics world for managed
+scene-native descriptors after stage, picking, and camera gesture priority are
+stable.
 
-Possible layers:
+Implemented v1 layers:
 
-- simple springs and constraints;
-- simple springs and constraints for scene-native objects;
-- optional physics adapter;
-- collider descriptors;
-- collision events;
-- pointer-drag constraints built on Phase 8 hit state.
+- descriptor-only `physics` on `WebGLStagePlane`, `WebGLStageBox`, and
+  `WebGLModel`;
+- `static`, `dynamic`, and `kinematic` body types;
+- `bounds`, `box`, `sphere`, and `plane` colliders;
+- `anchor` and `spring` constraints;
+- `pointerDrag` forces built on Phase 8 object hit/drag state;
+- runtime-owned transform writes, frame scheduling, debug summaries, and
+  lifecycle/disposal;
+- example dogfood with a static floor and dynamic pointer-draggable crate.
 
 Rules:
 
@@ -1749,6 +1756,9 @@ Acceptance criteria:
 - Pointer dragging can move a managed body through a constraint or force model.
 - Physics or dynamics pause/dispose with runtime lifecycle.
 - The runtime remains compatible with static, non-physics pages.
+- Dynamic-vs-dynamic impulses, collision events, joints, compound colliders,
+  external physics adapters, Level 1 target physics, and raw body/engine handles
+  remain out of scope.
 
 ### Phase 10: Advanced Escape Hatch Decision
 
@@ -2031,18 +2041,21 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-Phase 1 through Phase 7D define the managed render foundation through
+Phase 1 through Phase 9 define the managed render foundation through
 scene-native `WebGLModel`, runtime-owned model registry, descriptor animation
 controls, corrected model dogfood, skeleton-safe clone, and descriptor-only
 render warmup without exposing raw mixers, actions, bones, skeletons, renderers,
 or morph target arrays. Phase 7C adds explicit multi-clip defaults, Phase 7D
 keeps Sprint model load/prepare work out of the focused startup idle window and
 first-visible scroll-entry stalls, and Phase 8 adds scene-object effects,
-`screen-plane`, managed picking, and minimal empty-space camera drag.
+`screen-plane`, managed picking, and minimal empty-space camera drag. Phase 8B
+adds advanced camera gesture controllers, and Phase 9 adds descriptor-only
+scene-native physics without raw engine/body handles.
 
-The next suggested implementation loop is Phase 9: dynamics and physics. Do not
-start it until the collider/body ownership model is planned against the verified
-Phase 8 object hit state and Phase 8B camera gesture priority.
+The next suggested implementation loop is Phase 10: Advanced Escape Hatch
+Decision. Do not add an unsafe/raw escape hatch unless the managed descriptors
+that now exist through Phase 9 prove insufficient against real downstream
+needs.
 
 The safest sequence is:
 

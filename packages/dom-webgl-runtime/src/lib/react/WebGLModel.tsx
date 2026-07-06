@@ -23,6 +23,7 @@ export function WebGLModel({
   prepare,
   effects,
   interaction,
+  physics,
 }: WebGLModelProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -49,6 +50,7 @@ export function WebGLModel({
       ...(prepare !== undefined ? { prepare } : {}),
       ...(effects !== undefined ? { effects } : {}),
       ...(interaction !== undefined ? { interaction } : {}),
+      ...(physics !== undefined ? { physics } : {}),
     });
 
     return () => {
@@ -69,6 +71,7 @@ export function WebGLModel({
     prepare,
     effects,
     interaction,
+    physics,
   ]);
 
   return null;

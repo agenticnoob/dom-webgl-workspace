@@ -3878,6 +3878,62 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("runtime advances scene-native physics bodies and exposes debug summaries", async () => {
+    let now = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      clock() {
+        return now;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "crate",
+      sceneId: "world",
+      kind: "box",
+      position: [0, 0, 0],
+      physics: {
+        body: { type: "dynamic", velocity: [60, 0, 0], gravityScale: 0 },
+        collider: false,
+      },
+    });
+
+    await runtime.sync();
+    now = 1000 / 60;
+    await runtime.sync();
+
+    expect(runtime.getDebugState().physics).toMatchObject({
+      bodyCount: 1,
+      activeBodyCount: 1,
+      bodies: [
+        {
+          id: "crate",
+          sceneId: "world",
+          sourceKind: "stage/box",
+          type: "dynamic",
+          active: true,
+        },
+      ],
+    });
+    expect(runtime.getDebugState().physics?.bodies[0]?.position[0]).toBeCloseTo(
+      1,
+    );
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({
+      position: expect.objectContaining({ x: 1, y: 0, z: 0 }),
+    });
+
+    runtime.dispose();
+
+    expect(runtime.getDebugState().physics).toBeUndefined();
+  });
+
   test("runtime updates timeline-bound stage object visibility from progress signals", async () => {
     let progress = 0;
     const mainAdapter = createObjectRecordingSceneAdapter();

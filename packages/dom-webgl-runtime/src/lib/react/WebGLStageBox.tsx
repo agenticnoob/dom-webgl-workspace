@@ -24,6 +24,7 @@ export function WebGLStageBox({
   timeline,
   effects,
   interaction,
+  physics,
 }: WebGLStageBoxProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -49,6 +50,7 @@ export function WebGLStageBox({
       ...(timeline !== undefined ? { timeline } : {}),
       ...(effects !== undefined ? { effects } : {}),
       ...(interaction !== undefined ? { interaction } : {}),
+      ...(physics !== undefined ? { physics } : {}),
     });
 
     return () => {
@@ -67,6 +69,7 @@ export function WebGLStageBox({
     timeline,
     effects,
     interaction,
+    physics,
   ]);
 
   return null;

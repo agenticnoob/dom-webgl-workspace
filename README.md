@@ -9,7 +9,7 @@ Current implementation truth lives in `docs/STATUS.md`.
 The next strategic direction is
 `docs/roadmap/managed-render-system.md`: evolve the runtime from target-local
 capabilities into managed scenes, cameras, projection policies, render passes,
-stage primitives, model animation, scoped input, and eventually dynamics/physics
+stage primitives, model animation, scoped input, and scene-native dynamics/physics
 while keeping raw Three.js internals private.
 
 Completed phase plans and historical execution records are archived under
@@ -61,6 +61,15 @@ Current runtime behavior:
   `hitTest: "bounds"` or visual `hitTest: "mesh"`; scene-object effects are
   registered with `defineWebGLSceneObjectEffect(...)` and receive managed object
   pointer state without raw raycaster/intersection/camera handles.
+- Scene-native `WebGLModel`, `WebGLStagePlane`, and `WebGLStageBox` descriptors
+  can also opt into descriptor-only `physics`. The runtime owns body state,
+  simple gravity/velocity/damping integration, `static`/`dynamic`/`kinematic`
+  bodies, `bounds`/`box`/`sphere`/`plane` colliders, `anchor`/`spring`
+  constraints, pointer-drag forces from managed object hit state, static
+  plane/box collision response, transform writes, scheduling, debug summaries,
+  and disposal. This is Level 3 scene-native physics only; it does not add
+  Level 1 `WebGLTarget` physics, raw physics-engine handles, dynamic-vs-dynamic
+  impulses, joints, or collision events.
 - DOM targets in managed perspective-stage scenes can use
   `placement: { mode: "screen-plane", planeId }` to project their DOM rect
   center onto a named stage plane.
@@ -109,6 +118,9 @@ Current runtime behavior:
   resource status, timeline state, clips, active clips, morph names, bone names,
   and missing clip/morph diagnostics without exposing raw GLTF, mixers, actions,
   skeletons, or morph arrays.
+- Debug state can report descriptor-only physics body counts, active body
+  counts, collisions, positions, velocities, collider kind, constraint count,
+  and pointer-drag activity without exposing raw body or engine handles.
 - Image, video, and model resources are cached by normalized resource key.
   Relative/app-local URLs keep path/search/hash normalization; absolute
   HTTP(S) and protocol-relative URLs preserve origin to avoid cross-origin
@@ -178,12 +190,13 @@ Current example behavior:
   It still uses the same runtime canvas; the pass is clipped to the visible DOM
   rect without remapping or compressing the pass, and skipped while fully
   offscreen rather than rendered into a second local canvas.
-- The Phase 8B managed interaction example is mounted in the current catalog and
-  dogfoods one pickable `WebGLStagePlane` floor plus one pickable
-  scene-native `/models/hero.glb` model while testing rich camera gestures on
-  the same managed camera: primary-drag orbit, secondary-drag pan,
-  Alt + primary-drag dolly, camera parallax, damping, and double-click reset.
-  It still omits `screen-plane` DOM targets.
+- The Phase 8B/Phase 9 managed interaction example is mounted in the current
+  catalog and dogfoods one pickable static-physics `WebGLStagePlane` floor, one
+  pickable dynamic-physics `WebGLStageBox` crate, and one pickable scene-native
+  `/models/hero.glb` model while testing rich camera gestures on the same
+  managed camera: primary-drag orbit, secondary-drag pan, Alt + primary-drag
+  dolly, camera parallax, damping, and double-click reset. It still omits
+  `screen-plane` DOM targets.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -556,6 +569,15 @@ Those effects are defined with `defineWebGLSceneObjectEffect(...)`, receive
 receive DOM `layout`, `ctx.targetPointer`, raw raycasters, raw intersections, or
 raw camera/object handles. This is separate from target-local effects on
 `WebGLTarget`.
+
+`WebGLModel`, `WebGLStagePlane`, and `WebGLStageBox` can declare
+descriptor-only `physics` for scene-native objects. Supported v1 descriptors are
+`static`/`dynamic`/`kinematic` bodies, `bounds`/`box`/`sphere`/`plane`
+colliders, `anchor`/`spring` constraints, and `pointerDrag` built from managed
+object hit state. The runtime owns integration, simple static collision
+response, transform writes, scheduling, debug summaries, and disposal. This does
+not add Level 1 `WebGLTarget` physics, raw physics-engine access, public body
+handles, dynamic-vs-dynamic impulses, joints, or collision events.
 
 Preferred declaration form:
 

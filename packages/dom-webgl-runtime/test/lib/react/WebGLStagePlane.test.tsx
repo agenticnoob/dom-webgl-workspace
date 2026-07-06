@@ -43,6 +43,10 @@ describe("WebGLStagePlane", () => {
               role: "floor",
               size: [1200, 800],
               timeline: "hero.3d",
+              physics: {
+                body: { type: "static" },
+                collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+              },
             }),
           ),
         ),
@@ -56,6 +60,10 @@ describe("WebGLStagePlane", () => {
       role: "floor",
       size: [1200, 800],
       timeline: "hero.3d",
+      physics: {
+        body: { type: "static" },
+        collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+      },
     });
 
     act(() => {

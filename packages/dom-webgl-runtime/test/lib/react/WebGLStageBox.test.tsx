@@ -39,6 +39,11 @@ describe("WebGLStageBox", () => {
             scene: "overlay",
             size: [1, 2, 3],
             timeline: "hero.3d",
+            physics: {
+              body: { type: "dynamic", mass: 2, gravityScale: 0.5 },
+              collider: { kind: "box", size: [1, 2, 3] },
+              pointerDrag: true,
+            },
           }),
         ),
       );
@@ -50,6 +55,11 @@ describe("WebGLStageBox", () => {
       kind: "box",
       size: [1, 2, 3],
       timeline: "hero.3d",
+      physics: {
+        body: { type: "dynamic", mass: 2, gravityScale: 0.5 },
+        collider: { kind: "box", size: [1, 2, 3] },
+        pointerDrag: true,
+      },
     });
 
     act(() => {
