@@ -1397,19 +1397,18 @@ Public direction:
   scale={44}
   animation={{
     defaultClips: [
-      { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-      { clip: "SpeedLines.001", loop: "repeat" },
-      { clip: "BagArmature.001", loop: "repeat" },
+      { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
+      { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
+      { clip: "Plane.250", loop: "repeat", timeScale: 3.2 },
+      { clip: "Plane.251", loop: "repeat", timeScale: 3.2 },
+      { clip: "Ray.001", loop: "repeat", timeScale: 3.2 },
+      { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
+      { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
     ],
     scrub: {
-      clip: "Walk",
-      timeline: { id: "hero.timeline" },
-      durationSeconds: 1.4,
-    },
-    blend: {
-      from: "Idle",
-      to: "Walk",
-      timeline: { id: "hero.timeline" },
+      clip: "checkoutCTRL.001",
+      timeline: { id: "hero.timeline", active: { from: 0.08, to: 0.92 } },
+      durationSeconds: 8.333,
     },
   }}
 />
@@ -1441,9 +1440,8 @@ defineWebGLEffect({
   kind: "app.characterScroll",
   update(ctx, _state, params) {
     const progress = ctx.progress.get(params.progressKey);
-    ctx.object.animation?.play("Walk", { loop: "repeat" });
-    ctx.object.animation?.setTime(progress * 1.4);
-    ctx.object.model?.morphs?.set("Smile", progress);
+    ctx.object.animation?.play("checkoutCTRL.001", { loop: "repeat" });
+    ctx.object.animation?.setTime(progress * 8.333);
   },
 });
 ```
@@ -1517,8 +1515,9 @@ Rules:
 - **Last updated:** 2026-07-06
 - **Exit criteria:** `WebGLModel.animation.defaultClips` can start several
   explicitly named clips once, reports active clips and missing clip diagnostics,
-  preserves `defaultClip`, and dogfoods Sprint's main skeleton, speed lines, and
-  bag clips without exposing raw animation internals.
+  preserves `defaultClip`, and dogfoods Sprint's main skeleton, speed-line
+  root/plane clips, and bag clips with visible example framing and clip
+  `timeScale` values, without exposing raw animation internals.
 
 Goal: add intentional multi-clip startup for exported GLB assets whose visible
 motion is split across several named clips.
@@ -1531,7 +1530,13 @@ Scope:
 - Start each declared default clip once through the existing runtime-owned
   animation controller.
 - Use the Phase 7 model dogfood to declare `MainSkeleton.001`,
-  `SpeedLines.001`, and `BagArmature.001` explicitly.
+  `SpeedLines.001`, selected speed-line plane clips, and `BagArmature.001`
+  explicitly, with example-only playback speed values that make the dogfood
+  visually legible.
+- Use the already-supported `animation.scrub` descriptor in the same pinned
+  dogfood row to scrub the visible checkout control clip for browser
+  interaction proof; do not add target-local scene-native model effects in
+  Phase 7C.
 - Keep active clip and missing clip debug state descriptor-only.
 
 Rules:

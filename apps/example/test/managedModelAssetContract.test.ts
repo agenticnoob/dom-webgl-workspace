@@ -5,6 +5,18 @@ import { describe, expect, test } from "vitest";
 const dogfoodClipNames = [
   "MainSkeleton.001",
   "SpeedLines.001",
+  "Plane.250",
+  "Plane.251",
+  "Plane.252",
+  "Plane.253",
+  "Plane.254",
+  "Plane.256",
+  "Plane.258",
+  "Plane.262",
+  "Plane.263",
+  "Plane.264",
+  "Ray.001",
+  "checkoutCTRL.001",
   "BagArmature.001",
 ] as const;
 

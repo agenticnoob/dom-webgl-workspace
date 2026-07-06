@@ -2,11 +2,36 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
+const scrollTimelineProps: ScrollTimelineMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
+const expectedSpeedLinePlaneClips = [
+  "Plane.250",
+  "Plane.251",
+  "Plane.252",
+  "Plane.253",
+  "Plane.254",
+  "Plane.256",
+  "Plane.258",
+  "Plane.262",
+  "Plane.263",
+  "Plane.264",
+  "Ray.001",
+] as const;
+
+type ScrollTimelineMockProps = {
+  readonly as?: string;
+  readonly children?: ReactNode;
+  readonly className?: string;
+  readonly end?: string;
+  readonly id: string;
+  readonly pin?: boolean;
+  readonly scrub?: boolean | number;
+  readonly start?: string;
+};
 
 type SceneMockProps = {
   readonly id: string;
@@ -53,6 +78,19 @@ type ModelMockProps = {
   readonly timeline?: Record<string, unknown>;
 };
 
+vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
+  WebGLScrollTimeline: ({
+    as = "section",
+    children,
+    className,
+    id,
+    ...props
+  }: ScrollTimelineMockProps) => {
+    scrollTimelineProps.push({ as, children, className, id, ...props });
+    return createElement(as, { className, "data-timeline-id": id }, children);
+  },
+}));
+
 vi.mock("@project/dom-webgl-runtime/react", () => ({
   WebGLPassViewport: ({ children, ...props }: PassViewportMockProps) => {
     const { as, ...domProps } = props;
@@ -88,6 +126,20 @@ describe("ManagedModelAnimationExample", () => {
     expect(markup).toContain("example-managed-model-dogfood");
     expect(markup).toContain("managed model animation");
     expect(markup).toContain("Sprint.glb");
+    expect(markup).toContain("Main skeleton");
+    expect(markup).toContain("Speed-line planes");
+    expect(markup).toContain("Checkout scrub");
+    expect(markup).toContain("Bag rig");
+    expect(scrollTimelineProps).toEqual([
+      expect.objectContaining({
+        id: "example.managedModel.timeline",
+        className: "example-row example-managed-model-dogfood",
+        start: "top top",
+        end: "+=180%",
+        pin: true,
+        scrub: true,
+      }),
+    ]);
     expect(passViewportProps).toEqual([
       expect.objectContaining({
         id: "example.managedModel.viewport",
@@ -115,8 +167,8 @@ describe("ManagedModelAnimationExample", () => {
         type: "perspective",
         mode: "perspective-stage",
         fov: 40,
-        position: [0, 160, 760],
-        target: [120, -70, -80],
+        position: [80, 132, 640],
+        target: [116, -76, -80],
       }),
     ]);
     expect(modelProps).toEqual([
@@ -124,15 +176,34 @@ describe("ManagedModelAnimationExample", () => {
         id: "example.managedModel.sprint",
         src: "/models/Sprint.glb",
         loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
-        position: [240, -60, -80],
-        rotation: [0, 0, 0],
-        scale: 8,
+        position: [116, -86, -80],
+        rotation: [0, -0.58, 0],
+        scale: 9.5,
         animation: {
           defaultClips: [
-            { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-            { clip: "SpeedLines.001", loop: "repeat" },
-            { clip: "BagArmature.001", loop: "repeat" },
+            {
+              clip: "MainSkeleton.001",
+              loop: "repeat",
+              fadeInMs: 160,
+              timeScale: 2.4,
+            },
+            { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
+            ...expectedSpeedLinePlaneClips.map((clip) => ({
+              clip,
+              loop: "repeat",
+              timeScale: 3.2,
+            })),
+            { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
+            { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
           ],
+          scrub: {
+            clip: "checkoutCTRL.001",
+            timeline: {
+              id: "example.managedModel.timeline",
+              active: { from: 0.08, to: 0.92 },
+            },
+            durationSeconds: 8.333,
+          },
         },
         prepare: { renderWarmup: "idle" },
       }),

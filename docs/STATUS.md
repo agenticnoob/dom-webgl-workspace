@@ -261,7 +261,12 @@ a minimal descriptor-only `WebGLModel.prepare.renderWarmup` path:
 [2026-07-05-phase-7-model-animation-correction-model-prepare.md](./superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md).
 Phase 7C is verified and adds explicit
 `WebGLModel.animation.defaultClips` for intentional multi-clip defaults while
-preserving `defaultClip`:
+preserving `defaultClip`; the example dogfood frames `Sprint.glb` more directly
+and uses explicit speed-line plane clips plus clip `timeScale` values so the
+main skeleton, speed lines, and bag rig visibly move during browser validation.
+It also uses the existing `animation.scrub` descriptor on its own pinned scroll
+timeline, scrubbing the visible checkout control clip for interaction proof
+without adding target-local `WebGLModel` effects:
 [2026-07-06-phase-7c-explicit-default-clips.md](./superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md).
 It does not add `playAllClips`, animation graphs, state machines, raw
 mixer/action access, additive layers, bone attachments, IK, or retargeting. After

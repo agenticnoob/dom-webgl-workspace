@@ -1,5 +1,9 @@
 import * as React from "react";
 import {
+  WebGLScrollTimeline,
+  type WebGLScrollTimelineProps,
+} from "@project/dom-webgl-scroll-adapters/react";
+import {
   WebGLLight,
   WebGLCamera,
   WebGLModel,
@@ -18,28 +22,65 @@ const modelSceneRender = {
   viewport: { mode: "dom-rect", scissor: true },
 } satisfies WebGLSceneRenderOptions;
 
-const cameraPosition = [0, 160, 760] satisfies NonNullable<
+const managedModelTimelineId = "example.managedModel.timeline";
+const modelTimelineStart = "top top" satisfies NonNullable<
+  WebGLScrollTimelineProps["start"]
+>;
+const modelTimelineEnd = "+=180%" satisfies NonNullable<
+  WebGLScrollTimelineProps["end"]
+>;
+const cameraPosition = [80, 132, 640] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
-const cameraTarget = [120, -70, -80] satisfies NonNullable<
+const cameraTarget = [116, -76, -80] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 
-const sprintModelPosition = [240, -60, -80] satisfies NonNullable<
+const sprintModelPosition = [116, -86, -80] satisfies NonNullable<
   WebGLModelProps["position"]
 >;
-const sprintModelRotation = [0, 0, 0] satisfies NonNullable<
+const sprintModelRotation = [0, -0.58, 0] satisfies NonNullable<
   WebGLModelProps["rotation"]
 >;
 const sprintModelLoader = {
   draco: { decoderPath: "/draco/gltf/", preload: true },
 } satisfies NonNullable<WebGLModelProps["loader"]>;
+const sprintModelClipLabels = [
+  "Main skeleton",
+  "Speed-line planes",
+  "Checkout scrub",
+  "Bag rig",
+] as const;
+const sprintSpeedLinePlaneClips = [
+  "Plane.250",
+  "Plane.251",
+  "Plane.252",
+  "Plane.253",
+  "Plane.254",
+  "Plane.256",
+  "Plane.258",
+  "Plane.262",
+  "Plane.263",
+  "Plane.264",
+  "Ray.001",
+] as const;
 const sprintModelAnimation = {
   defaultClips: [
-    { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-    { clip: "SpeedLines.001", loop: "repeat" },
-    { clip: "BagArmature.001", loop: "repeat" },
+    { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
+    { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
+    ...sprintSpeedLinePlaneClips.map((clip) => ({
+      clip,
+      loop: "repeat" as const,
+      timeScale: 3.2,
+    })),
+    { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
+    { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
   ],
+  scrub: {
+    clip: "checkoutCTRL.001",
+    timeline: { id: managedModelTimelineId, active: { from: 0.08, to: 0.92 } },
+    durationSeconds: 8.333,
+  },
 } satisfies NonNullable<WebGLModelProps["animation"]>;
 const sprintModelPrepare = {
   renderWarmup: "idle",
@@ -51,14 +92,27 @@ const keyLightPosition = [-120, 120, 180] satisfies NonNullable<
 
 export function ManagedModelAnimationExample() {
   return (
-    <section className="example-row example-managed-model-dogfood">
+    <WebGLScrollTimeline
+      id={managedModelTimelineId}
+      className="example-row example-managed-model-dogfood"
+      start={modelTimelineStart}
+      end={modelTimelineEnd}
+      pin
+      scrub
+    >
       <div className="example-managed-model-copy">
         <p className="example-kicker">managed model animation</p>
         <h2>Phase 7 模型动画独立验证</h2>
         <p>
-          Sprint.glb 通过 public WebGLModel 声明进入 scene，Draco loader 和显式默认 clips
-          都是 descriptor 数据，不混进 pinned timeline 或 stage primitive 示例。
+          Sprint.glb 通过 public WebGLModel 声明进入 scene，显式 defaultClips
+          同时启动主骨骼、速度线平面和 checkout 组合，并用固定滚动区间 scrub
+          可见动作。
         </p>
+        <ul className="example-managed-model-clips" aria-label="Active default clips">
+          {sprintModelClipLabels.map((label) => (
+            <li key={label}>{label}</li>
+          ))}
+        </ul>
       </div>
 
       <WebGLPassViewport
@@ -87,7 +141,7 @@ export function ManagedModelAnimationExample() {
             loader={sprintModelLoader}
             position={sprintModelPosition}
             rotation={sprintModelRotation}
-            scale={8}
+            scale={9.5}
             animation={sprintModelAnimation}
             prepare={sprintModelPrepare}
           />
@@ -101,6 +155,6 @@ export function ManagedModelAnimationExample() {
           />
         </WebGLScene>
       </WebGLPassViewport>
-    </section>
+    </WebGLScrollTimeline>
   );
 }

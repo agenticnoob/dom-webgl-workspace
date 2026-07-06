@@ -8,6 +8,19 @@ const runtimeProps: RuntimeMockProps[] = [];
 const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
 const scrollSectionProps: ScrollEffectSectionMockProps[] = [];
 const scrollTimelineProps: ScrollTimelineMockProps[] = [];
+const expectedManagedModelSpeedLinePlaneClips = [
+  "Plane.250",
+  "Plane.251",
+  "Plane.252",
+  "Plane.253",
+  "Plane.254",
+  "Plane.256",
+  "Plane.258",
+  "Plane.262",
+  "Plane.263",
+  "Plane.264",
+  "Ray.001",
+] as const;
 const targetProps: TargetMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
@@ -431,15 +444,34 @@ describe("effect authoring example app", () => {
         id: "example.managedModel.sprint",
         src: "/models/Sprint.glb",
         loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
-        position: [240, -60, -80],
-        rotation: [0, 0, 0],
-        scale: 8,
+        position: [116, -86, -80],
+        rotation: [0, -0.58, 0],
+        scale: 9.5,
         animation: {
           defaultClips: [
-            { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-            { clip: "SpeedLines.001", loop: "repeat" },
-            { clip: "BagArmature.001", loop: "repeat" },
+            {
+              clip: "MainSkeleton.001",
+              loop: "repeat",
+              fadeInMs: 160,
+              timeScale: 2.4,
+            },
+            { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
+            ...expectedManagedModelSpeedLinePlaneClips.map((clip) => ({
+              clip,
+              loop: "repeat",
+              timeScale: 3.2,
+            })),
+            { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
+            { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
           ],
+          scrub: {
+            clip: "checkoutCTRL.001",
+            timeline: {
+              id: "example.managedModel.timeline",
+              active: { from: 0.08, to: 0.92 },
+            },
+            durationSeconds: 8.333,
+          },
         },
         prepare: { renderWarmup: "idle" },
       }),
@@ -685,9 +717,18 @@ describe("effect authoring example app", () => {
       "example.pinned.reveal",
     ]);
     expect(scrollTimelineProps.map(({ id }) => id)).toEqual([
+      "example.managedModel.timeline",
       "example.managedTimeline",
     ]);
     expect(scrollTimelineProps[0]).toMatchObject({
+      className: "example-row example-managed-model-dogfood",
+      end: "+=180%",
+      id: "example.managedModel.timeline",
+      pin: true,
+      scrub: true,
+      start: "top top",
+    });
+    expect(scrollTimelineProps[1]).toMatchObject({
       className: "example-row example-managed-stage-timeline",
       end: "+=240%",
       id: "example.managedTimeline",
@@ -696,6 +737,7 @@ describe("effect authoring example app", () => {
       start: "top top",
     });
     expect(scrollTimelineProps[0]?.progressKey).toBeUndefined();
+    expect(scrollTimelineProps[1]?.progressKey).toBeUndefined();
     expect(scrollSectionProps.at(-2)).toMatchObject({
       className: "example-row example-video-scrub-row",
       end: "+=900%",

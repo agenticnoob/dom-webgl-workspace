@@ -492,6 +492,26 @@ body {
   color: rgba(246, 196, 83, 0.76);
 }
 
+.example-managed-model-clips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example-managed-model-clips li {
+  padding: 0.38rem 0.58rem;
+  border-inline-start: 2px solid rgba(246, 196, 83, 0.7);
+  background: rgba(246, 196, 83, 0.11);
+  color: rgba(244, 241, 228, 0.86);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
 .example-managed-stage-timeline {
   position: relative;
   min-height: 100dvh;

@@ -143,9 +143,15 @@ Current example behavior:
   the stage primitive example and the pinned managed timeline. It mounts
   `/models/Sprint.glb` through public `WebGLModel` in its own
   `example.managedModel.*` scene with declarative Draco loader configuration
-  and explicit `defaultClips` for `MainSkeleton.001`, `SpeedLines.001`, and
-  `BagArmature.001`. It also requests `prepare={{ renderWarmup: "idle" }}` so
-  the runtime performs a tiny managed
+  and explicit `defaultClips` for `MainSkeleton.001`, the speed-line root plus a
+  curated set of speed-line plane clips, and `BagArmature.001`. The example
+  frames the model more directly and gives those clips explicit `timeScale`
+  values so the multi-clip dogfood remains visible without adding target-local
+  effects. The row owns an independent pinned scroll timeline that scrubs
+  `checkoutCTRL.001` through the existing `animation.scrub` descriptor, giving
+  browser QA an interaction proof separate from the pinned stage timeline. It
+  also requests
+  `prepare={{ renderWarmup: "idle" }}` so the runtime performs a tiny managed
   first-render warmup after load, clone, attachment, and animation setup.
   Model animation coverage is not mixed into the timeline/stage dogfood row.
 - The managed stage primitive example is mounted in the current catalog and
@@ -260,7 +266,8 @@ Current visual behavior:
 - The scene-native `WebGLModel` dogfood is separate from those DOM-following GLB
   target examples: `ManagedModelAnimationExample` mounts `/models/Sprint.glb`
   in its own managed scene with explicit `defaultClips` for the main skeleton,
-  speed lines, and bag rig, and does not use target-local effects.
+  speed-line root/plane clips, checkout scrub clip, and bag rig, and does not
+  use target-local effects.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -479,21 +486,19 @@ descriptors:
     prepare={{ renderWarmup: "idle" }}
     animation={{
       defaultClips: [
-        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-        { clip: "SpeedLines.001", loop: "repeat" },
-        { clip: "BagArmature.001", loop: "repeat" },
+        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
+        { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
+        { clip: "Plane.250", loop: "repeat", timeScale: 3.2 },
+        { clip: "Plane.251", loop: "repeat", timeScale: 3.2 },
+        { clip: "Ray.001", loop: "repeat", timeScale: 3.2 },
+        { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
+        { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
       ],
       scrub: {
-        clip: "Walk",
-        timeline: { id: "hero.timeline" },
-        durationSeconds: 1.4,
+        clip: "checkoutCTRL.001",
+        timeline: { id: "hero.timeline", active: { from: 0.08, to: 0.92 } },
+        durationSeconds: 8.333,
       },
-      blend: {
-        from: "Idle",
-        to: "Walk",
-        timeline: { id: "hero.timeline" },
-      },
-      morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
     }}
   />
 </WebGLScene>
