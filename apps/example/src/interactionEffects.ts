@@ -18,7 +18,7 @@ const clickPulseDurationMs = 260;
 export const exampleSceneObjectHoverPulseEffect =
   defineWebGLSceneObjectEffect<SceneObjectHoverPulseParams, ClickPulseState>({
     kind: "example.sceneObjectHoverPulse",
-    source: "stage/plane",
+    source: ["stage/plane", "model/glb"],
     setup() {
       return { clickUntil: 0 };
     },

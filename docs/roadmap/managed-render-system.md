@@ -1708,6 +1708,10 @@ Acceptance criteria:
 - Pointer gesture frames persist after movement stops or release, and true
   managed camera resize re-applies the current gesture frame rather than
   snapping back to the declaration base frame.
+- `apps/example/src/ManagedInteractionExample.tsx` remains the Phase 8B dogfood:
+  object picking covers one floor plus one scene-native hero model, while the
+  same managed camera validates orbit, pan, dolly, camera parallax, damping,
+  and reset through public React descriptors.
 
 ### Phase 9: Dynamics and Physics
 

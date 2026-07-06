@@ -178,13 +178,12 @@ Current example behavior:
   It still uses the same runtime canvas; the pass is clipped to the visible DOM
   rect without remapping or compressing the pass, and skipped while fully
   offscreen rather than rendered into a second local canvas.
-- The Phase 8 managed interaction example is mounted in the current catalog and
-  intentionally isolates picking/gesture QA to one pickable
-  `WebGLStagePlane` floor, one managed camera, one DOM-bound pass viewport,
-  minimal lights, floor hover/click, and primary-drag orbit.
-  It omits scene-native models, `screen-plane` DOM targets, pan, dolly,
-  camera parallax, and reset so interaction debug state can only resolve the
-  floor.
+- The Phase 8B managed interaction example is mounted in the current catalog and
+  dogfoods one pickable `WebGLStagePlane` floor plus one pickable
+  scene-native `/models/hero.glb` model while testing rich camera gestures on
+  the same managed camera: primary-drag orbit, secondary-drag pan,
+  Alt + primary-drag dolly, camera parallax, damping, and double-click reset.
+  It still omits `screen-plane` DOM targets.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:

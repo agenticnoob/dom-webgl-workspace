@@ -2,10 +2,12 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLModel,
   WebGLPassViewport,
   WebGLScene,
   WebGLStagePlane,
   type WebGLCameraProps,
+  type WebGLModelProps,
   type WebGLSceneRenderOptions,
   type WebGLStagePlaneProps,
 } from "@project/dom-webgl-runtime/react";
@@ -34,6 +36,23 @@ const cameraController = {
       minDistance: 240,
       maxDistance: 980,
     },
+    pan: {
+      drag: { button: "secondary" },
+      sensitivity: [0.9, 0.9],
+    },
+    dolly: {
+      drag: { button: "primary", modifier: "alt" },
+      sensitivity: 1.4,
+      minDistance: 240,
+      maxDistance: 980,
+    },
+    parallax: {
+      scope: "camera",
+      strength: [16, 8],
+      maxOffset: [28, 16],
+    },
+    damping: { factor: 0.18, settleEpsilon: 0.001 },
+    reset: { onDoubleClick: true, durationMs: 220 },
   },
 } satisfies NonNullable<WebGLCameraProps["controller"]>;
 
@@ -61,6 +80,29 @@ const floorInteraction = {
     pointer: { hover: true, click: true },
   },
 } satisfies NonNullable<WebGLStagePlaneProps["interaction"]>;
+const heroModelPosition = [160, -180, -70] satisfies NonNullable<
+  WebGLModelProps["position"]
+>;
+const heroModelRotation = [0, -0.36, 0] satisfies NonNullable<
+  WebGLModelProps["rotation"]
+>;
+const heroModelPrepare = {
+  renderWarmup: "idle",
+} satisfies NonNullable<WebGLModelProps["prepare"]>;
+const heroModelEffects = [
+  {
+    kind: "example.sceneObjectHoverPulse",
+    baseOpacity: 0.86,
+    hoverOpacity: 1,
+    clickOpacity: 1,
+  },
+] as const;
+const heroModelInteraction = {
+  pickable: {
+    hitTest: "bounds",
+    pointer: { hover: true, press: true, click: true, drag: true },
+  },
+} satisfies NonNullable<WebGLModelProps["interaction"]>;
 
 const keyLightPosition = [-160, 160, 180] satisfies NonNullable<
   WebGLCameraProps["position"]
@@ -73,9 +115,9 @@ export function ManagedInteractionExample() {
         <p className="example-kicker">managed interaction</p>
         <h2>Scene-native picking</h2>
         <p>
-          Phase 8 keeps this dogfood intentionally narrow: the floor is the
-          only pickable scene object, and primary drag stays camera-owned for
-          orbit checks.
+          Phase 8B uses this scene to verify camera-owned orbit, pan, dolly,
+          parallax, damping, and reset with floor and model picking in the same
+          pass.
         </p>
       </div>
 
@@ -108,6 +150,16 @@ export function ManagedInteractionExample() {
             material={floorMaterial}
             effects={floorEffects}
             interaction={floorInteraction}
+          />
+          <WebGLModel
+            id="example.interaction.hero"
+            src="/models/hero.glb"
+            position={heroModelPosition}
+            rotation={heroModelRotation}
+            scale={14}
+            prepare={heroModelPrepare}
+            effects={heroModelEffects}
+            interaction={heroModelInteraction}
           />
           <WebGLLight id="example.interaction.ambient" kind="ambient" intensity={0.34} />
           <WebGLLight

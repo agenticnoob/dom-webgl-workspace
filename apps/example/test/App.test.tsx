@@ -458,30 +458,38 @@ describe("effect authoring example app", () => {
       expect.objectContaining({
         id: "example.interaction.camera",
         mode: "perspective-stage",
-        controller: expect.objectContaining({
-          pointer: expect.objectContaining({
-            orbit: expect.objectContaining({
+        controller: {
+          pointer: {
+            orbit: {
               drag: { button: "primary" },
               target: [120, -78, -70],
               sensitivity: [0.0035, 0.003],
               minPolarAngle: 0.52,
               maxPolarAngle: 1.42,
-            }),
-          }),
-        }),
+              minDistance: 240,
+              maxDistance: 980,
+            },
+            pan: {
+              drag: { button: "secondary" },
+              sensitivity: [0.9, 0.9],
+            },
+            dolly: {
+              drag: { button: "primary", modifier: "alt" },
+              sensitivity: 1.4,
+              minDistance: 240,
+              maxDistance: 980,
+            },
+            parallax: {
+              scope: "camera",
+              strength: [16, 8],
+              maxOffset: [28, 16],
+            },
+            damping: { factor: 0.18, settleEpsilon: 0.001 },
+            reset: { onDoubleClick: true, durationMs: 220 },
+          },
+        },
       }),
     );
-    const interactionCameraPointer = cameraProps.find(
-      ({ id }) => id === "example.interaction.camera",
-    )?.controller?.pointer;
-    if (!interactionCameraPointer) {
-      throw new Error("Expected interaction camera pointer controller.");
-    }
-    expect(interactionCameraPointer).not.toHaveProperty("pan");
-    expect(interactionCameraPointer).not.toHaveProperty("dolly");
-    expect(interactionCameraPointer).not.toHaveProperty("parallax");
-    expect(interactionCameraPointer).not.toHaveProperty("damping");
-    expect(interactionCameraPointer).not.toHaveProperty("reset");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
@@ -540,6 +548,28 @@ describe("effect authoring example app", () => {
           },
         },
         prepare: { renderWarmup: "idle" },
+      }),
+      expect.objectContaining({
+        id: "example.interaction.hero",
+        src: "/models/hero.glb",
+        position: [160, -180, -70],
+        rotation: [0, -0.36, 0],
+        scale: 14,
+        prepare: { renderWarmup: "idle" },
+        effects: [
+          {
+            kind: "example.sceneObjectHoverPulse",
+            baseOpacity: 0.86,
+            hoverOpacity: 1,
+            clickOpacity: 1,
+          },
+        ],
+        interaction: {
+          pickable: {
+            hitTest: "bounds",
+            pointer: { hover: true, press: true, click: true, drag: true },
+          },
+        },
       }),
     ]);
     expect(stagePlaneProps.find(({ id }) => id === "example.interaction.floor")).toMatchObject({

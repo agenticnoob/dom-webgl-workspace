@@ -734,13 +734,10 @@ Verification result:
 
 Follow-up correction:
 
-- Current `ManagedInteractionExample` has been narrowed back to the Phase 8
-  floor-only verification surface: one pickable `WebGLStagePlane`, a
-  hover/click scene-object effect, a DOM-bound pass viewport, and minimal
-  primary-drag camera orbit.
-- Do not reintroduce the scene-native model, screen-plane card, object drag,
-  pan, dolly, parallax, damping, or reset into this dogfood while it is being
-  used to isolate floor picking and camera coordinate drift.
+- `ManagedInteractionExample` was later expanded again for Phase 8B: it now
+  keeps the pickable floor and reintroduces `/models/hero.glb` as the only
+  scene-native model in this row, with object drag capture plus rich camera
+  gestures. It still omits the screen-plane card.
 
 ### Task 9: Update Documentation And Close Phase
 

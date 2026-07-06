@@ -247,11 +247,11 @@ Rules:
   scene-object `effects` plus `interaction.pickable`. Register these effects
   with `defineWebGLSceneObjectEffect(...)`; they receive `ctx.objectPointer`,
   not DOM `layout` or `ctx.targetPointer`.
-- The current `apps/example` managed interaction dogfood deliberately keeps
-  only `example.interaction.floor` pickable, with minimal camera orbit only.
-  Do not reintroduce scene-native models, `screen-plane` DOM targets, dolly,
-  parallax, or reset when the goal is to isolate picking/camera coordinate
-  drift.
+- The current `apps/example` managed interaction dogfood keeps
+  `example.interaction.floor` and `example.interaction.hero` pickable, while the
+  same managed camera dogfoods Phase 8B orbit, pan, dolly, camera-scoped
+  parallax, damping, and reset. Do not reintroduce `screen-plane` DOM targets
+  when the goal is to isolate picking/camera coordinate drift.
 - Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
   mouse wheel zoom, and touch pinch zoom remain future or non-public.

@@ -349,12 +349,13 @@ managed timeline or stage primitive dogfood rows.
 
 Scene-native `WebGLModel` effects use explicit scene-object scope through
 `defineWebGLSceneObjectEffect(...)`. `apps/example` dogfoods this in
-`ManagedInteractionExample` with a deliberately narrow Phase 8 surface: only the
-stage floor declares `interaction.pickable`, its scene-object hover/click effect
-reads `ctx.objectPointer`, and the camera keeps a minimal primary-drag orbit
-path for coordinate-drift checks. The dogfood intentionally omits scene-native
-models, `screen-plane` DOM targets, pan, dolly, parallax, damping, and reset
-while the floor-only path is being verified. Scene-object effects do not receive
+`ManagedInteractionExample`: the stage floor and scene-native
+`/models/hero.glb` both declare `interaction.pickable`, their scene-object
+effects read `ctx.objectPointer`, and the same managed camera dogfoods Phase 8B
+`controller.pointer` gestures for primary-drag orbit, secondary-drag pan,
+Alt + primary-drag dolly, camera parallax, damping, and double-click reset.
+The dogfood still omits `screen-plane` DOM targets.
+Scene-object effects do not receive
 DOM `layout`, `ctx.targetPointer`, raw raycasters, raw intersections, raw
 cameras, or raw object handles. Keep DOM-following model visuals on
 `WebGLTarget` model sources, and use `WebGLModel` only for managed-scene GLB

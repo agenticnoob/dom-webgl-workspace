@@ -25,7 +25,7 @@
   - `interactionRouter.test.ts` covers pass viewport gating, object capture, click release, and empty-space reporting.
   - `renderLayerRegistry.test.ts` covers timeline camera controllers, pointer orbit layered after timeline framing, resize reapplication, and rejection outside managed `perspective-stage` cameras.
   - `WebGLCamera` React component forwards the `controller` descriptor directly to `runtime.registerCamera(...)`.
-  - `apps/example/src/ManagedInteractionExample.tsx` dogfoods object picking plus minimal empty-space orbit drag through public React descriptors.
+  - `apps/example/src/ManagedInteractionExample.tsx` dogfoods floor and hero-model picking plus Phase 8B orbit, pan, dolly, camera parallax, damping, and reset through public React descriptors.
 - No implementation code was changed while creating this plan.
 
 ## Scope
@@ -895,19 +895,20 @@ Browser checks:
 - Primary empty-space drag orbits the managed interaction camera.
 - Secondary empty-space drag pans the camera.
 - Alt + primary empty-space drag dollies.
-- Hovering/dragging the model or floor blocks camera gestures.
+- Floor hover/click feedback remains visible, while hover/click-only floor hits
+  do not block camera drag gestures.
 - Double-click empty space resets camera framing.
 - Level 1 DOM target rows still render and respond as before.
 
-Follow-up correction:
+Dogfood correction:
 
-- The current `ManagedInteractionExample` is no longer the Phase 8B rich gesture
-  dogfood. It is intentionally floor-only for Phase 8 picking/coordinate drift:
-  one pickable floor, hover/click feedback, and minimal primary-drag orbit.
-- Future Phase 8B browser QA should use a separate rich gesture surface or
-  temporarily expanded test route rather than adding pan, dolly, parallax,
-  damping, reset, scene-native models, or screen-plane targets back to the
-  Phase 8 floor-only dogfood.
+- The current `ManagedInteractionExample` is the Phase 8B rich camera gesture
+  dogfood. Keep its object surface limited to the floor and hero model for
+  coordinate-drift checks, and verify orbit, pan, dolly, camera parallax,
+  damping, and reset on the same managed camera.
+- Future interaction QA should only add a separate rich object surface if it
+  needs `screen-plane` DOM targets or object coverage beyond the floor plus
+  hero-model dogfood.
 
 ### Task 7: Documentation Sync
 

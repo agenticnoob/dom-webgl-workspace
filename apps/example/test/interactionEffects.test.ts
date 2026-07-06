@@ -11,7 +11,7 @@ import type {
 import { exampleSceneObjectHoverPulseEffect } from "../src/interactionEffects";
 
 describe("managed interaction example effects", () => {
-  test("stage hover pulse only uses object pointer state", () => {
+  test("scene object hover pulse supports stage and model object sources", () => {
     const object = createObjectHandle("stage/plane");
     const context = createSceneObjectContext({
       sourceKind: "stage/plane",
@@ -33,10 +33,37 @@ describe("managed interaction example effects", () => {
       clickOpacity: 1,
     });
 
-    expect(exampleSceneObjectHoverPulseEffect.source).toBe("stage/plane");
+    expect(exampleSceneObjectHoverPulseEffect.source).toEqual([
+      "stage/plane",
+      "model/glb",
+    ]);
     expect(object.opacity).toBe(0.92);
     expect("layout" in context).toBe(false);
     expect("targetPointer" in context).toBe(false);
+  });
+
+  test("scene object hover pulse can update model opacity from object pointer state", () => {
+    const object = createObjectHandle("model/glb");
+    const context = createSceneObjectContext({
+      sourceKind: "model/glb",
+      object,
+      objectPointer: createObjectPointerState({ wasClicked: true }),
+    });
+    const state = exampleSceneObjectHoverPulseEffect.setup?.(context, {
+      kind: "example.sceneObjectHoverPulse",
+      baseOpacity: 0.68,
+      hoverOpacity: 0.92,
+      clickOpacity: 1,
+    }) ?? { clickUntil: 0 };
+
+    exampleSceneObjectHoverPulseEffect.update(context, state, {
+      kind: "example.sceneObjectHoverPulse",
+      baseOpacity: 0.68,
+      hoverOpacity: 0.92,
+      clickOpacity: 1,
+    });
+
+    expect(object.opacity).toBe(1);
   });
 });
 

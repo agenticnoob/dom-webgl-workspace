@@ -258,15 +258,15 @@ phase records are archived under [archive/](./archive/).
   canvas; the pass is clipped by the visible DOM rect without remapping into
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
-- The managed interaction example is mounted in `apps/example` and currently
-  isolates Phase 8 picking/gesture QA to one pickable
-  `WebGLStagePlane` floor. It keeps the managed `WebGLScene`,
-  `WebGLCamera`, `WebGLPassViewport`, minimal lights, a floor hover/click
-  scene-object effect registered with `defineWebGLSceneObjectEffect(...)`,
-  left-button minimal camera orbit drag, and pass-local DOM-rect gesture
-  framing/picking. The dogfood intentionally omits
-  scene-native models, `screen-plane` DOM targets, pan, dolly, and camera
-  parallax/reset so interaction debug state can only hover/click the floor.
+- The managed interaction example is mounted in `apps/example` and now serves
+  as the Phase 8B dogfood surface with one pickable `WebGLStagePlane` floor and
+  one pickable scene-native `/models/hero.glb` model. It keeps the managed
+  `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`, minimal lights, floor/model
+  scene-object effects registered with `defineWebGLSceneObjectEffect(...)`,
+  pass-local DOM-rect gesture framing/picking, model press/drag capture, and
+  rich `controller.pointer` camera gestures: primary-drag orbit,
+  secondary-drag pan, Alt + primary-drag dolly, camera parallax, damping, and
+  double-click reset. It still omits `screen-plane` DOM targets.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

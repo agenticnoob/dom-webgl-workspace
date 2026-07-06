@@ -52,6 +52,7 @@ type ModelMockProps = {
   readonly src: string;
   readonly loader?: Record<string, unknown>;
   readonly position?: readonly [number, number, number];
+  readonly rotation?: readonly [number, number, number];
   readonly scale?: number | readonly [number, number, number];
   readonly prepare?: Record<string, unknown>;
   readonly effects?: readonly Record<string, unknown>[];
@@ -113,7 +114,7 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
 }));
 
 describe("ManagedInteractionExample", () => {
-  test("declares Phase 8 floor-only picking and minimal camera orbit dogfood", async () => {
+  test("declares Phase 8B rich camera gesture dogfood on the floor-only interaction scene", async () => {
     const { ManagedInteractionExample } = await import(
       "../src/ManagedInteractionExample"
     );
@@ -153,28 +154,38 @@ describe("ManagedInteractionExample", () => {
         fov: 42,
         position: [120, 132, 620],
         target: [120, -78, -70],
-        controller: expect.objectContaining({
-          pointer: expect.objectContaining({
-            orbit: expect.objectContaining({
+        controller: {
+          pointer: {
+            orbit: {
               drag: { button: "primary" },
               target: [120, -78, -70],
               sensitivity: [0.0035, 0.003],
               minPolarAngle: 0.52,
               maxPolarAngle: 1.42,
-            }),
-          }),
-        }),
+              minDistance: 240,
+              maxDistance: 980,
+            },
+            pan: {
+              drag: { button: "secondary" },
+              sensitivity: [0.9, 0.9],
+            },
+            dolly: {
+              drag: { button: "primary", modifier: "alt" },
+              sensitivity: 1.4,
+              minDistance: 240,
+              maxDistance: 980,
+            },
+            parallax: {
+              scope: "camera",
+              strength: [16, 8],
+              maxOffset: [28, 16],
+            },
+            damping: { factor: 0.18, settleEpsilon: 0.001 },
+            reset: { onDoubleClick: true, durationMs: 220 },
+          },
+        },
       }),
     ]);
-    const interactionCameraPointer = cameraProps[0]?.controller?.pointer;
-    if (!interactionCameraPointer) {
-      throw new Error("Expected interaction camera pointer controller.");
-    }
-    expect(interactionCameraPointer).not.toHaveProperty("pan");
-    expect(interactionCameraPointer).not.toHaveProperty("dolly");
-    expect(interactionCameraPointer).not.toHaveProperty("parallax");
-    expect(interactionCameraPointer).not.toHaveProperty("damping");
-    expect(interactionCameraPointer).not.toHaveProperty("reset");
     expect(stagePlaneProps).toEqual([
       expect.objectContaining({
         id: "example.interaction.floor",
@@ -198,7 +209,30 @@ describe("ManagedInteractionExample", () => {
         },
       }),
     ]);
-    expect(modelProps).toEqual([]);
+    expect(modelProps).toEqual([
+      expect.objectContaining({
+        id: "example.interaction.hero",
+        src: "/models/hero.glb",
+        position: [160, -180, -70],
+        rotation: [0, -0.36, 0],
+        scale: 14,
+        prepare: { renderWarmup: "idle" },
+        effects: [
+          {
+            kind: "example.sceneObjectHoverPulse",
+            baseOpacity: 0.86,
+            hoverOpacity: 1,
+            clickOpacity: 1,
+          },
+        ],
+        interaction: {
+          pickable: {
+            hitTest: "bounds",
+            pointer: { hover: true, press: true, click: true, drag: true },
+          },
+        },
+      }),
+    ]);
     expect(targetProps).toEqual([]);
     expect(lightProps).toEqual([
       { id: "example.interaction.ambient", kind: "ambient", intensity: 0.34 },

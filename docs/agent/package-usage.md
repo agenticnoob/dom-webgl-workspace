@@ -1656,11 +1656,12 @@ skill:
   `targetCount` and `renderableCount` to distinguish "too many declarations"
   from "too much active per-frame work".
 - For managed interaction drift debugging, keep the current `apps/example`
-  dogfood simple: only `example.interaction.floor` should be pickable, camera
-  gestures should be minimal orbit only, and interaction debug state should only
-  resolve the floor as `hoveredObjectId` / `clickedObjectId`. Do not add
-  scene-native models, `screen-plane` DOM targets, dolly, parallax, or reset
-  until the floor-only path is verified.
+  dogfood object surface simple: `example.interaction.floor` and
+  `example.interaction.hero` are the only pickable objects, with the hero model
+  covering press/drag capture. The same scene dogfoods Phase 8B camera gestures
+  through `controller.pointer` with orbit, pan, dolly, camera-scoped parallax,
+  damping, and reset. Do not add `screen-plane` DOM targets to this drift
+  surface.
 - Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image
   assets, effect keys, copy such as `Boo!`, and shader tuning live in
   `apps/example`; packages should only gain generic capabilities such as
