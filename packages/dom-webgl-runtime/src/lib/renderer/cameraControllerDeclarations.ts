@@ -2,9 +2,11 @@ import type {
   WebGLCameraControllerDeclaration,
   WebGLCameraControllerEasing,
   WebGLCameraControllerFrameDeclaration,
+  WebGLCameraPointerControllerDeclaration,
   WebGLCameraControllerTimelineDeclaration,
   WebGLProgressSignalSource,
   WebGLTimelineActiveRangeDeclaration,
+  WebGLTuple2,
   WebGLTuple3,
 } from "../types";
 
@@ -23,26 +25,55 @@ export type NormalizedCameraControllerTimelineDeclaration = {
   };
 };
 
+export type NormalizedCameraPointerControllerDeclaration = {
+  readonly kind: "orbit";
+  readonly activation: "empty-space-drag";
+  readonly target: WebGLTuple3;
+  readonly sensitivity: WebGLTuple2;
+  readonly minPolarAngle?: number;
+  readonly maxPolarAngle?: number;
+};
+
 export type NormalizedCameraControllerDeclaration = {
-  readonly timeline: NormalizedCameraControllerTimelineDeclaration;
+  readonly timeline?: NormalizedCameraControllerTimelineDeclaration;
   readonly from?: NormalizedCameraControllerFrameDeclaration;
-  readonly to: NormalizedCameraControllerFrameDeclaration;
+  readonly to?: NormalizedCameraControllerFrameDeclaration;
   readonly easing: WebGLCameraControllerEasing;
+  readonly pointer?: NormalizedCameraPointerControllerDeclaration;
 };
 
 export function normalizeCameraControllerDeclaration(
   declaration: WebGLCameraControllerDeclaration,
 ): NormalizedCameraControllerDeclaration {
-  const to = normalizeControllerFrame(declaration.to, "to");
-  assertControllerFrameHasFields(to, "to");
+  const to = declaration.to
+    ? normalizeControllerFrame(declaration.to, "to")
+    : undefined;
+  if (declaration.timeline && !to) {
+    throw new Error(
+      'WebGL camera controller "to" must include position, target, or fov when timeline is declared.',
+    );
+  }
+  if (to) {
+    assertControllerFrameHasFields(to, "to");
+  }
+  if (!declaration.timeline && !declaration.pointer) {
+    throw new Error(
+      "WebGL camera controller requires timeline or pointer behavior.",
+    );
+  }
 
   return {
-    timeline: normalizeControllerTimeline(declaration.timeline),
+    ...(declaration.timeline
+      ? { timeline: normalizeControllerTimeline(declaration.timeline) }
+      : {}),
     ...(declaration.from
       ? { from: normalizeControllerFrame(declaration.from, "from") }
       : {}),
-    to,
+    ...(to ? { to } : {}),
     easing: normalizeEasing(declaration.easing),
+    ...(declaration.pointer
+      ? { pointer: normalizePointerController(declaration.pointer) }
+      : {}),
   };
 }
 
@@ -50,6 +81,10 @@ export function readCameraControllerProgress(
   declaration: NormalizedCameraControllerDeclaration,
   progressSignals: WebGLProgressSignalSource,
 ): number {
+  if (!declaration.timeline) {
+    return 0;
+  }
+
   const raw = clampProgress(progressSignals.get(declaration.timeline.progressKey));
   const range = declaration.timeline.range;
 
@@ -74,32 +109,93 @@ export function readCameraControllerFrame(
     target?: WebGLTuple3;
     fov?: number;
   } = {};
+  const to = declaration.to;
 
-  if (declaration.to.position) {
+  if (!to) {
+    return frame;
+  }
+
+  if (to.position) {
     frame.position = interpolateTuple3(
       declaration.from?.position ?? base.position ?? [0, 0, 500],
-      declaration.to.position,
+      to.position,
       t,
     );
   }
 
-  if (declaration.to.target) {
+  if (to.target) {
     frame.target = interpolateTuple3(
       declaration.from?.target ?? base.target ?? [0, 0, 0],
-      declaration.to.target,
+      to.target,
       t,
     );
   }
 
-  if (declaration.to.fov !== undefined) {
+  if (to.fov !== undefined) {
     frame.fov = interpolateNumber(
       declaration.from?.fov ?? base.fov ?? 50,
-      declaration.to.fov,
+      to.fov,
       t,
     );
   }
 
   return frame;
+}
+
+function normalizePointerController(
+  declaration: WebGLCameraPointerControllerDeclaration,
+): NormalizedCameraPointerControllerDeclaration {
+  return {
+    kind: normalizePointerControllerKind(declaration.kind),
+    activation: normalizePointerControllerActivation(declaration.activation),
+    target: declaration.target
+      ? normalizeTuple3(declaration.target, "camera pointer controller target")
+      : [0, 0, 0],
+    sensitivity: declaration.sensitivity
+      ? normalizeTuple2(
+          declaration.sensitivity,
+          "camera pointer controller sensitivity",
+        )
+      : [0.004, 0.004],
+    ...(declaration.minPolarAngle !== undefined
+      ? {
+          minPolarAngle: normalizeFiniteNumber(
+            declaration.minPolarAngle,
+            "camera pointer controller minPolarAngle",
+          ),
+        }
+      : {}),
+    ...(declaration.maxPolarAngle !== undefined
+      ? {
+          maxPolarAngle: normalizeFiniteNumber(
+            declaration.maxPolarAngle,
+            "camera pointer controller maxPolarAngle",
+          ),
+        }
+      : {}),
+  };
+}
+
+function normalizePointerControllerKind(
+  kind: WebGLCameraPointerControllerDeclaration["kind"],
+): "orbit" {
+  if (kind === "orbit") {
+    return kind;
+  }
+
+  throw new Error(`Unsupported WebGL camera pointer controller kind "${String(kind)}".`);
+}
+
+function normalizePointerControllerActivation(
+  activation: WebGLCameraPointerControllerDeclaration["activation"],
+): "empty-space-drag" {
+  if (activation === "empty-space-drag") {
+    return activation;
+  }
+
+  throw new Error(
+    `Unsupported WebGL camera pointer controller activation "${String(activation)}".`,
+  );
 }
 
 function normalizeControllerTimeline(
@@ -206,6 +302,22 @@ function normalizeTuple3(value: WebGLTuple3, label: string): WebGLTuple3 {
   }
 
   return [value[0], value[1], value[2]];
+}
+
+function normalizeTuple2(value: WebGLTuple2, label: string): WebGLTuple2 {
+  if (!Number.isFinite(value[0]) || !Number.isFinite(value[1])) {
+    throw new Error(`WebGL ${label} must contain finite numbers.`);
+  }
+
+  return [value[0], value[1]];
+}
+
+function normalizeFiniteNumber(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`WebGL ${label} must be finite.`);
+  }
+
+  return value;
 }
 
 function normalizePositiveNumber(value: number, label: string): number {

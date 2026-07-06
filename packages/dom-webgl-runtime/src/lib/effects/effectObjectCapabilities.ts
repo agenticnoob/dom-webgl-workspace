@@ -26,8 +26,12 @@ type TextureLayer =
     >;
 
 export function createEffectObjectCapabilities(
-  source: WebGLEffectSourceHandle,
+  source: WebGLEffectSourceHandle | undefined,
 ): WebGLEffectObjectCapabilities {
+  if (!source) {
+    return {};
+  }
+
   switch (source.kind) {
     case "dom":
       return createDOMCapabilities(source);

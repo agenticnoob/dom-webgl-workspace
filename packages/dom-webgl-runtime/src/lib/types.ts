@@ -1,4 +1,8 @@
-import type { WebGLEffectDefinition } from "./effects/effectAuthoring";
+import type {
+  WebGLEffectDefinition,
+  WebGLSceneObjectEffectDefinition,
+  WebGLSceneObjectEffectSourceKind,
+} from "./effects/effectAuthoring";
 
 export type WebGLRenderRole =
   | "surface"
@@ -142,6 +146,24 @@ export type WebGLPointerDeclaration = {
   drag?: boolean;
 };
 
+export type WebGLObjectPointerDeclaration = {
+  readonly hover?: boolean;
+  readonly press?: boolean;
+  readonly click?: boolean;
+  readonly drag?: boolean;
+};
+
+export type WebGLPickableDeclaration =
+  | boolean
+  | {
+      readonly hitTest?: "bounds";
+      readonly pointer?: WebGLObjectPointerDeclaration;
+    };
+
+export type WebGLSceneObjectInteractionDeclaration = {
+  readonly pickable?: WebGLPickableDeclaration;
+};
+
 export type WebGLLifecycleDeclaration = {
   hideWhenReady?: boolean;
   hideMode?: "subtree" | "self";
@@ -215,7 +237,8 @@ export type WebGLPlacementMode =
   | "dom-anchored"
   | "screen-anchored"
   | "screen-depth"
-  | "stage-local";
+  | "stage-local"
+  | "screen-plane";
 
 export type WebGLCameraFramingDeclaration = {
   fov?: number;
@@ -242,11 +265,21 @@ export type WebGLCameraControllerTimelineDeclaration =
 
 export type WebGLCameraControllerEasing = "linear" | "smoothstep";
 
+export type WebGLCameraPointerControllerDeclaration = {
+  readonly kind: "orbit";
+  readonly activation: "empty-space-drag";
+  readonly target?: WebGLTuple3;
+  readonly sensitivity?: WebGLTuple2;
+  readonly minPolarAngle?: number;
+  readonly maxPolarAngle?: number;
+};
+
 export type WebGLCameraControllerDeclaration = {
-  readonly timeline: WebGLCameraControllerTimelineDeclaration;
+  readonly timeline?: WebGLCameraControllerTimelineDeclaration;
   readonly from?: WebGLCameraControllerFrameDeclaration;
-  readonly to: WebGLCameraControllerFrameDeclaration;
+  readonly to?: WebGLCameraControllerFrameDeclaration;
   readonly easing?: WebGLCameraControllerEasing;
+  readonly pointer?: WebGLCameraPointerControllerDeclaration;
 };
 
 export type WebGLDOMAnchoredPlacementDeclaration = {
@@ -274,11 +307,19 @@ export type WebGLStageLocalPlacementDeclaration = {
   size?: WebGLTuple2;
 };
 
+export type WebGLScreenPlanePlacementDeclaration = {
+  mode: "screen-plane";
+  planeId: string;
+  offset?: WebGLTuple3;
+  scale?: number | WebGLTuple2;
+};
+
 export type WebGLPlacementDeclaration =
   | WebGLDOMAnchoredPlacementDeclaration
   | WebGLScreenAnchoredPlacementDeclaration
   | WebGLScreenDepthPlacementDeclaration
-  | WebGLStageLocalPlacementDeclaration;
+  | WebGLStageLocalPlacementDeclaration
+  | WebGLScreenPlanePlacementDeclaration;
 
 export type WebGLSceneDeclaration = {
   id: string;
@@ -364,6 +405,8 @@ export type WebGLStagePrimitiveBaseDeclaration = {
   visible?: boolean;
   material?: WebGLStageMaterialDeclaration;
   timeline?: WebGLTimelineBindingDeclaration;
+  effects?: WebGLEffectsDeclaration;
+  interaction?: WebGLSceneObjectInteractionDeclaration;
 };
 
 export type WebGLStagePlaneDeclaration =
@@ -410,6 +453,8 @@ export type WebGLModelDeclaration = {
   readonly timeline?: WebGLTimelineBindingDeclaration;
   readonly animation?: WebGLModelAnimationDeclaration;
   readonly prepare?: WebGLModelPrepareDeclaration;
+  readonly effects?: WebGLEffectsDeclaration;
+  readonly interaction?: WebGLSceneObjectInteractionDeclaration;
 };
 
 export type WebGLDeclaration = {
@@ -458,7 +503,10 @@ export type WebGLPerformanceWarning = {
 
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
-  effects?: readonly WebGLEffectDefinition[];
+  effects?: readonly (
+    | WebGLEffectDefinition
+    | WebGLSceneObjectEffectDefinition
+  )[];
   progressSignals?: WebGLProgressSignalSource;
   scrollAdapter?: WebGLScrollAdapter;
   modelLoader?: WebGLModelLoaderDeclaration;
@@ -589,6 +637,8 @@ export type WebGLDebugStagePrimitiveSummary = {
   sceneId: string;
   kind: WebGLStagePrimitiveKind;
   timeline?: WebGLDebugTimelineSummary;
+  effects?: readonly string[];
+  interaction?: WebGLDebugSceneObjectInteractionSummary;
 };
 
 export type WebGLDebugLightSummary = {
@@ -622,7 +672,23 @@ export type WebGLDebugModelSummary = {
   activeClips: readonly string[];
   morphs?: readonly string[];
   bones?: readonly string[];
+  effects?: readonly string[];
+  interaction?: WebGLDebugSceneObjectInteractionSummary;
   diagnostics?: readonly WebGLDebugModelDiagnostic[];
+};
+
+export type WebGLDebugSceneObjectPointerSummary = {
+  hover: boolean;
+  press: boolean;
+  click: boolean;
+  drag: boolean;
+};
+
+export type WebGLDebugSceneObjectInteractionSummary = {
+  pickable?: {
+    hitTest: "bounds";
+    pointer: WebGLDebugSceneObjectPointerSummary;
+  };
 };
 
 export type WebGLDebugPostprocessRequestSummary = {
@@ -637,6 +703,24 @@ export type WebGLDebugCameraControllerSummary = {
   progressKey: string;
   progress: number;
   applied: boolean;
+};
+
+export type WebGLDebugInteractionSummary = {
+  readonly hoveredObjectId?: string;
+  readonly pressedObjectId?: string;
+  readonly capturedObjectId?: string;
+  readonly lastClickedObjectId?: string;
+  readonly emptySpace?: boolean;
+  readonly activeHit?: {
+    readonly objectId: string;
+    readonly sceneId: string;
+    readonly sourceKind: WebGLSceneObjectEffectSourceKind;
+  };
+  readonly cameraController?: {
+    readonly cameraId: string;
+    readonly active: boolean;
+    readonly kind: "orbit";
+  };
 };
 
 export type WebGLDebugRenderPassSummary = {
@@ -663,6 +747,7 @@ export type WebGLDebugState = {
   lights?: WebGLDebugLightSummary[];
   models?: WebGLDebugModelSummary[];
   cameraControllers?: WebGLDebugCameraControllerSummary[];
+  interaction?: WebGLDebugInteractionSummary;
   renderPasses?: WebGLDebugRenderPassSummary[];
   postprocessRequests?: WebGLDebugPostprocessRequestSummary[];
   targets: Array<{

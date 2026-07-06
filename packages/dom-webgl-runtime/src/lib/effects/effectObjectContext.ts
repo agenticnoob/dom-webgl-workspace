@@ -2,14 +2,15 @@ import type {
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
+  WebGLSceneObjectEffectSourceKind,
 } from "./effectAuthoring";
 import type { WebGLEffectObjectHandle } from "./effectObject";
 import { createEffectObjectCapabilities } from "./effectObjectCapabilities";
 import { createEffectObjectTransform } from "./effectObjectTransform";
 
 export type WebGLEffectObjectOptions = {
-  sourceKind: WebGLEffectSourceKind;
-  source: WebGLEffectSourceHandle;
+  sourceKind: WebGLEffectSourceKind | WebGLSceneObjectEffectSourceKind;
+  source?: WebGLEffectSourceHandle;
   target?: WebGLEffectTargetHandle;
   lights?: WebGLEffectObjectHandle["lights"];
 };

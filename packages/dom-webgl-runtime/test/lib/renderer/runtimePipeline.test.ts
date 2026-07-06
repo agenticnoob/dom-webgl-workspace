@@ -4867,6 +4867,7 @@ function createRenderLayerRegistryStub(
   unregisterRenderPass: ReturnType<typeof vi.fn>;
   updateTimelineState: ReturnType<typeof vi.fn>;
   updateCameraControllers: ReturnType<typeof vi.fn>;
+  updateCameraPointerControllers: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "__dom-webgl-default__",
@@ -4928,6 +4929,7 @@ function createRenderLayerRegistryStub(
     (progressSignals: WebGLProgressSignalSource) =>
       options.updateCameraControllers?.(progressSignals, camerasById) ?? false,
   );
+  const updateCameraPointerControllers = vi.fn(() => ({ changed: false }));
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
@@ -4979,6 +4981,7 @@ function createRenderLayerRegistryStub(
       unregisterRenderPass,
       updateTimelineState,
       updateCameraControllers,
+      updateCameraPointerControllers,
       inspectCameraControllers() {
         return [];
       },
@@ -4995,6 +4998,7 @@ function createRenderLayerRegistryStub(
     unregisterRenderPass,
     updateTimelineState,
     updateCameraControllers,
+    updateCameraPointerControllers,
   };
 }
 

@@ -1,6 +1,17 @@
 import { loadGLBModel } from "../assets/modelLoader";
-import type { WebGLModelEffectHandle } from "../effects/effectAuthoring";
+import type {
+  WebGLEffectScopeSnapshot,
+  WebGLEffectSourceHandle,
+  WebGLSceneObjectPointerState,
+  WebGLModelEffectHandle,
+} from "../effects/effectAuthoring";
+import type { WebGLEffectObjectHandle } from "../effects/effectObject";
 import type { WebGLEffectAnimationPlayOptions } from "../effects/effectObject";
+import type { WebGLEffectRegistry } from "../effects/effectRegistry";
+import {
+  createWebGLSceneObjectEffectController,
+  type WebGLSceneObjectEffectController,
+} from "../effects/sceneObjectEffectController";
 import type { ResourceHandle, ResourceManager } from "../resources/resourceManager";
 import {
   createModelAnimationController,
@@ -29,6 +40,8 @@ import type {
   WebGLDebugModelDiagnostic,
   WebGLDebugModelPrepareSummary,
   WebGLDebugModelSummary,
+  WebGLEffectsDeclaration,
+  WebGLFrameInput,
   WebGLModelAnimationDeclaration,
   WebGLModelClipBlendDeclaration,
   WebGLModelClipPlaybackDeclaration,
@@ -41,6 +54,15 @@ import type {
   WebGLTuple3,
 } from "../types";
 import {
+  inspectSceneObjectEffectKinds,
+  inspectSceneObjectInteraction,
+  normalizeSceneObjectEffects,
+  normalizeSceneObjectInteraction,
+  type NormalizedSceneObjectInteractionDeclaration,
+} from "./sceneObjectInteractionDeclarations";
+import { createSceneObjectEffectObject } from "./sceneObjectEffectObject";
+import type { ManagedHitCandidate } from "./interactionRouter";
+import {
   createSceneObjectController,
   type WebGLSceneAdapter,
   type WebGLSceneObject,
@@ -52,11 +74,12 @@ export type ManagedModelRegistry = {
   unregisterModel(id: string): void;
   unregisterScene(sceneId: string): void;
   update(
-    input: { readonly delta: number },
+    input: ManagedModelUpdateInput,
     progressSignals: WebGLProgressSignalSource,
     preparePolicy?: ManagedModelPreparePolicy,
   ): boolean | Promise<boolean>;
   consumeRenderWarmupRequests(): ManagedModelPrepareRequest[];
+  collectHitCandidates(): ManagedHitCandidate[];
   markRenderWarmupComplete(id: string): void;
   inspect(): ManagedModelRegistryDebugState;
   dispose(): void;
@@ -83,7 +106,14 @@ export type ManagedModelRegistryOptions = {
   getSceneAdapter(sceneId: string): WebGLSceneAdapter;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
   modelLoader?: WebGLModelLoaderDeclaration;
+  effectRegistry?: WebGLEffectRegistry;
+  readEffectScopes?(sceneId: string): WebGLEffectScopeSnapshot;
+  readObjectPointerState?(objectId: string): WebGLSceneObjectPointerState;
 };
+
+export type ManagedModelUpdateInput = { readonly delta: number } & Partial<
+  WebGLFrameInput
+>;
 
 type NormalizedModelDeclaration = {
   readonly id: string;
@@ -96,6 +126,8 @@ type NormalizedModelDeclaration = {
   readonly timeline?: NormalizedTimelineBinding;
   readonly animation?: NormalizedModelAnimationDeclaration;
   readonly prepare?: NormalizedModelPrepareDeclaration;
+  readonly effects?: WebGLEffectsDeclaration;
+  readonly interaction?: NormalizedSceneObjectInteractionDeclaration;
 };
 
 type NormalizedModelAnimationDeclaration = {
@@ -142,6 +174,8 @@ type ManagedModelEntry = {
   readonly resource: ResourceHandle<unknown>;
   readonly controller?: WebGLSceneObjectController;
   readonly modelHandle?: WebGLModelEffectHandle;
+  readonly effectObject?: WebGLEffectObjectHandle;
+  readonly effectController?: WebGLSceneObjectEffectController;
   readonly morphControls?: ModelMorphControls;
   readonly animation?: ModelAnimationController;
   readonly loadPromise?: Promise<boolean>;
@@ -219,8 +253,12 @@ export function createManagedModelRegistry(
         entry.controller.setVisible(visible);
         if (visible) {
           updateEntryAnimation(entry, input.delta, progressSignals);
+          updateEntryEffects(entry, input);
         }
-        continuous = continuous || shouldRenderContinuously(entry, visible);
+        continuous =
+          continuous ||
+          shouldRenderContinuously(entry, visible) ||
+          shouldRunEffectsContinuously(entry, visible);
       }
 
       if (pendingLoads.length === 0) {
@@ -231,7 +269,8 @@ export function createManagedModelRegistry(
         return (
           results.some(Boolean) ||
           Array.from(entries.values()).some((entry) =>
-            shouldRenderContinuously(entry, readEffectiveVisibility(entry)),
+            shouldRenderContinuously(entry, readEffectiveVisibility(entry)) ||
+            shouldRunEffectsContinuously(entry, readEffectiveVisibility(entry)),
           )
         );
       });
@@ -254,6 +293,26 @@ export function createManagedModelRegistry(
       }
 
       return requests;
+    },
+    collectHitCandidates(): ManagedHitCandidate[] {
+      return Array.from(entries.values()).flatMap((entry) => {
+        const pickable = entry.declaration.interaction?.pickable;
+        if (!pickable || !entry.controller || !readEffectiveVisibility(entry)) {
+          return [];
+        }
+
+        return [
+          {
+            id: entry.declaration.id,
+            sceneId: entry.declaration.sceneId,
+            sourceKind: "model/glb",
+            object3D: entry.controller.object.object3D,
+            hitTest: pickable.hitTest,
+            pickable: true,
+            pointer: pickable.pointer,
+          },
+        ];
+      });
     },
     markRenderWarmupComplete(id): void {
       const entry = entries.get(id.trim());
@@ -305,12 +364,53 @@ export function createManagedModelRegistry(
           options.getSceneAdapter(entry.declaration.sceneId),
           sceneObject,
         );
+        const effectSource: WebGLEffectSourceHandle = {
+          kind: "model",
+          type: "glb",
+          anchor: entry.declaration.source.anchor,
+          src: entry.declaration.source.src,
+          model: modelHandle,
+        };
+        const effectObject = entry.declaration.effects
+          ? createSceneObjectEffectObject({
+              sourceKind: "model/glb",
+              object: sceneObject,
+              source: effectSource,
+            })
+          : undefined;
+        const effectController = entry.declaration.effects
+          ? createWebGLSceneObjectEffectController({
+              objectId: entry.declaration.id,
+              sourceKind: "model/glb",
+              declaration: entry.declaration.effects,
+              getObject() {
+                return effectObject;
+              },
+              ...(options.effectRegistry
+                ? { registry: options.effectRegistry }
+                : {}),
+              ...(options.readObjectPointerState
+                ? {
+                    getObjectPointerState() {
+                      return options.readObjectPointerState?.(
+                        entry.declaration.id,
+                      );
+                    },
+                  }
+                : {}),
+              readScopes() {
+                return readEffectScopes(options, entry.declaration.sceneId);
+              },
+            })
+          : undefined;
 
         controller.attach();
         controller.setVisible(visible);
         Object.assign(entry, {
           controller,
           modelHandle,
+          ...(effectObject ? { effectObject } : {}),
+          ...(effectController ? { effectController } : {}),
           morphControls,
           ...(animation ? { animation } : {}),
           ...(entry.declaration.prepare
@@ -321,8 +421,14 @@ export function createManagedModelRegistry(
             : {}),
         });
         updateEntryAnimation(entry, 0, progressSignals);
+        if (visible) {
+          updateEntryEffects(entry, { delta: 0 });
+        }
 
-        return shouldRenderContinuously(entry, visible);
+        return (
+          shouldRenderContinuously(entry, visible) ||
+          shouldRunEffectsContinuously(entry, visible)
+        );
       })
       .catch((error: unknown) => {
         Object.assign(entry, { error });
@@ -363,6 +469,8 @@ function normalizeModelDeclaration(
     `WebGL model "${id}" src`,
   );
   const prepare = normalizeModelPrepareDeclaration(declaration.prepare);
+  const effects = normalizeSceneObjectEffects(declaration.effects);
+  const interaction = normalizeSceneObjectInteraction(declaration.interaction);
 
   return {
     id,
@@ -385,6 +493,8 @@ function normalizeModelDeclaration(
       ? { animation: normalizeModelAnimationDeclaration(declaration.animation) }
       : {}),
     ...(prepare ? { prepare } : {}),
+    ...(effects ? { effects } : {}),
+    ...(interaction ? { interaction } : {}),
   };
 }
 
@@ -572,11 +682,74 @@ function updateEntryAnimation(
   animation?.update(deltaMilliseconds);
 }
 
+function updateEntryEffects(
+  entry: ManagedModelEntry,
+  input: ManagedModelUpdateInput,
+): void {
+  entry.effectController?.update(createManagedModelFrameInput(input));
+}
+
 function shouldRenderContinuously(
   entry: ManagedModelEntry,
   visible: boolean,
 ): boolean {
   return visible && (entry.animation?.inspect().activeClips.length ?? 0) > 0;
+}
+
+function shouldRunEffectsContinuously(
+  entry: ManagedModelEntry,
+  visible: boolean,
+): boolean {
+  return visible && entry.effectController?.schedulingMode === "frame";
+}
+
+function readEffectScopes(
+  options: ManagedModelRegistryOptions,
+  sceneId: string,
+): WebGLEffectScopeSnapshot {
+  return (
+    options.readEffectScopes?.(sceneId) ?? {
+      runtime: {
+        progress: {
+          get() {
+            return 0;
+          },
+        },
+      },
+      scene: { id: sceneId, projection: "perspective-stage" },
+    }
+  );
+}
+
+function createManagedModelFrameInput(
+  input: ManagedModelUpdateInput,
+): WebGLFrameInput {
+  return {
+    time: input.time ?? 0,
+    delta: input.delta,
+    scroll: input.scroll ?? {
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    },
+    pointer: input.pointer ?? {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: false,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+  };
 }
 
 function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
@@ -613,6 +786,16 @@ function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
     activeClips: animationInspection?.activeClips ?? [],
     ...(morphs && morphs.length > 0 ? { morphs } : {}),
     ...(bones && bones.length > 0 ? { bones } : {}),
+    ...(entry.declaration.effects
+      ? { effects: inspectSceneObjectEffectKinds(entry.declaration.effects) }
+      : {}),
+    ...(entry.declaration.interaction
+      ? {
+          interaction: inspectSceneObjectInteraction(
+            entry.declaration.interaction,
+          ),
+        }
+      : {}),
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
   };
 }
@@ -712,6 +895,7 @@ function unregisterEntry(
   }
 
   Object.assign(entry, { disposed: true });
+  entry.effectController?.dispose();
   entry.animation?.dispose();
   entry.controller?.dispose();
   entry.resource.dispose();

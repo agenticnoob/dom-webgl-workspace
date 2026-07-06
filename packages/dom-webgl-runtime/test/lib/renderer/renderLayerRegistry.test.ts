@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { createInternalRenderLayerRegistry } from "../../../src/lib/renderer/renderLayerRegistry";
 import type { WebGLSceneAdapter } from "../../../src/lib/renderer/sceneObject";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
+import type { WebGLFrameInput } from "../../../src/lib/types";
 
 describe("createInternalRenderLayerRegistry", () => {
   test("creates generated default scene camera and pass from the renderer host", () => {
@@ -262,6 +263,55 @@ describe("createInternalRenderLayerRegistry", () => {
     expect(managedCamera.dispose).toHaveBeenCalledTimes(1);
   });
 
+  test("preserves pointer camera controller data alongside timeline controllers", () => {
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+    );
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+        pointer: {
+          kind: "orbit",
+          activation: "empty-space-drag",
+          target: [0, 0, 0],
+          sensitivity: [0.01, 0.02],
+          minPolarAngle: 0.2,
+          maxPolarAngle: 1.4,
+        },
+      },
+    });
+
+    expect(registry.getCamera("hero.camera").controller).toMatchObject({
+      timeline: {
+        id: "hero.timeline",
+        progressKey: "hero.timeline",
+      },
+      pointer: {
+        kind: "orbit",
+        activation: "empty-space-drag",
+        target: [0, 0, 0],
+        sensitivity: [0.01, 0.02],
+        minPolarAngle: 0.2,
+        maxPolarAngle: 1.4,
+      },
+    });
+  });
+
   test("reapplies controller framing after managed camera resize resets base framing", () => {
     const managedCamera = {
       camera: { label: "hero-camera" },
@@ -305,6 +355,92 @@ describe("createInternalRenderLayerRegistry", () => {
 
     expect(registry.updateCameraControllers({ get: () => 0.5 })).toBe(true);
     expect(managedCamera.applyFraming).toHaveBeenCalledWith(
+      {
+        position: [0, 60, 610],
+        target: [0, 24, 0],
+        fov: 39,
+      },
+      { width: 800, height: 600 },
+    );
+  });
+
+  test("layers empty-space pointer orbit after timeline camera frames", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+        pointer: {
+          kind: "orbit",
+          activation: "empty-space-drag",
+          target: [0, 24, 0],
+          sensitivity: [0.01, 0.01],
+        },
+      },
+    });
+
+    registry.updateCameraControllers({ get: () => 0.5 });
+    const pointerUpdate = registry.updateCameraPointerControllers({
+      frameInput: createFrameInput({
+        isDown: true,
+        isDragging: true,
+        dragStartX: 100,
+        dragStartY: 100,
+        dragDeltaX: 12,
+        dragDeltaY: 8,
+      }),
+      blocked: false,
+    });
+
+    expect(pointerUpdate.summary).toEqual({
+      cameraId: "hero.camera",
+      active: true,
+      kind: "orbit",
+    });
+    expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: [0, 24, 0],
+        fov: 39,
+      }),
+      { width: 800, height: 600 },
+    );
+    expect(managedCamera.applyFraming.mock.calls.at(-1)?.[0].position).not.toEqual([
+      0, 60, 610,
+    ]);
+
+    registry.updateCameraPointerControllers({
+      frameInput: createFrameInput({ isDown: false, isDragging: false }),
+      blocked: false,
+    });
+
+    expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
       {
         position: [0, 60, 610],
         target: [0, 24, 0],
@@ -717,6 +853,38 @@ function createRendererHostStub(
     },
     dispose() {
       return;
+    },
+  };
+}
+
+function createFrameInput(
+  pointer: Partial<WebGLFrameInput["pointer"]>,
+): WebGLFrameInput {
+  return {
+    time: 100,
+    delta: 16,
+    scroll: {
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    },
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: true,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+      ...pointer,
     },
   };
 }

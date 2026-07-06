@@ -150,6 +150,37 @@ describe("WebGLDebugPanel", () => {
     expect(container.textContent).toContain("256");
   });
 
+  test("displays descriptor-only interaction summaries", () => {
+    const state = createMinimalState({
+      interaction: {
+        hoveredObjectId: "example.floor",
+        pressedObjectId: "example.floor",
+        capturedObjectId: "example.runner",
+        lastClickedObjectId: "example.floor",
+        cameraController: {
+          cameraId: "example.camera",
+          active: true,
+          kind: "orbit",
+        },
+      },
+    });
+    const { container } = renderExpanded(
+      createElement(WebGLDebugPanel, { state }),
+    );
+
+    expect(container.textContent).toContain("Interaction");
+    expect(container.textContent).toContain("hover example.floor");
+    expect(container.textContent).toContain("press example.floor");
+    expect(container.textContent).toContain("capture example.runner");
+    expect(container.textContent).toContain("click example.floor");
+    expect(container.textContent).toContain("Camera");
+    expect(container.textContent).toContain("example.camera");
+    expect(container.textContent).toContain("orbit");
+    expect(container.textContent).toContain("active");
+    expect(container.textContent).not.toContain("intersection");
+    expect(container.textContent).not.toContain("raycaster");
+  });
+
   test("shows visible count as fraction of targets", () => {
     const state = createFullState(); // 5 targets, 2 visible
     const { container } = renderExpanded(

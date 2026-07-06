@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 7D model load/prepare performance verification
+**Last reviewed against:** Phase 8 and 8B focused planning after Phase 7D verification
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -756,16 +756,17 @@ Status values:
 | Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal generated scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
-| Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` remains a Phase 8 pre-step. |
+| Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` was intentionally deferred out of Phase 4 and handled in Phase 8. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control intentionally stayed out of Phase 5 and is handled by Phase 6A. |
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, clip-not-compress browser correction, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
-| Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects are intentionally deferred to Phase 8 scope design instead of shipping as target-local effects. |
+| Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects were intentionally deferred out of Phase 7 and handled as explicit scene-object effects in Phase 8. |
 | Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate the main Sprint skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
 | Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
-| Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage/model contracts; should begin with scene-native object/effect scope design for `WebGLModel` before picking state is exposed. |
-| Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
+| Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal empty-space orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
+| Phase 8B: Advanced Camera Gesture Controllers | `[not-started]` | none | Follow-up for pan, dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit controls after Phase 8 object-vs-camera routing is stable. |
+| Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model; realistic inertia, constraints, forces, and physics drag stay here rather than Phase 8B. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
 Rules for future updates:
@@ -795,6 +796,7 @@ Phase 7B -> model animation correction and render warmup prepare
 Phase 7C -> explicit multi-clip defaults
 Phase 7D -> model load and prepare performance
 Phase 8 -> input routing and picking
+Phase 8B -> advanced camera gesture controllers
 Phase 9 -> dynamics and physics
 Phase 10 -> unsafe escape hatch decision, only if still needed
 ```
@@ -808,9 +810,10 @@ Ordering rules:
   v1 API is a single optional `WebGLCamera.controller` descriptor per camera,
   not a top-level `WebGLCameraDeclaration.timeline` field and not a pass-bound
   controller surface.
-- Pointer-driven camera interactions such as parallax, orbit, pan, drag, and
-  empty-space camera controls remain Phase 8 work because they depend on input
-  routing and object-vs-camera priority.
+- Phase 8 only proves minimal empty-space orbit drag after runtime input routing
+  and object-vs-camera priority exist. Full camera gesture controls such as
+  pan, dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit
+  behavior remain Phase 8B.
 - DOM-bound pass viewport/scissor depends on Phase 5 scope/timeline ownership:
   Phase 5 decides when a pinned scene/pass is active, and Phase 6 decides where
   that pass is clipped on the canvas.
@@ -829,7 +832,9 @@ Ordering rules:
   entry to page startup, fix that before Phase 8 rather than mixing performance
   scheduling with picking.
 - Physics waits until managed stage objects, colliders, input routing, and
-  lifecycle/disposal semantics are stable.
+  lifecycle/disposal semantics are stable. Camera gesture damping is Phase 8B
+  when it is kinematic; realistic inertia, collision-aware movement, and force
+  or constraint-based dragging are Phase 9.
 
 ### Phase 0: Direction and Boundary Alignment
 
@@ -1001,8 +1006,8 @@ Deliverables:
 Resolved v1 decision:
 
 - `screen-depth` ships as the first perspective-stage DOM bridge.
-- `screen-plane` remains deferred to the Phase 8 pre-step for placement against
-  named stage planes.
+- `screen-plane` was deferred out of Phase 3 and later handled in Phase 8 for
+  placement against named stage planes.
 
 Acceptance criteria:
 
@@ -1309,7 +1314,8 @@ Rules:
   complex framing-box helpers, or per-pass/viewport camera controller scope in
   Phase 6A v1. Record these as later possible camera-controller iterations.
 - Do not add pointer-driven orbit, pan, drag, or pointer parallax here; those
-  remain Phase 8 input-routing work.
+  split across Phase 8 minimal empty-space orbit drag and Phase 8B advanced
+  camera gesture controllers.
 - Do not expose raw Three.js cameras, `OrbitControls`, matrices, projection
   mutation, or render-loop callbacks.
 
@@ -1433,11 +1439,9 @@ Focused plan reminder:
   graphs, or animation state machines in Phase 7 v1. Record those as deferred
   future animation capability areas.
 - Confirmed v1 effect-scope decision: scene-native `WebGLModel` does not accept
-  target-local `effects` in Phase 7 v1. Later scene-native model effects need a
-  separate API discussion instead of copying the DOM-target effect contract
-  unchanged. Roadmap placement: treat that discussion as a Phase 8 pre-step
-  because it needs scene-native object identity, scene scope, and future hit
-  state to compose cleanly.
+  target-local `effects` in Phase 7 v1. Phase 8 later handled scene-native model
+  effects as explicit scene-object scope instead of copying the DOM-target effect
+  contract unchanged.
 
 Future effect direction:
 
@@ -1593,37 +1597,31 @@ Rules:
 
 ### Phase 8: Interaction and Picking
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md)
 - **Depends on:** Phase 3, Phase 4, Phase 5
-- **Last updated:** 2026-07-04
+- **Last updated:** 2026-07-06
 - **Exit criteria:** runtime-owned input routing supports object hit state,
-  scene/camera empty-space controls, and pointer capture without exposing raw
-  `Raycaster` or raw intersection objects.
+  minimal empty-space orbit drag, and pointer capture without exposing raw
+  `Raycaster`, raw intersection objects, or raw camera controls.
 
 Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
 
 Capabilities:
 
-- pre-step: scene-native object/effect scope design for `WebGLModel` effects.
-  This should decide whether custom scene-native model behavior is expressed as
-  a scene-object effect scope, a model controller descriptor, or a constrained
-  `WebGLModel` facade. It must not copy DOM-target `effects` unchanged, because
-  scene-native models do not own DOM fallback, DOM layout, target-local pointer
-  state, or target lifecycle;
-- pre-step: `screen-plane` placement against named stage planes, using
-  runtime-owned camera/ray-to-plane math without exposing raw raycasters,
-  intersections, meshes, planes, or cameras;
-- runtime-owned input router with explicit priority;
-- scene-local pointer coordinates;
-- target-local pointer for projected targets;
-- managed raycast/hit-test request API;
+- scene-native object/effect scope via `defineWebGLSceneObjectEffect(...)` for
+  `WebGLModel` and stage primitive descriptors. Scene-object effects receive
+  object/scene/runtime scope and `ctx.objectPointer`, not DOM layout, fallback,
+  or `ctx.targetPointer`;
+- `screen-plane` placement against named stage planes, using runtime-owned
+  camera ray-to-plane math without exposing raw raycasters, intersections,
+  meshes, planes, or cameras;
+- runtime-owned input router with explicit object-vs-camera priority;
 - pickable descriptors for stage primitives and models;
-- camera interaction controllers for pointer parallax, orbit, pan, and drag;
-- empty-space pointer camera controls with explicit priority against object
-  hover, press, click, drag, pointer capture, and future physics constraints;
-- optional collider descriptors on stage primitives and models;
-- events or effect-readable hit state.
+- effect-readable object hover, press, click, drag, and pointer capture state;
+- descriptor-only interaction debug summaries;
+- minimal empty-space orbit drag with explicit priority against object hover,
+  press, click, drag, pointer capture, and future physics constraints.
 
 Rules:
 
@@ -1631,8 +1629,14 @@ Rules:
 - Scene-native `WebGLModel` effects must have explicit object/scene/runtime
   scope. Do not add implicit DOM-target layout, fallback, or `ctx.targetPointer`
   semantics to scene-native models.
+- Scene-object effects are not target-local effects. They are allowed on
+  scene-native `WebGLModel` and stage primitive descriptors, not as a way to give
+  those objects DOM fallback/lifecycle semantics.
 - Do not expose raw raycaster or intersection objects.
 - Do not expose raw camera controls as the default contract.
+- Do not add full orbit controls, pan, dolly, wheel/pinch zoom, damping,
+  inertia, or pointer parallax in Phase 8. These belong to Phase 8B after the
+  v1 router and object-vs-camera priority are stable.
 - Do not promise inverse-transformed picking for all transform-group cases until
   the projection and collider contracts are stable.
 - Keep DOM pointer capture and canvas coordinate truth owned by the runtime.
@@ -1644,11 +1648,55 @@ Rules:
 Acceptance criteria:
 
 - A stage primitive can receive managed hover/click state.
-- A model can expose coarse hit regions or mesh-level managed hits.
-- Empty-space drag can drive a managed camera controller without stealing object
-  drag.
+- A model can expose coarse object/bounds-level managed hit state.
+- Empty-space drag can drive a minimal managed orbit camera controller without
+  stealing object drag.
 - Object drag can capture the pointer and release it predictably.
 - Existing DOM-first pointer behavior is preserved.
+
+### Phase 8B: Advanced Camera Gesture Controllers
+
+- **Status:** `[not-started]`
+- **Focused plan:** none
+- **Depends on:** Phase 8
+- **Last updated:** 2026-07-06
+- **Exit criteria:** managed camera gesture descriptors can add pan, dolly,
+  wheel/pinch zoom, pointer parallax, damping, and richer orbit behavior on top
+  of the Phase 8 input router without exposing raw camera controls or stealing
+  object interaction priority.
+
+Goal: expand camera interaction only after Phase 8 proves object-vs-camera
+input routing, hit state, and pointer capture.
+
+Capabilities:
+
+- managed pan and dolly descriptors;
+- wheel and pinch zoom descriptors;
+- pointer parallax for cameras or explicit scene layers;
+- damping/smoothing for kinematic camera gestures;
+- richer orbit constraints and reset behavior;
+- pass or scene scope decisions for camera gesture activation;
+- debug summaries for active gesture type and controlled camera id.
+
+Rules:
+
+- Do not expose raw `OrbitControls`, `PointerLockControls`, camera objects, or
+  input listeners.
+- Do not let camera gestures override active object hover, press, drag, pointer
+  capture, or future physics constraints.
+- Keep gestures descriptor-driven under `WebGLCamera.controller`; do not add
+  imperative camera refs.
+- Damping here is kinematic smoothing only. Realistic inertia, collision-aware
+  movement, constraints, forces, and body dragging belong to Phase 9.
+
+Acceptance criteria:
+
+- Empty-space pan and dolly do not activate while an object owns pointer
+  capture.
+- Wheel/pinch zoom can be scoped to a managed scene/camera without affecting
+  DOM-first Level 1 targets.
+- Pointer parallax is explicit about whether it moves a camera or scene layer.
+- Existing Phase 8 object hover/click/drag behavior remains unchanged.
 
 ### Phase 9: Dynamics and Physics
 
@@ -1664,7 +1712,7 @@ Goal: add motion systems after stage and collider contracts exist.
 Possible layers:
 
 - simple springs and constraints;
-- spring-based follow/lag/orbit controllers;
+- simple springs and constraints for scene-native objects;
 - optional physics adapter;
 - collider descriptors;
 - collision events;
@@ -1920,9 +1968,10 @@ Do not make these default roadmap items:
     component, `registerCameraController(...)`, or pass-bound controller scope
     in Phase 6A v1. Record orthographic zoom, screen overlay camera control,
     complex framing boxes, and per-pass/viewport camera controller scope as
-    later possible camera-controller iterations. Assign pointer parallax, orbit,
-    pan, drag, and empty-space camera controllers to Phase 8 interaction
-    routing.
+    later possible camera-controller iterations. Phase 8 should only add
+    minimal empty-space orbit drag as an input-routing proof. Assign pointer
+    parallax, pan, dolly, wheel/pinch zoom, damping, and richer orbit behavior
+    to Phase 8B advanced camera gesture controllers.
 - Model animation surface.
   - Recommendation: Phase 7 should first decide the minimal scene-native
     `WebGLModel` descriptor shell, keep the existing `ctx.object.animation`
@@ -1969,24 +2018,25 @@ Phase 1 through Phase 7D define the managed render foundation through
 scene-native `WebGLModel`, runtime-owned model registry, descriptor animation
 controls, corrected model dogfood, skeleton-safe clone, and descriptor-only
 render warmup without exposing raw mixers, actions, bones, skeletons, renderers,
-or morph target arrays. Phase 7C adds explicit multi-clip defaults, and Phase 7D
+or morph target arrays. Phase 7C adds explicit multi-clip defaults, Phase 7D
 keeps Sprint model load/prepare work out of the focused startup idle window and
-first-visible scroll-entry stalls before Phase 8 picking starts.
+first-visible scroll-entry stalls, and Phase 8 adds scene-object effects,
+`screen-plane`, managed picking, and minimal empty-space camera drag.
 
-The next suggested implementation loop is Phase 8: interaction and picking. It
-should start with scene-native object/effect scope design for `WebGLModel`
-before exposing hit state, because scene-native effects need explicit
-object/scene/runtime scope rather than DOM-target semantics.
+The next suggested implementation loop is Phase 8B: advanced camera gesture
+controllers. Do not start it until Phase 8 is verified; it should build on the
+object-vs-camera router priority rather than replacing it.
 
 The safest sequence is:
 
 ```text
 Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5
-  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 7C -> Phase 7D -> Phase 8 -> Phase 9
+  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 7C -> Phase 7D -> Phase 8 -> Phase 8B -> Phase 9
 ```
 
 That keeps postprocess after scoped ownership, model animation after timeline
 signals, Phase 7B correction, Phase 7C explicit multi-clip defaults, and Phase
 7D model load/prepare performance before picking, progress-driven camera
-controls after pass scope, input routing before pointer-driven camera
-interaction and physics, and physics after stage/collider contracts.
+controls after pass scope, minimal camera drag after input routing,
+full camera gestures after object-vs-camera priority is stable, and physics
+after stage/collider contracts.

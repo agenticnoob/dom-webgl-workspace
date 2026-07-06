@@ -22,6 +22,8 @@ export function WebGLStageBox({
   visible,
   material,
   timeline,
+  effects,
+  interaction,
 }: WebGLStageBoxProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -45,6 +47,8 @@ export function WebGLStageBox({
       ...(visible !== undefined ? { visible } : {}),
       ...(material !== undefined ? { material } : {}),
       ...(timeline !== undefined ? { timeline } : {}),
+      ...(effects !== undefined ? { effects } : {}),
+      ...(interaction !== undefined ? { interaction } : {}),
     });
 
     return () => {
@@ -61,6 +65,8 @@ export function WebGLStageBox({
     visible,
     material,
     timeline,
+    effects,
+    interaction,
   ]);
 
   return null;

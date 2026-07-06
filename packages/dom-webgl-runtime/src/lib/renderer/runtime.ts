@@ -4,6 +4,7 @@ import {
 } from "../debug/debugState";
 import type {
   WebGLDebugState,
+  WebGLDebugInteractionSummary,
   WebGLDeclaration,
   WebGLFrameInput,
   WebGLLifecycleState,
@@ -88,6 +89,11 @@ import {
   createPassViewportRegistry,
   type ResolvedPassViewport,
 } from "./passViewportRegistry";
+import {
+  createInteractionRouter,
+  type ManagedHitCandidate,
+  type ManagedHitTestPass,
+} from "./interactionRouter";
 import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
@@ -214,9 +220,18 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
     createInternalRenderLayerRegistry(rendererHost);
   const passViewports = createPassViewportRegistry();
+  const effectRegistry = createWebGLEffectRegistry(options.effects ?? []);
+  const interactionRouter = createInteractionRouter();
   const stageObjects = createStageObjectRegistry({
     getSceneAdapter(sceneId) {
       return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
+    effectRegistry,
+    readEffectScopes(sceneId) {
+      return readSceneObjectEffectScopes(sceneId);
+    },
+    readObjectPointerState(objectId) {
+      return interactionRouter.getObjectPointerState(objectId);
     },
   });
   const mainScene = renderLayers.getScene(generatedRenderLayerId);
@@ -234,6 +249,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     modelLoader: options.modelLoader,
     getSceneAdapter(sceneId) {
       return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
+    effectRegistry,
+    readEffectScopes(sceneId) {
+      return readSceneObjectEffectScopes(sceneId);
+    },
+    readObjectPointerState(objectId) {
+      return interactionRouter.getObjectPointerState(objectId);
     },
   });
   const scrollState =
@@ -270,6 +292,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getDevicePixelRatio: () => window.devicePixelRatio || 1,
   });
   let requestRenderFrame: ((reason: RenderDirtyReason) => void) | undefined;
+  let cameraInteractionSummary:
+    | NonNullable<WebGLDebugInteractionSummary["cameraController"]>
+    | undefined;
   const invalidationController =
     internalOptions.invalidationController ??
     createDOMInvalidationController({
@@ -307,7 +332,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
     modelLoader: options.modelLoader,
-    effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
+    effectRegistry,
     progressSignals: options.progressSignals,
     postprocessController,
     requestTextureFrame() {
@@ -585,6 +610,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         postprocessController.dispose();
         stageObjects.dispose();
         managedModels.dispose();
+        interactionRouter.dispose();
         renderLayers.dispose();
         rendererHost.dispose();
         unmarkAllFallbackRoots();
@@ -631,6 +657,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
       models: modelDebugState.models,
+      interaction: readInteractionDebugSummary(),
       renderPasses: renderLayers.getPasses().map((pass) => ({
         id: pass.id,
         sceneId: pass.sceneId,
@@ -770,6 +797,73 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       mode: "dom-rect",
       rect: resolved.rect,
     };
+  }
+
+  function updateSceneObjectInteractions(frameInput: WebGLFrameInput): {
+    readonly emptySpace: boolean;
+    readonly debug: WebGLDebugInteractionSummary;
+  } {
+    const candidates = collectManagedHitCandidates();
+
+    return interactionRouter.update({
+      input: frameInput,
+      passes: candidates.length > 0 ? readManagedHitTestPasses() : [],
+      candidates,
+      pickManagedObjects(pass, candidates) {
+        return rendererHost.pickManagedObjects?.(
+          pass,
+          candidates,
+          frameInput.pointer,
+        );
+      },
+    });
+  }
+
+  function isCameraPointerBlocked(
+    interaction: WebGLDebugInteractionSummary,
+  ): boolean {
+    return Boolean(
+      interaction.activeHit ||
+        interaction.pressedObjectId ||
+        interaction.capturedObjectId,
+    );
+  }
+
+  function readInteractionDebugSummary(): WebGLDebugInteractionSummary {
+    const objectInteraction = interactionRouter.inspect();
+    return {
+      ...objectInteraction,
+      ...(cameraInteractionSummary
+        ? { cameraController: cameraInteractionSummary }
+        : {}),
+    };
+  }
+
+  function collectManagedHitCandidates(): ManagedHitCandidate[] {
+    return [
+      ...stageObjects.collectHitCandidates(),
+      ...managedModels.collectHitCandidates(),
+    ];
+  }
+
+  function readManagedHitTestPasses(): ManagedHitTestPass[] {
+    const passes: ManagedHitTestPass[] = [];
+
+    renderLayers.renderPasses((pass, _scene, camera) => {
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      const viewport =
+        resolvedViewport.mode === "dom-rect" ? resolvedViewport.rect : undefined;
+
+      passes.push({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        order: pass.order,
+        camera: camera.camera,
+        ...(viewport ? { viewport } : {}),
+      });
+    });
+
+    return passes;
   }
 
   function readPostprocessViewport(
@@ -1253,13 +1347,24 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       stageObjects.updateTimelineState(progressSignals);
       const cameraControllerChanged =
         renderLayers.updateCameraControllers(progressSignals);
+      const interactionResult = updateSceneObjectInteractions(frameInput);
+      const cameraPointerUpdate = renderLayers.updateCameraPointerControllers({
+        frameInput,
+        blocked: isCameraPointerBlocked(interactionResult.debug),
+      });
+      cameraInteractionSummary = cameraPointerUpdate.summary;
+      const stageEffectsContinuous = stageObjects.updateEffects(frameInput);
       const dirtyKeys = invalidationController.consumeDirtyKeys();
 
       const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
       syncTransformGroups(descriptors, layoutMeasurements);
 
       const pendingUpdates: Array<Promise<void>> = [];
-      let didSynchronousUpdate = cameraControllerChanged;
+      let didSynchronousUpdate =
+        cameraControllerChanged ||
+        cameraPointerUpdate.changed ||
+        stageEffectsContinuous ||
+        !interactionResult.emptySpace;
       const viewportHeight = window.innerHeight || 600;
       let modelPreparePasses: ModelPreparePass[] | undefined;
       const modelUpdate = managedModels.update(frameInput, progressSignals, {
@@ -1282,6 +1387,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       } else if (modelUpdate) {
         requiresContinuousRendering = true;
       }
+      requiresContinuousRendering =
+        requiresContinuousRendering ||
+        stageEffectsContinuous ||
+        cameraPointerUpdate.summary?.active === true ||
+        !interactionResult.emptySpace;
 
       for (const descriptor of descriptors) {
         let debugRecord = readTargetDebugRecord(descriptor, targetState);
@@ -1694,6 +1804,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     });
   }
 
+  function readSceneObjectEffectScopes(sceneId: string): WebGLEffectScopeSnapshot {
+    const scene = renderLayers.getScene(sceneId);
+
+    return createWebGLEffectScopeSnapshot({
+      progressSignals: readProgressSignals(),
+      scene: {
+        id: scene.id,
+        projection: scene.projection,
+        ...(scene.timeline ? { timeline: scene.timeline } : {}),
+      },
+    });
+  }
+
   function syncTargetTimelineState(
     descriptor: TargetDescriptor,
     renderable: Renderable,
@@ -1728,6 +1851,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       placement: normalizeTargetPlacement(descriptor.declaration.placement),
       measurement,
       viewport,
+      screenPlane: {
+        resolvePlane(planeId) {
+          return stageObjects.readStagePlane(planeId, sceneId);
+        },
+      },
     });
   }
 
@@ -1934,8 +2062,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   }
 
   function hasPointerDrivenTarget(): boolean {
-    return listTargetsInScanOrder(registry).some((descriptor) =>
-      hasPointerDeclaration(descriptor.declaration.pointer),
+    return (
+      listTargetsInScanOrder(registry).some((descriptor) =>
+        hasPointerDeclaration(descriptor.declaration.pointer),
+      ) ||
+      stageObjects.collectHitCandidates().length > 0 ||
+      managedModels.collectHitCandidates().length > 0
     );
   }
 

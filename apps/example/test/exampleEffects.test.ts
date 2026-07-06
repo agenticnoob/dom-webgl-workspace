@@ -31,6 +31,8 @@ describe("example effect catalog", () => {
       "example.modelSpin",
       "example.modelFloat",
       "example.modelFloatGlow",
+      "example.sceneObjectHoverPulse",
+      "example.sceneObjectDragPose",
     ]);
   });
 
@@ -121,6 +123,19 @@ describe("example effect catalog", () => {
       speed: 0.46,
       emissive: "#7dd3fc",
       lightIntensity: 1.8,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.sceneObjectHoverPulse",
+      baseOpacity: 0.68,
+      hoverOpacity: 0.92,
+      dragOpacity: 1,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.sceneObjectDragPose",
+      baseScale: 4,
+      hoverScale: 1.04,
+      dragScale: 1.1,
+      baseRotationY: -0.42,
     });
   });
 });

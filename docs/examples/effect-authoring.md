@@ -346,10 +346,17 @@ model row reaches view. Debug state reports descriptor-only `prepare.load` and
 `prepare.renderWarmup`; these are not loader callbacks or raw render hooks. The
 example does not use target-local effects and is not mixed into the pinned
 managed timeline or stage primitive dogfood rows.
-Scene-native `WebGLModel` effects are deferred to a later scope design. Keep
-DOM-following model visuals on `WebGLTarget` model sources, and use
-`WebGLModel` only for managed-scene GLB assets that do not need DOM fallback or
-target-local pointer state.
+
+Scene-native `WebGLModel` effects use explicit scene-object scope through
+`defineWebGLSceneObjectEffect(...)`. `apps/example` dogfoods this in
+`ManagedInteractionExample`: the stage floor and `hero.glb` model declare
+`interaction.pickable`, scene-object effects read `ctx.objectPointer`, and a DOM
+card uses `placement: { mode: "screen-plane", planeId }` to project to the named
+floor plane. Scene-object effects do not receive DOM `layout`,
+`ctx.targetPointer`, raw raycasters, raw intersections, raw cameras, or raw
+object handles. Keep DOM-following model visuals on `WebGLTarget` model sources,
+and use `WebGLModel` only for managed-scene GLB assets that do not need DOM
+fallback or target-local pointer state.
 
 Pointer contract:
 

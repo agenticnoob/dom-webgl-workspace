@@ -1,7 +1,13 @@
+import { Camera } from "three/src/cameras/Camera.js";
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
 import { PerspectiveCamera } from "three/src/cameras/PerspectiveCamera.js";
+import { Object3D } from "three/src/core/Object3D.js";
+import { Raycaster } from "three/src/core/Raycaster.js";
 import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
+import { Box3 } from "three/src/math/Box3.js";
+import { Vector2 } from "three/src/math/Vector2.js";
+import { Vector3 } from "three/src/math/Vector3.js";
 import { Group } from "three/src/objects/Group.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
@@ -12,8 +18,16 @@ import type {
   WebGLSceneObject,
 } from "./sceneObject";
 import type { DOMViewportSize } from "./domProjection";
+import type {
+  ManagedHitCandidate,
+  ManagedHitResult,
+  ManagedHitTestPass,
+} from "./interactionRouter";
 import type { NormalizedRenderLayerCameraDeclaration } from "./renderLayerDeclarations";
-import type { WebGLCameraControllerFrameDeclaration } from "../types";
+import type {
+  WebGLCameraControllerFrameDeclaration,
+  WebGLPointerState,
+} from "../types";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
@@ -63,6 +77,11 @@ export type ThreeRendererHost = {
   readonly sceneAdapter: WebGLSceneAdapter;
   getViewportSize(): DOMViewportSize;
   readRendererStats(): ThreeRendererStats;
+  pickManagedObjects?(
+    pass: ManagedHitTestPass,
+    candidates: readonly ManagedHitCandidate[],
+    pointer: WebGLPointerState,
+  ): ManagedHitResult | undefined;
   resizeIfNeeded(): void;
   dispose(): void;
 };
@@ -124,6 +143,9 @@ export function createThreeRendererHost(
     readRendererStats(): ThreeRendererStats {
       return readRendererStats(objects.renderer);
     },
+    pickManagedObjects(pass, candidates, pointer): ManagedHitResult | undefined {
+      return pickManagedObjects(pass, candidates, pointer);
+    },
     resizeIfNeeded(): void {
       const nextViewport = readCSSPixelViewport(container, canvas);
 
@@ -155,6 +177,137 @@ export function createThreeRendererHost(
       canvas.remove();
     },
   };
+}
+
+function pickManagedObjects(
+  pass: ManagedHitTestPass,
+  candidates: readonly ManagedHitCandidate[],
+  pointer: WebGLPointerState,
+): ManagedHitResult | undefined {
+  const normalized = normalizePointerForPass(pass, pointer);
+  const raycaster = new Raycaster();
+
+  if (!(pass.camera instanceof Camera)) {
+    return undefined;
+  }
+
+  try {
+    raycaster.setFromCamera(new Vector2(normalized.x, normalized.y), pass.camera);
+  } catch (_error: unknown) {
+    return undefined;
+  }
+
+  return candidates
+    .flatMap((candidate) => readCandidateBoundsHit(candidate, raycaster))
+    .sort((left, right) => left.distance - right.distance)[0];
+}
+
+function normalizePointerForPass(
+  pass: ManagedHitTestPass,
+  pointer: WebGLPointerState,
+): { readonly x: number; readonly y: number } {
+  if (!pass.viewport || pass.viewport.width <= 0 || pass.viewport.height <= 0) {
+    return { x: pointer.normalizedX, y: pointer.normalizedY };
+  }
+
+  return {
+    x: ((pointer.x - pass.viewport.x) / pass.viewport.width) * 2 - 1,
+    y: -(((pointer.y - pass.viewport.y) / pass.viewport.height) * 2 - 1),
+  };
+}
+
+function isObject3D(value: unknown): value is Object3D {
+  return value instanceof Object3D;
+}
+
+function containsObject(root: unknown, child: unknown): boolean {
+  if (!isObject3D(root) || !isObject3D(child)) {
+    return false;
+  }
+  if (root === child) {
+    return true;
+  }
+
+  let parent = readObjectParent(child);
+  while (parent) {
+    if (parent === root) {
+      return true;
+    }
+    parent = readObjectParent(parent);
+  }
+
+  return false;
+}
+
+function readObjectParent(object: Object3D): Object3D | undefined {
+  return object.parent ?? undefined;
+}
+
+function readCandidateBoundsHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  if (candidate.hitTest !== "bounds" || !isObject3D(candidate.object3D)) {
+    return [];
+  }
+
+  updateObjectWorldMatrix(candidate.object3D);
+
+  const bounds = new Box3().setFromObject(candidate.object3D);
+  if (bounds.isEmpty()) {
+    return readCandidateMeshHit(candidate, raycaster);
+  }
+
+  const point = new Vector3();
+  const hitPoint = raycaster.ray.intersectBox(bounds, point);
+  if (!hitPoint) {
+    return readCandidateMeshHit(candidate, raycaster);
+  }
+
+  return [
+    {
+      id: candidate.id,
+      sceneId: candidate.sceneId,
+      point: [hitPoint.x, hitPoint.y, hitPoint.z],
+      distance: raycaster.ray.origin.distanceTo(hitPoint),
+    },
+  ];
+}
+
+function readCandidateMeshHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  if (!isObject3D(candidate.object3D)) {
+    return [];
+  }
+
+  const [intersection] = raycaster.intersectObject(candidate.object3D, true);
+  if (!intersection || !containsObject(candidate.object3D, intersection.object)) {
+    return [];
+  }
+
+  return [
+    {
+      id: candidate.id,
+      sceneId: candidate.sceneId,
+      point: [
+        intersection.point.x,
+        intersection.point.y,
+        intersection.point.z,
+      ],
+      distance: intersection.distance,
+    },
+  ];
+}
+
+function updateObjectWorldMatrix(object: Object3D): void {
+  if (typeof object.updateWorldMatrix === "function") {
+    object.updateWorldMatrix(true, true);
+    return;
+  }
+
+  object.updateMatrixWorld(true);
 }
 
 export function createManagedDomAlignedSceneAdapter(

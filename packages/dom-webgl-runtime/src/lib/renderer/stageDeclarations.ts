@@ -1,5 +1,6 @@
 import type {
   WebGLColorValue,
+  WebGLEffectsDeclaration,
   WebGLLightDeclaration,
   WebGLLightKind,
   WebGLStageMaterialDeclaration,
@@ -12,6 +13,11 @@ import {
   normalizeTimelineBinding,
   type NormalizedTimelineBinding,
 } from "../timeline/timelineDeclarations";
+import {
+  normalizeSceneObjectEffects,
+  normalizeSceneObjectInteraction,
+  type NormalizedSceneObjectInteractionDeclaration,
+} from "./sceneObjectInteractionDeclarations";
 
 export type NormalizedStageMaterialDeclaration =
   | {
@@ -42,6 +48,8 @@ export type NormalizedStagePrimitiveDeclaration =
       visible: boolean;
       material: NormalizedStageMaterialDeclaration;
       timeline?: NormalizedTimelineBinding;
+      effects?: WebGLEffectsDeclaration;
+      interaction?: NormalizedSceneObjectInteractionDeclaration;
     }
   | {
       id: string;
@@ -54,6 +62,8 @@ export type NormalizedStagePrimitiveDeclaration =
       visible: boolean;
       material: NormalizedStageMaterialDeclaration;
       timeline?: NormalizedTimelineBinding;
+      effects?: WebGLEffectsDeclaration;
+      interaction?: NormalizedSceneObjectInteractionDeclaration;
     };
 
 export type NormalizedLightDeclaration = {
@@ -87,6 +97,8 @@ export function normalizeStagePrimitiveDeclaration(
   const visible = declaration.visible ?? true;
   const material = normalizeStageMaterialDeclaration(declaration.material);
   const timeline = normalizeTimelineBinding(declaration.timeline);
+  const effects = normalizeSceneObjectEffects(declaration.effects);
+  const interaction = normalizeSceneObjectInteraction(declaration.interaction);
 
   switch (declaration.kind) {
     case "plane": {
@@ -113,6 +125,8 @@ export function normalizeStagePrimitiveDeclaration(
         visible,
         material,
         ...(timeline ? { timeline } : {}),
+        ...(effects ? { effects } : {}),
+        ...(interaction ? { interaction } : {}),
       };
     }
     case "box":
@@ -135,6 +149,8 @@ export function normalizeStagePrimitiveDeclaration(
         visible,
         material,
         ...(timeline ? { timeline } : {}),
+        ...(effects ? { effects } : {}),
+        ...(interaction ? { interaction } : {}),
       };
   }
 }

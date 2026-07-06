@@ -23,6 +23,8 @@ export function WebGLStagePlane({
   visible,
   material,
   timeline,
+  effects,
+  interaction,
 }: WebGLStagePlaneProps) {
   const runtime = useWebGLRuntime();
   const inheritedSceneId = useContext(WebGLSceneContext);
@@ -47,6 +49,8 @@ export function WebGLStagePlane({
       ...(visible !== undefined ? { visible } : {}),
       ...(material !== undefined ? { material } : {}),
       ...(timeline !== undefined ? { timeline } : {}),
+      ...(effects !== undefined ? { effects } : {}),
+      ...(interaction !== undefined ? { interaction } : {}),
     });
 
     return () => {
@@ -64,6 +68,8 @@ export function WebGLStagePlane({
     visible,
     material,
     timeline,
+    effects,
+    interaction,
   ]);
 
   return null;

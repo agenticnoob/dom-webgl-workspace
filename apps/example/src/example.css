@@ -601,6 +601,92 @@ body {
   line-height: 0.94;
 }
 
+.example-interaction-dogfood {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.example-interaction-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  min-height: 100dvh;
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 241, 228, 0.16),
+    inset 0 0 120px rgba(139, 214, 202, 0.12);
+}
+
+.example-interaction-copy {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  align-content: center;
+  gap: var(--space-4);
+  width: min(560px, calc(100% - var(--space-8)));
+  min-height: 100dvh;
+  margin-left: clamp(24px, 7vw, 104px);
+  padding: var(--space-14) 0;
+  background:
+    linear-gradient(90deg, rgba(244, 241, 228, 0.96), rgba(244, 241, 228, 0.72) 68%, rgba(244, 241, 228, 0)),
+    transparent;
+  box-shadow: 28px 0 80px rgba(244, 241, 228, 0.44);
+}
+
+.example-interaction-copy h2 {
+  margin: 0;
+  max-width: 11ch;
+  font-size: clamp(2.5rem, 6vw, 6.2rem);
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+.example-interaction-copy p {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--color-text-secondary);
+  font-size: clamp(1rem, 1.55vw, 1.2rem);
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
+.example-interaction-copy .example-kicker {
+  color: rgba(35, 50, 47, 0.72);
+}
+
+.example-interaction-card {
+  position: absolute;
+  z-index: 12;
+  right: clamp(28px, 9vw, 140px);
+  bottom: clamp(44px, 14vh, 140px);
+  display: grid;
+  gap: var(--space-2);
+  width: min(320px, calc(100% - var(--space-8)));
+  min-height: 128px;
+  padding: var(--space-5);
+  border: 1px solid rgba(244, 241, 228, 0.32);
+  border-radius: 8px;
+  background: rgba(244, 241, 228, 0.84);
+  box-shadow: 0 28px 72px rgba(14, 24, 22, 0.28);
+  color: #172124;
+  pointer-events: none;
+}
+
+.example-interaction-card span {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.example-interaction-card strong {
+  max-width: 12ch;
+  font-size: clamp(25px, 2.8vw, 38px);
+  line-height: 0.96;
+}
+
 @media (max-width: 760px) {
   .example-intro {
     padding: var(--space-8) var(--space-4);
@@ -685,6 +771,19 @@ body {
   }
 
   .example-managed-stage-card {
+    right: var(--space-4);
+    bottom: var(--space-6);
+    width: calc(100% - var(--space-8));
+  }
+
+  .example-interaction-copy {
+    width: auto;
+    min-height: 72dvh;
+    margin: 0;
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .example-interaction-card {
     right: var(--space-4);
     bottom: var(--space-6);
     width: calc(100% - var(--space-8));

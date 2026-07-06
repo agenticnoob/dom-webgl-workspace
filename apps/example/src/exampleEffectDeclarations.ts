@@ -57,6 +57,17 @@ export type ExampleEffectParams = {
     emissive?: string;
     lightIntensity?: number;
   };
+  "example.sceneObjectHoverPulse": {
+    baseOpacity?: number;
+    hoverOpacity?: number;
+    dragOpacity?: number;
+  };
+  "example.sceneObjectDragPose": {
+    baseScale?: number;
+    hoverScale?: number;
+    dragScale?: number;
+    baseRotationY?: number;
+  };
 };
 
 export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams>()([
@@ -120,5 +131,18 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
     speed: 0.46,
     emissive: "#7dd3fc",
     lightIntensity: 1.8,
+  },
+  {
+    kind: "example.sceneObjectHoverPulse",
+    baseOpacity: 0.68,
+    hoverOpacity: 0.92,
+    dragOpacity: 1,
+  },
+  {
+    kind: "example.sceneObjectDragPose",
+    baseScale: 4,
+    hoverScale: 1.04,
+    dragScale: 1.1,
+    baseRotationY: -0.42,
   },
 ]);

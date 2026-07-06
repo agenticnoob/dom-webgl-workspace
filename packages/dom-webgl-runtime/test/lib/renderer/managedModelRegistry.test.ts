@@ -2,6 +2,14 @@ import { describe, expect, test, vi } from "vitest";
 import { AnimationClip } from "three/src/animation/AnimationClip.js";
 import { Group } from "three/src/objects/Group.js";
 
+import {
+  defineWebGLSceneObjectEffect,
+  type WebGLEffectScopeSnapshot,
+} from "../../../src/lib/effects/effectAuthoring";
+import {
+  createWebGLEffectRegistry,
+  type WebGLEffectRegistry,
+} from "../../../src/lib/effects/effectRegistry";
 import { createResourceManager } from "../../../src/lib/resources/resourceManager";
 import {
   createManagedModelRegistry,
@@ -12,6 +20,7 @@ import type {
   WebGLSceneObject,
 } from "../../../src/lib/renderer/sceneObject";
 import type { WebGLModelSourceDescriptor } from "../../../src/lib/source/sourceDescriptor";
+import type { WebGLFrameInput } from "../../../src/lib/types";
 
 describe("managed model registry", () => {
   test("loads a scene-native model and attaches it to the declared scene", async () => {
@@ -60,6 +69,70 @@ describe("managed model registry", () => {
       visible: true,
       clips: ["Idle"],
       activeClips: [],
+    });
+  });
+
+  test("preserves scene-object effects and normalizes model interaction descriptors", () => {
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      loadModel: async () => ({ scene: new Group() }),
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      effects: [{ kind: "app.modelHover", strength: 0.5 }],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { drag: true },
+        },
+      },
+    });
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      id: "character",
+      effects: ["app.modelHover"],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: {
+            hover: false,
+            press: false,
+            click: false,
+            drag: true,
+          },
+        },
+      },
+    });
+  });
+
+  test("normalizes pickable true to bounds hover for models", () => {
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      loadModel: async () => ({ scene: new Group() }),
+    });
+
+    registry.registerModel({
+      id: "hoverable",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      interaction: { pickable: true },
+    });
+
+    expect(registry.inspect().models[0]).toMatchObject({
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: {
+            hover: true,
+            press: false,
+            click: false,
+            drag: false,
+          },
+        },
+      },
     });
   });
 
@@ -167,6 +240,53 @@ describe("managed model registry", () => {
     expect(secondDispose).toHaveBeenCalledTimes(1);
     expect(worldAdapter.objects).toHaveLength(0);
     expect(registry.inspect().models).toEqual([]);
+  });
+
+  test("runs and disposes model scene-object effects", async () => {
+    const disposeResource = vi.fn();
+    const update = vi.fn();
+    const worldAdapter = createSceneAdapter();
+    const registry = createRegistry({
+      worldAdapter,
+      loadModel: async () => ({ scene: new Group() }),
+      effectRegistry: createWebGLEffectRegistry([
+        defineWebGLSceneObjectEffect({
+          kind: "app.modelSpin",
+          source: "model/glb",
+          setup(ctx) {
+            ctx.resources.addDisposable(disposeResource);
+          },
+          update(ctx) {
+            ctx.object.rotation.y = 0.75;
+            ctx.object.model?.src satisfies string | undefined;
+            update(ctx);
+          },
+        }),
+      ]),
+      readEffectScopes: createScopes,
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      effects: [{ kind: "app.modelSpin" }],
+    });
+
+    await registry.update(createFrameInput(), { get: () => 0 });
+    registry.unregisterModel("character");
+    registry.unregisterModel("character");
+
+    const root = worldAdapter.removeObject.mock.calls[0]?.[0].object3D as Group;
+    expect(root.rotation.y).toBe(0.75);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objectId: "character",
+        sourceKind: "model/glb",
+        scene: { id: "world", projection: "perspective-stage" },
+      }),
+    );
+    expect(disposeResource).toHaveBeenCalledTimes(1);
   });
 
   test("applies declarative animation and morph bindings", async () => {
@@ -458,6 +578,8 @@ describe("managed model registry", () => {
 function createRegistry(options: {
   worldAdapter: WebGLSceneAdapter & { objects: WebGLSceneObject[] };
   loadModel?: (source: WebGLModelSourceDescriptor) => Promise<unknown>;
+  effectRegistry?: WebGLEffectRegistry;
+  readEffectScopes?(sceneId: string): WebGLEffectScopeSnapshot;
 }): ManagedModelRegistry {
   return createManagedModelRegistry({
     resourceManager: createResourceManager(),
@@ -469,6 +591,10 @@ function createRegistry(options: {
       return options.worldAdapter;
     },
     loadModel: options.loadModel,
+    ...(options.effectRegistry ? { effectRegistry: options.effectRegistry } : {}),
+    ...(options.readEffectScopes
+      ? { readEffectScopes: options.readEffectScopes }
+      : {}),
   });
 }
 
@@ -511,4 +637,40 @@ function createMorphTarget(
   target.morphTargetInfluences = names.map(() => 0);
 
   return target;
+}
+
+function createScopes(sceneId: string): WebGLEffectScopeSnapshot {
+  return {
+    runtime: { progress: { get: () => 0 } },
+    scene: { id: sceneId, projection: "perspective-stage" },
+  };
+}
+
+function createFrameInput(): WebGLFrameInput {
+  return {
+    time: 100,
+    delta: 16,
+    scroll: {
+      mode: "page",
+      pageProgress: 0,
+      direction: 0,
+      velocity: 0,
+    },
+    pointer: {
+      x: 0,
+      y: 0,
+      normalizedX: 0,
+      normalizedY: 0,
+      isInside: true,
+      isDown: false,
+      downTime: 0,
+      pressDuration: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      dragDeltaX: 0,
+      dragDeltaY: 0,
+      clickCount: 0,
+    },
+  };
 }

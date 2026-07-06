@@ -214,6 +214,90 @@ describe("debug state", () => {
     expect(state.lights?.[0]).not.toHaveProperty("light");
   });
 
+  test("copies descriptor-only scene-object interaction summaries", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      interaction: {
+        hoveredObjectId: "floor",
+        pressedObjectId: "runner",
+        capturedObjectId: "runner",
+        lastClickedObjectId: "floor",
+        activeHit: {
+          objectId: "floor",
+          sceneId: "world",
+          sourceKind: "stage/plane",
+        },
+      },
+      stagePrimitives: [
+        {
+          id: "floor",
+          sceneId: "world",
+          kind: "plane",
+          effects: ["app.floor"],
+          interaction: {
+            pickable: {
+              hitTest: "bounds",
+              pointer: { hover: true, press: true, click: true, drag: false },
+            },
+          },
+        },
+      ],
+      models: [
+        {
+          id: "runner",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "ready",
+          visible: true,
+          clips: [],
+          activeClips: [],
+          effects: ["app.runner"],
+          interaction: {
+            pickable: {
+              hitTest: "bounds",
+              pointer: { hover: true, press: true, click: true, drag: true },
+            },
+          },
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.interaction).toEqual({
+      hoveredObjectId: "floor",
+      pressedObjectId: "runner",
+      capturedObjectId: "runner",
+      lastClickedObjectId: "floor",
+      activeHit: {
+        objectId: "floor",
+        sceneId: "world",
+        sourceKind: "stage/plane",
+      },
+    });
+    expect(state.stagePrimitives?.[0]).toMatchObject({
+      effects: ["app.floor"],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, click: true, drag: false },
+        },
+      },
+    });
+    expect(state.models?.[0]).toMatchObject({
+      effects: ["app.runner"],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, click: true, drag: true },
+        },
+      },
+    });
+    expect(state.interaction).not.toHaveProperty("intersection");
+  });
+
   test("copies managed model prepare debug state without raw handles", () => {
     const state = createDebugState({
       targetCount: 0,

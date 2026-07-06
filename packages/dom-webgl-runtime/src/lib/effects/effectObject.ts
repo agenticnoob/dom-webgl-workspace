@@ -5,6 +5,7 @@ import type {
   WebGLEffectManagedObjectHandle,
   WebGLEffectPointLayerOptions,
   WebGLEffectSourceKind,
+  WebGLSceneObjectEffectSourceKind,
   WebGLEffectTextShaderInputs,
   WebGLEffectTextureTransform,
   WebGLModelMeshHandle,
@@ -132,7 +133,7 @@ export type WebGLEffectAnimationFacade = {
 };
 
 export type WebGLEffectObjectHandle = {
-  readonly sourceKind: WebGLEffectSourceKind;
+  readonly sourceKind: WebGLEffectSourceKind | WebGLSceneObjectEffectSourceKind;
   position: WebGLEffectVector3Like;
   rotation: WebGLEffectVector3Like;
   scale: WebGLEffectScaleLike;

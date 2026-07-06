@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 7C explicit default clips verification
+**Last reviewed against:** Phase 8 interaction/picking implementation
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -69,7 +69,7 @@ phase records are archived under [archive/](./archive/).
   - managed cameras support orthographic DOM/screen modes and perspective-stage
     mode through descriptors, not raw `THREE.Camera` handles
   - target placement supports `dom-anchored`, `screen-anchored`,
-    `screen-depth`, and `stage-local`
+    `screen-depth`, `stage-local`, and `screen-plane`
   - render passes can request runtime-owned `clear`, `clearDepth`, DOM-bound
     `viewport`/scissor, and descriptor-level `postprocess`
   - scene-owned render declarations wait until the referenced/default camera is
@@ -117,13 +117,23 @@ phase records are archived under [archive/](./archive/).
     timeline activity, available clips, active clips, morph names, bone names,
     and missing clip/morph diagnostics without exposing raw GLTF, mixer,
     action, mesh, skeleton, or morph arrays
+  - `WebGLModel` and stage primitives can declare scene-object `effects` and
+    `interaction.pickable`; these use explicit scene-object scope, not
+    DOM-target layout/fallback semantics
+  - scene-object effects are registered with `defineWebGLSceneObjectEffect(...)`
+    and receive `ctx.objectPointer`, `ctx.object`, `ctx.scene`, and
+    `ctx.runtime` without raw intersections, raycasters, cameras, or
+    `ctx.targetPointer`
 - Managed timeline bindings and effect scope metadata:
   - public declarations can bind `timeline` data on `WebGLTarget`,
     `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
   - `WebGLCameraDeclaration` intentionally does not accept top-level
     `timeline`; managed perspective-stage cameras can declare one nested
     `controller` that reads progress and drives `position`, `target`, and `fov`
-    before `screen-depth` projection and pass rendering
+    before `screen-depth`/`screen-plane` projection and pass rendering
+  - perspective-stage cameras can also declare a minimal
+    `controller.pointer: { kind: "orbit", activation: "empty-space-drag" }`
+    controller; object hover/press/drag has priority over camera drag
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
   - `@project/dom-webgl-scroll-adapters/react` exports
@@ -142,11 +152,11 @@ phase records are archived under [archive/](./archive/).
 
 - Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
   shortest and default DOM-first path.
-- `screen-depth` is the first perspective-stage DOM bridge. It projects DOM rect
-  screen position/size through the active `WebGLCamera` basis at a fixed depth;
-  the scene's default camera should stay aligned with the render pass camera.
-  `screen-plane` remains deferred to the Phase 8 pre-step for screen-plane
-  placement against named stage planes.
+- `screen-depth` projects DOM rect screen position/size through the active
+  `WebGLCamera` basis at a fixed depth. `screen-plane` casts the DOM rect center
+  through the active camera to a named stage plane and applies optional
+  descriptor `offset`/`scale`; when the plane/camera intersection cannot be
+  resolved, debug/layout diagnostics stay descriptor-only.
 - `stage-local` placement sets explicit scene-local layout for a target.
   Scene-native `WebGLModel` is available for managed-scene GLB assets that do
   not need DOM fallback or target-local effects. Models that should follow DOM
@@ -184,9 +194,9 @@ phase records are archived under [archive/](./archive/).
   The `prepare.load` debug state is descriptor-only; it is not a public loader
   callback, preload margin, render hook, or raw handle. This does not add
   `WebGLTarget.lifecycle`, DOM fallback, DOM rect fitting, target pointer state,
-  target-local effects, or raw render hooks to `WebGLModel`. Phase 7 v1 does
-  not add target-local `effects` to `WebGLModel`; scene-native model effects
-  remain a Phase 8 pre-step design topic.
+  target-local effects, or raw render hooks to `WebGLModel`. Scene-native model
+  effects are available only through explicit scene-object effects; they do not
+  receive DOM layout, fallback, or `ctx.targetPointer`.
 - `model/glb` renderables are fitted to their DOM target by the runtime layout
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
@@ -204,11 +214,14 @@ phase records are archived under [archive/](./archive/).
   motion now uses the Phase 6A nested `WebGLCamera.controller` descriptor.
   Controller framing is re-applied after managed camera resize so a scroll-held
   camera does not snap back to its declaration base frame when scroll progress
-  stops changing.
+  stops changing. Phase 8 adds minimal empty-space orbit drag through
+  `controller.pointer`; it is blocked by object hit/capture state.
   Orthographic zoom controllers, screen overlay camera controllers, complex
   framing boxes, and pass-bound camera controller scope are deferred possible
-  camera-controller iterations. Pointer-driven orbit, pan, drag, pointer
-  parallax, and empty-space camera controls remain Phase 8 work.
+  camera-controller iterations. Phase 8 now scopes pointer-driven camera work to
+  minimal empty-space orbit drag for object-vs-camera priority proof. Pan,
+  dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit controls
+  are deferred to Phase 8B.
 - The managed timeline example uses the same named progress signal for a
   `WebGLCamera.controller` and the card effect, while the scene, stage
   primitives, lights, and visible scene-child `WebGLTarget` display directly.
@@ -226,6 +239,11 @@ phase records are archived under [archive/](./archive/).
   canvas; the pass is clipped by the visible DOM rect without remapping into
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
+- The managed interaction example is mounted in `apps/example` and dogfoods
+  Phase 8 public surface: pickable stage/model descriptors, scene-object effects
+  registered with `defineWebGLSceneObjectEffect(...)`, a DOM `WebGLTarget` using
+  `placement: { mode: "screen-plane", planeId }`, and minimal
+  `WebGLCamera.controller.pointer` empty-space orbit drag.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 
@@ -284,9 +302,13 @@ DOM-bound pass viewport is far from view, loads and render-warms inside the
 prepare margin, and preserves visible-entry animation without reintroducing the
 model-row scroll stall:
 [2026-07-06-phase-7d-model-load-prepare-performance.md](./superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md).
-After Phase 7D, Phase 8 should start with scene-native model effect scope design
-before picking/hit state, because those effects need explicit
-object/scene/runtime scope rather than DOM-target semantics.
+Phase 8 implements the scene-native object/effect scope, `screen-plane`
+placement against named stage planes, runtime-owned pick routing, descriptor-only
+interaction debug state, object pointer/capture state, and minimal empty-space
+orbit drag:
+[2026-07-06-phase-8-interaction-picking.md](./superpowers/plans/2026-07-06-phase-8-interaction-picking.md).
+Phase 8B is a planned roadmap slot, not a focused implementation plan yet, for
+advanced managed camera gestures after Phase 8 input routing is stable.
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -324,6 +346,7 @@ Relationship rules from the active roadmap:
 - pass/runtime-scoped postprocess
 - managed model animation
 - managed input routing and picking
+- advanced managed camera gestures after picking/router priority is stable
 - dynamics/physics only after stage/collider contracts exist
 
 ## Active Docs

@@ -420,14 +420,15 @@ Rules:
 - Supported scene projections are `dom-aligned`, `screen`, and
   `perspective-stage`.
 - Supported target placements are `dom-anchored`, `screen-anchored`,
-  `screen-depth`, and `stage-local`.
+  `screen-depth`, `stage-local`, and `screen-plane`.
 - Use orthographic cameras for `dom-aligned` and `screen` scenes. Use
   perspective cameras with `mode: "perspective-stage"` for perspective-stage
   scenes.
-- `screen-depth` is the initial perspective DOM bridge. It uses the DOM rect for
-  screen position/size and projects that point along the active `WebGLCamera`
-  basis at the requested depth. Keep the scene default camera aligned with the
-  camera used by the scene render pass. `screen-plane` remains deferred.
+- `screen-depth` uses the DOM rect for screen position/size and projects that
+  point along the active `WebGLCamera` basis at the requested depth.
+  `screen-plane` casts the DOM rect center through the active camera to a named
+  stage plane and applies optional descriptor `offset`/`scale`. Keep the scene
+  default camera aligned with the camera used by the scene render pass.
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.
@@ -452,9 +453,11 @@ Rules:
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
 - A managed `perspective-stage` camera can declare one nested `controller`
-  descriptor for progress-driven `position`, `target`, and `fov`. Scene-native
-  `WebGLModel`, `screen-plane`, orthographic/screen camera controllers,
-  pass-bound controller scope, and camera-scoped effects remain later phases.
+  descriptor for progress-driven `position`, `target`, and `fov`, and Phase 8
+  adds minimal `controller.pointer` support for
+  `{ kind: "orbit", activation: "empty-space-drag" }`. Full pan/dolly/zoom,
+  damping, pointer parallax, orthographic/screen camera controllers, pass-bound
+  controller scope, and camera-scoped effects remain later phases.
   `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
   raw scene control handle. Runtime-owned controller framing is re-applied after
   managed camera resize, so a scroll-held camera keeps the current controller
@@ -560,10 +563,11 @@ Rules:
 - The runtime creates and disposes internal Three meshes, geometry, materials,
   and lights. Do not pass raw Three meshes, materials, geometries, lights,
   scenes, cameras, renderers, or render-loop handles.
-- Phase 4 materials are solid-color `basic` or `standard` descriptors. Texture
+- Stage materials are solid-color `basic` or `standard` descriptors. Texture
   descriptors for stage materials are not public yet.
-- `screen-plane` is still not available; use `screen-depth` or `stage-local`
-  until that placement mode lands.
+- DOM targets that need to sit on a named stage plane can use
+  `placement: { mode: "screen-plane", planeId }`; this remains descriptor data
+  and does not expose raw planes, raycasters, intersections, meshes, or cameras.
 
 ### 4. Managed Scroll Timelines And Scope Metadata
 
@@ -905,9 +909,8 @@ For example, `apps/example` serves `/models/4.glb` with decoder files under
 
 Scene-native GLB models can be declared inside a managed scene with
 `WebGLModel`. This path is for stage-local 3D assets that do not need DOM
-fallback, target-local pointer state, or target-local effects. Models that
-should follow a DOM element's layout and fallback lifecycle should stay as
-`WebGLTarget` model sources.
+fallback or DOM target lifecycle. Models that should follow a DOM element's
+layout and fallback lifecycle should stay as `WebGLTarget` model sources.
 
 ```tsx
 import {
@@ -954,6 +957,13 @@ import {
       },
       morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
     }}
+    effects={[{ kind: "app.characterHover", baseScale: 44 }]}
+    interaction={{
+      pickable: {
+        hitTest: "bounds",
+        pointer: { hover: true, press: true, drag: true, click: true },
+      },
+    }}
   />
 </WebGLScene>;
 ```
@@ -965,18 +975,47 @@ valid for existing one-clip startup.
 
 The same capability is available to vanilla consumers through
 `runtime.registerModel(...)` / `runtime.unregisterModel(id)`. `WebGLModel`
-does not accept target-local `effects` in Phase 7 v1; scene-native model effect
-scope is a later design topic. `prepare={{ renderWarmup: "idle" }}` is a
-descriptor-only first-render warmup request. It does not expose renderer,
-scene, camera, render target, render loop, loader, mixer, action, skeleton, or
-mesh handles, and it does not add DOM fallback, DOM rect lifecycle, target
-pointer state, or target-local effects. For DOM-bound managed model passes,
-runtime preparation is viewport-proximity aware: the model can stay queued while
-its pass viewport is far below the page, then load and warm before the viewport
-reaches the model row. Debug state reports descriptor-only `prepare.load` and
-`prepare.renderWarmup` values through `WebGLDebugModelPrepareSummary` and
-`WebGLDebugModelPrepareLoadState`; these are not public loader callbacks,
-preload margins, or raw render hooks.
+accepts scene-object `effects`, not DOM target-local effects. Define those
+effects with `defineWebGLSceneObjectEffect(...)`:
+
+```ts
+import { defineWebGLSceneObjectEffect } from "@project/dom-webgl-runtime";
+
+type CharacterHoverParams = {
+  kind: "app.characterHover";
+  baseScale?: number;
+};
+
+export const characterHoverEffect =
+  defineWebGLSceneObjectEffect<CharacterHoverParams>({
+  kind: "app.characterHover",
+  source: "model/glb",
+  update(ctx, _state, params) {
+    const baseScale = params.baseScale ?? 1;
+    ctx.object.visible = true;
+    ctx.object.scale.setScalar(
+      ctx.objectPointer.isHovered ? baseScale * 1.05 : baseScale,
+    );
+  },
+});
+```
+
+Scene-object effect context exposes `ctx.objectPointer`, `ctx.object`,
+`ctx.scene`, `ctx.runtime`, `ctx.pointer`, `ctx.time`, `ctx.delta`, and
+`ctx.resources`. It does not expose DOM `layout`, `ctx.targetPointer`, raw
+raycasters, raw intersections, raw cameras, raw objects, or loader/mixer/action
+handles.
+
+`prepare={{ renderWarmup: "idle" }}` is a descriptor-only first-render warmup
+request. It does not expose renderer, scene, camera, render target, render loop,
+loader, mixer, action, skeleton, or mesh handles, and it does not add DOM
+fallback, DOM rect lifecycle, or target-local pointer state. For DOM-bound
+managed model passes, runtime preparation is viewport-proximity aware: the model
+can stay queued while its pass viewport is far below the page, then load and
+warm before the viewport reaches the model row. Debug state reports
+descriptor-only `prepare.load` and `prepare.renderWarmup` values through
+`WebGLDebugModelPrepareSummary` and `WebGLDebugModelPrepareLoadState`; these are
+not public loader callbacks, preload margins, or raw render hooks.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must

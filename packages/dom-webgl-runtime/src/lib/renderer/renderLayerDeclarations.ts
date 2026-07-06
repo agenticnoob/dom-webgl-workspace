@@ -9,6 +9,7 @@ import type {
   WebGLScreenAnchor,
   WebGLScreenAnchoredPlacementDeclaration,
   WebGLScreenDepthPlacementDeclaration,
+  WebGLScreenPlanePlacementDeclaration,
   WebGLStageLocalPlacementDeclaration,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
@@ -76,6 +77,11 @@ export type NormalizedTargetPlacement =
       position: WebGLTuple3;
       rotation: WebGLTuple3;
       scale: number | WebGLTuple3;
+    })
+  | (WebGLScreenPlanePlacementDeclaration & {
+      planeId: string;
+      offset: WebGLTuple3;
+      scale: number | WebGLTuple2;
     });
 
 export function normalizeRenderLayerSceneDeclaration(
@@ -281,6 +287,17 @@ export function normalizeTargetPlacement(
           ? { size: normalizeTuple2(placement.size, [1, 1], "stage-local size") }
           : {}),
       };
+    case "screen-plane":
+      return {
+        mode: "screen-plane",
+        planeId: normalizePublicId(placement.planeId, "screen-plane planeId"),
+        offset: normalizeTuple3(
+          placement.offset,
+          [0, 0, 0],
+          "screen-plane offset",
+        ),
+        scale: normalizeScreenPlaneScale(placement.scale),
+      };
   }
 }
 
@@ -431,6 +448,20 @@ function normalizePlacementScale(
   }
 
   return normalizeTuple3(scale, [1, 1, 1], "stage-local scale");
+}
+
+function normalizeScreenPlaneScale(
+  scale: number | WebGLTuple2 | undefined,
+): number | WebGLTuple2 {
+  if (scale === undefined) {
+    return 1;
+  }
+
+  if (typeof scale === "number") {
+    return normalizePositiveNumber(scale, 1, "screen-plane scale");
+  }
+
+  return normalizeTuple2(scale, [1, 1], "screen-plane scale");
 }
 
 function assertSceneProjection(value: WebGLSceneProjection): void {

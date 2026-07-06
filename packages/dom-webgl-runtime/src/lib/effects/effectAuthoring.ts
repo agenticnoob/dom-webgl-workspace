@@ -6,6 +6,7 @@ import type {
   WebGLProgressSignalSource,
   WebGLSceneProjection,
   WebGLTargetPointerState,
+  WebGLTuple3,
 } from "../types";
 import type { WebGLEffectMaterialFacade } from "./effectMaterial";
 import type {
@@ -22,6 +23,11 @@ export type WebGLEffectSourceKind =
   | "media/video"
   | "media/image-sequence"
   | "model/glb";
+
+export type WebGLSceneObjectEffectSourceKind =
+  | "model/glb"
+  | "stage/plane"
+  | "stage/box";
 
 export type WebGLEffectResourceScope = {
   addDisposable(dispose: () => void): void;
@@ -391,6 +397,43 @@ export type WebGLEffectContext = {
 export type WebGLEffectSetupContext = WebGLEffectContext;
 export type WebGLEffectUpdateContext = WebGLEffectContext;
 
+export type WebGLSceneObjectPointerState = {
+  readonly isHovered: boolean;
+  readonly isPressed: boolean;
+  readonly isDragging: boolean;
+  readonly wasClicked: boolean;
+  readonly pointerId?: number;
+  readonly dragStartX: number;
+  readonly dragStartY: number;
+  readonly dragDeltaX: number;
+  readonly dragDeltaY: number;
+  readonly hit?: {
+    readonly point: WebGLTuple3;
+    readonly normal?: WebGLTuple3;
+    readonly distance: number;
+  };
+};
+
+export type WebGLSceneObjectEffectContext = {
+  readonly objectId: string;
+  readonly sourceKind: WebGLSceneObjectEffectSourceKind;
+  readonly input: WebGLFrameInput;
+  readonly pointer: WebGLFrameInput["pointer"];
+  readonly objectPointer: WebGLSceneObjectPointerState;
+  readonly progress: WebGLProgressSignalSource;
+  readonly runtime: WebGLEffectRuntimeScope;
+  readonly scene: WebGLEffectSceneScope;
+  readonly time: number;
+  readonly delta: number;
+  readonly object: WebGLEffectObjectHandle;
+  readonly resources: WebGLEffectResourceScope;
+};
+
+export type WebGLSceneObjectEffectSetupContext =
+  WebGLSceneObjectEffectContext;
+export type WebGLSceneObjectEffectUpdateContext =
+  WebGLSceneObjectEffectContext;
+
 export type WebGLEffectSchedule = "static" | "reactive" | "frame";
 
 export type WebGLEffectDefinition<
@@ -412,6 +455,33 @@ export type WebGLEffectDefinition<
     params: TParams,
   ): void;
 };
+
+export type WebGLSceneObjectEffectDefinition<
+  TParams extends WebGLEffectDeclaration = WebGLEffectDeclaration,
+  TState = unknown,
+> = {
+  readonly kind: TParams["kind"];
+  readonly source?:
+    | WebGLSceneObjectEffectSourceKind
+    | readonly WebGLSceneObjectEffectSourceKind[];
+  readonly schedule?: WebGLEffectSchedule;
+  setup?(
+    context: WebGLSceneObjectEffectSetupContext,
+    params: TParams,
+  ): TState;
+  update(
+    context: WebGLSceneObjectEffectUpdateContext,
+    state: TState,
+    params: TParams,
+  ): void;
+  dispose?(
+    context: WebGLSceneObjectEffectContext,
+    state: TState,
+    params: TParams,
+  ): void;
+};
+
+const sceneObjectEffectDefinitions = new WeakSet<object>();
 
 /**
  * Consumer-maintained mapping of effect kind string → params shape.
@@ -486,4 +556,20 @@ export function defineWebGLEffect<
   definition: WebGLEffectDefinition<TParams, TState>,
 ): WebGLEffectDefinition<TParams, TState> {
   return definition;
+}
+
+export function defineWebGLSceneObjectEffect<
+  TParams extends WebGLEffectDeclaration,
+  TState = void,
+>(
+  definition: WebGLSceneObjectEffectDefinition<TParams, TState>,
+): WebGLSceneObjectEffectDefinition<TParams, TState> {
+  sceneObjectEffectDefinitions.add(definition);
+  return definition;
+}
+
+export function isWebGLSceneObjectEffectDefinition(
+  definition: WebGLEffectDefinition | WebGLSceneObjectEffectDefinition,
+): definition is WebGLSceneObjectEffectDefinition {
+  return sceneObjectEffectDefinitions.has(definition);
 }

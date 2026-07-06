@@ -230,8 +230,8 @@ Rules:
   perspective `perspective-stage` mode. Camera descriptors own framing values;
   raw `THREE.Camera` handles are not public.
 - Targets can declare `placement: { mode: "dom-anchored" }`,
-  `screen-anchored`, `screen-depth`, or `stage-local` depending on the scene
-  projection.
+  `screen-anchored`, `screen-depth`, `stage-local`, or `screen-plane` depending
+  on the scene projection.
 - `WebGLRenderPass` can request runtime-owned `clear`, `clearDepth`, DOM-bound
   `viewport`/scissor, and descriptor-level `postprocess`.
 - `WebGLPassViewport` registers a DOM rect anchor for a managed render pass.
@@ -241,12 +241,16 @@ Rules:
   visible canvas intersection as the scissor clip. They are clipped, not
   compressed into the visible slice, and fully offscreen passes are skipped.
 - Scene-native `WebGLModel` is available for managed-scene GLB assets that do
-  not need DOM fallback, target-local pointer state, target-local effects, or
-  DOM layout. Models that should follow DOM layout remain `WebGLTarget` model
-  sources.
-- `screen-plane`, raw Three.js scene/camera/renderer handles,
+  not need DOM fallback, DOM layout, or target-local effects. Models that should
+  follow DOM layout remain `WebGLTarget` model sources.
+- Scene-native `WebGLModel` and stage primitive descriptors can declare
+  scene-object `effects` plus `interaction.pickable`. Register these effects
+  with `defineWebGLSceneObjectEffect(...)`; they receive `ctx.objectPointer`,
+  not DOM `layout` or `ctx.targetPointer`.
+- Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
-  and scene-native model effects remain future or non-public.
+  pan/dolly/wheel/pinch zoom, damping, and pointer parallax remain future or
+  non-public.
 - `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot accept a
   top-level `timeline`. For progress-driven camera motion/focus/framing, put
   one nested `controller` descriptor on a managed `perspective-stage` camera.
@@ -332,8 +336,9 @@ Rules:
   `runtime.registerLight(...)` with descriptor data.
 - Do not pass raw Three.js meshes, materials, geometries, lights, scenes,
   cameras, renderers, or render-loop handles.
-- `screen-plane` is still not available; use `screen-depth` or `stage-local`
-  until the Phase 8 pre-step lands.
+- `screen-plane` is available for DOM targets that need to project their DOM rect
+  center to a named stage plane. It remains descriptor-only and does not expose
+  raw planes, raycasters, intersections, meshes, or cameras.
 
 ## Managed Timeline Bindings
 

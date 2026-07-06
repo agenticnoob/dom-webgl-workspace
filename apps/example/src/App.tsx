@@ -13,6 +13,7 @@ import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
+import { ManagedInteractionExample } from "./ManagedInteractionExample";
 import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
 import { ManagedTimelineExample } from "./ManagedTimelineExample";
 import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
@@ -82,6 +83,7 @@ export default function App() {
           <ManagedStagePrimitiveExample />
           <ManagedModelAnimationExample />
           <ManagedTimelineExample />
+          <ManagedInteractionExample />
 
           <section className="example-row">
             <EffectDescription source="dom/text" title="文字波浪">

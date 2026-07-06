@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { WebGLDeclaration } from "../../../src/lib/types";
+import type {
+  WebGLDeclaration,
+  WebGLPointerState,
+} from "../../../src/lib/types";
+import type { ManagedHitCandidate } from "../../../src/lib/renderer/interactionRouter";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type {
   WebGLSceneAdapter,
@@ -170,6 +174,75 @@ describe("createThreeRendererHost", () => {
       geometries: 2,
       textures: 5,
       programs: 2,
+    });
+
+    host.dispose();
+  });
+
+  test("uses managed bounds hit testing even when mesh raycast returns no intersections", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    mesh.raycast = () => {};
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(mesh);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: mesh,
+      hitTest: "bounds",
+      pickable: true,
+      pointer: { hover: true, press: true, click: true, drag: true },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toMatchObject({
+      id: "example.model",
+      sceneId: "example.scene",
+      distance: 9,
     });
 
     host.dispose();
@@ -748,6 +821,25 @@ describe("createWebGLRuntime renderer host", () => {
 
 function canvasCreateCalls(createElement: { mock: { calls: unknown[][] } }) {
   return createElement.mock.calls.filter(([tagName]) => tagName === "canvas");
+}
+
+function createManagedPickingPointer(): WebGLPointerState {
+  return {
+    x: 400,
+    y: 300,
+    normalizedX: 0,
+    normalizedY: 0,
+    isInside: true,
+    isDown: false,
+    downTime: 0,
+    pressDuration: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragDeltaX: 0,
+    dragDeltaY: 0,
+    clickCount: 0,
+  };
 }
 
 type RuntimeWithRendererHostFactory = Parameters<typeof createWebGLRuntime>[0] & {

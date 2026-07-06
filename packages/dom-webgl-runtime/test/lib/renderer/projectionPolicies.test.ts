@@ -116,4 +116,45 @@ describe("projection policies", () => {
       scale: 2,
     });
   });
+
+  test("projects screen-plane placement through the injected plane resolver", () => {
+    const layout = projectTargetLayout({
+      sceneProjection: "perspective-stage",
+      camera: {
+        type: "perspective",
+        mode: "perspective-stage",
+        fov: 50,
+        position: [0, 0, 500],
+        target: [0, 0, 0],
+      },
+      placement: {
+        mode: "screen-plane",
+        planeId: "floor",
+        offset: [0, 0, 0],
+        scale: 1,
+      },
+      measurement: { left: 300, top: 250, width: 200, height: 100 },
+      viewport: { width: 800, height: 600 },
+      screenPlane: {
+        resolvePlane() {
+          return {
+            id: "floor",
+            sceneId: "world",
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: 1,
+            size: [800, 600],
+          };
+        },
+      },
+    });
+
+    expect(layout).toMatchObject({
+      x: 0,
+      y: 0,
+      z: 0,
+      rotation: [0, 0, 0],
+    });
+    expect(layout.width).toBeGreaterThan(150);
+  });
 });

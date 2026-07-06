@@ -110,8 +110,10 @@ type CameraMockProps = {
   readonly default?: boolean;
   readonly type?: string;
   readonly mode?: string;
+  readonly fov?: number;
   readonly position?: readonly [number, number, number];
   readonly target?: readonly [number, number, number];
+  readonly controller?: Record<string, unknown>;
 };
 
 type StagePlaneMockProps = {
@@ -119,8 +121,11 @@ type StagePlaneMockProps = {
   readonly role?: string;
   readonly size?: readonly [number, number];
   readonly position?: readonly [number, number, number];
+  readonly rotation?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
   readonly timeline?: Record<string, unknown>;
+  readonly effects?: readonly Record<string, unknown>[];
+  readonly interaction?: Record<string, unknown>;
 };
 
 type StageBoxMockProps = {
@@ -150,6 +155,8 @@ type ModelMockProps = {
   readonly animation?: Record<string, unknown>;
   readonly prepare?: Record<string, unknown>;
   readonly timeline?: Record<string, unknown>;
+  readonly effects?: readonly Record<string, unknown>[];
+  readonly interaction?: Record<string, unknown>;
 };
 
 type PassViewportMockProps = {
@@ -325,10 +332,13 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-timeline-dogfood")).toBeNull();
     expect(host.querySelector(".example-managed-stage-timeline")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-managed-stage-viewport")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-interaction-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-interaction-viewport")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-interaction-card")).toBeInstanceOf(HTMLElement);
     expect(
       Array.from(
         host.querySelectorAll(
-          ".example-stage-dogfood, .example-managed-model-dogfood, .example-managed-stage-timeline",
+          ".example-stage-dogfood, .example-managed-model-dogfood, .example-managed-stage-timeline, .example-interaction-dogfood",
         ),
         (element) => {
           if (element.classList.contains("example-stage-dogfood")) {
@@ -337,10 +347,13 @@ describe("effect authoring example app", () => {
           if (element.classList.contains("example-managed-model-dogfood")) {
             return "model";
           }
-          return "timeline";
+          if (element.classList.contains("example-managed-stage-timeline")) {
+            return "timeline";
+          }
+          return "interaction";
         },
       ),
-    ).toEqual(["stage", "model", "timeline"]);
+    ).toEqual(["stage", "model", "timeline", "interaction"]);
     expect(passViewportProps).toContainEqual(
       expect.objectContaining({
         id: "example.stage.viewport",
@@ -362,6 +375,14 @@ describe("effect authoring example app", () => {
         id: "example.managedStage.viewport",
         as: "div",
         className: "example-managed-stage-viewport",
+      }),
+    );
+    expect(passViewportProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.interaction.viewport",
+        as: "div",
+        className: "example-interaction-viewport",
+        "aria-hidden": "true",
       }),
     );
     expect(sceneProps).toContainEqual(
@@ -406,6 +427,18 @@ describe("effect authoring example app", () => {
       }),
     );
     expect(sceneProps.find(({ id }) => id === "example.managedStage.scene")).not.toHaveProperty("timeline");
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.interaction.scene",
+        projection: "perspective-stage",
+        render: {
+          camera: "example.interaction.camera",
+          order: -7,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
+        },
+      }),
+    );
     expect(cameraProps).toContainEqual(
       expect.objectContaining({
         id: "example.managedModel.camera",
@@ -419,11 +452,28 @@ describe("effect authoring example app", () => {
       }),
     );
     expect(cameraProps.find(({ id }) => id === "example.managedStage.camera")).not.toHaveProperty("timeline");
+    expect(cameraProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.interaction.camera",
+        mode: "perspective-stage",
+        controller: {
+          pointer: {
+            kind: "orbit",
+            activation: "empty-space-drag",
+            target: [120, -78, -70],
+            sensitivity: [0.0035, 0.003],
+            minPolarAngle: 0.52,
+            maxPolarAngle: 1.42,
+          },
+        },
+      }),
+    );
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
       "example.managedStage.floor",
       "example.managedStage.backdrop",
+      "example.interaction.floor",
     ]);
     expect(stageBoxProps.map(({ id }) => id)).toEqual([
       "example.stage.plinth",
@@ -438,6 +488,8 @@ describe("effect authoring example app", () => {
       "example.managedModel.key",
       "example.managedStage.ambient",
       "example.managedStage.key",
+      "example.interaction.ambient",
+      "example.interaction.key",
     ]);
     expect(modelProps).toEqual([
       expect.objectContaining({
@@ -475,7 +527,46 @@ describe("effect authoring example app", () => {
         },
         prepare: { renderWarmup: "idle" },
       }),
+      expect.objectContaining({
+        id: "example.interaction.hero",
+        src: "/models/hero.glb",
+        loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
+        position: [180, -118, -42],
+        scale: 4,
+        effects: [
+          {
+            kind: "example.sceneObjectDragPose",
+            baseScale: 4,
+            hoverScale: 1.04,
+            dragScale: 1.1,
+            baseRotationY: -0.42,
+          },
+        ],
+        interaction: {
+          pickable: {
+            hitTest: "bounds",
+            pointer: { hover: true, press: true, drag: true, click: true },
+          },
+        },
+        prepare: { renderWarmup: "idle" },
+      }),
     ]);
+    expect(stagePlaneProps.find(({ id }) => id === "example.interaction.floor")).toMatchObject({
+      effects: [
+        {
+          kind: "example.sceneObjectHoverPulse",
+          baseOpacity: 0.68,
+          hoverOpacity: 0.92,
+          dragOpacity: 1,
+        },
+      ],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, click: true },
+        },
+      },
+    });
     expect(
       stagePlaneProps
         .filter(({ id }) => id.startsWith("example.managedStage."))
@@ -505,7 +596,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-27);
+    const finalTargetProps = targetProps.slice(-28);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -514,6 +605,7 @@ describe("effect authoring example app", () => {
       "example.surface.ghost-cursor",
       "example.surface.waves",
       "example.managedStage.card",
+      "example.interaction.screen-plane-card",
       "example.text.wave",
       "example.text.reveal",
       "example.text.spotlight",
@@ -543,6 +635,7 @@ describe("effect authoring example app", () => {
       "section",
       "section",
       "article",
+      "article",
       "p",
       "p",
       "p",
@@ -566,6 +659,7 @@ describe("effect authoring example app", () => {
       "p",
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.source)).toEqual([
+      { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
@@ -612,6 +706,7 @@ describe("effect authoring example app", () => {
       "example.surfaceGhostCursor",
       "example.surfaceWaves",
       "example.managedTimelineCard",
+      "example.surfaceFill",
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
@@ -634,7 +729,7 @@ describe("effect authoring example app", () => {
       "example.modelFloatGlow",
       "example.pinnedReveal",
     ]);
-    expect(finalTargetProps[17]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[18]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(finalTargetProps[5]?.webgl).toMatchObject({
       key: "example.managedStage.card",
       source: { kind: "dom", type: "element" },
@@ -648,36 +743,49 @@ describe("effect authoring example app", () => {
       ],
     });
     expect(finalTargetProps[5]?.webgl).not.toHaveProperty("timeline");
+    expect(finalTargetProps[6]?.webgl).toMatchObject({
+      key: "example.interaction.screen-plane-card",
+      sceneId: "example.interaction.scene",
+      source: { kind: "dom", type: "element" },
+      placement: {
+        mode: "screen-plane",
+        planeId: "example.interaction.floor",
+        offset: [0, 6, 0],
+        scale: 0.86,
+      },
+      lifecycle: { hideWhenReady: false },
+      effects: [{ kind: "example.surfaceFill", opacity: 0.52 }],
+    });
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();
-    expect(finalTargetProps[18]?.webgl.lifecycle).toEqual({
-      hideWhenReady: true,
-      hideMode: "self",
-    });
-    expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
-      kind: "example.mediaPointerParallax",
-      bleed: 0.08,
-      strength: 0.72,
-    });
     expect(finalTargetProps[19]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
-    expect(finalTargetProps[19]?.webgl).toMatchObject({
+    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
+      kind: "example.mediaPointerParallax",
+      bleed: 0.08,
+      strength: 0.72,
+    });
+    expect(finalTargetProps[20]?.webgl.lifecycle).toEqual({
+      hideWhenReady: true,
+      hideMode: "self",
+    });
+    expect(finalTargetProps[20]?.webgl).toMatchObject({
       key: "example.image-sequence.card",
       source: { kind: "dom", type: "element" },
       transformScope: "subtree",
     });
-    expect(finalTargetProps[19]?.webgl).not.toHaveProperty("renderRole");
-    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[20]?.webgl).not.toHaveProperty("renderRole");
+    expect(finalTargetProps[20]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 96,
       minOpacity: 0.72,
       maxOpacity: 1,
     });
-    expect(finalTargetProps[19]?.webgl.effects?.[1]).toMatchObject({
+    expect(finalTargetProps[20]?.webgl.effects?.[1]).toMatchObject({
       kind: "example.sequenceCardBorderGlow",
       edgeSensitivity: 0.28,
       colorSensitivity: 0.48,
@@ -685,7 +793,7 @@ describe("effect authoring example app", () => {
       glowIntensity: 1,
       fillOpacity: 0.46,
     });
-    expect(finalTargetProps[20]?.webgl).toMatchObject({
+    expect(finalTargetProps[21]?.webgl).toMatchObject({
       key: "example.image-sequence.card.title",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -697,7 +805,7 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[21]?.webgl).toMatchObject({
+    expect(finalTargetProps[22]?.webgl).toMatchObject({
       key: "example.image-sequence.card.description",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -753,14 +861,14 @@ describe("effect authoring example app", () => {
     const pinnedSection = host.querySelector(".example-pinned-row");
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
-    expect(finalTargetProps[24]?.webgl).toMatchObject({
+    expect(finalTargetProps[25]?.webgl).toMatchObject({
       key: "example.model.dark-scene",
       source: { kind: "dom", type: "element" },
       renderRole: "surface",
       lifecycle: { hideWhenReady: true, hideMode: "self" },
       effects: [{ kind: "example.modelDarkScene" }],
     });
-    expect(finalTargetProps[25]?.webgl).toMatchObject({
+    expect(finalTargetProps[26]?.webgl).toMatchObject({
       key: "example.model.float-glow",
       source: {
         kind: "model",
@@ -778,23 +886,23 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[26]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[27]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
 
-    const firstSequenceCardEffects = finalTargetProps[19]?.webgl.effects;
+    const firstSequenceCardEffects = finalTargetProps[20]?.webgl.effects;
     await act(async () => {
       root.render(createElement(App));
     });
 
     const firstManagedStageTarget = finalTargetProps[5];
-    const firstPinnedTarget = finalTargetProps[26];
+    const firstPinnedTarget = finalTargetProps[27];
     const secondSequenceCardTarget = targetProps
-      .slice(-27)
+      .slice(-28)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondManagedStageTarget = targetProps
-      .slice(-27)
+      .slice(-28)
       .find(({ webgl }) => webgl.key === "example.managedStage.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);

@@ -21,6 +21,7 @@ import {
   readCameraControllerProgress,
   type NormalizedCameraControllerDeclaration,
   type NormalizedCameraControllerFrameDeclaration,
+  type NormalizedCameraPointerControllerDeclaration,
 } from "./cameraControllerDeclarations";
 import type { NormalizedTimelineBinding } from "../timeline/timelineDeclarations";
 import { readTimelineProgress } from "../timeline/timelineDeclarations";
@@ -29,12 +30,15 @@ import type {
   WebGLCameraMode,
   WebGLCameraType,
   WebGLDebugCameraControllerSummary,
+  WebGLDebugInteractionSummary,
+  WebGLFrameInput,
   WebGLPassViewportDeclaration,
   WebGLPostprocessDeclaration,
   WebGLProgressSignalSource,
   WebGLRenderPassDeclaration,
   WebGLSceneDeclaration,
   WebGLSceneProjection,
+  WebGLTuple3,
 } from "../types";
 import type { DOMViewportSize } from "./domProjection";
 
@@ -102,6 +106,13 @@ export type InternalRenderLayerRegistry = {
   unregisterRenderPass(id: string): void;
   updateTimelineState(progressSignals: WebGLProgressSignalSource): void;
   updateCameraControllers(progressSignals: WebGLProgressSignalSource): boolean;
+  updateCameraPointerControllers(input: {
+    frameInput: WebGLFrameInput;
+    blocked: boolean;
+  }): {
+    changed: boolean;
+    summary?: NonNullable<WebGLDebugInteractionSummary["cameraController"]>;
+  };
   inspectCameraControllers(): readonly WebGLDebugCameraControllerSummary[];
   resize(viewport: DOMViewportSize): void;
   renderPasses(
@@ -180,6 +191,10 @@ export function createInternalRenderLayerRegistry(
   const cameraControllerSnapshotsByCameraId = new Map<
     string,
     { readonly progress: number; readonly applied: boolean }
+  >();
+  const cameraPointerControllerSnapshotsByCameraId = new Map<
+    string,
+    { readonly active: boolean }
   >();
 
   return {
@@ -275,6 +290,7 @@ export function createInternalRenderLayerRegistry(
           camerasById.delete(cameraId);
           appliedControllerFramesByCameraId.delete(cameraId);
           cameraControllerSnapshotsByCameraId.delete(cameraId);
+          cameraPointerControllerSnapshotsByCameraId.delete(cameraId);
         }
       }
 
@@ -343,6 +359,7 @@ export function createInternalRenderLayerRegistry(
       camerasById.delete(camera.id);
       appliedControllerFramesByCameraId.delete(camera.id);
       cameraControllerSnapshotsByCameraId.delete(camera.id);
+      cameraPointerControllerSnapshotsByCameraId.delete(camera.id);
 
       const scene = scenesById.get(camera.sceneId);
       if (scene?.defaultCameraId === camera.id) {
@@ -398,7 +415,12 @@ export function createInternalRenderLayerRegistry(
       const viewport = rendererHost.getViewportSize();
 
       for (const camera of camerasById.values()) {
-        if (!camera.controller || !camera.controllerBaseFrame) {
+        if (
+          !camera.controller ||
+          !camera.controller.timeline ||
+          !camera.controller.to ||
+          !camera.controllerBaseFrame
+        ) {
           continue;
         }
 
@@ -429,11 +451,59 @@ export function createInternalRenderLayerRegistry(
 
       return changed;
     },
+    updateCameraPointerControllers({ frameInput, blocked }) {
+      let changed = false;
+      let summary:
+        | NonNullable<WebGLDebugInteractionSummary["cameraController"]>
+        | undefined;
+      const viewport = rendererHost.getViewportSize();
+
+      for (const camera of camerasById.values()) {
+        const pointer = camera.controller?.pointer;
+        if (!pointer || !camera.controllerBaseFrame) {
+          continue;
+        }
+
+        const wasActive =
+          cameraPointerControllerSnapshotsByCameraId.get(camera.id)?.active ??
+          false;
+        const active =
+          !blocked && frameInput.pointer.isDown && frameInput.pointer.isDragging;
+        const baseFrame = readCurrentCameraControllerBaseFrame(
+          camera,
+          appliedControllerFramesByCameraId.get(camera.id),
+        );
+
+        if (!active) {
+          if (wasActive) {
+            camera.applyFraming?.(baseFrame, viewport);
+            cameraPointerControllerSnapshotsByCameraId.set(camera.id, {
+              active: false,
+            });
+            changed = true;
+          }
+          continue;
+        }
+
+        const frame = readOrbitPointerFrame(baseFrame, pointer, frameInput);
+        camera.applyFraming?.(frame, viewport);
+        cameraPointerControllerSnapshotsByCameraId.set(camera.id, {
+          active: true,
+        });
+        summary = { cameraId: camera.id, active: true, kind: "orbit" };
+        changed = true;
+      }
+
+      return {
+        changed,
+        ...(summary ? { summary } : {}),
+      };
+    },
     inspectCameraControllers() {
       return Array.from(camerasById.values()).flatMap((camera) => {
-        if (!camera.controller) {
-          return [];
-        }
+          if (!camera.controller?.timeline) {
+            return [];
+          }
 
         const snapshot = cameraControllerSnapshotsByCameraId.get(camera.id);
 
@@ -517,6 +587,7 @@ export function createInternalRenderLayerRegistry(
           camerasById.delete(camera.id);
           appliedControllerFramesByCameraId.delete(camera.id);
           cameraControllerSnapshotsByCameraId.delete(camera.id);
+          cameraPointerControllerSnapshotsByCameraId.delete(camera.id);
         }
       }
 
@@ -578,6 +649,66 @@ function readCameraControllerBaseFrame(
     target: camera.target ?? [0, 0, 0],
     fov: camera.fov ?? 50,
   };
+}
+
+function readCurrentCameraControllerBaseFrame(
+  camera: InternalRenderCameraEntry,
+  appliedFrame: NormalizedCameraControllerFrameDeclaration | undefined,
+): NormalizedCameraControllerFrameDeclaration {
+  const base = camera.controllerBaseFrame ?? {
+    position: camera.position ?? [0, 0, 500],
+    target: camera.target ?? [0, 0, 0],
+    fov: camera.fov ?? 50,
+  };
+
+  return {
+    position: appliedFrame?.position ?? base.position,
+    target: appliedFrame?.target ?? base.target,
+    fov: appliedFrame?.fov ?? base.fov,
+  };
+}
+
+function readOrbitPointerFrame(
+  base: NormalizedCameraControllerFrameDeclaration,
+  pointer: NormalizedCameraPointerControllerDeclaration,
+  input: WebGLFrameInput,
+): NormalizedCameraControllerFrameDeclaration {
+  const target = pointer.target;
+  const basePosition = base.position ?? [0, 0, 500];
+  const offset = subtractTuple3(basePosition, target);
+  const radius = Math.max(0.0001, Math.hypot(offset[0], offset[1], offset[2]));
+  const baseYaw = Math.atan2(offset[0], offset[2]);
+  const basePolar = Math.acos(clamp(offset[1] / radius, -1, 1));
+  const yaw = baseYaw - input.pointer.dragDeltaX * pointer.sensitivity[0];
+  const polar = clamp(
+    basePolar + input.pointer.dragDeltaY * pointer.sensitivity[1],
+    pointer.minPolarAngle ?? 0.001,
+    pointer.maxPolarAngle ?? Math.PI - 0.001,
+  );
+  const sinPolar = Math.sin(polar);
+  const nextOffset: WebGLTuple3 = [
+    Math.sin(yaw) * sinPolar * radius,
+    Math.cos(polar) * radius,
+    Math.cos(yaw) * sinPolar * radius,
+  ];
+
+  return {
+    position: addTuple3(target, nextOffset),
+    target,
+    ...(base.fov !== undefined ? { fov: base.fov } : {}),
+  };
+}
+
+function addTuple3(left: WebGLTuple3, right: WebGLTuple3): WebGLTuple3 {
+  return [left[0] + right[0], left[1] + right[1], left[2] + right[2]];
+}
+
+function subtractTuple3(left: WebGLTuple3, right: WebGLTuple3): WebGLTuple3 {
+  return [left[0] - right[0], left[1] - right[1], left[2] - right[2]];
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function cameraControllerFramesEqual(

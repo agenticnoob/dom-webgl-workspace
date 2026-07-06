@@ -292,6 +292,24 @@ describe("render layer declaration normalization", () => {
       scale: 1.2,
       size: [240, 240],
     });
+
+    expect(
+      normalizeTargetPlacement({
+        mode: "screen-plane",
+        planeId: " floor ",
+        offset: [1, 2, 3],
+        scale: [1.5, 0.5],
+      }),
+    ).toEqual({
+      mode: "screen-plane",
+      planeId: "floor",
+      offset: [1, 2, 3],
+      scale: [1.5, 0.5],
+    });
+
+    expect(() =>
+      normalizeTargetPlacement({ mode: "screen-plane", planeId: " " }),
+    ).toThrow("WebGL screen-plane planeId declaration requires a non-empty id.");
   });
 
   test("rejects invalid camera controller declarations during camera normalization", () => {

@@ -84,7 +84,7 @@ export function createWebGLEffectController(
   const sourceKind = readEffectSourceKind(options.source);
   const effects = compileWebGLEffectDeclarations(options.declaration).map(
     (declaration): RunningEffect => {
-      const definition = registry.resolve(declaration.kind);
+      const definition = registry.resolveTarget(declaration.kind);
 
       if (!definition) {
         throw new Error(

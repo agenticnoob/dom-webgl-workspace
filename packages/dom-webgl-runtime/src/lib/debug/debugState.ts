@@ -1,9 +1,11 @@
 import type {
   WebGLDebugLightSummary,
   WebGLDebugCameraControllerSummary,
+  WebGLDebugInteractionSummary,
   WebGLDebugModelSummary,
   WebGLDebugPostprocessRequestSummary,
   WebGLDebugRenderPassSummary,
+  WebGLDebugSceneObjectInteractionSummary,
   WebGLDebugState,
   WebGLDebugStagePrimitiveSummary,
   WebGLPerformanceBudget,
@@ -51,6 +53,7 @@ export type DebugRuntimeState = {
   lights?: readonly WebGLDebugLightSummary[];
   models?: readonly WebGLDebugModelSummary[];
   cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
+  interaction?: WebGLDebugInteractionSummary;
   renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
 };
@@ -148,6 +151,8 @@ export function createDebugState(
       id: entry.id,
       sceneId: entry.sceneId,
       kind: entry.kind,
+      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
+      ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
       ...(entry.timeline
         ? {
             timeline: {
@@ -213,7 +218,13 @@ export function createDebugState(
             })),
           }
         : {}),
+      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
+      ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
     }));
+  }
+
+  if (runtimeState.interaction && hasInteractionSummary(runtimeState.interaction)) {
+    state.interaction = cloneInteractionSummary(runtimeState.interaction);
   }
 
   if (runtimeState.renderPasses && runtimeState.renderPasses.length > 0) {
@@ -265,6 +276,65 @@ export function createDebugState(
   }
 
   return state;
+}
+
+function cloneSceneObjectInteraction(
+  interaction: WebGLDebugSceneObjectInteractionSummary,
+): WebGLDebugSceneObjectInteractionSummary {
+  return {
+    ...(interaction.pickable
+      ? {
+          pickable: {
+            hitTest: interaction.pickable.hitTest,
+            pointer: { ...interaction.pickable.pointer },
+          },
+        }
+      : {}),
+  };
+}
+
+function cloneInteractionSummary(
+  interaction: WebGLDebugInteractionSummary,
+): WebGLDebugInteractionSummary {
+  return {
+    ...(interaction.hoveredObjectId
+      ? { hoveredObjectId: interaction.hoveredObjectId }
+      : {}),
+    ...(interaction.pressedObjectId
+      ? { pressedObjectId: interaction.pressedObjectId }
+      : {}),
+    ...(interaction.capturedObjectId
+      ? { capturedObjectId: interaction.capturedObjectId }
+      : {}),
+    ...(interaction.lastClickedObjectId
+      ? { lastClickedObjectId: interaction.lastClickedObjectId }
+      : {}),
+    ...(interaction.emptySpace ? { emptySpace: true } : {}),
+    ...(interaction.activeHit
+      ? {
+          activeHit: {
+            objectId: interaction.activeHit.objectId,
+            sceneId: interaction.activeHit.sceneId,
+            sourceKind: interaction.activeHit.sourceKind,
+          },
+        }
+      : {}),
+    ...(interaction.cameraController
+      ? {
+          cameraController: {
+            cameraId: interaction.cameraController.cameraId,
+            active: interaction.cameraController.active,
+            kind: interaction.cameraController.kind,
+          },
+        }
+      : {}),
+  };
+}
+
+function hasInteractionSummary(
+  interaction: WebGLDebugInteractionSummary,
+): boolean {
+  return Object.keys(interaction).length > 0;
 }
 
 export function createBatchCandidateSummary(

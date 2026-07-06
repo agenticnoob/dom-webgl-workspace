@@ -17,6 +17,7 @@ describe("public package exports", () => {
 
     expect(rootApi.createWebGLRuntime).toEqual(expect.any(Function));
     expect(rootApi.defineWebGLEffect).toEqual(expect.any(Function));
+    expect(rootApi.defineWebGLSceneObjectEffect).toEqual(expect.any(Function));
     expect(rootApi).not.toHaveProperty("pointerTiltEffect");
     expect(rootApi).not.toHaveProperty("surfaceBasicEffect");
     expect(rootApi).not.toHaveProperty("createWebGLEffectRegistry");
@@ -401,10 +402,25 @@ describe("public package exports", () => {
         const modelEffectsProps = {
           id: "character.effects",
           src: "/models/Sprint.glb",
-          // @ts-expect-error scene-native WebGLModel does not accept target-local effects in Phase 7 v1.
+          interaction: {
+            pickable: {
+              hitTest: "bounds",
+              pointer: { hover: true, press: true, click: true, drag: true },
+            },
+          },
           effects: [{ kind: "app.modelEffect" }],
         } satisfies WebGLModelProps;
         modelEffectsProps satisfies WebGLModelProps;
+        const rawRaycastInteraction: WebGLModelProps["interaction"] = {
+          // @ts-expect-error pickable does not accept raw Three raycaster options.
+          raycaster: {},
+        };
+        const rawRaycastModelProps = {
+          id: "raw",
+          src: "/m.glb",
+          interaction: rawRaycastInteraction,
+        } satisfies WebGLModelProps;
+        rawRaycastModelProps satisfies WebGLModelProps;
 
         declare const rawScene: ThreeScene;
         declare const rawCamera: ThreeCamera;
@@ -531,10 +547,11 @@ describe("public package exports", () => {
     writeFileSync(
       fixturePath,
       `
-		        import {
-		          createWebGLRuntime,
-		          defineWebGLEffect,
-		        } from "${importPath}";
+			        import {
+			          createWebGLRuntime,
+			          defineWebGLEffect,
+			          defineWebGLSceneObjectEffect,
+			        } from "${importPath}";
 				        import type {
                   WebGLCameraDeclaration,
                   WebGLCameraControllerDeclaration,
@@ -579,10 +596,15 @@ describe("public package exports", () => {
 				          WebGLEffectRenderableHandle,
 				          WebGLEffectResourceScope,
 				          WebGLEffectRuntimePostprocessFacade,
-				          WebGLEffectRuntimeScope,
-				          WebGLEffectSchedule,
-				          WebGLEffectSceneScope,
-				          WebGLEffectContentBoxShaderInput,
+					          WebGLEffectRuntimeScope,
+					          WebGLEffectSchedule,
+					          WebGLEffectSceneScope,
+                    WebGLSceneObjectEffectContext,
+                    WebGLSceneObjectEffectDefinition,
+                    WebGLSceneObjectEffectSourceKind,
+                    WebGLSceneObjectInteractionDeclaration,
+                    WebGLSceneObjectPointerState,
+					          WebGLEffectContentBoxShaderInput,
 					          WebGLEffectMediaShaderInputs,
 					          WebGLEffectObjectFitShaderInput,
                       WebGLEffectModelFacade,
@@ -626,19 +648,21 @@ describe("public package exports", () => {
 		          WebGLLifecycleDeclaration,
 	          WebGLOffscreenLifecycleDeclaration,
 	          WebGLOffscreenStrategy,
-	          WebGLPlacementDeclaration,
-	          WebGLPlacementMode,
-	          WebGLPassViewportDeclaration,
-		          WebGLDOMSourceDeclaration,
+		          WebGLPlacementDeclaration,
+		          WebGLPlacementMode,
+		          WebGLPassViewportDeclaration,
+              WebGLPickableDeclaration,
+			          WebGLDOMSourceDeclaration,
 		          WebGLMediaImageSequenceSourceDeclaration,
 		          WebGLMediaImageSourceDeclaration,
 		          WebGLMediaSourceDeclaration,
 			          WebGLMediaVideoPlaybackDeclaration,
 			          WebGLMediaVideoSourceDeclaration,
-			          WebGLModelLoaderDeclaration,
-			          WebGLModelSourceDeclaration,
-	          WebGLPointerDeclaration,
-	          WebGLPointerState,
+				          WebGLModelLoaderDeclaration,
+				          WebGLModelSourceDeclaration,
+              WebGLObjectPointerDeclaration,
+		          WebGLPointerDeclaration,
+		          WebGLPointerState,
 	          WebGLTargetPointerState,
 	          WebGLProgressSignalSource,
 	          WebGLEffectTimelineScope,
@@ -665,10 +689,11 @@ describe("public package exports", () => {
 	          WebGLScrollMetrics,
           WebGLTransformScope,
 		          WebGLSourceDeclaration,
-		          WebGLSceneDeclaration,
-		          WebGLSceneProjection,
-		          WebGLScreenAnchor,
-		          WebGLTextGlyph,
+	          WebGLSceneDeclaration,
+	          WebGLSceneProjection,
+	          WebGLScreenAnchor,
+              WebGLScreenPlanePlacementDeclaration,
+	          WebGLTextGlyph,
 	          WebGLTextGlyphRenderCommand,
 	          WebGLTextLayerStyle,
 	          WebGLTuple2,
@@ -980,10 +1005,17 @@ describe("public package exports", () => {
           rotation: [0, Math.PI, 0],
           scale: [120, 120, 120],
           visible: true,
-          timeline: activeTimeline,
-          animation: modelAnimation,
-          prepare: modelPrepare,
-        } satisfies WebGLModelDeclaration;
+			          timeline: activeTimeline,
+			          animation: modelAnimation,
+			          prepare: modelPrepare,
+                interaction: {
+                  pickable: {
+                    hitTest: "bounds",
+                    pointer: { hover: true, press: true, click: true, drag: true },
+                  },
+                },
+                effects: [{ kind: "app.modelHover" }],
+			        } satisfies WebGLModelDeclaration;
         // @ts-expect-error model declarations do not accept raw Object3D handles.
         ({ id: "raw.model", sceneId: "world", src: "/raw.glb", object3D: rawObject3D } satisfies WebGLModelDeclaration);
         // @ts-expect-error model declarations do not accept raw AnimationMixer handles.
@@ -1064,13 +1096,20 @@ describe("public package exports", () => {
           mode: "screen-depth",
           depth: 500,
         } satisfies WebGLPlacementDeclaration;
-        const stagePlacement = {
-          mode: "stage-local",
-          position: [0, 0, 0],
-          rotation: [0, Math.PI, 0],
-          scale: 1.2,
-          size: [240, 240],
-        } satisfies WebGLPlacementDeclaration;
+	        const stagePlacement = {
+	          mode: "stage-local",
+	          position: [0, 0, 0],
+	          rotation: [0, Math.PI, 0],
+	          scale: 1.2,
+	          size: [240, 240],
+	        } satisfies WebGLPlacementDeclaration;
+        const screenPlanePlacement = {
+          mode: "screen-plane",
+          planeId: "stage.floor",
+          offset: [0, 4, 0],
+          scale: [1, 1],
+        } satisfies WebGLScreenPlanePlacementDeclaration;
+        screenPlanePlacement satisfies WebGLPlacementDeclaration;
         const overlayDeclaration = {
           key: "overlay.badge",
           sceneId: "overlay",
@@ -1102,9 +1141,10 @@ describe("public package exports", () => {
         "perspective" satisfies WebGLCameraType;
         "screen" satisfies WebGLCameraMode;
         "perspective-stage" satisfies WebGLCameraMode;
-        "screen-anchored" satisfies WebGLPlacementMode;
-        "screen-depth" satisfies WebGLPlacementMode;
-        "stage-local" satisfies WebGLPlacementMode;
+	        "screen-anchored" satisfies WebGLPlacementMode;
+	        "screen-depth" satisfies WebGLPlacementMode;
+	        "stage-local" satisfies WebGLPlacementMode;
+        "screen-plane" satisfies WebGLPlacementMode;
         "top-right" satisfies WebGLScreenAnchor;
         [-32, 32] satisfies WebGLTuple2;
         [0, 0, 500] satisfies WebGLTuple3;
@@ -1143,8 +1183,9 @@ describe("public package exports", () => {
         screenCamera satisfies WebGLCameraDeclaration;
         perspectiveCamera satisfies WebGLCameraDeclaration;
         screenPlacement satisfies WebGLPlacementDeclaration;
-        perspectivePlacement satisfies WebGLPlacementDeclaration;
-        stagePlacement satisfies WebGLPlacementDeclaration;
+	        perspectivePlacement satisfies WebGLPlacementDeclaration;
+	        stagePlacement satisfies WebGLPlacementDeclaration;
+        screenPlanePlacement satisfies WebGLPlacementDeclaration;
         overlayDeclaration satisfies WebGLDeclaration;
         timelineDeclaration satisfies WebGLDeclaration;
         overlayPass satisfies WebGLRenderPassDeclaration;
@@ -1305,12 +1346,28 @@ describe("public package exports", () => {
         // @ts-expect-error camera declarations do not accept timeline in Phase 5.
         ({ id: "camera.timeline", sceneId: "world", timeline: "hero.3d" } satisfies WebGLCameraDeclaration);
 
-        const pointerDeclaration = {
+	        const pointerDeclaration = {
+	          hover: true,
+	          press: true,
+	          click: true,
+	          drag: true,
+	        } satisfies WebGLPointerDeclaration;
+        const objectPointerDeclaration = {
           hover: true,
           press: true,
           click: true,
           drag: true,
-        } satisfies WebGLPointerDeclaration;
+        } satisfies WebGLObjectPointerDeclaration;
+        const pickableDeclaration = {
+          hitTest: "bounds",
+          pointer: objectPointerDeclaration,
+        } satisfies WebGLPickableDeclaration;
+        const sceneObjectInteraction = {
+          pickable: pickableDeclaration,
+        } satisfies WebGLSceneObjectInteractionDeclaration;
+        objectPointerDeclaration satisfies WebGLObjectPointerDeclaration;
+        pickableDeclaration satisfies WebGLPickableDeclaration;
+        sceneObjectInteraction satisfies WebGLSceneObjectInteractionDeclaration;
         const targetPointer = {
           localX: 24,
           localY: 16,
@@ -1346,10 +1403,39 @@ describe("public package exports", () => {
 	        publicCtx.scene?.id satisfies string | undefined;
 	        publicCtx.scene?.projection satisfies WebGLSceneProjection | undefined;
 	        publicCtx.scene?.timeline?.progress satisfies number | undefined;
-	        publicCtx.scene satisfies WebGLEffectSceneScope | undefined;
-	        publicCtx.scene?.timeline satisfies WebGLEffectTimelineScope | undefined;
-	        publicCtx.targetPointer.localX satisfies number;
-	        publicCtx.progress.get("section") satisfies number;
+		        publicCtx.scene satisfies WebGLEffectSceneScope | undefined;
+		        publicCtx.scene?.timeline satisfies WebGLEffectTimelineScope | undefined;
+		        publicCtx.targetPointer.localX satisfies number;
+		        publicCtx.progress.get("section") satisfies number;
+        const sceneObjectEffect = defineWebGLSceneObjectEffect({
+          kind: "app.modelHover",
+          source: "model/glb",
+          update(ctx) {
+            ctx.objectId satisfies string;
+            ctx.sourceKind satisfies WebGLSceneObjectEffectSourceKind;
+            ctx.objectPointer.isHovered satisfies boolean;
+            ctx.objectPointer.hit?.point satisfies WebGLTuple3 | undefined;
+            ctx.scene.id satisfies string;
+            ctx.runtime.progress.get("hero") satisfies number;
+            ctx.object.rotation.y = 0;
+
+            // @ts-expect-error scene-object effects do not expose DOM target layout.
+            ctx.layout;
+            // @ts-expect-error scene-object effects do not expose DOM target pointer state.
+            ctx.targetPointer;
+          },
+        });
+        sceneObjectEffect satisfies WebGLSceneObjectEffectDefinition;
+        declare const sceneObjectCtx: WebGLSceneObjectEffectContext;
+        sceneObjectCtx.objectPointer satisfies WebGLSceneObjectPointerState;
+        const rawIntersectionEffect = defineWebGLSceneObjectEffect({
+          kind: "app.rawIntersection",
+          update(ctx) {
+            // @ts-expect-error scene-object pointer state exposes managed hit summaries, not raw intersections.
+            ctx.objectPointer.intersection.object;
+          },
+        });
+        rawIntersectionEffect satisfies WebGLSceneObjectEffectDefinition;
 	        const colorValue = "#7dd3fc" satisfies WebGLEffectColorValue;
 	        declare const colorFacade: WebGLEffectColorLike;
 	        declare const emissiveFacade: WebGLEffectEmissiveLike;

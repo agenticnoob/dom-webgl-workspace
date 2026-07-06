@@ -7,6 +7,11 @@ import type {
   WebGLTuple3,
 } from "../types";
 import type { NormalizedTargetPlacement } from "./renderLayerDeclarations";
+import {
+  projectScreenPlaneLayout,
+  type ScreenPlanePlacementDiagnostic,
+  type ScreenPlanePlacementPlane,
+} from "./screenPlanePlacement";
 
 type ScreenAnchoredPlacement = Extract<
   NormalizedTargetPlacement,
@@ -19,6 +24,10 @@ type ScreenDepthPlacement = Extract<
 type StageLocalPlacement = Extract<
   NormalizedTargetPlacement,
   { mode: "stage-local" }
+>;
+type ScreenPlanePlacement = Extract<
+  NormalizedTargetPlacement,
+  { mode: "screen-plane" }
 >;
 type CameraBasis = {
   readonly position: WebGLTuple3;
@@ -45,6 +54,7 @@ export type ProjectedDOMRect = {
   height: number;
   rotation?: WebGLTuple3;
   scale?: number | WebGLTuple3;
+  placementDiagnostic?: ScreenPlanePlacementDiagnostic;
 };
 
 export type ProjectionCameraState = {
@@ -61,6 +71,9 @@ export type ProjectTargetLayoutInput = {
   placement: NormalizedTargetPlacement;
   measurement: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">;
   viewport: DOMViewportSize;
+  screenPlane?: {
+    resolvePlane(planeId: string): ScreenPlanePlacementPlane | undefined;
+  };
 };
 
 export function projectDOMRectToSceneLayout(
@@ -96,7 +109,25 @@ export function projectTargetLayout(
       );
     case "stage-local":
       return projectStageLocalLayout(input.placement, input.measurement);
+    case "screen-plane":
+      return projectScreenPlanePlacement(input.placement, input);
   }
+}
+
+function projectScreenPlanePlacement(
+  placement: ScreenPlanePlacement,
+  input: ProjectTargetLayoutInput,
+): ProjectedDOMRect {
+  const plane = input.screenPlane?.resolvePlane(placement.planeId);
+
+  return projectScreenPlaneLayout({
+    sceneProjection: input.sceneProjection,
+    camera: input.camera,
+    placement,
+    ...(plane ? { plane } : {}),
+    measurement: input.measurement,
+    viewport: input.viewport,
+  });
 }
 
 function projectScreenAnchoredLayout(
