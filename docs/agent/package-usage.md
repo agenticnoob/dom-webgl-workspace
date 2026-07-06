@@ -453,15 +453,31 @@ Rules:
   not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
   object, material, composer, render target, or pass objects.
 - A managed `perspective-stage` camera can declare one nested `controller`
-  descriptor for progress-driven `position`, `target`, and `fov`, and Phase 8
-  adds minimal `controller.pointer` support for
-  `{ kind: "orbit", activation: "empty-space-drag" }`. Full pan/dolly/zoom,
-  damping, pointer parallax, orthographic/screen camera controllers, pass-bound
-  controller scope, and camera-scoped effects remain later phases.
+  descriptor for progress-driven `position`, `target`, and `fov`, plus
+  `controller.pointer` for managed empty-space gestures. The legacy
+  `{ kind: "orbit", activation: "empty-space-drag" }` shorthand still means
+  primary-drag orbit. Rich descriptors can declare `orbit`, `pan`, `dolly`,
+  `parallax`, `damping`, and `reset`; object hover, press, drag, or capture
+  blocks camera gestures. Orthographic/screen camera controllers,
+  mouse wheel zoom, touch pinch zoom, pass-bound controller scope, and
+  camera-scoped effects remain later phases.
   `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
   raw scene control handle. Runtime-owned controller framing is re-applied after
   managed camera resize, so a scroll-held camera keeps the current controller
   frame when progress stops changing.
+
+```tsx
+const cameraController = {
+  pointer: {
+    orbit: { drag: { button: "primary" }, target: [0, 0, 0] },
+    pan: { drag: { button: "secondary" }, sensitivity: [1, 1] },
+    dolly: { drag: { button: "primary", modifier: "alt" } },
+    parallax: { scope: "camera", strength: [12, 6] },
+    damping: { factor: 0.18, settleEpsilon: 0.001 },
+    reset: { onDoubleClick: true },
+  },
+} satisfies WebGLCameraProps["controller"];
+```
 
 ### 3. Opt-In Managed Stage Primitives
 
@@ -1348,10 +1364,11 @@ Scope rule:
   scene scope. It exposes descriptor metadata and timeline state, not a raw
   Three.js scene.
 - There is no implicit `ctx.camera`; progress-driven camera motion/focus/framing
-  uses the explicit nested `WebGLCamera.controller` descriptor. Pass-bound,
-  pointer-driven, orthographic, and screen-overlay camera controllers remain
-  future work. Runtime camera resize does not reset an already-applied controller
-  frame while progress is unchanged.
+  uses the explicit nested `WebGLCamera.controller` descriptor. Empty-space
+  pointer gestures also live under that descriptor as `controller.pointer`.
+  Pass-bound, orthographic, screen-overlay, wheel, and pinch camera controllers
+  remain future work. Runtime camera resize does not reset an already-applied
+  controller frame while progress is unchanged.
 
 Pointer rule:
 

@@ -249,11 +249,13 @@ Rules:
   not DOM `layout` or `ctx.targetPointer`.
 - Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
-  pan/dolly/wheel/pinch zoom, damping, and pointer parallax remain future or
-  non-public.
+  mouse wheel zoom, and touch pinch zoom remain future or non-public.
 - `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot accept a
   top-level `timeline`. For progress-driven camera motion/focus/framing, put
   one nested `controller` descriptor on a managed `perspective-stage` camera.
+  For camera-owned empty-space gestures, put orbit, pan, dolly,
+  camera-scoped parallax, damping, or reset under `controller.pointer`. Object
+  hover, press, drag, and capture block camera gestures.
   The runtime re-applies controller framing after managed camera resize so a
   scroll-held camera does not snap back to its declaration base frame.
 
@@ -700,6 +702,11 @@ Rules:
   managed scenes, stage primitives, lights, or managed camera controllers.
   Managed camera controllers retain their current frame across resize/reframing
   passes while progress is unchanged.
+- Use `WebGLCamera.controller.pointer` for managed empty-space camera gestures:
+  primary drag orbits, secondary drag pans, primary + alt drag dollies,
+  `parallax.scope` is `"camera"`, and optional damping/reset stay
+  descriptor-driven. Wheel and pinch gestures are not public Phase 8B v1
+  controls.
 - Do not mutate mounted `webgl.effects` on every scroll update.
 - Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
   post-pinned runway sibling just to release scroll.

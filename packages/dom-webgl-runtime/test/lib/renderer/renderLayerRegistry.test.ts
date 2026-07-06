@@ -302,12 +302,14 @@ describe("createInternalRenderLayerRegistry", () => {
         progressKey: "hero.timeline",
       },
       pointer: {
-        kind: "orbit",
-        activation: "empty-space-drag",
-        target: [0, 0, 0],
-        sensitivity: [0.01, 0.02],
-        minPolarAngle: 0.2,
-        maxPolarAngle: 1.4,
+        activation: "empty-space",
+        orbit: {
+          drag: { button: "primary" },
+          target: [0, 0, 0],
+          sensitivity: [0.01, 0.02],
+          minPolarAngle: 0.2,
+          maxPolarAngle: 1.4,
+        },
       },
     });
   });
@@ -407,22 +409,32 @@ describe("createInternalRenderLayerRegistry", () => {
     });
 
     registry.updateCameraControllers({ get: () => 0.5 });
-    const pointerUpdate = registry.updateCameraPointerControllers({
+    const pointerUpdate = registry.updateCameraGestureControllers({
       frameInput: createFrameInput({
         isDown: true,
         isDragging: true,
+        button: "primary",
         dragStartX: 100,
         dragStartY: 100,
         dragDeltaX: 12,
         dragDeltaY: 8,
       }),
       blocked: false,
+      passes: [
+        {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          order: 1,
+        },
+      ],
     });
 
-    expect(pointerUpdate.summary).toEqual({
+    expect(pointerUpdate.summary).toMatchObject({
       cameraId: "hero.camera",
+      sceneId: "hero.scene",
       active: true,
-      kind: "orbit",
+      activeGesture: "orbit",
     });
     expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -435,19 +447,149 @@ describe("createInternalRenderLayerRegistry", () => {
       0, 60, 610,
     ]);
 
-    registry.updateCameraPointerControllers({
+    const releaseUpdate = registry.updateCameraGestureControllers({
       frameInput: createFrameInput({ isDown: false, isDragging: false }),
       blocked: false,
+      passes: [
+        {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          order: 1,
+        },
+      ],
     });
 
-    expect(managedCamera.applyFraming).toHaveBeenLastCalledWith(
+    expect(releaseUpdate.changed).toBe(false);
+    expect(managedCamera.applyFraming).toHaveBeenCalledTimes(2);
+  });
+
+  test("blocks camera gestures while an object owns pointer capture", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
       {
-        position: [0, 60, 610],
-        target: [0, 24, 0],
-        fov: 39,
+        createManagedCamera() {
+          return managedCamera;
+        },
       },
-      { width: 800, height: 600 },
     );
+
+    registry.registerScene({ id: "world", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+      controller: { pointer: { pan: true, dolly: true } },
+    });
+
+    const result = registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        isDown: true,
+        isDragging: true,
+        button: "secondary",
+        dragDeltaX: 30,
+      }),
+      blocked: true,
+      passes: [
+        {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 1,
+        },
+      ],
+    });
+
+    expect(result.changed).toBe(false);
+    expect(managedCamera.applyFraming).not.toHaveBeenCalled();
+  });
+
+  test("activates drag gestures only inside a pass for the camera scene", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "world", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+      controller: { pointer: { pan: true } },
+    });
+
+    const outsideResult = registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        x: 260,
+        y: 32,
+        isDown: true,
+        isDragging: true,
+        button: "secondary",
+        dragDeltaX: 24,
+      }),
+      blocked: false,
+      passes: [
+        {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 1,
+          viewport: { x: 0, y: 0, width: 200, height: 200 },
+        },
+      ],
+    });
+
+    expect(outsideResult.changed).toBe(false);
+
+    const insideResult = registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        x: 32,
+        y: 32,
+        isDown: true,
+        isDragging: true,
+        button: "secondary",
+        dragDeltaX: 24,
+      }),
+      blocked: false,
+      passes: [
+        {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 1,
+          viewport: { x: 0, y: 0, width: 200, height: 200 },
+        },
+      ],
+    });
+
+    expect(insideResult.summary).toMatchObject({
+      cameraId: "world.camera",
+      sceneId: "world",
+      activeGesture: "pan",
+    });
+    expect(managedCamera.applyFraming).toHaveBeenCalledTimes(1);
   });
 
   test("rejects camera controllers outside perspective-stage managed cameras", () => {
@@ -884,6 +1026,8 @@ function createFrameInput(
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
       ...pointer,
     },
   };

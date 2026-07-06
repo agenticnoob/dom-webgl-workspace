@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 8 interaction/picking implementation
+**Last reviewed against:** Phase 8B advanced camera gesture verification
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -131,9 +131,11 @@ phase records are archived under [archive/](./archive/).
     `timeline`; managed perspective-stage cameras can declare one nested
     `controller` that reads progress and drives `position`, `target`, and `fov`
     before `screen-depth`/`screen-plane` projection and pass rendering
-  - perspective-stage cameras can also declare a minimal
-    `controller.pointer: { kind: "orbit", activation: "empty-space-drag" }`
-    controller; object hover/press/drag has priority over camera drag
+  - perspective-stage cameras can also declare `controller.pointer` for
+    empty-space orbit, pan, dolly, camera pointer parallax, damping, and reset
+    gestures; the legacy `{ kind: "orbit", activation: "empty-space-drag" }`
+    shorthand remains supported
+  - object hover/press/drag/capture has priority over all camera gestures
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
   - `@project/dom-webgl-scroll-adapters/react` exports
@@ -214,14 +216,14 @@ phase records are archived under [archive/](./archive/).
   motion now uses the Phase 6A nested `WebGLCamera.controller` descriptor.
   Controller framing is re-applied after managed camera resize so a scroll-held
   camera does not snap back to its declaration base frame when scroll progress
-  stops changing. Phase 8 adds minimal empty-space orbit drag through
-  `controller.pointer`; it is blocked by object hit/capture state.
+  stops changing. Phase 8B adds drag-based empty-space orbit, pan, dolly,
+  camera-scoped pointer parallax, kinematic damping, and reset through
+  `controller.pointer`; these gestures are blocked by object hit/capture state.
   Orthographic zoom controllers, screen overlay camera controllers, complex
   framing boxes, and pass-bound camera controller scope are deferred possible
-  camera-controller iterations. Phase 8 now scopes pointer-driven camera work to
-  minimal empty-space orbit drag for object-vs-camera priority proof. Pan,
-  dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit controls
-  are deferred to Phase 8B.
+  camera-controller iterations. Mouse wheel zoom and touch pinch zoom are
+  deferred out of Phase 8B v1 to avoid page scroll and mobile gesture ownership
+  conflicts.
 - The managed timeline example uses the same named progress signal for a
   `WebGLCamera.controller` and the card effect, while the scene, stage
   primitives, lights, and visible scene-child `WebGLTarget` display directly.
@@ -307,8 +309,9 @@ placement against named stage planes, runtime-owned pick routing, descriptor-onl
 interaction debug state, object pointer/capture state, and minimal empty-space
 orbit drag:
 [2026-07-06-phase-8-interaction-picking.md](./superpowers/plans/2026-07-06-phase-8-interaction-picking.md).
-Phase 8B is a planned roadmap slot, not a focused implementation plan yet, for
-advanced managed camera gestures after Phase 8 input routing is stable.
+Phase 8B verifies advanced managed camera gestures after Phase 8 input routing
+is stable:
+[2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](./superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md).
 
 The strategic direction is a DOM-first managed render system. `WebGLTarget`
 remains the shortest and default authoring path; Level 1 usage must not require
@@ -346,7 +349,7 @@ Relationship rules from the active roadmap:
 - pass/runtime-scoped postprocess
 - managed model animation
 - managed input routing and picking
-- advanced managed camera gestures after picking/router priority is stable
+- advanced managed camera gestures
 - dynamics/physics only after stage/collider contracts exist
 
 ## Active Docs

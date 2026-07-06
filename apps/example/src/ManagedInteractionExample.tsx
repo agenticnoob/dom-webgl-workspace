@@ -29,12 +29,38 @@ const cameraTarget = [120, -78, -70] satisfies NonNullable<
 >;
 const cameraController = {
   pointer: {
-    kind: "orbit",
-    activation: "empty-space-drag",
-    target: [120, -78, -70],
-    sensitivity: [0.0035, 0.003],
-    minPolarAngle: 0.52,
-    maxPolarAngle: 1.42,
+    orbit: {
+      drag: { button: "primary" },
+      target: [120, -78, -70],
+      sensitivity: [0.0035, 0.003],
+      minPolarAngle: 0.52,
+      maxPolarAngle: 1.42,
+      minDistance: 240,
+      maxDistance: 980,
+    },
+    pan: {
+      drag: { button: "secondary" },
+      sensitivity: [0.9, 0.9],
+    },
+    dolly: {
+      drag: { button: "primary", modifier: "alt" },
+      sensitivity: 1.4,
+      minDistance: 240,
+      maxDistance: 980,
+    },
+    parallax: {
+      scope: "camera",
+      strength: [16, 8],
+      maxOffset: [28, 16],
+    },
+    damping: {
+      factor: 0.18,
+      settleEpsilon: 0.001,
+    },
+    reset: {
+      onDoubleClick: true,
+      durationMs: 220,
+    },
   },
 } satisfies NonNullable<WebGLCameraProps["controller"]>;
 
@@ -113,8 +139,8 @@ export function ManagedInteractionExample() {
         <h2>Scene-native picking</h2>
         <p>
           Phase 8 keeps pointer routing inside runtime-owned objects: pickable
-          stage/model descriptors feed object effects, while empty-space drag
-          remains a camera controller.
+          stage/model descriptors feed object effects, while empty-space gestures
+          keep camera orbit, pan, dolly, and reset runtime-owned.
         </p>
       </div>
 

@@ -2,7 +2,11 @@ import type {
   WebGLSceneObjectEffectSourceKind,
   WebGLSceneObjectPointerState,
 } from "../effects/effectAuthoring";
-import type { WebGLFrameInput, WebGLTuple3 } from "../types";
+import type {
+  WebGLDebugInteractionSummary,
+  WebGLFrameInput,
+  WebGLTuple3,
+} from "../types";
 
 export type ManagedObjectPointerCapabilities = {
   readonly hover: boolean;
@@ -42,23 +46,7 @@ export type ManagedHitTestPass = {
   };
 };
 
-export type ManagedInteractionDebugSummary = {
-  readonly hoveredObjectId?: string;
-  readonly pressedObjectId?: string;
-  readonly capturedObjectId?: string;
-  readonly lastClickedObjectId?: string;
-  readonly emptySpace?: boolean;
-  readonly activeHit?: {
-    readonly objectId: string;
-    readonly sceneId: string;
-    readonly sourceKind: WebGLSceneObjectEffectSourceKind;
-  };
-  readonly cameraController?: {
-    readonly cameraId: string;
-    readonly active: boolean;
-    readonly kind: "orbit";
-  };
-};
+export type ManagedInteractionDebugSummary = WebGLDebugInteractionSummary;
 
 export type InteractionRouterUpdateInput = {
   readonly input: WebGLFrameInput;

@@ -219,6 +219,8 @@ function createInitialDebugState(): WebGLDebugState {
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
     targets: [],
   };
@@ -289,6 +291,16 @@ function renderInteractionRows(
   ];
 
   if (interaction.cameraController) {
+    const cameraState = [
+      interaction.cameraController.cameraId,
+      interaction.cameraController.sceneId,
+      interaction.cameraController.activeGesture ?? "none",
+      interaction.cameraController.active ? "active" : "idle",
+      interaction.cameraController.damping ? "damping" : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
     rows.push(
       createElement(
         "div",
@@ -297,9 +309,7 @@ function renderInteractionRows(
         createElement(
           "span",
           { style: STYLES.metricValue },
-          `${interaction.cameraController.cameraId} · ${interaction.cameraController.kind} · ${
-            interaction.cameraController.active ? "active" : "idle"
-          }`,
+          cameraState,
         ),
       ),
     );

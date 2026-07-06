@@ -298,6 +298,37 @@ describe("debug state", () => {
     expect(state.interaction).not.toHaveProperty("intersection");
   });
 
+  test("copies descriptor-only camera gesture interaction summaries", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      interaction: {
+        emptySpace: true,
+        cameraController: {
+          cameraId: "world.camera",
+          sceneId: "world",
+          active: true,
+          activeGesture: "pan",
+          damping: false,
+        },
+      },
+      targets: [],
+    });
+
+    expect(state.interaction?.cameraController).toEqual({
+      cameraId: "world.camera",
+      sceneId: "world",
+      active: true,
+      activeGesture: "pan",
+      damping: false,
+    });
+    expect(state.interaction?.cameraController).not.toHaveProperty("camera");
+    expect(state.interaction?.cameraController).not.toHaveProperty("controls");
+    expect(state.interaction?.cameraController).not.toHaveProperty("matrix");
+  });
+
   test("copies managed model prepare debug state without raw handles", () => {
     const state = createDebugState({
       targetCount: 0,
@@ -1217,6 +1248,8 @@ function createPointerState(): WebGLPointerState {
     dragDeltaX: 0,
     dragDeltaY: 0,
     clickCount: 0,
+    buttons: [],
+    modifiers: { shift: false, alt: false, ctrl: false, meta: false },
   };
 }
 

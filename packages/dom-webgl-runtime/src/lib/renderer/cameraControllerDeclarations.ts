@@ -2,7 +2,16 @@ import type {
   WebGLCameraControllerDeclaration,
   WebGLCameraControllerEasing,
   WebGLCameraControllerFrameDeclaration,
+  WebGLCameraDollyGestureDeclaration,
+  WebGLCameraGestureButton,
+  WebGLCameraGestureDampingDeclaration,
+  WebGLCameraGestureDragDeclaration,
+  WebGLCameraGestureModifier,
+  WebGLCameraGestureResetDeclaration,
+  WebGLCameraOrbitGestureDeclaration,
+  WebGLCameraPanGestureDeclaration,
   WebGLCameraPointerControllerDeclaration,
+  WebGLCameraPointerParallaxDeclaration,
   WebGLCameraControllerTimelineDeclaration,
   WebGLProgressSignalSource,
   WebGLTimelineActiveRangeDeclaration,
@@ -25,13 +34,57 @@ export type NormalizedCameraControllerTimelineDeclaration = {
   };
 };
 
-export type NormalizedCameraPointerControllerDeclaration = {
-  readonly kind: "orbit";
-  readonly activation: "empty-space-drag";
+export type NormalizedCameraGestureDragDeclaration = {
+  readonly button: WebGLCameraGestureButton;
+  readonly modifier?: WebGLCameraGestureModifier;
+};
+
+export type NormalizedCameraOrbitGestureDeclaration = {
+  readonly drag: NormalizedCameraGestureDragDeclaration;
   readonly target: WebGLTuple3;
   readonly sensitivity: WebGLTuple2;
   readonly minPolarAngle?: number;
   readonly maxPolarAngle?: number;
+  readonly minDistance?: number;
+  readonly maxDistance?: number;
+};
+
+export type NormalizedCameraPanGestureDeclaration = {
+  readonly drag: NormalizedCameraGestureDragDeclaration;
+  readonly sensitivity: WebGLTuple2;
+};
+
+export type NormalizedCameraDollyGestureDeclaration = {
+  readonly drag: NormalizedCameraGestureDragDeclaration;
+  readonly sensitivity: number;
+  readonly minDistance?: number;
+  readonly maxDistance?: number;
+};
+
+export type NormalizedCameraPointerParallaxDeclaration = {
+  readonly scope: "camera";
+  readonly strength: WebGLTuple2;
+  readonly maxOffset: WebGLTuple2;
+};
+
+export type NormalizedCameraGestureDampingDeclaration = {
+  readonly factor: number;
+  readonly settleEpsilon: number;
+};
+
+export type NormalizedCameraGestureResetDeclaration = {
+  readonly onDoubleClick: boolean;
+  readonly durationMs: number;
+};
+
+export type NormalizedCameraPointerControllerDeclaration = {
+  readonly activation: "empty-space";
+  readonly orbit?: NormalizedCameraOrbitGestureDeclaration;
+  readonly pan?: NormalizedCameraPanGestureDeclaration;
+  readonly dolly?: NormalizedCameraDollyGestureDeclaration;
+  readonly parallax?: NormalizedCameraPointerParallaxDeclaration;
+  readonly damping?: NormalizedCameraGestureDampingDeclaration;
+  readonly reset?: NormalizedCameraGestureResetDeclaration;
 };
 
 export type NormalizedCameraControllerDeclaration = {
@@ -145,57 +198,252 @@ export function readCameraControllerFrame(
 function normalizePointerController(
   declaration: WebGLCameraPointerControllerDeclaration,
 ): NormalizedCameraPointerControllerDeclaration {
+  if ("kind" in declaration) {
+    return {
+      activation: "empty-space",
+      orbit: normalizeOrbitGesture({
+        drag: { button: "primary" },
+        target: declaration.target,
+        sensitivity: declaration.sensitivity,
+        minPolarAngle: declaration.minPolarAngle,
+        maxPolarAngle: declaration.maxPolarAngle,
+      }),
+    };
+  }
+
+  const activation = declaration.activation ?? "empty-space";
+  if (activation !== "empty-space") {
+    throw new Error(
+      `Unsupported WebGL camera gesture activation \"${String(activation)}\".`,
+    );
+  }
+
   return {
-    kind: normalizePointerControllerKind(declaration.kind),
-    activation: normalizePointerControllerActivation(declaration.activation),
-    target: declaration.target
-      ? normalizeTuple3(declaration.target, "camera pointer controller target")
-      : [0, 0, 0],
-    sensitivity: declaration.sensitivity
-      ? normalizeTuple2(
-          declaration.sensitivity,
-          "camera pointer controller sensitivity",
-        )
-      : [0.004, 0.004],
-    ...(declaration.minPolarAngle !== undefined
-      ? {
-          minPolarAngle: normalizeFiniteNumber(
-            declaration.minPolarAngle,
-            "camera pointer controller minPolarAngle",
-          ),
-        }
+    activation,
+    ...(declaration.orbit
+      ? { orbit: normalizeOrbitGesture(declaration.orbit) }
       : {}),
-    ...(declaration.maxPolarAngle !== undefined
-      ? {
-          maxPolarAngle: normalizeFiniteNumber(
-            declaration.maxPolarAngle,
-            "camera pointer controller maxPolarAngle",
-          ),
-        }
+    ...(declaration.pan ? { pan: normalizePanGesture(declaration.pan) } : {}),
+    ...(declaration.dolly
+      ? { dolly: normalizeDollyGesture(declaration.dolly) }
       : {}),
+    ...(declaration.parallax
+      ? { parallax: normalizePointerParallax(declaration.parallax) }
+      : {}),
+    ...(declaration.damping
+      ? { damping: normalizeGestureDamping(declaration.damping) }
+      : {}),
+    ...(declaration.reset ? { reset: normalizeGestureReset(declaration.reset) } : {}),
   };
 }
 
-function normalizePointerControllerKind(
-  kind: WebGLCameraPointerControllerDeclaration["kind"],
-): "orbit" {
-  if (kind === "orbit") {
-    return kind;
-  }
+function normalizeOrbitGesture(
+  declaration: true | WebGLCameraOrbitGestureDeclaration,
+): NormalizedCameraOrbitGestureDeclaration {
+  const input = declaration === true ? {} : declaration;
+  const minDistance =
+    input.minDistance === undefined
+      ? undefined
+      : normalizePositiveNumber(
+          input.minDistance,
+          "camera orbit gesture minDistance",
+        );
+  const maxDistance =
+    input.maxDistance === undefined
+      ? undefined
+      : normalizePositiveNumber(
+          input.maxDistance,
+          "camera orbit gesture maxDistance",
+        );
 
-  throw new Error(`Unsupported WebGL camera pointer controller kind "${String(kind)}".`);
+  assertMinMaxRange(
+    minDistance,
+    maxDistance,
+    "WebGL camera orbit gesture minDistance must be <= maxDistance.",
+  );
+
+  return {
+    drag: normalizeGestureDrag(input.drag, { button: "primary" }),
+    target: input.target
+      ? normalizeTuple3(input.target, "camera orbit gesture target")
+      : [0, 0, 0],
+    sensitivity: input.sensitivity
+      ? normalizeTuple2(input.sensitivity, "camera orbit gesture sensitivity")
+      : [0.004, 0.004],
+    ...(input.minPolarAngle !== undefined
+      ? {
+          minPolarAngle: normalizeFiniteNumber(
+            input.minPolarAngle,
+            "camera orbit gesture minPolarAngle",
+          ),
+        }
+      : {}),
+    ...(input.maxPolarAngle !== undefined
+      ? {
+          maxPolarAngle: normalizeFiniteNumber(
+            input.maxPolarAngle,
+            "camera orbit gesture maxPolarAngle",
+          ),
+        }
+      : {}),
+    ...(minDistance !== undefined ? { minDistance } : {}),
+    ...(maxDistance !== undefined ? { maxDistance } : {}),
+  };
 }
 
-function normalizePointerControllerActivation(
-  activation: WebGLCameraPointerControllerDeclaration["activation"],
-): "empty-space-drag" {
-  if (activation === "empty-space-drag") {
-    return activation;
+function normalizePanGesture(
+  declaration: true | WebGLCameraPanGestureDeclaration,
+): NormalizedCameraPanGestureDeclaration {
+  const input = declaration === true ? {} : declaration;
+
+  return {
+    drag: normalizeGestureDrag(input.drag, { button: "secondary" }),
+    sensitivity: input.sensitivity
+      ? normalizeTuple2(input.sensitivity, "camera pan gesture sensitivity")
+      : [1, 1],
+  };
+}
+
+function normalizeDollyGesture(
+  declaration: true | WebGLCameraDollyGestureDeclaration,
+): NormalizedCameraDollyGestureDeclaration {
+  const input = declaration === true ? {} : declaration;
+  const minDistance =
+    input.minDistance === undefined
+      ? undefined
+      : normalizePositiveNumber(
+          input.minDistance,
+          "camera dolly gesture minDistance",
+        );
+  const maxDistance =
+    input.maxDistance === undefined
+      ? undefined
+      : normalizePositiveNumber(
+          input.maxDistance,
+          "camera dolly gesture maxDistance",
+        );
+
+  assertMinMaxRange(
+    minDistance,
+    maxDistance,
+    "WebGL camera dolly gesture minDistance must be <= maxDistance.",
+  );
+
+  return {
+    drag: normalizeGestureDrag(input.drag, {
+      button: "primary",
+      modifier: "alt",
+    }),
+    sensitivity:
+      input.sensitivity === undefined
+        ? 1
+        : normalizeFiniteNumber(input.sensitivity, "camera dolly gesture sensitivity"),
+    ...(minDistance !== undefined ? { minDistance } : {}),
+    ...(maxDistance !== undefined ? { maxDistance } : {}),
+  };
+}
+
+function normalizePointerParallax(
+  declaration: WebGLCameraPointerParallaxDeclaration,
+): NormalizedCameraPointerParallaxDeclaration {
+  if (declaration.scope !== "camera") {
+    throw new Error(
+      `Unsupported WebGL camera pointer parallax scope \"${String(declaration.scope)}\".`,
+    );
   }
 
-  throw new Error(
-    `Unsupported WebGL camera pointer controller activation "${String(activation)}".`,
-  );
+  return {
+    scope: "camera",
+    strength: declaration.strength
+      ? normalizeTuple2(declaration.strength, "camera pointer parallax strength")
+      : [0, 0],
+    maxOffset: declaration.maxOffset
+      ? normalizeTuple2(declaration.maxOffset, "camera pointer parallax maxOffset")
+      : [Infinity, Infinity],
+  };
+}
+
+function normalizeGestureDamping(
+  declaration: Exclude<WebGLCameraGestureDampingDeclaration, false>,
+): NormalizedCameraGestureDampingDeclaration {
+  if (declaration === true) {
+    return { factor: 0.18, settleEpsilon: 0.001 };
+  }
+
+  return {
+    factor:
+      declaration.factor === undefined
+        ? 0.18
+        : normalizeUnitNumber(declaration.factor, "camera gesture damping factor"),
+    settleEpsilon:
+      declaration.settleEpsilon === undefined
+        ? 0.001
+        : normalizePositiveNumber(
+            declaration.settleEpsilon,
+            "camera gesture damping settleEpsilon",
+          ),
+  };
+}
+
+function normalizeGestureReset(
+  declaration: WebGLCameraGestureResetDeclaration,
+): NormalizedCameraGestureResetDeclaration {
+  return {
+    onDoubleClick: declaration.onDoubleClick ?? true,
+    durationMs:
+      declaration.durationMs === undefined
+        ? 0
+        : normalizeNonNegativeNumber(
+            declaration.durationMs,
+            "camera gesture reset durationMs",
+          ),
+  };
+}
+
+function normalizeGestureDrag(
+  declaration: WebGLCameraGestureDragDeclaration | undefined,
+  fallback: NormalizedCameraGestureDragDeclaration,
+): NormalizedCameraGestureDragDeclaration {
+  const button = declaration?.button ?? fallback.button;
+  const modifier = declaration?.modifier ?? fallback.modifier;
+
+  return {
+    button: normalizeGestureButton(button),
+    ...(modifier ? { modifier: normalizeGestureModifier(modifier) } : {}),
+  };
+}
+
+function normalizeGestureButton(
+  button: WebGLCameraGestureButton,
+): WebGLCameraGestureButton {
+  switch (button) {
+    case "primary":
+    case "middle":
+    case "secondary":
+      return button;
+  }
+}
+
+function normalizeGestureModifier(
+  modifier: WebGLCameraGestureModifier,
+): WebGLCameraGestureModifier {
+  switch (modifier) {
+    case "shift":
+    case "alt":
+    case "ctrl":
+    case "meta":
+      return modifier;
+  }
+}
+
+function assertMinMaxRange(
+  min: number | undefined,
+  max: number | undefined,
+  message: string,
+): void {
+  if (min !== undefined && max !== undefined && min > max) {
+    throw new Error(message);
+  }
 }
 
 function normalizeControllerTimeline(
@@ -323,6 +571,22 @@ function normalizeFiniteNumber(value: number, label: string): number {
 function normalizePositiveNumber(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`WebGL ${label} must be a positive finite number.`);
+  }
+
+  return value;
+}
+
+function normalizeNonNegativeNumber(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`WebGL ${label} must be a non-negative finite number.`);
+  }
+
+  return value;
+}
+
+function normalizeUnitNumber(value: number, label: string): number {
+  if (!Number.isFinite(value) || value <= 0 || value > 1) {
+    throw new Error(`WebGL ${label} must be a finite number between 0 and 1.`);
   }
 
   return value;

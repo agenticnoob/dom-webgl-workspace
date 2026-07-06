@@ -251,6 +251,8 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
         pressDuration: 0, isDragging: false,
         dragStartX: 0, dragStartY: 0,
         dragDeltaX: 0, dragDeltaY: 0, clickCount: 0,
+        buttons: [],
+        modifiers: { shift: false, alt: false, ctrl: false, meta: false },
       },
       targets: [],
     });
@@ -456,16 +458,26 @@ describe("effect authoring example app", () => {
       expect.objectContaining({
         id: "example.interaction.camera",
         mode: "perspective-stage",
-        controller: {
-          pointer: {
-            kind: "orbit",
-            activation: "empty-space-drag",
-            target: [120, -78, -70],
-            sensitivity: [0.0035, 0.003],
-            minPolarAngle: 0.52,
-            maxPolarAngle: 1.42,
-          },
-        },
+        controller: expect.objectContaining({
+          pointer: expect.objectContaining({
+            orbit: expect.objectContaining({
+              drag: { button: "primary" },
+              target: [120, -78, -70],
+              sensitivity: [0.0035, 0.003],
+              minPolarAngle: 0.52,
+              maxPolarAngle: 1.42,
+            }),
+            pan: expect.objectContaining({
+              drag: { button: "secondary" },
+            }),
+            dolly: expect.objectContaining({
+              drag: { button: "primary", modifier: "alt" },
+            }),
+            parallax: expect.objectContaining({ scope: "camera" }),
+            damping: expect.objectContaining({ factor: 0.18 }),
+            reset: expect.objectContaining({ onDoubleClick: true }),
+          }),
+        }),
       }),
     );
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([

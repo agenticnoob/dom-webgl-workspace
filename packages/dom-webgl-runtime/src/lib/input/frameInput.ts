@@ -58,7 +58,7 @@ function createFrameInput(
     time,
     delta,
     scroll: { ...scroll },
-    pointer: { ...pointer },
+    pointer: clonePointer(pointer),
   };
 }
 
@@ -67,6 +67,16 @@ function cloneFrameInput(input: WebGLFrameInput): WebGLFrameInput {
     time: input.time,
     delta: input.delta,
     scroll: { ...input.scroll },
-    pointer: { ...input.pointer },
+    pointer: clonePointer(input.pointer),
+  };
+}
+
+function clonePointer(
+  pointer: WebGLFrameInput["pointer"],
+): WebGLFrameInput["pointer"] {
+  return {
+    ...pointer,
+    buttons: pointer.buttons.slice(),
+    modifiers: { ...pointer.modifiers },
   };
 }

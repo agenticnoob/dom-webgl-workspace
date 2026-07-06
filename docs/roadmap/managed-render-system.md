@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 8 and 8B focused planning after Phase 7D verification
+**Last reviewed against:** Phase 8B advanced camera gesture verification
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -765,7 +765,7 @@ Status values:
 | Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal empty-space orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
-| Phase 8B: Advanced Camera Gesture Controllers | `[not-started]` | none | Follow-up for pan, dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit controls after Phase 8 object-vs-camera routing is stable. |
+| Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`, Phase 8 object-vs-camera priority is preserved, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model; realistic inertia, constraints, forces, and physics drag stay here rather than Phase 8B. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
@@ -811,9 +811,11 @@ Ordering rules:
   not a top-level `WebGLCameraDeclaration.timeline` field and not a pass-bound
   controller surface.
 - Phase 8 only proves minimal empty-space orbit drag after runtime input routing
-  and object-vs-camera priority exist. Full camera gesture controls such as
-  pan, dolly, wheel/pinch zoom, pointer parallax, damping, and richer orbit
-  behavior remain Phase 8B.
+  and object-vs-camera priority exist. Drag-based camera gesture controls such
+  as pan, dolly, pointer parallax, damping, reset, and richer orbit behavior
+  remain Phase 8B. Wheel and pinch zoom are deferred out of Phase 8B v1 because
+  wheel conflicts with page scroll ownership and pinch needs a separate mobile
+  gesture ownership decision.
 - DOM-bound pass viewport/scissor depends on Phase 5 scope/timeline ownership:
   Phase 5 decides when a pinned scene/pass is active, and Phase 6 decides where
   that pass is clipped on the canvas.
@@ -1634,9 +1636,10 @@ Rules:
   those objects DOM fallback/lifecycle semantics.
 - Do not expose raw raycaster or intersection objects.
 - Do not expose raw camera controls as the default contract.
-- Do not add full orbit controls, pan, dolly, wheel/pinch zoom, damping,
-  inertia, or pointer parallax in Phase 8. These belong to Phase 8B after the
-  v1 router and object-vs-camera priority are stable.
+- Do not add full orbit controls, pan, dolly, damping, inertia, or pointer
+  parallax in Phase 8. Drag-based pan/dolly/parallax/damping/reset belong to
+  Phase 8B after the v1 router and object-vs-camera priority are stable. Wheel
+  and pinch zoom remain deferred beyond Phase 8B v1.
 - Do not promise inverse-transformed picking for all transform-group cases until
   the projection and collider contracts are stable.
 - Keep DOM pointer capture and canvas coordinate truth owned by the runtime.
@@ -1656,14 +1659,14 @@ Acceptance criteria:
 
 ### Phase 8B: Advanced Camera Gesture Controllers
 
-- **Status:** `[not-started]`
-- **Focused plan:** none
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md)
 - **Depends on:** Phase 8
 - **Last updated:** 2026-07-06
-- **Exit criteria:** managed camera gesture descriptors can add pan, dolly,
-  wheel/pinch zoom, pointer parallax, damping, and richer orbit behavior on top
-  of the Phase 8 input router without exposing raw camera controls or stealing
-  object interaction priority.
+- **Exit criteria:** managed camera gesture descriptors can add drag-based pan,
+  dolly, camera pointer parallax, damping, reset, and richer orbit behavior on
+  top of the Phase 8 input router without exposing raw camera controls or
+  stealing object interaction priority.
 
 Goal: expand camera interaction only after Phase 8 proves object-vs-camera
 input routing, hit state, and pointer capture.
@@ -1671,12 +1674,12 @@ input routing, hit state, and pointer capture.
 Capabilities:
 
 - managed pan and dolly descriptors;
-- wheel and pinch zoom descriptors;
-- pointer parallax for cameras or explicit scene layers;
+- camera-scoped pointer parallax;
 - damping/smoothing for kinematic camera gestures;
 - richer orbit constraints and reset behavior;
 - pass or scene scope decisions for camera gesture activation;
-- debug summaries for active gesture type and controlled camera id.
+- debug summaries for active gesture type and controlled camera id;
+- wheel and pinch zoom are explicitly deferred out of Phase 8B v1.
 
 Rules:
 
@@ -1686,6 +1689,7 @@ Rules:
   capture, or future physics constraints.
 - Keep gestures descriptor-driven under `WebGLCamera.controller`; do not add
   imperative camera refs.
+- Do not add mouse wheel zoom or touch pinch zoom in Phase 8B v1.
 - Damping here is kinematic smoothing only. Realistic inertia, collision-aware
   movement, constraints, forces, and body dragging belong to Phase 9.
 
@@ -1693,9 +1697,8 @@ Acceptance criteria:
 
 - Empty-space pan and dolly do not activate while an object owns pointer
   capture.
-- Wheel/pinch zoom can be scoped to a managed scene/camera without affecting
-  DOM-first Level 1 targets.
-- Pointer parallax is explicit about whether it moves a camera or scene layer.
+- Pointer parallax is explicitly camera-scoped in Phase 8B v1.
+- Wheel and pinch zoom remain absent from public Phase 8B v1 descriptors.
 - Existing Phase 8 object hover/click/drag behavior remains unchanged.
 
 ### Phase 9: Dynamics and Physics
@@ -1970,8 +1973,9 @@ Do not make these default roadmap items:
     complex framing boxes, and per-pass/viewport camera controller scope as
     later possible camera-controller iterations. Phase 8 should only add
     minimal empty-space orbit drag as an input-routing proof. Assign pointer
-    parallax, pan, dolly, wheel/pinch zoom, damping, and richer orbit behavior
-    to Phase 8B advanced camera gesture controllers.
+    parallax, pan, dolly, damping, and richer orbit behavior to Phase 8B
+    advanced camera gesture controllers. Defer wheel/pinch zoom out of Phase 8B
+    v1 until scroll/mobile gesture ownership is designed.
 - Model animation surface.
   - Recommendation: Phase 7 should first decide the minimal scene-native
     `WebGLModel` descriptor shell, keep the existing `ctx.object.animation`
@@ -2023,9 +2027,9 @@ keeps Sprint model load/prepare work out of the focused startup idle window and
 first-visible scroll-entry stalls, and Phase 8 adds scene-object effects,
 `screen-plane`, managed picking, and minimal empty-space camera drag.
 
-The next suggested implementation loop is Phase 8B: advanced camera gesture
-controllers. Do not start it until Phase 8 is verified; it should build on the
-object-vs-camera router priority rather than replacing it.
+The next suggested implementation loop is Phase 9: dynamics and physics. Do not
+start it until the collider/body ownership model is planned against the verified
+Phase 8 object hit state and Phase 8B camera gesture priority.
 
 The safest sequence is:
 

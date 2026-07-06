@@ -346,6 +346,39 @@ describe("public package exports", () => {
         } satisfies WebGLCameraProps;
         cameraWithControllerProps satisfies WebGLCameraProps;
 
+        const cameraWithGestureControllerProps = {
+          id: "stage.camera",
+          default: true,
+          type: "perspective",
+          mode: "perspective-stage",
+          controller: {
+            pointer: {
+              orbit: {
+                target: [0, 0, 0],
+                minDistance: 240,
+                maxDistance: 980,
+              },
+              pan: true,
+              dolly: { drag: { button: "primary", modifier: "alt" } },
+              parallax: { scope: "camera", strength: [16, 8] },
+              damping: { factor: 0.18 },
+              reset: { onDoubleClick: true },
+            },
+          },
+        } satisfies WebGLCameraProps;
+        cameraWithGestureControllerProps satisfies WebGLCameraProps;
+
+        const invalidParallaxControllerProps = {
+          id: "stage.camera.invalid",
+          controller: {
+            pointer: {
+              parallax: { scope: "scene-layer" },
+            },
+          },
+        };
+        // @ts-expect-error Scene-layer parallax is not a Phase 8B v1 public scope.
+        invalidParallaxControllerProps satisfies WebGLCameraProps;
+
         const cameraTimelineProps = {
           id: "hero.camera",
           // @ts-expect-error WebGLCamera does not accept top-level timeline behavior.
@@ -2024,6 +2057,8 @@ describe("public package exports", () => {
           dragDeltaX: 0,
           dragDeltaY: 0,
           clickCount: 0,
+          buttons: [],
+          modifiers: { shift: false, alt: false, ctrl: false, meta: false },
         } satisfies WebGLPointerState;
         const frame = {
           time: 10,

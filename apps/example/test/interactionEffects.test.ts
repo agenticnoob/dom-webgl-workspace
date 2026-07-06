@@ -168,6 +168,8 @@ function createFrameInput(): WebGLFrameInput {
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
   };
 }

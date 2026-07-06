@@ -323,8 +323,12 @@ function cloneInteractionSummary(
       ? {
           cameraController: {
             cameraId: interaction.cameraController.cameraId,
+            sceneId: interaction.cameraController.sceneId,
             active: interaction.cameraController.active,
-            kind: interaction.cameraController.kind,
+            ...(interaction.cameraController.activeGesture
+              ? { activeGesture: interaction.cameraController.activeGesture }
+              : {}),
+            damping: interaction.cameraController.damping,
           },
         }
       : {}),

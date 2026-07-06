@@ -28,6 +28,7 @@ import type {
   InternalRenderLayerRegistry,
   InternalRenderPassEntry,
   InternalRenderSceneEntry,
+  ManagedCameraGesturePass,
 } from "../../../src/lib/renderer/renderLayerRegistry";
 import { createPostprocessController, type PostprocessController } from "../../../src/lib/renderer/postprocessController";
 
@@ -4578,6 +4579,81 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("routes managed camera gesture passes into runtime interaction debug state", async () => {
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera: { label: "world-camera" },
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+          expect(input.frameInput.pointer.button).toBe("secondary");
+          expect(input.passes).toEqual([
+            {
+              id: "world.pass",
+              sceneId: "world",
+              cameraId: "world.camera",
+              order: 4,
+            },
+          ]);
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "pan",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: true,
+        isDragging: true,
+        button: "secondary",
+        buttons: ["secondary"],
+        dragDeltaX: 24,
+      }),
+    });
+
+    await runtime.sync();
+
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().interaction?.cameraController).toEqual({
+      cameraId: "world.camera",
+      sceneId: "world",
+      active: true,
+      activeGesture: "pan",
+      damping: false,
+    });
+
+    runtime.dispose();
+  });
+
   test("keeps Level 1 dom anchored layout unchanged", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -4855,6 +4931,11 @@ function createRenderLayerRegistryStub(
       progressSignals: WebGLProgressSignalSource,
       camerasById: Map<string, InternalRenderCameraEntry>,
     ) => boolean;
+    updateCameraGestureControllers?: (input: {
+      frameInput: WebGLFrameInput;
+      blocked: boolean;
+      passes: readonly ManagedCameraGesturePass[];
+    }) => ReturnType<InternalRenderLayerRegistry["updateCameraGestureControllers"]>;
   } = {},
 ): {
   registry: InternalRenderLayerRegistry;
@@ -4867,7 +4948,7 @@ function createRenderLayerRegistryStub(
   unregisterRenderPass: ReturnType<typeof vi.fn>;
   updateTimelineState: ReturnType<typeof vi.fn>;
   updateCameraControllers: ReturnType<typeof vi.fn>;
-  updateCameraPointerControllers: ReturnType<typeof vi.fn>;
+  updateCameraGestureControllers: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "__dom-webgl-default__",
@@ -4929,11 +5010,36 @@ function createRenderLayerRegistryStub(
     (progressSignals: WebGLProgressSignalSource) =>
       options.updateCameraControllers?.(progressSignals, camerasById) ?? false,
   );
-  const updateCameraPointerControllers = vi.fn(() => ({ changed: false }));
+  const updateCameraGestureControllers = vi.fn(
+    (input: {
+      frameInput: WebGLFrameInput;
+      blocked: boolean;
+      passes: readonly ManagedCameraGesturePass[];
+    }) =>
+      options.updateCameraGestureControllers?.(input) ?? {
+        changed: false,
+        requiresContinuousRendering: false,
+      },
+  );
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
-        renderPass(pass, mainScene, mainCamera);
+        const scene =
+          pass.sceneId === mainScene.id
+            ? mainScene
+            : {
+                id: pass.sceneId,
+                generated: false,
+                projection: options.sceneProjection?.[pass.sceneId] ?? "dom-aligned",
+                scene: {},
+                camera: {},
+                sceneAdapter: sceneAdapters.get(pass.sceneId) ?? sceneAdapter,
+              } satisfies InternalRenderSceneEntry;
+        const camera =
+          (pass.cameraId ? camerasById.get(pass.cameraId) : undefined) ??
+          mainCamera;
+
+        renderPass(pass, scene, camera);
       }
     },
   );
@@ -4981,7 +5087,7 @@ function createRenderLayerRegistryStub(
       unregisterRenderPass,
       updateTimelineState,
       updateCameraControllers,
-      updateCameraPointerControllers,
+      updateCameraGestureControllers,
       inspectCameraControllers() {
         return [];
       },
@@ -4998,7 +5104,7 @@ function createRenderLayerRegistryStub(
     unregisterRenderPass,
     updateTimelineState,
     updateCameraControllers,
-    updateCameraPointerControllers,
+    updateCameraGestureControllers,
   };
 }
 
@@ -5441,6 +5547,8 @@ function createPointerController(
         dragDeltaX: 0,
         dragDeltaY: 0,
         clickCount: 0,
+        buttons: [],
+        modifiers: { shift: false, alt: false, ctrl: false, meta: false },
         ...pointer,
       };
     },

@@ -265,7 +265,16 @@ export type WebGLCameraControllerTimelineDeclaration =
 
 export type WebGLCameraControllerEasing = "linear" | "smoothstep";
 
-export type WebGLCameraPointerControllerDeclaration = {
+export type WebGLCameraGestureButton = "primary" | "middle" | "secondary";
+
+export type WebGLCameraGestureModifier = "shift" | "alt" | "ctrl" | "meta";
+
+export type WebGLCameraGestureDragDeclaration = {
+  readonly button?: WebGLCameraGestureButton;
+  readonly modifier?: WebGLCameraGestureModifier;
+};
+
+export type WebGLCameraOrbitPointerControllerDeclaration = {
   readonly kind: "orbit";
   readonly activation: "empty-space-drag";
   readonly target?: WebGLTuple3;
@@ -273,6 +282,60 @@ export type WebGLCameraPointerControllerDeclaration = {
   readonly minPolarAngle?: number;
   readonly maxPolarAngle?: number;
 };
+
+export type WebGLCameraOrbitGestureDeclaration = {
+  readonly drag?: WebGLCameraGestureDragDeclaration;
+  readonly target?: WebGLTuple3;
+  readonly sensitivity?: WebGLTuple2;
+  readonly minPolarAngle?: number;
+  readonly maxPolarAngle?: number;
+  readonly minDistance?: number;
+  readonly maxDistance?: number;
+};
+
+export type WebGLCameraPanGestureDeclaration = {
+  readonly drag?: WebGLCameraGestureDragDeclaration;
+  readonly sensitivity?: WebGLTuple2;
+};
+
+export type WebGLCameraDollyGestureDeclaration = {
+  readonly drag?: WebGLCameraGestureDragDeclaration;
+  readonly sensitivity?: number;
+  readonly minDistance?: number;
+  readonly maxDistance?: number;
+};
+
+export type WebGLCameraPointerParallaxDeclaration = {
+  readonly scope: "camera";
+  readonly strength?: WebGLTuple2;
+  readonly maxOffset?: WebGLTuple2;
+};
+
+export type WebGLCameraGestureDampingDeclaration =
+  | boolean
+  | {
+      readonly factor?: number;
+      readonly settleEpsilon?: number;
+    };
+
+export type WebGLCameraGestureResetDeclaration = {
+  readonly onDoubleClick?: boolean;
+  readonly durationMs?: number;
+};
+
+export type WebGLCameraGesturePointerControllerDeclaration = {
+  readonly activation?: "empty-space";
+  readonly orbit?: boolean | WebGLCameraOrbitGestureDeclaration;
+  readonly pan?: boolean | WebGLCameraPanGestureDeclaration;
+  readonly dolly?: boolean | WebGLCameraDollyGestureDeclaration;
+  readonly parallax?: WebGLCameraPointerParallaxDeclaration;
+  readonly damping?: WebGLCameraGestureDampingDeclaration;
+  readonly reset?: WebGLCameraGestureResetDeclaration;
+};
+
+export type WebGLCameraPointerControllerDeclaration =
+  | WebGLCameraOrbitPointerControllerDeclaration
+  | WebGLCameraGesturePointerControllerDeclaration;
 
 export type WebGLCameraControllerDeclaration = {
   readonly timeline?: WebGLCameraControllerTimelineDeclaration;
@@ -553,6 +616,18 @@ export type WebGLPointerState = {
   dragDeltaY: number;
   lastClickTime?: number;
   clickCount: number;
+  button?: WebGLPointerButton;
+  buttons: WebGLPointerButton[];
+  modifiers: WebGLPointerModifiers;
+};
+
+export type WebGLPointerButton = WebGLCameraGestureButton;
+
+export type WebGLPointerModifiers = {
+  shift: boolean;
+  alt: boolean;
+  ctrl: boolean;
+  meta: boolean;
 };
 
 export type WebGLTargetPointerState = {
@@ -718,8 +793,10 @@ export type WebGLDebugInteractionSummary = {
   };
   readonly cameraController?: {
     readonly cameraId: string;
+    readonly sceneId: string;
     readonly active: boolean;
-    readonly kind: "orbit";
+    readonly activeGesture?: "orbit" | "pan" | "dolly" | "parallax" | "reset" | "damping";
+    readonly damping: boolean;
   };
 };
 

@@ -46,11 +46,13 @@ describe("runtime state public types", () => {
           isDragging: false,
           dragStartX: 10,
           dragStartY: 20,
-          dragDeltaX: 0,
-          dragDeltaY: 0,
-          lastClickTime: 100,
-          clickCount: 1,
-        } satisfies WebGLPointerState;
+	          dragDeltaX: 0,
+	          dragDeltaY: 0,
+	          lastClickTime: 100,
+	          clickCount: 1,
+	          buttons: ["primary"],
+	          modifiers: { shift: false, alt: false, ctrl: false, meta: false },
+	        } satisfies WebGLPointerState;
 
         const frame = {
           time: 1200,

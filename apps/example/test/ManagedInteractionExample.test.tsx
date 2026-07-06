@@ -152,16 +152,26 @@ describe("ManagedInteractionExample", () => {
         fov: 42,
         position: [120, 132, 620],
         target: [120, -78, -70],
-        controller: {
-          pointer: {
-            kind: "orbit",
-            activation: "empty-space-drag",
-            target: [120, -78, -70],
-            sensitivity: [0.0035, 0.003],
-            minPolarAngle: 0.52,
-            maxPolarAngle: 1.42,
-          },
-        },
+        controller: expect.objectContaining({
+          pointer: expect.objectContaining({
+            orbit: expect.objectContaining({
+              drag: { button: "primary" },
+              target: [120, -78, -70],
+              sensitivity: [0.0035, 0.003],
+              minPolarAngle: 0.52,
+              maxPolarAngle: 1.42,
+            }),
+            pan: expect.objectContaining({
+              drag: { button: "secondary" },
+            }),
+            dolly: expect.objectContaining({
+              drag: { button: "primary", modifier: "alt" },
+            }),
+            parallax: expect.objectContaining({ scope: "camera" }),
+            damping: expect.objectContaining({ factor: 0.18 }),
+            reset: expect.objectContaining({ onDoubleClick: true }),
+          }),
+        }),
       }),
     ]);
     expect(stagePlaneProps).toEqual([

@@ -97,6 +97,7 @@ import {
 import {
   createInternalRenderLayerRegistry,
   type InternalRenderLayerRegistry,
+  type ManagedCameraGesturePass,
 } from "./renderLayerRegistry";
 import { createManagedModelRegistry } from "./managedModelRegistry";
 import {
@@ -866,6 +867,46 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     return passes;
   }
 
+  function readManagedCameraGesturePasses(): ManagedCameraGesturePass[] {
+    const passes: ManagedCameraGesturePass[] = [];
+
+    for (const pass of renderLayers.getPasses()) {
+      const scene = renderLayers.getScene(pass.sceneId);
+      const cameraId =
+        pass.cameraId ?? scene.defaultCameraId ?? generatedRenderLayerId;
+      let camera;
+      try {
+        camera = renderLayers.getCamera(cameraId);
+      } catch (error: unknown) {
+        if (pass.deferUntilCamera) {
+          continue;
+        }
+        throw error;
+      }
+
+      if (scene.timeline?.active && scene.timelineActive === false) {
+        continue;
+      }
+      if (camera.sceneId !== scene.id) {
+        continue;
+      }
+
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      const viewport =
+        resolvedViewport.mode === "dom-rect" ? resolvedViewport.rect : undefined;
+
+      passes.push({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        cameraId: camera.id,
+        order: pass.order,
+        ...(viewport ? { viewport } : {}),
+      });
+    }
+
+    return passes;
+  }
+
   function readPostprocessViewport(
     viewport: ActiveResolvedPassViewport,
   ): { width: number; height: number } {
@@ -1348,11 +1389,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const cameraControllerChanged =
         renderLayers.updateCameraControllers(progressSignals);
       const interactionResult = updateSceneObjectInteractions(frameInput);
-      const cameraPointerUpdate = renderLayers.updateCameraPointerControllers({
+      const cameraGestureUpdate = renderLayers.updateCameraGestureControllers({
         frameInput,
         blocked: isCameraPointerBlocked(interactionResult.debug),
+        passes: readManagedCameraGesturePasses(),
       });
-      cameraInteractionSummary = cameraPointerUpdate.summary;
+      cameraInteractionSummary = cameraGestureUpdate.summary;
       const stageEffectsContinuous = stageObjects.updateEffects(frameInput);
       const dirtyKeys = invalidationController.consumeDirtyKeys();
 
@@ -1362,7 +1404,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const pendingUpdates: Array<Promise<void>> = [];
       let didSynchronousUpdate =
         cameraControllerChanged ||
-        cameraPointerUpdate.changed ||
+        cameraGestureUpdate.changed ||
         stageEffectsContinuous ||
         !interactionResult.emptySpace;
       const viewportHeight = window.innerHeight || 600;
@@ -1390,7 +1432,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       requiresContinuousRendering =
         requiresContinuousRendering ||
         stageEffectsContinuous ||
-        cameraPointerUpdate.summary?.active === true ||
+        cameraGestureUpdate.summary?.active === true ||
+        cameraGestureUpdate.requiresContinuousRendering ||
         !interactionResult.emptySpace;
 
       for (const descriptor of descriptors) {

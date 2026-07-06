@@ -59,6 +59,58 @@ describe("camera controller declarations", () => {
     });
   });
 
+  test("normalizes legacy orbit pointer controller shorthand", () => {
+    expect(
+      normalizeCameraControllerDeclaration({
+        pointer: {
+          kind: "orbit",
+          activation: "empty-space-drag",
+          target: [1, 2, 3],
+        },
+      }).pointer,
+    ).toEqual({
+      activation: "empty-space",
+      orbit: {
+        drag: { button: "primary" },
+        target: [1, 2, 3],
+        sensitivity: [0.004, 0.004],
+      },
+    });
+  });
+
+  test("normalizes rich camera gesture descriptors", () => {
+    expect(
+      normalizeCameraControllerDeclaration({
+        pointer: {
+          orbit: { target: [0, 0, 0], minDistance: 240, maxDistance: 980 },
+          pan: true,
+          dolly: { drag: { button: "primary", modifier: "alt" } },
+          parallax: { scope: "camera", strength: [16, 8] },
+          damping: { factor: 0.18 },
+          reset: { onDoubleClick: true, durationMs: 220 },
+        },
+      }).pointer,
+    ).toMatchObject({
+      activation: "empty-space",
+      orbit: { minDistance: 240, maxDistance: 980 },
+      pan: { drag: { button: "secondary" } },
+      dolly: { drag: { button: "primary", modifier: "alt" } },
+      parallax: { scope: "camera", strength: [16, 8] },
+      damping: { factor: 0.18, settleEpsilon: 0.001 },
+      reset: { onDoubleClick: true, durationMs: 220 },
+    });
+  });
+
+  test("rejects invalid camera gesture distance ranges", () => {
+    expect(() =>
+      normalizeCameraControllerDeclaration({
+        pointer: {
+          orbit: { minDistance: 600, maxDistance: 200 },
+        },
+      }),
+    ).toThrow("WebGL camera orbit gesture minDistance must be <= maxDistance.");
+  });
+
   test("interpolates only declared frame fields from base camera framing", () => {
     const declaration = normalizeCameraControllerDeclaration({
       timeline: "hero.timeline",

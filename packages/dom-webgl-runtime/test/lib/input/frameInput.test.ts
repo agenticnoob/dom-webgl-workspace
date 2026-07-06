@@ -41,6 +41,8 @@ describe("createFrameInputSource", () => {
         dragStartY: 0,
         dragDeltaX: 0,
         dragDeltaY: 0,
+        buttons: [],
+        modifiers: { shift: false, alt: false, ctrl: false, meta: false },
         clickCount: 0,
       },
     });
@@ -78,6 +80,39 @@ describe("createFrameInputSource", () => {
     expect(frameInput.update()).toMatchObject({
       time: 116,
       delta: 0,
+    });
+  });
+
+  test("clones pointer button state through frame input", () => {
+    const scrollState = createScrollStateController();
+    const pointerController = createPointerController();
+    pointerController.pointer = {
+      ...pointerController.pointer,
+      button: "primary",
+      buttons: ["primary"],
+      modifiers: { alt: true, shift: false, ctrl: false, meta: false },
+    };
+    const frameInput = createFrameInputSource(
+      scrollState,
+      pointerController,
+      () => 100,
+    );
+
+    const frame = frameInput.update();
+
+    expect(frame.pointer).toMatchObject({
+      button: "primary",
+      buttons: ["primary"],
+      modifiers: { alt: true, shift: false, ctrl: false, meta: false },
+    });
+
+    frame.pointer.buttons.push("secondary");
+    frame.pointer.modifiers.alt = false;
+
+    expect(frameInput.getState().pointer).toMatchObject({
+      button: "primary",
+      buttons: ["primary"],
+      modifiers: { alt: true, shift: false, ctrl: false, meta: false },
     });
   });
 
@@ -233,6 +268,8 @@ function createPointerController(): PointerController & {
       dragStartY: 0,
       dragDeltaX: 0,
       dragDeltaY: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
       clickCount: 0,
     },
     getState() {

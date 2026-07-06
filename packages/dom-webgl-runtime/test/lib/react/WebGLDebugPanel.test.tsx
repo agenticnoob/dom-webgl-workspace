@@ -159,8 +159,10 @@ describe("WebGLDebugPanel", () => {
         lastClickedObjectId: "example.floor",
         cameraController: {
           cameraId: "example.camera",
+          sceneId: "example.scene",
           active: true,
-          kind: "orbit",
+          activeGesture: "orbit",
+          damping: true,
         },
       },
     });
@@ -175,8 +177,10 @@ describe("WebGLDebugPanel", () => {
     expect(container.textContent).toContain("click example.floor");
     expect(container.textContent).toContain("Camera");
     expect(container.textContent).toContain("example.camera");
+    expect(container.textContent).toContain("example.scene");
     expect(container.textContent).toContain("orbit");
     expect(container.textContent).toContain("active");
+    expect(container.textContent).toContain("damping");
     expect(container.textContent).not.toContain("intersection");
     expect(container.textContent).not.toContain("raycaster");
   });
@@ -405,6 +409,8 @@ function createMinimalState(
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
     targets: [],
     ...overrides,
@@ -431,6 +437,8 @@ function createFullState(): WebGLDebugState {
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 2,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
     targets: [
       {

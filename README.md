@@ -69,8 +69,8 @@ Current runtime behavior:
   without React prop churn. Cameras intentionally do not accept top-level
   `timeline`; managed perspective-stage cameras can declare a nested
   `controller` for progress-driven `position`, `target`, and `fov` changes.
-  Phase 8 also allows minimal pointer-driven empty-space orbit drag through
-  `controller.pointer`, with object hit/capture state taking priority.
+  `controller.pointer` can add empty-space orbit, pan, dolly, camera parallax,
+  damping, and reset gestures, with object hit/capture state taking priority.
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
@@ -175,7 +175,7 @@ Current example behavior:
   offscreen rather than rendered into a second local canvas.
 - The Phase 8 managed interaction example is mounted in the current catalog and
   dogfoods pickable stage/model descriptors, scene-object effects, a
-  `screen-plane` DOM target, and minimal empty-space orbit drag through
+  `screen-plane` DOM target, and rich empty-space camera gestures through
   `WebGLCamera.controller.pointer`.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
@@ -791,8 +791,11 @@ available for managed-scene GLB assets and can request
 `prepare={{ renderWarmup: "idle" }}` for managed, viewport-proximity aware
 first-render preparation on DOM-bound model passes. Phase 8 adds scene-object
 effects, managed picking, `screen-plane` placement, and minimal empty-space
-orbit drag. Orthographic/screen camera controllers, full pan/dolly/zoom gestures,
-pass-bound camera controller scope, and raw Three.js access remain out of scope.
+orbit drag. Phase 8B extends managed `controller.pointer` descriptors with
+drag-based pan, dolly, camera pointer parallax, damping, reset, and richer orbit
+constraints. Orthographic/screen camera controllers, mouse wheel zoom, touch
+pinch zoom, pass-bound camera controller scope, and raw Three.js access remain
+out of scope.
 
 ## Managed Timeline Bindings
 
@@ -864,11 +867,13 @@ is no implicit `ctx.camera`.
 
 `WebGLCamera` still has no top-level `timeline` prop. Use the nested
 `controller.timeline` descriptor on a managed `perspective-stage` camera for
-camera motion/focus/framing. v1 controller support is intentionally limited to
-one camera-owned controller per camera and does not expose raw Three.js cameras,
-controls, matrices, pass-bound scope, or pointer-driven orbit/pan behavior. The
-runtime preserves the currently applied controller frame across managed camera
-resize/reframing passes even when the source progress signal is unchanged.
+camera motion/focus/framing, or `controller.pointer` for descriptor-driven
+empty-space orbit, pan, dolly, camera parallax, damping, and reset gestures.
+Controller support is intentionally limited to one camera-owned descriptor per
+camera and does not expose raw Three.js cameras, controls, matrices, wheel/pinch
+capture, or pass-bound scope. The runtime preserves the currently applied
+controller frame across managed camera resize/reframing passes even when the
+source progress signal is unchanged.
 
 ## Opt-In Managed Stage Primitives
 
