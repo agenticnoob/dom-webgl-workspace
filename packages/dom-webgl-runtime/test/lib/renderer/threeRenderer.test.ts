@@ -248,6 +248,142 @@ describe("createThreeRendererHost", () => {
     host.dispose();
   });
 
+  test("uses mesh hit testing when managed candidates request visual hits", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(mesh);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: mesh,
+      hitTest: "mesh",
+      pickable: true,
+      pointer: { hover: true, press: false, click: true, drag: false },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toMatchObject({
+      id: "example.model",
+      sceneId: "example.scene",
+      distance: 9,
+    });
+
+    host.dispose();
+  });
+
+  test("updates object world matrices before mesh hit testing", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Group } = await import("three/src/objects/Group.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const root = new Group();
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    root.position.set(4, 0, 0);
+    root.add(mesh);
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(root);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: root,
+      hitTest: "mesh",
+      pickable: true,
+      pointer: { hover: true, press: false, click: true, drag: false },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toBeUndefined();
+
+    host.dispose();
+  });
+
   test("adds low-cost default lights to the default scene for lit model materials", async () => {
     const rendererDispose = vi.fn();
     const rendererSetClearAlpha = vi.fn();

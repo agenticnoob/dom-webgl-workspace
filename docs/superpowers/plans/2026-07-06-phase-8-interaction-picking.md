@@ -732,6 +732,16 @@ Verification result:
   `/models/Sprint.glb` has very coarse root bounds and is already covered by
   the Phase 7 animation dogfood.
 
+Follow-up correction:
+
+- Current `ManagedInteractionExample` has been narrowed back to the Phase 8
+  floor-only verification surface: one pickable `WebGLStagePlane`, a
+  hover/click scene-object effect, a DOM-bound pass viewport, and minimal
+  primary-drag camera orbit.
+- Do not reintroduce the scene-native model, screen-plane card, object drag,
+  pan, dolly, parallax, damping, or reset into this dogfood while it is being
+  used to isolate floor picking and camera coordinate drift.
+
 ### Task 9: Update Documentation And Close Phase
 
 **Files:**

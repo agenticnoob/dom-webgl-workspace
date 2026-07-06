@@ -60,13 +60,7 @@ export type ExampleEffectParams = {
   "example.sceneObjectHoverPulse": {
     baseOpacity?: number;
     hoverOpacity?: number;
-    dragOpacity?: number;
-  };
-  "example.sceneObjectDragPose": {
-    baseScale?: number;
-    hoverScale?: number;
-    dragScale?: number;
-    baseRotationY?: number;
+    clickOpacity?: number;
   };
 };
 
@@ -136,13 +130,6 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
     kind: "example.sceneObjectHoverPulse",
     baseOpacity: 0.68,
     hoverOpacity: 0.92,
-    dragOpacity: 1,
-  },
-  {
-    kind: "example.sceneObjectDragPose",
-    baseScale: 4,
-    hoverScale: 1.04,
-    dragScale: 1.1,
-    baseRotationY: -0.42,
+    clickOpacity: 1,
   },
 ]);

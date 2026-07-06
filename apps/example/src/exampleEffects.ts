@@ -29,10 +29,7 @@ export {
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
-export {
-  exampleSceneObjectDragPoseEffect,
-  exampleSceneObjectHoverPulseEffect,
-} from "./interactionEffects";
+export { exampleSceneObjectHoverPulseEffect } from "./interactionEffects";
 export { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 export {
   exampleSequenceCardBorderGlowEffect,
@@ -57,10 +54,7 @@ import {
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
-import {
-  exampleSceneObjectDragPoseEffect,
-  exampleSceneObjectHoverPulseEffect,
-} from "./interactionEffects";
+import { exampleSceneObjectHoverPulseEffect } from "./interactionEffects";
 import { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 import {
@@ -112,5 +106,4 @@ export const exampleEffects = [
   exampleModelFloatEffect,
   exampleModelFloatGlowEffect,
   exampleSceneObjectHoverPulseEffect,
-  exampleSceneObjectDragPoseEffect,
 ] as const;

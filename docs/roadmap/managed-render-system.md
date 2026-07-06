@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 8B advanced camera gesture verification
+**Last reviewed against:** Phase 8B camera gesture persistence verification
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -764,8 +764,8 @@ Status values:
 | Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate the main Sprint skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
 | Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
-| Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal empty-space orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
-| Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`, Phase 8 object-vs-camera priority is preserved, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
+| Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
+| Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model; realistic inertia, constraints, forces, and physics drag stay here rather than Phase 8B. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
@@ -810,12 +810,14 @@ Ordering rules:
   v1 API is a single optional `WebGLCamera.controller` descriptor per camera,
   not a top-level `WebGLCameraDeclaration.timeline` field and not a pass-bound
   controller surface.
-- Phase 8 only proves minimal empty-space orbit drag after runtime input routing
-  and object-vs-camera priority exist. Drag-based camera gesture controls such
-  as pan, dolly, pointer parallax, damping, reset, and richer orbit behavior
-  remain Phase 8B. Wheel and pinch zoom are deferred out of Phase 8B v1 because
-  wheel conflicts with page scroll ownership and pinch needs a separate mobile
-  gesture ownership decision.
+- Phase 8 only proves minimal primary orbit drag after runtime input routing
+  and object hit state exist. Hover/click-only object hits do not block that
+  drag path; hover/click picking reads the current-frame gesture-updated camera,
+  and explicit object drag capture remains the object-owned drag path.
+  Drag-based camera gesture controls such as pan, dolly, pointer parallax,
+  damping, reset, and richer orbit behavior remain Phase 8B. Wheel and pinch
+  zoom are deferred out of Phase 8B v1 because wheel conflicts with page scroll
+  ownership and pinch needs a separate mobile gesture ownership decision.
 - DOM-bound pass viewport/scissor depends on Phase 5 scope/timeline ownership:
   Phase 5 decides when a pinned scene/pass is active, and Phase 6 decides where
   that pass is clipped on the canvas.
@@ -1316,7 +1318,7 @@ Rules:
   complex framing-box helpers, or per-pass/viewport camera controller scope in
   Phase 6A v1. Record these as later possible camera-controller iterations.
 - Do not add pointer-driven orbit, pan, drag, or pointer parallax here; those
-  split across Phase 8 minimal empty-space orbit drag and Phase 8B advanced
+  split across Phase 8 minimal primary orbit drag and Phase 8B advanced
   camera gesture controllers.
 - Do not expose raw Three.js cameras, `OrbitControls`, matrices, projection
   mutation, or render-loop callbacks.
@@ -1604,7 +1606,7 @@ Rules:
 - **Depends on:** Phase 3, Phase 4, Phase 5
 - **Last updated:** 2026-07-06
 - **Exit criteria:** runtime-owned input routing supports object hit state,
-  minimal empty-space orbit drag, and pointer capture without exposing raw
+  minimal primary orbit drag, and pointer capture without exposing raw
   `Raycaster`, raw intersection objects, or raw camera controls.
 
 Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
@@ -1618,12 +1620,13 @@ Capabilities:
 - `screen-plane` placement against named stage planes, using runtime-owned
   camera ray-to-plane math without exposing raw raycasters, intersections,
   meshes, planes, or cameras;
-- runtime-owned input router with explicit object-vs-camera priority;
+- runtime-owned input router with hover/click object routing separated from
+  primary camera drag;
 - pickable descriptors for stage primitives and models;
 - effect-readable object hover, press, click, drag, and pointer capture state;
 - descriptor-only interaction debug summaries;
-- minimal empty-space orbit drag with explicit priority against object hover,
-  press, click, drag, pointer capture, and future physics constraints.
+- minimal primary orbit drag that ignores hover/click-only object hits while
+  dragging; explicit object drag capture remains the object-owned drag path.
 
 Rules:
 
@@ -1651,9 +1654,10 @@ Rules:
 Acceptance criteria:
 
 - A stage primitive can receive managed hover/click state.
-- A model can expose coarse object/bounds-level managed hit state.
-- Empty-space drag can drive a minimal managed orbit camera controller without
-  stealing object drag.
+- Stage primitives and models can expose managed hover/click hit state using
+  mesh-level visual hits or coarse bounds hits.
+- Primary drag can drive a minimal managed orbit camera controller without
+  stacking hover/click object routing while dragging.
 - Object drag can capture the pointer and release it predictably.
 - Existing DOM-first pointer behavior is preserved.
 
@@ -1666,10 +1670,10 @@ Acceptance criteria:
 - **Exit criteria:** managed camera gesture descriptors can add drag-based pan,
   dolly, camera pointer parallax, damping, reset, and richer orbit behavior on
   top of the Phase 8 input router without exposing raw camera controls or
-  stealing object interaction priority.
+  stacking hover/click object routing during camera drag.
 
-Goal: expand camera interaction only after Phase 8 proves object-vs-camera
-input routing, hit state, and pointer capture.
+Goal: expand camera interaction only after Phase 8 proves object hit state,
+hover/click separation from camera drag, and explicit object pointer capture.
 
 Capabilities:
 
@@ -1685,8 +1689,9 @@ Rules:
 
 - Do not expose raw `OrbitControls`, `PointerLockControls`, camera objects, or
   input listeners.
-- Do not let camera gestures override active object hover, press, drag, pointer
-  capture, or future physics constraints.
+- Do not let camera gestures override explicit object drag capture or future
+  physics constraints. Hover/click-only hits are ignored while camera drag is
+  active.
 - Keep gestures descriptor-driven under `WebGLCamera.controller`; do not add
   imperative camera refs.
 - Do not add mouse wheel zoom or touch pinch zoom in Phase 8B v1.
@@ -1695,11 +1700,14 @@ Rules:
 
 Acceptance criteria:
 
-- Empty-space pan and dolly do not activate while an object owns pointer
-  capture.
+- Pan and dolly do not activate while an object owns pointer capture.
 - Pointer parallax is explicitly camera-scoped in Phase 8B v1.
 - Wheel and pinch zoom remain absent from public Phase 8B v1 descriptors.
-- Existing Phase 8 object hover/click/drag behavior remains unchanged.
+- Existing Phase 8 object hover/click behavior remains separated from camera
+  drag; explicit object drag capture remains supported.
+- Pointer gesture frames persist after movement stops or release, and true
+  managed camera resize re-applies the current gesture frame rather than
+  snapping back to the declaration base frame.
 
 ### Phase 9: Dynamics and Physics
 
@@ -1972,7 +1980,7 @@ Do not make these default roadmap items:
     in Phase 6A v1. Record orthographic zoom, screen overlay camera control,
     complex framing boxes, and per-pass/viewport camera controller scope as
     later possible camera-controller iterations. Phase 8 should only add
-    minimal empty-space orbit drag as an input-routing proof. Assign pointer
+    minimal primary orbit drag as an input-routing proof. Assign pointer
     parallax, pan, dolly, damping, and richer orbit behavior to Phase 8B
     advanced camera gesture controllers. Defer wheel/pinch zoom out of Phase 8B
     v1 until scroll/mobile gesture ownership is designed.
@@ -1982,8 +1990,9 @@ Do not make these default roadmap items:
     facade compatible, then add declarative defaults, crossfade, clip scrubbing,
     and morph controls as managed descriptors/facades.
 - Interaction routing priority.
-  - Recommendation: start with deterministic pointer capture and coarse
-    object-vs-camera routing before adding mesh-level picking or physics drag.
+  - Recommendation: start with deterministic pointer capture, mesh-level visual
+    picking for current stage/model dogfood, and coarse bounds as a fallback
+    mode before adding physics drag.
 - Placement mode defaults.
   - Recommendation: `WebGLTarget` defaults to `dom-anchored`; stage primitives
     and scene-native models default to `stage-local`; overlay helpers default to

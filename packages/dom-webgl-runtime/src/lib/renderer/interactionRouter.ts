@@ -20,7 +20,7 @@ export type ManagedHitCandidate = {
   readonly sceneId: string;
   readonly sourceKind: WebGLSceneObjectEffectSourceKind;
   readonly object3D: unknown;
-  readonly hitTest: "bounds";
+  readonly hitTest: "bounds" | "mesh";
   readonly pickable: boolean;
   readonly pointer: ManagedObjectPointerCapabilities;
 };
@@ -86,7 +86,9 @@ export function createInteractionRouter(): InteractionRouter {
   let previousPointerDown = false;
   let pressedObjectId: string | undefined;
   let capturedObjectId: string | undefined;
+  let clickCandidateObjectId: string | undefined;
   let lastClickedObjectId: string | undefined;
+  let pointerDraggedDuringPress = false;
   let debug: ManagedInteractionDebugSummary = {};
   const pointerStatesByObjectId = new Map<string, WebGLSceneObjectPointerState>();
 
@@ -95,7 +97,22 @@ export function createInteractionRouter(): InteractionRouter {
       const input = updateInput.input;
       const candidates = updateInput.candidates.filter(isPickableCandidate);
       const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
-      const hit = readActiveHit(updateInput, candidates);
+      if (input.pointer.isDown && !previousPointerDown) {
+        pointerDraggedDuringPress = false;
+      }
+      if (input.pointer.isDown && hasPointerDrag(input.pointer)) {
+        pointerDraggedDuringPress = true;
+        clickCandidateObjectId = undefined;
+        if (!capturedObjectId) {
+          pressedObjectId = undefined;
+        }
+      }
+
+      const shouldRouteObjectHit =
+        !input.pointer.isDown || !pointerDraggedDuringPress;
+      const hit = shouldRouteObjectHit
+        ? readActiveHit(updateInput, candidates)
+        : undefined;
       const hitCandidate = hit ? candidateById.get(hit.id) : undefined;
       const hoveredObjectId = hitCandidate?.pointer.hover ? hitCandidate.id : undefined;
       let clickedObjectId: string | undefined;
@@ -103,7 +120,10 @@ export function createInteractionRouter(): InteractionRouter {
       pointerStatesByObjectId.clear();
 
       if (input.pointer.isDown && !previousPointerDown && hitCandidate) {
-        if (canPress(hitCandidate)) {
+        if (hitCandidate.pointer.click) {
+          clickCandidateObjectId = hitCandidate.id;
+        }
+        if (canShowPress(hitCandidate)) {
           pressedObjectId = hitCandidate.id;
         }
         if (hitCandidate.pointer.drag) {
@@ -112,16 +132,23 @@ export function createInteractionRouter(): InteractionRouter {
       }
 
       if (!input.pointer.isDown && previousPointerDown) {
-        const releaseObjectId = capturedObjectId ?? pressedObjectId;
+        const releaseObjectId = clickCandidateObjectId;
         const releaseCandidate = releaseObjectId
           ? candidateById.get(releaseObjectId)
           : undefined;
-        if (releaseObjectId && releaseCandidate?.pointer.click) {
+        if (
+          releaseObjectId &&
+          releaseCandidate?.pointer.click &&
+          !pointerDraggedDuringPress &&
+          !hasPointerDrag(input.pointer)
+        ) {
           clickedObjectId = releaseObjectId;
           lastClickedObjectId = releaseObjectId;
         }
         pressedObjectId = undefined;
         capturedObjectId = undefined;
+        clickCandidateObjectId = undefined;
+        pointerDraggedDuringPress = false;
       }
 
       for (const candidate of candidates) {
@@ -173,6 +200,9 @@ export function createInteractionRouter(): InteractionRouter {
       if (capturedObjectId === id) {
         capturedObjectId = undefined;
       }
+      if (clickCandidateObjectId === id) {
+        clickCandidateObjectId = undefined;
+      }
       if (lastClickedObjectId === id) {
         lastClickedObjectId = undefined;
       }
@@ -183,7 +213,9 @@ export function createInteractionRouter(): InteractionRouter {
       previousPointerDown = false;
       pressedObjectId = undefined;
       capturedObjectId = undefined;
+      clickCandidateObjectId = undefined;
       lastClickedObjectId = undefined;
+      pointerDraggedDuringPress = false;
       debug = {};
     },
   };
@@ -250,8 +282,12 @@ function isPickableCandidate(candidate: ManagedHitCandidate): boolean {
   );
 }
 
-function canPress(candidate: ManagedHitCandidate): boolean {
-  return candidate.pointer.press || candidate.pointer.click || candidate.pointer.drag;
+function canShowPress(candidate: ManagedHitCandidate): boolean {
+  return candidate.pointer.press || candidate.pointer.drag;
+}
+
+function hasPointerDrag(pointer: WebGLFrameInput["pointer"]): boolean {
+  return pointer.isDragging || pointer.dragDeltaX !== 0 || pointer.dragDeltaY !== 0;
 }
 
 function createObjectPointerState(input: {

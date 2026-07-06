@@ -197,7 +197,7 @@ describe("stage object registry", () => {
       effects: [{ kind: "app.floorHover", strength: 0.5 }],
       interaction: {
         pickable: {
-          hitTest: "bounds",
+          hitTest: "mesh",
           pointer: { drag: true },
         },
       },
@@ -208,7 +208,7 @@ describe("stage object registry", () => {
       effects: [{ kind: "app.floorHover", strength: 0.5 }],
       interaction: {
         pickable: {
-          hitTest: "bounds",
+          hitTest: "mesh",
           pointer: {
             hover: false,
             press: false,
@@ -222,7 +222,7 @@ describe("stage object registry", () => {
       effects: ["app.floorHover"],
       interaction: {
         pickable: {
-          hitTest: "bounds",
+          hitTest: "mesh",
           pointer: {
             hover: false,
             press: false,

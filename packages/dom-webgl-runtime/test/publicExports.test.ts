@@ -437,7 +437,7 @@ describe("public package exports", () => {
           src: "/models/Sprint.glb",
           interaction: {
             pickable: {
-              hitTest: "bounds",
+              hitTest: "mesh",
               pointer: { hover: true, press: true, click: true, drag: true },
             },
           },
@@ -1395,11 +1395,16 @@ describe("public package exports", () => {
           hitTest: "bounds",
           pointer: objectPointerDeclaration,
         } satisfies WebGLPickableDeclaration;
+        const meshPickableDeclaration = {
+          hitTest: "mesh",
+          pointer: { hover: true, click: true },
+        } satisfies WebGLPickableDeclaration;
         const sceneObjectInteraction = {
           pickable: pickableDeclaration,
         } satisfies WebGLSceneObjectInteractionDeclaration;
         objectPointerDeclaration satisfies WebGLObjectPointerDeclaration;
         pickableDeclaration satisfies WebGLPickableDeclaration;
+        meshPickableDeclaration satisfies WebGLPickableDeclaration;
         sceneObjectInteraction satisfies WebGLSceneObjectInteractionDeclaration;
         const targetPointer = {
           localX: 24,

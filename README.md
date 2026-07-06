@@ -57,9 +57,10 @@ Current runtime behavior:
   uses `WebGLTarget` with `source: { kind: "model", type: "glb" }`.
 - Scene-native `WebGLModel`, `WebGLStagePlane`, and `WebGLStageBox` descriptors
   can opt into scene-object effects and managed picking through
-  `effects` plus `interaction.pickable`. Scene-object effects are registered
-  with `defineWebGLSceneObjectEffect(...)` and receive managed object pointer
-  state without raw raycaster/intersection/camera handles.
+  `effects` plus `interaction.pickable`. Pickable descriptors can use coarse
+  `hitTest: "bounds"` or visual `hitTest: "mesh"`; scene-object effects are
+  registered with `defineWebGLSceneObjectEffect(...)` and receive managed object
+  pointer state without raw raycaster/intersection/camera handles.
 - DOM targets in managed perspective-stage scenes can use
   `placement: { mode: "screen-plane", planeId }` to project their DOM rect
   center onto a named stage plane.
@@ -69,8 +70,12 @@ Current runtime behavior:
   without React prop churn. Cameras intentionally do not accept top-level
   `timeline`; managed perspective-stage cameras can declare a nested
   `controller` for progress-driven `position`, `target`, and `fov` changes.
-  `controller.pointer` can add empty-space orbit, pan, dolly, camera parallax,
-  damping, and reset gestures, with object hit/capture state taking priority.
+  `controller.pointer` can add primary-drag orbit, pan, dolly, camera parallax,
+  damping, and reset gestures. Hover/click-only object hits do not block camera
+  drag; dragging suppresses object hover/click routing until release, and only
+  explicit object drag capture blocks camera gestures. Hover/click picking reads
+  the current-frame camera after managed camera gestures are applied, using the
+  DOM-rect pass viewport when the pass is clipped to an anchor element.
 - Nested `WebGLTarget` elements form an internal DOM-derived WebGL layer tree:
   the nearest registered ancestor target becomes the parent layer, child targets
   keep their own fallback lifecycle, and runtime ordering follows DOM ancestry
@@ -174,9 +179,12 @@ Current example behavior:
   rect without remapping or compressing the pass, and skipped while fully
   offscreen rather than rendered into a second local canvas.
 - The Phase 8 managed interaction example is mounted in the current catalog and
-  dogfoods pickable stage/model descriptors, scene-object effects, a
-  `screen-plane` DOM target, and rich empty-space camera gestures through
-  `WebGLCamera.controller.pointer`.
+  intentionally isolates picking/gesture QA to one pickable
+  `WebGLStagePlane` floor, one managed camera, one DOM-bound pass viewport,
+  minimal lights, floor hover/click, and primary-drag orbit.
+  It omits scene-native models, `screen-plane` DOM targets, pan, dolly,
+  camera parallax, and reset so interaction debug state can only resolve the
+  floor.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -189,8 +197,8 @@ Current example behavior:
   `example.imageKenBurns`, `example.imageHoverReveal`, `example.mediaPointerParallax`,
   `example.videoPlayback`, `example.videoDrift`, `example.sequenceCardSlide`,
   `example.sequenceCardBorderGlow`, `example.modelSpin`, `example.modelFloat`,
-  `example.modelFloatGlow`, `example.sceneObjectHoverPulse`, and
-  `example.sceneObjectDragPose`, plus the pinned-scroll `example.pinnedReveal`.
+  `example.modelFloatGlow`, and `example.sceneObjectHoverPulse`, plus the
+  pinned-scroll `example.pinnedReveal`.
 - Text Pressure and Scrambled Text are ported as app-owned `dom/text` WebGL
   effects. Text Pressure rewrites glyph scale and line positions through
   `ctx.object.text` so the hovered glyphs widen while the rest of the line
@@ -337,6 +345,10 @@ Current visual behavior:
   they do not keep a CSS-painted backing plane.
 - Renderer resize, DPR, and orthographic camera projection are cached and update
   on viewport changes without reconfiguring unchanged frames.
+- Managed scene/camera layers are resized only after the renderer viewport
+  actually changes; timeline and pointer controller frames are then re-applied
+  so scroll-held cameras and stopped/released camera drags do not snap back to
+  their declaration base frame.
 - Runtime invalidation observes target resize and viewport changes, then routes
   dirty keys to renderable content invalidation where needed.
 - Target lifecycle state is reported separately from resource load status.
@@ -783,15 +795,18 @@ basis at the requested depth, so the scene default camera should stay aligned
   `fov`; the runtime applies that camera frame before `screen-depth` projection
   and pass rendering, and re-applies it after managed camera resize so a
   scroll-held camera does not snap back to its declaration base frame while
-  progress is unchanged. Render passes can also declare DOM-bound
-`viewport`/scissor and descriptor-level `postprocess`. These remain
-descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
-available for managed-scene GLB assets and can request
+  progress is unchanged. Pointer gesture frames use the same persistence, so a
+  stopped or released drag keeps the last managed orbit/pan/dolly frame instead
+  of falling back to the declaration base frame. Render passes can also declare
+  DOM-bound `viewport`/scissor and descriptor-level `postprocess`. These remain
+  descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
+  available for managed-scene GLB assets and can request
 `animation.defaultClips` for intentional multi-clip startup and
 `prepare={{ renderWarmup: "idle" }}` for managed, viewport-proximity aware
 first-render preparation on DOM-bound model passes. Phase 8 adds scene-object
-effects, managed picking, `screen-plane` placement, and minimal empty-space
-orbit drag. Phase 8B extends managed `controller.pointer` descriptors with
+effects, managed picking with bounds and mesh hit tests, `screen-plane`
+placement, and primary-drag orbit that does not stack with hover/click object
+routing. Phase 8B extends managed `controller.pointer` descriptors with
 drag-based pan, dolly, camera pointer parallax, damping, reset, and richer orbit
 constraints. Orthographic/screen camera controllers, mouse wheel zoom, touch
 pinch zoom, pass-bound camera controller scope, and raw Three.js access remain
@@ -868,12 +883,20 @@ is no implicit `ctx.camera`.
 `WebGLCamera` still has no top-level `timeline` prop. Use the nested
 `controller.timeline` descriptor on a managed `perspective-stage` camera for
 camera motion/focus/framing, or `controller.pointer` for descriptor-driven
-empty-space orbit, pan, dolly, camera parallax, damping, and reset gestures.
+primary-drag orbit, pan, dolly, camera parallax, damping, and reset gestures.
 Controller support is intentionally limited to one camera-owned descriptor per
 camera and does not expose raw Three.js cameras, controls, matrices, wheel/pinch
-capture, or pass-bound scope. The runtime preserves the currently applied
-controller frame across managed camera resize/reframing passes even when the
-source progress signal is unchanged.
+capture, or pass-bound scope. Hover/click-only object hits do not block camera
+drag, and dragging suppresses object hover/click routing until release; explicit
+object drag capture still blocks camera gestures. Hover/click picking runs after
+the current-frame managed camera gesture update so camera orbit, dolly,
+parallax, damping, and reset do not leave hit regions in the previous view. The
+active DOM-rect pass viewport is also used for gesture framing and managed
+picking, so pass-clipped scenes do not interpret pointer input through the full
+runtime canvas. The runtime preserves the currently applied controller frame
+across managed camera resize/reframing passes for both timeline and pointer
+gesture controllers, even when the source progress signal is unchanged or a
+drag has stopped moving.
 
 ## Opt-In Managed Stage Primitives
 

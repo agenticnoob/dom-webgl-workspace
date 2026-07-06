@@ -15,7 +15,7 @@ export type NormalizedSceneObjectPointerDeclaration = {
 
 export type NormalizedSceneObjectInteractionDeclaration = {
   readonly pickable?: {
-    readonly hitTest: "bounds";
+    readonly hitTest: "bounds" | "mesh";
     readonly pointer: NormalizedSceneObjectPointerDeclaration;
   };
 };

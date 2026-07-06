@@ -899,6 +899,16 @@ Browser checks:
 - Double-click empty space resets camera framing.
 - Level 1 DOM target rows still render and respond as before.
 
+Follow-up correction:
+
+- The current `ManagedInteractionExample` is no longer the Phase 8B rich gesture
+  dogfood. It is intentionally floor-only for Phase 8 picking/coordinate drift:
+  one pickable floor, hover/click feedback, and minimal primary-drag orbit.
+- Future Phase 8B browser QA should use a separate rich gesture surface or
+  temporarily expanded test route rather than adding pan, dolly, parallax,
+  damping, reset, scene-native models, or screen-plane targets back to the
+  Phase 8 floor-only dogfood.
+
 ### Task 7: Documentation Sync
 
 **Files:**

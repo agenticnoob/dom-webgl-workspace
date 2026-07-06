@@ -8,10 +8,7 @@ import type {
   WebGLSceneObjectPointerState,
 } from "@project/dom-webgl-runtime";
 
-import {
-  exampleSceneObjectDragPoseEffect,
-  exampleSceneObjectHoverPulseEffect,
-} from "../src/interactionEffects";
+import { exampleSceneObjectHoverPulseEffect } from "../src/interactionEffects";
 
 describe("managed interaction example effects", () => {
   test("stage hover pulse only uses object pointer state", () => {
@@ -22,44 +19,24 @@ describe("managed interaction example effects", () => {
       objectPointer: createObjectPointerState({ isHovered: true }),
     });
 
-    exampleSceneObjectHoverPulseEffect.update(context, undefined, {
+    const state = exampleSceneObjectHoverPulseEffect.setup?.(context, {
       kind: "example.sceneObjectHoverPulse",
       baseOpacity: 0.68,
       hoverOpacity: 0.92,
-      dragOpacity: 1,
+      clickOpacity: 1,
+    }) ?? { clickUntil: 0 };
+
+    exampleSceneObjectHoverPulseEffect.update(context, state, {
+      kind: "example.sceneObjectHoverPulse",
+      baseOpacity: 0.68,
+      hoverOpacity: 0.92,
+      clickOpacity: 1,
     });
 
     expect(exampleSceneObjectHoverPulseEffect.source).toBe("stage/plane");
     expect(object.opacity).toBe(0.92);
     expect("layout" in context).toBe(false);
     expect("targetPointer" in context).toBe(false);
-  });
-
-  test("model drag pose scales and yaws through the managed object facade", () => {
-    const object = createObjectHandle("model/glb");
-    const context = createSceneObjectContext({
-      sourceKind: "model/glb",
-      object,
-      objectPointer: createObjectPointerState({
-        isHovered: true,
-        isPressed: true,
-        isDragging: true,
-        dragDeltaX: 18,
-      }),
-    });
-
-    exampleSceneObjectDragPoseEffect.update(context, undefined, {
-      kind: "example.sceneObjectDragPose",
-      baseScale: 7.8,
-      hoverScale: 1.04,
-      dragScale: 1.1,
-      baseRotationY: -0.42,
-    });
-
-    expect(exampleSceneObjectDragPoseEffect.source).toBe("model/glb");
-    expect(object.visible).toBe(true);
-    expect(object.scale.setScalar).toHaveBeenCalledWith(8.58);
-    expect(object.rotation.set).toHaveBeenCalledWith(0, -0.27599999999999997, 0);
   });
 });
 

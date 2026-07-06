@@ -156,7 +156,7 @@ export type WebGLObjectPointerDeclaration = {
 export type WebGLPickableDeclaration =
   | boolean
   | {
-      readonly hitTest?: "bounds";
+      readonly hitTest?: "bounds" | "mesh";
       readonly pointer?: WebGLObjectPointerDeclaration;
     };
 
@@ -761,7 +761,7 @@ export type WebGLDebugSceneObjectPointerSummary = {
 
 export type WebGLDebugSceneObjectInteractionSummary = {
   pickable?: {
-    hitTest: "bounds";
+    hitTest: "bounds" | "mesh";
     pointer: WebGLDebugSceneObjectPointerSummary;
   };
 };

@@ -1180,7 +1180,7 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       canvas.remove();

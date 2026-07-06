@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   createInteractionRouter,
@@ -63,13 +63,11 @@ describe("interaction router", () => {
     expect(router.inspect()).toMatchObject({ hoveredObjectId: "front-object" });
   });
 
-  test("captures object drag until release and emits click on release", () => {
+  test("emits object click only when pointer releases without dragging", () => {
     const router = createInteractionRouter();
     const candidate = createCandidate("model", {
       hover: true,
-      press: true,
       click: true,
-      drag: true,
     });
 
     router.update({
@@ -82,6 +80,45 @@ describe("interaction router", () => {
     });
     router.update({
       input: createFrameInput({
+        isDown: false,
+        clickCount: 1,
+      }),
+      passes: [createPass("world", 0)],
+      candidates: [candidate],
+      pickManagedObjects() {
+        return createHit("model");
+      },
+    });
+
+    expect(router.inspect()).toMatchObject({
+      hoveredObjectId: "model",
+      lastClickedObjectId: "model",
+    });
+    expect(router.getObjectPointerState("model")).toMatchObject({
+      isHovered: true,
+      isPressed: false,
+      isDragging: false,
+      wasClicked: true,
+    });
+  });
+
+  test("ignores object hover and click while pointer drag is routed to the camera", () => {
+    const router = createInteractionRouter();
+    const candidate = createCandidate("model", {
+      hover: true,
+      click: true,
+    });
+    const pickManagedObjects = vi.fn(() => createHit("model"));
+
+    router.update({
+      input: createFrameInput({ x: 100, y: 100, isDown: true }),
+      passes: [createPass("world", 0)],
+      candidates: [candidate],
+      pickManagedObjects,
+    });
+
+    const dragResult = router.update({
+      input: createFrameInput({
         x: 500,
         y: 500,
         isDown: true,
@@ -93,10 +130,18 @@ describe("interaction router", () => {
       }),
       passes: [createPass("world", 0)],
       candidates: [candidate],
-      pickManagedObjects() {
-        return undefined;
-      },
+      pickManagedObjects,
     });
+
+    expect(dragResult.debug).toEqual({ emptySpace: true });
+    expect(pickManagedObjects).toHaveBeenCalledTimes(1);
+    expect(router.getObjectPointerState("model")).toMatchObject({
+      isHovered: false,
+      isPressed: false,
+      isDragging: false,
+      wasClicked: false,
+    });
+
     router.update({
       input: createFrameInput({
         x: 500,
@@ -110,19 +155,17 @@ describe("interaction router", () => {
       }),
       passes: [createPass("world", 0)],
       candidates: [candidate],
-      pickManagedObjects() {
-        return undefined;
-      },
+      pickManagedObjects,
     });
 
-    expect(router.inspect()).toMatchObject({
+    expect(router.inspect()).not.toMatchObject({
       lastClickedObjectId: "model",
     });
     expect(router.getObjectPointerState("model")).toMatchObject({
-      isHovered: false,
+      isHovered: true,
       isPressed: false,
       isDragging: false,
-      wasClicked: true,
+      wasClicked: false,
       dragDeltaX: 400,
       dragDeltaY: 400,
     });

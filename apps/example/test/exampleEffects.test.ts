@@ -32,7 +32,6 @@ describe("example effect catalog", () => {
       "example.modelFloat",
       "example.modelFloatGlow",
       "example.sceneObjectHoverPulse",
-      "example.sceneObjectDragPose",
     ]);
   });
 
@@ -128,14 +127,7 @@ describe("example effect catalog", () => {
       kind: "example.sceneObjectHoverPulse",
       baseOpacity: 0.68,
       hoverOpacity: 0.92,
-      dragOpacity: 1,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.sceneObjectDragPose",
-      baseScale: 4,
-      hoverScale: 1.04,
-      dragScale: 1.1,
-      baseRotationY: -0.42,
+      clickOpacity: 1,
     });
   });
 });

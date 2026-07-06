@@ -171,7 +171,7 @@ describe("camera gesture controller", () => {
   });
 
   test("resets gesture framing on double click", () => {
-    const result = updateCameraGestureFrame({
+    const firstClick = updateCameraGestureFrame({
       baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
       state: createInitialCameraGestureState({
         targetFrame: { position: [80, 20, 420], target: [12, 8, 0], fov: 42 },
@@ -182,7 +182,18 @@ describe("camera gesture controller", () => {
         reset: { onDoubleClick: true, durationMs: 120 },
       },
       frameInput: createGestureFrameInput({
-        pointer: { clickCount: 2, isInside: true },
+        pointer: { clickCount: 1, lastClickTime: 100, isInside: true },
+      }),
+    });
+    const result = updateCameraGestureFrame({
+      baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
+      state: firstClick.state,
+      pointer: {
+        activation: "empty-space",
+        reset: { onDoubleClick: true, durationMs: 120 },
+      },
+      frameInput: createGestureFrameInput({
+        pointer: { clickCount: 2, lastClickTime: 220, isInside: true },
       }),
     });
 
@@ -192,6 +203,84 @@ describe("camera gesture controller", () => {
       fov: 42,
     });
     expect(result.activeGesture).toBe("reset");
+  });
+
+  test("does not reset on two separate slow clicks", () => {
+    const pointer: NormalizedCameraPointerControllerDeclaration = {
+      activation: "empty-space",
+      reset: { onDoubleClick: true, durationMs: 120 },
+    };
+    const firstClick = updateCameraGestureFrame({
+      baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
+      state: createInitialCameraGestureState({
+        targetFrame: { position: [80, 20, 420], target: [12, 8, 0], fov: 42 },
+        appliedFrame: { position: [80, 20, 420], target: [12, 8, 0], fov: 42 },
+      }),
+      pointer,
+      frameInput: createGestureFrameInput({
+        pointer: { clickCount: 1, lastClickTime: 100, isInside: true },
+      }),
+    });
+    const secondClick = updateCameraGestureFrame({
+      baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
+      state: firstClick.state,
+      pointer,
+      frameInput: createGestureFrameInput({
+        pointer: { clickCount: 2, lastClickTime: 900, isInside: true },
+      }),
+    });
+
+    expect(secondClick.activeGesture).not.toBe("reset");
+    expect(secondClick.frame).toEqual({
+      position: [80, 20, 420],
+      target: [12, 8, 0],
+      fov: 42,
+    });
+  });
+
+  test("does not reset after drag releases increment click count", () => {
+    const pointer: NormalizedCameraPointerControllerDeclaration = {
+      activation: "empty-space",
+      reset: { onDoubleClick: true, durationMs: 120 },
+    };
+    const firstDragRelease = updateCameraGestureFrame({
+      baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
+      state: createInitialCameraGestureState({
+        targetFrame: { position: [80, 20, 420], target: [12, 8, 0], fov: 42 },
+        appliedFrame: { position: [80, 20, 420], target: [12, 8, 0], fov: 42 },
+      }),
+      pointer,
+      frameInput: createGestureFrameInput({
+        pointer: {
+          clickCount: 1,
+          lastClickTime: 100,
+          isInside: true,
+          dragStartX: 10,
+          dragDeltaX: 24,
+        },
+      }),
+    });
+    const secondDragRelease = updateCameraGestureFrame({
+      baseFrame: { position: [0, 0, 500], target: [0, 0, 0], fov: 42 },
+      state: firstDragRelease.state,
+      pointer,
+      frameInput: createGestureFrameInput({
+        pointer: {
+          clickCount: 2,
+          lastClickTime: 180,
+          isInside: true,
+          dragStartX: 10,
+          dragDeltaX: 40,
+        },
+      }),
+    });
+
+    expect(secondDragRelease.activeGesture).not.toBe("reset");
+    expect(secondDragRelease.frame).toEqual({
+      position: [80, 20, 420],
+      target: [12, 8, 0],
+      fov: 42,
+    });
   });
 });
 

@@ -454,23 +454,29 @@ Rules:
   object, material, composer, render target, or pass objects.
 - A managed `perspective-stage` camera can declare one nested `controller`
   descriptor for progress-driven `position`, `target`, and `fov`, plus
-  `controller.pointer` for managed empty-space gestures. The legacy
+  `controller.pointer` for managed camera gestures. The legacy
   `{ kind: "orbit", activation: "empty-space-drag" }` shorthand still means
   primary-drag orbit. Rich descriptors can declare `orbit`, `pan`, `dolly`,
-  `parallax`, `damping`, and `reset`; object hover, press, drag, or capture
-  blocks camera gestures. Orthographic/screen camera controllers,
-  mouse wheel zoom, touch pinch zoom, pass-bound controller scope, and
-  camera-scoped effects remain later phases.
+  `parallax`, `damping`, and `reset`; hover/click-only object hits do not block
+  camera drag, active camera drags continue until release, dragging suppresses
+  object hover/click routing, and explicit object drag capture still blocks
+  camera gestures. Hover/click picking runs after the current-frame managed
+  camera gesture update, so hit regions follow orbit, dolly, parallax, damping,
+  and reset camera frames. DOM-rect render passes use the pass-local viewport
+  for camera gesture framing and managed picking. Orthographic/screen camera
+  controllers, mouse wheel zoom, touch pinch zoom, pass-bound controller scope,
+  and camera-scoped effects remain later phases.
   `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
   raw scene control handle. Runtime-owned controller framing is re-applied after
-  managed camera resize, so a scroll-held camera keeps the current controller
-  frame when progress stops changing.
+  managed camera resize, so scroll-held cameras and stopped/released pointer
+  drags keep the current controller frame when progress or pointer movement
+  stops changing.
 
 ```tsx
 const cameraController = {
   pointer: {
     orbit: { drag: { button: "primary" }, target: [0, 0, 0] },
-    pan: { drag: { button: "secondary" }, sensitivity: [1, 1] },
+    pan: { drag: { button: "primary", modifier: "shift" }, sensitivity: [1, 1] },
     dolly: { drag: { button: "primary", modifier: "alt" } },
     parallax: { scope: "camera", strength: [12, 6] },
     damping: { factor: 0.18, settleEpsilon: 0.001 },
@@ -976,13 +982,18 @@ import {
     effects={[{ kind: "app.characterHover", baseScale: 44 }]}
     interaction={{
       pickable: {
-        hitTest: "bounds",
-        pointer: { hover: true, press: true, drag: true, click: true },
+        hitTest: "mesh",
+        pointer: { hover: true, click: true },
       },
     }}
   />
 </WebGLScene>;
 ```
+
+Use `hitTest: "mesh"` when hover/click should track visible stage/model
+geometry. Use `hitTest: "bounds"` for coarse object-level hit regions. Both
+modes stay descriptor-owned; effects still do not receive raw raycasters or
+intersection objects.
 
 Use `defaultClips` only for clips the app intentionally wants to start together.
 It is not a `playAllClips` shortcut, and the runtime does not infer which
@@ -1368,7 +1379,8 @@ Scope rule:
   pointer gestures also live under that descriptor as `controller.pointer`.
   Pass-bound, orthographic, screen-overlay, wheel, and pinch camera controllers
   remain future work. Runtime camera resize does not reset an already-applied
-  controller frame while progress is unchanged.
+  controller frame while progress is unchanged or a pointer drag has stopped
+  moving.
 
 Pointer rule:
 
@@ -1643,6 +1655,12 @@ skill:
   while only a subset is active in the current viewport. Use debug state
   `targetCount` and `renderableCount` to distinguish "too many declarations"
   from "too much active per-frame work".
+- For managed interaction drift debugging, keep the current `apps/example`
+  dogfood simple: only `example.interaction.floor` should be pickable, camera
+  gestures should be minimal orbit only, and interaction debug state should only
+  resolve the floor as `hoveredObjectId` / `clickedObjectId`. Do not add
+  scene-native models, `screen-plane` DOM targets, dolly, parallax, or reset
+  until the floor-only path is verified.
 - Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image
   assets, effect keys, copy such as `Boo!`, and shader tuning live in
   `apps/example`; packages should only gain generic capabilities such as

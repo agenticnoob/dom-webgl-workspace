@@ -29,7 +29,10 @@ export type CameraGestureControllerState = {
     readonly startFrame: NormalizedCameraControllerFrameDeclaration;
   };
   readonly lastClickCount: number;
+  readonly lastClickTime?: number;
 };
+
+const DOUBLE_CLICK_RESET_MAX_INTERVAL_MS = 320;
 
 export type CameraGestureUpdateInput = {
   readonly baseFrame: NormalizedCameraControllerFrameDeclaration;
@@ -65,12 +68,14 @@ export function updateCameraGestureFrame(
   let activeGesture: CameraGestureName | undefined;
   let activeDrag: CameraGestureControllerState["activeDrag"];
   let lastClickCount = input.state.lastClickCount;
+  let lastClickTime = input.state.lastClickTime;
 
   if (shouldReset(input.pointer, input.state, input.frameInput)) {
     targetFrame = cloneFrame(input.baseFrame);
     gestureTargetFrame = cloneFrame(targetFrame);
     activeGesture = "reset";
     lastClickCount = pointerState.clickCount;
+    lastClickTime = pointerState.lastClickTime;
   } else {
     const dragGesture = readActiveDragGesture(input.pointer, input.frameInput);
     if (dragGesture) {
@@ -82,8 +87,8 @@ export function updateCameraGestureFrame(
         dragGesture,
         startFrame,
         input.pointer,
-          input.frameInput,
-        );
+        input.frameInput,
+      );
       gestureTargetFrame = cloneFrame(targetFrame);
       activeDrag = { gesture: dragGesture, startFrame };
       activeGesture = dragGesture;
@@ -95,6 +100,11 @@ export function updateCameraGestureFrame(
       );
       activeGesture = "parallax";
     }
+  }
+
+  if (pointerState.clickCount > lastClickCount) {
+    lastClickCount = pointerState.clickCount;
+    lastClickTime = pointerState.lastClickTime;
   }
 
   const damping = input.pointer.damping;
@@ -118,6 +128,7 @@ export function updateCameraGestureFrame(
     appliedFrame: frame,
     ...(activeDrag ? { activeDrag } : {}),
     lastClickCount,
+    ...(lastClickTime !== undefined ? { lastClickTime } : {}),
   });
 
   return {
@@ -150,10 +161,21 @@ function shouldReset(
   state: CameraGestureControllerState,
   input: WebGLFrameInput,
 ): boolean {
+  const pointerState = input.pointer;
+  if (
+    !pointer.reset?.onDoubleClick ||
+    !pointerState.isInside ||
+    pointerState.lastClickTime === undefined ||
+    state.lastClickTime === undefined ||
+    pointerState.clickCount !== state.lastClickCount + 1 ||
+    hasPointerDrag(pointerState)
+  ) {
+    return false;
+  }
+
   return Boolean(
-    pointer.reset?.onDoubleClick &&
-      input.pointer.isInside &&
-      input.pointer.clickCount >= state.lastClickCount + 2,
+    pointerState.lastClickTime - state.lastClickTime <=
+      DOUBLE_CLICK_RESET_MAX_INTERVAL_MS,
   );
 }
 
@@ -196,6 +218,10 @@ function noModifiersActive(
   modifiers: WebGLFrameInput["pointer"]["modifiers"],
 ): boolean {
   return !modifiers.alt && !modifiers.shift && !modifiers.ctrl && !modifiers.meta;
+}
+
+function hasPointerDrag(pointer: WebGLFrameInput["pointer"]): boolean {
+  return pointer.isDragging || pointer.dragDeltaX !== 0 || pointer.dragDeltaY !== 0;
 }
 
 function applyDragGesture(

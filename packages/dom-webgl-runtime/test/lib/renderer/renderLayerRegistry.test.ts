@@ -464,6 +464,145 @@ describe("createInternalRenderLayerRegistry", () => {
     expect(managedCamera.applyFraming).toHaveBeenCalledTimes(2);
   });
 
+  test("reapplies pointer gesture framing after managed camera resize resets base framing", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+    const pass = {
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      order: 1,
+    } as const;
+    const dragFrame = createFrameInput({
+      isDown: true,
+      isDragging: true,
+      button: "primary",
+      dragStartX: 100,
+      dragStartY: 100,
+      dragDeltaX: 24,
+      dragDeltaY: 8,
+    });
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        pointer: {
+          orbit: {
+            drag: { button: "primary" },
+            target: [0, 0, 0],
+            sensitivity: [0.01, 0.01],
+          },
+        },
+      },
+    });
+
+    registry.updateCameraGestureControllers({
+      frameInput: dragFrame,
+      blocked: false,
+      passes: [pass],
+    });
+    const gestureFrame = managedCamera.applyFraming.mock.calls.at(-1)?.[0];
+    managedCamera.applyFraming.mockClear();
+
+    registry.resize({ width: 900, height: 700 });
+    const resizeFollowUp = registry.updateCameraGestureControllers({
+      frameInput: dragFrame,
+      blocked: false,
+      passes: [pass],
+    });
+
+    expect(resizeFollowUp.changed).toBe(true);
+    expect(managedCamera.applyFraming).toHaveBeenCalledWith(
+      gestureFrame,
+      { width: 800, height: 600 },
+    );
+  });
+
+  test("uses the active pass viewport when applying camera gesture framing", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "hero.scene", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        pointer: {
+          kind: "orbit",
+          activation: "empty-space-drag",
+          target: [0, 0, 0],
+          sensitivity: [0.01, 0.01],
+        },
+      },
+    });
+
+    registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        x: 420,
+        y: 120,
+        isDown: true,
+        isDragging: true,
+        button: "primary",
+        dragStartX: 380,
+        dragStartY: 120,
+        dragDeltaX: 24,
+      }),
+      blocked: false,
+      passes: [
+        {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          order: 1,
+          viewport: { x: 300, y: 0, width: 500, height: 600 },
+        },
+      ],
+    });
+
+    expect(managedCamera.applyFraming).toHaveBeenCalledWith(
+      expect.objectContaining({ fov: 44 }),
+      { width: 500, height: 600 },
+    );
+  });
+
   test("blocks camera gestures while an object owns pointer capture", () => {
     const managedCamera = {
       camera: { label: "hero-camera" },
@@ -511,6 +650,75 @@ describe("createInternalRenderLayerRegistry", () => {
 
     expect(result.changed).toBe(false);
     expect(managedCamera.applyFraming).not.toHaveBeenCalled();
+  });
+
+  test("keeps an active empty-space camera drag while the pointer crosses an object hit", () => {
+    const managedCamera = {
+      camera: { label: "hero-camera" },
+      resize: vi.fn(),
+      applyFraming: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const registry = createInternalRenderLayerRegistry(
+      createRendererHostStub(createSceneAdapter()),
+      {
+        createManagedCamera() {
+          return managedCamera;
+        },
+      },
+    );
+
+    registry.registerScene({ id: "world", projection: "perspective-stage" });
+    registry.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+      controller: { pointer: { orbit: true } },
+    });
+
+    const firstDrag = registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        isDown: true,
+        isDragging: true,
+        button: "primary",
+        dragDeltaX: 12,
+      }),
+      blocked: false,
+      passes: [
+        {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 1,
+        },
+      ],
+    });
+    const firstFrame = managedCamera.applyFraming.mock.calls.at(-1)?.[0];
+    const crossedObject = registry.updateCameraGestureControllers({
+      frameInput: createFrameInput({
+        isDown: true,
+        isDragging: true,
+        button: "primary",
+        dragDeltaX: 36,
+      }),
+      blocked: true,
+      passes: [
+        {
+          id: "world.pass",
+          sceneId: "world",
+          cameraId: "world.camera",
+          order: 1,
+        },
+      ],
+    });
+
+    expect(firstDrag.summary).toMatchObject({ activeGesture: "orbit" });
+    expect(crossedObject.summary).toMatchObject({ activeGesture: "orbit" });
+    expect(managedCamera.applyFraming).toHaveBeenCalledTimes(2);
+    expect(managedCamera.applyFraming.mock.calls.at(-1)?.[0]).not.toEqual(firstFrame);
   });
 
   test("activates drag gestures only inside a pass for the camera scene", () => {
@@ -991,7 +1199,7 @@ function createRendererHostStub(
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       return;

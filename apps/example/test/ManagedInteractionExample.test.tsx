@@ -113,7 +113,7 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
 }));
 
 describe("ManagedInteractionExample", () => {
-  test("declares Phase 8 managed picking and screen-plane dogfood", async () => {
+  test("declares Phase 8 floor-only picking and minimal camera orbit dogfood", async () => {
     const { ManagedInteractionExample } = await import(
       "../src/ManagedInteractionExample"
     );
@@ -122,7 +122,8 @@ describe("ManagedInteractionExample", () => {
 
     expect(markup).toContain("example-interaction-dogfood");
     expect(markup).toContain("managed interaction");
-    expect(markup).toContain("screen-plane");
+    expect(markup).not.toContain("screen-plane");
+    expect(markup).not.toContain("example-interaction-card");
     expect(passViewportProps).toEqual([
       expect.objectContaining({
         id: "example.interaction.viewport",
@@ -161,19 +162,19 @@ describe("ManagedInteractionExample", () => {
               minPolarAngle: 0.52,
               maxPolarAngle: 1.42,
             }),
-            pan: expect.objectContaining({
-              drag: { button: "secondary" },
-            }),
-            dolly: expect.objectContaining({
-              drag: { button: "primary", modifier: "alt" },
-            }),
-            parallax: expect.objectContaining({ scope: "camera" }),
-            damping: expect.objectContaining({ factor: 0.18 }),
-            reset: expect.objectContaining({ onDoubleClick: true }),
           }),
         }),
       }),
     ]);
+    const interactionCameraPointer = cameraProps[0]?.controller?.pointer;
+    if (!interactionCameraPointer) {
+      throw new Error("Expected interaction camera pointer controller.");
+    }
+    expect(interactionCameraPointer).not.toHaveProperty("pan");
+    expect(interactionCameraPointer).not.toHaveProperty("dolly");
+    expect(interactionCameraPointer).not.toHaveProperty("parallax");
+    expect(interactionCameraPointer).not.toHaveProperty("damping");
+    expect(interactionCameraPointer).not.toHaveProperty("reset");
     expect(stagePlaneProps).toEqual([
       expect.objectContaining({
         id: "example.interaction.floor",
@@ -186,60 +187,19 @@ describe("ManagedInteractionExample", () => {
             kind: "example.sceneObjectHoverPulse",
             baseOpacity: 0.68,
             hoverOpacity: 0.92,
-            dragOpacity: 1,
+            clickOpacity: 1,
           },
         ],
         interaction: {
           pickable: {
-            hitTest: "bounds",
-            pointer: { hover: true, press: true, click: true },
+            hitTest: "mesh",
+            pointer: { hover: true, click: true },
           },
         },
       }),
     ]);
-    expect(modelProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.hero",
-        src: "/models/hero.glb",
-        loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
-        position: [180, -118, -42],
-        scale: 4,
-        prepare: { renderWarmup: "idle" },
-        effects: [
-          {
-            kind: "example.sceneObjectDragPose",
-            baseScale: 4,
-            hoverScale: 1.04,
-            dragScale: 1.1,
-            baseRotationY: -0.42,
-          },
-        ],
-        interaction: {
-          pickable: {
-            hitTest: "bounds",
-            pointer: { hover: true, press: true, drag: true, click: true },
-          },
-        },
-      }),
-    ]);
-    expect(targetProps).toEqual([
-      expect.objectContaining({
-        as: "article",
-        webgl: {
-          key: "example.interaction.screen-plane-card",
-          sceneId: "example.interaction.scene",
-          source: { kind: "dom", type: "element" },
-          placement: {
-            mode: "screen-plane",
-            planeId: "example.interaction.floor",
-            offset: [0, 6, 0],
-            scale: 0.86,
-          },
-          lifecycle: { hideWhenReady: false },
-          effects: [{ kind: "example.surfaceFill", opacity: 0.52 }],
-        },
-      }),
-    ]);
+    expect(modelProps).toEqual([]);
+    expect(targetProps).toEqual([]);
     expect(lightProps).toEqual([
       { id: "example.interaction.ambient", kind: "ambient", intensity: 0.34 },
       {

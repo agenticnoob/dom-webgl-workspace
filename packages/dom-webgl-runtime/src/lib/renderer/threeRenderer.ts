@@ -82,7 +82,7 @@ export type ThreeRendererHost = {
     candidates: readonly ManagedHitCandidate[],
     pointer: WebGLPointerState,
   ): ManagedHitResult | undefined;
-  resizeIfNeeded(): void;
+  resizeIfNeeded(): boolean;
   dispose(): void;
 };
 
@@ -146,7 +146,7 @@ export function createThreeRendererHost(
     pickManagedObjects(pass, candidates, pointer): ManagedHitResult | undefined {
       return pickManagedObjects(pass, candidates, pointer);
     },
-    resizeIfNeeded(): void {
+    resizeIfNeeded(): boolean {
       const nextViewport = readCSSPixelViewport(container, canvas);
 
       if (
@@ -154,17 +154,18 @@ export function createThreeRendererHost(
         viewport.height === nextViewport.height &&
         viewport.devicePixelRatio === nextViewport.devicePixelRatio
       ) {
-        return;
+        return false;
       }
 
       const now = performance.now();
       if (now - lastApplyMs < RESIZE_COOLDOWN_MS) {
-        return;
+        return false;
       }
 
       applyCSSPixelViewport(objects.renderer, objects.camera, nextViewport);
       viewport = nextViewport;
       lastApplyMs = now;
+      return true;
     },
     dispose(): void {
       if (disposed) {
@@ -198,7 +199,7 @@ function pickManagedObjects(
   }
 
   return candidates
-    .flatMap((candidate) => readCandidateBoundsHit(candidate, raycaster))
+    .flatMap((candidate) => readCandidateHit(candidate, raycaster))
     .sort((left, right) => left.distance - right.distance)[0];
 }
 
@@ -243,11 +244,23 @@ function readObjectParent(object: Object3D): Object3D | undefined {
   return object.parent ?? undefined;
 }
 
+function readCandidateHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  switch (candidate.hitTest) {
+    case "bounds":
+      return readCandidateBoundsHit(candidate, raycaster);
+    case "mesh":
+      return readCandidateMeshHit(candidate, raycaster);
+  }
+}
+
 function readCandidateBoundsHit(
   candidate: ManagedHitCandidate,
   raycaster: Raycaster,
 ): ManagedHitResult[] {
-  if (candidate.hitTest !== "bounds" || !isObject3D(candidate.object3D)) {
+  if (!isObject3D(candidate.object3D)) {
     return [];
   }
 
@@ -281,6 +294,8 @@ function readCandidateMeshHit(
   if (!isObject3D(candidate.object3D)) {
     return [];
   }
+
+  updateObjectWorldMatrix(candidate.object3D);
 
   const [intersection] = raycaster.intersectObject(candidate.object3D, true);
   if (!intersection || !containsObject(candidate.object3D, intersection.object)) {

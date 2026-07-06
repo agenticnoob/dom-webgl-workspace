@@ -20,6 +20,7 @@ import type {
   WebGLFrameInput,
   WebGLProgressSignalSource,
   WebGLScrollAdapter,
+  WebGLTuple3,
 } from "../../../src/lib/types";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
@@ -4654,6 +4655,206 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("updates camera gestures before hover picking reads managed pass cameras", async () => {
+    const hitPoint: WebGLTuple3 = [0, 0, 0];
+    const camera = { frame: "declaration" };
+    const cameraFrameSeenByPick: string[] = [];
+    const pickManagedObjects = vi.fn((pass) => {
+      cameraFrameSeenByPick.push(
+        (pass.camera as { frame?: string }).frame ?? "unknown",
+      );
+
+      return {
+        id: "floor",
+        sceneId: "world",
+        point: hitPoint,
+        distance: 1,
+      };
+    });
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera,
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+          camera.frame = "gesture";
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "parallax",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+
+        return {
+          ...host,
+          pickManagedObjects,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: false,
+        isDragging: false,
+        x: 320,
+        y: 220,
+      }),
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, click: true },
+        },
+      },
+    });
+    await runtime.sync();
+
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(cameraFrameSeenByPick).toEqual(["gesture"]);
+    expect(runtime.getDebugState().interaction).toMatchObject({
+      hoveredObjectId: "floor",
+      cameraController: {
+        cameraId: "world.camera",
+        sceneId: "world",
+        active: true,
+        activeGesture: "parallax",
+      },
+    });
+
+    runtime.dispose();
+  });
+
+  test("keeps primary camera drags unblocked while crossing click-only objects", async () => {
+    const hitPoint: WebGLTuple3 = [0, 0, 0];
+    const pickManagedObjects = vi.fn(() => ({
+      id: "floor",
+      sceneId: "world",
+      point: hitPoint,
+      distance: 1,
+    }));
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera: { label: "world-camera" },
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "orbit",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+
+        return {
+          ...host,
+          pickManagedObjects,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: true,
+        isDragging: true,
+        button: "primary",
+        buttons: ["primary"],
+        dragStartX: 12,
+        dragStartY: 24,
+        dragDeltaX: 24,
+      }),
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, click: true },
+        },
+      },
+    });
+    await runtime.sync();
+
+    expect(pickManagedObjects).not.toHaveBeenCalled();
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().interaction).toMatchObject({
+      emptySpace: true,
+      cameraController: {
+        cameraId: "world.camera",
+        sceneId: "world",
+        active: true,
+        activeGesture: "orbit",
+      },
+    });
+
+    runtime.dispose();
+  });
+
   test("keeps Level 1 dom anchored layout unchanged", async () => {
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -4725,6 +4926,29 @@ describe("runtime pipeline sync", () => {
     runtime.sync();
 
     expect(clearDepth).toHaveBeenCalledTimes(1);
+    runtime.dispose();
+  });
+
+  test("does not resize managed render layers when the renderer viewport is unchanged", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const resizeIfNeeded = vi.fn(() => false);
+    const { registry, resize } = createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return {
+          ...createRendererHostStub(container, sceneAdapter),
+          resizeIfNeeded,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(resizeIfNeeded).toHaveBeenCalledTimes(1);
+    expect(resize).not.toHaveBeenCalled();
     runtime.dispose();
   });
 
@@ -4848,7 +5072,7 @@ function createRendererHostStub(
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       canvas.remove();
@@ -4949,6 +5173,7 @@ function createRenderLayerRegistryStub(
   updateTimelineState: ReturnType<typeof vi.fn>;
   updateCameraControllers: ReturnType<typeof vi.fn>;
   updateCameraGestureControllers: ReturnType<typeof vi.fn>;
+  resize: ReturnType<typeof vi.fn>;
 } {
   const mainScene = {
     id: "__dom-webgl-default__",
@@ -5021,6 +5246,7 @@ function createRenderLayerRegistryStub(
         requiresContinuousRendering: false,
       },
   );
+  const resize = vi.fn();
   const renderPasses = vi.fn(
     (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
       for (const pass of passes) {
@@ -5091,7 +5317,7 @@ function createRenderLayerRegistryStub(
       inspectCameraControllers() {
         return [];
       },
-      resize: vi.fn(),
+      resize,
       renderPasses,
       dispose: vi.fn(),
     },
@@ -5105,6 +5331,7 @@ function createRenderLayerRegistryStub(
     updateTimelineState,
     updateCameraControllers,
     updateCameraGestureControllers,
+    resize,
   };
 }
 

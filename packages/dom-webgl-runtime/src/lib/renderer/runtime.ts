@@ -823,11 +823,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   function isCameraPointerBlocked(
     interaction: WebGLDebugInteractionSummary,
   ): boolean {
-    return Boolean(
-      interaction.activeHit ||
-        interaction.pressedObjectId ||
-        interaction.capturedObjectId,
-    );
+    return Boolean(interaction.capturedObjectId);
   }
 
   function readInteractionDebugSummary(): WebGLDebugInteractionSummary {
@@ -1382,19 +1378,21 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
       layoutScrollOffset += frameInput.scroll.velocity;
       syncTargetLayerOrdering(descriptors);
-      rendererHost.resizeIfNeeded();
-      renderLayers.resize(rendererHost.getViewportSize());
+      const rendererResized = rendererHost.resizeIfNeeded();
+      if (rendererResized) {
+        renderLayers.resize(rendererHost.getViewportSize());
+      }
       renderLayers.updateTimelineState(progressSignals);
       stageObjects.updateTimelineState(progressSignals);
       const cameraControllerChanged =
         renderLayers.updateCameraControllers(progressSignals);
-      const interactionResult = updateSceneObjectInteractions(frameInput);
       const cameraGestureUpdate = renderLayers.updateCameraGestureControllers({
         frameInput,
-        blocked: isCameraPointerBlocked(interactionResult.debug),
+        blocked: isCameraPointerBlocked(interactionRouter.inspect()),
         passes: readManagedCameraGesturePasses(),
       });
       cameraInteractionSummary = cameraGestureUpdate.summary;
+      const interactionResult = updateSceneObjectInteractions(frameInput);
       const stageEffectsContinuous = stageObjects.updateEffects(frameInput);
       const dirtyKeys = invalidationController.consumeDirtyKeys();
 

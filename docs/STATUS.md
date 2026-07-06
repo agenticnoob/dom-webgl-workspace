@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** Phase 8B advanced camera gesture verification
+**Last reviewed against:** Phase 8B camera gesture persistence verification
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -64,6 +64,9 @@ phase records are archived under [archive/](./archive/).
     is absent; vanilla targets can set `sceneId` explicitly
   - managed DOM-aligned scene cameras resize with the runtime viewport, and
     `transformScope: "subtree"` groups stay inside the target's scene adapter
+  - managed scene/camera layers are resized only after the renderer viewport
+    actually changes, so unchanged frames do not reset controller-owned camera
+    state
   - explicit scene projections support `dom-aligned`, `screen`, and
     `perspective-stage`
   - managed cameras support orthographic DOM/screen modes and perspective-stage
@@ -132,10 +135,16 @@ phase records are archived under [archive/](./archive/).
     `controller` that reads progress and drives `position`, `target`, and `fov`
     before `screen-depth`/`screen-plane` projection and pass rendering
   - perspective-stage cameras can also declare `controller.pointer` for
-    empty-space orbit, pan, dolly, camera pointer parallax, damping, and reset
+    primary-drag orbit, pan, dolly, camera pointer parallax, damping, and reset
     gestures; the legacy `{ kind: "orbit", activation: "empty-space-drag" }`
     shorthand remains supported
-  - object hover/press/drag/capture has priority over all camera gestures
+  - hover/click-only object hits do not block camera drag; dragging suppresses
+    object hover/click routing until release, and explicit object drag capture
+    still blocks camera gestures
+  - hover/click picking runs after the current-frame managed camera gesture
+    update, so hit regions follow the current orbit/dolly/parallax/reset camera
+    and DOM-rect render passes use the pass-local viewport for gesture framing
+    and managed picking rather than the previous view
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
   - `@project/dom-webgl-scroll-adapters/react` exports
@@ -216,9 +225,17 @@ phase records are archived under [archive/](./archive/).
   motion now uses the Phase 6A nested `WebGLCamera.controller` descriptor.
   Controller framing is re-applied after managed camera resize so a scroll-held
   camera does not snap back to its declaration base frame when scroll progress
-  stops changing. Phase 8B adds drag-based empty-space orbit, pan, dolly,
+  stops changing. Phase 8B adds drag-based primary orbit, pan, dolly,
   camera-scoped pointer parallax, kinematic damping, and reset through
-  `controller.pointer`; these gestures are blocked by object hit/capture state.
+  `controller.pointer`; hover/click-only object hits do not block camera drag,
+  active camera drags continue until release, dragging suppresses object
+  hover/click routing, and explicit object drag capture still blocks camera
+  gestures. Hover/click picking reads the current-frame gesture-updated camera
+  before resolving managed object hits, and DOM-rect render passes use the
+  pass-local viewport for gesture framing and picking.
+  Timeline and pointer gesture frames are both re-applied after true managed
+  camera resize, so scroll-held cameras and stopped/released camera drags do
+  not snap back to their declaration base frame.
   Orthographic zoom controllers, screen overlay camera controllers, complex
   framing boxes, and pass-bound camera controller scope are deferred possible
   camera-controller iterations. Mouse wheel zoom and touch pinch zoom are
@@ -241,11 +258,15 @@ phase records are archived under [archive/](./archive/).
   canvas; the pass is clipped by the visible DOM rect without remapping into
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
-- The managed interaction example is mounted in `apps/example` and dogfoods
-  Phase 8 public surface: pickable stage/model descriptors, scene-object effects
-  registered with `defineWebGLSceneObjectEffect(...)`, a DOM `WebGLTarget` using
-  `placement: { mode: "screen-plane", planeId }`, and minimal
-  `WebGLCamera.controller.pointer` empty-space orbit drag.
+- The managed interaction example is mounted in `apps/example` and currently
+  isolates Phase 8 picking/gesture QA to one pickable
+  `WebGLStagePlane` floor. It keeps the managed `WebGLScene`,
+  `WebGLCamera`, `WebGLPassViewport`, minimal lights, a floor hover/click
+  scene-object effect registered with `defineWebGLSceneObjectEffect(...)`,
+  left-button minimal camera orbit drag, and pass-local DOM-rect gesture
+  framing/picking. The dogfood intentionally omits
+  scene-native models, `screen-plane` DOM targets, pan, dolly, and camera
+  parallax/reset so interaction debug state can only hover/click the floor.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

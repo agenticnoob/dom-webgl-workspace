@@ -336,7 +336,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-managed-stage-viewport")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-interaction-dogfood")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-interaction-viewport")).toBeInstanceOf(HTMLElement);
-    expect(host.querySelector(".example-interaction-card")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-interaction-card")).toBeNull();
     expect(
       Array.from(
         host.querySelectorAll(
@@ -467,19 +467,21 @@ describe("effect authoring example app", () => {
               minPolarAngle: 0.52,
               maxPolarAngle: 1.42,
             }),
-            pan: expect.objectContaining({
-              drag: { button: "secondary" },
-            }),
-            dolly: expect.objectContaining({
-              drag: { button: "primary", modifier: "alt" },
-            }),
-            parallax: expect.objectContaining({ scope: "camera" }),
-            damping: expect.objectContaining({ factor: 0.18 }),
-            reset: expect.objectContaining({ onDoubleClick: true }),
           }),
         }),
       }),
     );
+    const interactionCameraPointer = cameraProps.find(
+      ({ id }) => id === "example.interaction.camera",
+    )?.controller?.pointer;
+    if (!interactionCameraPointer) {
+      throw new Error("Expected interaction camera pointer controller.");
+    }
+    expect(interactionCameraPointer).not.toHaveProperty("pan");
+    expect(interactionCameraPointer).not.toHaveProperty("dolly");
+    expect(interactionCameraPointer).not.toHaveProperty("parallax");
+    expect(interactionCameraPointer).not.toHaveProperty("damping");
+    expect(interactionCameraPointer).not.toHaveProperty("reset");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
@@ -539,29 +541,6 @@ describe("effect authoring example app", () => {
         },
         prepare: { renderWarmup: "idle" },
       }),
-      expect.objectContaining({
-        id: "example.interaction.hero",
-        src: "/models/hero.glb",
-        loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
-        position: [180, -118, -42],
-        scale: 4,
-        effects: [
-          {
-            kind: "example.sceneObjectDragPose",
-            baseScale: 4,
-            hoverScale: 1.04,
-            dragScale: 1.1,
-            baseRotationY: -0.42,
-          },
-        ],
-        interaction: {
-          pickable: {
-            hitTest: "bounds",
-            pointer: { hover: true, press: true, drag: true, click: true },
-          },
-        },
-        prepare: { renderWarmup: "idle" },
-      }),
     ]);
     expect(stagePlaneProps.find(({ id }) => id === "example.interaction.floor")).toMatchObject({
       effects: [
@@ -569,13 +548,13 @@ describe("effect authoring example app", () => {
           kind: "example.sceneObjectHoverPulse",
           baseOpacity: 0.68,
           hoverOpacity: 0.92,
-          dragOpacity: 1,
+          clickOpacity: 1,
         },
       ],
       interaction: {
         pickable: {
-          hitTest: "bounds",
-          pointer: { hover: true, press: true, click: true },
+          hitTest: "mesh",
+          pointer: { hover: true, click: true },
         },
       },
     });
@@ -608,7 +587,7 @@ describe("effect authoring example app", () => {
     expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-28);
+    const finalTargetProps = targetProps.slice(-27);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -617,7 +596,6 @@ describe("effect authoring example app", () => {
       "example.surface.ghost-cursor",
       "example.surface.waves",
       "example.managedStage.card",
-      "example.interaction.screen-plane-card",
       "example.text.wave",
       "example.text.reveal",
       "example.text.spotlight",
@@ -647,7 +625,6 @@ describe("effect authoring example app", () => {
       "section",
       "section",
       "article",
-      "article",
       "p",
       "p",
       "p",
@@ -671,7 +648,6 @@ describe("effect authoring example app", () => {
       "p",
     ]);
     expect(finalTargetProps.map(({ webgl }) => webgl.source)).toEqual([
-      { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
       { kind: "dom", type: "element" },
@@ -718,7 +694,6 @@ describe("effect authoring example app", () => {
       "example.surfaceGhostCursor",
       "example.surfaceWaves",
       "example.managedTimelineCard",
-      "example.surfaceFill",
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
@@ -741,7 +716,7 @@ describe("effect authoring example app", () => {
       "example.modelFloatGlow",
       "example.pinnedReveal",
     ]);
-    expect(finalTargetProps[18]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
+    expect(finalTargetProps[17]?.webgl.effects?.[1]?.kind).toBe("example.videoDrift");
     expect(finalTargetProps[5]?.webgl).toMatchObject({
       key: "example.managedStage.card",
       source: { kind: "dom", type: "element" },
@@ -755,49 +730,36 @@ describe("effect authoring example app", () => {
       ],
     });
     expect(finalTargetProps[5]?.webgl).not.toHaveProperty("timeline");
-    expect(finalTargetProps[6]?.webgl).toMatchObject({
-      key: "example.interaction.screen-plane-card",
-      sceneId: "example.interaction.scene",
-      source: { kind: "dom", type: "element" },
-      placement: {
-        mode: "screen-plane",
-        planeId: "example.interaction.floor",
-        offset: [0, 6, 0],
-        scale: 0.86,
-      },
-      lifecycle: { hideWhenReady: false },
-      effects: [{ kind: "example.surfaceFill", opacity: 0.52 }],
-    });
     expect(host.querySelector(".example-media-sequence")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-media-sequence .example-sequence-card")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-video-scrub-row > .example-sequence-card")).toBeNull();
-    expect(finalTargetProps[19]?.webgl.lifecycle).toEqual({
+    expect(finalTargetProps[18]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
-    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[18]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.mediaPointerParallax",
       bleed: 0.08,
       strength: 0.72,
     });
-    expect(finalTargetProps[20]?.webgl.lifecycle).toEqual({
+    expect(finalTargetProps[19]?.webgl.lifecycle).toEqual({
       hideWhenReady: true,
       hideMode: "self",
     });
-    expect(finalTargetProps[20]?.webgl).toMatchObject({
+    expect(finalTargetProps[19]?.webgl).toMatchObject({
       key: "example.image-sequence.card",
       source: { kind: "dom", type: "element" },
       transformScope: "subtree",
     });
-    expect(finalTargetProps[20]?.webgl).not.toHaveProperty("renderRole");
-    expect(finalTargetProps[20]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[19]?.webgl).not.toHaveProperty("renderRole");
+    expect(finalTargetProps[19]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.sequenceCardSlide",
       progressKey: "example.video.scrub",
       travel: 96,
       minOpacity: 0.72,
       maxOpacity: 1,
     });
-    expect(finalTargetProps[20]?.webgl.effects?.[1]).toMatchObject({
+    expect(finalTargetProps[19]?.webgl.effects?.[1]).toMatchObject({
       kind: "example.sequenceCardBorderGlow",
       edgeSensitivity: 0.28,
       colorSensitivity: 0.48,
@@ -805,7 +767,7 @@ describe("effect authoring example app", () => {
       glowIntensity: 1,
       fillOpacity: 0.46,
     });
-    expect(finalTargetProps[21]?.webgl).toMatchObject({
+    expect(finalTargetProps[20]?.webgl).toMatchObject({
       key: "example.image-sequence.card.title",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -817,7 +779,7 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[22]?.webgl).toMatchObject({
+    expect(finalTargetProps[21]?.webgl).toMatchObject({
       key: "example.image-sequence.card.description",
       source: { kind: "dom", type: "text" },
       lifecycle: { hideWhenReady: true, hideMode: "self" },
@@ -873,14 +835,14 @@ describe("effect authoring example app", () => {
     const pinnedSection = host.querySelector(".example-pinned-row");
     expect(pinnedSection).not.toBeNull();
     expect(host.querySelector('[data-scroll-runway="post-pinned"]')).toBeNull();
-    expect(finalTargetProps[25]?.webgl).toMatchObject({
+    expect(finalTargetProps[24]?.webgl).toMatchObject({
       key: "example.model.dark-scene",
       source: { kind: "dom", type: "element" },
       renderRole: "surface",
       lifecycle: { hideWhenReady: true, hideMode: "self" },
       effects: [{ kind: "example.modelDarkScene" }],
     });
-    expect(finalTargetProps[26]?.webgl).toMatchObject({
+    expect(finalTargetProps[25]?.webgl).toMatchObject({
       key: "example.model.float-glow",
       source: {
         kind: "model",
@@ -898,23 +860,23 @@ describe("effect authoring example app", () => {
         },
       ],
     });
-    expect(finalTargetProps[27]?.webgl.effects?.[0]).toMatchObject({
+    expect(finalTargetProps[26]?.webgl.effects?.[0]).toMatchObject({
       kind: "example.pinnedReveal",
       progressKey: "example.pinned.reveal",
     });
 
-    const firstSequenceCardEffects = finalTargetProps[20]?.webgl.effects;
+    const firstSequenceCardEffects = finalTargetProps[19]?.webgl.effects;
     await act(async () => {
       root.render(createElement(App));
     });
 
     const firstManagedStageTarget = finalTargetProps[5];
-    const firstPinnedTarget = finalTargetProps[27];
+    const firstPinnedTarget = finalTargetProps[26];
     const secondSequenceCardTarget = targetProps
-      .slice(-28)
+      .slice(-27)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondManagedStageTarget = targetProps
-      .slice(-28)
+      .slice(-27)
       .find(({ webgl }) => webgl.key === "example.managedStage.card");
     const secondPinnedTarget = targetProps.at(-1);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);

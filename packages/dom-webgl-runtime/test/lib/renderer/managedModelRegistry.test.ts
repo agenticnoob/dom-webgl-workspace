@@ -85,7 +85,7 @@ describe("managed model registry", () => {
       effects: [{ kind: "app.modelHover", strength: 0.5 }],
       interaction: {
         pickable: {
-          hitTest: "bounds",
+          hitTest: "mesh",
           pointer: { drag: true },
         },
       },
@@ -96,7 +96,7 @@ describe("managed model registry", () => {
       effects: ["app.modelHover"],
       interaction: {
         pickable: {
-          hitTest: "bounds",
+          hitTest: "mesh",
           pointer: {
             hover: false,
             press: false,

@@ -2,16 +2,12 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
-  WebGLModel,
   WebGLPassViewport,
   WebGLScene,
   WebGLStagePlane,
-  WebGLTarget,
   type WebGLCameraProps,
-  type WebGLModelProps,
   type WebGLSceneRenderOptions,
   type WebGLStagePlaneProps,
-  type WebGLTargetProps,
 } from "@project/dom-webgl-runtime/react";
 
 const interactionSceneRender = {
@@ -38,33 +34,11 @@ const cameraController = {
       minDistance: 240,
       maxDistance: 980,
     },
-    pan: {
-      drag: { button: "secondary" },
-      sensitivity: [0.9, 0.9],
-    },
-    dolly: {
-      drag: { button: "primary", modifier: "alt" },
-      sensitivity: 1.4,
-      minDistance: 240,
-      maxDistance: 980,
-    },
-    parallax: {
-      scope: "camera",
-      strength: [16, 8],
-      maxOffset: [28, 16],
-    },
-    damping: {
-      factor: 0.18,
-      settleEpsilon: 0.001,
-    },
-    reset: {
-      onDoubleClick: true,
-      durationMs: 220,
-    },
   },
 } satisfies NonNullable<WebGLCameraProps["controller"]>;
 
 const floorSize = [820, 460] satisfies NonNullable<WebGLStagePlaneProps["size"]>;
+const floorRole = "floor" satisfies NonNullable<WebGLStagePlaneProps["role"]>;
 const floorPosition = [0, -180, -70] satisfies NonNullable<
   WebGLStagePlaneProps["position"]
 >;
@@ -78,54 +52,15 @@ const floorEffects = [
     kind: "example.sceneObjectHoverPulse",
     baseOpacity: 0.68,
     hoverOpacity: 0.92,
-    dragOpacity: 1,
+    clickOpacity: 1,
   },
 ] as const;
 const floorInteraction = {
   pickable: {
-    hitTest: "bounds",
-    pointer: { hover: true, press: true, click: true },
+    hitTest: "mesh",
+    pointer: { hover: true, click: true },
   },
 } satisfies NonNullable<WebGLStagePlaneProps["interaction"]>;
-
-const heroModelLoader = {
-  draco: { decoderPath: "/draco/gltf/", preload: true },
-} satisfies NonNullable<WebGLModelProps["loader"]>;
-const heroModelPosition = [180, -118, -42] satisfies NonNullable<
-  WebGLModelProps["position"]
->;
-const heroModelPrepare = {
-  renderWarmup: "idle",
-} satisfies NonNullable<WebGLModelProps["prepare"]>;
-const heroModelEffects = [
-  {
-    kind: "example.sceneObjectDragPose",
-    baseScale: 4,
-    hoverScale: 1.04,
-    dragScale: 1.1,
-    baseRotationY: -0.42,
-  },
-] as const;
-const heroModelInteraction = {
-  pickable: {
-    hitTest: "bounds",
-    pointer: { hover: true, press: true, drag: true, click: true },
-  },
-} satisfies NonNullable<WebGLModelProps["interaction"]>;
-
-const screenPlaneTargetWebgl = {
-  key: "example.interaction.screen-plane-card",
-  sceneId: "example.interaction.scene",
-  source: { kind: "dom", type: "element" },
-  placement: {
-    mode: "screen-plane",
-    planeId: "example.interaction.floor",
-    offset: [0, 6, 0],
-    scale: 0.86,
-  },
-  lifecycle: { hideWhenReady: false },
-  effects: [{ kind: "example.surfaceFill", opacity: 0.52 }],
-} satisfies WebGLTargetProps<"article">["webgl"];
 
 const keyLightPosition = [-160, 160, 180] satisfies NonNullable<
   WebGLCameraProps["position"]
@@ -138,9 +73,9 @@ export function ManagedInteractionExample() {
         <p className="example-kicker">managed interaction</p>
         <h2>Scene-native picking</h2>
         <p>
-          Phase 8 keeps pointer routing inside runtime-owned objects: pickable
-          stage/model descriptors feed object effects, while empty-space gestures
-          keep camera orbit, pan, dolly, and reset runtime-owned.
+          Phase 8 keeps this dogfood intentionally narrow: the floor is the
+          only pickable scene object, and primary drag stays camera-owned for
+          orbit checks.
         </p>
       </div>
 
@@ -167,22 +102,12 @@ export function ManagedInteractionExample() {
           />
           <WebGLStagePlane
             id="example.interaction.floor"
-            role="floor"
+            role={floorRole}
             size={floorSize}
             position={floorPosition}
             material={floorMaterial}
             effects={floorEffects}
             interaction={floorInteraction}
-          />
-          <WebGLModel
-            id="example.interaction.hero"
-            src="/models/hero.glb"
-            loader={heroModelLoader}
-            position={heroModelPosition}
-            scale={4}
-            effects={heroModelEffects}
-            interaction={heroModelInteraction}
-            prepare={heroModelPrepare}
           />
           <WebGLLight id="example.interaction.ambient" kind="ambient" intensity={0.34} />
           <WebGLLight
@@ -194,15 +119,6 @@ export function ManagedInteractionExample() {
           />
         </WebGLScene>
       </WebGLPassViewport>
-
-      <WebGLTarget
-        as="article"
-        className="example-interaction-card"
-        webgl={screenPlaneTargetWebgl}
-      >
-        <span>screen-plane</span>
-        <strong>DOM target projected onto the managed floor</strong>
-      </WebGLTarget>
     </section>
   );
 }

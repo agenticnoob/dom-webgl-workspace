@@ -483,8 +483,20 @@ export function createInternalRenderLayerRegistry(
           continue;
         }
 
+        const state =
+          cameraGestureStatesByCameraId.get(camera.id) ??
+          createInitialCameraGestureState();
         const activePass = readActiveCameraGesturePass(camera, passes, frameInput);
-        if (blocked || !activePass) {
+        if (!activePass) {
+          continue;
+        }
+        if (shouldBlockCameraGesture(blocked, state, frameInput)) {
+          if (state.activeDrag && !frameInput.pointer.isDown) {
+            cameraGestureStatesByCameraId.set(
+              camera.id,
+              clearCameraGestureActiveDrag(state),
+            );
+          }
           continue;
         }
 
@@ -492,9 +504,6 @@ export function createInternalRenderLayerRegistry(
           camera,
           appliedControllerFramesByCameraId.get(camera.id),
         );
-        const state =
-          cameraGestureStatesByCameraId.get(camera.id) ??
-          createInitialCameraGestureState();
         const update = updateCameraGestureFrame({
           baseFrame,
           state,
@@ -510,7 +519,10 @@ export function createInternalRenderLayerRegistry(
           continue;
         }
 
-        camera.applyFraming?.(update.frame, viewport);
+        camera.applyFraming?.(
+          update.frame,
+          readCameraGestureViewport(activePass, viewport),
+        );
         summary = {
           cameraId: camera.id,
           sceneId: camera.sceneId,
@@ -558,6 +570,13 @@ export function createInternalRenderLayerRegistry(
           camera.resize?.(viewport);
           if (camera.controller) {
             appliedControllerFramesByCameraId.delete(camera.id);
+            const gestureState = cameraGestureStatesByCameraId.get(camera.id);
+            if (gestureState) {
+              cameraGestureStatesByCameraId.set(
+                camera.id,
+                clearCameraGestureAppliedFrame(gestureState),
+              );
+            }
           }
         }
       }
@@ -698,6 +717,58 @@ function isPointerInsideGesturePass(
     frameInput.pointer.y >= viewport.y &&
     frameInput.pointer.y <= viewport.y + viewport.height
   );
+}
+
+function readCameraGestureViewport(
+  pass: ManagedCameraGesturePass,
+  fallback: DOMViewportSize,
+): DOMViewportSize {
+  if (!pass.viewport || pass.viewport.width <= 0 || pass.viewport.height <= 0) {
+    return fallback;
+  }
+
+  return {
+    width: pass.viewport.width,
+    height: pass.viewport.height,
+  };
+}
+
+function shouldBlockCameraGesture(
+  blocked: boolean,
+  state: CameraGestureControllerState,
+  frameInput: WebGLFrameInput,
+): boolean {
+  if (!blocked) {
+    return false;
+  }
+
+  return !(state.activeDrag && frameInput.pointer.isDown);
+}
+
+function clearCameraGestureActiveDrag(
+  state: CameraGestureControllerState,
+): CameraGestureControllerState {
+  return createInitialCameraGestureState({
+    ...(state.targetFrame ? { targetFrame: state.targetFrame } : {}),
+    ...(state.appliedFrame ? { appliedFrame: state.appliedFrame } : {}),
+    lastClickCount: state.lastClickCount,
+    ...(state.lastClickTime !== undefined
+      ? { lastClickTime: state.lastClickTime }
+      : {}),
+  });
+}
+
+function clearCameraGestureAppliedFrame(
+  state: CameraGestureControllerState,
+): CameraGestureControllerState {
+  return createInitialCameraGestureState({
+    ...(state.targetFrame ? { targetFrame: state.targetFrame } : {}),
+    ...(state.activeDrag ? { activeDrag: state.activeDrag } : {}),
+    lastClickCount: state.lastClickCount,
+    ...(state.lastClickTime !== undefined
+      ? { lastClickTime: state.lastClickTime }
+      : {}),
+  });
 }
 
 function readCameraControllerBaseFrame(

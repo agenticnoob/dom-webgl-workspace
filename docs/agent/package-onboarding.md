@@ -247,17 +247,31 @@ Rules:
   scene-object `effects` plus `interaction.pickable`. Register these effects
   with `defineWebGLSceneObjectEffect(...)`; they receive `ctx.objectPointer`,
   not DOM `layout` or `ctx.targetPointer`.
+- The current `apps/example` managed interaction dogfood deliberately keeps
+  only `example.interaction.floor` pickable, with minimal camera orbit only.
+  Do not reintroduce scene-native models, `screen-plane` DOM targets, dolly,
+  parallax, or reset when the goal is to isolate picking/camera coordinate
+  drift.
 - Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
   mouse wheel zoom, and touch pinch zoom remain future or non-public.
 - `WebGLScene` can bind a named `timeline`; `WebGLCamera` cannot accept a
   top-level `timeline`. For progress-driven camera motion/focus/framing, put
   one nested `controller` descriptor on a managed `perspective-stage` camera.
-  For camera-owned empty-space gestures, put orbit, pan, dolly,
-  camera-scoped parallax, damping, or reset under `controller.pointer`. Object
-  hover, press, drag, and capture block camera gestures.
-  The runtime re-applies controller framing after managed camera resize so a
-  scroll-held camera does not snap back to its declaration base frame.
+  For camera-owned primary-drag gestures, put orbit, pan, dolly,
+  camera-scoped parallax, damping, or reset under `controller.pointer`.
+  Hover/click-only object hits do not block camera drag; dragging suppresses
+  object hover/click routing until release, and explicit object drag capture
+  still blocks camera gestures. Hover/click picking runs after the
+  current-frame camera gesture update, so hit regions follow orbit, dolly,
+  parallax, damping, and reset camera frames. DOM-rect render passes use the
+  pass-local viewport for camera gesture framing and managed picking. Use
+  `hitTest: "mesh"` for visible stage/model geometry picking and
+  `hitTest: "bounds"` only for coarse
+  object-level hit regions.
+  The runtime re-applies controller framing after managed camera resize so
+  scroll-held cameras and stopped/released camera drags do not snap back to
+  their declaration base frame.
 
 ## Opt-In Managed Stage Integration
 
@@ -701,12 +715,16 @@ Rules:
 - Use `WebGLScrollTimeline` when the progress signal should also bind to
   managed scenes, stage primitives, lights, or managed camera controllers.
   Managed camera controllers retain their current frame across resize/reframing
-  passes while progress is unchanged.
-- Use `WebGLCamera.controller.pointer` for managed empty-space camera gestures:
-  primary drag orbits, secondary drag pans, primary + alt drag dollies,
-  `parallax.scope` is `"camera"`, and optional damping/reset stay
-  descriptor-driven. Wheel and pinch gestures are not public Phase 8B v1
-  controls.
+  passes while progress is unchanged, and pointer gesture frames retain the last
+  applied drag frame when the pointer stops moving or releases.
+- Use `WebGLCamera.controller.pointer` for managed camera gestures:
+  primary drag orbits, primary + alt drag dollies, `parallax.scope` is
+  `"camera"`, and optional damping/reset stay descriptor-driven. `pan` remains a
+  descriptor capability, but avoid right-button pan as a default web-page
+  interaction. Hover/click-only object hits do not block camera drag; object
+  hover/click routing is suppressed while dragging, and non-drag hover/click
+  picking reads the current gesture-updated camera. Wheel and pinch gestures are
+  not public Phase 8B v1 controls.
 - Do not mutate mounted `webgl.effects` on every scroll update.
 - Let `ScrollEffectSection` be the full pinned row. Do not append a synthetic
   post-pinned runway sibling just to release scroll.
