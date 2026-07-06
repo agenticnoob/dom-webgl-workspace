@@ -339,9 +339,13 @@ the runtime does not infer which exported GLB clips are meaningful. The prepare
 descriptor is not `WebGLTarget.lifecycle`: it does not create DOM fallback, DOM
 rect fitting, target pointer state, or target-local effects. It only asks the
 runtime to perform a tiny internal render after the GLB is loaded, cloned,
-attached, and animation setup has run. The example does not use target-local
-effects and is not mixed into the pinned managed timeline or stage primitive
-dogfood rows.
+attached, and animation setup has run. For DOM-bound managed model passes,
+runtime preparation is viewport-proximity aware: the model can stay queued while
+its pass viewport is far from the page viewport, then load and warm before the
+model row reaches view. Debug state reports descriptor-only `prepare.load` and
+`prepare.renderWarmup`; these are not loader callbacks or raw render hooks. The
+example does not use target-local effects and is not mixed into the pinned
+managed timeline or stage primitive dogfood rows.
 Scene-native `WebGLModel` effects are deferred to a later scope design. Keep
 DOM-following model visuals on `WebGLTarget` model sources, and use
 `WebGLModel` only for managed-scene GLB assets that do not need DOM fallback or

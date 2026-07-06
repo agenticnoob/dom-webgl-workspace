@@ -93,6 +93,10 @@ import {
   type InternalRenderLayerRegistry,
 } from "./renderLayerRegistry";
 import { createManagedModelRegistry } from "./managedModelRegistry";
+import {
+  readModelPrepareDecision,
+  type ModelPreparePass,
+} from "./modelPreparePolicy";
 import { createStageObjectRegistry } from "./stageObjectRegistry";
 import {
   generatedRenderLayerId,
@@ -747,6 +751,27 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     };
   }
 
+  function readModelPreparePasses(): ModelPreparePass[] {
+    return renderLayers.getPasses().map((pass) => ({
+      sceneId: pass.sceneId,
+      viewport: readModelPrepareViewport(pass.viewport),
+    }));
+  }
+
+  function readModelPrepareViewport(
+    viewport: Parameters<typeof passViewports.resolve>[0],
+  ): ModelPreparePass["viewport"] {
+    const resolved = passViewports.resolve(viewport);
+    if (resolved.mode === "canvas") {
+      return { mode: "canvas" };
+    }
+
+    return {
+      mode: "dom-rect",
+      rect: resolved.rect,
+    };
+  }
+
   function readPostprocessViewport(
     viewport: ActiveResolvedPassViewport,
   ): { width: number; height: number } {
@@ -1236,7 +1261,17 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       const pendingUpdates: Array<Promise<void>> = [];
       let didSynchronousUpdate = cameraControllerChanged;
       const viewportHeight = window.innerHeight || 600;
-      const modelUpdate = managedModels.update(frameInput, progressSignals);
+      let modelPreparePasses: ModelPreparePass[] | undefined;
+      const modelUpdate = managedModels.update(frameInput, progressSignals, {
+        canLoadPreparedModel(request) {
+          modelPreparePasses ??= readModelPreparePasses();
+          return readModelPrepareDecision({
+            sceneId: request.sceneId,
+            viewportHeight,
+            passes: modelPreparePasses,
+          }).allowed;
+        },
+      });
 
       if (isPromiseLike(modelUpdate)) {
         pendingUpdates.push(

@@ -55,6 +55,7 @@ import {
   type WebGLDeclaration,
   type WebGLEffectContext,
   type WebGLEffectDefinition,
+  type WebGLDebugModelPrepareSummary,
   type WebGLModelAnimationDeclaration,
   type WebGLModelDeclaration,
   type WebGLModelLoaderDeclaration,
@@ -507,7 +508,13 @@ Vanilla integrations can use `runtime.registerModel(...)` and
 `effects` in Phase 7 v1. `prepare={{ renderWarmup: "idle" }}` is a
 scene-native first-render warmup request only. It is not
 `WebGLTarget.lifecycle`, and it does not add DOM fallback, DOM rect fitting,
-target pointer state, target-local effects, or raw renderer hooks.
+target pointer state, target-local effects, or raw renderer hooks. For
+DOM-bound managed model passes, runtime preparation is viewport-proximity aware:
+the model can stay queued while its pass viewport is far below the page, then
+load and warm before the viewport reaches the model row. Debug state reports
+descriptor-only `prepare.load` and `prepare.renderWarmup` values through types
+such as `WebGLDebugModelPrepareSummary`; these are not public loader callbacks
+or raw render hooks.
 
 Effect authors use `ctx.object` for visual control and source-backed
 capabilities. Source, target, and visual handles are internal runtime assembly

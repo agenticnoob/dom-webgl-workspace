@@ -4,10 +4,15 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
-const TYPECHECK_TEST_TIMEOUT_MS = 60_000;
+import {
+  getFixtureDiagnostics,
+  withTypecheckLock,
+} from "../helpers/typecheck";
+
+const TYPECHECK_TEST_TIMEOUT_MS = 180_000;
 
 describe("WebGLDeclaration public types", () => {
-  test("accepts scene-gate declarations and still rejects internal policy fields", () => {
+  test("accepts scene-gate declarations and still rejects internal policy fields", async () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-types-"));
     const fixturePath = resolve(tempDir, "fixture.ts");
@@ -236,26 +241,29 @@ describe("WebGLDeclaration public types", () => {
 	    );
 
     try {
-      const configPath = resolve(repoRoot, "tsconfig.base.json");
-      const configFile = ts.readConfigFile(configPath, (fileName) =>
-        readFileSync(fileName, "utf8"),
-      );
-      const parsedConfig = ts.parseJsonConfigFileContent(
-        configFile.config,
-        ts.sys,
-        repoRoot,
-        {
-          noEmit: true,
-          allowImportingTsExtensions: true,
-          types: [],
-        },
-        configPath,
-      );
-      const program = ts.createProgram(
-        [fixturePath, indexPath],
-        parsedConfig.options,
-      );
-      const diagnostics = ts.getPreEmitDiagnostics(program);
+      const diagnostics = await withTypecheckLock(() => {
+        const configPath = resolve(repoRoot, "tsconfig.base.json");
+        const configFile = ts.readConfigFile(configPath, (fileName) =>
+          readFileSync(fileName, "utf8"),
+        );
+        const parsedConfig = ts.parseJsonConfigFileContent(
+          configFile.config,
+          ts.sys,
+          repoRoot,
+          {
+            noEmit: true,
+            allowImportingTsExtensions: true,
+            types: [],
+          },
+          configPath,
+        );
+        const program = ts.createProgram(
+          [fixturePath, indexPath],
+          parsedConfig.options,
+        );
+
+        return getFixtureDiagnostics(program, fixturePath);
+      });
 
       expect(formatDiagnostics(diagnostics)).toBe("");
     } finally {

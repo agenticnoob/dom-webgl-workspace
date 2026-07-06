@@ -153,6 +153,9 @@ Current example behavior:
   also requests
   `prepare={{ renderWarmup: "idle" }}` so the runtime performs a tiny managed
   first-render warmup after load, clone, attachment, and animation setup.
+  For DOM-bound managed model passes, that prepare path is
+  viewport-proximity aware: the model can remain queued while its pass viewport
+  is far from the page viewport, then load and warm before the row reaches view.
   Model animation coverage is not mixed into the timeline/stage dogfood row.
 - The managed stage primitive example is mounted in the current catalog and
   dogfoods `WebGLPassViewport` with pass `viewport: { mode: "dom-rect",
@@ -515,8 +518,12 @@ state, or DOM layout. `prepare={{ renderWarmup: "idle" }}` is not
 `WebGLTarget.lifecycle`: it does not create DOM fallback, DOM rect fitting,
 target pointer state, or target-local effects. It only asks the runtime to
 perform a tiny internal render after the GLB is loaded, cloned, attached, and
-animation setup has run. Keep DOM-following models as `WebGLTarget` model
-sources.
+animation setup has run. For DOM-bound managed model passes, runtime
+preparation is viewport-proximity aware: the model can stay queued while its
+pass viewport is far below the page, then load and warm before the viewport
+reaches the model row. The debug state reports descriptor-only
+`prepare.load` and `prepare.renderWarmup` values; this is not a public loader
+or render hook. Keep DOM-following models as `WebGLTarget` model sources.
 
 Preferred declaration form:
 
@@ -760,7 +767,8 @@ basis at the requested depth, so the scene default camera should stay aligned
 descriptor-driven and runtime-owned. Scene-native `WebGLModel` descriptors are
 available for managed-scene GLB assets and can request
 `animation.defaultClips` for intentional multi-clip startup and
-`prepare={{ renderWarmup: "idle" }}` for managed first-render warmup;
+`prepare={{ renderWarmup: "idle" }}` for managed, viewport-proximity aware
+first-render preparation on DOM-bound model passes;
 scene-native model effects, `screen-plane` placement, orthographic/screen
 camera controllers, pass-bound camera controller scope, and raw Three.js access
 remain out of scope.

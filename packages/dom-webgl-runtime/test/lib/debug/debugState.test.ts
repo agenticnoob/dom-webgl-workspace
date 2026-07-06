@@ -214,6 +214,35 @@ describe("debug state", () => {
     expect(state.lights?.[0]).not.toHaveProperty("light");
   });
 
+  test("copies managed model prepare debug state without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      models: [
+        {
+          id: "character",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "idle",
+          visible: true,
+          prepare: { load: "queued", renderWarmup: "pending" },
+          clips: [],
+          activeClips: [],
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.models?.[0]?.prepare).toEqual({
+      load: "queued",
+      renderWarmup: "pending",
+    });
+    expect(state.models?.[0]?.prepare).not.toHaveProperty("loader");
+    expect(state.models?.[0]?.prepare).not.toHaveProperty("render");
+  });
+
   test("copies descriptor-only timeline summaries without raw progress handles", () => {
     const state = createDebugState({
       targetCount: 0,

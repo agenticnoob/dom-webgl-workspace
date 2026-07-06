@@ -4165,7 +4165,8 @@ describe("runtime pipeline sync", () => {
 
     expect(runtime.getDebugState().models?.[0]).toMatchObject({
       id: "character",
-      prepare: { renderWarmup: "pending" },
+      resourceStatus: "idle",
+      prepare: { load: "queued" },
     });
 
     runtime.registerCamera({
@@ -4182,6 +4183,7 @@ describe("runtime pipeline sync", () => {
       viewport: { mode: "canvas" },
     });
 
+    await runtime.sync();
     runtime.sync();
 
     expect(setViewport).toHaveBeenCalledWith(0, 599, 1, 1);
@@ -4189,7 +4191,147 @@ describe("runtime pipeline sync", () => {
     expect(setScissorTest).toHaveBeenCalledWith(true);
     expect(runtime.getDebugState().models?.[0]).toMatchObject({
       id: "character",
-      prepare: { renderWarmup: "complete" },
+      prepare: { load: "ready", renderWarmup: "complete" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("defers prepared scene-native model loading while its DOM-bound pass viewport is far from view", async () => {
+    stubWindowNumberProperty("innerHeight", () => 600);
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const runtime = await createPipelineRuntime({
+      loadModel,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 2600,
+        width: 640,
+        height: 420,
+        right: 640,
+        bottom: 3020,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({
+      id: "model.viewport",
+      element: anchor,
+    });
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "dom-rect", anchorId: "model.viewport", scissor: true },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+
+    expect(loadModel).not.toHaveBeenCalled();
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "idle",
+      prepare: { load: "queued" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("starts prepared scene-native model loading when its DOM-bound pass viewport enters the prepare margin", async () => {
+    stubWindowNumberProperty("innerHeight", () => 600);
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const runtime = await createPipelineRuntime({
+      loadModel,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    let top = 2600;
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top,
+        width: 640,
+        height: 420,
+        right: 640,
+        bottom: top + 420,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({
+      id: "model.viewport",
+      element: anchor,
+    });
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "dom-rect", anchorId: "model.viewport", scissor: true },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    top = 1400;
+    await runtime.sync();
+    runtime.sync();
+
+    expect(loadModel).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "ready",
+      prepare: { load: "ready", renderWarmup: "complete" },
     });
 
     runtime.dispose();

@@ -330,6 +330,96 @@ describe("managed model registry", () => {
     expect(registry.consumeRenderWarmupRequests()).toEqual([]);
   });
 
+  test("queues prepared model loading until runtime allows prepare work", async () => {
+    const worldAdapter = createSceneAdapter();
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const registry = createRegistry({ worldAdapter, loadModel });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await registry.update(
+      { delta: 16 },
+      { get: () => 0 },
+      { canLoadPreparedModel: () => false },
+    );
+
+    expect(loadModel).not.toHaveBeenCalled();
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(registry.inspect().models[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "idle",
+      prepare: { load: "queued" },
+      clips: [],
+      activeClips: [],
+    });
+  });
+
+  test("loads queued prepared models once runtime allows prepare work", async () => {
+    const worldAdapter = createSceneAdapter();
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const registry = createRegistry({ worldAdapter, loadModel });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await registry.update(
+      { delta: 16 },
+      { get: () => 0 },
+      { canLoadPreparedModel: () => false },
+    );
+    await registry.update(
+      { delta: 16 },
+      { get: () => 0 },
+      { canLoadPreparedModel: () => true },
+    );
+
+    expect(loadModel).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects).toHaveLength(1);
+    expect(registry.inspect().models[0]).toMatchObject({
+      resourceStatus: "ready",
+      prepare: { load: "ready", renderWarmup: "pending" },
+      activeClips: ["MainSkeleton.001"],
+    });
+  });
+
+  test("keeps unprepared models on the eager loading path", async () => {
+    const worldAdapter = createSceneAdapter();
+    const loadModel = vi.fn(async () => ({ scene: new Group() }));
+    const registry = createRegistry({ worldAdapter, loadModel });
+
+    registry.registerModel({
+      id: "unprepared",
+      sceneId: "world",
+      src: "/models/plain.glb",
+    });
+
+    await registry.update(
+      { delta: 16 },
+      { get: () => 0 },
+      { canLoadPreparedModel: () => false },
+    );
+
+    expect(loadModel).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects).toHaveLength(1);
+  });
+
   test("reports missing animation clips and morph targets", async () => {
     const worldAdapter = createSceneAdapter();
     const sourceScene = new Group();

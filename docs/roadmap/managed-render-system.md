@@ -6,7 +6,7 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 7C explicit default clips verification
+**Last reviewed against:** Phase 7D model load/prepare performance verification
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -763,6 +763,7 @@ Status values:
 | Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects are intentionally deferred to Phase 8 scope design instead of shipping as target-local effects. |
 | Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate the main Sprint skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
 | Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
+| Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[not-started]` | none | Depends on stable scene/camera/projection/stage/model contracts; should begin with scene-native object/effect scope design for `WebGLModel` before picking state is exposed. |
 | Phase 9: Dynamics and Physics | `[not-started]` | none | Depends on Phase 8 hit state and collider model. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
@@ -792,6 +793,7 @@ Phase 6A -> progress-driven managed camera controllers
 Phase 7 -> managed model animation
 Phase 7B -> model animation correction and render warmup prepare
 Phase 7C -> explicit multi-clip defaults
+Phase 7D -> model load and prepare performance
 Phase 8 -> input routing and picking
 Phase 9 -> dynamics and physics
 Phase 10 -> unsafe escape hatch decision, only if still needed
@@ -822,6 +824,10 @@ Ordering rules:
 - Explicit multi-clip defaults remain model animation work, not picking work.
   They should stay descriptor-driven and must not become `playAllClips`, action
   graphs, or raw mixer access.
+- Scene-native model load and prepare performance remains Phase 7 work. If
+  `prepare.renderWarmup` moves heavy GLTF/Draco/clone/setup cost from scroll
+  entry to page startup, fix that before Phase 8 rather than mixing performance
+  scheduling with picking.
 - Physics waits until managed stage objects, colliders, input routing, and
   lifecycle/disposal semantics are stable.
 
@@ -1547,6 +1553,44 @@ Rules:
 - Do not add action graphs, state machines, clip weights, retargeting, or raw
   `AnimationMixer` / `AnimationAction` access.
 
+### Phase 7D: Model Load And Prepare Performance
+
+- **Status:** `[verified]`
+- **Focused plan:** [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md)
+- **Depends on:** Phase 7C
+- **Last updated:** 2026-07-06
+- **Exit criteria:** prepared scene-native `WebGLModel` loading is delayed while
+  its DOM-bound render pass viewport is far from view, begins early enough before
+  the model row becomes visible, records debug prepare state, and browser
+  profiling covers the focused startup idle window plus the model-row
+  scroll-entry window without a Sprint prepare stall.
+
+Goal: keep the Phase 7B/7C visual dogfood while preventing
+`prepare.renderWarmup` from shifting heavy model load/prepare work into startup.
+
+Scope:
+
+- Keep `prepare={{ renderWarmup: "idle" }}` as the public authoring descriptor.
+- Add internal render-pass viewport proximity policy for prepared scene-native
+  model loading.
+- Queue prepared models whose only DOM-bound pass viewport is still far below or
+  above the current viewport.
+- Keep unprepared `WebGLModel` declarations on the existing eager load path for
+  compatibility.
+- Expose descriptor-only debug state such as `prepare.load` values
+  `"queued"`, `"loading"`, and `"ready"` plus existing
+  `prepare.renderWarmup`.
+- Add browser profile evidence for both page-start idle and model-row
+  scroll-entry windows.
+
+Rules:
+
+- Do not copy `WebGLTarget.lifecycle` onto `WebGLModel`.
+- Do not add public loader callbacks, preload margins, raw render hooks, or raw
+  Three.js handles.
+- Do not change `animation.defaultClips` semantics.
+- Keep Phase 8 interaction/picking separate.
+
 ### Phase 8: Interaction and Picking
 
 - **Status:** `[not-started]`
@@ -1921,26 +1965,28 @@ The roadmap is successful when:
 
 Do not implement this entire roadmap in one pass.
 
-Phase 1 through Phase 7C define the managed render foundation through
+Phase 1 through Phase 7D define the managed render foundation through
 scene-native `WebGLModel`, runtime-owned model registry, descriptor animation
 controls, corrected model dogfood, skeleton-safe clone, and descriptor-only
 render warmup without exposing raw mixers, actions, bones, skeletons, renderers,
-or morph target arrays. Phase 7C adds explicit multi-clip defaults before
-Phase 8 picking starts.
+or morph target arrays. Phase 7C adds explicit multi-clip defaults, and Phase 7D
+keeps Sprint model load/prepare work out of the focused startup idle window and
+first-visible scroll-entry stalls before Phase 8 picking starts.
 
-The next suggested implementation loop is Phase 8: interaction and picking.
-Start with scene-native object/effect scope design for `WebGLModel` before
-exposing hit state.
+The next suggested implementation loop is Phase 8: interaction and picking. It
+should start with scene-native object/effect scope design for `WebGLModel`
+before exposing hit state, because scene-native effects need explicit
+object/scene/runtime scope rather than DOM-target semantics.
 
 The safest sequence is:
 
 ```text
 Phase 1 -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5
-  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 7C -> Phase 8 -> Phase 9
+  -> Phase 6 -> Phase 6A -> Phase 7 -> Phase 7B -> Phase 7C -> Phase 7D -> Phase 8 -> Phase 9
 ```
 
 That keeps postprocess after scoped ownership, model animation after timeline
-signals, Phase 7B correction and Phase 7C explicit multi-clip defaults before
-picking, progress-driven camera controls after pass scope, input routing before
-pointer-driven camera interaction and physics, and physics after stage/collider
-contracts.
+signals, Phase 7B correction, Phase 7C explicit multi-clip defaults, and Phase
+7D model load/prepare performance before picking, progress-driven camera
+controls after pass scope, input routing before pointer-driven camera
+interaction and physics, and physics after stage/collider contracts.

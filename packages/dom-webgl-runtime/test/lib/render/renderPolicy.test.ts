@@ -4,8 +4,14 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
+import {
+  getFixtureDiagnostics,
+  withTypecheckLock,
+} from "../../helpers/typecheck";
 import type { WebGLRenderRole } from "../../../src/lib/types";
 import { compileRenderPolicy, toSceneObjectOrdering } from "../../../src/lib/render/renderPolicy";
+
+const TYPECHECK_TEST_TIMEOUT_MS = 180_000;
 
 describe("compileRenderPolicy", () => {
   test("assigns stable render bands in semantic role order", () => {
@@ -107,7 +113,7 @@ describe("compileRenderPolicy", () => {
     expect(ordering.depthTest).toBe(true);
   });
 
-  test("keeps render policy fields out of the public declaration", () => {
+  test("keeps render policy fields out of the public declaration", async () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-policy-types-"));
     const fixturePath = resolve(tempDir, "fixture.ts");
@@ -181,32 +187,35 @@ describe("compileRenderPolicy", () => {
     );
 
     try {
-      const configPath = resolve(repoRoot, "tsconfig.base.json");
-      const configFile = ts.readConfigFile(configPath, (fileName) =>
-        readFileSync(fileName, "utf8"),
-      );
-      const parsedConfig = ts.parseJsonConfigFileContent(
-        configFile.config,
-        ts.sys,
-        repoRoot,
-        {
-          noEmit: true,
-          allowImportingTsExtensions: true,
-          types: [],
-        },
-        configPath,
-      );
-      const program = ts.createProgram(
-        [fixturePath, indexPath],
-        parsedConfig.options,
-      );
-      const diagnostics = ts.getPreEmitDiagnostics(program);
+      const diagnostics = await withTypecheckLock(() => {
+        const configPath = resolve(repoRoot, "tsconfig.base.json");
+        const configFile = ts.readConfigFile(configPath, (fileName) =>
+          readFileSync(fileName, "utf8"),
+        );
+        const parsedConfig = ts.parseJsonConfigFileContent(
+          configFile.config,
+          ts.sys,
+          repoRoot,
+          {
+            noEmit: true,
+            allowImportingTsExtensions: true,
+            types: [],
+          },
+          configPath,
+        );
+        const program = ts.createProgram(
+          [fixturePath, indexPath],
+          parsedConfig.options,
+        );
+
+        return getFixtureDiagnostics(program, fixturePath);
+      });
 
       expect(formatDiagnostics(diagnostics)).toBe("");
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, TYPECHECK_TEST_TIMEOUT_MS);
 });
 
 function formatDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {

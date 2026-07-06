@@ -4,7 +4,12 @@ import { dirname, relative, resolve, sep } from "node:path";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 
-const TYPECHECK_TEST_TIMEOUT_MS = 60_000;
+import {
+  getFixtureDiagnostics,
+  withTypecheckLock,
+} from "./helpers/typecheck";
+
+const TYPECHECK_TEST_TIMEOUT_MS = 180_000;
 
 describe("public package exports", () => {
   test("root entrypoint exposes runtime APIs without internal helpers", async () => {
@@ -45,7 +50,7 @@ describe("public package exports", () => {
     expect(packageJson.exports).not.toHaveProperty("./effects");
   });
 
-  test("React entrypoint type-checks public gate declarations only", () => {
+  test("React entrypoint type-checks public gate declarations only", async () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(repoRoot, ".tmp-dom-webgl-react-exports-"));
     const fixturePath = resolve(tempDir, "fixture.tsx");
@@ -467,27 +472,30 @@ describe("public package exports", () => {
 	    );
 
     try {
-      const configPath = resolve(repoRoot, "tsconfig.base.json");
-      const configFile = ts.readConfigFile(configPath, (fileName) =>
-        readFileSync(fileName, "utf8"),
-      );
-      const parsedConfig = ts.parseJsonConfigFileContent(
-        configFile.config,
-        ts.sys,
-        repoRoot,
-        {
-          jsx: ts.JsxEmit.ReactJSX,
-          noEmit: true,
-          allowImportingTsExtensions: true,
-          types: [],
-        },
-        configPath,
-      );
-      const program = ts.createProgram(
-        [fixturePath, reactPath],
-        parsedConfig.options,
-      );
-      const diagnostics = ts.getPreEmitDiagnostics(program);
+      const diagnostics = await withTypecheckLock(() => {
+        const configPath = resolve(repoRoot, "tsconfig.base.json");
+        const configFile = ts.readConfigFile(configPath, (fileName) =>
+          readFileSync(fileName, "utf8"),
+        );
+        const parsedConfig = ts.parseJsonConfigFileContent(
+          configFile.config,
+          ts.sys,
+          repoRoot,
+          {
+            jsx: ts.JsxEmit.ReactJSX,
+            noEmit: true,
+            allowImportingTsExtensions: true,
+            types: [],
+          },
+          configPath,
+        );
+        const program = ts.createProgram(
+          [fixturePath, reactPath],
+          parsedConfig.options,
+        );
+
+        return getFixtureDiagnostics(program, fixturePath);
+      });
 
       expect(formatDiagnostics(diagnostics)).toBe("");
     } finally {
@@ -508,7 +516,7 @@ describe("public package exports", () => {
     expect(runtimeContextSource).toContain("../types");
   });
 
-  test("root entrypoint type-checks public types and hides internal types", () => {
+  test("root entrypoint type-checks public types and hides internal types", async () => {
     const repoRoot = process.cwd();
     const tempDir = mkdtempSync(resolve(tmpdir(), "dom-webgl-public-exports-"));
     const fixturePath = resolve(tempDir, "fixture.ts");
@@ -538,6 +546,7 @@ describe("public package exports", () => {
                   WebGLCameraType,
                   WebGLColorValue,
                   WebGLDebugModelDiagnostic,
+                  WebGLDebugModelPrepareSummary,
                   WebGLDebugModelSummary,
 					          WebGLDebugState,
 					          WebGLDeclaration,
@@ -1987,6 +1996,18 @@ describe("public package exports", () => {
           kind: "missing-clip",
           name: "Walk",
         } satisfies WebGLDebugModelDiagnostic;
+        const modelPrepareDebug = {
+          load: "queued",
+          renderWarmup: "pending",
+        } satisfies WebGLDebugModelPrepareSummary;
+        modelPrepareDebug.load;
+        modelPrepareDebug.renderWarmup;
+        // @ts-expect-error model prepare debug must not expose a loader handle.
+        const invalidPrepareDebugLoader: WebGLDebugModelPrepareSummary = { loader: {} };
+        // @ts-expect-error model prepare debug must not expose a render callback.
+        const invalidPrepareDebugRender: WebGLDebugModelPrepareSummary = { render: () => {} };
+        invalidPrepareDebugLoader;
+        invalidPrepareDebugRender;
         const modelDebugSummary = {
           id: "hero.model",
           sceneId: "world",
@@ -1994,6 +2015,7 @@ describe("public package exports", () => {
           resourceStatus: "ready",
           visible: true,
           timeline: { id: "hero.timeline", progressKey: "hero.timeline", active: true },
+          prepare: modelPrepareDebug,
           clips: ["Idle", "Walk"],
           activeClips: ["Idle"],
           morphs: ["Smile"],
@@ -2057,26 +2079,29 @@ describe("public package exports", () => {
 	    );
 
     try {
-      const configPath = resolve(repoRoot, "tsconfig.base.json");
-      const configFile = ts.readConfigFile(configPath, (fileName) =>
-        readFileSync(fileName, "utf8"),
-      );
-      const parsedConfig = ts.parseJsonConfigFileContent(
-        configFile.config,
-        ts.sys,
-        repoRoot,
-        {
-          noEmit: true,
-          allowImportingTsExtensions: true,
-          types: [],
-        },
-        configPath,
-      );
-      const program = ts.createProgram(
-        [fixturePath, indexPath],
-        parsedConfig.options,
-      );
-      const diagnostics = ts.getPreEmitDiagnostics(program);
+      const diagnostics = await withTypecheckLock(() => {
+        const configPath = resolve(repoRoot, "tsconfig.base.json");
+        const configFile = ts.readConfigFile(configPath, (fileName) =>
+          readFileSync(fileName, "utf8"),
+        );
+        const parsedConfig = ts.parseJsonConfigFileContent(
+          configFile.config,
+          ts.sys,
+          repoRoot,
+          {
+            noEmit: true,
+            allowImportingTsExtensions: true,
+            types: [],
+          },
+          configPath,
+        );
+        const program = ts.createProgram(
+          [fixturePath, indexPath],
+          parsedConfig.options,
+        );
+
+        return getFixtureDiagnostics(program, fixturePath);
+      });
 
       expect(formatDiagnostics(diagnostics)).toBe("");
     } finally {

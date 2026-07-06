@@ -106,9 +106,50 @@ Window totals are counters accumulated during each sampling window. Per-frame va
   the current dogfood row. The remaining sub-second tasks should be treated as
   local-dev profile evidence, not a production-mobile budget.
 
+## Phase 7D Model Load Prepare Browser Check
+
+- Date: 2026-07-06
+- Branch: `codex/managed-render-roadmap-iteration`
+- Scenario: `apps/example` managed model dogfood after Phase 7D
+  viewport-proximity prepare, 1280x900 headless Chromium, production build via
+  Vite preview.
+- Startup plan-window result: after `networkidle`, the first 4 seconds without
+  scrolling had no Long Task entry over 500 ms. `example.managedModel.sprint`
+  stayed at `resourceStatus: "idle"` with `prepare.load: "queued"` while its
+  DOM-bound pass viewport was far below the viewport (`top: 4160.65625`,
+  `height: 828`).
+- Startup resource result: filtered Resource Timing for Sprint/Draco/GLB/wasm
+  did not include `Sprint.glb` or Draco decoder work while the model was
+  queued; the only matching startup resource in the warm check was the existing
+  `/models/hero.glb` path.
+- Prepare-margin result: scrolling to `scrollY: 1200` moved the model viewport
+  to `top: 2960.65625`, inside the internal `2.5 * viewportHeight` margin for a
+  900 px viewport. The Sprint debug state reached `resourceStatus: "ready"`,
+  `prepare.load: "ready"`, and `prepare.renderWarmup: "complete"` before the
+  row became visible.
+- Scroll-entry result: scrolling the model viewport into view at
+  `scrollY: 4125` (`top: 35.65625`, `bottom: 863.65625`) produced no Long Task
+  entry over 500 ms in the visible-entry window. Screenshots separated by
+  700 ms changed 535,034 of 538,338 compared bytes in the cropped model
+  viewport, confirming live animation.
+- Active clip result: the visible model row included the required explicit
+  default clips: `MainSkeleton.001`, `SpeedLines.001`, the selected speed-line
+  plane clips, `Ray.001`, `checkoutCTRL.001`, and `BagArmature.001`.
+- Cold navigation caveat: an init-script observer over a fully cold production
+  navigation saw two non-Sprint startup Long Tasks over 500 ms (about 1.5 s and
+  4.9 s) while Sprint still reported `resourceStatus: "idle"` and
+  `prepare.load: "queued"`. Those tasks were attributed by Chromium as
+  `unknown/window` and did not coincide with a Sprint/Draco resource request.
+  Treat them as remaining whole-page cold-start cost, not as Phase 7D model
+  prepare work.
+- Interpretation: Phase 7D keeps Phase 7B/7C visual correctness while moving
+  Sprint model load/instantiate/warmup out of both the focused startup idle
+  window and the first-visible scroll-entry window. Separate cold-start bundle
+  or unrelated example-page work remains outside this focused phase.
+
 ## Verification
 
-- `npm run test -- --run`: passed (91 files / 541 tests).
+- `npm run test -- --run`: passed (123 files / 755 tests).
 - `npm run typecheck`: passed.
 - `npm run build`: passed; existing Vite chunk-size warning only.
 - `npm run check:imports`: passed (`Example import boundary OK`).

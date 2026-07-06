@@ -83,6 +83,8 @@ import {
   type WebGLCameraMode,
   type WebGLCameraType,
   type WebGLColorValue,
+  type WebGLDebugModelPrepareLoadState,
+  type WebGLDebugModelPrepareSummary,
   type WebGLLightDeclaration,
   type WebGLLightKind,
   type WebGLModelAnimationDeclaration,
@@ -968,7 +970,13 @@ scope is a later design topic. `prepare={{ renderWarmup: "idle" }}` is a
 descriptor-only first-render warmup request. It does not expose renderer,
 scene, camera, render target, render loop, loader, mixer, action, skeleton, or
 mesh handles, and it does not add DOM fallback, DOM rect lifecycle, target
-pointer state, or target-local effects.
+pointer state, or target-local effects. For DOM-bound managed model passes,
+runtime preparation is viewport-proximity aware: the model can stay queued while
+its pass viewport is far below the page, then load and warm before the viewport
+reaches the model row. Debug state reports descriptor-only `prepare.load` and
+`prepare.renderWarmup` values through `WebGLDebugModelPrepareSummary` and
+`WebGLDebugModelPrepareLoadState`; these are not public loader callbacks,
+preload margins, or raw render hooks.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must

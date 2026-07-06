@@ -92,6 +92,8 @@ export type {
   WebGLCameraType,
   WebGLColorValue,
   WebGLDebugModelDiagnostic,
+  WebGLDebugModelPrepareLoadState,
+  WebGLDebugModelPrepareSummary,
   WebGLDebugModelSummary,
   WebGLDebugState,
   WebGLDeclaration,

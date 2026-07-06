@@ -603,6 +603,13 @@ export type WebGLDebugModelDiagnostic = {
   name: string;
 };
 
+export type WebGLDebugModelPrepareLoadState = "queued" | "loading" | "ready";
+
+export type WebGLDebugModelPrepareSummary = {
+  readonly load?: WebGLDebugModelPrepareLoadState;
+  readonly renderWarmup?: "pending" | "complete";
+};
+
 export type WebGLDebugModelSummary = {
   id: string;
   sceneId: string;
@@ -610,9 +617,7 @@ export type WebGLDebugModelSummary = {
   resourceStatus: WebGLResourceStatus;
   visible: boolean;
   timeline?: WebGLDebugTimelineSummary;
-  prepare?: {
-    readonly renderWarmup?: "pending" | "complete";
-  };
+  prepare?: WebGLDebugModelPrepareSummary;
   clips: readonly string[];
   activeClips: readonly string[];
   morphs?: readonly string[];

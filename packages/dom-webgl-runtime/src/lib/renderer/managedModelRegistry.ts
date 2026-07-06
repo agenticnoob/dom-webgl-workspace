@@ -27,6 +27,7 @@ import {
 } from "../timeline/timelineDeclarations";
 import type {
   WebGLDebugModelDiagnostic,
+  WebGLDebugModelPrepareSummary,
   WebGLDebugModelSummary,
   WebGLModelAnimationDeclaration,
   WebGLModelClipBlendDeclaration,
@@ -53,6 +54,7 @@ export type ManagedModelRegistry = {
   update(
     input: { readonly delta: number },
     progressSignals: WebGLProgressSignalSource,
+    preparePolicy?: ManagedModelPreparePolicy,
   ): boolean | Promise<boolean>;
   consumeRenderWarmupRequests(): ManagedModelPrepareRequest[];
   markRenderWarmupComplete(id: string): void;
@@ -67,6 +69,13 @@ export type ManagedModelRegistryDebugState = {
 export type ManagedModelPrepareRequest = {
   readonly id: string;
   readonly sceneId: string;
+};
+
+export type ManagedModelPreparePolicy = {
+  canLoadPreparedModel(request: {
+    readonly id: string;
+    readonly sceneId: string;
+  }): boolean;
 };
 
 export type ManagedModelRegistryOptions = {
@@ -138,6 +147,7 @@ type ManagedModelEntry = {
   readonly loadPromise?: Promise<boolean>;
   readonly timelineSnapshot?: TimelineProgressSnapshot;
   readonly defaultClipsStarted?: boolean;
+  readonly prepareLoad?: "queued" | "loading" | "ready";
   readonly renderWarmup?: "pending" | "complete";
   readonly disposed?: boolean;
   readonly error?: unknown;
@@ -184,7 +194,7 @@ export function createManagedModelRegistry(
         }
       }
     },
-    update(input, progressSignals): boolean | Promise<boolean> {
+    update(input, progressSignals, preparePolicy): boolean | Promise<boolean> {
       const pendingLoads: Array<Promise<boolean>> = [];
       let continuous = false;
 
@@ -192,6 +202,16 @@ export function createManagedModelRegistry(
         const visible = syncEntryTimeline(entry, progressSignals);
 
         if (!entry.controller) {
+          if (!canStartModelLoad(entry, preparePolicy)) {
+            Object.assign(entry, { prepareLoad: "queued" as const });
+            continue;
+          }
+
+          Object.assign(entry, {
+            prepareLoad: entry.declaration.prepare
+              ? ("loading" as const)
+              : undefined,
+          });
           pendingLoads.push(loadEntry(entry, visible, progressSignals));
           continue;
         }
@@ -293,6 +313,9 @@ export function createManagedModelRegistry(
           modelHandle,
           morphControls,
           ...(animation ? { animation } : {}),
+          ...(entry.declaration.prepare
+            ? { prepareLoad: "ready" as const }
+            : {}),
           ...(entry.declaration.prepare?.renderWarmup === "idle"
             ? { renderWarmup: "pending" as const }
             : {}),
@@ -309,6 +332,22 @@ export function createManagedModelRegistry(
     Object.assign(entry, { loadPromise });
     return loadPromise;
   }
+}
+
+function canStartModelLoad(
+  entry: ManagedModelEntry,
+  preparePolicy: ManagedModelPreparePolicy | undefined,
+): boolean {
+  if (!entry.declaration.prepare) {
+    return true;
+  }
+
+  return (
+    preparePolicy?.canLoadPreparedModel({
+      id: entry.declaration.id,
+      sceneId: entry.declaration.sceneId,
+    }) ?? true
+  );
 }
 
 function normalizeModelDeclaration(
@@ -549,6 +588,18 @@ function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
   ];
   const morphs = morphInspection?.morphs;
   const bones = morphInspection?.bones;
+  const prepare: WebGLDebugModelPrepareSummary | undefined =
+    entry.prepareLoad || entry.renderWarmup
+      ? {
+          ...(entry.prepareLoad ? { load: entry.prepareLoad } : {}),
+          ...(entry.renderWarmup
+            ? {
+                renderWarmup:
+                  entry.renderWarmup === "complete" ? "complete" : "pending",
+              }
+            : {}),
+        }
+      : undefined;
 
   return {
     id: entry.declaration.id,
@@ -557,14 +608,7 @@ function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
     resourceStatus: entry.resource.record.status,
     visible: readEffectiveVisibility(entry),
     ...(entry.declaration.timeline ? { timeline: readDebugTimeline(entry) } : {}),
-    ...(entry.renderWarmup
-      ? {
-          prepare: {
-            renderWarmup:
-              entry.renderWarmup === "complete" ? "complete" : "pending",
-          },
-        }
-      : {}),
+    ...(prepare ? { prepare } : {}),
     clips: entry.animation?.clips() ?? [],
     activeClips: animationInspection?.activeClips ?? [],
     ...(morphs && morphs.length > 0 ? { morphs } : {}),

@@ -105,6 +105,9 @@ phase records are archived under [archive/](./archive/).
   - `WebGLModel.prepare.renderWarmup` can request a descriptor-only internal
     first-render warmup after load, skeleton-safe clone, attachment, and
     animation setup
+  - prepared scene-native model loading is viewport-proximity aware for
+    DOM-bound managed model passes, with descriptor-only debug state for
+    `prepare.load` and `prepare.renderWarmup`
   - `ctx.object.animation` keeps the controlled clip facade for DOM-backed
     `model/glb` targets, including `clips`, `play`, `scrub`, `blend`,
     `crossFade`, `stop`, `stopAll`, and `setTime`
@@ -175,7 +178,11 @@ phase records are archived under [archive/](./archive/).
   updates rather than React prop churn. `animation.defaultClips` starts only the
   clips the app explicitly lists; it is not a `playAllClips` shortcut and does
   not infer meaningful clips from the GLB. `prepare.renderWarmup` is scoped to
-  a tiny managed first-render warmup and does not add
+  a tiny managed first-render warmup. For DOM-bound managed model passes, the
+  runtime may keep prepared model loading queued until the pass viewport is
+  close enough to be useful, then load and warm before the row enters view.
+  The `prepare.load` debug state is descriptor-only; it is not a public loader
+  callback, preload margin, render hook, or raw handle. This does not add
   `WebGLTarget.lifecycle`, DOM fallback, DOM rect fitting, target pointer state,
   target-local effects, or raw render hooks to `WebGLModel`. Phase 7 v1 does
   not add target-local `effects` to `WebGLModel`; scene-native model effects
@@ -269,8 +276,15 @@ timeline, scrubbing the visible checkout control clip for interaction proof
 without adding target-local `WebGLModel` effects:
 [2026-07-06-phase-7c-explicit-default-clips.md](./superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md).
 It does not add `playAllClips`, animation graphs, state machines, raw
-mixer/action access, additive layers, bone attachments, IK, or retargeting. After
-Phase 7C, Phase 8 should start with scene-native model effect scope design
+mixer/action access, additive layers, bone attachments, IK, or retargeting.
+Phase 7D is verified and keeps `WebGLModel.prepare.renderWarmup`
+descriptor-only while making prepared scene-native model loading
+viewport-proximity aware. The Sprint dogfood now stays queued while its
+DOM-bound pass viewport is far from view, loads and render-warms inside the
+prepare margin, and preserves visible-entry animation without reintroducing the
+model-row scroll stall:
+[2026-07-06-phase-7d-model-load-prepare-performance.md](./superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md).
+After Phase 7D, Phase 8 should start with scene-native model effect scope design
 before picking/hit state, because those effects need explicit
 object/scene/runtime scope rather than DOM-target semantics.
 
