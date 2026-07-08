@@ -36,53 +36,23 @@ const cameraTarget = [116, -76, -80] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 
-const sprintModelPosition = [116, -86, -80] satisfies NonNullable<
+const humanModelPosition = [116, -92, -80] satisfies NonNullable<
   WebGLModelProps["position"]
 >;
-const sprintModelRotation = [0, -0.58, 0] satisfies NonNullable<
+const humanModelRotation = [0, -0.36, 0] satisfies NonNullable<
   WebGLModelProps["rotation"]
 >;
-const sprintModelLoader = {
-  draco: { decoderPath: "/draco/gltf/", preload: true },
-} satisfies NonNullable<WebGLModelProps["loader"]>;
-const sprintModelClipLabels = [
-  "Main skeleton",
-  "Speed-line planes",
-  "Checkout scrub",
-  "Bag rig",
+const humanModelClipLabels = [
+  "Pinned walk scrub",
 ] as const;
-const sprintSpeedLinePlaneClips = [
-  "Plane.250",
-  "Plane.251",
-  "Plane.252",
-  "Plane.253",
-  "Plane.254",
-  "Plane.256",
-  "Plane.258",
-  "Plane.262",
-  "Plane.263",
-  "Plane.264",
-  "Ray.001",
-] as const;
-const sprintModelAnimation = {
-  defaultClips: [
-    { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
-    { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
-    ...sprintSpeedLinePlaneClips.map((clip) => ({
-      clip,
-      loop: "repeat" as const,
-      timeScale: 3.2,
-    })),
-    { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
-    { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
-  ],
+const humanModelAnimation = {
   scrub: {
-    clip: "checkoutCTRL.001",
+    clip: "WalkCycle",
     timeline: { id: managedModelTimelineId, active: { from: 0.08, to: 0.92 } },
-    durationSeconds: 8.333,
+    durationSeconds: 2.4,
   },
 } satisfies NonNullable<WebGLModelProps["animation"]>;
-const sprintModelPrepare = {
+const humanModelPrepare = {
   renderWarmup: "idle",
 } satisfies NonNullable<WebGLModelProps["prepare"]>;
 
@@ -104,12 +74,11 @@ export function ManagedModelAnimationExample() {
         <p className="example-kicker">managed model animation</p>
         <h2>Phase 7 模型动画独立验证</h2>
         <p>
-          Sprint.glb 通过 public WebGLModel 声明进入 scene，显式 defaultClips
-          同时启动主骨骼、速度线平面和 checkout 组合，并用固定滚动区间 scrub
-          可见动作。
+          human_male_base.glb 通过 public WebGLModel 声明进入 scene，并用
+          pinned scroll 区间 scrub WalkCycle。
         </p>
-        <ul className="example-managed-model-clips" aria-label="Active default clips">
-          {sprintModelClipLabels.map((label) => (
+        <ul className="example-managed-model-clips" aria-label="Phase 7 animation coverage">
+          {humanModelClipLabels.map((label) => (
             <li key={label}>{label}</li>
           ))}
         </ul>
@@ -136,14 +105,13 @@ export function ManagedModelAnimationExample() {
             target={cameraTarget}
           />
           <WebGLModel
-            id="example.managedModel.sprint"
-            src="/models/Sprint.glb"
-            loader={sprintModelLoader}
-            position={sprintModelPosition}
-            rotation={sprintModelRotation}
-            scale={9.5}
-            animation={sprintModelAnimation}
-            prepare={sprintModelPrepare}
+            id="example.managedModel.human"
+            src="/models/human_male_base.glb"
+            position={humanModelPosition}
+            rotation={humanModelRotation}
+            scale={126}
+            animation={humanModelAnimation}
+            prepare={humanModelPrepare}
           />
           <WebGLLight id="example.managedModel.ambient" kind="ambient" intensity={0.3} />
           <WebGLLight

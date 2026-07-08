@@ -519,26 +519,15 @@ Scene-native GLBs are declared with `WebGLModel` under a managed scene:
   <WebGLCamera id="hero.camera" default type="perspective" mode="perspective-stage" />
   <WebGLModel
     id="hero.character"
-    src="/models/Sprint.glb"
-    loader={{ draco: { decoderPath: "/draco/gltf/" } }}
-    position={[0, -90, -40]}
-    scale={44}
+    src="/models/human_male_base.glb"
+    position={[0, -92, -40]}
+    scale={126}
     prepare={{ renderWarmup: "idle" }}
     animation={{
-      defaultClips: [
-        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160 },
-        { clip: "SpeedLines.001", loop: "repeat" },
-        { clip: "BagArmature.001", loop: "repeat" },
-      ],
       scrub: {
-        clip: "Walk",
+        clip: "WalkCycle",
         timeline: { id: "hero.timeline" },
-        durationSeconds: 1.4,
-      },
-      blend: {
-        from: "Idle",
-        to: "Walk",
-        timeline: { id: "hero.timeline" },
+        durationSeconds: 2.4,
       },
       morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
     }}

@@ -328,14 +328,13 @@ example keeps the glowing model smaller by constraining the DOM target rect
 instead of writing `ctx.object.scale`. It does not create a loader, scene,
 camera, light, material, mixer, composer, render target, or render loop.
 
-For scene-native model dogfood, `apps/example` mounts `/models/Sprint.glb` with
+For scene-native model dogfood, `apps/example` mounts `/models/human_male_base.glb` with
 public `WebGLModel` in a dedicated `ManagedModelAnimationExample` row and its
-own `example.managedModel.*` scene. That example uses declarative Draco loader
-configuration, explicit `defaultClips` for `MainSkeleton.001`,
-`SpeedLines.001`, and `BagArmature.001`, and
-`prepare={{ renderWarmup: "idle" }}`. Use `defaultClips` only for clips the app
-intentionally wants to start together. It is not a `playAllClips` shortcut, and
-the runtime does not infer which exported GLB clips are meaningful. The prepare
+own `example.managedModel.*` scene. That example scrubs `WalkCycle` from pinned
+timeline progress and uses `prepare={{ renderWarmup: "idle" }}`. Use
+`defaultClips` only for clips the app intentionally wants to start together. It
+is not a `playAllClips` shortcut, and the runtime does not infer which exported
+GLB clips are meaningful. The prepare
 descriptor is not `WebGLTarget.lifecycle`: it does not create DOM fallback, DOM
 rect fitting, target pointer state, or target-local effects. It only asks the
 runtime to perform a tiny internal render after the GLB is loaded, cloned,

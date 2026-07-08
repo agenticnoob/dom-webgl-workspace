@@ -761,9 +761,9 @@ Status values:
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, clip-not-compress browser correction, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
 | Phase 7: Managed Model Animation | `[verified]` | [2026-07-05-managed-model-animation.md](../superpowers/plans/2026-07-05-managed-model-animation.md) | Public `WebGLModel`, runtime model registry, descriptor animation/morph controls, debug summaries, example dogfood, tests, docs, and commit are closed. Scene-native `WebGLModel` effects were intentionally deferred out of Phase 7 and handled as explicit scene-object effects in Phase 8. |
-| Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate the main Sprint skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
+| Phase 7B: Model Animation Correction And Prepare | `[verified]` | [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md) | Corrects Phase 7 dogfood to animate a representative lightweight human skeleton, adds skeleton-safe GLB scene cloning, descriptor-only render warmup, browser pixel/debug/profile verification, tests, docs, and commit before Phase 8 picking starts. |
 | Phase 7C: Explicit Default Clips | `[verified]` | [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md) | Public `animation.defaultClips`, ordered `defaultClip` + `defaultClips` normalization, example dogfood, tests, browser debug/pixel verification, docs, and commit are closed while avoiding `playAllClips`, action graphs, or raw mixers. |
-| Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
+| Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; prepared managed models stay queued while far from view, load/warm up inside the prepare margin, and remain smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
 | Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
 | Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, direct pointer-drag manipulation with release inertia, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
@@ -1357,11 +1357,11 @@ Implemented v1:
   activity, available clips, active clips, morph names, bone names, and missing
   clip/morph diagnostics without exposing raw GLTF, mixer, action, skeleton, or
   morph arrays.
-- `apps/example` dogfoods `Sprint.glb` through public `WebGLModel`, declarative
-  Draco loader configuration, and explicit default clips in a dedicated
+- `apps/example` dogfoods `human_male_base.glb` through public `WebGLModel`,
+  and pinned `WalkCycle` scrub in a dedicated
   `ManagedModelAnimationExample` / `example.managedModel.*` scene. Keep this
-  model dogfood separate from pinned timeline, camera-controller, and stage
-  primitive rows.
+  model dogfood separate from camera-controller and stage primitive rows; do not
+  turn it into inferred all-clip playback.
 
 Model asset requirements:
 
@@ -1408,23 +1408,14 @@ Public direction:
 ```tsx
 <WebGLModel
   id="character"
-  src="/models/Sprint.glb"
-  position={[0, -80, 0]}
-  scale={44}
+  src="/models/human_male_base.glb"
+  position={[0, -92, 0]}
+  scale={126}
   animation={{
-    defaultClips: [
-      { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
-      { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
-      { clip: "Plane.250", loop: "repeat", timeScale: 3.2 },
-      { clip: "Plane.251", loop: "repeat", timeScale: 3.2 },
-      { clip: "Ray.001", loop: "repeat", timeScale: 3.2 },
-      { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
-      { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
-    ],
     scrub: {
-      clip: "checkoutCTRL.001",
+      clip: "WalkCycle",
       timeline: { id: "hero.timeline", active: { from: 0.08, to: 0.92 } },
-      durationSeconds: 8.333,
+      durationSeconds: 2.4,
     },
   }}
 />
@@ -1438,10 +1429,10 @@ Focused plan reminder:
   crossfade, morph controls, and rig diagnostics.
 - Keep DOM-backed model targets valid. `WebGLModel` is opt-in for scene-native
   `stage-local` models, not a replacement for `WebGLTarget` model sources.
-- Confirmed v1 scope decision: use `Sprint.glb` for app-level clip/skin dogfood,
-  but do not implement additive animation layers, bone attachments, IK, action
-  graphs, or animation state machines in Phase 7 v1. Record those as deferred
-  future animation capability areas.
+- Confirmed v1 scope decision: use `human_male_base.glb` for app-level
+  clip/skin dogfood, but do not implement additive animation layers, bone
+  attachments, IK, action graphs, or animation state machines in Phase 7 v1.
+  Record those as deferred future animation capability areas.
 - Confirmed v1 effect-scope decision: scene-native `WebGLModel` does not accept
   target-local `effects` in Phase 7 v1. Phase 8 later handled scene-native model
   effects as explicit scene-object scope instead of copying the DOM-target effect
@@ -1454,8 +1445,8 @@ defineWebGLEffect({
   kind: "app.characterScroll",
   update(ctx, _state, params) {
     const progress = ctx.progress.get(params.progressKey);
-    ctx.object.animation?.play("checkoutCTRL.001", { loop: "repeat" });
-    ctx.object.animation?.setTime(progress * 8.333);
+    ctx.object.animation?.play("WalkCycle", { loop: "repeat" });
+    ctx.object.animation?.setTime(progress * 2.4);
   },
 });
 ```
@@ -1487,17 +1478,17 @@ Acceptance criteria:
 - **Focused plan:** [2026-07-05-phase-7-model-animation-correction-model-prepare.md](../superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md)
 - **Depends on:** Phase 7
 - **Last updated:** 2026-07-05
-- **Exit criteria:** `Sprint.glb` visibly animates through `WebGLModel`, skinned
-  GLB scenes use a skeleton-safe clone path, and scene-native models can request
-  a descriptor-only first-render warmup without adopting `WebGLTarget`
-  lifecycle semantics or exposing raw Three.js objects.
+- **Exit criteria:** `human_male_base.glb` visibly animates through
+  `WebGLModel`, skinned GLB scenes use a skeleton-safe clone path, and
+  scene-native models can request a descriptor-only first-render warmup without
+  adopting `WebGLTarget` lifecycle semantics or exposing raw Three.js objects.
 
 Goal: close the Phase 7 verification gap before interaction/picking work begins.
 
 Scope:
 
-- Correct `apps/example` dogfood from the previous sub-rig clip to the main
-  `MainSkeleton.001` character skeleton clip.
+- Keep `apps/example` dogfood on representative skeletal clips from the
+  lightweight `human_male_base.glb` asset.
 - Add an app asset contract test that proves the dogfood clip targets the main
   skeleton and prevents drifting back to a non-representative clip.
 - Clone skinned GLB scenes through an internal skeleton-safe path while keeping
@@ -1527,11 +1518,10 @@ Rules:
 - **Focused plan:** [2026-07-06-phase-7c-explicit-default-clips.md](../superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md)
 - **Depends on:** Phase 7B
 - **Last updated:** 2026-07-06
-- **Exit criteria:** `WebGLModel.animation.defaultClips` can start several
-  explicitly named clips once, reports active clips and missing clip diagnostics,
-  preserves `defaultClip`, and dogfoods Sprint's main skeleton, speed-line
-  root/plane clips, and bag clips with visible example framing and clip
-  `timeScale` values, without exposing raw animation internals.
+- **Exit criteria:** `WebGLModel.animation.defaultClips` can start explicitly
+  named clips once, reports active clips and missing clip diagnostics, preserves
+  `defaultClip`, and dogfoods `human_male_base.glb` with pinned `WalkCycle`
+  scrub, without exposing raw animation internals.
 
 Goal: add intentional multi-clip startup for exported GLB assets whose visible
 motion is split across several named clips.
@@ -1543,13 +1533,9 @@ Scope:
 - Normalize `defaultClip` and `defaultClips` into one internal ordered list.
 - Start each declared default clip once through the existing runtime-owned
   animation controller.
-- Use the Phase 7 model dogfood to declare `MainSkeleton.001`,
-  `SpeedLines.001`, selected speed-line plane clips, and `BagArmature.001`
-  explicitly, with example-only playback speed values that make the dogfood
-  visually legible.
 - Use the already-supported `animation.scrub` descriptor in the same pinned
-  dogfood row to scrub the visible checkout control clip for browser
-  interaction proof; do not add target-local scene-native model effects in
+  dogfood row to scrub `WalkCycle` for browser interaction proof; do not add
+  target-local scene-native model effects in
   Phase 7C.
 - Keep active clip and missing clip debug state descriptor-only.
 

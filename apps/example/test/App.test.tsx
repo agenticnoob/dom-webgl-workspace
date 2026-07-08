@@ -8,19 +8,6 @@ const runtimeProps: RuntimeMockProps[] = [];
 const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
 const scrollSectionProps: ScrollEffectSectionMockProps[] = [];
 const scrollTimelineProps: ScrollTimelineMockProps[] = [];
-const expectedManagedModelSpeedLinePlaneClips = [
-  "Plane.250",
-  "Plane.251",
-  "Plane.252",
-  "Plane.253",
-  "Plane.254",
-  "Plane.256",
-  "Plane.258",
-  "Plane.262",
-  "Plane.263",
-  "Plane.264",
-  "Ray.001",
-] as const;
 const targetProps: TargetMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
@@ -563,36 +550,19 @@ describe("effect authoring example app", () => {
     ]);
     expect(modelProps).toEqual([
       expect.objectContaining({
-        id: "example.managedModel.sprint",
-        src: "/models/Sprint.glb",
-        loader: { draco: { decoderPath: "/draco/gltf/", preload: true } },
-        position: [116, -86, -80],
-        rotation: [0, -0.58, 0],
-        scale: 9.5,
+        id: "example.managedModel.human",
+        src: "/models/human_male_base.glb",
+        position: [116, -92, -80],
+        rotation: [0, -0.36, 0],
+        scale: 126,
         animation: {
-          defaultClips: [
-            {
-              clip: "MainSkeleton.001",
-              loop: "repeat",
-              fadeInMs: 160,
-              timeScale: 2.4,
-            },
-            { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
-            ...expectedManagedModelSpeedLinePlaneClips.map((clip) => ({
-              clip,
-              loop: "repeat",
-              timeScale: 3.2,
-            })),
-            { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
-            { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
-          ],
           scrub: {
-            clip: "checkoutCTRL.001",
+            clip: "WalkCycle",
             timeline: {
               id: "example.managedModel.timeline",
               active: { from: 0.08, to: 0.92 },
             },
-            durationSeconds: 8.333,
+            durationSeconds: 2.4,
           },
         },
         prepare: { renderWarmup: "idle" },

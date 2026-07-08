@@ -110,6 +110,9 @@ Window totals are counters accumulated during each sampling window. Per-frame va
 
 - Date: 2026-07-06
 - Branch: `codex/managed-render-roadmap-iteration`
+- Current note: this is historical evidence from the Sprint-based dogfood. The
+  active Phase 7 dogfood now uses the smaller `/models/human_male_base.glb`
+  asset and scrubs `WalkCycle` from pinned scroll progress.
 - Scenario: `apps/example` managed model dogfood after Phase 7D
   viewport-proximity prepare, 1280x900 headless Chromium, production build via
   Vite preview.

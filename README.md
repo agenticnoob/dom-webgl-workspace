@@ -168,16 +168,12 @@ Current example behavior:
   directly into another similar 3D stage pass.
 - The Phase 7 managed model animation dogfood is a separate catalog row between
   the stage primitive example and the pinned managed timeline. It mounts
-  `/models/Sprint.glb` through public `WebGLModel` in its own
-  `example.managedModel.*` scene with declarative Draco loader configuration
-  and explicit `defaultClips` for `MainSkeleton.001`, the speed-line root plus a
-  curated set of speed-line plane clips, and `BagArmature.001`. The example
-  frames the model more directly and gives those clips explicit `timeScale`
-  values so the multi-clip dogfood remains visible without adding target-local
-  effects. The row owns an independent pinned scroll timeline that scrubs
-  `checkoutCTRL.001` through the existing `animation.scrub` descriptor, giving
-  browser QA an interaction proof separate from the pinned stage timeline. It
-  also requests
+  `/models/human_male_base.glb` through public `WebGLModel` in its own
+  `example.managedModel.*` scene and uses an independent pinned scroll timeline
+  to scrub `WalkCycle` through the existing `animation.scrub` descriptor. The
+  example avoids `playAllClips`, target-local effects, and unrelated exported
+  clips so browser QA has a clear proof that scroll progress controls the visible
+  walking motion. It also requests
   `prepare={{ renderWarmup: "idle" }}` so the runtime performs a tiny managed
   first-render warmup after load, clone, attachment, and animation setup.
   For DOM-bound managed model passes, that prepare path is
@@ -311,10 +307,9 @@ Current visual behavior:
   They do not create raw loaders, scenes, cameras, lights, materials, mixers,
   composers, render targets, or render loops.
 - The scene-native `WebGLModel` dogfood is separate from those DOM-following GLB
-  target examples: `ManagedModelAnimationExample` mounts `/models/Sprint.glb`
-  in its own managed scene with explicit `defaultClips` for the main skeleton,
-  speed-line root/plane clips, checkout scrub clip, and bag rig, and does not
-  use target-local effects.
+  target examples: `ManagedModelAnimationExample` mounts
+  `/models/human_male_base.glb` in its own managed scene, scrubs `WalkCycle`
+  from pinned timeline progress, and does not use target-local effects.
 - Runtime CSS reads should stay limited to fields needed for layout/content
   mapping: rects, content boxes, padding when it affects placement, text metrics,
   media object-fit/object-position, visibility, and lifecycle state.
@@ -531,25 +526,15 @@ descriptors:
   <WebGLCamera id="hero.camera" default type="perspective" mode="perspective-stage" />
   <WebGLModel
     id="hero.character"
-    src="/models/Sprint.glb"
-    loader={{ draco: { decoderPath: "/draco/gltf/" } }}
-    position={[0, -90, -40]}
-    scale={44}
+    src="/models/human_male_base.glb"
+    position={[0, -92, -40]}
+    scale={126}
     prepare={{ renderWarmup: "idle" }}
     animation={{
-      defaultClips: [
-        { clip: "MainSkeleton.001", loop: "repeat", fadeInMs: 160, timeScale: 2.4 },
-        { clip: "SpeedLines.001", loop: "repeat", timeScale: 2.8 },
-        { clip: "Plane.250", loop: "repeat", timeScale: 3.2 },
-        { clip: "Plane.251", loop: "repeat", timeScale: 3.2 },
-        { clip: "Ray.001", loop: "repeat", timeScale: 3.2 },
-        { clip: "checkoutCTRL.001", loop: "repeat", timeScale: 2.4 },
-        { clip: "BagArmature.001", loop: "repeat", timeScale: 2.4 },
-      ],
       scrub: {
-        clip: "checkoutCTRL.001",
+        clip: "WalkCycle",
         timeline: { id: "hero.timeline", active: { from: 0.08, to: 0.92 } },
-        durationSeconds: 8.333,
+        durationSeconds: 2.4,
       },
     }}
   />

@@ -341,17 +341,18 @@ Phase 7 established the scene-native `WebGLModel` descriptor path, runtime model
 registry, descriptor animation/morph controls, and descriptor-only diagnostics
 while keeping DOM-backed `WebGLTarget` model sources valid:
 [2026-07-05-managed-model-animation.md](./superpowers/plans/2026-07-05-managed-model-animation.md).
-Phase 7B is verified and corrects the model animation dogfood to play
-`Sprint.glb`'s main skeleton clip, use skeleton-safe GLB scene cloning, and add
-a minimal descriptor-only `WebGLModel.prepare.renderWarmup` path:
+Phase 7B is verified and corrects the model animation dogfood to play the human
+base model's exported skeletal clips, use skeleton-safe GLB scene cloning, and
+add a minimal descriptor-only `WebGLModel.prepare.renderWarmup` path:
 [2026-07-05-phase-7-model-animation-correction-model-prepare.md](./superpowers/plans/2026-07-05-phase-7-model-animation-correction-model-prepare.md).
 Phase 7C is verified and adds explicit
 `WebGLModel.animation.defaultClips` for intentional multi-clip defaults while
-preserving `defaultClip`; the example dogfood frames `Sprint.glb` more directly
-and uses explicit speed-line plane clips plus clip `timeScale` values so the
-main skeleton, speed lines, and bag rig visibly move during browser validation.
+preserving `defaultClip`; the example dogfood now frames
+`human_male_base.glb` directly and uses pinned `WalkCycle` scrub so skeletal
+animation remains visible during browser validation without the previous heavy
+Sprint asset or unrelated exported clips.
 It also uses the existing `animation.scrub` descriptor on its own pinned scroll
-timeline, scrubbing the visible checkout control clip for interaction proof
+timeline, scrubbing the visible `WalkCycle` clip for interaction proof
 without adding target-local `WebGLModel` effects:
 [2026-07-06-phase-7c-explicit-default-clips.md](./superpowers/plans/2026-07-06-phase-7c-explicit-default-clips.md).
 It does not add `playAllClips`, animation graphs, state machines, raw
