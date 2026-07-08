@@ -86,6 +86,7 @@ export function createInteractionRouter(): InteractionRouter {
   let previousPointerDown = false;
   let pressedObjectId: string | undefined;
   let capturedObjectId: string | undefined;
+  let capturedHit: ManagedHitResult | undefined;
   let clickCandidateObjectId: string | undefined;
   let lastClickedObjectId: string | undefined;
   let pointerDraggedDuringPress = false;
@@ -110,11 +111,10 @@ export function createInteractionRouter(): InteractionRouter {
 
       const shouldRouteObjectHit =
         !input.pointer.isDown || !pointerDraggedDuringPress;
-      const hit = shouldRouteObjectHit
+      let hit = shouldRouteObjectHit
         ? readActiveHit(updateInput, candidates)
         : undefined;
-      const hitCandidate = hit ? candidateById.get(hit.id) : undefined;
-      const hoveredObjectId = hitCandidate?.pointer.hover ? hitCandidate.id : undefined;
+      let hitCandidate = hit ? candidateById.get(hit.id) : undefined;
       let clickedObjectId: string | undefined;
 
       pointerStatesByObjectId.clear();
@@ -128,7 +128,20 @@ export function createInteractionRouter(): InteractionRouter {
         }
         if (hitCandidate.pointer.drag) {
           capturedObjectId = hitCandidate.id;
+          capturedHit = hit;
         }
+      }
+
+      if (!shouldRouteObjectHit && input.pointer.isDown && capturedObjectId) {
+        const capturedCandidate = candidateById.get(capturedObjectId);
+        const activeCapturedHit = capturedCandidate
+          ? readActiveHit(updateInput, [capturedCandidate])
+          : undefined;
+        if (activeCapturedHit?.id === capturedObjectId) {
+          capturedHit = activeCapturedHit;
+        }
+        hit = activeCapturedHit ?? capturedHit;
+        hitCandidate = hit ? candidateById.get(hit.id) : undefined;
       }
 
       if (!input.pointer.isDown && previousPointerDown) {
@@ -147,9 +160,15 @@ export function createInteractionRouter(): InteractionRouter {
         }
         pressedObjectId = undefined;
         capturedObjectId = undefined;
+        capturedHit = undefined;
         clickCandidateObjectId = undefined;
         pointerDraggedDuringPress = false;
       }
+
+      const hoveredObjectId =
+        shouldRouteObjectHit && hitCandidate?.pointer.hover
+          ? hitCandidate.id
+          : undefined;
 
       for (const candidate of candidates) {
         const isCaptured = capturedObjectId === candidate.id;
@@ -199,6 +218,7 @@ export function createInteractionRouter(): InteractionRouter {
       }
       if (capturedObjectId === id) {
         capturedObjectId = undefined;
+        capturedHit = undefined;
       }
       if (clickCandidateObjectId === id) {
         clickCandidateObjectId = undefined;
@@ -213,6 +233,7 @@ export function createInteractionRouter(): InteractionRouter {
       previousPointerDown = false;
       pressedObjectId = undefined;
       capturedObjectId = undefined;
+      capturedHit = undefined;
       clickCandidateObjectId = undefined;
       lastClickedObjectId = undefined;
       pointerDraggedDuringPress = false;

@@ -62,6 +62,13 @@ export type ExampleEffectParams = {
     hoverOpacity?: number;
     clickOpacity?: number;
   };
+  "example.physicsKinematicSweep": {
+    baseX?: number;
+    amplitude?: number;
+    y?: number;
+    z?: number;
+    speed?: number;
+  };
 };
 
 export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams>()([
@@ -131,5 +138,13 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
     baseOpacity: 0.68,
     hoverOpacity: 0.92,
     clickOpacity: 1,
+  },
+  {
+    kind: "example.physicsKinematicSweep",
+    baseX: 252,
+    amplitude: 96,
+    y: -132,
+    z: -70,
+    speed: 0.0024,
   },
 ]);

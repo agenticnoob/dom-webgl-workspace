@@ -1054,9 +1054,12 @@ Scene-native physics is descriptor-only on managed stage/model objects:
 
 Supported body types are `static`, `dynamic`, and `kinematic`. Supported
 colliders are `bounds`, `box`, `sphere`, and `plane`. Supported constraints are
-`anchor` and `spring`; `pointerDrag` creates a runtime-owned drag force from
-managed object hit state. The runtime owns integration, simple static plane/box
-collision response, transform writes, scheduling, debug summaries, and disposal.
+`anchor` and `spring`; `pointerDrag` creates runtime-owned direct manipulation
+from managed press hits plus pointer drag deltas. While dragging, the body
+follows scene-XY pointer movement and keeps its Z position stable; on release,
+physics resumes with velocity derived from the last drag movement. The runtime
+owns integration, simple static plane/box collision response, transform writes,
+scheduling, debug summaries, and disposal.
 This is Level 3 scene-native physics only: do not add Level 1 `WebGLTarget`
 physics, raw body handles, raw physics-engine access, dynamic-vs-dynamic
 impulses, joints, or collision callbacks.
@@ -1728,6 +1731,12 @@ skill:
   through `controller.pointer` with orbit, pan, dolly, camera-scoped parallax,
   damping, and reset. Do not add `screen-plane` DOM targets to this drift
   surface.
+- For managed physics drift debugging, use the separate
+  `ManagedPhysicsExample` surface. It intentionally covers static, dynamic,
+  and kinematic bodies; plane, box, sphere, and bounds colliders; anchor and
+  spring constraints; direct pointer-drag manipulation; stage primitive
+  physics; and scene-native `WebGLModel` physics. Do not mix new physics
+  coverage back into the Phase 8B interaction/camera dogfood.
 - Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image
   assets, effect keys, copy such as `Boo!`, and shader tuning live in
   `apps/example`; packages should only gain generic capabilities such as

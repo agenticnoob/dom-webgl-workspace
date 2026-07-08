@@ -211,7 +211,7 @@ Add typecheck cases proving:
 const stagePhysics = {
   body: { type: "dynamic", mass: 1, velocity: [0, 0, 0], damping: 0.08 },
   collider: { kind: "box", size: [120, 20, 120] },
-  pointerDrag: { stiffness: 0.28, damping: 0.16, maxForce: 1800 },
+  pointerDrag: true,
   constraints: [
     { kind: "spring", target: [0, 20, 0], restLength: 0, stiffness: 0.18 },
   ],
@@ -352,7 +352,9 @@ test("static bodies do not move", () => {});
 test("kinematic bodies keep descriptor transform unless pointer drag is active", () => {});
 test("spring constraints pull a body toward their target", () => {});
 test("sphere and box bodies resolve against a static plane", () => {});
-test("pointer drag creates a spring target from object pointer hit state", () => {});
+test("pointer drag directly translates a body by 2D pointer delta", () => {});
+test("pointer drag ignores collision until release", () => {});
+test("pointer drag velocity carries into physics after release", () => {});
 test("dispose clears bodies and inspect returns an empty summary", () => {});
 ```
 

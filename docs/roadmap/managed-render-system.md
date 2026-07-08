@@ -766,7 +766,7 @@ Status values:
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; Sprint stays queued while far from view, loads/warmups inside the prepare margin, and remains smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
 | Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
-| Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, pointer-drag forces, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
+| Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, direct pointer-drag manipulation with release inertia, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
 | Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
 
 Rules for future updates:
@@ -1708,11 +1708,12 @@ Acceptance criteria:
 - Pointer gesture frames persist after movement stops or release, and true
   managed camera resize re-applies the current gesture frame rather than
   snapping back to the declaration base frame.
-- `apps/example/src/ManagedInteractionExample.tsx` remains the managed
-  interaction dogfood: object picking covers one static-physics floor, one
-  dynamic pointer-draggable crate, and one scene-native hero model, while the
-  same managed camera validates orbit, pan, dolly, camera parallax, damping,
-  and reset through public React descriptors.
+- `apps/example/src/ManagedInteractionExample.tsx` remains the Phase 8B managed
+  interaction dogfood: object picking covers one stage floor and one
+  scene-native hero model, while the same managed camera validates orbit, pan,
+  dolly, camera parallax, damping, and reset through public React descriptors.
+  It does not declare physics; Phase 9 physics dogfood lives in
+  `apps/example/src/ManagedPhysicsExample.tsx`.
 
 ### Phase 9: Dynamics and Physics
 
@@ -1735,10 +1736,15 @@ Implemented v1 layers:
 - `static`, `dynamic`, and `kinematic` body types;
 - `bounds`, `box`, `sphere`, and `plane` colliders;
 - `anchor` and `spring` constraints;
-- `pointerDrag` forces built on Phase 8 object hit/drag state;
+- `pointerDrag` direct manipulation built on Phase 8 press-hit and drag-delta
+  state, with release velocity handed back to physics;
 - runtime-owned transform writes, frame scheduling, debug summaries, and
   lifecycle/disposal;
-- example dogfood with a static floor and dynamic pointer-draggable crate.
+- example dogfood in `apps/example/src/ManagedPhysicsExample.tsx` covering
+  static, dynamic, and kinematic bodies; plane, box, sphere, and bounds
+  colliders; anchor and spring constraints; direct pointer-drag manipulation;
+  stage primitive physics; scene-native `WebGLModel` physics; and visible
+  static collider bounce/inertia after releasing the red block.
 
 Rules:
 

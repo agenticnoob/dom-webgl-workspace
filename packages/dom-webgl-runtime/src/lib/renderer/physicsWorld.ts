@@ -49,6 +49,14 @@ type PhysicsBodyState = {
   velocity: WebGLTuple3;
   active: boolean;
   pointerDragActive: boolean;
+  pointerDragOrigin?: PointerDragOrigin;
+};
+
+type PointerDragOrigin = {
+  readonly dragStartX: number;
+  readonly dragStartY: number;
+  readonly startPosition: WebGLTuple3;
+  previousPosition: WebGLTuple3;
 };
 
 const GRAVITY: WebGLTuple3 = [0, -980, 0];
@@ -102,6 +110,9 @@ export function createPhysicsWorld(): PhysicsWorld {
           velocity: previous?.velocity ?? candidate.physics.body.velocity,
           active: false,
           pointerDragActive: false,
+          ...(previous?.pointerDragOrigin
+            ? { pointerDragOrigin: previous.pointerDragOrigin }
+            : {}),
         });
       }
 
@@ -171,11 +182,19 @@ export function createPhysicsWorld(): PhysicsWorld {
       return body.position;
     }
 
-    const force = addForces(
-      readConstraintForce(body),
-      readPointerDragForce(body, candidate),
+    const pointerDragPosition = readPointerDragPosition(
+      body,
+      candidate,
+      deltaSeconds,
     );
-    body.pointerDragActive = readPointerDragActive(body, candidate);
+    if (pointerDragPosition) {
+      body.active = true;
+      body.pointerDragActive = true;
+      return pointerDragPosition;
+    }
+
+    body.pointerDragActive = false;
+    const force = readConstraintForce(body);
 
     if (declaration.type === "kinematic" && !body.pointerDragActive) {
       body.velocity = [0, 0, 0];
@@ -202,7 +221,6 @@ export function createPhysicsWorld(): PhysicsWorld {
     body.active =
       vectorLength(dampedVelocity) > SETTLE_EPSILON ||
       vectorLength(force) > SETTLE_EPSILON ||
-      body.pointerDragActive ||
       body.physics.constraints.length > 0;
 
     return nextPosition;
@@ -215,7 +233,11 @@ export function createPhysicsWorld(): PhysicsWorld {
     );
 
     for (const body of entries.values()) {
-      if (body.physics.body?.type !== "dynamic" || !body.physics.collider) {
+      if (
+        body.physics.body?.type !== "dynamic" ||
+        !body.physics.collider ||
+        body.pointerDragActive
+      ) {
         continue;
       }
 
@@ -276,34 +298,60 @@ function readConstraintForce(body: PhysicsBodyState): WebGLTuple3 {
   return force;
 }
 
-function readPointerDragForce(
+function readPointerDragPosition(
   body: PhysicsBodyState,
   candidate: ManagedPhysicsCandidate | undefined,
-): WebGLTuple3 {
-  const drag = body.physics.pointerDrag;
-  const hit = candidate?.objectPointer?.hit;
-  if (!drag || !candidate?.objectPointer?.isDragging || !hit) {
-    return [0, 0, 0];
+  deltaSeconds: number,
+): WebGLTuple3 | undefined {
+  const pointer = candidate?.objectPointer;
+  if (!body.physics.pointerDrag || !pointer?.isPressed || !pointer.hit) {
+    if (!pointer?.isDragging) {
+      body.pointerDragOrigin = undefined;
+    }
+    return undefined;
   }
 
-  const offset = subtractVectors(hit.point, body.position);
-  const springForce = subtractVectors(
-    multiplyVector(offset, drag.stiffness),
-    multiplyVector(body.velocity, drag.damping),
-  );
+  if (
+    !body.pointerDragOrigin ||
+    body.pointerDragOrigin.dragStartX !== pointer.dragStartX ||
+    body.pointerDragOrigin.dragStartY !== pointer.dragStartY
+  ) {
+    body.pointerDragOrigin = createPointerDragOrigin(pointer, body.position);
+  }
 
-  return limitVector(springForce, drag.maxForce);
+  const origin = body.pointerDragOrigin;
+  const nextPosition = addVectors(origin.startPosition, [
+    pointer.dragDeltaX,
+    -pointer.dragDeltaY,
+    0,
+  ]);
+  body.velocity =
+    deltaSeconds > 0
+      ? multiplyVector(
+          subtractVectors(nextPosition, origin.previousPosition),
+          1 / deltaSeconds,
+        )
+      : [0, 0, 0];
+  origin.previousPosition = nextPosition;
+
+  return nextPosition;
 }
 
-function readPointerDragActive(
-  body: PhysicsBodyState,
-  candidate: ManagedPhysicsCandidate | undefined,
-): boolean {
-  return Boolean(
-    body.physics.pointerDrag &&
-      candidate?.objectPointer?.isDragging &&
-      candidate.objectPointer.hit,
-  );
+function createPointerDragOrigin(
+  pointer: WebGLSceneObjectPointerState,
+  position: WebGLTuple3,
+): PointerDragOrigin {
+  const startPosition = cloneVector(position);
+  return {
+    dragStartX: pointer.dragStartX,
+    dragStartY: pointer.dragStartY,
+    startPosition,
+    previousPosition: startPosition,
+  };
+}
+
+function cloneVector(vector: WebGLTuple3): WebGLTuple3 {
+  return [vector[0], vector[1], vector[2]];
 }
 
 function resolveBodyCollision(
@@ -546,10 +594,6 @@ function hasMoved(previous: WebGLTuple3, next: WebGLTuple3): boolean {
   return vectorLength(subtractVectors(next, previous)) > SETTLE_EPSILON;
 }
 
-function addForces(left: WebGLTuple3, right: WebGLTuple3): WebGLTuple3 {
-  return addVectors(left, right);
-}
-
 function addVectors(left: WebGLTuple3, right: WebGLTuple3): WebGLTuple3 {
   return [left[0] + right[0], left[1] + right[1], left[2] + right[2]];
 }
@@ -577,15 +621,6 @@ function normalizeDirection(vector: WebGLTuple3): WebGLTuple3 {
   }
 
   return multiplyVector(vector, 1 / length);
-}
-
-function limitVector(vector: WebGLTuple3, maxLength: number): WebGLTuple3 {
-  const length = vectorLength(vector);
-  if (length <= maxLength || length <= SETTLE_EPSILON) {
-    return vector;
-  }
-
-  return multiplyVector(vector, maxLength / length);
 }
 
 function clamp(value: number, min: number, max: number): number {

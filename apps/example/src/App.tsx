@@ -15,6 +15,7 @@ import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
 import { ManagedInteractionExample } from "./ManagedInteractionExample";
 import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
+import { ManagedPhysicsExample } from "./ManagedPhysicsExample";
 import { ManagedTimelineExample } from "./ManagedTimelineExample";
 import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
@@ -84,6 +85,7 @@ export default function App() {
           <ManagedModelAnimationExample />
           <ManagedTimelineExample />
           <ManagedInteractionExample />
+          <ManagedPhysicsExample />
 
           <section className="example-row">
             <EffectDescription source="dom/text" title="文字波浪">

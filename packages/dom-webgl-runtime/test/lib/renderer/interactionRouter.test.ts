@@ -171,6 +171,71 @@ describe("interaction router", () => {
     });
   });
 
+  test("keeps captured object hit state available during object drag", () => {
+    const router = createInteractionRouter();
+    const candidate = createCandidate("crate", {
+      hover: true,
+      press: true,
+      drag: true,
+    });
+    let pickIndex = 0;
+    const pickManagedObjects = vi.fn(
+      (_pass, candidates: readonly ManagedHitCandidate[]) => {
+        expect(candidates.map((candidate) => candidate.id)).toEqual(["crate"]);
+        const hit =
+          pickIndex === 0
+            ? createHit("crate", "world", [1, 2, 3], 10)
+            : createHit("crate", "world", [24, 2, 3], 12);
+        pickIndex += 1;
+        return hit;
+      },
+    );
+
+    router.update({
+      input: createFrameInput({ x: 100, y: 100, isDown: true }),
+      passes: [createPass("world", 0)],
+      candidates: [candidate],
+      pickManagedObjects,
+    });
+
+    const dragResult = router.update({
+      input: createFrameInput({
+        x: 124,
+        y: 100,
+        isDown: true,
+        isDragging: true,
+        dragStartX: 100,
+        dragStartY: 100,
+        dragDeltaX: 24,
+      }),
+      passes: [createPass("world", 0)],
+      candidates: [candidate],
+      pickManagedObjects,
+    });
+
+    expect(pickManagedObjects).toHaveBeenCalledTimes(2);
+    expect(dragResult.emptySpace).toBe(false);
+    expect(dragResult.debug).toMatchObject({
+      pressedObjectId: "crate",
+      capturedObjectId: "crate",
+      activeHit: {
+        objectId: "crate",
+        sceneId: "world",
+        sourceKind: "stage/box",
+      },
+    });
+    expect(router.getObjectPointerState("crate")).toMatchObject({
+      isHovered: false,
+      isPressed: true,
+      isDragging: true,
+      wasClicked: false,
+      hit: {
+        point: [24, 2, 3],
+        distance: 12,
+      },
+    });
+  });
+
   test("reports empty space when no object is hit", () => {
     const router = createInteractionRouter();
 
@@ -227,12 +292,17 @@ function createPass(
   };
 }
 
-function createHit(id: string, sceneId = "world"): ManagedHitResult {
+function createHit(
+  id: string,
+  sceneId = "world",
+  point: ManagedHitResult["point"] = [1, 2, 3],
+  distance = 10,
+): ManagedHitResult {
   return {
     id,
     sceneId,
-    point: [1, 2, 3],
-    distance: 10,
+    point,
+    distance,
   };
 }
 

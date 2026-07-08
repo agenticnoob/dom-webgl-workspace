@@ -132,7 +132,7 @@ vi.mock("@project/dom-webgl-runtime/react", () => ({
 }));
 
 describe("ManagedInteractionExample", () => {
-  test("declares rich camera gesture and physics dogfood on the interaction scene", async () => {
+  test("declares rich camera gesture and picking dogfood on the interaction scene", async () => {
     const { ManagedInteractionExample } = await import(
       "../src/ManagedInteractionExample"
     );
@@ -225,37 +225,9 @@ describe("ManagedInteractionExample", () => {
             pointer: { hover: true, click: true },
           },
         },
-        physics: {
-          body: { type: "static" },
-          collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
-        },
       }),
     ]);
-    expect(stageBoxProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.crate",
-        size: [72, 72, 72],
-        position: [24, -118, -70],
-        material: { kind: "standard", color: "#c87f47", roughness: 0.56 },
-        interaction: {
-          pickable: {
-            hitTest: "bounds",
-            pointer: { hover: true, press: true, drag: true },
-          },
-        },
-        physics: {
-          body: {
-            type: "dynamic",
-            mass: 1.6,
-            damping: 0.04,
-            restitution: 0.22,
-            friction: 0.62,
-          },
-          collider: { kind: "box", size: [72, 72, 72] },
-          pointerDrag: true,
-        },
-      }),
-    ]);
+    expect(stageBoxProps).toEqual([]);
     expect(modelProps).toEqual([
       expect.objectContaining({
         id: "example.interaction.hero",

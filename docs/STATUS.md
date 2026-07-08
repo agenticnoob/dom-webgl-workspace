@@ -132,8 +132,9 @@ phase records are archived under [archive/](./archive/).
     descriptor-only `physics`
   - supported body types are `static`, `dynamic`, and `kinematic`
   - supported collider descriptors are `bounds`, `box`, `sphere`, and `plane`
-  - supported constraints are `anchor` and `spring`; `pointerDrag` feeds a
-    runtime-owned spring constraint from Phase 8 object hit/drag state
+  - supported constraints are `anchor` and `spring`; `pointerDrag` uses Phase 8
+    press-hit and drag-delta state for direct scene-XY manipulation, then
+    resumes physics on release with velocity from the last drag movement
   - the runtime owns body state, integration, simple static collision response,
     transform writes, frame scheduling, debug summaries, and disposal
   - debug state can report descriptor-only physics body counts, active body
@@ -225,8 +226,8 @@ phase records are archived under [archive/](./archive/).
   stage/model objects only. They are not Level 1 `WebGLTarget` physics, not a
   raw physics engine escape hatch, and not a full rigid-body solver. The v1
   implementation is intentionally small: gravity/velocity/damping,
-  anchor/spring constraints, pointer-drag forces, static plane/box collision
-  response, runtime-owned transform writes, and descriptor-only debug.
+  anchor/spring constraints, direct pointer-drag manipulation, static plane/box
+  collision response, runtime-owned transform writes, and descriptor-only debug.
   Dynamic-vs-dynamic impulses, collision callbacks/events, joints, compound
   colliders, external physics adapters, wheel/pinch physics controls, and
   public body handles remain out of scope.
@@ -280,17 +281,30 @@ phase records are archived under [archive/](./archive/).
   canvas; the pass is clipped by the visible DOM rect without remapping into
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
-- The managed interaction example is mounted in `apps/example` and now serves
-  as the Phase 8B/Phase 9 dogfood surface with a pickable static-physics
-  `WebGLStagePlane` floor, a pickable dynamic-physics `WebGLStageBox` crate,
-  and one pickable scene-native `/models/hero.glb` model. It keeps the managed
-  `WebGLScene`, `WebGLCamera`, `WebGLPassViewport`, minimal lights,
-  floor/model scene-object effects registered with
-  `defineWebGLSceneObjectEffect(...)`, pass-local DOM-rect gesture
-  framing/picking, model press/drag capture, crate pointer-drag physics, and
-  rich `controller.pointer` camera gestures: primary-drag orbit,
-  secondary-drag pan, Alt + primary-drag dolly, camera parallax, damping, and
-  double-click reset. It still omits `screen-plane` DOM targets.
+- The managed interaction example is mounted in `apps/example` as the Phase 8B
+  dogfood surface with a pickable `WebGLStagePlane` floor and one pickable
+  scene-native `/models/hero.glb` model. It keeps the managed `WebGLScene`,
+  `WebGLCamera`, `WebGLPassViewport`, minimal lights, floor/model scene-object
+  effects registered with `defineWebGLSceneObjectEffect(...)`, pass-local
+  DOM-rect gesture framing/picking, model press/drag capture, and rich
+  `controller.pointer` camera gestures: primary-drag orbit, secondary-drag
+  pan, Alt + primary-drag dolly, camera parallax, damping, and double-click
+  reset. It does not declare physics and still omits `screen-plane` DOM
+  targets.
+- The managed physics example is mounted in `apps/example` as the separate
+  Phase 9 dogfood surface. It uses its own managed `WebGLScene`,
+  `WebGLCamera`, and `WebGLPassViewport` and covers the full Phase 9 v1
+  descriptor surface: static, dynamic, and kinematic bodies; plane, box,
+  sphere, and bounds colliders; anchor and spring constraints; direct
+  pointer-drag manipulation; stage primitive physics; and scene-native
+  `WebGLModel` physics.
+  The blue and yellow bodies visibly move from anchor/spring constraints, the
+  model sweeps as a kinematic body, and the orange crate is pointer-draggable.
+  The red block is the direct drag/release test body: drag it to generate
+  velocity, then release it to bounce against the floor and static box
+  colliders; dynamic-vs-dynamic impulses remain out of scope.
+  `example.physicsKinematicSweep` is an app-owned scene-object effect used only
+  to make the kinematic model motion visibly verifiable.
 - Batching remains profile-gated. The current example does not prove draw calls
   dominate enough compatible active planes to justify broad batching by default.
 

@@ -8,7 +8,10 @@ import type {
   WebGLSceneObjectPointerState,
 } from "@project/dom-webgl-runtime";
 
-import { exampleSceneObjectHoverPulseEffect } from "../src/interactionEffects";
+import {
+  examplePhysicsKinematicSweepEffect,
+  exampleSceneObjectHoverPulseEffect,
+} from "../src/interactionEffects";
 
 describe("managed interaction example effects", () => {
   test("scene object hover pulse supports stage and model object sources", () => {
@@ -35,6 +38,7 @@ describe("managed interaction example effects", () => {
 
     expect(exampleSceneObjectHoverPulseEffect.source).toEqual([
       "stage/plane",
+      "stage/box",
       "model/glb",
     ]);
     expect(object.opacity).toBe(0.92);
@@ -64,6 +68,31 @@ describe("managed interaction example effects", () => {
     });
 
     expect(object.opacity).toBe(1);
+  });
+
+  test("kinematic sweep moves a scene-native model through the object facade", () => {
+    const object = createObjectHandle("model/glb");
+    const context = createSceneObjectContext({
+      sourceKind: "model/glb",
+      object,
+    });
+
+    examplePhysicsKinematicSweepEffect.update(context, undefined, {
+      kind: "example.physicsKinematicSweep",
+      baseX: 252,
+      amplitude: 96,
+      y: -132,
+      z: -70,
+      speed: 0.0024,
+    });
+
+    expect(examplePhysicsKinematicSweepEffect.source).toBe("model/glb");
+    expect(examplePhysicsKinematicSweepEffect.schedule).toBe("frame");
+    expect(object.position.set).toHaveBeenCalledWith(
+      252 + Math.sin(1600 * 0.0024) * 96,
+      -132,
+      -70,
+    );
   });
 });
 

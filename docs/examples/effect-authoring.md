@@ -349,13 +349,20 @@ managed timeline or stage primitive dogfood rows.
 
 Scene-native `WebGLModel` effects use explicit scene-object scope through
 `defineWebGLSceneObjectEffect(...)`. `apps/example` dogfoods this in
-`ManagedInteractionExample`: the stage floor, dynamic crate, and scene-native
-`/models/hero.glb` all declare `interaction.pickable`, the floor and model
-scene-object effects read `ctx.objectPointer`, the crate declares
-descriptor-only `physics.pointerDrag`, and the same managed camera dogfoods
-`controller.pointer` gestures for primary-drag orbit, secondary-drag pan,
-Alt + primary-drag dolly, camera parallax, damping, and double-click reset.
-The dogfood still omits `screen-plane` DOM targets.
+`ManagedInteractionExample`: the stage floor and scene-native `/models/hero.glb`
+declare `interaction.pickable`, the floor and model scene-object effects read
+`ctx.objectPointer`, and the same managed camera dogfoods `controller.pointer`
+gestures for primary-drag orbit, secondary-drag pan, Alt + primary-drag dolly,
+camera parallax, damping, and double-click reset. Phase 9 physics dogfood lives
+in the separate `ManagedPhysicsExample`, where static, dynamic, and kinematic
+bodies cover plane, box, sphere, and bounds colliders, anchor and spring
+constraints, direct pointer-drag manipulation, stage primitive physics, and
+scene-native `WebGLModel` physics. Its visible validation path is the moving
+blue/yellow constraint bodies, the sweeping kinematic model, and the
+pointer-draggable orange crate. The red block is the direct drag/release test
+body: drag it to generate velocity, then release it to bounce against the floor
+and static box colliders. The interaction dogfood still omits `screen-plane`
+DOM targets.
 Scene-object effects do not receive
 DOM `layout`, `ctx.targetPointer`, raw raycasters, raw intersections, raw
 cameras, or raw object handles. Keep DOM-following model visuals on

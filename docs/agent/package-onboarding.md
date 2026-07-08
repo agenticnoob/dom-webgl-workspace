@@ -253,16 +253,19 @@ Rules:
 - Scene-native `WebGLModel` and stage primitive descriptors can declare
   descriptor-only `physics`. The runtime owns body state, simple
   static/dynamic/kinematic integration, bounds/box/sphere/plane colliders,
-  anchor/spring constraints, pointer-drag forces, transform writes, debug, and
-  disposal. Do not add Level 1 `WebGLTarget` physics, raw body handles, or raw
-  physics-engine access.
+  anchor/spring constraints, direct pointer-drag manipulation from press hits
+  plus drag deltas, release inertia, transform writes, debug, and disposal. Do
+  not add Level 1 `WebGLTarget` physics, raw body handles, or raw physics-engine
+  access.
 - The current `apps/example` managed interaction dogfood keeps
-  `example.interaction.floor`, `example.interaction.crate`, and
-  `example.interaction.hero` pickable. The floor is a static physics plane, the
-  crate is a dynamic pointer-draggable physics box, and the same managed camera
-  dogfoods orbit, pan, dolly, camera-scoped parallax, damping, and reset. Do
-  not reintroduce `screen-plane` DOM targets when the goal is to isolate
-  picking/camera/physics coordinate drift.
+  `example.interaction.floor` and `example.interaction.hero` pickable while the
+  same managed camera dogfoods orbit, pan, dolly, camera-scoped parallax,
+  damping, and reset. The Phase 9 physics dogfood is separate and covers
+  static/dynamic/kinematic bodies, plane/box/sphere/bounds colliders,
+  anchor/spring constraints, direct pointer-drag manipulation, stage primitive
+  physics, and scene-native `WebGLModel` physics. Do not reintroduce
+  `screen-plane` DOM targets or mix physics back into the Phase 8B
+  interaction/camera surface when isolating coordinate drift.
 - Raw Three.js scene/camera/renderer/raycaster/intersection handles,
   orthographic/screen camera controllers, pass-bound camera controller scope,
   mouse wheel zoom, and touch pinch zoom remain future or non-public.

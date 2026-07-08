@@ -5,12 +5,10 @@ import {
   WebGLModel,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStageBox,
   WebGLStagePlane,
   type WebGLCameraProps,
   type WebGLModelProps,
   type WebGLSceneRenderOptions,
-  type WebGLStageBoxProps,
   type WebGLStagePlaneProps,
 } from "@project/dom-webgl-runtime/react";
 
@@ -82,36 +80,6 @@ const floorInteraction = {
     pointer: { hover: true, click: true },
   },
 } satisfies NonNullable<WebGLStagePlaneProps["interaction"]>;
-const floorPhysics = {
-  body: { type: "static" },
-  collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
-} satisfies NonNullable<WebGLStagePlaneProps["physics"]>;
-const crateSize = [72, 72, 72] satisfies NonNullable<WebGLStageBoxProps["size"]>;
-const cratePosition = [24, -118, -70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
->;
-const crateMaterial = {
-  kind: "standard",
-  color: "#c87f47",
-  roughness: 0.56,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
-const crateInteraction = {
-  pickable: {
-    hitTest: "bounds",
-    pointer: { hover: true, press: true, drag: true },
-  },
-} satisfies NonNullable<WebGLStageBoxProps["interaction"]>;
-const cratePhysics = {
-  body: {
-    type: "dynamic",
-    mass: 1.6,
-    damping: 0.04,
-    restitution: 0.22,
-    friction: 0.62,
-  },
-  collider: { kind: "box", size: crateSize },
-  pointerDrag: true,
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
 const heroModelPosition = [160, -180, -70] satisfies NonNullable<
   WebGLModelProps["position"]
 >;
@@ -148,8 +116,8 @@ export function ManagedInteractionExample() {
         <h2>Scene-native picking</h2>
         <p>
           Phase 8B uses this scene to verify camera-owned orbit, pan, dolly,
-          parallax, damping, and reset with floor and model picking in the same
-          pass.
+          parallax, damping, and reset with floor and model picking in the
+          same pass.
         </p>
       </div>
 
@@ -182,15 +150,6 @@ export function ManagedInteractionExample() {
             material={floorMaterial}
             effects={floorEffects}
             interaction={floorInteraction}
-            physics={floorPhysics}
-          />
-          <WebGLStageBox
-            id="example.interaction.crate"
-            size={crateSize}
-            position={cratePosition}
-            material={crateMaterial}
-            interaction={crateInteraction}
-            physics={cratePhysics}
           />
           <WebGLModel
             id="example.interaction.hero"

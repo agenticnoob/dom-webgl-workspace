@@ -32,6 +32,7 @@ describe("example effect catalog", () => {
       "example.modelFloat",
       "example.modelFloatGlow",
       "example.sceneObjectHoverPulse",
+      "example.physicsKinematicSweep",
     ]);
   });
 
@@ -128,6 +129,14 @@ describe("example effect catalog", () => {
       baseOpacity: 0.68,
       hoverOpacity: 0.92,
       clickOpacity: 1,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.physicsKinematicSweep",
+      baseX: 252,
+      amplitude: 96,
+      y: -132,
+      z: -70,
+      speed: 0.0024,
     });
   });
 });

@@ -95,14 +95,18 @@ describe("managed physics world", () => {
             pointerDrag: true,
           },
           createObjectPointerState({
+            isPressed: true,
             isDragging: true,
-            hit: { point: [30, 0, 0], distance: 10 },
+            dragStartX: 100,
+            dragStartY: 100,
+            dragDeltaX: 30,
+            hit: { point: [0, 0, 0], distance: 10 },
           }),
         ),
       ],
     });
 
-    expect(readPosition(object)[0]).toBeGreaterThan(0);
+    expect(readPosition(object)).toEqual([30, 0, 0]);
   });
 
   test("spring constraints pull a body toward their target", () => {
@@ -154,12 +158,12 @@ describe("managed physics world", () => {
     expect(world.inspect().collisionCount).toBe(2);
   });
 
-  test("pointer drag creates a spring target from object pointer hit state", () => {
+  test("pointer drag directly translates a body by 2D pointer delta", () => {
     const world = createPhysicsWorld();
-    const object = createSceneObject("drag", [0, 0, 0]);
+    const object = createSceneObject("drag", [10, 20, 5]);
 
     const result = world.update({
-      frameInput: createFrameInput({ delta: 1000 }),
+      frameInput: createFrameInput({ delta: 16 }),
       candidates: [
         createCandidate(
           "drag",
@@ -170,16 +174,110 @@ describe("managed physics world", () => {
             pointerDrag: { stiffness: 1, damping: 0, maxForce: 1000 },
           },
           createObjectPointerState({
+            isPressed: true,
             isDragging: true,
-            hit: { point: [30, 0, 0], distance: 10 },
+            dragStartX: 100,
+            dragStartY: 100,
+            dragDeltaX: 90,
+            dragDeltaY: -30,
+            hit: { point: [10, 20, 5], distance: 10 },
           }),
         ),
       ],
     });
 
     expect(result.requiresContinuousRendering).toBe(true);
-    expect(readPosition(object)[0]).toBeGreaterThan(0);
+    expect(readPosition(object)).toEqual([100, 50, 5]);
     expect(world.inspect().bodies[0]?.pointerDrag).toBe(true);
+  });
+
+  test("pointer drag ignores collision until release", () => {
+    const world = createPhysicsWorld();
+    const floor = createSceneObject("floor", [0, 0, 0]);
+    const object = createSceneObject("drag-collision", [0, 20, 0]);
+    const physics = {
+      body: { type: "dynamic", gravityScale: 0, damping: 0 },
+      collider: { kind: "sphere", radius: 10 },
+      pointerDrag: { stiffness: 1, damping: 0, maxForce: 1000 },
+    } satisfies WebGLPhysicsDeclaration;
+
+    world.update({
+      frameInput: createFrameInput({ delta: 16 }),
+      candidates: [
+        createCandidate("floor", floor, {
+          body: { type: "static" },
+          collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+        }),
+        createCandidate(
+          "drag-collision",
+          object,
+          physics,
+          createObjectPointerState({
+            isPressed: true,
+            isDragging: true,
+            dragStartX: 100,
+            dragStartY: 100,
+            dragDeltaY: 50,
+            hit: { point: [0, 20, 0], distance: 10 },
+          }),
+        ),
+      ],
+    });
+
+    expect(readPosition(object)).toEqual([0, -30, 0]);
+    expect(world.inspect().collisionCount).toBe(0);
+
+    world.update({
+      frameInput: createFrameInput({ delta: 16 }),
+      candidates: [
+        createCandidate("floor", floor, {
+          body: { type: "static" },
+          collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+        }),
+        createCandidate("drag-collision", object, physics),
+      ],
+    });
+
+    expect(readPosition(object)[1]).toBeCloseTo(10);
+    expect(world.inspect().collisionCount).toBe(1);
+  });
+
+  test("pointer drag velocity carries into physics after release", () => {
+    const world = createPhysicsWorld();
+    const object = createSceneObject("drag-release", [0, 0, 0]);
+    const physics = {
+      body: { type: "dynamic", gravityScale: 0, damping: 0 },
+      collider: false,
+      pointerDrag: { stiffness: 1, damping: 0, maxForce: 1000 },
+    } satisfies WebGLPhysicsDeclaration;
+
+    world.update({
+      frameInput: createFrameInput({ delta: 16 }),
+      candidates: [
+        createCandidate(
+          "drag-release",
+          object,
+          physics,
+          createObjectPointerState({
+            isPressed: true,
+            isDragging: true,
+            dragStartX: 100,
+            dragStartY: 100,
+            dragDeltaX: 90,
+            hit: { point: [0, 0, 0], distance: 10 },
+          }),
+        ),
+      ],
+    });
+
+    expect(readPosition(object)).toEqual([90, 0, 0]);
+
+    world.update({
+      frameInput: createFrameInput({ delta: 16 }),
+      candidates: [createCandidate("drag-release", object, physics)],
+    });
+
+    expect(readPosition(object)[0]).toBeGreaterThan(90);
   });
 
   test("dispose clears bodies and inspect returns an empty summary", () => {

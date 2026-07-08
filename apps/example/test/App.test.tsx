@@ -160,6 +160,7 @@ type ModelMockProps = {
   readonly timeline?: Record<string, unknown>;
   readonly effects?: readonly Record<string, unknown>[];
   readonly interaction?: Record<string, unknown>;
+  readonly physics?: Record<string, unknown>;
 };
 
 type PassViewportMockProps = {
@@ -340,10 +341,12 @@ describe("effect authoring example app", () => {
     expect(host.querySelector(".example-interaction-dogfood")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-interaction-viewport")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-interaction-card")).toBeNull();
+    expect(host.querySelector(".example-physics-dogfood")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".example-physics-viewport")).toBeInstanceOf(HTMLElement);
     expect(
       Array.from(
         host.querySelectorAll(
-          ".example-stage-dogfood, .example-managed-model-dogfood, .example-managed-stage-timeline, .example-interaction-dogfood",
+          ".example-stage-dogfood, .example-managed-model-dogfood, .example-managed-stage-timeline, .example-interaction-dogfood, .example-physics-dogfood",
         ),
         (element) => {
           if (element.classList.contains("example-stage-dogfood")) {
@@ -355,10 +358,13 @@ describe("effect authoring example app", () => {
           if (element.classList.contains("example-managed-stage-timeline")) {
             return "timeline";
           }
-          return "interaction";
+          if (element.classList.contains("example-interaction-dogfood")) {
+            return "interaction";
+          }
+          return "physics";
         },
       ),
-    ).toEqual(["stage", "model", "timeline", "interaction"]);
+    ).toEqual(["stage", "model", "timeline", "interaction", "physics"]);
     expect(passViewportProps).toContainEqual(
       expect.objectContaining({
         id: "example.stage.viewport",
@@ -387,6 +393,14 @@ describe("effect authoring example app", () => {
         id: "example.interaction.viewport",
         as: "div",
         className: "example-interaction-viewport",
+        "aria-hidden": "true",
+      }),
+    );
+    expect(passViewportProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.physics.viewport",
+        as: "div",
+        className: "example-physics-viewport",
         "aria-hidden": "true",
       }),
     );
@@ -444,6 +458,18 @@ describe("effect authoring example app", () => {
         },
       }),
     );
+    expect(sceneProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.physics.scene",
+        projection: "perspective-stage",
+        render: {
+          camera: "example.physics.camera",
+          order: -6,
+          clearDepth: true,
+          viewport: { mode: "dom-rect", scissor: true },
+        },
+      }),
+    );
     expect(cameraProps).toContainEqual(
       expect.objectContaining({
         id: "example.managedModel.camera",
@@ -493,18 +519,34 @@ describe("effect authoring example app", () => {
         },
       }),
     );
+    expect(cameraProps).toContainEqual(
+      expect.objectContaining({
+        id: "example.physics.camera",
+        mode: "perspective-stage",
+        position: [40, 118, 560],
+        target: [40, -104, -70],
+      }),
+    );
+    expect(cameraProps.find(({ id }) => id === "example.physics.camera")).not.toHaveProperty("controller");
     expect(stagePlaneProps.map(({ id }) => id)).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
       "example.managedStage.floor",
       "example.managedStage.backdrop",
       "example.interaction.floor",
+      "example.physics.floor",
     ]);
     expect(stageBoxProps.map(({ id }) => id)).toEqual([
       "example.stage.plinth",
       "example.stage.bloomRail",
       "example.managedStage.plinth",
-      "example.interaction.crate",
+      "example.physics.crate",
+      "example.physics.anchor",
+      "example.physics.spring",
+      "example.physics.bumper",
+      "example.physics.leftWall",
+      "example.physics.rightWall",
+      "example.physics.inertia",
     ]);
     expect(lightProps.map(({ id }) => id)).toEqual([
       "example.stage.ambient",
@@ -516,6 +558,8 @@ describe("effect authoring example app", () => {
       "example.managedStage.key",
       "example.interaction.ambient",
       "example.interaction.key",
+      "example.physics.ambient",
+      "example.physics.key",
     ]);
     expect(modelProps).toEqual([
       expect.objectContaining({
@@ -575,6 +619,28 @@ describe("effect authoring example app", () => {
           },
         },
       }),
+      expect.objectContaining({
+        id: "example.physics.model",
+        src: "/models/hero.glb",
+        position: [252, -132, -70],
+        rotation: [0, -0.42, 0],
+        scale: 8,
+        prepare: { renderWarmup: "idle" },
+        effects: [
+          {
+            kind: "example.physicsKinematicSweep",
+            baseX: 252,
+            amplitude: 96,
+            y: -132,
+            z: -70,
+            speed: 0.0024,
+          },
+        ],
+        physics: {
+          body: { type: "kinematic" },
+          collider: { kind: "bounds", padding: 10 },
+        },
+      }),
     ]);
     expect(stagePlaneProps.find(({ id }) => id === "example.interaction.floor")).toMatchObject({
       effects: [
@@ -590,6 +656,127 @@ describe("effect authoring example app", () => {
           hitTest: "mesh",
           pointer: { hover: true, click: true },
         },
+      },
+    });
+    expect(stagePlaneProps.find(({ id }) => id === "example.interaction.floor")).not.toHaveProperty("physics");
+    expect(stagePlaneProps.find(({ id }) => id === "example.physics.floor")).toMatchObject({
+      interaction: {
+        pickable: {
+          hitTest: "mesh",
+          pointer: { hover: true, click: true },
+        },
+      },
+      physics: {
+        body: { type: "static" },
+        collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.crate")).toMatchObject({
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, drag: true },
+        },
+      },
+      physics: {
+        body: {
+          type: "dynamic",
+          mass: 1.6,
+          damping: 0.02,
+          restitution: 0.42,
+          friction: 0.62,
+        },
+        collider: { kind: "box", size: [72, 72, 72] },
+        pointerDrag: true,
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.anchor")).toMatchObject({
+      physics: {
+        body: {
+          type: "dynamic",
+          mass: 0.9,
+          velocity: [520, 0, 0],
+          gravityScale: 0,
+          damping: 0,
+        },
+        collider: { kind: "box", size: [44, 44, 44] },
+        constraints: [
+          {
+            kind: "anchor",
+            target: [-176, -122, -70],
+            stiffness: 0.95,
+            damping: 0,
+          },
+        ],
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.spring")).toMatchObject({
+      physics: {
+        body: {
+          type: "dynamic",
+          mass: 1.1,
+          velocity: [-480, 0, 0],
+          gravityScale: 0,
+          damping: 0,
+          restitution: 0.18,
+        },
+        collider: { kind: "sphere", radius: 32 },
+        constraints: [
+          {
+            kind: "spring",
+            target: [146, -118, -70],
+            restLength: 92,
+            stiffness: 0.72,
+            damping: 0,
+          },
+        ],
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.bumper")).toMatchObject({
+      physics: {
+        body: { type: "static" },
+        collider: { kind: "box", size: [58, 150, 72] },
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.leftWall")).toMatchObject({
+      physics: {
+        body: { type: "static" },
+        collider: { kind: "box", size: [32, 140, 80] },
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.rightWall")).toMatchObject({
+      physics: {
+        body: { type: "static" },
+        collider: { kind: "box", size: [32, 140, 80] },
+      },
+    });
+    expect(stageBoxProps.find(({ id }) => id === "example.physics.inertia")).toMatchObject({
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, drag: true },
+        },
+      },
+      effects: [
+        {
+          kind: "example.sceneObjectHoverPulse",
+          baseOpacity: 0.88,
+          hoverOpacity: 1,
+          clickOpacity: 1,
+        },
+      ],
+      physics: {
+        body: {
+          type: "dynamic",
+          mass: 1.2,
+          velocity: [0, 0, 0],
+          gravityScale: 1,
+          damping: 0.006,
+          restitution: 0.86,
+          friction: 0.08,
+        },
+        collider: { kind: "sphere", radius: 34 },
+        pointerDrag: true,
       },
     });
     expect(

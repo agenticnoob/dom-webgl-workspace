@@ -65,11 +65,11 @@ Current runtime behavior:
   can also opt into descriptor-only `physics`. The runtime owns body state,
   simple gravity/velocity/damping integration, `static`/`dynamic`/`kinematic`
   bodies, `bounds`/`box`/`sphere`/`plane` colliders, `anchor`/`spring`
-  constraints, pointer-drag forces from managed object hit state, static
-  plane/box collision response, transform writes, scheduling, debug summaries,
-  and disposal. This is Level 3 scene-native physics only; it does not add
-  Level 1 `WebGLTarget` physics, raw physics-engine handles, dynamic-vs-dynamic
-  impulses, joints, or collision events.
+  constraints, direct 2D pointer-drag manipulation with release velocity,
+  static plane/box collision response, transform writes, scheduling, debug
+  summaries, and disposal. This is Level 3 scene-native physics only; it
+  does not add Level 1 `WebGLTarget` physics, raw physics-engine handles,
+  dynamic-vs-dynamic impulses, joints, or collision events.
 - DOM targets in managed perspective-stage scenes can use
   `placement: { mode: "screen-plane", planeId }` to project their DOM rect
   center onto a named stage plane.
@@ -190,13 +190,23 @@ Current example behavior:
   It still uses the same runtime canvas; the pass is clipped to the visible DOM
   rect without remapping or compressing the pass, and skipped while fully
   offscreen rather than rendered into a second local canvas.
-- The Phase 8B/Phase 9 managed interaction example is mounted in the current
-  catalog and dogfoods one pickable static-physics `WebGLStagePlane` floor, one
-  pickable dynamic-physics `WebGLStageBox` crate, and one pickable scene-native
-  `/models/hero.glb` model while testing rich camera gestures on the same
-  managed camera: primary-drag orbit, secondary-drag pan, Alt + primary-drag
-  dolly, camera parallax, damping, and double-click reset. It still omits
-  `screen-plane` DOM targets.
+- The Phase 8B managed interaction example is mounted in the current catalog
+  and dogfoods one pickable `WebGLStagePlane` floor plus one pickable
+  scene-native `/models/hero.glb` model while testing rich camera gestures on
+  the same managed camera: primary-drag orbit, secondary-drag pan, Alt +
+  primary-drag dolly, camera parallax, damping, and double-click reset. It
+  still omits physics and `screen-plane` DOM targets.
+- The Phase 9 managed dynamics example is a separate catalog row with its own
+  `WebGLScene`, `WebGLCamera`, and `WebGLPassViewport`. It dogfoods the full
+  Phase 9 v1 descriptor surface: static, dynamic, and kinematic bodies;
+  plane, box, sphere, and bounds colliders; anchor and spring constraints;
+  direct pointer-drag manipulation; stage primitive physics; and scene-native
+  `WebGLModel` physics. The blue and yellow bodies visibly move from anchor/spring
+  constraints, the model sweeps as a kinematic body, and the orange crate is
+  pointer-draggable. The red block is the direct drag/release test body: drag it
+  to generate velocity, then release it to bounce against the floor and static
+  box colliders without adding dynamic-vs-dynamic impulses. Descriptor-owned
+  physics stays separate from the Phase 8B camera gesture surface.
 - Advanced examples can still pass a stable manual `scrollAdapter` when the app
   intentionally owns a third-party scroll lifecycle.
 - The example effects are application-owned contract examples:
@@ -574,10 +584,13 @@ raw camera/object handles. This is separate from target-local effects on
 descriptor-only `physics` for scene-native objects. Supported v1 descriptors are
 `static`/`dynamic`/`kinematic` bodies, `bounds`/`box`/`sphere`/`plane`
 colliders, `anchor`/`spring` constraints, and `pointerDrag` built from managed
-object hit state. The runtime owns integration, simple static collision
-response, transform writes, scheduling, debug summaries, and disposal. This does
-not add Level 1 `WebGLTarget` physics, raw physics-engine access, public body
-handles, dynamic-vs-dynamic impulses, joints, or collision events.
+press hits plus pointer drag deltas. While dragging, the runtime directly
+translates the body in the scene XY plane and keeps Z stable; on release it
+resumes physics with velocity derived from the last drag movement. The runtime
+owns integration, simple static collision response, transform writes,
+scheduling, debug summaries, and disposal. This does not add Level 1
+`WebGLTarget` physics, raw physics-engine access, public body handles,
+dynamic-vs-dynamic impulses, joints, or collision events.
 
 Preferred declaration form:
 
