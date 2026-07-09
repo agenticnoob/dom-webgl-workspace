@@ -1,9 +1,27 @@
 # Current Status
 
-**Last reviewed against:** Phase 9 dynamics and physics implementation
+**Last reviewed against:** Phase 9 dynamics and physics implementation plus
+2026-07-09 R3F/product-boundary review
 
 This is the active current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
+
+## Product Boundary
+
+The active product remains a DOM-first managed WebGL runtime. It is not a React
+Three Fiber replacement, not a raw Three.js wrapper, and not an R3F companion
+runtime. R3F/Drei are better suited for free-form Three.js scene authoring and
+agent-authored 3D applications; this repo stays focused on DOM targets,
+runtime-owned layout projection, fallback visibility, lifecycle/offscreen
+policy, scroll/pointer orchestration, resources, debug state, and controlled
+effects.
+
+Do not add R3F parity features just because R3F can express them. In particular,
+do not add raw Three refs, full JSX mapping, `primitive`/`extend`, consumer-owned
+scene graph mutation, raw controls, raw loaders, or raw render hooks to this
+runtime. If an agent-first product should use R3F as its rendering layer, build
+that as a separate project or prototype rather than mixing R3F ownership into
+this package.
 
 ## Runtime Truth
 
@@ -387,6 +405,9 @@ API design should stay agent-first, React-like, and Three-like: declarative
 components and descriptors, explicit ownership and scope, familiar Three.js
 vocabulary where it helps, runtime-owned lifecycle, and small cohesive modules
 without premature generalized render-graph or raw Three.js escape hatches.
+Agent-first does not mean R3F parity. The value of this runtime is higher-level
+DOM/WebGL orchestration for page authors, not giving agents a second way to
+write arbitrary Three.js scenes.
 
 Relationship rules from the active roadmap:
 

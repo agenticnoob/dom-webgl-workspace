@@ -93,6 +93,15 @@ Build a new DOM-first interactive WebGL runtime from zero with a clear product m
 
 It is a runtime that treats normal DOM elements as the authoring model, compiles declared elements and sources into WebGL renderables, and drives them through shared scroll and pointer input inside one renderer.
 
+It is not a React Three Fiber replacement, a raw Three.js wrapper, or an R3F
+companion runtime. R3F and Drei should remain the recommended route for
+free-form Three.js scene authoring. This project's purpose is the DOM-first
+runtime layer: target registry, layout projection, fallback visibility,
+lifecycle/offscreen policy, scroll and pointer orchestration, managed resources,
+debug state, and controlled effect authoring. If a future agent-first product
+uses R3F as its rendering layer, it should be developed separately instead of
+mixing R3F scene ownership into this runtime.
+
 ## One-Sentence Goal
 
 Create a DOM-first interactive WebGL scene runtime where page authors declare ordinary DOM elements and sources, while the runtime compiles them into source descriptors, render roles, renderables, page/keyed scroll state, pointer interaction state, and one Three.js renderer.

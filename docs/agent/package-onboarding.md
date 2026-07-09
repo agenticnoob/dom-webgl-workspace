@@ -11,6 +11,12 @@ The runtime lets normal DOM elements enter one shared WebGL scene. Applications
 declare targets in DOM/React, register application-owned effects, and keep DOM as
 the source for layout, content, accessibility, and interaction state.
 
+This is not an R3F replacement or R3F companion package. If the downstream task
+is to author a free-form Three.js scene, use React Three Fiber and its ecosystem
+directly. Use this package when the page remains DOM-first and the WebGL layer
+must follow declared DOM targets, fallback, scroll, pointer, lifecycle, and
+runtime-managed resources.
+
 Package split:
 
 - `<runtime-package>`: runtime creation, React adapter, target declarations,

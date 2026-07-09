@@ -6,7 +6,8 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 9 dynamics and physics implementation
+**Last reviewed against:** Phase 9 dynamics and physics implementation plus
+2026-07-09 R3F/product-boundary review
 **Status:** Direction-setting roadmap
 
 ## North Star
@@ -22,6 +23,13 @@ resource lifetime, fallback visibility, scroll, pointer, and scheduling.
 This is not a React Three Fiber clone and not a raw Three.js wrapper. The package
 may borrow Three.js and R3F vocabulary where it improves authoring clarity, but
 the public contract must stay descriptor-driven and runtime-managed.
+
+The project should also not pivot into an R3F companion runtime inside this
+repository. Existing R3F/Drei/scroll-rig style tools already cover single-canvas
+R3F scene authoring, DOM tracking, and scroll-linked R3F workflows. If the
+product direction becomes "R3F as the rendering layer plus agent-friendly
+presets", create a separate prototype rather than merging R3F ownership into
+this managed runtime.
 
 ## Authoring and API Guardrails
 
@@ -1895,6 +1903,17 @@ Do not borrow by default:
 - full JSX mapping of every Three class;
 - R3F as internal renderer dependency;
 - consumer-owned scene graph mutation.
+
+Current decision:
+
+- Do not chase R3F parity inside this roadmap.
+- Do not turn this package into a lower-level R3F companion.
+- Keep new work tied to DOM-first managed runtime needs: DOM target binding,
+  fallback/lifecycle, scroll and pointer orchestration, runtime-owned resources,
+  controlled effects, and descriptor-only scene-native islands.
+- If a future agent-first product should be built on R3F/Drei/scroll-rig, it
+  should start as a new project and can reuse this repo only as requirements
+  evidence, not as a runtime core to mutate.
 
 ## Migration Strategy
 

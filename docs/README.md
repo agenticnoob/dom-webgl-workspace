@@ -8,8 +8,14 @@ This directory is split into active documents and archived execution records.
 - [roadmap/managed-render-system.md](./roadmap/managed-render-system.md) - next strategic roadmap for managed scenes, cameras, stages, passes, input, model animation, and physics.
 - [00-goal.md](./00-goal.md) - long-form architecture principles and non-goals.
 
+Current product boundary: this repo remains a DOM-first managed WebGL runtime,
+not a React Three Fiber replacement and not an R3F companion runtime. If the
+product direction changes to R3F as the rendering layer, start a separate
+prototype and keep this repo's docs as the current managed-runtime truth.
+
 ## Consumer And Agent Docs
 
+- [consumer-standard-usage.md](./consumer-standard-usage.md) - standard consumer usage guide.
 - [agent/package-onboarding.md](./agent/package-onboarding.md) - single entrypoint for agents starting from zero.
 - [agent/package-usage.md](./agent/package-usage.md) - detailed downstream package contract.
 - [agent/effect-object-boundary.md](./agent/effect-object-boundary.md) - current `ctx.object` effect authoring boundary.

@@ -8,6 +8,10 @@ implementation policy.
 ## Package Truth
 
 - Use public package entrypoints only.
+- The package is a DOM-first managed WebGL runtime, not a React Three Fiber
+  replacement, raw Three.js wrapper, or R3F companion runtime.
+- For free-form Three.js scene authoring, use R3F/Drei directly instead of
+  forcing this package to expose R3F-style primitives, raw refs, or render hooks.
 - Root entrypoint owns vanilla runtime creation and effect authoring.
 - React entrypoint owns React runtime/provider/target plus opt-in
   scene/camera/pass declaration components.
@@ -28,6 +32,10 @@ implementation policy.
 - Target effects use array-form declarations only:
   `effects: [{ kind: "app.effect", ...params }]`. Do not use legacy
   object-form `effects.material` or `effects.motion`.
+- Do not add R3F parity APIs such as full Three JSX mapping,
+  `primitive`/`extend`, consumer-owned scene graph mutation, raw
+  `THREE.Object3D`/camera/light/material refs, or raw loader/render-loop
+  callbacks.
 
 ## Effect Object Direction
 

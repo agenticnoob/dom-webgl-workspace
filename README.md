@@ -12,6 +12,14 @@ capabilities into managed scenes, cameras, projection policies, render passes,
 stage primitives, model animation, scoped input, and scene-native dynamics/physics
 while keeping raw Three.js internals private.
 
+This project is intentionally not a React Three Fiber replacement and is not
+being pivoted into an R3F companion runtime. R3F, Drei, and existing scroll-rig
+style libraries already cover free-form Three.js scene authoring well. This
+workspace stays scoped to a DOM-first managed runtime: DOM targets, layout,
+fallback, lifecycle, scroll, pointer, resources, and runtime-owned WebGL output.
+If an agent-first product should use R3F as the rendering layer, prototype it as
+a separate project rather than mixing the ownership models here.
+
 Completed phase plans and historical execution records are archived under
 `docs/archive/`. Treat archived files as evidence, not current API truth or live
 backlog.
