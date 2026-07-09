@@ -1,6 +1,7 @@
 import type {
   WebGLImageSequenceFrame,
   WebGLMediaVideoPlaybackDeclaration,
+  WebGLModelLoaderDeclaration,
 } from "../types";
 
 export type WebGLSourceDescriptor =
@@ -51,4 +52,5 @@ export type WebGLModelSourceDescriptor = {
   type: "glb";
   anchor: HTMLElement;
   src: string;
+  loader?: WebGLModelLoaderDeclaration;
 };

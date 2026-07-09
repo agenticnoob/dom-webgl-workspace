@@ -32,8 +32,9 @@ Phase 5/6 historically added legacy `effects.material` and `effects.motion`
 declaration shapes plus concrete package-owned effect implementations. Phase 7
 historically moved those declarations through registry primitives. Phase 8 and
 the package effect boundary cleanup supersede that concrete-effect model:
-`defineWebGLEffect(...)`, runtime-level `effects`, source handles, generic
- target handles, and managed effect resources are the public authoring API, while
+`defineWebGLEffect(...)`, runtime-level `effects`, the controlled
+`ctx.object` facade, frame/input state, keyed progress, and managed effect
+resources are the public authoring API, while
  all concrete effect implementations live in application, example, or documentation
 example code. Agent-facing downstream package usage rules live in
 `docs/agent/package-usage.md`.
@@ -51,18 +52,55 @@ collection in debug/stage helpers, and cache-key naming for non-security render
 reuse. It does not introduce React 19-only APIs, ES2023-only array helpers,
 public scene-graph handles, or automatic batching.
 
-The current effect context exposes low-level runtime output handles for every
+The current effect context exposes a managed `ctx.object` facade for every
 supported source kind. Consumers can draw to canvas-backed element surfaces,
 control WebGL text layers and glyph layout, transform image/video texture
-planes, control video playback, and inspect or manipulate GLB model handles
-through public effect context. These are primitives, not package-owned visual
-effects.
+planes, control video playback, and manipulate GLB model capabilities through
+controlled object modules. Source, target, and visual handles are internal
+runtime assembly details, not public effect context.
+
+The 2026-07-02 effect authoring direction correction is captured in
+`docs/agent/effect-object-boundary.md`. The runtime now exposes a controlled
+Three-like `ctx.object` facade for basic transform, visibility, opacity,
+postprocess, and existing surface/text/texture/video/model capabilities. The
+source/target/visual handles are internal implementation substrate, not public
+effect context. Future visual capability work should continue under
+`ctx.object`: effect authors should mutate familiar properties such as position,
+rotation, scale, visibility, opacity, texture/text/model modules, material,
+animation, lights, and postprocess through one runtime-owned object. Raw
+Three.js renderer, scene, camera, Object3D, mesh, material, texture, animation
+mixer, raycaster, composer, and loader instances remain internal. The completed
+implementation plan is archived at
+`docs/archive/plans/superpowers/2026-07-02-effect-object-facade-refactor.md`.
+Managed Three-like object API is now the active public authoring direction:
+consumers use familiar vocabulary such as `position`, `rotation`, `scale`,
+`material`, `lights`, and `animation` through `ctx.object`, while the runtime
+keeps ownership of raw Three.js renderer, scene, camera, objects, materials,
+textures, loaders, mixers, lights, render targets, lifecycle, disposal, pointer,
+scroll, and scheduling. Runtime lights are keyed requests: reusing the same key
+updates the existing runtime-owned ambient, directional, or point light rather
+than exposing raw light objects or effect-owned light lifecycle.
+Compressed model assets use declarative loader config and app-served decoder
+files; effects do not receive loader callbacks. Runtime postprocess requests are
+explicitly scoped to the runtime canvas or to a managed render pass, not one
+model target. Model renderables are fit to their target rect by the runtime
+layout pass, so effects should write `ctx.object.position` or
+`ctx.object.scale` only when they intentionally take over placement.
 
 ## Purpose
 
 Build a new DOM-first interactive WebGL runtime from zero with a clear product model.
 
 It is a runtime that treats normal DOM elements as the authoring model, compiles declared elements and sources into WebGL renderables, and drives them through shared scroll and pointer input inside one renderer.
+
+It is not a React Three Fiber replacement, a raw Three.js wrapper, or an R3F
+companion runtime. R3F and Drei should remain the recommended route for
+free-form Three.js scene authoring. This project's purpose is the DOM-first
+runtime layer: target registry, layout projection, fallback visibility,
+lifecycle/offscreen policy, scroll and pointer orchestration, managed resources,
+debug state, and controlled effect authoring. If a future agent-first product
+uses R3F as its rendering layer, it should be developed separately instead of
+mixing R3F scene ownership into this runtime.
 
 ## One-Sentence Goal
 
@@ -144,6 +182,8 @@ Package consumers should think about:
   participates in an advanced gated scene.
 - Whether pointer input should affect it.
 - Which runtime-registered custom effect should own its WebGL visual treatment.
+- For forward effect authoring, how that effect mutates the controlled
+  Three-like object facade rather than a growing set of source-specific handles.
 - Whether a parent target's effect transform should control its declared WebGL
   subtree with `transformScope: "subtree"`.
 
@@ -211,19 +251,17 @@ removed from the contract and do not compile.
 
 Current roadmap:
 
-- The next iteration roadmap lives in
-  `docs/superpowers/plans/2026-06-30-runtime-performance-roadmap.md`.
-- The performance direction is scheduler and budget first: instrument runtime
-  cost, expose conservative development warnings, and avoid continuous
-  rendering for static pages before considering batching or renderer backends.
-- Runtime Performance Ownership V2 is implemented in
-  `docs/superpowers/plans/2026-06-30-runtime-performance-ownership-v2.md`.
-  Runtime-owned policy now splits pixel upload dirtiness from frame-only
-  dirtiness, updates material uniforms incrementally, lets effects declare
-  static/reactive/frame scheduling intent, reports renderer/postprocess budget
-  pressure through stable warning records, prioritizes queued resource loads by
-  viewport state, shares internal plane geometry, and updates internal model
-  animation mixers only while visible. `docs/performance/profile-notes.md`
+- Current implementation truth lives in `docs/STATUS.md`.
+- The next strategic roadmap lives in
+  `docs/roadmap/managed-render-system.md`.
+- Completed execution plans live under `docs/archive/` and are historical
+  evidence, not live backlog.
+- Runtime-owned performance policy now splits pixel upload dirtiness from
+  frame-only dirtiness, updates material uniforms incrementally, lets effects
+  declare static/reactive/frame scheduling intent, reports renderer/postprocess
+  budget pressure through stable warning records, prioritizes queued resource
+  loads by viewport state, shares internal plane geometry, and updates internal
+  model animation mixers only while visible. `docs/performance/profile-notes.md`
   records that batching is still deferred because the current profile does not
   prove draw calls dominate many compatible active planes.
 - WebGPU, multiple canvases, raw Three.js public handles, and a general
@@ -446,7 +484,7 @@ Delivered Phase 3 behavior:
   target's local policy offset inside that scope. Page code still does not set
   public Three.js flags or public layer numbers. DOM supplies layout anchors and
   layer semantics; effect code supplies final pixels. `dom/element` remains a
-  transparent layout surface until an effect draws to `ctx.source.surface`, and
+  transparent layout surface until an effect draws to `ctx.object.surface`, and
   runtime core does not clone CSS backgrounds, borders, shadows, or decorative
   paint into WebGL.
 - Mounted React runtimes create and dispose the runtime but do not own a frame
@@ -1419,20 +1457,21 @@ Current controlled visual capability API, delivered after Phase 8:
   `defines`, and `blend`. The runtime compiles those declarations into internal
   Three material/texture state, restores original materials, and disposes
   runtime-owned resources.
-- Text/media handles expose shader input metadata such as source texture
+- Object modules expose shader input metadata such as source texture
   availability, size, DPR, glyph coordinates, media natural size, content box,
   and object-fit UV transform.
-- GLB model handles expose controlled mesh handles, material restore, sampled
+- GLB object model modules expose controlled mesh handles, material restore, sampled
   vertices, and managed point layers.
 - Public handles are AI-first capability handles: use methods such as `draw`,
-  `setGlyphs`, `setTextureTransform`, `createMaterialLayer`, `forEachMesh`,
-  `sampleVertices`, and `createPointLayer`. They do not expose `object3D`,
+  `setGlyphs`, `setTransform`, `createMaterialLayer`, `meshes.forEach`,
+  `sampling.vertices`, and `points.create`. They do not expose `object3D`,
   `mesh`, `material`, `texture`, raw mesh traversal, raw point-cloud objects,
   or target-level raw object attachment.
-- `ctx.visual.requestPostprocess(...)` exposes named bloom/grain/blur requests.
-  Current runtime truth is request/handle ownership, inspection, and bounded
-  internal bloom/grain/blur pass execution. Composer, pass ordering, and
-  render-target internals remain private.
+- `ctx.runtime.postprocess.request(...)` exposes named bloom/grain/blur requests
+  with explicit `{ canvas: true }` or `{ passId }` scope. Current runtime truth
+  is request/handle ownership, inspection, and bounded internal bloom/grain/blur
+  pass execution. Composer, pass ordering, and render-target internals remain
+  private.
 - Public APIs still do not expose renderer, scene, camera, raw `ShaderMaterial`,
   raw `Texture`, raw `EffectComposer`, raw `WebGLRenderTarget`, render-loop,
   arbitrary pass ordering, or renderer-state mutation.
@@ -1445,20 +1484,20 @@ Delivered Phase 8 behavior:
   concrete effects or official presets.
 - Example and documentation snippets may define local effects with the public
   authoring API, but those examples are consumer-owned code.
-- Effect context exposes layout, frame input, pointer, scroll, time, source
-  handles, target handles, and managed resources.
-- GLB effects receive a model source handle after the model source is loaded;
+- Effect context exposes layout, frame input, pointer, target-local pointer,
+  scroll, time, keyed progress, `ctx.object`, and managed resources.
+- GLB effects receive `ctx.object.model` after the model source is loaded;
   effects do not load GLB assets themselves.
 - Raw renderer, camera, scene, material, texture, composer, render-target,
   render-loop, pass ordering, and renderer-state mutation remain outside the
   public API.
 
-Text animation effects such as scrambled text and text pressure should use the
-public `dom/text` text-layer handle. They should not run by mutating native
+Text animation effects such as scrambled text and text pressure should use
+`ctx.object.text`. They should not run by mutating native
 DOM and waiting for snapshot refresh, because that couples effect timing to
-browser paint and snapshot cadence. `textLayer.setText(...)` and
-`textLayer.setGlyphs(...)` update only the WebGL output layer; DOM text remains
-the source for content, accessibility, and fallback.
+browser paint and snapshot cadence. `ctx.object.text.setText(...)` and
+`ctx.object.text.setGlyphs(...)` update only the WebGL output layer; DOM text
+remains the source for content, accessibility, and fallback.
 
 ## Non-Goals For The New Project
 

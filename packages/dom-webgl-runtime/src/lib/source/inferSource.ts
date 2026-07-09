@@ -59,6 +59,7 @@ export function inferSourceDescriptor(
         type: "glb",
         anchor: element,
         src: declaredSource.src,
+        loader: declaredSource.loader,
       };
     }
   }

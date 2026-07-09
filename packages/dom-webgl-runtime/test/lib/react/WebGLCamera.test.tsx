@@ -1,0 +1,193 @@
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+import type { WebGLRuntime } from "../../../src/index";
+
+const roots: Root[] = [];
+
+describe("WebGLCamera", () => {
+  beforeEach(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
+      true;
+  });
+
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      act(() => {
+        root.unmount();
+      });
+    }
+    document.body.replaceChildren();
+  });
+
+  test("registers a camera under the nearest WebGLScene", async () => {
+    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "world" },
+            createElement(WebGLCamera, { id: "world.camera", default: true }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerCamera).toHaveBeenCalledWith({
+      id: "world.camera",
+      sceneId: "world",
+      type: undefined,
+      mode: undefined,
+      default: true,
+    });
+  });
+
+  test("forwards perspective camera declarations", async () => {
+    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "world" },
+            createElement(WebGLCamera, {
+              id: "world.camera",
+              type: "perspective",
+              mode: "perspective-stage",
+              fov: 50,
+              near: 0.1,
+              far: 2000,
+              position: [0, 0, 500],
+              target: [0, 0, 0],
+              default: true,
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerCamera).toHaveBeenCalledWith({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+      default: true,
+    });
+  });
+
+  test("forwards managed camera controller declarations", async () => {
+    const { WebGLCamera, WebGLRuntimeProvider, WebGLScene } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "hero.scene" },
+            createElement(WebGLCamera, {
+              id: "hero.camera",
+              type: "perspective",
+              mode: "perspective-stage",
+              position: [0, 0, 700],
+              target: [0, 0, 0],
+              fov: 44,
+              default: true,
+              controller: {
+                timeline: "hero.timeline",
+                to: {
+                  position: [0, 120, 520],
+                  target: [0, 48, 0],
+                  fov: 34,
+                },
+              },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerCamera).toHaveBeenCalledWith({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      default: true,
+      controller: {
+        timeline: "hero.timeline",
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+  });
+});
+
+function createTestRoot(): { root: Root; host: HTMLElement } {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  roots.push(root);
+
+  return { root, host };
+}
+
+function createRuntimeStub(): WebGLRuntime & {
+  registerCamera: ReturnType<typeof vi.fn>;
+} {
+  return {
+    container: document.createElement("div"),
+    registerScene: vi.fn(),
+    unregisterScene: vi.fn(),
+    registerCamera: vi.fn(),
+    unregisterCamera: vi.fn(),
+    registerRenderPass: vi.fn(),
+    unregisterRenderPass: vi.fn(),
+    registerPassViewport: vi.fn(),
+    unregisterPassViewport: vi.fn(),
+    registerStagePrimitive: vi.fn(),
+    unregisterStagePrimitive: vi.fn(),
+    registerLight: vi.fn(),
+    unregisterLight: vi.fn(),
+    registerModel: vi.fn(),
+    unregisterModel: vi.fn(),
+    registerTarget: vi.fn(),
+    unregisterTarget: vi.fn(),
+    sync() {},
+    getDebugState() {
+      throw new Error("not implemented in test");
+    },
+    dispose() {},
+  };
+}

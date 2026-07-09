@@ -72,6 +72,12 @@ describe("example resource scheduler", () => {
       expect(events.indexOf("/models/hero.glb")).toBeLessThan(
         events.indexOf("/example/bg-sequence/frame_0454.webp"),
       );
+      expect(events.indexOf("/models/4.glb")).toBeGreaterThan(
+        events.indexOf("/example/bg-sequence/frame_0001.webp"),
+      );
+      expect(events.indexOf("/models/4.glb")).toBeLessThan(
+        events.indexOf("/example/bg-sequence/frame_0454.webp"),
+      );
       expect(maxSequenceLoads).toBeLessThanOrEqual(6);
       expect(resources.imageSequenceFrames).toHaveLength(454);
       expect(resources.modelReady).toBe(true);

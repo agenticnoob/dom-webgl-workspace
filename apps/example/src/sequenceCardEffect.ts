@@ -46,10 +46,6 @@ export const exampleSequenceCardSlideEffect =
     kind: "example.sequenceCardSlide",
     source: "dom/element",
     update(ctx, _state, params) {
-      if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
-        return;
-      }
-
       const minOpacity = clampNumber(params.minOpacity, 0, 1, 0.18);
       const maxOpacity = clampNumber(params.maxOpacity, minOpacity, 1, 0.82);
       const motion = readSequenceCardMotion(ctx, params);
@@ -59,9 +55,9 @@ export const exampleSequenceCardSlideEffect =
       );
       const anchor = readSceneAnchor(ctx.layout);
 
-      ctx.target?.setVisible(true);
-      ctx.target?.setOpacity(opacity);
-      ctx.target?.setPosition(
+      ctx.object.visible = true;
+      ctx.object.opacity = opacity;
+      ctx.object.position.set(
         anchor.x + motion.offsetX,
         anchor.y,
         anchor.z,
@@ -74,11 +70,11 @@ export const exampleSequenceCardBorderGlowEffect =
     kind: "example.sequenceCardBorderGlow",
     source: "dom/element",
     update(ctx, _state, params) {
-      if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+      const surface = ctx.object.surface;
+      if (!surface) {
         return;
       }
 
-      const surface = ctx.source.surface;
       const offsetX = readSequenceCardMotion(ctx, params).offsetX;
       const pointer = readTargetLocalPointer({
         layout: readVisualLayout(ctx.layout, offsetX),
@@ -90,11 +86,11 @@ export const exampleSequenceCardBorderGlowEffect =
       });
       const glow = readSequenceCardGlow(pointer, ctx.layout, params);
 
-      surface?.draw(({ context, width, height }) => {
+      surface.draw(({ context, width, height }) => {
         drawSequenceCardSurface(context, width, height, glow);
       });
-      surface?.setVisible?.(true);
-      surface?.setOpacity?.(1);
+      surface.setVisible?.(true);
+      surface.setOpacity?.(1);
     },
   });
 

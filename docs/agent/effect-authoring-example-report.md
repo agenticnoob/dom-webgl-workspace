@@ -1,7 +1,14 @@
 # Effect Authoring Example Report
 
 Date: 2026-06-22
-Updated: 2026-07-01 for the reusable `example.mediaPointerParallax` media effect on the runtime image-sequence scrub row, alongside the taller rows, text/image/video specimens, app-owned resource scheduling notes, the image hover reveal mask-canvas implementation, ReactBits Text Pressure/Scrambled Text ports implemented with `dom/text` glyph commands, and the reusable text transform helpers behind `example.textSpotlightPressureScrambleWave`.
+Updated: 2026-07-02 for the managed Three-like `example.modelFloatGlow`
+dogfood on `/models/4.glb`, including Draco decoder asset serving,
+runtime-owned loader config, material/mesh emissive plus light-based glow, and
+the postprocess/model-fit pitfalls found during browser verification.
+Historical note: this report records the pre-2026-07-02 effect context shape.
+Mentions of `ctx.source.*`, `ctx.target`, or source handles below are historical
+evidence, not current authoring guidance. Current public effects use
+`ctx.object` modules for visual control and source-backed capabilities.
 
 ## Summary
 
@@ -19,7 +26,7 @@ ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
 section progress. This makes `apps/example` the dogfood surface for the
 higher-level pinned scroll React adapter.
 The current `dom/element` bucket also includes app-owned video background,
-ghost cursor, and waves examples implemented through `ctx.source.surface`
+ghost cursor, and waves examples implemented through `ctx.object.surface`
 instead of ReactBits-owned canvases or secondary renderers.
 The catalog now also includes taller text, image, and video specimens:
 `example.textSpotlight`, `example.imageKenBurns`, `example.imageHoverReveal`,
@@ -28,13 +35,24 @@ loaded by the example app and composes a reusable media pointer parallax effect.
 It also includes ReactBits Text Pressure and
 Scrambled Text ports as app-owned `dom/text` effects: `example.textPressure`
 and `example.textScramble` rewrite WebGL glyph commands through
-`ctx.source.textLayer` without changing package exports. Text Pressure uses
+`ctx.object.text` without changing package exports. Text Pressure uses
 glyph scale plus line-level `x` reflow so nearby glyphs expand while the rest of
 the row compresses around them. The combined
 `example.textSpotlightPressureScrambleWave` specimen reuses the same app-owned
 glyph transform helpers for spotlight color, pressure reflow, scramble
 characters, and wave offsets, then writes the final glyph command list once per
 frame.
+The model bucket now includes `example.modelDarkScene` and
+`example.modelFloatGlow` on `/models/4.glb`. The dark scene effect paints a
+pure black, fully opaque WebGL surface backdrop, and the model effect uses the
+managed `ctx.object` facade for rotation, material/mesh emissive color, a
+runtime-owned point light keyed by effect id, without a canvas-scoped
+postprocess request. The light is declared from `update` with the
+projected layout center so `lightIntensity` changes update the existing
+runtime-owned light while the runtime still owns GLB loading, Draco decoding,
+model fit position/scale, light handles, and all raw Three.js objects.
+The glowing model is kept smaller by narrowing its DOM target rect rather than
+by writing target scale from the effect.
 
 ## What Worked
 
@@ -79,7 +97,7 @@ frame.
   text-layer capability when the port focuses on glyph output rather than raw
   DOM variable-font or GSAP plugin behavior. Keeping them in `apps/example`
   preserves the distinction between catalog references and package contracts.
-- Text effects that all write `ctx.source.textLayer.setGlyphs(...)` should share
+- Text effects that all write `ctx.object.text.setGlyphs(...)` should share
   transform helpers instead of being stacked blindly on one target. The combined
   text specimen demonstrates reuse by composing app-owned glyph transforms into
   one final command list.
@@ -95,6 +113,18 @@ frame.
   downstream app code.
 - Copying static assets into `apps/example/public` keeps the example runnable as
   an isolated downstream app.
+- Draco-compressed model assets work as a downstream example when both pieces
+  are present: declarative `loader.draco.decoderPath` on the model source and
+  matching decoder files in the app's public directory.
+- Model glow is clearer when the backdrop is a pure black WebGL surface and the
+  bright source lives in the model effect: controlled material/mesh emissive
+  values plus a keyed runtime-owned light.
+- Runtime-owned lights are keyed requests. Dynamic light params should be
+  redeclared with the same key from `update`; effects should not stash raw light
+  objects or manually own their lifecycle.
+- Leaving model fit position/scale to the runtime layout pass keeps the GLB
+  visible and centered in its target rect; effects can still animate rotation,
+  materials, lights, animation, and generated model-local points.
 - The scroll boundary now has two valid consumer levels: low-level helpers where
   the app owns Lenis and cleanup, and the high-level React adapter where
   `WebGLScrollRuntime` owns a progress store and `ScrollEffectSection` owns one
@@ -102,6 +132,35 @@ frame.
 
 ## Friction And Counterintuitive Points
 
+- Managed timeline card dogfood should keep the card target inside the
+  `WebGLScene`. Moving it outside the scene only proves the default target
+  pipeline and defeats the scene-child inheritance dogfood. If the card is not
+  visible, debug the scene-child target in place.
+- For a scene-child `dom/element` card that still looks invisible or tiny, use
+  this order of checks: confirm React markup nests the `WebGLTarget` under
+  `WebGLScene`; confirm runtime debug state reports the target as `ready`,
+  `active`, `visible`, `sceneId: example.managedStage.scene`,
+  `projection: perspective-stage`, and `placementMode: screen-depth`; confirm
+  fallback DOM and descendants are hidden with `hideMode: "subtree"`; inspect
+  the `WebGLCamera` used by the scene (`default`/`defaultCameraId`) and keep it
+  aligned with `WebGLScene render.camera`; inspect `screen-depth` projection
+  against that camera's `position`/`target`; then inspect the effect for
+  `ctx.object.position` or `ctx.object.scale` writes that override the
+  runtime-projected plane layout.
+- The 2026-07-04 managed card failure had two causes: `screen-depth` originally
+  projected with a simplified `cameraZ - depth` formula instead of the
+  `WebGLCamera` basis, and `example.managedTimelineCard` called
+  `ctx.object.scale.setScalar(...)`, shrinking the projected surface to roughly
+  one scene unit. The fix kept the card as a scene-child `WebGLTarget`, made
+  `screen-depth` project through the active camera forward/right/up, kept the
+  scene camera declared as the default render camera, used `size: "dom"`, hid
+  the fallback subtree, and removed the effect scale write.
+- Use these docs before changing this area again: `docs/STATUS.md` for current
+  caveats, `docs/roadmap/managed-render-system.md` for phase scope,
+  `docs/agent/package-usage.md` for scene/placement contracts,
+  `docs/agent/effect-object-boundary.md` for `ctx.object` ownership,
+  `docs/examples/effect-authoring.md` for the consumer tutorial, and this
+  report for dogfood pitfalls.
 - The relationship between target `webgl.effects` data and runtime-level
   executable `effects` needs repeated documentation. It is easy to assume target
   declarations execute by themselves.
@@ -139,7 +198,7 @@ frame.
 - The video-background example is a useful distinction: a non-video element
   should not use a top-level video source declaration, but a `dom/element`
   effect may own a hidden `HTMLVideoElement` and draw it into
-  `ctx.source.surface`.
+  `ctx.object.surface`.
 - Pointer effects should use `ctx.targetPointer` for current-target layout-local
   state. `ctx.pointer` remains runtime/canvas pointer state.
 - Text pointer effects compare `ctx.targetPointer.localX/localY` against glyph
@@ -161,8 +220,21 @@ frame.
   slow hover.
 - Text effects need careful language: `textLayer.setGlyphs(...)` changes only
   the WebGL output, not DOM content or accessibility text.
-- Model examples can rotate via `ctx.target`, but advanced model effects still
+- Model examples can rotate via `ctx.object`, but advanced model effects still
   need users to understand object ownership and cleanup.
+- A Draco-compressed GLB can look like a runtime bug when the asset loads without
+  decoder config. The fix is not a loader callback escape hatch; declare
+  `loader: { draco: { decoderPath } }` and serve the decoder files.
+- Postprocess requests are easy to over-scope. Effect-authored requests now use
+  `ctx.runtime.postprocess` with explicit canvas/pass scope; they are still not
+  target-local. The model glow example avoids bloom so it does not dim or blur
+  unrelated WebGL targets.
+- A DOM background on a ready model target can occlude the fixed WebGL canvas.
+  Use a WebGL `dom/element` surface backdrop when the model needs a darker
+  stage.
+- Model renderables already have a runtime-owned fit transform. A model effect
+  that writes `ctx.object.position` or `ctx.object.scale` becomes responsible
+  for placement and can move the loaded model out of the expected target area.
 
 ## Documentation Gaps Closed In This Pass
 
@@ -170,6 +242,10 @@ frame.
   narrowing, resource ownership, media target rules, and validation.
 - `docs/examples/effect-authoring.md` now gives a React-only consumer tutorial.
 - README and package usage docs now point to `apps/example`.
+- The managed model dogfood notes now document Draco static assets, pure black
+  WebGL surface backdrops, localized model glow, and model fit ownership so
+  future examples do not reintroduce the same invisible/blurred model failure
+  mode.
 
 ## Boundaries To Preserve
 

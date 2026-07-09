@@ -44,6 +44,20 @@ describe("useWebGLRuntime", () => {
 function createRuntimeStub(): WebGLRuntime {
   return {
     container: {} as HTMLElement,
+    registerScene() {},
+    unregisterScene() {},
+    registerCamera() {},
+    unregisterCamera() {},
+    registerRenderPass() {},
+    unregisterRenderPass() {},
+    registerPassViewport() {},
+    unregisterPassViewport() {},
+    registerStagePrimitive() {},
+    unregisterStagePrimitive() {},
+    registerLight() {},
+    unregisterLight() {},
+    registerModel() {},
+    unregisterModel() {},
     registerTarget() {
       throw new Error("not implemented in test");
     },

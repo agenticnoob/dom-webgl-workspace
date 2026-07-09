@@ -1,6 +1,13 @@
+import { Camera } from "three/src/cameras/Camera.js";
 import { OrthographicCamera } from "three/src/cameras/OrthographicCamera.js";
+import { PerspectiveCamera } from "three/src/cameras/PerspectiveCamera.js";
+import { Object3D } from "three/src/core/Object3D.js";
+import { Raycaster } from "three/src/core/Raycaster.js";
 import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
+import { Box3 } from "three/src/math/Box3.js";
+import { Vector2 } from "three/src/math/Vector2.js";
+import { Vector3 } from "three/src/math/Vector3.js";
 import { Group } from "three/src/objects/Group.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
@@ -11,6 +18,16 @@ import type {
   WebGLSceneObject,
 } from "./sceneObject";
 import type { DOMViewportSize } from "./domProjection";
+import type {
+  ManagedHitCandidate,
+  ManagedHitResult,
+  ManagedHitTestPass,
+} from "./interactionRouter";
+import type { NormalizedRenderLayerCameraDeclaration } from "./renderLayerDeclarations";
+import type {
+  WebGLCameraControllerFrameDeclaration,
+  WebGLPointerState,
+} from "../types";
 
 export type ThreeRendererAdapter = {
   readonly canvas: HTMLCanvasElement;
@@ -19,6 +36,11 @@ export type ThreeRendererAdapter = {
   setPixelRatio?(ratio: number): void;
   setSize?(width: number, height: number, updateStyle?: boolean): void;
   setClearAlpha?(alpha: number): void;
+  clear?(): void;
+  clearDepth?(): void;
+  setViewport?(x: number, y: number, width: number, height: number): void;
+  setScissor?(x: number, y: number, width: number, height: number): void;
+  setScissorTest?(enabled: boolean): void;
   setRenderTarget?(target: object | null): void;
   render?(scene: object, camera: object): void;
   dispose(): void;
@@ -55,7 +77,30 @@ export type ThreeRendererHost = {
   readonly sceneAdapter: WebGLSceneAdapter;
   getViewportSize(): DOMViewportSize;
   readRendererStats(): ThreeRendererStats;
-  resizeIfNeeded(): void;
+  pickManagedObjects?(
+    pass: ManagedHitTestPass,
+    candidates: readonly ManagedHitCandidate[],
+    pointer: WebGLPointerState,
+  ): ManagedHitResult | undefined;
+  resizeIfNeeded(): boolean;
+  dispose(): void;
+};
+
+export type ManagedThreeSceneAdapterEntry = {
+  readonly scene: object;
+  readonly camera: object;
+  readonly sceneAdapter: WebGLSceneAdapter;
+  resize(viewport: DOMViewportSize): void;
+  dispose(): void;
+};
+
+export type ManagedThreeCameraEntry = {
+  readonly camera: object;
+  resize(viewport: DOMViewportSize): void;
+  applyFraming(
+    framing: WebGLCameraControllerFrameDeclaration,
+    viewport: DOMViewportSize,
+  ): void;
   dispose(): void;
 };
 
@@ -98,7 +143,10 @@ export function createThreeRendererHost(
     readRendererStats(): ThreeRendererStats {
       return readRendererStats(objects.renderer);
     },
-    resizeIfNeeded(): void {
+    pickManagedObjects(pass, candidates, pointer): ManagedHitResult | undefined {
+      return pickManagedObjects(pass, candidates, pointer);
+    },
+    resizeIfNeeded(): boolean {
       const nextViewport = readCSSPixelViewport(container, canvas);
 
       if (
@@ -106,17 +154,18 @@ export function createThreeRendererHost(
         viewport.height === nextViewport.height &&
         viewport.devicePixelRatio === nextViewport.devicePixelRatio
       ) {
-        return;
+        return false;
       }
 
       const now = performance.now();
       if (now - lastApplyMs < RESIZE_COOLDOWN_MS) {
-        return;
+        return false;
       }
 
       applyCSSPixelViewport(objects.renderer, objects.camera, nextViewport);
       viewport = nextViewport;
       lastApplyMs = now;
+      return true;
     },
     dispose(): void {
       if (disposed) {
@@ -131,6 +180,231 @@ export function createThreeRendererHost(
   };
 }
 
+function pickManagedObjects(
+  pass: ManagedHitTestPass,
+  candidates: readonly ManagedHitCandidate[],
+  pointer: WebGLPointerState,
+): ManagedHitResult | undefined {
+  const normalized = normalizePointerForPass(pass, pointer);
+  const raycaster = new Raycaster();
+
+  if (!(pass.camera instanceof Camera)) {
+    return undefined;
+  }
+
+  try {
+    raycaster.setFromCamera(new Vector2(normalized.x, normalized.y), pass.camera);
+  } catch (_error: unknown) {
+    return undefined;
+  }
+
+  return candidates
+    .flatMap((candidate) => readCandidateHit(candidate, raycaster))
+    .sort((left, right) => left.distance - right.distance)[0];
+}
+
+function normalizePointerForPass(
+  pass: ManagedHitTestPass,
+  pointer: WebGLPointerState,
+): { readonly x: number; readonly y: number } {
+  if (!pass.viewport || pass.viewport.width <= 0 || pass.viewport.height <= 0) {
+    return { x: pointer.normalizedX, y: pointer.normalizedY };
+  }
+
+  return {
+    x: ((pointer.x - pass.viewport.x) / pass.viewport.width) * 2 - 1,
+    y: -(((pointer.y - pass.viewport.y) / pass.viewport.height) * 2 - 1),
+  };
+}
+
+function isObject3D(value: unknown): value is Object3D {
+  return value instanceof Object3D;
+}
+
+function containsObject(root: unknown, child: unknown): boolean {
+  if (!isObject3D(root) || !isObject3D(child)) {
+    return false;
+  }
+  if (root === child) {
+    return true;
+  }
+
+  let parent = readObjectParent(child);
+  while (parent) {
+    if (parent === root) {
+      return true;
+    }
+    parent = readObjectParent(parent);
+  }
+
+  return false;
+}
+
+function readObjectParent(object: Object3D): Object3D | undefined {
+  return object.parent ?? undefined;
+}
+
+function readCandidateHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  switch (candidate.hitTest) {
+    case "bounds":
+      return readCandidateBoundsHit(candidate, raycaster);
+    case "mesh":
+      return readCandidateMeshHit(candidate, raycaster);
+  }
+}
+
+function readCandidateBoundsHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  if (!isObject3D(candidate.object3D)) {
+    return [];
+  }
+
+  updateObjectWorldMatrix(candidate.object3D);
+
+  const bounds = new Box3().setFromObject(candidate.object3D);
+  if (bounds.isEmpty()) {
+    return readCandidateMeshHit(candidate, raycaster);
+  }
+
+  const point = new Vector3();
+  const hitPoint = raycaster.ray.intersectBox(bounds, point);
+  if (!hitPoint) {
+    return readCandidateMeshHit(candidate, raycaster);
+  }
+
+  return [
+    {
+      id: candidate.id,
+      sceneId: candidate.sceneId,
+      point: [hitPoint.x, hitPoint.y, hitPoint.z],
+      distance: raycaster.ray.origin.distanceTo(hitPoint),
+    },
+  ];
+}
+
+function readCandidateMeshHit(
+  candidate: ManagedHitCandidate,
+  raycaster: Raycaster,
+): ManagedHitResult[] {
+  if (!isObject3D(candidate.object3D)) {
+    return [];
+  }
+
+  updateObjectWorldMatrix(candidate.object3D);
+
+  const [intersection] = raycaster.intersectObject(candidate.object3D, true);
+  if (!intersection || !containsObject(candidate.object3D, intersection.object)) {
+    return [];
+  }
+
+  return [
+    {
+      id: candidate.id,
+      sceneId: candidate.sceneId,
+      point: [
+        intersection.point.x,
+        intersection.point.y,
+        intersection.point.z,
+      ],
+      distance: intersection.distance,
+    },
+  ];
+}
+
+function updateObjectWorldMatrix(object: Object3D): void {
+  if (typeof object.updateWorldMatrix === "function") {
+    object.updateWorldMatrix(true, true);
+    return;
+  }
+
+  object.updateMatrixWorld(true);
+}
+
+export function createManagedDomAlignedSceneAdapter(
+  renderer: ThreeRendererAdapter,
+): ManagedThreeSceneAdapterEntry {
+  return createManagedSceneAdapter(renderer);
+}
+
+export function createManagedSceneAdapter(
+  renderer: ThreeRendererAdapter,
+): ManagedThreeSceneAdapterEntry {
+  const scene = new Scene();
+  configureDefaultSceneLighting(scene);
+  const camera = new OrthographicCamera(0, 800, 600, 0, 0.1, 1000);
+  const sceneAdapter = createThreeSceneAdapter(scene, camera, renderer);
+
+  return {
+    scene,
+    camera,
+    sceneAdapter,
+    resize(viewport) {
+      configureOrthographicCamera(camera, viewport.width, viewport.height);
+    },
+    dispose() {
+      clearSceneObjects(scene);
+    },
+  };
+}
+
+export function createManagedCamera(
+  declaration: NormalizedRenderLayerCameraDeclaration,
+): ManagedThreeCameraEntry {
+  if (declaration.type === "perspective") {
+    const camera = new PerspectiveCamera(
+      declaration.fov ?? 50,
+      1,
+      declaration.near ?? 0.1,
+      declaration.far ?? 2000,
+    );
+    configurePerspectiveCamera(camera, declaration, { width: 800, height: 600 });
+
+    return {
+      camera,
+      resize(viewport) {
+        configurePerspectiveCamera(camera, declaration, viewport);
+      },
+      applyFraming(framing, viewport) {
+        const nextDeclaration = {
+          ...declaration,
+          ...(framing.fov !== undefined ? { fov: framing.fov } : {}),
+          ...(framing.position ? { position: framing.position } : {}),
+          ...(framing.target ? { target: framing.target } : {}),
+        } satisfies NormalizedRenderLayerCameraDeclaration;
+
+        configurePerspectiveCamera(camera, nextDeclaration, viewport);
+      },
+      dispose() {
+        return;
+      },
+    };
+  }
+
+  const camera = new OrthographicCamera(0, 800, 600, 0, 0.1, 1000);
+  configureManagedOrthographicCamera(camera, declaration, {
+    width: 800,
+    height: 600,
+  });
+
+  return {
+    camera,
+    resize(viewport) {
+      configureManagedOrthographicCamera(camera, declaration, viewport);
+    },
+    applyFraming() {
+      return;
+    },
+    dispose() {
+      return;
+    },
+  };
+}
+
 function createDefaultThreeRendererObjects(
   canvas: HTMLCanvasElement,
 ): ThreeRendererObjects {
@@ -141,6 +415,7 @@ function createDefaultThreeRendererObjects(
     powerPreference: "high-performance",
     canvas,
   });
+  renderer.autoClear = false;
   readRendererSetClearAlpha(renderer)?.(0);
   configureDefaultSceneLighting(scene);
 
@@ -163,8 +438,23 @@ function createDefaultThreeRendererObjects(
       setClearAlpha(alpha) {
         readRendererSetClearAlpha(renderer)?.(alpha);
       },
+      clear() {
+        readRendererClear(renderer)?.();
+      },
+      clearDepth() {
+        readRendererClearDepth(renderer)?.();
+      },
       setRenderTarget(target) {
         readRendererSetRenderTarget(renderer)?.(target);
+      },
+      setViewport(x, y, width, height) {
+        readRendererSetViewport(renderer)?.(x, y, width, height);
+      },
+      setScissor(x, y, width, height) {
+        readRendererSetScissor(renderer)?.(x, y, width, height);
+      },
+      setScissorTest(enabled) {
+        readRendererSetScissorTest(renderer)?.(enabled);
       },
       render(scene, camera) {
         readRendererRender(renderer)?.(scene, camera);
@@ -403,6 +693,46 @@ function configureOrthographicCamera(
   }
 }
 
+function configureManagedOrthographicCamera(
+  camera: object,
+  _declaration: NormalizedRenderLayerCameraDeclaration,
+  viewport: DOMViewportSize,
+): void {
+  configureOrthographicCamera(camera, viewport.width, viewport.height);
+}
+
+function configurePerspectiveCamera(
+  camera: object,
+  declaration: NormalizedRenderLayerCameraDeclaration,
+  viewport: DOMViewportSize,
+): void {
+  Object.assign(camera, {
+    aspect: viewport.width / viewport.height,
+    ...(declaration.fov !== undefined ? { fov: declaration.fov } : {}),
+  });
+
+  const position = declaration.position ?? [0, 0, 500];
+  const target = declaration.target ?? [0, 0, 0];
+  const cameraPosition = (camera as { position?: { set?: unknown } }).position;
+
+  if (cameraPosition && typeof cameraPosition.set === "function") {
+    cameraPosition.set(position[0], position[1], position[2]);
+  }
+
+  const lookAt = (camera as { lookAt?: unknown }).lookAt;
+  if (typeof lookAt === "function") {
+    lookAt.call(camera, target[0], target[1], target[2]);
+  }
+
+  const updateProjectionMatrix = (camera as {
+    updateProjectionMatrix?: unknown;
+  }).updateProjectionMatrix;
+
+  if (typeof updateProjectionMatrix === "function") {
+    updateProjectionMatrix.call(camera);
+  }
+}
+
 function createThreeSceneAdapter(
   scene: object,
   camera: object,
@@ -478,8 +808,8 @@ function createThreeSceneAdapter(
 
       addToRoot(group.object3D ?? group);
     },
-    render(): void {
-      renderer.render?.(scene, camera);
+    render(cameraOverride?: object): void {
+      renderer.render?.(scene, cameraOverride ?? camera);
     },
   };
 
@@ -504,6 +834,19 @@ function createThreeSceneAdapter(
     }
 
     readSceneMethod(scene, "remove")?.(object);
+  }
+}
+
+function clearSceneObjects(scene: object): void {
+  const children = (scene as { children?: unknown }).children;
+  const remove = readSceneMethod(scene, "remove");
+
+  if (!Array.isArray(children) || !remove) {
+    return;
+  }
+
+  for (const child of [...children]) {
+    remove(child);
   }
 }
 
@@ -569,6 +912,26 @@ function readRendererSetClearAlpha(
   return setClearAlpha.bind(renderer) as (alpha: number) => void;
 }
 
+function readRendererClear(renderer: object): (() => void) | undefined {
+  const clear = (renderer as Record<string, unknown>).clear;
+
+  if (typeof clear !== "function") {
+    return undefined;
+  }
+
+  return clear.bind(renderer) as () => void;
+}
+
+function readRendererClearDepth(renderer: object): (() => void) | undefined {
+  const clearDepth = (renderer as Record<string, unknown>).clearDepth;
+
+  if (typeof clearDepth !== "function") {
+    return undefined;
+  }
+
+  return clearDepth.bind(renderer) as () => void;
+}
+
 function readRendererSetSize(
   renderer: object,
 ): ((width: number, height: number, updateStyle?: boolean) => void) | undefined {
@@ -621,4 +984,50 @@ function readRendererSetRenderTarget(
   }
 
   return setRenderTarget.bind(renderer) as (target: object | null) => void;
+}
+
+function readRendererSetViewport(
+  renderer: object,
+): ((x: number, y: number, width: number, height: number) => void) | undefined {
+  const setViewport = (renderer as Record<string, unknown>).setViewport;
+
+  if (typeof setViewport !== "function") {
+    return undefined;
+  }
+
+  return setViewport.bind(renderer) as (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => void;
+}
+
+function readRendererSetScissor(
+  renderer: object,
+): ((x: number, y: number, width: number, height: number) => void) | undefined {
+  const setScissor = (renderer as Record<string, unknown>).setScissor;
+
+  if (typeof setScissor !== "function") {
+    return undefined;
+  }
+
+  return setScissor.bind(renderer) as (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => void;
+}
+
+function readRendererSetScissorTest(
+  renderer: object,
+): ((enabled: boolean) => void) | undefined {
+  const setScissorTest = (renderer as Record<string, unknown>).setScissorTest;
+
+  if (typeof setScissorTest !== "function") {
+    return undefined;
+  }
+
+  return setScissorTest.bind(renderer) as (enabled: boolean) => void;
 }

@@ -72,7 +72,7 @@ export const exampleImagePanEffect = defineWebGLEffect<ImagePanParams>({
   kind: "example.imagePan",
   source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
+    if (!ctx.object.texture) {
       return;
     }
 
@@ -81,7 +81,7 @@ export const exampleImagePanEffect = defineWebGLEffect<ImagePanParams>({
       clampNumber(ctx.scrollProgress, 0, 1, 0),
       readTargetViewportProgress(ctx.layout),
     );
-    ctx.source.image?.setTextureTransform({
+    ctx.object.texture.setTransform({
       repeatX: 1.12,
       repeatY: 1.12,
       offsetX: distance * progress,
@@ -94,7 +94,7 @@ export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
   kind: "example.imageZoom",
   source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
+    if (!ctx.object.texture) {
       return;
     }
 
@@ -102,8 +102,8 @@ export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
     const phase = 0.5 + Math.sin(ctx.time / 800) * 0.5;
     const scale = 1 + (maxScale - 1) * phase;
 
-    ctx.target?.setVisible(true);
-    ctx.target?.setScale(scale, scale, 1);
+    ctx.object.visible = true;
+    ctx.object.scale.set(scale, scale, 1);
   },
 });
 
@@ -111,7 +111,7 @@ export const exampleImageKenBurnsEffect = defineWebGLEffect<ImageKenBurnsParams>
   kind: "example.imageKenBurns",
   source: "media/image",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
+    if (!ctx.object.texture) {
       return;
     }
 
@@ -120,14 +120,14 @@ export const exampleImageKenBurnsEffect = defineWebGLEffect<ImageKenBurnsParams>
     const phase = 0.5 + Math.sin(ctx.time / 1200) * 0.5;
     const scale = 1 + (maxScale - 1) * (0.35 + phase * 0.65);
 
-    ctx.source.image?.setTextureTransform({
+    ctx.object.texture.setTransform({
       repeatX: scale,
       repeatY: scale,
       offsetX: distance * phase,
       offsetY: distance * (1 - phase),
     });
-    ctx.target?.setVisible(true);
-    ctx.target?.setScale(1 + phase * 0.04, 1 + phase * 0.04, 1);
+    ctx.object.visible = true;
+    ctx.object.scale.set(1 + phase * 0.04, 1 + phase * 0.04, 1);
   },
 });
 
@@ -156,12 +156,7 @@ export const exampleMediaPointerParallaxEffect =
     kind: "example.mediaPointerParallax",
     source: ["media/image", "media/video", "media/image-sequence"],
     update(ctx, _state, params) {
-      if (ctx.source.kind !== "media") {
-        return;
-      }
-
-      const layer = readMediaPointerParallaxLayer(ctx.source);
-      if (!layer) {
+      if (!ctx.object.texture) {
         return;
       }
 
@@ -177,7 +172,7 @@ export const exampleMediaPointerParallaxEffect =
       const normalizedX = readNormalizedPointerAxis(pointer.x, ctx.layout.width);
       const normalizedY = readNormalizedPointerAxis(pointer.y, ctx.layout.height);
 
-      layer.setTextureTransform({
+      ctx.object.texture.setTransform({
         repeatX: repeat,
         repeatY: repeat,
         offsetX: clampNumber(
@@ -193,8 +188,8 @@ export const exampleMediaPointerParallaxEffect =
           centerOffset,
         ),
       });
-      layer.setVisible?.(true);
-      layer.setOpacity?.(1);
+      ctx.object.visible = true;
+      ctx.object.opacity = 1;
     },
   });
 
@@ -218,14 +213,14 @@ export const exampleVideoDriftEffect = defineWebGLEffect<VideoDriftParams>({
   kind: "example.videoDrift",
   source: "media/video",
   update(ctx, _state, params) {
-    if (ctx.source.kind !== "media" || ctx.source.type !== "video") {
+    if (!ctx.object.texture) {
       return;
     }
 
     const distance = clampNumber(params.distance, 0, 0.32, 0.12);
     const phase = 0.5 + Math.sin(ctx.time / 900) * 0.5;
 
-    ctx.source.video?.setTextureTransform({
+    ctx.object.texture.setTransform({
       repeatX: 1.08,
       repeatY: 1.08,
       offsetX: distance * phase,
@@ -239,31 +234,14 @@ function configureVideo(
   params: VideoPlaybackParams,
   state: VideoPlaybackState,
 ): void {
-  if (ctx.source.kind !== "media" || ctx.source.type !== "video" || state.configured) {
+  if (!ctx.object.video || state.configured) {
     return;
   }
 
-  ctx.source.video?.setMuted(true);
-  ctx.source.video?.setPlaybackRate(clampNumber(params.playbackRate, 0.25, 2, 1));
-  void ctx.source.video?.play();
+  ctx.object.video.setMuted(true);
+  ctx.object.video.setPlaybackRate(clampNumber(params.playbackRate, 0.25, 2, 1));
+  void ctx.object.video.play();
   state.configured = true;
-}
-
-function readMediaPointerParallaxLayer(
-  source: Parameters<typeof exampleMediaPointerParallaxEffect.update>[0]["source"],
-) {
-  if (source.kind !== "media") {
-    return undefined;
-  }
-
-  switch (source.type) {
-    case "image":
-      return source.image;
-    case "video":
-      return source.video;
-    case "image-sequence":
-      return source.image;
-  }
 }
 
 function readNormalizedPointerAxis(value: number, size: number): number {
@@ -293,12 +271,12 @@ function prepareImageHoverReveal(
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
 ): void {
-  if (ctx.source.kind !== "media" || ctx.source.type !== "image") {
+  const texture = ctx.object.texture;
+  if (!texture) {
     return;
   }
 
   const revealSrc = params.revealSrc ?? "/example/mask.png";
-  const imageHandle = ctx.source.image;
   if (!state.revealImage || state.revealSrc !== revealSrc) {
     const image = new Image();
     const placeholder = readImageHoverRevealPlaceholder(state);
@@ -315,18 +293,18 @@ function prepareImageHoverReveal(
         uRevealReady: true,
         uRevealTexture: { kind: "image-texture", source: image },
       });
-      imageHandle?.invalidate();
+      texture.invalidate();
     };
     image.src = revealSrc;
   }
 
-  if (state.layer || !imageHandle || !state.revealImage) {
+  if (state.layer || !state.revealImage) {
     return;
   }
 
-  const uvTransform = imageHandle.shaderInputs.uvTransform;
+  const uvTransform = texture.shaderInputs.uvTransform;
   const maskCanvas = readImageHoverRevealMaskCanvas(state, ctx.layout);
-  state.layer = imageHandle.createMaterialLayer({
+  state.layer = texture.material.createMaterialLayer({
     key: "example.imageHoverReveal",
     mode: "replace-source",
     sourceTextureUniform: "uBaseTexture",
@@ -361,7 +339,8 @@ function updateImageHoverReveal(
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
 ): void {
-  if (ctx.source.kind !== "media" || ctx.source.type !== "image" || !state.layer) {
+  const texture = ctx.object.texture;
+  if (!texture || !state.layer) {
     return;
   }
 
@@ -370,12 +349,7 @@ function updateImageHoverReveal(
     pointer: ctx.targetPointer,
   });
   const maskCanvas = updateImageHoverRevealMask(ctx.time, state, params, pointer, ctx.layout);
-  const uvTransform = ctx.source.image?.shaderInputs.uvTransform ?? {
-    repeatX: 1,
-    repeatY: 1,
-    offsetX: 0,
-    offsetY: 0,
-  };
+  const uvTransform = texture.shaderInputs.uvTransform;
 
   state.layer.setUniforms({
     uPointer: [pointer.x, pointer.y],
@@ -393,10 +367,9 @@ function updateImageHoverReveal(
     uUvRepeat: [uvTransform.repeatX, uvTransform.repeatY],
     uUvOffset: [uvTransform.offsetX, uvTransform.offsetY],
   });
-  ctx.source.image?.invalidate?.();
-  ctx.source.image?.setVisible?.(true);
-  ctx.source.image?.setOpacity?.(1);
-  ctx.target?.setVisible(true);
+  texture.invalidate();
+  ctx.object.visible = true;
+  ctx.object.opacity = 1;
 }
 
 function disposeImageHoverReveal(state: ImageHoverRevealState): void {

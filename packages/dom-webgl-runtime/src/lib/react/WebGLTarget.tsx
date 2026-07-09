@@ -1,7 +1,9 @@
 import {
   createElement,
   useCallback,
+  useContext,
   useEffect,
+  useMemo,
   useRef,
   type ComponentPropsWithoutRef,
   type ReactNode,
@@ -10,6 +12,7 @@ import {
 import type { WebGLDeclaration } from "../types";
 import { markManagedFallbackRoot } from "../dom/fallbackBoundary";
 
+import { WebGLSceneContext } from "./sceneContext";
 import { useWebGLRuntime } from "./useWebGLRuntime";
 
 type WebGLTargetElement = keyof HTMLElementTagNameMap;
@@ -27,11 +30,19 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
   ...props
 }: WebGLTargetProps<TElement>) {
   const runtime = useWebGLRuntime();
+  const inheritedSceneId = useContext(WebGLSceneContext);
+  const effectiveWebgl = useMemo(
+    () =>
+      inheritedSceneId && webgl.sceneId === undefined
+        ? { ...webgl, sceneId: inheritedSceneId }
+        : webgl,
+    [inheritedSceneId, webgl],
+  );
   const elementRef = useRef<HTMLElement | null>(null);
-  const webglRef = useRef(webgl);
+  const webglRef = useRef(effectiveWebgl);
   const unmarkFallbackRootRef = useRef<(() => void) | undefined>(undefined);
 
-  webglRef.current = webgl;
+  webglRef.current = effectiveWebgl;
 
   const setElementRef = useCallback(
     (element: HTMLElement | null) => {
@@ -42,11 +53,11 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
       if (element) {
         unmarkFallbackRootRef.current = markManagedFallbackRoot(
           element,
-          webgl.key,
+          effectiveWebgl.key,
         );
       }
     },
-    [webgl.key],
+    [effectiveWebgl.key],
   );
 
   useEffect(() => {
@@ -59,9 +70,9 @@ export function WebGLTarget<TElement extends WebGLTargetElement = "div">({
     runtime.registerTarget(element, webglRef.current);
 
     return () => {
-      runtime.unregisterTarget(webgl.key);
+      runtime.unregisterTarget(effectiveWebgl.key);
     };
-  }, [runtime, webgl.key]);
+  }, [runtime, effectiveWebgl.key]);
 
   return createElement(as ?? "div", { ...props, ref: setElementRef }, children);
 }

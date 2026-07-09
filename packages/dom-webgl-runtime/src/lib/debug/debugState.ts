@@ -1,10 +1,21 @@
 import type {
+  WebGLDebugLightSummary,
+  WebGLDebugCameraControllerSummary,
+  WebGLDebugInteractionSummary,
+  WebGLDebugModelSummary,
+  WebGLDebugPhysicsSummary,
+  WebGLDebugPostprocessRequestSummary,
+  WebGLDebugRenderPassSummary,
+  WebGLDebugSceneObjectInteractionSummary,
   WebGLDebugState,
+  WebGLDebugStagePrimitiveSummary,
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
+  WebGLPlacementMode,
   WebGLPointerState,
   WebGLRenderRole,
   WebGLResourceStatus,
+  WebGLSceneProjection,
   WebGLTargetPointerState,
   WebGLLifecycleState,
 } from "../types";
@@ -12,6 +23,9 @@ import type { TextureUploadTelemetry } from "../render/renderables/textureUpload
 
 export type DebugTargetState = {
   key: string;
+  sceneId?: string;
+  projection?: WebGLSceneProjection;
+  placementMode?: WebGLPlacementMode;
   sourceKind: string;
   renderRole: WebGLRenderRole;
   resourceStatus: WebGLResourceStatus;
@@ -36,6 +50,13 @@ export type DebugRuntimeState = {
   textureTelemetry?: readonly TextureUploadTelemetry[];
   rendererStats?: DebugRendererStats;
   postprocessStats?: DebugPostprocessStats;
+  stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
+  lights?: readonly WebGLDebugLightSummary[];
+  models?: readonly WebGLDebugModelSummary[];
+  cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
+  interaction?: WebGLDebugInteractionSummary;
+  physics?: WebGLDebugPhysicsSummary;
+  renderPasses?: readonly WebGLDebugRenderPassSummary[];
   targets: readonly DebugTargetState[];
 };
 
@@ -51,6 +72,7 @@ export type DebugPostprocessStats = {
   activeRequests: number;
   passCount: number;
   maxRenderTargetSize: number;
+  requests?: readonly WebGLDebugPostprocessRequestSummary[];
 };
 
 export type BatchCandidateSummary = {
@@ -97,6 +119,18 @@ export function createDebugState(
         summary.parentKey = target.parentKey;
       }
 
+      if (target.sceneId) {
+        summary.sceneId = target.sceneId;
+      }
+
+      if (target.projection) {
+        summary.projection = target.projection;
+      }
+
+      if (target.placementMode) {
+        summary.placementMode = target.placementMode;
+      }
+
       if (target.computedRenderOrder !== undefined) {
         summary.computedRenderOrder = target.computedRenderOrder;
       }
@@ -113,6 +147,131 @@ export function createDebugState(
     }),
   };
 
+  if (runtimeState.stagePrimitives && runtimeState.stagePrimitives.length > 0) {
+    state.stagePrimitiveCount = runtimeState.stagePrimitives.length;
+    state.stagePrimitives = runtimeState.stagePrimitives.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      kind: entry.kind,
+      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
+      ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
+      ...(entry.timeline
+        ? {
+            timeline: {
+              id: entry.timeline.id,
+              progressKey: entry.timeline.progressKey,
+              ...(entry.timeline.active !== undefined
+                ? { active: entry.timeline.active }
+                : {}),
+            },
+          }
+        : {}),
+    }));
+  }
+
+  if (runtimeState.lights && runtimeState.lights.length > 0) {
+    state.lightCount = runtimeState.lights.length;
+    state.lights = runtimeState.lights.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      kind: entry.kind,
+      ...(entry.timeline
+        ? {
+            timeline: {
+              id: entry.timeline.id,
+              progressKey: entry.timeline.progressKey,
+              ...(entry.timeline.active !== undefined
+                ? { active: entry.timeline.active }
+                : {}),
+            },
+          }
+        : {}),
+    }));
+  }
+
+  if (runtimeState.models && runtimeState.models.length > 0) {
+    state.modelCount = runtimeState.models.length;
+    state.models = runtimeState.models.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      src: entry.src,
+      resourceStatus: entry.resourceStatus,
+      visible: entry.visible,
+      clips: entry.clips.slice(),
+      activeClips: entry.activeClips.slice(),
+      ...(entry.timeline ? { timeline: { ...entry.timeline } } : {}),
+      ...(entry.prepare
+        ? {
+            prepare: {
+              ...(entry.prepare.load ? { load: entry.prepare.load } : {}),
+              ...(entry.prepare.renderWarmup
+                ? { renderWarmup: entry.prepare.renderWarmup }
+                : {}),
+            },
+          }
+        : {}),
+      ...(entry.morphs ? { morphs: entry.morphs.slice() } : {}),
+      ...(entry.bones ? { bones: entry.bones.slice() } : {}),
+      ...(entry.diagnostics
+        ? {
+            diagnostics: entry.diagnostics.map((diagnostic) => ({
+              kind: diagnostic.kind,
+              name: diagnostic.name,
+            })),
+          }
+        : {}),
+      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
+      ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
+    }));
+  }
+
+  if (runtimeState.interaction && hasInteractionSummary(runtimeState.interaction)) {
+    state.interaction = cloneInteractionSummary(runtimeState.interaction);
+  }
+
+  if (runtimeState.physics && runtimeState.physics.bodyCount > 0) {
+    state.physics = clonePhysicsSummary(runtimeState.physics);
+  }
+
+  if (runtimeState.renderPasses && runtimeState.renderPasses.length > 0) {
+    state.renderPasses = runtimeState.renderPasses.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      ...(entry.cameraId ? { cameraId: entry.cameraId } : {}),
+      viewportMode: entry.viewportMode,
+      ...(entry.viewportAnchorId
+        ? { viewportAnchorId: entry.viewportAnchorId }
+        : {}),
+      postprocess: entry.postprocess,
+    }));
+  }
+
+  if (
+    runtimeState.cameraControllers &&
+    runtimeState.cameraControllers.length > 0
+  ) {
+    state.cameraControllers = runtimeState.cameraControllers.map((entry) => ({
+      cameraId: entry.cameraId,
+      sceneId: entry.sceneId,
+      timelineId: entry.timelineId,
+      progressKey: entry.progressKey,
+      progress: entry.progress,
+      applied: entry.applied,
+    }));
+  }
+
+  if (
+    runtimeState.postprocessStats?.requests &&
+    runtimeState.postprocessStats.requests.length > 0
+  ) {
+    state.postprocessRequests = runtimeState.postprocessStats.requests.map(
+      (request) => ({
+        key: request.key,
+        scope: { ...request.scope },
+      }),
+    );
+  }
+
   if (warnings.length > 0) {
     state.warnings = warnings;
   }
@@ -123,6 +282,91 @@ export function createDebugState(
   }
 
   return state;
+}
+
+function clonePhysicsSummary(
+  physics: WebGLDebugPhysicsSummary,
+): WebGLDebugPhysicsSummary {
+  return {
+    bodyCount: physics.bodyCount,
+    activeBodyCount: physics.activeBodyCount,
+    collisionCount: physics.collisionCount,
+    bodies: physics.bodies.map((body) => ({
+      id: body.id,
+      sceneId: body.sceneId,
+      sourceKind: body.sourceKind,
+      type: body.type,
+      active: body.active,
+      ...(body.collider ? { collider: { kind: body.collider.kind } } : {}),
+      position: [body.position[0], body.position[1], body.position[2]],
+      velocity: [body.velocity[0], body.velocity[1], body.velocity[2]],
+      constraints: body.constraints,
+      pointerDrag: body.pointerDrag,
+    })),
+  };
+}
+
+function cloneSceneObjectInteraction(
+  interaction: WebGLDebugSceneObjectInteractionSummary,
+): WebGLDebugSceneObjectInteractionSummary {
+  return {
+    ...(interaction.pickable
+      ? {
+          pickable: {
+            hitTest: interaction.pickable.hitTest,
+            pointer: { ...interaction.pickable.pointer },
+          },
+        }
+      : {}),
+  };
+}
+
+function cloneInteractionSummary(
+  interaction: WebGLDebugInteractionSummary,
+): WebGLDebugInteractionSummary {
+  return {
+    ...(interaction.hoveredObjectId
+      ? { hoveredObjectId: interaction.hoveredObjectId }
+      : {}),
+    ...(interaction.pressedObjectId
+      ? { pressedObjectId: interaction.pressedObjectId }
+      : {}),
+    ...(interaction.capturedObjectId
+      ? { capturedObjectId: interaction.capturedObjectId }
+      : {}),
+    ...(interaction.lastClickedObjectId
+      ? { lastClickedObjectId: interaction.lastClickedObjectId }
+      : {}),
+    ...(interaction.emptySpace ? { emptySpace: true } : {}),
+    ...(interaction.activeHit
+      ? {
+          activeHit: {
+            objectId: interaction.activeHit.objectId,
+            sceneId: interaction.activeHit.sceneId,
+            sourceKind: interaction.activeHit.sourceKind,
+          },
+        }
+      : {}),
+    ...(interaction.cameraController
+      ? {
+          cameraController: {
+            cameraId: interaction.cameraController.cameraId,
+            sceneId: interaction.cameraController.sceneId,
+            active: interaction.cameraController.active,
+            ...(interaction.cameraController.activeGesture
+              ? { activeGesture: interaction.cameraController.activeGesture }
+              : {}),
+            damping: interaction.cameraController.damping,
+          },
+        }
+      : {}),
+  };
+}
+
+function hasInteractionSummary(
+  interaction: WebGLDebugInteractionSummary,
+): boolean {
+  return Object.keys(interaction).length > 0;
 }
 
 export function createBatchCandidateSummary(
@@ -176,9 +420,12 @@ function createPerformanceWarnings(
     activeVideos: activeTargets.filter((target) =>
       isSourceKind(target, "media/video"),
     ).length,
-    activeModels: activeTargets.filter((target) =>
-      isSourceKind(target, "model/glb"),
-    ).length,
+    activeModels:
+      activeTargets.filter((target) => isSourceKind(target, "model/glb"))
+        .length +
+      (runtimeState.models ?? []).filter(
+        (model) => model.visible && model.resourceStatus === "ready",
+      ).length,
   };
   const warnings: WebGLPerformanceWarning[] = [];
   const maxTextureSize = readMaxTextureSize(runtimeState.textureTelemetry ?? []);

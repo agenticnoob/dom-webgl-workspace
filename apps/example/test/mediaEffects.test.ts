@@ -150,6 +150,7 @@ describe("media example effects", () => {
     };
     const target = {
       setVisible: vi.fn(),
+      setOpacity: vi.fn(),
     };
     const context = createEffectContext({
       source: {
@@ -220,9 +221,8 @@ describe("media example effects", () => {
       }),
     );
     expect(layer.setUniforms.mock.calls.at(-1)?.[0]).not.toHaveProperty("uRevealTexture");
-    expect(image.setVisible).toHaveBeenCalledWith(true);
-    expect(image.setOpacity).toHaveBeenCalledWith(1);
     expect(target.setVisible).toHaveBeenCalledWith(true);
+    expect(target.setOpacity).toHaveBeenCalledWith(1);
   });
 
   test("image hover reveal accumulates the trail into a mask texture instead of a point window", () => {
@@ -725,6 +725,10 @@ describe("media example effects", () => {
       setVisible: vi.fn(),
       setOpacity: vi.fn(),
     };
+    const target = {
+      setVisible: vi.fn(),
+      setOpacity: vi.fn(),
+    };
     const context = createEffectContext({
       source: {
         kind: "media",
@@ -734,6 +738,7 @@ describe("media example effects", () => {
         src: "/example/bg-sequence/frame_0004.webp",
         image,
       },
+      target,
       layout: { left: 20, top: 30, width: 320, height: 180 },
       pointer: { x: 340, y: 30, isInside: true },
     });
@@ -755,8 +760,8 @@ describe("media example effects", () => {
       offsetX: 0.08,
       offsetY: 0,
     });
-    expect(image.setVisible).toHaveBeenCalledWith(true);
-    expect(image.setOpacity).toHaveBeenCalledWith(1);
+    expect(target.setVisible).toHaveBeenCalledWith(true);
+    expect(target.setOpacity).toHaveBeenCalledWith(1);
   });
 
   test("media pointer parallax recenters cropped media when the pointer leaves", () => {

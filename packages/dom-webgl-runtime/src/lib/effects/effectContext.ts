@@ -3,13 +3,17 @@ import { createTargetPointerState } from "../input/targetPointer";
 import type { WebGLFrameInput, WebGLProgressSignalSource } from "../types";
 import type {
   WebGLEffectContext,
-  WebGLEffectPostprocessRequest,
+  WebGLEffectRuntimeScope,
+  WebGLRuntimePostprocessRequest,
   WebGLEffectResourceScope,
+  WebGLEffectScopeSnapshot,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectTargetHandle,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
+import type { WebGLEffectObjectHandle } from "./effectObject";
+import { createWebGLEffectObject } from "./effectObjectContext";
 
 export type WebGLEffectContextOptions = {
   key: string;
@@ -20,7 +24,10 @@ export type WebGLEffectContextOptions = {
   target?: WebGLEffectTargetHandle;
   resources: WebGLEffectResourceScope;
   progressSignals?: WebGLProgressSignalSource;
+  scopes?: WebGLEffectScopeSnapshot;
   visual?: WebGLEffectVisualContext;
+  managedVisual?: WebGLEffectVisualContext;
+  lights?: WebGLEffectObjectHandle["lights"];
 };
 
 const emptyProgressSignals: WebGLProgressSignalSource = {
@@ -30,7 +37,7 @@ const emptyProgressSignals: WebGLProgressSignalSource = {
 };
 
 const emptyVisualContext: WebGLEffectVisualContext = {
-  requestPostprocess(_request: WebGLEffectPostprocessRequest) {
+  requestPostprocess(_request: WebGLRuntimePostprocessRequest) {
     return {
       update() {},
       dispose() {},
@@ -41,6 +48,16 @@ const emptyVisualContext: WebGLEffectVisualContext = {
 export function createWebGLEffectContext(
   options: WebGLEffectContextOptions,
 ): WebGLEffectContext {
+  const visual =
+    options.managedVisual ??
+    createResourceManagedVisualContext(options.visual, options.resources);
+
+  const progress = createProgressSignals(options.progressSignals);
+  const scopes = completeEffectScopes(
+    options.scopes ?? { runtime: { progress } },
+    visual,
+  );
+
   return {
     key: options.key,
     sourceKind: options.sourceKind,
@@ -50,26 +67,47 @@ export function createWebGLEffectContext(
     targetPointer: createTargetPointerState(options.input, options.layout),
     scroll: options.input.scroll,
     scrollProgress: readScrollProgress(options.input.scroll),
-    progress: createProgressSignals(options.progressSignals),
-    visual: createResourceManagedVisualContext(
-      options.visual ?? emptyVisualContext,
-      options.resources,
-    ),
+    progress,
+    runtime: scopes.runtime,
+    ...(scopes.scene ? { scene: scopes.scene } : {}),
     time: options.input.time,
     delta: options.input.delta,
-    source: options.source,
-    target: options.target,
+    object: createWebGLEffectObject({
+      sourceKind: options.sourceKind,
+      source: options.source,
+      target: options.target,
+      lights: options.lights,
+    }),
     resources: options.resources,
   };
 }
 
-function createResourceManagedVisualContext(
+export function completeEffectScopes(
+  scopes: WebGLEffectScopeSnapshot,
   visual: WebGLEffectVisualContext,
+): WebGLEffectScopeSnapshot & { runtime: WebGLEffectRuntimeScope } {
+  return {
+    ...scopes,
+    runtime: {
+      ...scopes.runtime,
+      postprocess: {
+        request(request) {
+          return visual.requestPostprocess(request);
+        },
+      },
+    },
+  };
+}
+
+export function createResourceManagedVisualContext(
+  visual: WebGLEffectVisualContext | undefined,
   resources: WebGLEffectResourceScope,
 ): WebGLEffectVisualContext {
+  const sourceVisual = visual ?? emptyVisualContext;
+
   return {
     requestPostprocess(request) {
-      const handle = visual.requestPostprocess(request);
+      const handle = sourceVisual.requestPostprocess(request);
       resources.addDisposable(() => {
         handle.dispose();
       });

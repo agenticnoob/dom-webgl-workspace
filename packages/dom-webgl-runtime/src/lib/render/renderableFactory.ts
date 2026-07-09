@@ -11,7 +11,11 @@ import type {
   WebGLModelSourceDescriptor,
   WebGLSourceDescriptor,
 } from "../source/sourceDescriptor";
-import type { WebGLProgressSignalSource, WebGLRenderRole } from "../types";
+import type {
+  WebGLModelLoaderDeclaration,
+  WebGLProgressSignalSource,
+  WebGLRenderRole,
+} from "../types";
 import type { Renderable } from "./renderable";
 import {
   compileRenderPolicy,
@@ -40,10 +44,12 @@ type ElementMeasurement = {
 export type RenderableFactoryContext = {
   resourceManager: ResourceManager;
   sceneAdapter: WebGLSceneAdapter;
+  getSceneAdapter?(descriptor: TargetDescriptor): WebGLSceneAdapter;
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   loadVideo?(source: WebGLMediaVideoSourceDescriptor): Promise<HTMLVideoElement>;
   loadModel?(source: WebGLModelSourceDescriptor): Promise<unknown>;
+  modelLoader?: WebGLModelLoaderDeclaration;
   progressSignals?: WebGLProgressSignalSource;
   requestTextureFrame?(): void;
   projectLayout?(
@@ -67,6 +73,8 @@ export function createRenderable(
   policy: RenderPolicy,
   context: RenderableFactoryContext,
 ): Renderable {
+  const sceneAdapter =
+    context.getSceneAdapter?.(targetDescriptor) ?? context.sceneAdapter;
   const renderableContext = {
     descriptor: targetDescriptor,
     source: sourceDescriptor,
@@ -84,7 +92,7 @@ export function createRenderable(
     case "dom":
       if (sourceDescriptor.type === "element") {
         return createElementSnapshotRenderable(renderableContext, {
-          sceneAdapter: context.sceneAdapter,
+          sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
           projectLayout: createProjectLayoutReader(context, targetDescriptor),
@@ -93,7 +101,7 @@ export function createRenderable(
       }
 
       return createTextSnapshotRenderable(renderableContext, {
-        sceneAdapter: context.sceneAdapter,
+        sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
         projectLayout: createProjectLayoutReader(context, targetDescriptor),
@@ -103,7 +111,7 @@ export function createRenderable(
       if (sourceDescriptor.type === "image") {
         return createImageRenderable(renderableContext, {
           resourceManager: context.resourceManager,
-          sceneAdapter: context.sceneAdapter,
+          sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
           projectLayout: createProjectLayoutReader(context, targetDescriptor),
@@ -114,7 +122,7 @@ export function createRenderable(
       if (sourceDescriptor.type === "video") {
         return createVideoRenderable(renderableContext, {
           resourceManager: context.resourceManager,
-          sceneAdapter: context.sceneAdapter,
+          sceneAdapter,
           measureElement: context.measureElement,
           getViewportSize: context.getViewportSize,
           projectLayout: createProjectLayoutReader(context, targetDescriptor),
@@ -124,7 +132,7 @@ export function createRenderable(
       }
 
       return createImageSequenceRenderable(renderableContext, {
-        sceneAdapter: context.sceneAdapter,
+        sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
         projectLayout: createProjectLayoutReader(context, targetDescriptor),
@@ -134,11 +142,12 @@ export function createRenderable(
     case "model":
       return createModelRenderable(renderableContext, {
         resourceManager: context.resourceManager,
-        sceneAdapter: context.sceneAdapter,
+        sceneAdapter,
         measureElement: context.measureElement,
         getViewportSize: context.getViewportSize,
         projectLayout: createProjectLayoutReader(context, targetDescriptor),
         loadModel: context.loadModel,
+        modelLoader: context.modelLoader,
       });
   }
 

@@ -1,22 +1,41 @@
 import { vi } from "vitest";
 
-import type {
-  WebGLEffectContext,
-  WebGLEffectTargetHandle,
-} from "@project/dom-webgl-runtime";
+import type { WebGLEffectContext } from "@project/dom-webgl-runtime";
 
 import { createEffectSource, type TestEffectSource } from "./effectSourceHandles";
 
+type TestEffectSourceHandle = ReturnType<typeof createEffectSource>;
+
+type TestEffectTargetHandle = {
+  setVisible(visible: boolean): void;
+  setPosition(x: number, y: number, z?: number): void;
+  setRotation(x: number, y: number, z?: number): void;
+  setScale(x: number, y?: number, z?: number): void;
+  setOpacity(opacity: number): void;
+};
+
+type TestEffectVisualContext = {
+  requestPostprocess: WebGLEffectContext["runtime"]["postprocess"]["request"];
+};
+
 type TestEffectContextOverrides = Omit<
   Partial<WebGLEffectContext>,
-  "input" | "layout" | "pointer" | "resources" | "scroll" | "source" | "target"
+  | "input"
+  | "layout"
+  | "pointer"
+  | "resources"
+  | "scroll"
+  | "source"
+  | "target"
+  | "visual"
 > & {
   layout?: Partial<WebGLEffectContext["layout"]>;
   pointer?: Partial<WebGLEffectContext["pointer"]>;
   resources?: Partial<WebGLEffectContext["resources"]>;
   scroll?: WebGLEffectContext["scroll"];
   source?: TestEffectSource;
-  target?: Partial<WebGLEffectTargetHandle>;
+  target?: Partial<TestEffectTargetHandle>;
+  visual?: TestEffectVisualContext;
 };
 
 export function createGlyph(index: number, char: string) {
@@ -43,10 +62,26 @@ export function createEffectContext(
   const layout = createLayoutSnapshot(overrides.layout);
   const targetPointer =
     overrides.targetPointer ?? createTargetPointerState(pointer, layout, time);
+  const sourceKind = overrides.sourceKind ?? readEffectSourceKind(source);
+  const progress = overrides.progress ?? { get: () => 0 };
+  const visual = overrides.visual ?? {
+    requestPostprocess: vi.fn(() => ({
+      update: vi.fn(),
+      dispose: vi.fn(),
+    })),
+  };
+  const target =
+    overrides.target === undefined
+      ? undefined
+      : { ...createTargetHandle(), ...overrides.target };
+  const resources = {
+    ...createResourceScope(),
+    ...overrides.resources,
+  };
 
   return {
     key: overrides.key ?? "example.test",
-    sourceKind: overrides.sourceKind ?? readEffectSourceKind(source),
+    sourceKind,
     layout,
     input: {
       time,
@@ -58,24 +93,26 @@ export function createEffectContext(
     targetPointer,
     scroll,
     scrollProgress: overrides.scrollProgress ?? 0,
-    progress: overrides.progress ?? { get: () => 0 },
-    visual: overrides.visual ?? {
-      requestPostprocess: vi.fn(() => ({
-        update: vi.fn(),
-        dispose: vi.fn(),
-      })),
+    progress,
+    runtime: overrides.runtime ?? {
+      progress,
+      postprocess: {
+        request(request) {
+          return visual.requestPostprocess(request);
+        },
+      },
     },
+    ...(overrides.scene !== undefined ? { scene: overrides.scene } : {}),
     time,
     delta,
-    source,
-    target:
-      overrides.target === undefined
-        ? undefined
-        : { ...createTargetHandle(), ...overrides.target },
-    resources: {
-      ...createResourceScope(),
-      ...overrides.resources,
-    },
+    object:
+      overrides.object ??
+      createTestEffectObject({
+        sourceKind,
+        source,
+        target,
+      }),
+    resources,
   } satisfies WebGLEffectContext;
 }
 
@@ -125,9 +162,7 @@ function normalizeAxis(value: number, size: number): number {
   return (2 * value - size) / size;
 }
 
-function readEffectSourceKind(
-  source: WebGLEffectContext["source"],
-): WebGLEffectContext["sourceKind"] {
+function readEffectSourceKind(source: TestEffectSourceHandle): WebGLEffectContext["sourceKind"] {
   switch (source.kind) {
     case "dom":
       return source.type === "text" ? "dom/text" : "dom/element";
@@ -140,6 +175,7 @@ function readEffectSourceKind(
         case "image-sequence":
           return "media/image-sequence";
       }
+      return assertNeverSource(source);
     case "model":
       return "model/glb";
   }
@@ -191,6 +227,8 @@ function createPointerState(
     dragDeltaX: 0,
     dragDeltaY: 0,
     clickCount: 0,
+    buttons: [],
+    modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     ...overrides,
   };
 }
@@ -204,7 +242,7 @@ function createPageScrollState(): WebGLEffectContext["scroll"] {
   };
 }
 
-function createTargetHandle(): WebGLEffectTargetHandle {
+function createTargetHandle(): TestEffectTargetHandle {
   return {
     setVisible: vi.fn(),
     setPosition: vi.fn(),
@@ -221,5 +259,283 @@ function createResourceScope(): WebGLEffectContext["resources"] {
       return factory();
     },
     dispose: vi.fn(),
+  };
+}
+
+function createTestEffectObject(options: {
+  sourceKind: WebGLEffectContext["sourceKind"];
+  source: TestEffectSourceHandle;
+  target: TestEffectTargetHandle | undefined;
+}): WebGLEffectContext["object"] {
+  const transform = createTestTransform(options.target);
+
+  return {
+    sourceKind: options.sourceKind,
+    position: transform.position,
+    rotation: transform.rotation,
+    scale: transform.scale,
+    get visible() {
+      return transform.visible;
+    },
+    set visible(value) {
+      transform.visible = value;
+    },
+    get opacity() {
+      return transform.opacity;
+    },
+    set opacity(value) {
+      transform.opacity = value;
+    },
+    ...createTestObjectCapabilities(options.source),
+  };
+}
+
+function createTestTransform(target: TestEffectTargetHandle | undefined) {
+  let visible = true;
+  let opacity = 1;
+
+  return {
+    position: createTestVector((x, y, z) => target?.setPosition(x, y, z)),
+    rotation: createTestVector((x, y, z) => target?.setRotation(x, y, z)),
+    scale: createTestScale((x, y, z) => target?.setScale(x, y, z)),
+    get visible() {
+      return visible;
+    },
+    set visible(value: boolean) {
+      visible = value;
+      target?.setVisible(value);
+    },
+    get opacity() {
+      return opacity;
+    },
+    set opacity(value: number) {
+      opacity = value;
+      target?.setOpacity(value);
+    },
+  };
+}
+
+function createTestVector(
+  commit: (x: number, y: number, z: number) => void,
+): WebGLEffectContext["object"]["position"] {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+
+  return {
+    get x() {
+      return x;
+    },
+    set x(value) {
+      x = value;
+      commit(x, y, z);
+    },
+    get y() {
+      return y;
+    },
+    set y(value) {
+      y = value;
+      commit(x, y, z);
+    },
+    get z() {
+      return z;
+    },
+    set z(value) {
+      z = value;
+      commit(x, y, z);
+    },
+    set(nextX, nextY, nextZ = 0) {
+      x = nextX;
+      y = nextY;
+      z = nextZ;
+      commit(x, y, z);
+    },
+  };
+}
+
+function createTestScale(
+  commit: (x: number, y: number, z: number) => void,
+): WebGLEffectContext["object"]["scale"] {
+  let x = 1;
+  let y = 1;
+  let z = 1;
+
+  return {
+    get x() {
+      return x;
+    },
+    set x(value) {
+      x = value;
+      commit(x, y, z);
+    },
+    get y() {
+      return y;
+    },
+    set y(value) {
+      y = value;
+      commit(x, y, z);
+    },
+    get z() {
+      return z;
+    },
+    set z(value) {
+      z = value;
+      commit(x, y, z);
+    },
+    set(nextX, nextY, nextZ = 1) {
+      x = nextX;
+      y = nextY;
+      z = nextZ;
+      commit(x, y, z);
+    },
+    setScalar(value) {
+      x = value;
+      y = value;
+      z = value;
+      commit(x, y, z);
+    },
+  };
+}
+
+function createTestObjectCapabilities(
+  source: TestEffectSourceHandle,
+): Partial<WebGLEffectContext["object"]> {
+  switch (source.kind) {
+    case "dom":
+      if (source.type === "text") {
+        const textLayer = source.textLayer;
+        return textLayer
+          ? {
+              text: {
+                get text() {
+                  return textLayer.text;
+                },
+                get style() {
+                  return textLayer.style;
+                },
+                get shaderInputs() {
+                  return textLayer.shaderInputs;
+                },
+                getGlyphs() {
+                  return textLayer.getGlyphs();
+                },
+                setText(text) {
+                  textLayer.setText(text);
+                },
+                setGlyphs(transform) {
+                  textLayer.setGlyphs(transform);
+                },
+                material: textLayer,
+              },
+            }
+          : {};
+      }
+
+      return { surface: source.surface };
+    case "media":
+      switch (source.type) {
+        case "image":
+          return source.image
+            ? { texture: createTestTextureFacade(source.image, { src: source.src }) }
+            : {};
+        case "video":
+          return source.video
+            ? {
+                texture: createTestTextureFacade(source.video, { src: source.src }),
+                video: createTestVideoFacade(source.video),
+              }
+            : {};
+        case "image-sequence":
+          return source.image
+            ? {
+                texture: createTestTextureFacade(source.image, {
+                  src: source.src,
+                  frame: source.frame,
+                }),
+              }
+            : {};
+      }
+      return assertNeverSource(source);
+    case "model":
+      return {
+        model: {
+          src: source.src,
+          meshes: {
+            all() {
+              return source.model.getMeshes();
+            },
+            forEach(visitor) {
+              source.model.forEachMesh(visitor);
+            },
+          },
+          sampling: {
+            vertices(options) {
+              return source.model.sampleVertices(options);
+            },
+          },
+          points: {
+            create(options) {
+              return source.model.createPointLayer(options);
+            },
+          },
+        },
+      };
+  }
+}
+
+function assertNeverSource(source: never): never {
+  return source;
+}
+
+function createTestTextureFacade(
+  layer:
+    | NonNullable<
+        Extract<TestEffectSourceHandle, { kind: "media"; type: "image" }>["image"]
+      >
+    | NonNullable<
+        Extract<TestEffectSourceHandle, { kind: "media"; type: "video" }>["video"]
+      >
+    | NonNullable<
+        Extract<
+          TestEffectSourceHandle,
+          { kind: "media"; type: "image-sequence" }
+        >["image"]
+      >,
+  metadata: { src?: string; frame?: number },
+): NonNullable<WebGLEffectContext["object"]["texture"]> {
+  return {
+    src: metadata.src,
+    frame: metadata.frame,
+    get shaderInputs() {
+      return layer.shaderInputs;
+    },
+    setTransform(transform) {
+      layer.setTextureTransform(transform);
+    },
+    invalidate() {
+      layer.invalidate();
+    },
+    material: layer,
+  };
+}
+
+function createTestVideoFacade(
+  video: NonNullable<
+    Extract<TestEffectSourceHandle, { kind: "media"; type: "video" }>["video"]
+  >,
+): NonNullable<WebGLEffectContext["object"]["video"]> {
+  return {
+    play() {
+      return video.play();
+    },
+    pause() {
+      video.pause();
+    },
+    setMuted(muted) {
+      video.setMuted(muted);
+    },
+    setPlaybackRate(rate) {
+      video.setPlaybackRate(rate);
+    },
   };
 }

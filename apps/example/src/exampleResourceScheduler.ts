@@ -82,7 +82,11 @@ function startExampleResourceLoad(): ExampleResourceLoad {
       return `/example/bg-sequence/frame_${String(frame).padStart(4, "0")}.webp`;
     },
   });
-  const modelReady = warmModel("/models/hero.glb");
+  const heroModelReady = warmModel("/models/hero.glb");
+  const fourModelReady = warmModel("/models/4.glb");
+  const modelReady = Promise.all([heroModelReady, fourModelReady]).then((results) =>
+    results.every(Boolean),
+  );
   const all = Promise.all([
     firstImage,
     backgroundImage,

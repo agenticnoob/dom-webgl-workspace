@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, test, vi } from "vitest";
 
 import { createPostprocessController } from "../../../src/lib/renderer/postprocessController";
@@ -17,16 +21,21 @@ type TestPooledRenderTarget = {
 type PostprocessControllerOptions = NonNullable<
   Parameters<typeof createPostprocessController>[0]
 >;
+type TestPostprocessEffectPass = ReturnType<
+  NonNullable<PostprocessControllerOptions["createEffectPass"]>
+>;
 
 describe("postprocess controller", () => {
   test("stores named requests and updates duplicate keys", () => {
     const controller = createPostprocessController();
     const first = controller.requestPostprocess({
       key: "glow",
+      scope: { canvas: true },
       bloom: { strength: 0.4 },
     });
     const second = controller.requestPostprocess({
       key: "glow",
+      scope: { canvas: true },
       bloom: { strength: 0.9 },
       grain: { amount: 0.05 },
     });
@@ -34,6 +43,7 @@ describe("postprocess controller", () => {
     expect(controller.inspectRequests()).toEqual([
       {
         key: "glow",
+        scope: { canvas: true },
         bloom: { strength: 0.9 },
         grain: { amount: 0.05 },
       },
@@ -53,7 +63,11 @@ describe("postprocess controller", () => {
       }),
     );
 
-    controller.requestPostprocess({ key: "glow", bloom: { strength: 0.4 } });
+    controller.requestPostprocess({
+      key: "glow",
+      scope: { canvas: true },
+      bloom: { strength: 0.4 },
+    });
 
     expect(controller.inspect()).toMatchObject({
       activeRequests: 1,
@@ -66,11 +80,13 @@ describe("postprocess controller", () => {
     const controller = createPostprocessController(createPostprocessOptions());
     const first = controller.requestPostprocess({
       key: "glow",
+      scope: { canvas: true },
       bloom: { strength: 0.2 },
     });
 
     controller.requestPostprocess({
       key: "glow",
+      scope: { canvas: true },
       bloom: { strength: 0.8 },
     });
 
@@ -85,10 +101,15 @@ describe("postprocess controller", () => {
     const controller = createPostprocessController();
     const handle = controller.requestPostprocess({
       key: "blur",
+      scope: { canvas: true },
       blur: { radius: 0.1 },
     });
 
-    handle.update({ key: "blur", blur: { radius: 0.5 } });
+    handle.update({
+      key: "blur",
+      scope: { canvas: true },
+      blur: { radius: 0.5 },
+    });
     handle.dispose();
     handle.dispose();
 
@@ -99,7 +120,7 @@ describe("postprocess controller", () => {
     const controller = createPostprocessController();
     const renderBase = vi.fn();
 
-    controller.render(renderBase);
+    controller.render({}, renderBase);
 
     expect(renderBase).toHaveBeenCalledTimes(1);
   });
@@ -157,6 +178,7 @@ describe("postprocess controller", () => {
     } satisfies PostprocessControllerOptions);
     controller.requestPostprocess({
       key: "hero.fx",
+      scope: { canvas: true },
       bloom: { strength: 4, radius: 3, threshold: -1 },
       grain: { amount: 2 },
       blur: { radius: 2 },
@@ -165,12 +187,20 @@ describe("postprocess controller", () => {
       renderOrder.push("base-render");
     });
 
-    controller.render(renderBase);
+    controller.render(
+      {
+        prepareOutput() {
+          renderOrder.push("prepare-output");
+        },
+      },
+      renderBase,
+    );
 
     expect(renderOrder).toEqual([
       "target:postprocess.lowres",
       "base-render",
       "target:screen",
+      "prepare-output",
       "effect-pass",
     ]);
     expect(pool.acquire).toHaveBeenCalledWith("postprocess", 1024, 768);
@@ -190,6 +220,50 @@ describe("postprocess controller", () => {
       }),
     );
     expect(pool.release).toHaveBeenCalledWith(pooledTarget);
+  });
+
+  test("renders only requests scoped to the current pass plus canvas requests", () => {
+    const rendered: Array<{
+      bloom?: { strength: number; radius: number; threshold: number };
+      grain?: { amount: number };
+    }> = [];
+    const controller = createPostprocessController(
+      createPostprocessOptions({
+        effectPass: {
+          render(input) {
+            rendered.push(input.request);
+          },
+          dispose() {},
+        },
+      }),
+    );
+
+    controller.requestPostprocess({
+      key: "canvas.grain",
+      scope: { canvas: true },
+      grain: { amount: 0.04 },
+    });
+    controller.requestPostprocess({
+      key: "hero.bloom",
+      scope: { passId: "hero.pass" },
+      bloom: { strength: 0.4 },
+    });
+    controller.requestPostprocess({
+      key: "other.bloom",
+      scope: { passId: "other.pass" },
+      bloom: { strength: 0.6 },
+    });
+
+    controller.render({ passId: "hero.pass" }, () => {
+      return;
+    });
+
+    expect(rendered).toEqual([
+      expect.objectContaining({
+        bloom: expect.objectContaining({ strength: 0.4 }),
+        grain: expect.objectContaining({ amount: 0.04 }),
+      }),
+    ]);
   });
 
   test("dispose releases retained render targets and remains idempotent", () => {
@@ -236,9 +310,10 @@ describe("postprocess controller", () => {
 
     controller.requestPostprocess({
       key: "hero.fx",
+      scope: { canvas: true },
       grain: { amount: 0.2 },
     });
-    controller.render(vi.fn());
+    controller.render({}, vi.fn());
     controller.dispose();
     controller.dispose();
 
@@ -325,11 +400,12 @@ describe("postprocess controller", () => {
 
     controller.requestPostprocess({
       key: "hero.fx",
+      scope: { canvas: true },
       bloom: { strength: 0.2 },
     });
-    controller.render(vi.fn());
+    controller.render({}, vi.fn());
     viewport = { width: 1600, height: 900 };
-    controller.render(vi.fn());
+    controller.render({}, vi.fn());
 
     expect(pool.acquire).toHaveBeenNthCalledWith(1, "postprocess", 600, 400);
     expect(pool.acquire).toHaveBeenNthCalledWith(2, "postprocess", 800, 450);
@@ -367,9 +443,10 @@ describe("postprocess controller", () => {
 
     controller.requestPostprocess({
       key: "hero.fx",
+      scope: { canvas: true },
       bloom: { threshold: 2 },
     });
-    controller.render(vi.fn());
+    controller.render({}, vi.fn());
 
     expect(effectPass.render).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -408,9 +485,10 @@ describe("postprocess controller", () => {
 
     controller.requestPostprocess({
       key: "hero.fx",
+      scope: { canvas: true },
       grain: { amount: 0.4 },
     });
-    controller.render(vi.fn());
+    controller.render({}, vi.fn());
 
     expect(effectPass.render).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -419,6 +497,21 @@ describe("postprocess controller", () => {
           grain: { amount: 0.4 },
         },
       }),
+    );
+  });
+
+  test("keeps bloom spread visibly broader than generic blur", () => {
+    const source = readFileSync(
+      resolve(
+        dirname(readCurrentTestFilePath()),
+        "../../../src/lib/renderer/postprocessController.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain("float blurRadius = mix(0.0, 4.0, uBlurRadius);");
+    expect(source).toContain(
+      "float bloomRadius = mix(4.0, 18.0, uBloomRadius) * bloomEnabled;",
     );
   });
 
@@ -470,9 +563,10 @@ describe("postprocess controller", () => {
 
       controller.requestPostprocess({
         key: "hero.fx",
+        scope: { canvas: true },
         blur: { radius: 0.2 },
       });
-      controller.render(vi.fn());
+      controller.render({}, vi.fn());
 
       expect(renderTargetOptions).toEqual([
         { depthBuffer: true, stencilBuffer: false },
@@ -485,6 +579,12 @@ describe("postprocess controller", () => {
     }
   });
 });
+
+function readCurrentTestFilePath(): string {
+  return import.meta.url.startsWith("file:")
+    ? fileURLToPath(import.meta.url)
+    : import.meta.url;
+}
 
 function isTestRenderTarget(target: object | null): target is TestRenderTarget {
   return (
@@ -519,7 +619,10 @@ function createSingleTargetPool(): PostprocessControllerOptions extends {
 }
 
 function createPostprocessOptions(
-  options: { viewport?: { width: number; height: number } } = {},
+  options: {
+    viewport?: { width: number; height: number };
+    effectPass?: TestPostprocessEffectPass;
+  } = {},
 ): PostprocessControllerOptions {
   return {
     renderer: {
@@ -535,7 +638,7 @@ function createPostprocessOptions(
       return createSingleTargetPool();
     },
     createEffectPass() {
-      return {
+      return options.effectPass ?? {
         render: vi.fn(),
         dispose: vi.fn(),
       };

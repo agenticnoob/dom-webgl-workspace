@@ -10,6 +10,7 @@ describe("example effect catalog", () => {
       "example.surfaceVideoBackground",
       "example.surfaceGhostCursor",
       "example.surfaceWaves",
+      "example.managedTimelineCard",
       "example.textWave",
       "example.textReveal",
       "example.textSpotlight",
@@ -26,8 +27,12 @@ describe("example effect catalog", () => {
       "example.mediaPointerParallax",
       "example.videoPlayback",
       "example.videoDrift",
+      "example.modelDarkScene",
       "example.modelSpin",
       "example.modelFloat",
+      "example.modelFloatGlow",
+      "example.sceneObjectHoverPulse",
+      "example.physicsKinematicSweep",
     ]);
   });
 
@@ -61,6 +66,10 @@ describe("example effect catalog", () => {
       kind: "example.surfaceVideoBackground",
       videoSrc: "/example/bg.mp4",
       opacity: 0.84,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.managedTimelineCard",
+      progressKey: "example.managedTimeline",
     });
     expect(typeSafeDeclarations).toContainEqual({
       kind: "example.textSpotlight",
@@ -105,6 +114,29 @@ describe("example effect catalog", () => {
       kind: "example.mediaPointerParallax",
       bleed: 0.08,
       strength: 0.72,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.modelDarkScene",
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.modelFloatGlow",
+      speed: 0.46,
+      emissive: "#7dd3fc",
+      lightIntensity: 1.8,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.sceneObjectHoverPulse",
+      baseOpacity: 0.68,
+      hoverOpacity: 0.92,
+      clickOpacity: 1,
+    });
+    expect(typeSafeDeclarations).toContainEqual({
+      kind: "example.physicsKinematicSweep",
+      baseX: 252,
+      amplitude: 96,
+      y: -132,
+      z: -70,
+      speed: 0.0024,
     });
   });
 });

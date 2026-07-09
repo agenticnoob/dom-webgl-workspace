@@ -8,11 +8,17 @@ implementation policy.
 ## Package Truth
 
 - Use public package entrypoints only.
+- The package is a DOM-first managed WebGL runtime, not a React Three Fiber
+  replacement, raw Three.js wrapper, or R3F companion runtime.
+- For free-form Three.js scene authoring, use R3F/Drei directly instead of
+  forcing this package to expose R3F-style primitives, raw refs, or render hooks.
 - Root entrypoint owns vanilla runtime creation and effect authoring.
-- React entrypoint owns React runtime/provider/target components.
+- React entrypoint owns React runtime/provider/target plus opt-in
+  scene/camera/pass declaration components.
 - Applications own concrete visual effects.
-- The package owns layout measurement, runtime lifecycle, source handles, target
-  handles, frame input, pointer state, scroll state, and managed resources.
+- The package owns layout measurement, runtime lifecycle, internal source/target
+  assembly, frame input, pointer state, scroll state, managed resources, and the
+  controlled effect-object boundary.
 - Native page scroll is the default. Scene gates are historical optional
   scroll-locking behavior. Third-party smooth-scroll systems use
   `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
@@ -26,6 +32,38 @@ implementation policy.
 - Target effects use array-form declarations only:
   `effects: [{ kind: "app.effect", ...params }]`. Do not use legacy
   object-form `effects.material` or `effects.motion`.
+- Do not add R3F parity APIs such as full Three JSX mapping,
+  `primitive`/`extend`, consumer-owned scene graph mutation, raw
+  `THREE.Object3D`/camera/light/material refs, or raw loader/render-loop
+  callbacks.
+
+## Effect Object Direction
+
+Read `docs/agent/effect-object-boundary.md` before designing new effect
+capabilities. The public effect context exposes `ctx.object` as the controlled
+Three-like facade. Source, target, and visual handles are internal runtime
+assembly details, not public effect authoring API.
+
+Forward public effect authoring should center on one controlled Three-like
+object:
+
+```ts
+defineWebGLEffect({
+  kind: "app.hero",
+  update(ctx) {
+    const object = ctx.object;
+
+    object.position.y = Math.sin(ctx.time / 1000) * 24;
+    object.rotation.y += ctx.delta / 1000;
+    object.scale.setScalar(1.08);
+    object.opacity = 0.82;
+  },
+});
+```
+
+Effect authors use `ctx.object` for all visual control and source-backed
+capabilities. Do not add new public source-specific capability families without
+first designing their object-facade shape.
 
 ## Public Imports
 
@@ -44,11 +82,47 @@ import {
   type WebGLEffectContext,
   type WebGLEffectDefinition,
   type WebGLEffectSchedule,
+  type WebGLCameraControllerDeclaration,
+  type WebGLCameraControllerEasing,
+  type WebGLCameraControllerFrameDeclaration,
+  type WebGLCameraControllerTimelineDeclaration,
+  type WebGLCameraDeclaration,
+  type WebGLCameraFramingDeclaration,
+  type WebGLCameraMode,
+  type WebGLCameraType,
+  type WebGLColliderDeclaration,
+  type WebGLColorValue,
+  type WebGLDebugModelPrepareLoadState,
+  type WebGLDebugModelPrepareSummary,
+  type WebGLDebugPhysicsSummary,
+  type WebGLLightDeclaration,
+  type WebGLLightKind,
+  type WebGLModelAnimationDeclaration,
+  type WebGLModelDeclaration,
+  type WebGLModelLoaderDeclaration,
+  type WebGLModelPrepareDeclaration,
   type WebGLPerformanceBudget,
   type WebGLPerformanceWarning,
+  type WebGLPhysicsDeclaration,
+  type WebGLPlacementDeclaration,
+  type WebGLPlacementMode,
+  type WebGLRenderPassDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
+  type WebGLScreenAnchor,
+  type WebGLSceneDeclaration,
+  type WebGLSceneProjection,
+  type WebGLStageBoxDeclaration,
+  type WebGLStageMaterialDeclaration,
+  type WebGLStagePlaneDeclaration,
+  type WebGLStagePlaneRole,
+  type WebGLStagePrimitiveDeclaration,
+  type WebGLStagePrimitiveKind,
+  type WebGLTimelineBindingDeclaration,
+  type WebGLProgressSignalSource,
   type WebGLTransformScope,
+  type WebGLTuple2,
+  type WebGLTuple3,
 } from "<runtime-package>";
 ```
 
@@ -56,7 +130,13 @@ Use for React:
 
 ```tsx
 import {
+  WebGLCamera,
+  WebGLLight,
+  WebGLModel,
   WebGLRuntime,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
 } from "<runtime-package>/react";
@@ -68,6 +148,7 @@ Use for the high-level pinned scroll React adapter:
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
+  WebGLScrollTimeline,
 } from "<scroll-adapters-package>/react";
 ```
 
@@ -137,7 +218,7 @@ debug state.
 
 ## Runtime Setup
 
-There are three supported consumer levels.
+There are five supported consumer routes.
 
 ### 1. Plain Runtime
 
@@ -204,7 +285,416 @@ Rules:
   WebGL-owned panels, cards, captions, or markers with child layers instead of
   manually adding child Object3D instances from a parent effect.
 
-### 2. High-Level Pinned Scroll React Adapter
+### 2. Opt-In Managed Scene Ownership
+
+Use this route only when DOM-backed targets need explicit scene/pass ownership.
+Plain `WebGLTarget` remains the shortest path.
+
+React:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLPassViewport,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLScene id="world" render={{ camera: "world.camera" }}>
+        <WebGLCamera id="world.camera" default />
+        <WebGLTarget
+          webgl={{
+            key: "world.model",
+            source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+          }}
+        >
+          <div aria-label="World model fallback" />
+        </WebGLTarget>
+      </WebGLScene>
+
+      <WebGLScene
+        id="overlay"
+        projection="screen"
+        render={{ camera: "overlay.camera", order: 1, clearDepth: true }}
+      >
+        <WebGLCamera id="overlay.camera" default mode="screen" />
+        <WebGLTarget
+          webgl={{
+            key: "overlay.title",
+            placement: {
+              mode: "screen-anchored",
+              anchor: "top-right",
+              offset: [-32, 32],
+            },
+            source: { kind: "dom", type: "text" },
+          }}
+        >
+          Overlay title
+        </WebGLTarget>
+      </WebGLScene>
+    </WebGLRuntime>
+  );
+}
+```
+
+Vanilla:
+
+```ts
+runtime.registerScene({ id: "world", defaultPass: true });
+runtime.registerCamera({
+  id: "world.camera",
+  sceneId: "world",
+  default: true,
+});
+runtime.registerRenderPass({
+  id: "world.pass",
+  sceneId: "world",
+  cameraId: "world.camera",
+});
+runtime.registerTarget(element, {
+  key: "world.model",
+  sceneId: "world",
+  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+});
+```
+
+Perspective-stage scenes use a perspective camera and an explicit placement:
+
+```tsx
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera
+    id="hero.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+    fov={42}
+    position={[0, 0, 700]}
+    target={[0, 0, 0]}
+  />
+  <WebGLTarget
+    webgl={{
+      key: "hero.model",
+      placement: { mode: "screen-depth", depth: 260 },
+      source: { kind: "model", type: "glb", src: "/models/hero.glb" },
+    }}
+  >
+    <div aria-label="Hero model fallback" />
+  </WebGLTarget>
+</WebGLScene>
+```
+
+DOM-bound managed passes:
+
+```tsx
+<WebGLPassViewport id="hero.stage.viewport" as="section">
+  <WebGLScene
+    id="hero.stage"
+    projection="perspective-stage"
+    render={{
+      camera: "hero.camera",
+      viewport: { mode: "dom-rect", scissor: true },
+      postprocess: {
+        bloom: { strength: 0.48, radius: 0.34, threshold: 0.42 },
+        grain: { amount: 0.12 },
+        blur: { radius: 0.06 },
+      },
+    }}
+  >
+    <WebGLCamera
+      id="hero.camera"
+      default
+      type="perspective"
+      mode="perspective-stage"
+      position={[0, 0, 700]}
+      target={[0, 0, 0]}
+    />
+  </WebGLScene>
+</WebGLPassViewport>
+```
+
+Rules:
+
+- `WebGLTarget` inside `WebGLScene` inherits that scene unless
+  `webgl.sceneId` is explicit.
+- Targets outside `WebGLScene` use the internal generated Level 1 default
+  scene. Consumer ids such as `main` are ordinary managed ids.
+- Unregistering or unmounting a managed scene releases live targets still
+  routed to that scene.
+- Supported scene projections are `dom-aligned`, `screen`, and
+  `perspective-stage`.
+- Supported target placements are `dom-anchored`, `screen-anchored`,
+  `screen-depth`, `stage-local`, and `screen-plane`.
+- Use orthographic cameras for `dom-aligned` and `screen` scenes. Use
+  perspective cameras with `mode: "perspective-stage"` for perspective-stage
+  scenes.
+- `screen-depth` uses the DOM rect for screen position/size and projects that
+  point along the active `WebGLCamera` basis at the requested depth.
+  `screen-plane` casts the DOM rect center through the active camera to a named
+  stage plane and applies optional descriptor `offset`/`scale`. Keep the scene
+  default camera aligned with the camera used by the scene render pass.
+- In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
+  can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
+  advanced explicit pass descriptors.
+- `WebGLPassViewport` registers a DOM rect anchor for a managed render pass.
+  Use it only for opt-in managed scene/pass work; Level 1 `WebGLTarget` usage
+  does not need it.
+- Pass `viewport: { mode: "dom-rect" }` uses the nearest React
+  `WebGLPassViewport` anchor when nested under one. Vanilla render pass
+  descriptors must provide `anchorId`.
+- DOM-bound pass viewports are clipped to the currently visible canvas area.
+  The full anchor rect still defines the pass viewport mapping, while the
+  visible intersection is used as the scissor clip. If the anchor rect is fully
+  outside the canvas viewport, the pass and its descriptor-level postprocess are
+  skipped for that frame.
+- Pass postprocess belongs on `WebGLRenderPass` / `WebGLScene render`, or in
+  effects through `ctx.runtime.postprocess.request(...)` with an explicit
+  `{ canvas: true }` or `{ passId }` scope.
+- A scene only needs a camera when it opts into rendering with `render` or
+  `defaultPass`; the generated pass waits until the referenced/default camera
+  is registered.
+- `WebGLScene`, `WebGLCamera`, and `WebGLRenderPass` are managed descriptors,
+  not raw Three.js handles. Do not pass or expect raw renderer, scene, camera,
+  object, material, composer, render target, or pass objects.
+- A managed `perspective-stage` camera can declare one nested `controller`
+  descriptor for progress-driven `position`, `target`, and `fov`, plus
+  `controller.pointer` for managed camera gestures. The legacy
+  `{ kind: "orbit", activation: "empty-space-drag" }` shorthand still means
+  primary-drag orbit. Rich descriptors can declare `orbit`, `pan`, `dolly`,
+  `parallax`, `damping`, and `reset`; hover/click-only object hits do not block
+  camera drag, active camera drags continue until release, dragging suppresses
+  object hover/click routing, and explicit object drag capture still blocks
+  camera gestures. Hover/click picking runs after the current-frame managed
+  camera gesture update, so hit regions follow orbit, dolly, parallax, damping,
+  and reset camera frames. DOM-rect render passes use the pass-local viewport
+  for camera gesture framing and managed picking. Orthographic/screen camera
+  controllers, mouse wheel zoom, touch pinch zoom, pass-bound controller scope,
+  and camera-scoped effects remain later phases.
+  `ctx.scene` exists today as managed scene metadata/timeline scope, not as a
+  raw scene control handle. Runtime-owned controller framing is re-applied after
+  managed camera resize, so scroll-held cameras and stopped/released pointer
+  drags keep the current controller frame when progress or pointer movement
+  stops changing.
+
+```tsx
+const cameraController = {
+  pointer: {
+    orbit: { drag: { button: "primary" }, target: [0, 0, 0] },
+    pan: { drag: { button: "primary", modifier: "shift" }, sensitivity: [1, 1] },
+    dolly: { drag: { button: "primary", modifier: "alt" } },
+    parallax: { scope: "camera", strength: [12, 6] },
+    damping: { factor: 0.18, settleEpsilon: 0.001 },
+    reset: { onDoubleClick: true },
+  },
+} satisfies WebGLCameraProps["controller"];
+```
+
+### 3. Opt-In Managed Stage Primitives
+
+Use stage primitives only after choosing a managed scene. `WebGLTarget` remains
+the default DOM-first path. Stage primitives are scene-native objects with no
+fallback DOM:
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLLight,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
+  WebGLTarget,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLRuntime effects={runtimeEffects}>
+      <WebGLTarget
+        webgl={{ key: "hero.title", source: { kind: "dom", type: "text" } }}
+      >
+        DOM-first title
+      </WebGLTarget>
+
+      <WebGLScene
+        id="world"
+        projection="perspective-stage"
+        render={{ camera: "world.camera" }}
+      >
+        <WebGLCamera
+          id="world.camera"
+          default
+          type="perspective"
+          mode="perspective-stage"
+        />
+        <WebGLStagePlane
+          id="floor"
+          role="floor"
+          size={[1200, 800]}
+          material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
+        />
+        <WebGLStageBox
+          id="plinth"
+          size={[180, 80, 180]}
+          position={[0, -120, -40]}
+          material={{ kind: "basic", color: "#111827" }}
+        />
+        <WebGLLight id="ambient" kind="ambient" intensity={0.2} />
+        <WebGLLight
+          id="hero"
+          kind="point"
+          intensity={1.8}
+          position={[0, 0, 160]}
+        />
+      </WebGLScene>
+    </WebGLRuntime>
+  );
+}
+```
+
+Vanilla:
+
+```ts
+runtime.registerStagePrimitive({
+  id: "floor",
+  sceneId: "world",
+  kind: "plane",
+  role: "floor",
+  size: [1200, 800],
+  material: { kind: "standard", color: "#05070a", roughness: 0.8 },
+});
+
+runtime.registerLight({
+  id: "hero",
+  sceneId: "world",
+  kind: "point",
+  intensity: 1.8,
+  position: [0, 0, 160],
+});
+```
+
+Rules:
+
+- `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` are descriptor
+  components, not raw Three.js wrappers.
+- In React, declare stage primitives under `WebGLScene` or pass an explicit
+  `scene` prop. Vanilla descriptors use `sceneId`.
+- React nesting communicates scene ownership only. It does not clip a managed
+  scene to the containing DOM section by itself; DOM-bound viewport/scissor
+  clipping uses `WebGLPassViewport` plus a pass
+  `viewport: { mode: "dom-rect" }` descriptor.
+- Treat stage primitive and light props as stable scene declarations. Ordinary
+  React updates are supported through mount/unmount registration, but
+  high-frequency animation should use timeline bindings plus managed runtime
+  state, effects, or controllers instead of prop churn.
+- The runtime creates and disposes internal Three meshes, geometry, materials,
+  and lights. Do not pass raw Three meshes, materials, geometries, lights,
+  scenes, cameras, renderers, or render-loop handles.
+- Stage materials are solid-color `basic` or `standard` descriptors. Texture
+  descriptors for stage materials are not public yet.
+- DOM targets that need to sit on a named stage plane can use
+  `placement: { mode: "screen-plane", planeId }`; this remains descriptor data
+  and does not expose raw planes, raycasters, intersections, meshes, or cameras.
+
+### 4. Managed Scroll Timelines And Scope Metadata
+
+Use named timelines when one progress signal should drive targets, managed
+scenes, stage primitives, scene-owned lights, or effects. The runtime consumes
+`WebGLProgressSignalSource`; the React scroll adapter can create that signal
+with a DOM-owned section ref.
+
+```tsx
+import {
+  WebGLScrollRuntime,
+  WebGLScrollTimeline,
+} from "<scroll-adapters-package>/react";
+import {
+  WebGLLight,
+  WebGLCamera,
+  WebGLScene,
+  WebGLStagePlane,
+} from "<runtime-package>/react";
+
+export function App() {
+  return (
+    <WebGLScrollRuntime effects={runtimeEffects}>
+      <WebGLScrollTimeline id="hero.timeline" start="top bottom" end="bottom top" scrub>
+        <WebGLScene
+          id="hero.scene"
+          projection="perspective-stage"
+          render={{ camera: "hero.camera" }}
+          timeline={{ id: "hero.timeline", active: { from: 0.1, to: 0.9 } }}
+        >
+          <WebGLCamera
+            id="hero.camera"
+            default
+            type="perspective"
+            mode="perspective-stage"
+            controller={{
+              timeline: {
+                id: "hero.timeline",
+                range: { from: 0.15, to: 0.85 },
+              },
+              to: { position: [0, 80, 520], target: [0, 32, 0], fov: 36 },
+              easing: "smoothstep",
+            }}
+          />
+          <WebGLStagePlane
+            id="hero.floor"
+            role="floor"
+            timeline={{ id: "hero.timeline", active: { from: 0.2, to: 1 } }}
+          />
+          <WebGLLight
+            id="hero.key"
+            kind="point"
+            timeline={{ id: "hero.timeline", active: { from: 0.35, to: 1 } }}
+          />
+        </WebGLScene>
+      </WebGLScrollTimeline>
+    </WebGLScrollRuntime>
+  );
+}
+```
+
+Rules:
+
+- `timeline` accepts a string id or `{ id, progressKey?, active? }`.
+- `active.from` and `active.to` are normalized 0..1 bounds. Missing bounds
+  default to 0 and 1.
+- `WebGLScrollTimeline` defaults its `progressKey` to `id`.
+- `ScrollEffectSection` remains compatible sugar for ordinary target/effect
+  pinned sections that only need a `progressKey`.
+- `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
+  `WebGLLight` can bind top-level timelines. `WebGLCamera` cannot.
+- Use nested `WebGLCamera.controller.timeline` on managed
+  `perspective-stage` cameras when the same progress signal should drive camera
+  `position`, `target`, or `fov`. Vanilla consumers pass the same `controller`
+  data to `runtime.registerCamera(...)`. Controller framing survives managed
+  camera resize/reframing passes even when the progress signal has not changed.
+- Timeline bindings can activate/skip targets, scene passes, stage primitives,
+  and lights by progress range without rebuilding descriptors every frame.
+  Entering an active range restores only the declaration/effect-owned
+  visibility; it does not override `visible: false` or
+  `ctx.object.visible = false`.
+- Timeline bindings do not make a nested `WebGLScene` a DOM-clipped local
+  viewport. Local pass clipping uses `WebGLPassViewport` plus pass
+  `viewport: { mode: "dom-rect" }`; the runtime clips the pass to the visible
+  canvas intersection without compressing the pass into that intersection, and
+  skips it while fully offscreen.
+- Effects can read progress through `ctx.progress.get(key)` or
+  `ctx.runtime.progress.get(key)`. Effects inside a managed scene receive
+  optional `ctx.scene` metadata and timeline snapshot.
+- `ctx.runtime` and `ctx.scene` are managed scope metadata. They are not raw
+  renderer, scene, pass, camera, or object handles, and there is no implicit
+  `ctx.camera`.
+
+### 5. High-Level Pinned Scroll React Adapter
 
 For the normal "pinned section drives an effect" story, use
 `<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
@@ -227,7 +717,7 @@ const pinnedRevealEffect = defineWebGLEffect<{
   kind: "app.pinnedReveal",
   update(ctx, _state, params) {
     const progress = ctx.progress.get(params.progressKey);
-    ctx.target?.setOpacity(progress);
+    ctx.object.opacity = progress;
   },
 });
 
@@ -265,6 +755,8 @@ export function App() {
 Rules:
 
 - Effects read section progress with `ctx.progress.get(progressKey)`.
+- Effects can also read the same source through
+  `ctx.runtime.progress.get(progressKey)`.
 - Missing progress keys read as `0`.
 - Let `ScrollEffectSection` own GSAP ScrollTrigger `pin`/`scrub` for ordinary
   pinned effects.
@@ -290,7 +782,7 @@ Rules:
 - If `WebGLScrollRuntime` receives an advanced `scrollAdapter`, it bypasses its
   built-in smooth-stack creation and forwards that adapter to the runtime.
 
-### 3. Advanced Manual `scrollAdapter`
+### 6. Advanced Manual `scrollAdapter`
 
 Use a scroll adapter only when the application already owns a third-party
 scroll system:
@@ -420,12 +912,203 @@ Supported source declarations:
 - `{ kind: "media", type: "image", src?: string }`
 - `{ kind: "media", type: "video", src?: string }`
 - `{ kind: "media", type: "image-sequence", frameCount: number, frames: readonly (HTMLImageElement | HTMLCanvasElement | ImageBitmap)[], progressKey?: string }`
-- `{ kind: "model", type: "glb", src: string }`
+- `{ kind: "model", type: "glb", src: string, loader?: WebGLModelLoaderDeclaration }`
 
 Do not use old explicit declarations. `snapshot/mode`, top-level `image`,
 top-level `video`, top-level `image-sequence`, and `model/format` are removed.
 Media declarations can infer from real `img` / `video` elements, or use an
 arbitrary HTMLElement anchor when `src` is provided.
+
+Use declarative loader configuration for compressed GLB assets. The runtime owns
+loader instances and decoder lifecycle:
+
+```ts
+source: {
+  kind: "model",
+  type: "glb",
+  src: "/models/product.glb",
+  loader: {
+    draco: { decoderPath: "/draco/" },
+  },
+}
+```
+
+The declaration only tells the runtime where to find decoder assets. The
+consumer app must still serve those files from its public/static asset root. A
+Draco-compressed GLB without matching decoder files will fail with loader errors
+such as `THREE.GLTFLoader: No DRACOLoader instance provided` or decoder 404s.
+For example, `apps/example` serves `/models/4.glb` with decoder files under
+`/draco/gltf/` and declares `loader: { draco: { decoderPath: "/draco/gltf/" } }`.
+
+Scene-native GLB models can be declared inside a managed scene with
+`WebGLModel`. This path is for stage-local 3D assets that do not need DOM
+fallback or DOM target lifecycle. Models that should follow a DOM element's
+layout and fallback lifecycle should stay as `WebGLTarget` model sources.
+
+```tsx
+import {
+  WebGLCamera,
+  WebGLModel,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLStagePlane,
+} from "@project/dom-webgl-runtime/react";
+
+<WebGLScene
+  id="hero.stage"
+  projection="perspective-stage"
+  render={{ camera: "hero.camera" }}
+>
+  <WebGLCamera
+    id="hero.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+    position={[0, 120, 520]}
+    target={[0, -80, 0]}
+  />
+  <WebGLModel
+    id="hero.character"
+    src="/models/human_male_base.glb"
+    position={[0, -92, -40]}
+    scale={126}
+    prepare={{ renderWarmup: "idle" }}
+    animation={{
+      scrub: {
+        clip: "WalkCycle",
+        timeline: { id: "hero.timeline" },
+        durationSeconds: 2.4,
+      },
+      morphs: [{ name: "Smile", timeline: { id: "hero.timeline" } }],
+    }}
+    effects={[{ kind: "app.characterHover", baseScale: 44 }]}
+    interaction={{
+      pickable: {
+        hitTest: "mesh",
+        pointer: { hover: true, click: true },
+      },
+    }}
+  />
+</WebGLScene>;
+```
+
+Use `hitTest: "mesh"` when hover/click should track visible stage/model
+geometry. Use `hitTest: "bounds"` for coarse object-level hit regions. Both
+modes stay descriptor-owned; effects still do not receive raw raycasters or
+intersection objects.
+
+Scene-native physics is descriptor-only on managed stage/model objects:
+
+```tsx
+<WebGLScene
+  id="physics.stage"
+  projection="perspective-stage"
+  render={{ camera: "physics.camera" }}
+>
+  <WebGLCamera
+    id="physics.camera"
+    default
+    type="perspective"
+    mode="perspective-stage"
+  />
+  <WebGLStagePlane
+    id="physics.floor"
+    role="floor"
+    size={[1200, 800]}
+    position={[0, -180, 0]}
+    physics={{
+      body: { type: "static" },
+      collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
+    }}
+  />
+  <WebGLStageBox
+    id="physics.crate"
+    size={[72, 72, 72]}
+    position={[0, -90, 0]}
+    interaction={{
+      pickable: {
+        hitTest: "bounds",
+        pointer: { hover: true, press: true, drag: true },
+      },
+    }}
+    physics={{
+      body: { type: "dynamic", mass: 1.6, damping: 0.04 },
+      collider: { kind: "box", size: [72, 72, 72] },
+      pointerDrag: true,
+    }}
+  />
+  <WebGLModel
+    id="physics.character"
+    src="/models/hero.glb"
+    physics={{
+      body: { type: "kinematic" },
+      collider: { kind: "sphere", radius: 18 },
+      constraints: [{ kind: "anchor", target: [0, -90, 0], stiffness: 0.2 }],
+    }}
+  />
+</WebGLScene>
+```
+
+Supported body types are `static`, `dynamic`, and `kinematic`. Supported
+colliders are `bounds`, `box`, `sphere`, and `plane`. Supported constraints are
+`anchor` and `spring`; `pointerDrag` creates runtime-owned direct manipulation
+from managed press hits plus pointer drag deltas. While dragging, the body
+follows scene-XY pointer movement and keeps its Z position stable; on release,
+physics resumes with velocity derived from the last drag movement. The runtime
+owns integration, simple static plane/box collision response, transform writes,
+scheduling, debug summaries, and disposal.
+This is Level 3 scene-native physics only: do not add Level 1 `WebGLTarget`
+physics, raw body handles, raw physics-engine access, dynamic-vs-dynamic
+impulses, joints, or collision callbacks.
+
+Use `defaultClips` only for clips the app intentionally wants to start together.
+It is not a `playAllClips` shortcut, and the runtime does not infer which
+exported GLB clips are meaningful. The single `defaultClip` shorthand remains
+valid for existing one-clip startup.
+
+The same capability is available to vanilla consumers through
+`runtime.registerModel(...)` / `runtime.unregisterModel(id)`. `WebGLModel`
+accepts scene-object `effects`, not DOM target-local effects. Define those
+effects with `defineWebGLSceneObjectEffect(...)`:
+
+```ts
+import { defineWebGLSceneObjectEffect } from "@project/dom-webgl-runtime";
+
+type CharacterHoverParams = {
+  kind: "app.characterHover";
+  baseScale?: number;
+};
+
+export const characterHoverEffect =
+  defineWebGLSceneObjectEffect<CharacterHoverParams>({
+  kind: "app.characterHover",
+  source: "model/glb",
+  update(ctx, _state, params) {
+    const baseScale = params.baseScale ?? 1;
+    ctx.object.visible = true;
+    ctx.object.scale.setScalar(
+      ctx.objectPointer.isHovered ? baseScale * 1.05 : baseScale,
+    );
+  },
+});
+```
+
+Scene-object effect context exposes `ctx.objectPointer`, `ctx.object`,
+`ctx.scene`, `ctx.runtime`, `ctx.pointer`, `ctx.time`, `ctx.delta`, and
+`ctx.resources`. It does not expose DOM `layout`, `ctx.targetPointer`, raw
+raycasters, raw intersections, raw cameras, raw objects, or loader/mixer/action
+handles.
+
+`prepare={{ renderWarmup: "idle" }}` is a descriptor-only first-render warmup
+request. It does not expose renderer, scene, camera, render target, render loop,
+loader, mixer, action, skeleton, or mesh handles, and it does not add DOM
+fallback, DOM rect lifecycle, or target-local pointer state. For DOM-bound
+managed model passes, runtime preparation is viewport-proximity aware: the model
+can stay queued while its pass viewport is far below the page, then load and
+warm before the viewport reaches the model row. Debug state reports
+descriptor-only `prepare.load` and `prepare.renderWarmup` values through
+`WebGLDebugModelPrepareSummary` and `WebGLDebugModelPrepareLoadState`; these are
+not public loader callbacks, preload margins, or raw render hooks.
 
 Use image sequences for frame-addressable scrub playback. Normal `video`
 sources remain the better fit for continuous playback. The consumer must
@@ -520,7 +1203,7 @@ Rules:
   not cascade into child renderables.
 - DOM supplies layout anchors and layer semantics. Effect code supplies pixels:
   `dom/element` is a transparent layout surface until an effect draws to
-  `ctx.source.surface`. Runtime core does not clone CSS backgrounds, borders,
+  `ctx.object.surface`. Runtime core does not clone CSS backgrounds, borders,
   shadows, or other decorative paint into WebGL.
 - Transform groups are internal runtime structure. Do not expose or request raw
   Three.js `Object3D`, `Group`, scene, camera, material, matrix, or public scene
@@ -542,7 +1225,8 @@ Rules:
 
 ## Custom Effect Contract
 
-Define effects with `defineWebGLEffect(...)`:
+Define effects with `defineWebGLEffect(...)`. The examples in this section use
+the controlled `ctx.object` facade first:
 
 ```ts
 import { defineWebGLEffect } from "<runtime-package>";
@@ -556,8 +1240,8 @@ export const appSurfaceEffect = defineWebGLEffect<AppSurfaceParams>({
   kind: "app.surface",
   source: "dom/element",
   update(ctx, _state, params) {
-    ctx.target?.setVisible(true);
-    ctx.target?.setOpacity(clampNumber(params.opacity, 0, 1, 1));
+    ctx.object.visible = true;
+    ctx.object.opacity = clampNumber(params.opacity, 0, 1, 1);
   },
 });
 
@@ -599,7 +1283,32 @@ export const appPulseEffect = defineWebGLEffect<AppPulseParams, AppPulseState>({
   update(ctx, state, params) {
     state.phase += ctx.delta / 1000;
     const strength = clampNumber(params.strength, 0, 2, 1);
-    ctx.target?.setScale(1 + Math.sin(state.phase) * 0.04 * strength);
+    ctx.object.scale.setScalar(1 + Math.sin(state.phase) * 0.04 * strength);
+  },
+});
+```
+
+Model material, light, and animation effects still start at `ctx.object`:
+
+```ts
+const modelGlow = defineWebGLEffect({
+  kind: "app.modelGlow",
+  source: "model/glb",
+  setup(ctx) {
+    ctx.object.material?.emissive.set("#7dd3fc", 1.8);
+  },
+  update(ctx, _state, params: { lightIntensity?: number }) {
+    ctx.object.lights?.point("glow", {
+      color: "#7dd3fc",
+      intensity: clampNumber(params.lightIntensity, 0, 8, 2.4),
+      distance: 420,
+      position: [
+        ctx.layout.left + ctx.layout.width / 2,
+        ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
+        180,
+      ],
+    });
+    ctx.object.rotation.y += ctx.delta / 1000;
   },
 });
 ```
@@ -610,13 +1319,21 @@ Rules:
 - Use namespaced kinds such as `app.surface`, `brand.heroParticles`, or
   `product.galleryTilt`.
 - Do not use generic global names such as `fade`, `rotate`, or `particles`.
-- Use `source` on the definition to restrict compatible source handles.
-- Always tolerate `ctx.target === undefined`.
-- Always narrow `ctx.source.kind` and `ctx.source.type` before using
-  source-specific fields.
+- Use `source` on the definition to restrict compatible source kinds.
+- Use `ctx.object` for visual transform, visibility, opacity, and
+  source-backed capability modules. Use `ctx.runtime.postprocess` for explicit
+  canvas/pass-scoped postprocess requests.
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
+- Runtime lights are keyed requests, not effect-owned raw lights. Reusing the
+  same key updates the existing runtime-owned light, so dynamic intensity or
+  position can be declared from `update`.
+- If a `model/glb` effect leaves runtime layout in charge of model fit, put
+  target-local lights at an explicit projected layout-center position.
+  `follow: "object"` follows transform state written through
+  `ctx.object.position`; it is not a substitute for the runtime layout fit
+  position.
 - Dispose effect-owned resources through `ctx.resources`.
 
 ## Type-Safe Effect Declarations
@@ -633,6 +1350,7 @@ interface AppEffectParams {
   "app.surface": { opacity?: number };
   "app.pointerTilt": { strength?: number; maxDegrees?: number };
   "app.modelSpin": { speed?: number };
+  "app.modelGlow": { emissive?: string; lightIntensity?: number };
 }
 ```
 
@@ -685,7 +1403,7 @@ const staticEffect = defineWebGLEffect({
   kind: "app.staticSurface",
   schedule: "static",
   update(ctx) {
-    ctx.target?.setOpacity(1);
+    ctx.object.opacity = 1;
   },
 });
 ```
@@ -707,12 +1425,28 @@ Use context fields as the single runtime truth:
 - `ctx.targetPointer`: current-target layout-local pointer state.
 - `ctx.scroll`: page or gate scroll state.
 - `ctx.scrollProgress`: active progress value for current scroll mode.
+- `ctx.progress`: keyed progress signals from the runtime.
+- `ctx.runtime`: runtime scope metadata and progress signal access.
+- `ctx.scene`: optional managed scene metadata and timeline snapshot.
 - `ctx.time`: runtime time in milliseconds.
 - `ctx.delta`: frame delta in milliseconds.
-- `ctx.source`: source handle.
-- `ctx.target`: runtime target controls, if available.
+- `ctx.object`: controlled visual facade and source-backed capability modules.
 - `ctx.resources`: effect-owned resource scope.
-- `ctx.visual`: runtime-scoped visual requests such as named postprocess.
+
+Scope rule:
+
+- `ctx.runtime.progress.get(key)` reads the same keyed progress source as
+  `ctx.progress.get(key)`.
+- `ctx.scene` is present only when the target/update is routed through a managed
+  scene scope. It exposes descriptor metadata and timeline state, not a raw
+  Three.js scene.
+- There is no implicit `ctx.camera`; progress-driven camera motion/focus/framing
+  uses the explicit nested `WebGLCamera.controller` descriptor. Empty-space
+  pointer gestures also live under that descriptor as `controller.pointer`.
+  Pass-bound, orthographic, screen-overlay, wheel, and pinch camera controllers
+  remain future work. Runtime camera resize does not reset an already-applied
+  controller frame while progress is unchanged or a pointer drag has stopped
+  moving.
 
 Pointer rule:
 
@@ -730,31 +1464,31 @@ Pointer rule:
 - Target pointer is layout-local only. It does not perform inverse-transformed
   picking for rotated groups, models, or custom meshes.
 
-## Source Handles
+## Object Modules
 
-Narrow by `ctx.source.kind` and `ctx.source.type`:
+For visual control and source-backed capabilities, use `ctx.object`:
 
 ```ts
-if (ctx.source.kind !== "model" || ctx.source.type !== "glb") {
-  return;
-}
-
-const model = ctx.source.model;
+ctx.object.visible = true;
+ctx.object.position.set(0, 24, 0);
+ctx.object.rotation.y += ctx.delta / 1000;
+ctx.object.scale.setScalar(1.05);
+ctx.object.opacity = 0.8;
 ```
 
-Available source handles:
+Object modules:
 
-| Source kind | Public output handle | Main controls |
-| --- | --- | --- |
-| `dom/element` | `ctx.source.surface` | canvas draw, clear, invalidate, shader inputs, `createMaterialLayer(...)`, visibility/transform/opacity controls |
-| `dom/text` | `ctx.source.textLayer` | canvas draw, style, glyph layout, `setText`, `setGlyphs`, shader inputs, `createMaterialLayer(...)` |
-| `media/image` | `ctx.source.image` | object-fit aware shader inputs, texture transform, `createMaterialLayer(...)`, invalidate |
-| `media/video` | `ctx.source.video` | image controls plus play, pause, muted, playback rate |
-| `media/image-sequence` | `ctx.source.image` | current frame metadata plus texture transform, shader inputs, `createMaterialLayer(...)`, invalidate |
-| `model/glb` | `ctx.source.model` | visibility/transform/opacity controls, controlled mesh handles, material restore, vertex samples, managed point layers |
+- `ctx.object.surface`: canvas draw/clear/invalidate/material-layer controls.
+- `ctx.object.text`: text, style, shader inputs, glyph read/write, and
+  material-layer controls.
+- `ctx.object.texture`: media src/frame metadata, shader inputs, texture
+  transform, invalidate, and material-layer controls.
+- `ctx.object.video`: video playback controls.
+- `ctx.object.model`: model src, mesh list, vertex sampling, and managed point
+  layers.
 
 DOM text remains the source of content, accessibility, and fallback.
-`textLayer.setText(...)` and `textLayer.setGlyphs(...)` affect only the WebGL
+`ctx.object.text.setText(...)` and `ctx.object.text.setGlyphs(...)` affect only the WebGL
 output layer. Effects should not mutate DOM text for visual animation.
 
 Glyph coordinates are text-layer local CSS-pixel coordinates. `glyph.x` and
@@ -776,7 +1510,9 @@ effects built on these primitives.
 
 Material layer rules:
 
-- Use `createMaterialLayer(...)` on source handles or model mesh handles.
+- Use `createMaterialLayer(...)` through `ctx.object.surface`,
+  `ctx.object.text.material`, `ctx.object.texture.material`, or model mesh
+  handles.
 - Material programs are Three-inspired shader declarations, not raw Three.js
   materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
   `defines`, and `blend`. Runtime-owned defaults decide transparency, depth,
@@ -803,26 +1539,34 @@ Material layer rules:
 
 Model helper rules:
 
-Model source handles expose controlled model capabilities:
+`ctx.object.model` exposes controlled model capabilities:
 
-- `model.getMeshes()` and `model.forEachMesh(...)` expose controlled mesh handles.
+- `model.src` exposes the declared model source string.
+- `model.meshes.all()` and `model.meshes.forEach(...)` expose controlled mesh handles.
 - Mesh handles expose `index`, optional `name`, optional `materialName`,
   `createMaterialLayer(...)`, and `restoreMaterial()`.
-- `model.sampleVertices({ maxPoints })` returns root-local vertex positions for
+- `model.sampling.vertices({ maxPoints })` returns root-local vertex positions for
   app-authored particle or point-layer effects.
-- `model.createPointLayer({ positions, color, size, material })` returns a
+- `model.points.create({ positions, color, size, material })` returns a
   managed handle whose generated geometry/material lifecycle is runtime-owned.
+- `model.morphs?.names()`, `.get(name)`, and `.set(name, weight)` expose named
+  morph target weights when the loaded model provides morph targets.
+- `model.rig?.bones()` lists named bones when the loaded model provides them.
+- `ctx.object.animation` exposes controlled clip methods: `clips`, `play`,
+  `scrub`, `blend`, `crossFade`, `stop`, `stopAll`, and `setTime`.
 - Effects do not receive raw model root objects, raw mesh traversal, or raw
   point-cloud objects.
 - GLB models with an internal loaded shape that includes both `animations` and
-  a runtime/adapter-provided `mixer` are advanced by runtime-owned scheduling
-  while the target is visible. Consumers still do not receive mixer handles.
+  a runtime-owned mixer are advanced by runtime-owned scheduling while the
+  target/model is visible. Consumers still do not receive mixer handles,
+  actions, skeletons, bones, or raw morph arrays.
 
 Runtime-scoped visual requests:
 
 ```ts
-const handle = ctx.visual.requestPostprocess({
+const handle = ctx.runtime.postprocess.request({
   key: "app.softGlow",
+  scope: { canvas: true },
   bloom: { strength: 0.45, radius: 0.2, threshold: 0.8 },
   grain: { amount: 0.04 },
 });
@@ -836,32 +1580,49 @@ inspection, bounded internal bloom/grain/blur pass execution, and budget
 warnings for request count and render-target size. The runtime owns pass
 scheduling, render-target pooling, and resolution budgets; consumers do not
 receive composer, pass-order, pass object, or render-target handles.
+Effect-authored postprocess requests must declare `scope: { canvas: true }` or
+`scope: { passId: "managed.pass.id" }`. `ctx.object.postprocess` was removed in
+Phase 6 because the name implied object-local behavior while the implementation
+was canvas scoped. For a strictly target-local model glow, prefer material/mesh
+emissive values and runtime-owned lights until a target-scoped postprocess
+capability is explicitly designed.
 
-## Target Handles
+## Object Transform Handles
 
-Use optional chaining:
-
-`setPosition(...)` writes the runtime scene-object position. When deriving it
+Use `ctx.object` for visual transform, visibility, and opacity.
+`position.set(...)` writes the runtime scene-object position. When deriving it
 from a DOM layout snapshot, project the DOM center into scene coordinates as
 shown below.
 
 ```ts
-ctx.target?.setVisible(true);
-ctx.target?.setPosition(
+ctx.object.visible = true;
+ctx.object.position.set(
   ctx.layout.left + ctx.layout.width / 2,
   ctx.layout.viewport.height - (ctx.layout.top + ctx.layout.height / 2),
   0,
 );
-ctx.target?.setRotation(0, ctx.targetPointer.normalizedX * 0.2, 0);
-ctx.target?.setScale(1.05);
-ctx.target?.setOpacity(0.8);
+ctx.object.rotation.set(0, ctx.targetPointer.normalizedX * 0.2, 0);
+ctx.object.scale.setScalar(1.05);
+ctx.object.opacity = 0.8;
 ```
 
+For `model/glb` renderables, the runtime layout pass already fits the loaded
+model bounds into the target rect. If an effect writes `ctx.object.position` or
+`ctx.object.scale`, it overrides that fit transform. Only do this when the
+effect intentionally owns model placement; otherwise leave fit position/scale to
+the runtime and animate rotation, material, lights, animation, mesh handles, or
+managed point layers.
+
+For `dom/element` surfaces in managed scenes, placement descriptors such as
+`screen-depth` also produce a runtime-owned plane size. An effect that writes
+`ctx.object.scale` replaces that descriptor-projected size, so leave scale alone
+unless the effect intentionally owns the surface dimensions.
+
 When an effect needs model particles or generated model-local points, prefer
-`ctx.source.model.createPointLayer(...)`. The runtime owns attachment,
-ordering, and disposal through the returned managed handle. A future advanced
-object attachment API must be designed separately instead of using raw Three.js
-objects in the default public contract.
+`ctx.object.model?.points.create(...)`. The runtime owns attachment, ordering,
+and disposal through the returned managed handle. A future advanced object
+attachment API must be designed separately instead of using raw Three.js objects
+in the default public contract.
 
 Do not mutate target internals that are not exposed by the handle.
 
@@ -869,10 +1630,10 @@ Do not mutate target internals that are not exposed by the handle.
 
 Effects may own:
 
-- temporary Three.js objects created by the effect;
+- app-local plain JavaScript state created by the effect;
 - event listeners created by the effect;
-- generated geometries/materials/textures;
-- material layer handles and postprocess request handles;
+- runtime-managed handles returned by public APIs, such as material layers,
+  model point layers, and postprocess request handles;
 - per-effect mutable state.
 
 Effects must not own:
@@ -884,7 +1645,8 @@ Effects must not own:
 - global scroll/pointer systems;
 - package-internal registries.
 - raw Three.js renderer, scene, camera, shader material, texture, composer,
-  render target, render-loop, pass ordering, or renderer-state mutation.
+  geometry, mesh, light, loader, mixer, render target, render-loop, pass
+  ordering, or renderer-state mutation.
 
 If an effect mutates a source model's mesh visibility, material, rotation, scale,
 or position, store previous values and restore them on dispose unless the effect
@@ -933,7 +1695,7 @@ Effect-specific tests should cover:
 
 - unknown effect kind fails at registration or is caught by tests;
 - definition `kind` matches declaration `kind`;
-- unsupported `ctx.source.kind` / `ctx.source.type` no-ops safely;
+- absent `ctx.object.*` capability modules no-op safely;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` for motion;
 - target-local pointer behavior reads `ctx.targetPointer`;
@@ -959,6 +1721,19 @@ skill:
   while only a subset is active in the current viewport. Use debug state
   `targetCount` and `renderableCount` to distinguish "too many declarations"
   from "too much active per-frame work".
+- For managed interaction drift debugging, keep the current `apps/example`
+  dogfood object surface simple: `example.interaction.floor` and
+  `example.interaction.hero` are the only pickable objects, with the hero model
+  covering press/drag capture. The same scene dogfoods Phase 8B camera gestures
+  through `controller.pointer` with orbit, pan, dolly, camera-scoped parallax,
+  damping, and reset. Do not add `screen-plane` DOM targets to this drift
+  surface.
+- For managed physics drift debugging, use the separate
+  `ManagedPhysicsExample` surface. It intentionally covers static, dynamic,
+  and kinematic bodies; plane, box, sphere, and bounds colliders; anchor and
+  spring constraints; direct pointer-drag manipulation; stage primitive
+  physics; and scene-native `WebGLModel` physics. Do not mix new physics
+  coverage back into the Phase 8B interaction/camera dogfood.
 - Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image
   assets, effect keys, copy such as `Boo!`, and shader tuning live in
   `apps/example`; packages should only gain generic capabilities such as
@@ -972,7 +1747,7 @@ skill:
   public material-layer shader approximation over the source texture rather than
   a package-owned effect or per-frame CPU canvas drawing. For ReactBits Text
   Pressure and Scrambled Text, use `dom/text` and
-  `ctx.source.textLayer.setGlyphs(...)` in `apps/example`; keep the exact
+  `ctx.object.text.setGlyphs(...)` in `apps/example`; keep the exact
   behavior app-owned unless a later package feature explicitly needs a
   generalized text capability. When several text
   effects need to affect the same glyph command list, compose reusable
@@ -1024,6 +1799,15 @@ skill:
   reads `iTime`, or otherwise mismatches public uniform names.
 - Text effect vertical drift: effect treats `glyph.y` as a baseline and uses
   `glyph.y - glyph.height / 2`; glyph `y` is already the top drawing position.
+- Draco model invisible or loader error: a compressed GLB declares no
+  `loader.draco` config, or the app does not serve decoder files at
+  `decoderPath`.
+- Canvas/pass becomes dim or blurry after one target is ready: an effect
+  requested `ctx.runtime.postprocess` with a canvas or pass scope for what was
+  actually a target-local glow.
+- Model disappears after a glow/rotation effect: the effect writes
+  `ctx.object.position` or `ctx.object.scale` and overrides the runtime's model
+  fit transform.
 - Rotating model interaction drift: effect hit-tests unrotated model-local
   vertices while visible model is transformed.
 - Resource leak: effect creates objects/listeners without `ctx.resources`.

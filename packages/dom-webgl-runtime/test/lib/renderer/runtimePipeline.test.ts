@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { AnimationClip } from "three/src/animation/AnimationClip.js";
 import { Group } from "three/src/objects/Group.js";
 
 import type { ScrollStateController } from "../../../src/lib/input/frameInput";
@@ -15,9 +16,21 @@ import type {
   WebGLMediaVideoSourceDescriptor,
   WebGLModelSourceDescriptor,
 } from "../../../src/lib/source/sourceDescriptor";
-import type { WebGLFrameInput, WebGLScrollAdapter } from "../../../src/lib/types";
+import type {
+  WebGLFrameInput,
+  WebGLProgressSignalSource,
+  WebGLScrollAdapter,
+  WebGLTuple3,
+} from "../../../src/lib/types";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type { ThreeRendererHost } from "../../../src/lib/renderer/threeRenderer";
+import type {
+  InternalRenderCameraEntry,
+  InternalRenderLayerRegistry,
+  InternalRenderPassEntry,
+  InternalRenderSceneEntry,
+  ManagedCameraGesturePass,
+} from "../../../src/lib/renderer/renderLayerRegistry";
 import { createPostprocessController, type PostprocessController } from "../../../src/lib/renderer/postprocessController";
 
 type ElementMeasurement = {
@@ -49,6 +62,9 @@ type RuntimePipelineOptions = Parameters<typeof createWebGLRuntime>[0] & {
     dispose(): void;
   };
   postprocessController?: PostprocessController;
+  renderLayerRegistryFactory?: (
+    rendererHost: ThreeRendererHost,
+  ) => InternalRenderLayerRegistry;
 };
 
 type RuntimeWithPipelineSurface = WebGLRuntime & {
@@ -71,8 +87,8 @@ const testSurfaceEffect = defineWebGLEffect<{
   kind: "test.surface",
   source: "dom/element",
   update(ctx, _state, params) {
-    ctx.target?.setVisible(true);
-    ctx.target?.setOpacity(params.opacity ?? 1);
+    ctx.object.visible = true;
+    ctx.object.opacity = params.opacity ?? 1;
   },
 });
 
@@ -177,9 +193,10 @@ const testPointerTiltEffect = defineWebGLEffect<{
     const maxDegrees = params.maxDegrees ?? 8;
     const radians = (maxDegrees * Math.PI) / 180;
 
-    ctx.target?.setRotation(
+    ctx.object.rotation.set(
       -ctx.pointer.normalizedY * radians * strength,
       ctx.pointer.normalizedX * radians * strength,
+      0,
     );
   },
 });
@@ -188,6 +205,7 @@ describe("runtime pipeline sync", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/addons/loaders/GLTFLoader.js");
+    vi.doUnmock("../../../src/lib/assets/modelLoader");
     vi.doUnmock("../resources/resourceManager");
     vi.resetModules();
   });
@@ -278,6 +296,35 @@ describe("runtime pipeline sync", () => {
       media: 2,
       model: 1,
     });
+
+    runtime.dispose();
+  });
+
+  test("passes runtime model loader config to default model renderables", async () => {
+    vi.resetModules();
+    const loadGLBModel = vi.fn(async () => createModelObject3DStub());
+
+    vi.doMock("../../../src/lib/assets/modelLoader", () => ({
+      loadGLBModel,
+    }));
+
+    const runtime = await createPipelineRuntime({
+      modelLoader: { draco: { decoderPath: "/runtime-draco/" } },
+      measureElement: () => createLayoutMeasurement(0, 0, 200, 200),
+    });
+    const anchor = document.createElement("section");
+
+    runtime.registerTarget(anchor, {
+      key: "runtime.loader.model",
+      source: { kind: "model", type: "glb", src: "/runtime-loader.glb" },
+    });
+
+    await runtime.sync();
+
+    expect(loadGLBModel).toHaveBeenCalledWith(
+      expect.objectContaining({ src: "/runtime-loader.glb" }),
+      { runtimeLoader: { draco: { decoderPath: "/runtime-draco/" } } },
+    );
 
     runtime.dispose();
   });
@@ -549,6 +596,59 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("attaches managed-scene subtree transform groups through the target scene adapter", async () => {
+    const mainAdapter = createTransformGroupRecordingSceneAdapter();
+    const worldAdapter = createTransformGroupRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: (container) =>
+        createRendererHostStub(container, mainAdapter),
+      renderLayerRegistryFactory: () =>
+        createRenderLayerRegistryStub(mainAdapter, {
+          scenes: { world: worldAdapter },
+        }).registry,
+      measureElement: createMappedMeasureElement(
+        new Map([
+          ["card", createLayoutMeasurement(100, 120, 220, 140)],
+          ["card.title", createLayoutMeasurement(130, 150, 160, 32)],
+        ]),
+      ),
+    });
+    const card = document.createElement("aside");
+    const title = document.createElement("strong");
+    card.dataset.testKey = "card";
+    title.dataset.testKey = "card.title";
+    title.textContent = "Nested text";
+    card.append(title);
+
+    runtime.registerTarget(card, {
+      key: "card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      transformScope: "subtree",
+    });
+    runtime.registerTarget(title, {
+      key: "card.title",
+      sceneId: "world",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(mainAdapter.groupsByKey.size).toBe(0);
+    expect(mainAdapter.objectParentsByKey.get("card.title")).toBeUndefined();
+    expect(worldAdapter.groupsByKey.has("card")).toBe(true);
+    expect(worldAdapter.objectParentsByKey.get("card")).toBe("card");
+    expect(worldAdapter.objectParentsByKey.get("card.title")).toBe("card");
+    expect(readSceneObjectLastLayout(worldAdapter, "card.title")).toEqual({
+      x: 0,
+      y: 24,
+      width: 160,
+      height: 32,
+    });
+
+    runtime.dispose();
+  });
+
   test("removes a parent transform group without disposing still-registered children", async () => {
     const sceneAdapter = createTransformGroupRecordingSceneAdapter();
     const disposeCallsByKey = new Map<string, ReturnType<typeof vi.fn>>();
@@ -650,16 +750,12 @@ describe("runtime pipeline sync", () => {
           kind: "test.groupTransform",
           source: "dom/element",
           update(ctx) {
-            sourceHandleReady.push(
-              ctx.source.kind === "dom" &&
-                ctx.source.type === "element" &&
-                Boolean(ctx.source.surface),
-            );
-            ctx.target?.setPosition(12, -8, 3);
-            ctx.target?.setRotation(0.1, -0.2, 0.3);
-            ctx.target?.setScale(1.4, 0.8, 0.6);
-            ctx.target?.setVisible(false);
-            ctx.target?.setOpacity(0.42);
+            sourceHandleReady.push(Boolean(ctx.object.surface));
+            ctx.object.position.set(12, -8, 3);
+            ctx.object.rotation.set(0.1, -0.2, 0.3);
+            ctx.object.scale.set(1.4, 0.8, 0.6);
+            ctx.object.visible = false;
+            ctx.object.opacity = 0.42;
           },
         }),
       ],
@@ -825,7 +921,7 @@ describe("runtime pipeline sync", () => {
           kind: "custom.modelProbe",
           source: "model/glb",
           update(ctx) {
-            updateEffect(ctx.source);
+            updateEffect(ctx.object.model);
           },
         }),
       ],
@@ -842,21 +938,23 @@ describe("runtime pipeline sync", () => {
 
     expect(updateEffect).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: "model",
-        type: "glb",
         src: "/product.glb",
-        model: expect.objectContaining({
-          sampleVertices: expect.any(Function),
-          getMeshes: expect.any(Function),
-          forEachMesh: expect.any(Function),
-          createPointLayer: expect.any(Function),
+        meshes: expect.objectContaining({
+          all: expect.any(Function),
+          forEach: expect.any(Function),
+        }),
+        sampling: expect.objectContaining({
+          vertices: expect.any(Function),
+        }),
+        points: expect.objectContaining({
+          create: expect.any(Function),
         }),
       }),
     );
     const modelSource = updateEffect.mock.calls[0]?.[0] as
-      | { model?: Record<string, unknown> }
+      | Record<string, unknown>
       | undefined;
-    expect(modelSource?.model).not.toHaveProperty("createPointCloud");
+    expect(modelSource).not.toHaveProperty("createPointCloud");
 
     runtime.dispose();
   });
@@ -1012,8 +1110,8 @@ describe("runtime pipeline sync", () => {
     const setup = vi.fn(() => ({ updates: 0 }));
     const update = vi.fn((ctx, state: { updates: number }) => {
       state.updates += 1;
-      ctx.target?.setVisible(true);
-      ctx.target?.setRotation(0, ctx.pointer.normalizedX);
+      ctx.object.visible = true;
+      ctx.object.rotation.set(0, ctx.pointer.normalizedX, 0);
     });
     const sceneAdapter = createObjectRecordingSceneAdapter();
     const runtime = await createPipelineRuntime({
@@ -1051,11 +1149,19 @@ describe("runtime pipeline sync", () => {
       key: "custom.surface",
       sourceKind: "dom/element",
       pointer: { normalizedX: 1 },
-      target: {
-        setVisible: expect.any(Function),
-        setRotation: expect.any(Function),
+      object: {
+        visible: true,
+        rotation: {
+          set: expect.any(Function),
+        },
+        surface: {
+          draw: expect.any(Function),
+        },
       },
     });
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("source");
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("target");
+    expect(update.mock.calls[0]?.[0]).not.toHaveProperty("visual");
     expect(sceneAdapter.objects[0]?.object3D).toMatchObject({
       visible: true,
     });
@@ -1112,7 +1218,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("passes controlled postprocess requests through the effect visual context", async () => {
+  test("passes controlled postprocess requests through the runtime scope facade", async () => {
     const postprocessController = createPostprocessController();
     const runtime = await createPipelineRuntime({
       postprocessController,
@@ -1121,14 +1227,16 @@ describe("runtime pipeline sync", () => {
           kind: "custom.postprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.runtime.postprocess.request({
               key: "custom.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.4 },
             });
           },
           update(_ctx, handle) {
             handle.update({
               key: "custom.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.8 },
               blur: { radius: 0.2 },
             });
@@ -1149,6 +1257,7 @@ describe("runtime pipeline sync", () => {
     expect(postprocessController.inspectRequests()).toEqual([
       {
         key: "custom.glow",
+        scope: { canvas: true },
         bloom: { strength: 0.8 },
         blur: { radius: 0.2 },
       },
@@ -1170,7 +1279,7 @@ describe("runtime pipeline sync", () => {
     }));
     const postprocessController = createStubPostprocessController({
       requestPostprocess,
-      render(renderBase) {
+      render(_context, renderBase) {
         renderOrder.push("postprocess:before");
         renderBase();
         renderOrder.push("postprocess:after");
@@ -1188,8 +1297,9 @@ describe("runtime pipeline sync", () => {
           kind: "custom.pipelinePostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.runtime.postprocess.request({
               key: "pipeline.glow",
+              scope: { passId: "__dom-webgl-default__" },
               bloom: { strength: 0.3 },
             });
           },
@@ -1209,6 +1319,7 @@ describe("runtime pipeline sync", () => {
 
     expect(requestPostprocess).toHaveBeenCalledWith({
       key: "pipeline.glow",
+      scope: { passId: "__dom-webgl-default__" },
       bloom: { strength: 0.3 },
     });
     expect(renderOrder).toEqual([
@@ -1242,8 +1353,9 @@ describe("runtime pipeline sync", () => {
           kind: "custom.defaultPostprocess",
           source: "dom/element",
           setup(ctx) {
-            return ctx.visual.requestPostprocess({
+            return ctx.runtime.postprocess.request({
               key: "default.glow",
+              scope: { canvas: true },
               bloom: { strength: 0.35 },
             });
           },
@@ -2035,7 +2147,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("resume preserves effect-owned hidden visibility that was applied through ctx.target", async () => {
+  test("resume preserves effect-owned hidden visibility that was applied through ctx.object", async () => {
     const element = document.createElement("section");
     let measurement = createLayoutMeasurement(0, 0, 200, 120);
     const renderableSetVisible = vi.fn();
@@ -2050,7 +2162,7 @@ describe("runtime pipeline sync", () => {
           source: "dom/element",
           update(ctx) {
             effectUpdate();
-            ctx.target?.setVisible(false);
+            ctx.object.visible = false;
           },
         }),
       ],
@@ -2140,7 +2252,7 @@ describe("runtime pipeline sync", () => {
           },
           dispose(ctx) {
             effectDispose();
-            ctx.target?.setVisible(false);
+            ctx.object.visible = false;
           },
         }),
       ],
@@ -2873,7 +2985,7 @@ describe("runtime pipeline sync", () => {
           kind: "test.pointerReactive",
           schedule: "reactive",
           update(ctx) {
-            ctx.target?.setRotation(0, ctx.targetPointer.normalizedX, 0);
+            ctx.object.rotation.set(0, ctx.targetPointer.normalizedX, 0);
           },
         }),
       ],
@@ -2951,6 +3063,2008 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
     expect(unsubscribed).toBe(true);
   });
+
+  test("progress signal notifications refresh runtime timeline state", async () => {
+    let progress = 0;
+    let notifyProgress = () => {};
+    const progressSignals = {
+      get() {
+        return progress;
+      },
+      subscribe(listener: () => void) {
+        notifyProgress = listener;
+        return () => {};
+      },
+    };
+    const loopHost = createLoopRecordingHost();
+    const { registry, updateTimelineState } = createRenderLayerRegistryStub(
+      loopHost.sceneAdapter,
+    );
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory: loopHost.createHost,
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      progressSignals,
+    });
+
+    loopHost.tick(16);
+
+    expect(updateTimelineState).toHaveBeenCalledWith(progressSignals);
+
+    updateTimelineState.mockClear();
+    progress = 1;
+    notifyProgress();
+    loopHost.tick(32);
+
+    expect(updateTimelineState).toHaveBeenCalledWith(progressSignals);
+    runtime.dispose();
+  });
+
+  test("renders through the generated render layer pass list", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry, renderPasses } =
+      createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(renderPasses).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledWith(
+      registry.getCamera("__dom-webgl-default__").camera,
+    );
+    runtime.dispose();
+  });
+
+  test("renders a pass inside a DOM-bound viewport with scissor and restores canvas viewport", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 40,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 220,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(render).toHaveBeenCalled();
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("clips DOM-bound pass viewports to the visible canvas area without compressing the pass", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: -20,
+        top: -40,
+        width: 320,
+        height: 180,
+        right: 300,
+        bottom: 140,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 0, 460, 300, 140);
+    expect(render).toHaveBeenCalled();
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("keeps pass postprocess output sized to the full DOM-bound viewport while clipping output", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const postprocessController = createStubPostprocessController({
+      render: vi.fn((context, renderBase: () => void) => {
+        expect(context.viewport).toEqual({ width: 320, height: 180 });
+        renderBase();
+        setViewport(0, 0, 800, 600);
+        setScissor(0, 0, 800, 600);
+        setScissorTest(false);
+        context.prepareOutput?.();
+      }),
+    });
+    const { registry } = createRenderLayerRegistryStub(createRecordingSceneAdapter(), {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+          postprocess: { grain: { amount: 0.1 } },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      postprocessController,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: -20,
+        top: -40,
+        width: 320,
+        height: 180,
+        right: 300,
+        bottom: 140,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 0, 460, 300, 140);
+    expect(setScissorTest).toHaveBeenNthCalledWith(2, false);
+    expect(setViewport).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissor).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissorTest).toHaveBeenNthCalledWith(3, true);
+    expect(setViewport).toHaveBeenNthCalledWith(3, -20, 460, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(3, 0, 460, 300, 140);
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("passes CSS logical viewport coordinates to Three when DPR is above one", async () => {
+    const originalDevicePixelRatio = window.devicePixelRatio;
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 2,
+    });
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    let runtime: RuntimeWithPipelineSurface | undefined;
+
+    try {
+      runtime = await createPipelineRuntime({
+        rendererHostFactory(container) {
+          const host = createRendererHostStub(container);
+          return {
+            ...host,
+            getViewportSize: () => ({ width: 800, height: 600 }),
+            renderer: {
+              ...host.renderer,
+              render,
+              setViewport,
+              setScissor,
+              setScissorTest,
+            },
+          };
+        },
+      });
+      const anchor = document.createElement("section");
+      anchor.getBoundingClientRect = () =>
+        ({
+          left: 20,
+          top: 40,
+          width: 320,
+          height: 180,
+          right: 340,
+          bottom: 220,
+        }) as DOMRect;
+
+      runtime.registerScene({ id: "hero.scene" });
+      runtime.registerCamera({
+        id: "hero.camera",
+        sceneId: "hero.scene",
+        default: true,
+      });
+      runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+      runtime.registerRenderPass({
+        id: "hero.pass",
+        sceneId: "hero.scene",
+        cameraId: "hero.camera",
+        viewport: {
+          mode: "dom-rect",
+          anchorId: "hero.viewport",
+          scissor: true,
+        },
+      });
+
+      await runtime.sync();
+
+      expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+      expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+      expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+      expect(render).toHaveBeenCalled();
+      expect(setScissorTest).toHaveBeenLastCalledWith(false);
+      expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+      expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    } finally {
+      runtime?.dispose();
+      Object.defineProperty(window, "devicePixelRatio", {
+        configurable: true,
+        value: originalDevicePixelRatio,
+      });
+    }
+  });
+
+  test("maps DOM-bound pass viewport window coordinates into canvas coordinates", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        Object.defineProperty(host.canvas, "getBoundingClientRect", {
+          configurable: true,
+          value: () =>
+            ({
+              x: 100,
+              y: 50,
+              left: 100,
+              top: 50,
+              right: 900,
+              bottom: 650,
+              width: 800,
+              height: 600,
+              toJSON: () => undefined,
+            }) as DOMRect,
+        });
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 120,
+        top: 90,
+        width: 320,
+        height: 180,
+        right: 440,
+        bottom: 270,
+      }) as DOMRect;
+
+    runtime.registerScene({ id: "hero.scene" });
+    runtime.registerCamera({
+      id: "hero.camera",
+      sceneId: "hero.scene",
+      default: true,
+    });
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+    runtime.registerRenderPass({
+      id: "hero.pass",
+      sceneId: "hero.scene",
+      cameraId: "hero.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "hero.viewport",
+        scissor: true,
+      },
+    });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(render).toHaveBeenCalled();
+
+    runtime.dispose();
+  });
+
+  test("reapplies DOM-bound pass viewport before postprocess outputs to the canvas", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const postprocessController = createStubPostprocessController({
+      render: vi.fn((context, renderBase: () => void) => {
+        renderBase();
+        setViewport(0, 0, 800, 600);
+        setScissor(0, 0, 800, 600);
+        setScissorTest(false);
+        context.prepareOutput?.();
+      }),
+    });
+    const { registry } = createRenderLayerRegistryStub(createRecordingSceneAdapter(), {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+          postprocess: { grain: { amount: 0.1 } },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      postprocessController,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 40,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 220,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(setScissorTest).toHaveBeenNthCalledWith(1, true);
+    expect(setViewport).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(1, 20, 380, 320, 180);
+    expect(setScissorTest).toHaveBeenNthCalledWith(2, false);
+    expect(setViewport).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissor).toHaveBeenNthCalledWith(2, 0, 0, 800, 600);
+    expect(setScissorTest).toHaveBeenNthCalledWith(3, true);
+    expect(setViewport).toHaveBeenNthCalledWith(3, 20, 380, 320, 180);
+    expect(setScissor).toHaveBeenNthCalledWith(3, 20, 380, 320, 180);
+    expect(setScissorTest).toHaveBeenLastCalledWith(false);
+    expect(setViewport).toHaveBeenLastCalledWith(0, 0, 800, 600);
+    expect(setScissor).toHaveBeenLastCalledWith(0, 0, 800, 600);
+
+    runtime.dispose();
+  });
+
+  test("skips DOM-bound render passes while their viewport is fully outside the canvas", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "hero.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+          viewport: {
+            mode: "dom-rect",
+            anchorId: "hero.viewport",
+            scissor: true,
+          },
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        top: 760,
+        width: 320,
+        height: 180,
+        right: 340,
+        bottom: 940,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({ id: "hero.viewport", element: anchor });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.render).not.toHaveBeenCalled();
+    expect(setViewport).not.toHaveBeenCalled();
+    expect(setScissor).not.toHaveBeenCalled();
+    expect(setScissorTest).not.toHaveBeenCalled();
+
+    runtime.dispose();
+  });
+
+  test("routes targets with sceneId to the managed scene adapter", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: {
+        world: worldAdapter,
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const mainElement = document.createElement("section");
+    const worldElement = document.createElement("section");
+
+    runtime.registerTarget(mainElement, {
+      key: "main.target",
+      source: { kind: "dom", type: "element" },
+    });
+    runtime.registerTarget(worldElement, {
+      key: "world.target",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(mainAdapter.objects.map((object) => object.key)).toEqual(["main.target"]);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.target",
+    ]);
+    runtime.dispose();
+  });
+
+  test("targets without scene declarations still render through generated main", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+    });
+    const element = document.createElement("section");
+
+    runtime.registerTarget(element, {
+      key: "level1.surface",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.objects.map((object) => object.key)).toEqual([
+      "level1.surface",
+    ]);
+    runtime.dispose();
+  });
+
+  test("vanilla target sceneId uses the same routing as React inheritance", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const overlayAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { overlay: overlayAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "overlay.title",
+      sceneId: "overlay",
+      source: { kind: "dom", type: "text" },
+    });
+
+    await runtime.sync();
+
+    expect(overlayAdapter.objects.map((object) => object.key)).toEqual([
+      "overlay.title",
+    ]);
+    runtime.dispose();
+  });
+
+  test("debug state includes managed scene ids for routed targets", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "world.target",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "world.target",
+      sceneId: "world",
+    });
+    runtime.dispose();
+  });
+
+  test("unregistering a managed scene releases live targets routed to that scene", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(0, 0, 120, 80),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targetCount).toBe(1);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.card",
+    ]);
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(runtime.getDebugState().targetCount).toBe(0);
+    expect(worldAdapter.objects).toHaveLength(0);
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().targetCount).toBe(0);
+    runtime.dispose();
+  });
+
+  test("runtime registers managed scene camera and pass declarations", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry, registerScene, registerCamera, registerRenderPass } =
+      createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerScene({ id: "world", defaultPass: true });
+    runtime.registerCamera({ id: "world.camera", sceneId: "world", default: true });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+    });
+    runtime.unregisterRenderPass("world.pass");
+    runtime.unregisterCamera("world.camera");
+    runtime.unregisterScene("world");
+
+    expect(registerScene).toHaveBeenCalledWith({ id: "world", defaultPass: true });
+    expect(registerCamera).toHaveBeenCalledWith({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+    });
+    expect(registerRenderPass).toHaveBeenCalledWith({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+    });
+    runtime.dispose();
+  });
+
+  test("runtime registers stage primitives and lights into managed scenes", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      material: { kind: "standard", color: "#05070a" },
+    });
+    runtime.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "point",
+      intensity: 1.8,
+      position: [0, 0, 160],
+    });
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "floor",
+      "hero",
+    ]);
+    expect(runtime.getDebugState().targetCount).toBe(0);
+    expect(runtime.getDebugState()).toMatchObject({
+      stagePrimitiveCount: 1,
+      lightCount: 1,
+      stagePrimitives: [{ id: "floor", sceneId: "world", kind: "plane" }],
+      lights: [{ id: "hero", sceneId: "world", kind: "point" }],
+    });
+
+    runtime.unregisterStagePrimitive("floor");
+    runtime.unregisterLight("hero");
+
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().stagePrimitiveCount).toBeUndefined();
+    expect(runtime.getDebugState().lightCount).toBeUndefined();
+    expect(runtime.getDebugState().stagePrimitives).toBeUndefined();
+    expect(runtime.getDebugState().lights).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("runtime advances scene-native physics bodies and exposes debug summaries", async () => {
+    let now = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      clock() {
+        return now;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "crate",
+      sceneId: "world",
+      kind: "box",
+      position: [0, 0, 0],
+      physics: {
+        body: { type: "dynamic", velocity: [60, 0, 0], gravityScale: 0 },
+        collider: false,
+      },
+    });
+
+    await runtime.sync();
+    now = 1000 / 60;
+    await runtime.sync();
+
+    expect(runtime.getDebugState().physics).toMatchObject({
+      bodyCount: 1,
+      activeBodyCount: 1,
+      bodies: [
+        {
+          id: "crate",
+          sceneId: "world",
+          sourceKind: "stage/box",
+          type: "dynamic",
+          active: true,
+        },
+      ],
+    });
+    expect(runtime.getDebugState().physics?.bodies[0]?.position[0]).toBeCloseTo(
+      1,
+    );
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({
+      position: expect.objectContaining({ x: 1, y: 0, z: 0 }),
+    });
+
+    runtime.dispose();
+
+    expect(runtime.getDebugState().physics).toBeUndefined();
+  });
+
+  test("runtime updates timeline-bound stage object visibility from progress signals", async () => {
+    let progress = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+      id: "floor",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "hero.3d",
+        active: false,
+      },
+    });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+      timeline: {
+        active: true,
+      },
+    });
+    runtime.dispose();
+  });
+
+  test("runtime registers scene-native models into managed scenes", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const sourceScene = new Group();
+    const clonedScene = new Group();
+    const clone = vi.spyOn(sourceScene, "clone").mockReturnValue(clonedScene);
+    const loadModel = vi.fn(async () => ({
+      scene: sourceScene,
+      animations: [{ name: "Idle" }],
+    }));
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      loadModel,
+    });
+
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      position: [1, 2, 3],
+      rotation: [0, 1, 0],
+      scale: 2,
+    });
+
+    expect(worldAdapter.objects).toHaveLength(0);
+
+    await runtime.sync();
+
+    expect(loadModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "model",
+        type: "glb",
+        src: "/models/Sprint.glb",
+      }),
+    );
+    expect(clone).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "character",
+    ]);
+    const root = worldAdapter.objects[0]?.object3D as Group;
+    expect(root.children[0]).toBe(clonedScene);
+    expect(root.position.toArray()).toEqual([1, 2, 3]);
+    expect(root.rotation.toArray()).toEqual([0, 1, 0, "XYZ"]);
+    expect(root.scale.toArray()).toEqual([2, 2, 2]);
+    expect(runtime.getDebugState()).toMatchObject({
+      modelCount: 1,
+      models: [
+        {
+          id: "character",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "ready",
+          visible: true,
+          clips: ["Idle"],
+          activeClips: [],
+        },
+      ],
+    });
+
+    runtime.unregisterModel("character");
+
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().modelCount).toBeUndefined();
+    expect(runtime.getDebugState().models).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("runtime updates timeline-bound model visibility and releases models with scenes", async () => {
+    let progress = 0;
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      loadModel: async () => ({ scene: new Group() }),
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      timeline: {
+        id: "hero.3d",
+        progressKey: "hero.3d",
+        active: false,
+      },
+    });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      timeline: { active: true },
+    });
+
+    const sceneObject = worldAdapter.objects[0];
+    const dispose = vi.spyOn(sceneObject!, "dispose");
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().models).toBeUndefined();
+    runtime.dispose();
+  });
+
+  test("performs a tiny render warmup for prepared scene-native models", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const render = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            render,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "canvas" },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    runtime.sync();
+
+    expect(render).toHaveBeenCalled();
+    expect(setViewport).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissor).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissorTest).toHaveBeenCalledWith(true);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      prepare: { renderWarmup: "complete" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("retries prepared model warmup until a matching render pass exists", async () => {
+    const setViewport = vi.fn();
+    const setScissor = vi.fn();
+    const setScissorTest = vi.fn();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+          renderer: {
+            ...host.renderer,
+            setViewport,
+            setScissor,
+            setScissorTest,
+          },
+        };
+      },
+      loadModel: async () => ({
+        scene: new Group(),
+        animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+      }),
+    });
+
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    runtime.sync();
+
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "idle",
+      prepare: { load: "queued" },
+    });
+
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "canvas" },
+    });
+
+    await runtime.sync();
+    runtime.sync();
+
+    expect(setViewport).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissor).toHaveBeenCalledWith(0, 599, 1, 1);
+    expect(setScissorTest).toHaveBeenCalledWith(true);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      prepare: { load: "ready", renderWarmup: "complete" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("defers prepared scene-native model loading while its DOM-bound pass viewport is far from view", async () => {
+    stubWindowNumberProperty("innerHeight", () => 600);
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const runtime = await createPipelineRuntime({
+      loadModel,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 2600,
+        width: 640,
+        height: 420,
+        right: 640,
+        bottom: 3020,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({
+      id: "model.viewport",
+      element: anchor,
+    });
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "dom-rect", anchorId: "model.viewport", scissor: true },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+
+    expect(loadModel).not.toHaveBeenCalled();
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "idle",
+      prepare: { load: "queued" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("starts prepared scene-native model loading when its DOM-bound pass viewport enters the prepare margin", async () => {
+    stubWindowNumberProperty("innerHeight", () => 600);
+    const loadModel = vi.fn(async () => ({
+      scene: new Group(),
+      animations: [new AnimationClip("MainSkeleton.001", 1, [])],
+    }));
+    const runtime = await createPipelineRuntime({
+      loadModel,
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+        return {
+          ...host,
+          getViewportSize: () => ({ width: 800, height: 600 }),
+        };
+      },
+    });
+    const anchor = document.createElement("section");
+    let top = 2600;
+    anchor.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top,
+        width: 640,
+        height: 420,
+        right: 640,
+        bottom: top + 420,
+      }) as DOMRect;
+
+    runtime.registerPassViewport({
+      id: "model.viewport",
+      element: anchor,
+    });
+    runtime.registerScene({
+      id: "world",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "world.camera",
+      sceneId: "world",
+      default: true,
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerRenderPass({
+      id: "world.pass",
+      sceneId: "world",
+      cameraId: "world.camera",
+      viewport: { mode: "dom-rect", anchorId: "model.viewport", scissor: true },
+    });
+    runtime.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      animation: { defaultClip: "MainSkeleton.001" },
+      prepare: { renderWarmup: "idle" },
+    });
+
+    await runtime.sync();
+    top = 1400;
+    await runtime.sync();
+    runtime.sync();
+
+    expect(loadModel).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().models?.[0]).toMatchObject({
+      id: "character",
+      resourceStatus: "ready",
+      prepare: { load: "ready", renderWarmup: "complete" },
+    });
+
+    runtime.dispose();
+  });
+
+  test("runtime updates timeline-bound target visibility from progress signals", async () => {
+    let progress = 0;
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return createRenderLayerRegistryStub(sceneAdapter).registry;
+      },
+      progressSignals: {
+        get() {
+          return progress;
+        },
+      },
+    });
+
+    const target = document.createElement("section");
+
+    runtime.registerTarget(target, {
+      key: "target.timeline",
+      source: { kind: "dom", type: "element" },
+      timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
+    });
+
+    await runtime.sync();
+
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
+
+    progress = 0.5;
+    await runtime.sync();
+
+    expect(sceneAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
+    runtime.dispose();
+  });
+
+  test("unregistering a managed scene releases stage primitives and lights first", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, unregisterScene } = createRenderLayerRegistryStub(
+      mainAdapter,
+      { scenes: { world: worldAdapter } },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+    });
+    runtime.registerLight({
+      id: "hero",
+      sceneId: "world",
+      kind: "ambient",
+    });
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "floor",
+      "hero",
+    ]);
+
+    runtime.unregisterScene("world");
+
+    expect(unregisterScene).toHaveBeenCalledWith("world");
+    expect(worldAdapter.objects).toHaveLength(0);
+    runtime.dispose();
+  });
+
+  test("projects screen anchored targets through the selected scene projection", async () => {
+    const overlayAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(
+      createObjectRecordingSceneAdapter(),
+      {
+        scenes: { overlay: overlayAdapter },
+        sceneProjection: { overlay: "screen" },
+        cameras: {
+          "overlay.camera": {
+            sceneId: "overlay",
+            type: "orthographic",
+            mode: "screen",
+          },
+        },
+      },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(0, 0, 10, 10),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "overlay.badge",
+      sceneId: "overlay",
+      source: { kind: "dom", type: "element" },
+      placement: {
+        mode: "screen-anchored",
+        anchor: "top-right",
+        offset: [-32, 32],
+        size: [180, 48],
+      },
+    });
+
+    await runtime.sync();
+
+    expect(readSceneObjectLastLayout(overlayAdapter, "overlay.badge")).toEqual({
+      x: 768,
+      y: 568,
+      z: 0,
+      width: 180,
+      height: 48,
+    });
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "overlay.badge",
+      sceneId: "overlay",
+      projection: "screen",
+      placementMode: "screen-anchored",
+    });
+
+    runtime.dispose();
+  });
+
+  test("routes screen-depth targets through the perspective stage scene", async () => {
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(
+      createObjectRecordingSceneAdapter(),
+      {
+        scenes: { world: worldAdapter },
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            position: [0, 136, 560],
+            target: [0, -88, -40],
+          },
+        },
+      },
+    );
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(220, 232, 360, 136),
+    });
+
+    runtime.registerTarget(document.createElement("article"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+    });
+
+    await runtime.sync();
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual([
+      "world.card",
+    ]);
+    const layout = readRequiredSceneObjectLastLayout(worldAdapter, "world.card");
+    expect(layout.x).toBeCloseTo(0);
+    expect(layout.y).toBeCloseTo(94.0295);
+    expect(layout.z).toBeCloseTo(447.579);
+    expect(layout.width).toBeCloseTo(67.1483);
+    expect(layout.height).toBeCloseTo(25.366);
+    expect(runtime.getDebugState().targets[0]).toMatchObject({
+      key: "world.card",
+      sceneId: "world",
+      projection: "perspective-stage",
+      placementMode: "screen-depth",
+    });
+
+    runtime.dispose();
+  });
+
+  test("updates camera controllers before screen-depth projection and pass rendering", async () => {
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry, renderPasses, updateCameraControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        scenes: { world: worldAdapter },
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            position: [0, 0, 500],
+            target: [0, 0, 0],
+            fov: 50,
+          },
+        },
+        updateCameraControllers(_progressSignals, camerasById) {
+          const camera = camerasById.get("world.camera");
+
+          if (!camera) {
+            throw new Error("Missing test camera");
+          }
+
+          camerasById.set("world.camera", {
+            ...camera,
+            position: [0, 120, 520],
+            target: [0, 0, 0],
+            fov: 30,
+          });
+
+          return true;
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      measureElement: () => createLayoutMeasurement(300, 250, 200, 100),
+    });
+
+    runtime.registerTarget(document.createElement("article"), {
+      key: "world.card",
+      sceneId: "world",
+      source: { kind: "dom", type: "element" },
+      placement: { mode: "screen-depth", depth: 120, size: "dom" },
+    });
+
+    await runtime.sync();
+
+    const layout = readRequiredSceneObjectLastLayout(worldAdapter, "world.card");
+    const unitsPerPixel = (2 * 120 * Math.tan((30 * Math.PI) / 360)) / 600;
+    const cameraDistance = Math.hypot(120, 520);
+    expect(layout.y).toBeCloseTo(120 - (120 / cameraDistance) * 120);
+    expect(layout.z).toBeCloseTo(520 - (520 / cameraDistance) * 120);
+    expect(layout.width).toBeCloseTo(200 * unitsPerPixel);
+    expect(layout.height).toBeCloseTo(100 * unitsPerPixel);
+    expect(updateCameraControllers).toHaveBeenCalledTimes(1);
+    expect(renderPasses).toHaveBeenCalled();
+    expect(updateCameraControllers.mock.invocationCallOrder[0]).toBeLessThan(
+      renderPasses.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+
+    runtime.dispose();
+  });
+
+  test("routes managed camera gesture passes into runtime interaction debug state", async () => {
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera: { label: "world-camera" },
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+          expect(input.frameInput.pointer.button).toBe("secondary");
+          expect(input.passes).toEqual([
+            {
+              id: "world.pass",
+              sceneId: "world",
+              cameraId: "world.camera",
+              order: 4,
+            },
+          ]);
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "pan",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: true,
+        isDragging: true,
+        button: "secondary",
+        buttons: ["secondary"],
+        dragDeltaX: 24,
+      }),
+    });
+
+    await runtime.sync();
+
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().interaction?.cameraController).toEqual({
+      cameraId: "world.camera",
+      sceneId: "world",
+      active: true,
+      activeGesture: "pan",
+      damping: false,
+    });
+
+    runtime.dispose();
+  });
+
+  test("updates camera gestures before hover picking reads managed pass cameras", async () => {
+    const hitPoint: WebGLTuple3 = [0, 0, 0];
+    const camera = { frame: "declaration" };
+    const cameraFrameSeenByPick: string[] = [];
+    const pickManagedObjects = vi.fn((pass) => {
+      cameraFrameSeenByPick.push(
+        (pass.camera as { frame?: string }).frame ?? "unknown",
+      );
+
+      return {
+        id: "floor",
+        sceneId: "world",
+        point: hitPoint,
+        distance: 1,
+      };
+    });
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera,
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+          camera.frame = "gesture";
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "parallax",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+
+        return {
+          ...host,
+          pickManagedObjects,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: false,
+        isDragging: false,
+        x: 320,
+        y: 220,
+      }),
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, click: true },
+        },
+      },
+    });
+    await runtime.sync();
+
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(cameraFrameSeenByPick).toEqual(["gesture"]);
+    expect(runtime.getDebugState().interaction).toMatchObject({
+      hoveredObjectId: "floor",
+      cameraController: {
+        cameraId: "world.camera",
+        sceneId: "world",
+        active: true,
+        activeGesture: "parallax",
+      },
+    });
+
+    runtime.dispose();
+  });
+
+  test("keeps primary camera drags unblocked while crossing click-only objects", async () => {
+    const hitPoint: WebGLTuple3 = [0, 0, 0];
+    const pickManagedObjects = vi.fn(() => ({
+      id: "floor",
+      sceneId: "world",
+      point: hitPoint,
+      distance: 1,
+    }));
+    const { registry, updateCameraGestureControllers } =
+      createRenderLayerRegistryStub(createObjectRecordingSceneAdapter(), {
+        sceneProjection: { world: "perspective-stage" },
+        cameras: {
+          "world.camera": {
+            sceneId: "world",
+            type: "perspective",
+            mode: "perspective-stage",
+            camera: { label: "world-camera" },
+          },
+        },
+        passes: [
+          {
+            id: "world.pass",
+            generated: false,
+            sceneId: "world",
+            cameraId: "world.camera",
+            order: 4,
+            clear: false,
+            clearDepth: false,
+          },
+        ],
+        updateCameraGestureControllers(input) {
+          expect(input.blocked).toBe(false);
+
+          return {
+            changed: true,
+            requiresContinuousRendering: true,
+            summary: {
+              cameraId: "world.camera",
+              sceneId: "world",
+              active: true,
+              activeGesture: "orbit",
+              damping: false,
+            },
+          };
+        },
+      });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container);
+
+        return {
+          ...host,
+          pickManagedObjects,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+      pointerController: createPointerController({
+        isDown: true,
+        isDragging: true,
+        button: "primary",
+        buttons: ["primary"],
+        dragStartX: 12,
+        dragStartY: 24,
+        dragDeltaX: 24,
+      }),
+    });
+
+    runtime.registerStagePrimitive({
+      id: "floor",
+      sceneId: "world",
+      kind: "plane",
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, click: true },
+        },
+      },
+    });
+    await runtime.sync();
+
+    expect(pickManagedObjects).not.toHaveBeenCalled();
+    expect(updateCameraGestureControllers).toHaveBeenCalledTimes(1);
+    expect(runtime.getDebugState().interaction).toMatchObject({
+      emptySpace: true,
+      cameraController: {
+        cameraId: "world.camera",
+        sceneId: "world",
+        active: true,
+        activeGesture: "orbit",
+      },
+    });
+
+    runtime.dispose();
+  });
+
+  test("keeps Level 1 dom anchored layout unchanged", async () => {
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, sceneAdapter);
+      },
+      measureElement: () => createLayoutMeasurement(100, 120, 220, 140),
+    });
+
+    runtime.registerTarget(document.createElement("section"), {
+      key: "level1.surface",
+      source: { kind: "dom", type: "element" },
+    });
+
+    await runtime.sync();
+
+    expect(readSceneObjectLastLayout(sceneAdapter, "level1.surface")).toEqual({
+      x: 210,
+      y: 410,
+      width: 220,
+      height: 140,
+    });
+
+    runtime.dispose();
+  });
+
+  test("clears depth before passes that request clearDepth", async () => {
+    const clearDepth = vi.fn();
+    const sceneAdapter = createRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "main",
+          generated: true,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+        },
+        {
+          id: "overlay.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 1,
+          clear: false,
+          clearDepth: true,
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+
+        return {
+          ...host,
+          renderer: {
+            ...host.renderer,
+            clearDepth,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(clearDepth).toHaveBeenCalledTimes(1);
+    runtime.dispose();
+  });
+
+  test("does not resize managed render layers when the renderer viewport is unchanged", async () => {
+    const sceneAdapter = createRecordingSceneAdapter();
+    const resizeIfNeeded = vi.fn(() => false);
+    const { registry, resize } = createRenderLayerRegistryStub(sceneAdapter);
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        return {
+          ...createRendererHostStub(container, sceneAdapter),
+          resizeIfNeeded,
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(resizeIfNeeded).toHaveBeenCalledTimes(1);
+    expect(resize).not.toHaveBeenCalled();
+    runtime.dispose();
+  });
+
+  test("clears the canvas once before rendering ordered passes", async () => {
+    const operations: string[] = [];
+    const clear = vi.fn(() => {
+      operations.push("clear");
+    });
+    const sceneAdapter = {
+      ...createRecordingSceneAdapter(),
+      render: vi.fn(() => {
+        operations.push("render");
+      }),
+    } satisfies WebGLSceneAdapter;
+    const { registry } = createRenderLayerRegistryStub(sceneAdapter, {
+      passes: [
+        {
+          id: "stage.pass",
+          generated: false,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: -10,
+          clear: false,
+          clearDepth: false,
+        },
+        {
+          id: "main",
+          generated: true,
+          sceneId: "__dom-webgl-default__",
+          cameraId: "__dom-webgl-default__",
+          order: 0,
+          clear: false,
+          clearDepth: false,
+        },
+      ],
+    });
+    const runtime = await createPipelineRuntime({
+      rendererHostFactory(container) {
+        const host = createRendererHostStub(container, sceneAdapter);
+
+        return {
+          ...host,
+          renderer: {
+            ...host.renderer,
+            clear,
+          },
+        };
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.sync();
+
+    expect(clear).toHaveBeenCalledTimes(1);
+    expect(sceneAdapter.render).toHaveBeenCalledTimes(2);
+    expect(operations).toEqual(["clear", "render", "render"]);
+    runtime.dispose();
+  });
 });
 
 async function createPipelineRuntime(
@@ -3014,7 +5128,7 @@ function createRendererHostStub(
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       canvas.remove();
@@ -3079,6 +5193,201 @@ function createRecordingSceneAdapter(): WebGLSceneAdapter & {
       return;
     },
     render: vi.fn(),
+  };
+}
+
+function createRenderLayerRegistryStub(
+  sceneAdapter: WebGLSceneAdapter,
+  options: {
+    scenes?: Record<string, WebGLSceneAdapter>;
+    sceneProjection?: Record<string, InternalRenderSceneEntry["projection"]>;
+    cameras?: Record<
+      string,
+      Pick<InternalRenderCameraEntry, "sceneId" | "type" | "mode"> &
+        Partial<InternalRenderCameraEntry>
+    >;
+    passes?: readonly InternalRenderPassEntry[];
+    updateCameraControllers?: (
+      progressSignals: WebGLProgressSignalSource,
+      camerasById: Map<string, InternalRenderCameraEntry>,
+    ) => boolean;
+    updateCameraGestureControllers?: (input: {
+      frameInput: WebGLFrameInput;
+      blocked: boolean;
+      passes: readonly ManagedCameraGesturePass[];
+    }) => ReturnType<InternalRenderLayerRegistry["updateCameraGestureControllers"]>;
+  } = {},
+): {
+  registry: InternalRenderLayerRegistry;
+  renderPasses: ReturnType<typeof vi.fn>;
+  registerScene: ReturnType<typeof vi.fn>;
+  unregisterScene: ReturnType<typeof vi.fn>;
+  registerCamera: ReturnType<typeof vi.fn>;
+  unregisterCamera: ReturnType<typeof vi.fn>;
+  registerRenderPass: ReturnType<typeof vi.fn>;
+  unregisterRenderPass: ReturnType<typeof vi.fn>;
+  updateTimelineState: ReturnType<typeof vi.fn>;
+  updateCameraControllers: ReturnType<typeof vi.fn>;
+  updateCameraGestureControllers: ReturnType<typeof vi.fn>;
+  resize: ReturnType<typeof vi.fn>;
+} {
+  const mainScene = {
+    id: "__dom-webgl-default__",
+    generated: true,
+    projection: "dom-aligned",
+    scene: {},
+    camera: {},
+    sceneAdapter,
+  } satisfies InternalRenderSceneEntry;
+  const mainCamera = {
+    id: "__dom-webgl-default__",
+    generated: true,
+    sceneId: "__dom-webgl-default__",
+    type: "orthographic",
+    mode: "dom-aligned",
+    default: true,
+    camera: {},
+  } satisfies InternalRenderCameraEntry;
+  const mainPass = {
+    id: "__dom-webgl-default__",
+    generated: true,
+    sceneId: "__dom-webgl-default__",
+    cameraId: "__dom-webgl-default__",
+    order: 0,
+    clear: false,
+    clearDepth: false,
+  } satisfies InternalRenderPassEntry;
+  const camerasById = new Map<string, InternalRenderCameraEntry>([
+    [mainCamera.id, mainCamera],
+    ...Object.entries(options.cameras ?? {}).map(
+      ([id, camera]): [string, InternalRenderCameraEntry] => [
+        id,
+        {
+          ...camera,
+          id,
+          generated: camera.generated ?? false,
+          sceneId: camera.sceneId,
+          type: camera.type,
+          mode: camera.mode,
+          default: camera.default ?? true,
+          camera: camera.camera ?? {},
+        },
+      ],
+    ),
+  ]);
+  const sceneAdapters = new Map<string, WebGLSceneAdapter>([
+    ["__dom-webgl-default__", sceneAdapter],
+    ...Object.entries(options.scenes ?? {}),
+  ]);
+  const passes = options.passes ?? [mainPass];
+  const registerScene = vi.fn();
+  const registerCamera = vi.fn();
+  const registerRenderPass = vi.fn();
+  const unregisterScene = vi.fn();
+  const unregisterCamera = vi.fn();
+  const unregisterRenderPass = vi.fn();
+  const updateTimelineState = vi.fn();
+  const updateCameraControllers = vi.fn(
+    (progressSignals: WebGLProgressSignalSource) =>
+      options.updateCameraControllers?.(progressSignals, camerasById) ?? false,
+  );
+  const updateCameraGestureControllers = vi.fn(
+    (input: {
+      frameInput: WebGLFrameInput;
+      blocked: boolean;
+      passes: readonly ManagedCameraGesturePass[];
+    }) =>
+      options.updateCameraGestureControllers?.(input) ?? {
+        changed: false,
+        requiresContinuousRendering: false,
+      },
+  );
+  const resize = vi.fn();
+  const renderPasses = vi.fn(
+    (renderPass: Parameters<InternalRenderLayerRegistry["renderPasses"]>[0]) => {
+      for (const pass of passes) {
+        const scene =
+          pass.sceneId === mainScene.id
+            ? mainScene
+            : {
+                id: pass.sceneId,
+                generated: false,
+                projection: options.sceneProjection?.[pass.sceneId] ?? "dom-aligned",
+                scene: {},
+                camera: {},
+                sceneAdapter: sceneAdapters.get(pass.sceneId) ?? sceneAdapter,
+              } satisfies InternalRenderSceneEntry;
+        const camera =
+          (pass.cameraId ? camerasById.get(pass.cameraId) : undefined) ??
+          mainCamera;
+
+        renderPass(pass, scene, camera);
+      }
+    },
+  );
+
+  return {
+    registry: {
+      getScene(id) {
+        if (id === "__dom-webgl-default__") {
+          return mainScene;
+        }
+
+        const defaultCamera = Array.from(camerasById.values()).find(
+          (camera) => camera.sceneId === id && camera.default,
+        );
+
+        return {
+          id,
+          generated: false,
+          projection: options.sceneProjection?.[id] ?? "dom-aligned",
+          scene: {},
+          camera: {},
+          sceneAdapter: sceneAdapters.get(id) ?? sceneAdapter,
+          ...(defaultCamera ? { defaultCameraId: defaultCamera.id } : {}),
+        };
+      },
+      getCamera(id) {
+        return camerasById.get(id) ?? mainCamera;
+      },
+      getPasses() {
+        return passes;
+      },
+      getMainSceneAdapter() {
+        return mainScene.sceneAdapter;
+      },
+      getSceneAdapterForTarget(sceneId) {
+        return (
+          sceneAdapters.get(sceneId ?? "__dom-webgl-default__") ?? sceneAdapter
+        );
+      },
+      registerScene,
+      unregisterScene,
+      registerCamera,
+      unregisterCamera,
+      registerRenderPass,
+      unregisterRenderPass,
+      updateTimelineState,
+      updateCameraControllers,
+      updateCameraGestureControllers,
+      inspectCameraControllers() {
+        return [];
+      },
+      resize,
+      renderPasses,
+      dispose: vi.fn(),
+    },
+    renderPasses,
+    registerScene,
+    unregisterScene,
+    registerCamera,
+    unregisterCamera,
+    registerRenderPass,
+    unregisterRenderPass,
+    updateTimelineState,
+    updateCameraControllers,
+    updateCameraGestureControllers,
+    resize,
   };
 }
 
@@ -3256,6 +5565,49 @@ function readSceneObjectLastLayout(
   return undefined;
 }
 
+function readRequiredSceneObjectLastLayout(
+  sceneAdapter: { objects: WebGLSceneObject[] },
+  key: string,
+): {
+  x: number;
+  y: number;
+  z?: number;
+  width: number;
+  height: number;
+} {
+  const layout = readSceneObjectLastLayout(sceneAdapter, key);
+
+  if (!layout || typeof layout !== "object") {
+    throw new Error(`Missing scene object layout ${key}`);
+  }
+
+  if (
+    !("x" in layout) ||
+    !("y" in layout) ||
+    !("width" in layout) ||
+    !("height" in layout) ||
+    typeof layout.x !== "number" ||
+    typeof layout.y !== "number" ||
+    typeof layout.width !== "number" ||
+    typeof layout.height !== "number"
+  ) {
+    throw new Error(`Invalid scene object layout ${key}`);
+  }
+
+  const z = "z" in layout ? layout.z : undefined;
+  if (z !== undefined && typeof z !== "number") {
+    throw new Error(`Invalid scene object layout z ${key}`);
+  }
+
+  return {
+    x: layout.x,
+    y: layout.y,
+    ...(z !== undefined ? { z } : {}),
+    width: layout.width,
+    height: layout.height,
+  };
+}
+
 type TransformGroupObject3D = {
   position: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
   rotation: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
@@ -3394,6 +5746,7 @@ function createStubPostprocessController(
         activeRequests: overrides.activeRequestCount ?? 0,
         passCount: 0,
         maxRenderTargetSize: 0,
+        requests: [],
       })),
     inspectRequests: vi.fn(() => []),
     requestPostprocess:
@@ -3404,7 +5757,7 @@ function createStubPostprocessController(
       })),
     render:
       overrides.render ??
-      vi.fn((renderBase: () => void) => {
+      vi.fn((_context, renderBase: () => void) => {
         renderBase();
       }),
     dispose: overrides.dispose ?? vi.fn(),
@@ -3477,6 +5830,8 @@ function createPointerController(
         dragDeltaX: 0,
         dragDeltaY: 0,
         clickCount: 0,
+        buttons: [],
+        modifiers: { shift: false, alt: false, ctrl: false, meta: false },
         ...pointer,
       };
     },

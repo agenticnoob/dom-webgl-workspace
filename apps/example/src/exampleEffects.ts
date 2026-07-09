@@ -1,4 +1,5 @@
 export {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -24,9 +25,15 @@ export {
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
 export {
+  exampleModelFloatGlowEffect,
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "./modelEffects";
+export {
+  examplePhysicsKinematicSweepEffect,
+  exampleSceneObjectHoverPulseEffect,
+} from "./interactionEffects";
+export { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 export {
   exampleSequenceCardBorderGlowEffect,
   exampleSequenceCardSlideEffect,
@@ -45,13 +52,23 @@ import {
   exampleVideoDriftEffect,
   exampleVideoPlaybackEffect,
 } from "./mediaEffects";
-import { exampleModelFloatEffect, exampleModelSpinEffect } from "./modelEffects";
+import {
+  exampleModelFloatGlowEffect,
+  exampleModelFloatEffect,
+  exampleModelSpinEffect,
+} from "./modelEffects";
+import {
+  examplePhysicsKinematicSweepEffect,
+  exampleSceneObjectHoverPulseEffect,
+} from "./interactionEffects";
+import { exampleManagedTimelineCardEffect } from "./managedTimelineCardEffect";
 import { examplePinnedRevealEffect } from "./pinnedScrollEffect";
 import {
   exampleSequenceCardBorderGlowEffect,
   exampleSequenceCardSlideEffect,
 } from "./sequenceCardEffect";
 import {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -73,6 +90,7 @@ export const exampleEffects = [
   exampleSurfaceVideoBackgroundEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfaceWavesEffect,
+  exampleManagedTimelineCardEffect,
   exampleTextWaveEffect,
   exampleTextRevealEffect,
   exampleTextSpotlightEffect,
@@ -89,6 +107,10 @@ export const exampleEffects = [
   exampleMediaPointerParallaxEffect,
   exampleVideoPlaybackEffect,
   exampleVideoDriftEffect,
+  exampleModelDarkSceneEffect,
   exampleModelSpinEffect,
   exampleModelFloatEffect,
+  exampleModelFloatGlowEffect,
+  exampleSceneObjectHoverPulseEffect,
+  examplePhysicsKinematicSweepEffect,
 ] as const;

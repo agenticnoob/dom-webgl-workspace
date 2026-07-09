@@ -128,6 +128,34 @@ describe("WebGLTarget", () => {
     });
   });
 
+  test("forwards timeline declarations through the public webgl prop", async () => {
+    const { WebGLRuntimeProvider, WebGLTarget } = await import("../../../src/react");
+    const runtime = createRuntimeStub();
+    const webgl: WebGLDeclaration = {
+      key: "story.timeline",
+      timeline: { id: "hero.3d", active: { from: 0.2, to: 0.8 } },
+    };
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(WebGLTarget, {
+            webgl,
+            id: "story-timeline",
+          }),
+        ),
+      );
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(
+      host.querySelector("#story-timeline"),
+      webgl,
+    );
+  });
+
   test("forwards lifecycle fallback declarations through the public webgl prop", async () => {
     const { WebGLRuntimeProvider, WebGLTarget } = await import("../../../src/react");
     const runtime = createRuntimeStub();
@@ -228,6 +256,36 @@ describe("WebGLTarget", () => {
     expect(isManagedFallbackRoot(host.querySelector("#child")!)).toBe(true);
   });
 
+  test("inherits the nearest WebGLScene id when no explicit sceneId is provided", async () => {
+    const { WebGLRuntimeProvider, WebGLScene, WebGLTarget } = await import(
+      "../../../src/react"
+    );
+    const runtime = createRuntimeStub();
+    const { root, host } = createTestRoot();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          WebGLRuntimeProvider,
+          { runtime },
+          createElement(
+            WebGLScene,
+            { id: "world" },
+            createElement(WebGLTarget, {
+              id: "world-target",
+              webgl: { key: "world.target" },
+            }),
+          ),
+        ),
+      );
+    });
+
+    expect(runtime.registerTarget).toHaveBeenCalledWith(
+      host.querySelector("#world-target"),
+      { key: "world.target", sceneId: "world" },
+    );
+  });
+
   test("keeps runtime internals out of the React public entrypoint", async () => {
     const reactEntrypoint = await import("../../../src/react");
 
@@ -253,6 +311,20 @@ function createRuntimeStub(): WebGLRuntime & {
 } {
   return {
     container: document.createElement("div"),
+    registerScene: vi.fn(),
+    unregisterScene: vi.fn(),
+    registerCamera: vi.fn(),
+    unregisterCamera: vi.fn(),
+    registerRenderPass: vi.fn(),
+    unregisterRenderPass: vi.fn(),
+    registerPassViewport: vi.fn(),
+    unregisterPassViewport: vi.fn(),
+    registerStagePrimitive: vi.fn(),
+    unregisterStagePrimitive: vi.fn(),
+    registerLight: vi.fn(),
+    unregisterLight: vi.fn(),
+    registerModel: vi.fn(),
+    unregisterModel: vi.fn(),
     registerTarget: vi.fn((element: HTMLElement, declaration: WebGLDeclaration) =>
       createTargetDescriptor(element, declaration, 0),
     ),

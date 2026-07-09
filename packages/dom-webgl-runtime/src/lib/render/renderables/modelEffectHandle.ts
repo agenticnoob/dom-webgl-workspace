@@ -12,15 +12,40 @@ import type {
   WebGLModelEffectHandle,
   WebGLModelMeshHandle,
 } from "../../effects/effectAuthoring";
+import type { WebGLEffectAnimationFacade } from "../../effects/effectObject";
+import { createManagedMaterialFacade } from "./managedMaterialControls";
 import { createMaterialLayer } from "./materialLayer";
+import {
+  createModelMorphControls,
+  type ModelMorphControls,
+} from "./modelMorphControls";
 import { createObject3DControls } from "./object3DControls";
 
-export function createModelEffectHandle(object3D: unknown): WebGLModelEffectHandle {
+export type ModelEffectHandleOptions = {
+  animation?: WebGLEffectAnimationFacade;
+  morphControls?: ModelMorphControls;
+};
+
+export function createModelEffectHandle(
+  object3D: unknown,
+  options: ModelEffectHandleOptions = {},
+): WebGLModelEffectHandle {
+  const morphControls = options.morphControls ?? createModelMorphControls(object3D);
+
   return {
     ...createObject3DControls(object3D, {
       scaleZ: "x",
       opacity: { kind: "object" },
     }),
+    get animation() {
+      return options.animation;
+    },
+    get morphs() {
+      return morphControls.morphs;
+    },
+    get rig() {
+      return morphControls.rig;
+    },
     getMeshes() {
       return collectMeshHandles(object3D);
     },
@@ -53,6 +78,21 @@ function collectMeshHandles(object3D: unknown): readonly WebGLModelMeshHandle[] 
 function createModelMeshHandle(mesh: unknown, index: number): WebGLModelMeshHandle {
   const materialName = readMaterialName(mesh);
   const activeLayers: WebGLEffectMaterialLayerHandle[] = [];
+  const createMeshMaterialLayer = (
+    options: Parameters<WebGLModelMeshHandle["createMaterialLayer"]>[0],
+  ) => {
+    const layer = createMaterialLayer({
+      ...options,
+      target: createMaterialTarget(mesh),
+    });
+    activeLayers.push(layer);
+    return layer;
+  };
+  const restoreMeshMaterial = () => {
+    for (const layer of activeLayers.splice(0)) {
+      layer.dispose();
+    }
+  };
 
   return {
     ...createObject3DControls(mesh, {
@@ -62,19 +102,15 @@ function createModelMeshHandle(mesh: unknown, index: number): WebGLModelMeshHand
     index,
     name: readStringProperty(mesh, "name"),
     materialName,
-    createMaterialLayer(options) {
-      const layer = createMaterialLayer({
-        ...options,
-        target: createMaterialTarget(mesh),
-      });
-      activeLayers.push(layer);
-      return layer;
-    },
-    restoreMaterial() {
-      for (const layer of activeLayers.splice(0)) {
-        layer.dispose();
-      }
-    },
+    material: createManagedMaterialFacade({
+      material: readMaterial(mesh),
+      layerHost: {
+        createMaterialLayer: createMeshMaterialLayer,
+      },
+      restoreMaterial: restoreMeshMaterial,
+    }),
+    createMaterialLayer: createMeshMaterialLayer,
+    restoreMaterial: restoreMeshMaterial,
   };
 }
 
@@ -191,6 +227,14 @@ function createMaterialTarget(mesh: unknown): { material: unknown } {
   }
 
   return { material: undefined };
+}
+
+function readMaterial(mesh: unknown): unknown {
+  if (!mesh || typeof mesh !== "object" || !("material" in mesh)) {
+    return undefined;
+  }
+
+  return (mesh as { material?: unknown }).material;
 }
 
 function sampleModelVertices(object3D: unknown, maxPoints: number): Float32Array {

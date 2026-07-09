@@ -20,7 +20,8 @@ export function prepareSurfaceVideo(
   state: SurfaceVideoBackgroundState,
   videoSrc: string,
 ): void {
-  if (ctx.source.kind !== "dom" || ctx.source.type !== "element") {
+  const surface = ctx.object.surface;
+  if (!surface) {
     return;
   }
 
@@ -29,7 +30,7 @@ export function prepareSurfaceVideo(
   }
 
   disposeSurfaceVideo(state);
-  const video = createLoopingVideo(videoSrc, ctx.source.surface);
+  const video = createLoopingVideo(videoSrc, surface);
   state.video = video;
   state.videoSrc = videoSrc;
 }
@@ -48,7 +49,7 @@ export function disposeSurfaceVideo(state: SurfaceVideoBackgroundState): void {
 
 function createLoopingVideo(
   videoSrc: string,
-  surface: WebGLEffectCanvasSurfaceHandle | undefined,
+  surface: WebGLEffectCanvasSurfaceHandle,
 ): HTMLVideoElement {
   const video = document.createElement("video");
   video.loop = true;
@@ -57,10 +58,10 @@ function createLoopingVideo(
   video.preload = "auto";
   video.src = videoSrc;
   video.addEventListener("loadeddata", () => {
-    surface?.invalidate();
+    surface.invalidate();
   });
   video.addEventListener("timeupdate", () => {
-    surface?.invalidate();
+    surface.invalidate();
   });
   const playResult = video.play();
   playResult.catch((error: unknown) => {

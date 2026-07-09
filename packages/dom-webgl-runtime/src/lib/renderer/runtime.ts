@@ -4,6 +4,7 @@ import {
 } from "../debug/debugState";
 import type {
   WebGLDebugState,
+  WebGLDebugInteractionSummary,
   WebGLDeclaration,
   WebGLFrameInput,
   WebGLLifecycleState,
@@ -30,6 +31,8 @@ import {
   createWebGLEffectController,
   type WebGLEffectController,
 } from "../effects/effectController";
+import type { WebGLEffectScopeSnapshot } from "../effects/effectAuthoring";
+import { createWebGLEffectScopeSnapshot } from "../effects/effectScopes";
 import {
   createWebGLEffectRegistry,
   type WebGLEffectRegistry,
@@ -63,13 +66,15 @@ import {
   toScopedSceneObjectOrdering,
 } from "../render/layerOrdering";
 import { createObject3DEffectTarget } from "../render/renderables/effectTargets/elementPlaneEffectTarget";
+import { createManagedLightsFacade } from "../render/renderables/managedLights";
 import { inferRenderRole } from "../render/renderRole";
 import { createResourceManager } from "../resources/resourceManager";
 import { inferSourceDescriptor } from "../source/inferSource";
 import {
-  projectDOMRectToSceneLayout,
+  type DOMViewportSize,
   type ProjectedDOMRect,
 } from "./domProjection";
+import { projectTargetLayout } from "./projectionPolicies";
 import { createLayoutPass, type ElementLayoutSnapshot } from "./layoutPass";
 import { compileOffscreenPolicy } from "./offscreenPolicy";
 import {
@@ -80,6 +85,32 @@ import {
   createPostprocessController,
   type PostprocessController,
 } from "./postprocessController";
+import {
+  createPassViewportRegistry,
+  type ResolvedPassViewport,
+} from "./passViewportRegistry";
+import {
+  createInteractionRouter,
+  type ManagedHitCandidate,
+  type ManagedHitTestPass,
+} from "./interactionRouter";
+import {
+  createInternalRenderLayerRegistry,
+  type InternalRenderLayerRegistry,
+  type ManagedCameraGesturePass,
+} from "./renderLayerRegistry";
+import { createManagedModelRegistry } from "./managedModelRegistry";
+import {
+  readModelPrepareDecision,
+  type ModelPreparePass,
+} from "./modelPreparePolicy";
+import { createPhysicsWorld } from "./physicsWorld";
+import { createStageObjectRegistry } from "./stageObjectRegistry";
+import {
+  generatedRenderLayerId,
+  normalizeTargetPlacement,
+  normalizeTargetSceneId,
+} from "./renderLayerDeclarations";
 import {
   createRendererLoop,
   type RenderDirtyReason,
@@ -96,6 +127,7 @@ import {
   disposeOffscreenRenderable,
   disposeTargetRenderable,
   disposeTargetRuntimeState,
+  readEffectiveTargetVisibility,
   readLifecycleVersion,
   readRenderableVisibilityForPark,
   restoreFallbackVisibility,
@@ -104,7 +136,8 @@ import {
   type TargetDebugRecord,
   type TargetRuntimeState,
 } from "./targetRuntimeState";
-import type { WebGLSceneGroup } from "./sceneObject";
+import type { WebGLSceneAdapter, WebGLSceneGroup } from "./sceneObject";
+import { readTimelineProgress } from "../timeline/timelineDeclarations";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
 
@@ -120,6 +153,9 @@ type RuntimeInternalOptions = WebGLRuntimeOptions & {
   clock?: FrameClock;
   invalidationController?: DOMInvalidationController;
   postprocessController?: PostprocessController;
+  renderLayerRegistryFactory?: (
+    rendererHost: ThreeRendererHost,
+  ) => InternalRenderLayerRegistry;
 };
 
 type RuntimeScrollController = ScrollStateController &
@@ -141,6 +177,7 @@ type PipelineRenderableContext = RenderableFactoryContext & {
     descriptor: TargetDescriptor,
     renderable: Renderable,
   ): WebGLEffectTarget | undefined;
+  readEffectScopes?(descriptor: TargetDescriptor): WebGLEffectScopeSnapshot;
 };
 
 type SyncFrameResult = {
@@ -150,10 +187,20 @@ type SyncFrameResult = {
 };
 
 type RuntimeTransformGroupState = {
+  sceneAdapter: WebGLSceneAdapter;
   group: WebGLSceneGroup;
   effectTarget?: WebGLEffectTarget;
   effectTargetObject3D?: unknown;
 };
+
+type ActiveResolvedPassViewport =
+  | { mode: "canvas" }
+  | {
+      mode: "dom-rect";
+      scissor: boolean;
+      viewportRect: { x: number; y: number; width: number; height: number };
+      scissorRect: { x: number; y: number; width: number; height: number };
+    };
 
 type BrowserDOMGlobals = typeof globalThis & {
   window?: unknown;
@@ -171,12 +218,49 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const rendererHostFactory =
     internalOptions.rendererHostFactory ?? createThreeRendererHost;
   const rendererHost = rendererHostFactory(options.container);
+  const renderLayers =
+    internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
+    createInternalRenderLayerRegistry(rendererHost);
+  const passViewports = createPassViewportRegistry();
+  const effectRegistry = createWebGLEffectRegistry(options.effects ?? []);
+  const interactionRouter = createInteractionRouter();
+  const stageObjects = createStageObjectRegistry({
+    getSceneAdapter(sceneId) {
+      return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
+    effectRegistry,
+    readEffectScopes(sceneId) {
+      return readSceneObjectEffectScopes(sceneId);
+    },
+    readObjectPointerState(objectId) {
+      return interactionRouter.getObjectPointerState(objectId);
+    },
+  });
+  const mainScene = renderLayers.getScene(generatedRenderLayerId);
+  const mainCamera = renderLayers.getCamera(generatedRenderLayerId);
+  const mainSceneAdapter = renderLayers.getMainSceneAdapter();
   const registry = createTargetRegistry();
   let currentResourceLoadPriority: number | undefined;
   const resourceManager = createResourceManager({
     ...(options.performanceBudget ?? {}),
     readPriority: () => currentResourceLoadPriority,
   });
+  const managedModels = createManagedModelRegistry({
+    resourceManager,
+    loadModel: internalOptions.loadModel,
+    modelLoader: options.modelLoader,
+    getSceneAdapter(sceneId) {
+      return renderLayers.getSceneAdapterForTarget(sceneId);
+    },
+    effectRegistry,
+    readEffectScopes(sceneId) {
+      return readSceneObjectEffectScopes(sceneId);
+    },
+    readObjectPointerState(objectId) {
+      return interactionRouter.getObjectPointerState(objectId);
+    },
+  });
+  const physicsWorld = createPhysicsWorld();
   const scrollState =
     internalOptions.scrollState ??
     createScrollController({
@@ -211,6 +295,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     getDevicePixelRatio: () => window.devicePixelRatio || 1,
   });
   let requestRenderFrame: ((reason: RenderDirtyReason) => void) | undefined;
+  let cameraInteractionSummary:
+    | NonNullable<WebGLDebugInteractionSummary["cameraController"]>
+    | undefined;
   const invalidationController =
     internalOptions.invalidationController ??
     createDOMInvalidationController({
@@ -222,8 +309,8 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     internalOptions.postprocessController ??
     createPostprocessController({
       renderer: rendererHost.renderer,
-      scene: rendererHost.scene,
-      camera: rendererHost.camera,
+      scene: mainScene.scene,
+      camera: mainCamera.camera,
       getViewportSize: () => rendererHost.getViewportSize(),
     });
   const targetState = createTargetRuntimeState(
@@ -242,12 +329,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const viewportLifecycle = createViewportLifecycle();
   const renderableFactoryContext: PipelineRenderableContext = {
     resourceManager,
-    sceneAdapter: rendererHost.sceneAdapter,
+    sceneAdapter: mainSceneAdapter,
     measureElement: internalOptions.measureElement ?? measureElement,
     getViewportSize: () => rendererHost.getViewportSize(),
     loadVideo: internalOptions.loadVideo,
     loadModel: internalOptions.loadModel,
-    effectRegistry: createWebGLEffectRegistry(options.effects ?? []),
+    modelLoader: options.modelLoader,
+    effectRegistry,
     progressSignals: options.progressSignals,
     postprocessController,
     requestTextureFrame() {
@@ -269,14 +357,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         toSceneObjectOrdering(compileRenderPolicy("overlay"))
       );
     },
+    getSceneAdapter(descriptor) {
+      return readSceneAdapterForTarget(descriptor);
+    },
     projectLayout(descriptor, measurement, viewport) {
       return (
         transformProjectedLayoutsByTargetKey.get(descriptor.key) ??
-        projectDOMRectToSceneLayout(measurement, viewport)
+        projectTargetLayoutForDescriptor(descriptor, measurement, viewport)
       );
     },
     getEffectTarget(descriptor, renderable) {
       return readRuntimeEffectTarget(descriptor, renderable);
+    },
+    readEffectScopes(descriptor) {
+      return readRuntimeEffectScopes(descriptor);
     },
   };
   let nextScanOrder = 0;
@@ -301,6 +395,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   const unsubscribeProgressSignals = options.progressSignals?.subscribe?.(() => {
     rendererLoopRequestFrame("scroll");
   });
+  const emptyProgressSignals: WebGLProgressSignalSource = {
+    get() {
+      return 0;
+    },
+  };
 
   const rendererLoop = createRendererLoop({
     renderer: rendererHost.renderer,
@@ -325,6 +424,118 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
 
   return {
     container: options.container,
+    registerScene(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL scene after runtime disposal.");
+      }
+
+      renderLayers.registerScene(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterScene(id) {
+      const sceneId = id.trim();
+
+      if (sceneId !== generatedRenderLayerId) {
+        stageObjects.unregisterScene(sceneId);
+        managedModels.unregisterScene(sceneId);
+        unregisterTargetsForScene(sceneId);
+      }
+
+      renderLayers.unregisterScene(sceneId);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerCamera(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL camera after runtime disposal.");
+      }
+
+      renderLayers.registerCamera(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterCamera(id) {
+      renderLayers.unregisterCamera(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerRenderPass(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL render pass after runtime disposal.",
+        );
+      }
+
+      renderLayers.registerRenderPass(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterRenderPass(id) {
+      renderLayers.unregisterRenderPass(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerPassViewport(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL pass viewport after runtime disposal.",
+        );
+      }
+
+      passViewports.register(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterPassViewport(id) {
+      passViewports.unregister(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerStagePrimitive(declaration) {
+      if (disposed) {
+        throw new Error(
+          "Cannot register a WebGL stage primitive after runtime disposal.",
+        );
+      }
+
+      stageObjects.registerStagePrimitive(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterStagePrimitive(id) {
+      stageObjects.unregisterStagePrimitive(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerLight(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL light after runtime disposal.");
+      }
+
+      stageObjects.registerLight(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterLight(id) {
+      stageObjects.unregisterLight(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
+    registerModel(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL model after runtime disposal.");
+      }
+
+      managedModels.registerModel(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterModel(id) {
+      managedModels.unregisterModel(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
     registerTarget(element, declaration) {
       if (disposed) {
         throw new Error("Cannot register a WebGL target after runtime disposal.");
@@ -347,21 +558,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     },
     unregisterTarget(key) {
-      const targetKey = key.trim();
-      const descriptor = registry.get(targetKey);
-
-      registry.unregister(targetKey);
-      rectSkipState.delete(targetKey);
-      invalidationController.unobserveTarget(targetKey);
-      unregisterGateTarget(scrollState, descriptor);
-      layoutCacheKeysByTargetKey.delete(targetKey);
-      transformProjectedLayoutsByTargetKey.delete(targetKey);
-      transformAttachmentGroupByTargetKey.delete(targetKey);
-      restoreFallbackVisibility(targetState, targetKey);
-      targetState.fallbackControllersByTargetKey.delete(targetKey);
-      disposeTargetRenderable(targetState, targetKey);
-      removeTransformGroup(targetKey);
-      unmarkFallbackRoot(targetKey);
+      unregisterRuntimeTarget(key);
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
@@ -412,7 +609,13 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         scrollState.dispose?.();
         pointerController.dispose();
         rendererLoop.dispose();
+        passViewports.dispose();
         postprocessController.dispose();
+        physicsWorld.dispose();
+        stageObjects.dispose();
+        managedModels.dispose();
+        interactionRouter.dispose();
+        renderLayers.dispose();
         rendererHost.dispose();
         unmarkAllFallbackRoots();
         emitDebugState(true);
@@ -424,6 +627,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const descriptors = listTargetsInScanOrder(registry);
     const frameInput = frameInputSource.getState();
     const scroll = scrollState.getState();
+    const stageObjectDebugState = disposed
+      ? { stagePrimitives: [], lights: [] }
+      : stageObjects.inspect();
+    const modelDebugState = disposed ? { models: [] } : managedModels.inspect();
+    const physicsDebugState = disposed ? undefined : physicsWorld.inspect();
 
     if (disposed) {
       return createDebugState({
@@ -432,6 +640,9 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         ...readDebugScrollState(scroll),
         pointer: frameInput.pointer,
         performanceBudget: options.performanceBudget,
+        stagePrimitives: [],
+        lights: [],
+        models: [],
         targets: [],
       });
     }
@@ -448,12 +659,35 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       ).flat(),
       rendererStats: rendererHost.readRendererStats(),
       postprocessStats: postprocessController.inspect(),
+      stagePrimitives: stageObjectDebugState.stagePrimitives,
+      lights: stageObjectDebugState.lights,
+      models: modelDebugState.models,
+      ...(physicsDebugState ? { physics: physicsDebugState } : {}),
+      interaction: readInteractionDebugSummary(),
+      renderPasses: renderLayers.getPasses().map((pass) => ({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        ...(pass.cameraId ? { cameraId: pass.cameraId } : {}),
+        viewportMode:
+          pass.viewport?.mode === "dom-rect" ? "dom-rect" : "canvas",
+        ...(pass.viewport?.mode === "dom-rect"
+          ? { viewportAnchorId: pass.viewport.anchorId }
+          : {}),
+        postprocess: pass.postprocess !== undefined,
+      })),
+      cameraControllers: renderLayers.inspectCameraControllers(),
       targets: descriptors.map((descriptor) => {
         const layer = targetState.targetLayersByTargetKey.get(descriptor.key);
         const ordering = targetState.orderingsByTargetKey.get(descriptor.key);
+        const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+        const scene = renderLayers.getScene(sceneId);
+        const placement = normalizeTargetPlacement(descriptor.declaration.placement);
 
         return {
           key: descriptor.key,
+          sceneId,
+          projection: scene.projection,
+          placementMode: placement.mode,
           ...readTargetDebugRecord(descriptor, targetState),
           parentKey: layer?.parentKey,
           layerDepth: layer?.depth ?? 0,
@@ -480,9 +714,342 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    postprocessController.render(() => {
-      rendererHost.sceneAdapter.render();
+    rendererHost.renderer.clear?.();
+
+    renderLayers.renderPasses((pass, scene, camera) => {
+      if (pass.clear) {
+        rendererHost.renderer.clear?.();
+      }
+      if (pass.clearDepth) {
+        rendererHost.renderer.clearDepth?.();
+      }
+
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      const activeViewport = resolveActivePassViewport(resolvedViewport);
+      if (!activeViewport) {
+        return;
+      }
+
+      withResolvedPassViewport(activeViewport, () => {
+        postprocessController.render(
+          {
+            passId: pass.id,
+            viewport: readPostprocessViewport(activeViewport),
+            descriptor: pass.postprocess,
+            prepareOutput() {
+              applyResolvedPassViewport(activeViewport);
+            },
+          },
+          () => {
+            scene.sceneAdapter.render(camera.camera);
+          },
+        );
+      });
     });
+    renderModelWarmups();
+  }
+
+  function renderModelWarmups(): void {
+    const requests = managedModels.consumeRenderWarmupRequests();
+    if (requests.length === 0) {
+      return;
+    }
+
+    const pending = new Set(requests.map((request) => request.sceneId));
+
+    renderLayers.renderPasses((pass, scene, camera) => {
+      if (!pending.has(pass.sceneId)) {
+        return;
+      }
+
+      withResolvedPassViewport(readWarmupViewport(), () => {
+        scene.sceneAdapter.render(camera.camera);
+      });
+
+      for (const request of requests) {
+        if (request.sceneId === pass.sceneId) {
+          managedModels.markRenderWarmupComplete(request.id);
+        }
+      }
+      pending.delete(pass.sceneId);
+    });
+  }
+
+  function readWarmupViewport(): ActiveResolvedPassViewport {
+    return {
+      mode: "dom-rect",
+      scissor: true,
+      viewportRect: { x: 0, y: 0, width: 1, height: 1 },
+      scissorRect: { x: 0, y: 0, width: 1, height: 1 },
+    };
+  }
+
+  function readModelPreparePasses(): ModelPreparePass[] {
+    return renderLayers.getPasses().map((pass) => ({
+      sceneId: pass.sceneId,
+      viewport: readModelPrepareViewport(pass.viewport),
+    }));
+  }
+
+  function readModelPrepareViewport(
+    viewport: Parameters<typeof passViewports.resolve>[0],
+  ): ModelPreparePass["viewport"] {
+    const resolved = passViewports.resolve(viewport);
+    if (resolved.mode === "canvas") {
+      return { mode: "canvas" };
+    }
+
+    return {
+      mode: "dom-rect",
+      rect: resolved.rect,
+    };
+  }
+
+  function updateSceneObjectInteractions(frameInput: WebGLFrameInput): {
+    readonly emptySpace: boolean;
+    readonly debug: WebGLDebugInteractionSummary;
+  } {
+    const candidates = collectManagedHitCandidates();
+
+    return interactionRouter.update({
+      input: frameInput,
+      passes: candidates.length > 0 ? readManagedHitTestPasses() : [],
+      candidates,
+      pickManagedObjects(pass, candidates) {
+        return rendererHost.pickManagedObjects?.(
+          pass,
+          candidates,
+          frameInput.pointer,
+        );
+      },
+    });
+  }
+
+  function isCameraPointerBlocked(
+    interaction: WebGLDebugInteractionSummary,
+  ): boolean {
+    return Boolean(interaction.capturedObjectId);
+  }
+
+  function readInteractionDebugSummary(): WebGLDebugInteractionSummary {
+    const objectInteraction = interactionRouter.inspect();
+    return {
+      ...objectInteraction,
+      ...(cameraInteractionSummary
+        ? { cameraController: cameraInteractionSummary }
+        : {}),
+    };
+  }
+
+  function collectManagedHitCandidates(): ManagedHitCandidate[] {
+    return [
+      ...stageObjects.collectHitCandidates(),
+      ...managedModels.collectHitCandidates(),
+    ];
+  }
+
+  function readManagedHitTestPasses(): ManagedHitTestPass[] {
+    const passes: ManagedHitTestPass[] = [];
+
+    renderLayers.renderPasses((pass, _scene, camera) => {
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      const viewport =
+        resolvedViewport.mode === "dom-rect" ? resolvedViewport.rect : undefined;
+
+      passes.push({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        order: pass.order,
+        camera: camera.camera,
+        ...(viewport ? { viewport } : {}),
+      });
+    });
+
+    return passes;
+  }
+
+  function readManagedCameraGesturePasses(): ManagedCameraGesturePass[] {
+    const passes: ManagedCameraGesturePass[] = [];
+
+    for (const pass of renderLayers.getPasses()) {
+      const scene = renderLayers.getScene(pass.sceneId);
+      const cameraId =
+        pass.cameraId ?? scene.defaultCameraId ?? generatedRenderLayerId;
+      let camera;
+      try {
+        camera = renderLayers.getCamera(cameraId);
+      } catch (error: unknown) {
+        if (pass.deferUntilCamera) {
+          continue;
+        }
+        throw error;
+      }
+
+      if (scene.timeline?.active && scene.timelineActive === false) {
+        continue;
+      }
+      if (camera.sceneId !== scene.id) {
+        continue;
+      }
+
+      const resolvedViewport = passViewports.resolve(pass.viewport);
+      const viewport =
+        resolvedViewport.mode === "dom-rect" ? resolvedViewport.rect : undefined;
+
+      passes.push({
+        id: pass.id,
+        sceneId: pass.sceneId,
+        cameraId: camera.id,
+        order: pass.order,
+        ...(viewport ? { viewport } : {}),
+      });
+    }
+
+    return passes;
+  }
+
+  function readPostprocessViewport(
+    viewport: ActiveResolvedPassViewport,
+  ): { width: number; height: number } {
+    if (viewport.mode === "canvas") {
+      return rendererHost.getViewportSize();
+    }
+
+    return {
+      width: viewport.viewportRect.width,
+      height: viewport.viewportRect.height,
+    };
+  }
+
+  function resolveActivePassViewport(
+    viewport: ResolvedPassViewport,
+  ): ActiveResolvedPassViewport | undefined {
+    if (viewport.mode === "canvas") {
+      return viewport;
+    }
+
+    const runtimeViewport = rendererHost.getViewportSize();
+    const canvasRect = readCanvasViewportRect(runtimeViewport);
+    const left = Math.max(canvasRect.x, viewport.rect.x);
+    const top = Math.max(canvasRect.y, viewport.rect.y);
+    const right = Math.min(
+      canvasRect.x + canvasRect.width,
+      viewport.rect.x + viewport.rect.width,
+    );
+    const bottom = Math.min(
+      canvasRect.y + canvasRect.height,
+      viewport.rect.y + viewport.rect.height,
+    );
+    const width = right - left;
+    const height = bottom - top;
+
+    if (width <= 0 || height <= 0) {
+      return undefined;
+    }
+
+    return {
+      mode: "dom-rect",
+      scissor: viewport.scissor,
+      viewportRect: {
+        x: viewport.rect.x - canvasRect.x,
+        y: viewport.rect.y - canvasRect.y,
+        width: viewport.rect.width,
+        height: viewport.rect.height,
+      },
+      scissorRect: {
+        x: left - canvasRect.x,
+        y: top - canvasRect.y,
+        width,
+        height,
+      },
+    };
+  }
+
+  function readCanvasViewportRect(runtimeViewport: DOMViewportSize): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const rect = rendererHost.canvas.getBoundingClientRect();
+    const width = readPositiveFiniteNumber(rect.width, runtimeViewport.width);
+    const height = readPositiveFiniteNumber(rect.height, runtimeViewport.height);
+
+    return {
+      x: readFiniteNumber(rect.left, 0),
+      y: readFiniteNumber(rect.top, 0),
+      width,
+      height,
+    };
+  }
+
+  function readFiniteNumber(value: number, fallback: number): number {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function readPositiveFiniteNumber(value: number, fallback: number): number {
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  }
+
+  function applyResolvedPassViewport(viewport: ActiveResolvedPassViewport): void {
+    if (viewport.mode === "canvas") {
+      return;
+    }
+
+    const runtimeViewport = rendererHost.getViewportSize();
+    const viewportX = Math.round(viewport.viewportRect.x);
+    const viewportWidth = Math.round(viewport.viewportRect.width);
+    const viewportHeight = Math.round(viewport.viewportRect.height);
+    const viewportY = Math.round(
+      runtimeViewport.height -
+        viewport.viewportRect.y -
+        viewport.viewportRect.height,
+    );
+    const scissorX = Math.round(viewport.scissorRect.x);
+    const scissorWidth = Math.round(viewport.scissorRect.width);
+    const scissorHeight = Math.round(viewport.scissorRect.height);
+    const scissorY = Math.round(
+      runtimeViewport.height -
+        viewport.scissorRect.y -
+        viewport.scissorRect.height,
+    );
+
+    rendererHost.renderer.setViewport?.(
+      viewportX,
+      viewportY,
+      viewportWidth,
+      viewportHeight,
+    );
+    rendererHost.renderer.setScissor?.(
+      scissorX,
+      scissorY,
+      scissorWidth,
+      scissorHeight,
+    );
+    rendererHost.renderer.setScissorTest?.(viewport.scissor);
+  }
+
+  function withResolvedPassViewport(
+    viewport: ActiveResolvedPassViewport,
+    render: () => void,
+  ): void {
+    if (viewport.mode === "canvas") {
+      render();
+      return;
+    }
+
+    applyResolvedPassViewport(viewport);
+
+    try {
+      render();
+    } finally {
+      const runtimeViewport = rendererHost.getViewportSize();
+      const fullWidth = Math.round(runtimeViewport.width);
+      const fullHeight = Math.round(runtimeViewport.height);
+      rendererHost.renderer.setScissorTest?.(false);
+      rendererHost.renderer.setViewport?.(0, 0, fullWidth, fullHeight);
+      rendererHost.renderer.setScissor?.(0, 0, fullWidth, fullHeight);
+    }
   }
 
   function rendererLoopRequestFrame(reason: RenderDirtyReason): void {
@@ -727,6 +1294,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
             layoutMeasurement,
             mergeRenderDirtyReasons(effectDirtyReasons, ["resource-ready"]),
           );
+          syncTargetTimelineState(descriptor, renderable);
         }
         syncDebugRecordFromRenderable(debugRecord, renderable);
         syncFallbackVisibility(targetState, descriptor, renderable);
@@ -766,6 +1334,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         layoutMeasurement,
         effectDirtyReasons,
       );
+      syncTargetTimelineState(descriptor, renderable);
     }
     syncDebugRecordFromRenderable(debugRecord, renderable);
     syncFallbackVisibility(targetState, descriptor, renderable);
@@ -798,163 +1367,268 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
   }
 
-  function syncFrame(dirtyReasons: readonly RenderDirtyReason[] = ["manual-sync"]): SyncFrameResult {
+  function syncFrame(
+    dirtyReasons: readonly RenderDirtyReason[] = ["manual-sync"],
+  ): SyncFrameResult {
     if (disposed) {
       return { didSynchronousUpdate: false, schedulingMode: "on-demand" };
     }
 
     syncingFrame = true;
     try {
-    const descriptors = listTargetsInScanOrder(registry);
-    const frameInput = frameInputSource.update();
-    let requiresContinuousRendering = frameInput.scroll.mode === "gate";
+      const descriptors = listTargetsInScanOrder(registry);
+      const frameInput = frameInputSource.update();
+      const progressSignals = readProgressSignals();
+      let requiresContinuousRendering = frameInput.scroll.mode === "gate";
 
-    layoutScrollOffset += frameInput.scroll.velocity;
-    syncTargetLayerOrdering(descriptors);
-    rendererHost.resizeIfNeeded();
-    const dirtyKeys = invalidationController.consumeDirtyKeys();
+      layoutScrollOffset += frameInput.scroll.velocity;
+      syncTargetLayerOrdering(descriptors);
+      const rendererResized = rendererHost.resizeIfNeeded();
+      if (rendererResized) {
+        renderLayers.resize(rendererHost.getViewportSize());
+      }
+      renderLayers.updateTimelineState(progressSignals);
+      stageObjects.updateTimelineState(progressSignals);
+      const cameraControllerChanged =
+        renderLayers.updateCameraControllers(progressSignals);
+      const cameraGestureUpdate = renderLayers.updateCameraGestureControllers({
+        frameInput,
+        blocked: isCameraPointerBlocked(interactionRouter.inspect()),
+        passes: readManagedCameraGesturePasses(),
+      });
+      cameraInteractionSummary = cameraGestureUpdate.summary;
+      const interactionResult = updateSceneObjectInteractions(frameInput);
+      const stageEffectsContinuous = stageObjects.updateEffects(frameInput);
+      const dirtyKeys = invalidationController.consumeDirtyKeys();
 
-    const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
-    syncTransformGroups(descriptors, layoutMeasurements);
+      const layoutMeasurements = measureTargetLayouts(descriptors, dirtyKeys);
+      syncTransformGroups(descriptors, layoutMeasurements);
 
-    const pendingUpdates: Array<Promise<void>> = [];
-    let didSynchronousUpdate = false;
-    const viewportHeight = window.innerHeight || 600;
+      const pendingUpdates: Array<Promise<void>> = [];
+      let didSynchronousUpdate =
+        cameraControllerChanged ||
+        cameraGestureUpdate.changed ||
+        stageEffectsContinuous ||
+        !interactionResult.emptySpace;
+      const viewportHeight = window.innerHeight || 600;
+      let modelPreparePasses: ModelPreparePass[] | undefined;
+      const modelUpdate = managedModels.update(frameInput, progressSignals, {
+        canLoadPreparedModel(request) {
+          modelPreparePasses ??= readModelPreparePasses();
+          return readModelPrepareDecision({
+            sceneId: request.sceneId,
+            viewportHeight,
+            passes: modelPreparePasses,
+          }).allowed;
+        },
+      });
 
-    for (const descriptor of descriptors) {
-      let debugRecord = readTargetDebugRecord(descriptor, targetState);
-      const layoutMeasurement = layoutMeasurements.get(descriptor.key);
-
-      if (!layoutMeasurement) {
-        // Pre-filter skipped this target — kept as disposed via scroll estimation.
-        delete debugRecord.pointer;
-        const prev = rectSkipState.get(descriptor.key);
-        if (prev) {
-          prev.skippedFrames += 1;
-        }
-        const renderable = targetState.renderablesByTargetKey.get(descriptor.key);
-        reconcileOffscreenTarget(
-          "disposed",
-          descriptor,
-          renderable,
-          frameInput,
-          readTargetDebugRecord(descriptor, targetState),
+      if (isPromiseLike(modelUpdate)) {
+        pendingUpdates.push(
+          Promise.resolve(modelUpdate).then(() => {
+            rendererLoopRequestFrame("resource-ready");
+          }),
         );
-        continue;
-      }
-
-      const viewportState = viewportLifecycle.classify(layoutMeasurement, viewportHeight);
-
-      if (viewportState === "disposed") {
-        rectSkipState.set(descriptor.key, {
-          lastTop: layoutMeasurement.top,
-          layoutScrollOffset,
-          viewport: layoutMeasurement.viewport,
-          frames: (rectSkipState.get(descriptor.key)?.frames ?? 0) + 1,
-          skippedFrames: 0,
-        });
-      } else {
-        rectSkipState.delete(descriptor.key);
-      }
-
-      let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
-
-      if (viewportState !== "active") {
-        delete debugRecord.pointer;
-        const skipped = reconcileOffscreenTarget(
-          viewportState, descriptor, renderable, frameInput, debugRecord,
-        );
-        if (skipped) continue;
-      }
-
-      const wasParked = targetState.parkedAtByTargetKey.delete(descriptor.key);
-      if (wasParked) {
-        renderable?.setVisible(
-          targetState.parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
-        );
-        targetState.parkedVisibilityByTargetKey.delete(descriptor.key);
-      }
-
-      if (!renderable) {
-        const created = ensureRenderableCreated(descriptor, debugRecord);
-        if (!created) continue;
-        renderable = created;
-        debugRecord = readTargetDebugRecord(descriptor, targetState);
-      }
-
-      applyCurrentSceneOrdering(descriptor, renderable);
-      if (shouldKeepTargetContinuous(descriptor, renderable)) {
+      } else if (modelUpdate) {
         requiresContinuousRendering = true;
       }
-
-      if (dirtyKeys.has(descriptor.key)) {
-        renderable.invalidateContent?.();
-      }
-
-      const lifecycleVersion = readLifecycleVersion(targetState, descriptor.key);
-      const requestResourceReadyFrame = renderable.status === "idle";
-      const effectDirtyReasons = readTargetEffectDirtyReasons(
-        descriptor,
-        layoutMeasurement,
-        dirtyKeys,
-        dirtyReasons,
+      const physicsUpdate = physicsWorld.update({
         frameInput,
-      );
-      syncTargetPointerDebugRecord(descriptor, debugRecord, frameInput, layoutMeasurement);
-      let result: void | Promise<void>;
-      const previousResourceLoadPriority = currentResourceLoadPriority;
+        candidates: [
+          ...stageObjects.collectPhysicsCandidates(),
+          ...managedModels.collectPhysicsCandidates(),
+        ],
+      });
+      didSynchronousUpdate = didSynchronousUpdate || physicsUpdate.changed;
+      requiresContinuousRendering =
+        requiresContinuousRendering ||
+        physicsUpdate.requiresContinuousRendering ||
+        stageEffectsContinuous ||
+        cameraGestureUpdate.summary?.active === true ||
+        cameraGestureUpdate.requiresContinuousRendering ||
+        !interactionResult.emptySpace;
 
-      currentResourceLoadPriority = readViewportResourceLoadPriority(
-        viewportState,
-      );
-      try {
-        result = renderable.update(frameInput);
-        layoutCacheKeysByTargetKey.set(
-          descriptor.key,
-          layoutMeasurement.layoutSignature,
-        );
-      } catch (error: unknown) {
-        markDebugRecordError(debugRecord, error);
-        restoreFallbackVisibility(targetState, descriptor.key);
-        if (isGateTarget(descriptor)) {
-          releaseActiveGate(scrollState);
+      for (const descriptor of descriptors) {
+        let debugRecord = readTargetDebugRecord(descriptor, targetState);
+        const layoutMeasurement = layoutMeasurements.get(descriptor.key);
+
+        if (!layoutMeasurement) {
+          // Pre-filter skipped this target — kept as disposed via scroll estimation.
+          delete debugRecord.pointer;
+          const prev = rectSkipState.get(descriptor.key);
+          if (prev) {
+            prev.skippedFrames += 1;
+          }
+          const renderable = targetState.renderablesByTargetKey.get(
+            descriptor.key,
+          );
+          reconcileOffscreenTarget(
+            "disposed",
+            descriptor,
+            renderable,
+            frameInput,
+            readTargetDebugRecord(descriptor, targetState),
+          );
+          continue;
         }
-        emitDebugState(true);
-        throw error;
-      } finally {
-        currentResourceLoadPriority = previousResourceLoadPriority;
+
+        const viewportState = viewportLifecycle.classify(
+          layoutMeasurement,
+          viewportHeight,
+        );
+
+        if (viewportState === "disposed") {
+          rectSkipState.set(descriptor.key, {
+            lastTop: layoutMeasurement.top,
+            layoutScrollOffset,
+            viewport: layoutMeasurement.viewport,
+            frames: (rectSkipState.get(descriptor.key)?.frames ?? 0) + 1,
+            skippedFrames: 0,
+          });
+        } else {
+          rectSkipState.delete(descriptor.key);
+        }
+
+        let renderable = targetState.renderablesByTargetKey.get(descriptor.key);
+
+        if (viewportState !== "active") {
+          delete debugRecord.pointer;
+          const skipped = reconcileOffscreenTarget(
+            viewportState,
+            descriptor,
+            renderable,
+            frameInput,
+            debugRecord,
+          );
+          if (skipped) {
+            continue;
+          }
+        }
+
+        const wasParked = targetState.parkedAtByTargetKey.delete(
+          descriptor.key,
+        );
+        if (wasParked) {
+          renderable?.setVisible(
+            targetState.parkedVisibilityByTargetKey.get(descriptor.key) ?? true,
+          );
+          targetState.parkedVisibilityByTargetKey.delete(descriptor.key);
+        }
+
+        if (!renderable) {
+          const created = ensureRenderableCreated(descriptor, debugRecord);
+          if (!created) {
+            continue;
+          }
+          renderable = created;
+          debugRecord = readTargetDebugRecord(descriptor, targetState);
+        }
+
+        applyCurrentSceneOrdering(descriptor, renderable);
+        if (shouldKeepTargetContinuous(descriptor, renderable)) {
+          requiresContinuousRendering = true;
+        }
+
+        if (dirtyKeys.has(descriptor.key)) {
+          renderable.invalidateContent?.();
+        }
+
+        const lifecycleVersion = readLifecycleVersion(
+          targetState,
+          descriptor.key,
+        );
+        const requestResourceReadyFrame = renderable.status === "idle";
+        const effectDirtyReasons = readTargetEffectDirtyReasons(
+          descriptor,
+          layoutMeasurement,
+          dirtyKeys,
+          dirtyReasons,
+          frameInput,
+        );
+        syncTargetPointerDebugRecord(
+          descriptor,
+          debugRecord,
+          frameInput,
+          layoutMeasurement,
+        );
+        let result: void | Promise<void>;
+        const previousResourceLoadPriority = currentResourceLoadPriority;
+
+        currentResourceLoadPriority = readViewportResourceLoadPriority(
+          viewportState,
+        );
+        try {
+          result = renderable.update(frameInput);
+          layoutCacheKeysByTargetKey.set(
+            descriptor.key,
+            layoutMeasurement.layoutSignature,
+          );
+        } catch (error: unknown) {
+          markDebugRecordError(debugRecord, error);
+          restoreFallbackVisibility(targetState, descriptor.key);
+          if (isGateTarget(descriptor)) {
+            releaseActiveGate(scrollState);
+          }
+          emitDebugState(true);
+          throw error;
+        } finally {
+          currentResourceLoadPriority = previousResourceLoadPriority;
+        }
+
+        if (isPromiseLike(result)) {
+          scheduleAsyncCompletion(
+            result,
+            descriptor,
+            renderable,
+            debugRecord,
+            layoutMeasurement,
+            lifecycleVersion,
+            pendingUpdates,
+            frameInput,
+            requestResourceReadyFrame,
+            effectDirtyReasons,
+          );
+        } else {
+          applySyncCompletion(
+            descriptor,
+            renderable,
+            debugRecord,
+            layoutMeasurement,
+            frameInput,
+            effectDirtyReasons,
+          );
+          didSynchronousUpdate = true;
+        }
       }
 
-      if (isPromiseLike(result)) {
-        scheduleAsyncCompletion(result, descriptor, renderable, debugRecord,
-          layoutMeasurement, lifecycleVersion, pendingUpdates,
-          frameInput, requestResourceReadyFrame, effectDirtyReasons);
-      } else {
-        applySyncCompletion(descriptor, renderable, debugRecord,
-          layoutMeasurement, frameInput, effectDirtyReasons);
-        didSynchronousUpdate = true;
+      emitDebugState();
+
+      if (pendingUpdates.length === 0) {
+        return {
+          didSynchronousUpdate,
+          schedulingMode: requiresContinuousRendering
+            ? "continuous"
+            : "on-demand",
+        };
       }
-    }
 
-    emitDebugState();
+      const pendingUpdate = Promise.all(pendingUpdates).then(
+        () => {
+          emitDebugState(true);
+        },
+        (error: unknown) => {
+          emitDebugState(true);
+          throw error;
+        },
+      );
 
-    if (pendingUpdates.length === 0) {
       return {
         didSynchronousUpdate,
-        schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
+        schedulingMode: requiresContinuousRendering
+          ? "continuous"
+          : "on-demand",
+        pendingUpdate,
       };
-    }
-
-    const pendingUpdate = Promise.all(pendingUpdates).then(
-      () => { emitDebugState(true); },
-      (error: unknown) => { emitDebugState(true); throw error; },
-    );
-
-    return {
-      didSynchronousUpdate,
-      schedulingMode: requiresContinuousRendering ? "continuous" : "on-demand",
-      pendingUpdate,
-    };
     } finally {
       syncingFrame = false;
     }
@@ -1101,11 +1775,19 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     layoutMeasurements: ReadonlyMap<string, ElementLayoutSnapshot>,
   ): void {
     const projectedLayoutsByKey = new Map<string, ProjectedDOMRect>();
+    const descriptorsByKey = new Map(
+      descriptors.map((descriptor) => [descriptor.key, descriptor]),
+    );
 
     for (const [key, measurement] of layoutMeasurements) {
+      const descriptor = descriptorsByKey.get(key);
+      if (!descriptor) {
+        continue;
+      }
+
       projectedLayoutsByKey.set(
         key,
-        projectDOMRectToSceneLayout(measurement, measurement.viewport),
+        projectTargetLayoutForDescriptor(descriptor, measurement, measurement.viewport),
       );
     }
 
@@ -1115,7 +1797,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       layoutsByKey: projectedLayoutsByKey,
     });
 
-    reconcileTransformGroups(plan.groupsByKey);
+    reconcileTransformGroups(plan.groupsByKey, descriptorsByKey);
     transformProjectedLayoutsByTargetKey.clear();
     transformAttachmentGroupByTargetKey.clear();
 
@@ -1127,10 +1809,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         continue;
       }
 
-      if (
-        attachment?.groupKey &&
-        transformGroupsByKey.has(attachment.groupKey)
-      ) {
+      const group = attachment?.groupKey
+        ? readTransformGroupStateForDescriptor(attachment.groupKey, descriptor)
+        : undefined;
+
+      if (attachment?.groupKey && group) {
         transformProjectedLayoutsByTargetKey.set(
           descriptor.key,
           attachment.layout,
@@ -1150,20 +1833,107 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
   }
 
+  function readSceneAdapterForTarget(
+    descriptor: TargetDescriptor,
+  ): WebGLSceneAdapter {
+    return renderLayers.getSceneAdapterForTarget(descriptor.declaration.sceneId);
+  }
+
+  function readProgressSignals(): WebGLProgressSignalSource {
+    return options.progressSignals ?? emptyProgressSignals;
+  }
+
+  function readRuntimeEffectScopes(
+    descriptor: TargetDescriptor,
+  ): WebGLEffectScopeSnapshot {
+    const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+    const scene = renderLayers.getScene(sceneId);
+
+    return createWebGLEffectScopeSnapshot({
+      progressSignals: readProgressSignals(),
+      scene: {
+        id: scene.id,
+        projection: scene.projection,
+        ...(scene.timeline ? { timeline: scene.timeline } : {}),
+      },
+    });
+  }
+
+  function readSceneObjectEffectScopes(sceneId: string): WebGLEffectScopeSnapshot {
+    const scene = renderLayers.getScene(sceneId);
+
+    return createWebGLEffectScopeSnapshot({
+      progressSignals: readProgressSignals(),
+      scene: {
+        id: scene.id,
+        projection: scene.projection,
+        ...(scene.timeline ? { timeline: scene.timeline } : {}),
+      },
+    });
+  }
+
+  function syncTargetTimelineState(
+    descriptor: TargetDescriptor,
+    renderable: Renderable,
+  ): void {
+    const timeline = descriptor.declaration.timeline;
+    if (!timeline?.active) {
+      targetState.timelineActiveByTargetKey.delete(descriptor.key);
+      return;
+    }
+
+    const snapshot = readTimelineProgress(timeline, readProgressSignals());
+    targetState.timelineActiveByTargetKey.set(descriptor.key, snapshot.active);
+    renderable.setVisible(
+      readEffectiveTargetVisibility(targetState, descriptor.key),
+    );
+  }
+
+  function projectTargetLayoutForDescriptor(
+    descriptor: TargetDescriptor,
+    measurement: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">,
+    viewport: DOMViewportSize,
+  ): ProjectedDOMRect {
+    const sceneId = normalizeTargetSceneId(descriptor.declaration.sceneId);
+    const scene = renderLayers.getScene(sceneId);
+    const camera = renderLayers.getCamera(
+      scene.defaultCameraId ?? generatedRenderLayerId,
+    );
+
+    return projectTargetLayout({
+      sceneProjection: scene.projection,
+      camera,
+      placement: normalizeTargetPlacement(descriptor.declaration.placement),
+      measurement,
+      viewport,
+      screenPlane: {
+        resolvePlane(planeId) {
+          return stageObjects.readStagePlane(planeId, sceneId);
+        },
+      },
+    });
+  }
+
+  function readTransformGroupStateForDescriptor(
+    groupKey: string,
+    descriptor: TargetDescriptor,
+  ): RuntimeTransformGroupState | undefined {
+    const state = transformGroupsByKey.get(groupKey);
+
+    if (!state || state.sceneAdapter !== readSceneAdapterForTarget(descriptor)) {
+      return undefined;
+    }
+
+    return state;
+  }
+
   function reconcileTransformGroups(
     nextGroupsByKey: ReadonlyMap<
       string,
       { key: string; parentGroupKey: string | undefined; layout: ProjectedDOMRect }
     >,
+    descriptorsByKey: ReadonlyMap<string, TargetDescriptor>,
   ): void {
-    if (
-      !rendererHost.sceneAdapter.createGroup ||
-      !rendererHost.sceneAdapter.addGroup
-    ) {
-      removeAllTransformGroups();
-      return;
-    }
-
     const nextKeys = new Set(nextGroupsByKey.keys());
     for (const key of Array.from(transformGroupsByKey.keys())) {
       if (!nextKeys.has(key)) {
@@ -1176,18 +1946,37 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     );
 
     for (const record of groupRecords) {
-      const parentGroup = record.parentGroupKey
-        ? transformGroupsByKey.get(record.parentGroupKey)?.group
+      const descriptor = descriptorsByKey.get(record.key);
+
+      if (!descriptor) {
+        continue;
+      }
+
+      const sceneAdapter = readSceneAdapterForTarget(descriptor);
+      if (!sceneAdapter.createGroup || !sceneAdapter.addGroup) {
+        removeTransformGroup(record.key);
+        continue;
+      }
+
+      const parentState = record.parentGroupKey
+        ? transformGroupsByKey.get(record.parentGroupKey)
         : undefined;
+      const parentGroup =
+        parentState?.sceneAdapter === sceneAdapter ? parentState.group : undefined;
       let state = transformGroupsByKey.get(record.key);
 
+      if (state && state.sceneAdapter !== sceneAdapter) {
+        removeTransformGroup(record.key);
+        state = undefined;
+      }
+
       if (!state) {
-        const group = rendererHost.sceneAdapter.createGroup(record.key);
-        rendererHost.sceneAdapter.addGroup(group, parentGroup);
-        state = { group };
+        const group = sceneAdapter.createGroup(record.key);
+        sceneAdapter.addGroup(group, parentGroup);
+        state = { sceneAdapter, group };
         transformGroupsByKey.set(record.key, state);
       } else {
-        rendererHost.sceneAdapter.setGroupParent?.(state.group, parentGroup);
+        sceneAdapter.setGroupParent?.(state.group, parentGroup);
       }
 
       updateTransformGroupPosition(state.group.object3D, record.layout);
@@ -1202,7 +1991,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    setVector3((object3D as { position?: unknown }).position, layout.x, layout.y, 0);
+    setVector3(
+      (object3D as { position?: unknown }).position,
+      layout.x,
+      layout.y,
+      layout.z ?? 0,
+    );
   }
 
   function setVector3(
@@ -1243,9 +2037,11 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     }
 
     const groupKey = transformAttachmentGroupByTargetKey.get(descriptor.key);
-    const group = groupKey ? transformGroupsByKey.get(groupKey)?.group : undefined;
+    const group = groupKey
+      ? readTransformGroupStateForDescriptor(groupKey, descriptor)?.group
+      : undefined;
 
-    rendererHost.sceneAdapter.setObjectParent?.(sceneObject, group);
+    readSceneAdapterForTarget(descriptor).setObjectParent?.(sceneObject, group);
   }
 
   function readRuntimeEffectTarget(
@@ -1282,7 +2078,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       return;
     }
 
-    rendererHost.sceneAdapter.removeGroup?.(state.group);
+    state.sceneAdapter.removeGroup?.(state.group);
     transformGroupsByKey.delete(key);
   }
 
@@ -1321,8 +2117,12 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   }
 
   function hasPointerDrivenTarget(): boolean {
-    return listTargetsInScanOrder(registry).some((descriptor) =>
-      hasPointerDeclaration(descriptor.declaration.pointer),
+    return (
+      listTargetsInScanOrder(registry).some((descriptor) =>
+        hasPointerDeclaration(descriptor.declaration.pointer),
+      ) ||
+      stageObjects.collectHitCandidates().length > 0 ||
+      managedModels.collectHitCandidates().length > 0
     );
   }
 
@@ -1335,6 +2135,32 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       pointer?.click === true ||
       pointer?.drag === true
     );
+  }
+
+  function unregisterTargetsForScene(sceneId: string): void {
+    for (const descriptor of listTargetsInScanOrder(registry)) {
+      if (descriptor.declaration.sceneId?.trim() === sceneId) {
+        unregisterRuntimeTarget(descriptor.key);
+      }
+    }
+  }
+
+  function unregisterRuntimeTarget(key: string): void {
+    const targetKey = key.trim();
+    const descriptor = registry.get(targetKey);
+
+    registry.unregister(targetKey);
+    rectSkipState.delete(targetKey);
+    invalidationController.unobserveTarget(targetKey);
+    unregisterGateTarget(scrollState, descriptor);
+    layoutCacheKeysByTargetKey.delete(targetKey);
+    transformProjectedLayoutsByTargetKey.delete(targetKey);
+    transformAttachmentGroupByTargetKey.delete(targetKey);
+    restoreFallbackVisibility(targetState, targetKey);
+    targetState.fallbackControllersByTargetKey.delete(targetKey);
+    disposeTargetRenderable(targetState, targetKey);
+    removeTransformGroup(targetKey);
+    unmarkFallbackRoot(targetKey);
   }
 
   function unmarkFallbackRoot(key: string): void {
@@ -1419,7 +2245,19 @@ function createPipelineRenderable(
     },
     registry: context.effectRegistry,
     progressSignals: context.progressSignals,
+    readScopes: () =>
+      context.readEffectScopes?.(descriptor) ??
+      createWebGLEffectScopeSnapshot({
+        progressSignals:
+          context.progressSignals ??
+          {
+            get() {
+              return 0;
+            },
+          },
+      }),
     visual: context.postprocessController,
+    createLights: createManagedLightsFacade,
   });
 
   return {
@@ -1644,7 +2482,7 @@ function readClock(): number {
   return performance.now();
 }
 
-function isPromiseLike(result: void | Promise<void>): result is Promise<void> {
+function isPromiseLike<T>(result: T | Promise<T>): result is Promise<T> {
   return Boolean(
     result &&
       typeof result === "object" &&

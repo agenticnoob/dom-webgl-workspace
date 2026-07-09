@@ -19,6 +19,7 @@ export type ExampleEffectParams = {
     amplitude?: number;
     speed?: number;
   };
+  "example.managedTimelineCard": { progressKey: string };
   "example.pinnedReveal": { progressKey: string; color?: string };
   "example.sequenceCardSlide": {
     progressKey: string;
@@ -48,8 +49,26 @@ export type ExampleEffectParams = {
   "example.mediaPointerParallax": { bleed?: number; strength?: number };
   "example.videoPlayback": { playbackRate?: number };
   "example.videoDrift": { distance?: number };
+  "example.modelDarkScene": {};
   "example.modelSpin": { speed?: number };
   "example.modelFloat": { amplitude?: number };
+  "example.modelFloatGlow": {
+    speed?: number;
+    emissive?: string;
+    lightIntensity?: number;
+  };
+  "example.sceneObjectHoverPulse": {
+    baseOpacity?: number;
+    hoverOpacity?: number;
+    clickOpacity?: number;
+  };
+  "example.physicsKinematicSweep": {
+    baseX?: number;
+    amplitude?: number;
+    y?: number;
+    z?: number;
+    speed?: number;
+  };
 };
 
 export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams>()([
@@ -58,6 +77,7 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.surfaceVideoBackground", videoSrc: "/example/bg.mp4", opacity: 0.84 },
   { kind: "example.surfaceGhostCursor", trailLength: 32, color: "#b497cf", opacity: 0.9 },
   { kind: "example.surfaceWaves", lineColor: "#172124", opacity: 0.82 },
+  { kind: "example.managedTimelineCard", progressKey: "example.managedTimeline" },
   { kind: "example.textWave", amplitude: 7 },
   { kind: "example.textReveal", color: "#d95f42" },
   { kind: "example.textSpotlight", color: "#f6c453", radius: 180 },
@@ -104,6 +124,27 @@ export const typeSafeDeclarations = createEffectDeclarations<ExampleEffectParams
   { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
   { kind: "example.videoPlayback", playbackRate: 0.8 },
   { kind: "example.videoDrift", distance: 0.12 },
+  { kind: "example.modelDarkScene" },
   { kind: "example.modelSpin", speed: 0.25 },
   { kind: "example.modelFloat", amplitude: 24 },
+  {
+    kind: "example.modelFloatGlow",
+    speed: 0.46,
+    emissive: "#7dd3fc",
+    lightIntensity: 1.8,
+  },
+  {
+    kind: "example.sceneObjectHoverPulse",
+    baseOpacity: 0.68,
+    hoverOpacity: 0.92,
+    clickOpacity: 1,
+  },
+  {
+    kind: "example.physicsKinematicSweep",
+    baseX: 252,
+    amplitude: 96,
+    y: -132,
+    z: -70,
+    speed: 0.0024,
+  },
 ]);

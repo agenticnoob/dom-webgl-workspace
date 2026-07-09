@@ -8,12 +8,20 @@ on decisions agents must make while writing effect definitions.
 ## Boundary
 
 - Effects are application-owned code.
-- `@project/dom-webgl-runtime` exports authoring primitives, source handles,
-  target handles, frame input, and managed resources.
+- `@project/dom-webgl-runtime` exports authoring primitives, the controlled
+  `ctx.object` facade, frame input, and managed resources.
 - The package does not export concrete effects, preset effects, or
   `@project/dom-webgl-runtime/effects`.
 - Example app effects live under `apps/example` and are copyable examples, not
   package API.
+- Forward capability design should use
+  `docs/agent/effect-object-boundary.md`: new visual capabilities belong under a
+  controlled Three-like `ctx.object` facade, not as source-specific public
+  handles.
+- When porting from Three.js, keep the mental model and port the algorithm, not
+  the ownership. Do not create a renderer, scene, camera, loader, light, mesh,
+  material, texture, mixer, composer, pass, render target, or render loop in
+  consumer effects. Ask for or use a managed facade under `ctx.object`.
 
 ## React Registration Pattern
 
@@ -51,17 +59,21 @@ Rules:
 - Use namespaced kinds such as `product.textWave`; avoid generic names such as
   `wave`, `fade`, or `particles`.
 
-## Source Handles
+## Object Modules
 
-Always narrow `ctx.source.kind` and `ctx.source.type` before using a
-source-specific handle:
+`ctx.object` is the public visual control surface. Source, target, and visual
+handles are internal runtime assembly details. Do not add public
+model/text/media capability families outside the controlled effect object
+boundary.
+
+Use source-specific object modules when they exist:
 
 ```ts
-if (ctx.source.kind !== "dom" || ctx.source.type !== "text") {
+if (!ctx.object.text) {
   return;
 }
 
-ctx.source.textLayer?.setGlyphs((glyphs) =>
+ctx.object.text.setGlyphs((glyphs) =>
   glyphs.map((glyph) => ({
     index: glyph.index,
     char: glyph.char,
@@ -78,7 +90,11 @@ Current handles:
 - `media/video`: control texture transform, play/pause, muted state, and playback
   rate.
 - `media/image-sequence`: control the current frame texture transform and invalidation.
-- `model/glb`: inspect and control the runtime-owned model handle.
+- `model/glb`: inspect and control the runtime-owned model handle, material
+  facade, and animation facade.
+- runtime lights: request keyed runtime-owned ambient, directional, or point
+  lights. Reusing a light key updates the existing runtime-owned light.
+- runtime postprocess: request named bloom, grain, or blur handles.
 
 Public handles are capability handles: use methods such as `draw`, `setGlyphs`,
 `setTextureTransform`, `createMaterialLayer`, `forEachMesh`, `sampleVertices`,
@@ -89,13 +105,24 @@ materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
 `defines`, and `blend`; runtime defaults own transparency, depth, tone mapping,
 allocation, restoration, and disposal.
 
+Model-specific cautions:
+
+- A compressed GLB still needs declarative `source.loader.draco.decoderPath` and
+  decoder files served from the app public asset root.
+- `ctx.runtime.postprocess` is canvas/pass scoped, not target scoped. Do not
+  use it for a target-local model glow unless changing the whole canvas or pass
+  is intended.
+- Runtime layout fits `model/glb` bounds into the target rect. Writing
+  `ctx.object.position` or `ctx.object.scale` takes ownership of placement and
+  can move the model out of view.
+
 ## Resource Ownership
 
 Create expensive objects in `setup`, not `update`.
 
 Use `ctx.resources.addDisposable(...)` for effect-owned listeners, object
-handles, generated geometries, materials, textures, and source mutations that
-must be restored.
+handles returned by public runtime APIs, and source mutations that must be
+restored.
 
 Do not dispose or mutate:
 
@@ -104,6 +131,8 @@ Do not dispose or mutate:
 - runtime canvas;
 - global scroll or pointer systems;
 - package-internal registries.
+- raw Three.js renderer, scene, camera, geometry, material, texture, light,
+  loader, mixer, composer, pass, render target, or render loop.
 
 ## Media And Target Rules
 
@@ -121,7 +150,7 @@ Do not dispose or mutate:
 Effect tests should cover:
 
 - definition `kind` matches declaration `kind`;
-- unsupported source kinds no-op safely;
+- absent `ctx.object.*` capability modules no-op safely;
 - numeric params are clamped;
 - `setup` creates resources once;
 - `update` uses `ctx.delta` or `ctx.time`, not frame counts;
@@ -130,7 +159,16 @@ Effect tests should cover:
   state, especially when the pointer stops moving inside the target;
 - resumed interactions during fade-out do not unintentionally reset old effect
   state to full strength;
-- `dispose` releases effect-owned resources and restores source mutations.
+- compressed model effects declare loader config and keep decoder assets in the
+  app public directory;
+- model glow effects use material/mesh emissive and lights when the intended
+  glow is target-local;
+- model glow effects that leave runtime layout in charge of model fit should
+  position lights from the projected layout center instead of relying on object
+  transform state;
+- model effects that do not own placement avoid writing
+  `ctx.object.position`/`ctx.object.scale`;
+- `dispose` releases effect-owned resources.
 
 Repository verification:
 

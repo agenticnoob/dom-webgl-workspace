@@ -13,6 +13,11 @@ import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
+import { ManagedInteractionExample } from "./ManagedInteractionExample";
+import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
+import { ManagedPhysicsExample } from "./ManagedPhysicsExample";
+import { ManagedTimelineExample } from "./ManagedTimelineExample";
+import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
@@ -76,6 +81,11 @@ export default function App() {
 
         <div className="example-stack">
           <SnapshotElementExamples />
+          <ManagedStagePrimitiveExample />
+          <ManagedModelAnimationExample />
+          <ManagedTimelineExample />
+          <ManagedInteractionExample />
+          <ManagedPhysicsExample />
 
           <section className="example-row">
             <EffectDescription source="dom/text" title="文字波浪">
@@ -442,6 +452,54 @@ export default function App() {
               </WebGLTarget>
             ) : (
               <section className="example-panel example-panel-model example-panel-model-float" />
+            )}
+          </section>
+
+          <section className="example-row">
+            <EffectDescription source="model/glb" title="模型自发光">
+              纯黑 WebGL 暗场景承托 GLB，再用 managed facade 控制轻微自发光和局部点光源。
+            </EffectDescription>
+            {exampleResources.modelReady ? (
+              <React.Fragment>
+                <WebGLTarget
+                  as="section"
+                  aria-hidden="true"
+                  className="example-model-scene"
+                  webgl={{
+                    key: "example.model.dark-scene",
+                    source: { kind: "dom", type: "element" },
+                    renderRole: "surface",
+                    lifecycle: { hideWhenReady: true, hideMode: "self" },
+                    effects: [{ kind: "example.modelDarkScene" }],
+                  }}
+                />
+                <WebGLTarget
+                  as="section"
+                  className="example-panel example-panel-model example-panel-model-glow"
+                  webgl={{
+                    key: "example.model.float-glow",
+                    source: {
+                      kind: "model",
+                      type: "glb",
+                      src: "/models/4.glb",
+                      loader: { draco: { decoderPath: "/draco/gltf/" } },
+                    },
+                    lifecycle: { hideWhenReady: true, hideMode: "subtree" },
+                    effects: [
+                      {
+                        kind: "example.modelFloatGlow",
+                        speed: 0.46,
+                        emissive: "#7dd3fc",
+                        lightIntensity: 1.8,
+                      },
+                    ],
+                  }}
+                >
+                  <strong>Managed Three-like API 控制模型自发光和局部灯光。</strong>
+                </WebGLTarget>
+              </React.Fragment>
+            ) : (
+              <section className="example-panel example-panel-model example-panel-model-glow" />
             )}
           </section>
 

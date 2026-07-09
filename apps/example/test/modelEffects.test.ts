@@ -1,13 +1,19 @@
 import { describe, expect, test, vi } from "vitest";
 
+import type {
+  WebGLEffectContext,
+  WebGLModelMeshHandle,
+} from "@project/dom-webgl-runtime";
+
 import { createEffectContext } from "./effectContext";
 import {
+  exampleModelFloatGlowEffect,
   exampleModelFloatEffect,
   exampleModelSpinEffect,
 } from "../src/modelEffects";
 
 describe("model example effects", () => {
-  test("model spin uses the public target handle and model source kind", () => {
+  test("model spin uses the object facade and model source kind", () => {
     const target = {
       setRotation: vi.fn(),
       setVisible: vi.fn(),
@@ -86,5 +92,137 @@ describe("model example effects", () => {
     expect(target.setVisible).toHaveBeenCalledWith(true);
     expect(target.setPosition).toHaveBeenCalledWith(70, expect.any(Number), 0);
     expect(target.setRotation).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 0);
+  });
+
+  test("model float glow uses managed material and lights without global postprocess", () => {
+    const material: NonNullable<WebGLEffectContext["object"]["material"]> = {
+      color: { value: "#ffffff", set: vi.fn() },
+      emissive: { value: "#000000", intensity: 1, set: vi.fn() },
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+      createLayer: vi.fn(() => ({
+        clear: vi.fn(),
+        dispose: vi.fn(),
+        setProgram: vi.fn(),
+        setUniforms: vi.fn(),
+      })),
+      restore: vi.fn(),
+    };
+    const lightHandle = {
+      dispose: vi.fn(),
+      remove: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const lights: NonNullable<WebGLEffectContext["object"]["lights"]> = {
+      ambient: vi.fn(() => lightHandle),
+      directional: vi.fn(() => lightHandle),
+      point: vi.fn(() => lightHandle),
+      remove: vi.fn(),
+    };
+    const postprocess = {
+      request: vi.fn(() => ({
+        update: vi.fn(),
+        dispose: vi.fn(),
+      })),
+    };
+    const target = {
+      setPosition: vi.fn(),
+      setRotation: vi.fn(),
+      setScale: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const meshMaterial = {
+      emissive: { value: "#000000", intensity: 1, set: vi.fn() },
+      color: { value: "#ffffff", set: vi.fn() },
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+      createLayer: vi.fn(),
+      restore: vi.fn(),
+    };
+    const mesh = {
+      index: 0,
+      material: meshMaterial,
+      createMaterialLayer: vi.fn(() => ({
+        clear: vi.fn(),
+        dispose: vi.fn(),
+        setProgram: vi.fn(),
+        setUniforms: vi.fn(),
+      })),
+      restoreMaterial: vi.fn(),
+    } satisfies WebGLModelMeshHandle;
+    const forEachMesh = vi.fn((visitor: (mesh: WebGLModelMeshHandle) => void) => {
+      visitor(mesh);
+    });
+    const baseContext = createEffectContext({
+      key: "example.model.float-glow",
+      visual: {
+        requestPostprocess: postprocess.request,
+      },
+      source: {
+        kind: "model",
+        type: "glb",
+        anchor: document.createElement("section"),
+        src: "/models/4.glb",
+        model: {
+          getMeshes: vi.fn(() => []),
+          forEachMesh,
+          sampleVertices: vi.fn(),
+          createPointLayer: vi.fn(() => ({
+            setVisible: vi.fn(),
+            remove: vi.fn(),
+            dispose: vi.fn(),
+          })),
+        },
+      },
+      target,
+      time: 1200,
+      layout: {
+        left: 20,
+        top: 30,
+        width: 160,
+        height: 80,
+      },
+    });
+    const context = {
+      ...baseContext,
+      object: {
+        ...baseContext.object,
+        material,
+        lights,
+      },
+    } satisfies WebGLEffectContext;
+
+    exampleModelFloatGlowEffect.setup?.(context, {
+      kind: "example.modelFloatGlow",
+      emissive: "#7dd3fc",
+      lightIntensity: 1.8,
+    });
+    exampleModelFloatGlowEffect.update(context, undefined, {
+      kind: "example.modelFloatGlow",
+      speed: 0.46,
+      lightIntensity: 1.25,
+    });
+
+    expect(material.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.8);
+    expect(forEachMesh).toHaveBeenCalledTimes(1);
+    expect(meshMaterial.emissive.set).toHaveBeenCalledWith("#7dd3fc", 1.5);
+    expect(lights.point).toHaveBeenCalledTimes(1);
+    expect(lights.point).toHaveBeenCalledWith("example.model.float-glow.glow", {
+      color: "#7dd3fc",
+      intensity: 1.25,
+      distance: 420,
+      position: [100, 698, 120],
+    });
+    expect(postprocess.request).not.toHaveBeenCalled();
+    expect(baseContext.resources.addDisposable).not.toHaveBeenCalled();
+    expect(target.setPosition).not.toHaveBeenCalled();
+    expect(target.setRotation).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      0,
+    );
+    expect(target.setScale).not.toHaveBeenCalled();
   });
 });

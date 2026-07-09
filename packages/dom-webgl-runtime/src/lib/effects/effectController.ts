@@ -10,12 +10,21 @@ import type {
 import type {
   WebGLEffectContext,
   WebGLEffectDefinition,
+  WebGLEffectResourceScope,
+  WebGLEffectScopeSnapshot,
   WebGLEffectSchedule,
   WebGLEffectSourceHandle,
   WebGLEffectSourceKind,
   WebGLEffectVisualContext,
 } from "./effectAuthoring";
-import { createWebGLEffectContext, readScrollProgress } from "./effectContext";
+import type { WebGLEffectObjectHandle } from "./effectObject";
+import {
+  completeEffectScopes,
+  createResourceManagedVisualContext,
+  createWebGLEffectContext,
+  readScrollProgress,
+} from "./effectContext";
+import { createWebGLEffectObject } from "./effectObjectContext";
 import { compileWebGLEffectDeclarations } from "./effectDeclaration";
 import { assertEffectCompatibility } from "./effectCompatibility";
 import {
@@ -45,13 +54,24 @@ export type WebGLEffectControllerOptions = {
   getTarget?(): WebGLEffectTarget | undefined;
   registry?: WebGLEffectRegistry;
   progressSignals?: WebGLProgressSignalSource;
+  readScopes?(): WebGLEffectScopeSnapshot;
   visual?: WebGLEffectVisualContext;
+  createLights?: WebGLEffectLightsFactory;
 };
+
+export type WebGLEffectLightsFactory = (options: {
+  target?: WebGLEffectTarget;
+  resources: WebGLEffectResourceScope;
+  readObjectPosition(): { x: number; y: number; z: number };
+}) => WebGLEffectObjectHandle["lights"];
 
 type RunningEffect = {
   definition: WebGLEffectDefinition;
   params: ReturnType<typeof compileWebGLEffectDeclarations>[number];
   resources: ReturnType<typeof createWebGLEffectResourceScope>;
+  visual: WebGLEffectVisualContext;
+  lights?: WebGLEffectObjectHandle["lights"];
+  lightsTarget?: WebGLEffectTarget;
   state: unknown;
   initialized: boolean;
   reusableContext: WebGLEffectContext | null;
@@ -64,7 +84,7 @@ export function createWebGLEffectController(
   const sourceKind = readEffectSourceKind(options.source);
   const effects = compileWebGLEffectDeclarations(options.declaration).map(
     (declaration): RunningEffect => {
-      const definition = registry.resolve(declaration.kind);
+      const definition = registry.resolveTarget(declaration.kind);
 
       if (!definition) {
         throw new Error(
@@ -79,10 +99,15 @@ export function createWebGLEffectController(
         sourceKind,
       );
 
+      const resources = createWebGLEffectResourceScope();
       return {
         definition,
         params: declaration,
-        resources: createWebGLEffectResourceScope(),
+        resources,
+        visual: createResourceManagedVisualContext(
+          options.visual,
+          resources,
+        ),
         state: undefined,
         initialized: false,
         reusableContext: null,
@@ -133,6 +158,11 @@ export function createWebGLEffectController(
 
       for (const effect of effects) {
         let context: WebGLEffectContext;
+        const lights = readEffectLights(effect, target, options);
+        const scopes = completeEffectScopes(
+          readEffectScopes(options),
+          effect.visual,
+        );
 
         if (effect.reusableContext) {
           context = effect.reusableContext;
@@ -142,10 +172,16 @@ export function createWebGLEffectController(
           context.targetPointer = createTargetPointerState(input, layout);
           context.scroll = input.scroll;
           context.scrollProgress = readScrollProgress(input.scroll);
+          context.runtime = scopes.runtime;
+          context.scene = scopes.scene;
           context.time = input.time;
           context.delta = input.delta;
-          context.source = source;
-          context.target = target ?? undefined;
+          context.object = createWebGLEffectObject({
+            sourceKind,
+            source,
+            target,
+            lights,
+          });
         } else {
           context = createWebGLEffectContext({
             key: options.key,
@@ -156,7 +192,9 @@ export function createWebGLEffectController(
             target,
             resources: effect.resources,
             progressSignals: options.progressSignals,
-            visual: options.visual,
+            scopes,
+            managedVisual: effect.visual,
+            lights,
           });
           effect.reusableContext = context;
         }
@@ -177,6 +215,57 @@ export function createWebGLEffectController(
     },
   };
 }
+
+function readEffectLights(
+  effect: RunningEffect,
+  target: WebGLEffectTarget | undefined,
+  options: WebGLEffectControllerOptions,
+): WebGLEffectObjectHandle["lights"] {
+  if (!options.createLights) {
+    return undefined;
+  }
+
+  if (effect.lights && effect.lightsTarget === target) {
+    return effect.lights;
+  }
+
+  if (!target) {
+    return undefined;
+  }
+
+  effect.lightsTarget = target;
+  effect.lights = options.createLights({
+    target,
+    resources: effect.resources,
+    readObjectPosition() {
+      return effect.reusableContext?.object.position ?? zeroObjectPosition;
+    },
+  });
+  return effect.lights;
+}
+
+function readEffectScopes(
+  options: WebGLEffectControllerOptions,
+): WebGLEffectScopeSnapshot {
+  const scopes = options.readScopes?.();
+  if (scopes) {
+    return scopes;
+  }
+
+  return {
+    runtime: {
+      progress: options.progressSignals ?? emptyProgressSignals,
+    },
+  };
+}
+
+const emptyProgressSignals: WebGLProgressSignalSource = {
+  get() {
+    return 0;
+  },
+};
+
+const zeroObjectPosition = { x: 0, y: 0, z: 0 };
 
 function readSchedulingMode(
   effects: readonly RunningEffect[],

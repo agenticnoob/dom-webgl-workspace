@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { WebGLDeclaration } from "../../../src/lib/types";
+import type {
+  WebGLDeclaration,
+  WebGLPointerState,
+} from "../../../src/lib/types";
+import type { ManagedHitCandidate } from "../../../src/lib/renderer/interactionRouter";
 import type { createWebGLRuntime, WebGLRuntime } from "../../../src/lib/renderer/runtime";
 import type {
   WebGLSceneAdapter,
@@ -26,6 +30,7 @@ describe("createThreeRendererHost", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock("three/src/cameras/OrthographicCamera.js");
+    vi.doUnmock("three/src/cameras/PerspectiveCamera.js");
     vi.doUnmock("three/src/lights/AmbientLight.js");
     vi.doUnmock("three/src/lights/DirectionalLight.js");
     vi.doUnmock("three/src/renderers/WebGLRenderer.js");
@@ -37,14 +42,25 @@ describe("createThreeRendererHost", () => {
   test("uses Three.js objects on the default host path without requiring a real GPU in tests", async () => {
     const rendererDispose = vi.fn();
     const rendererSetClearAlpha = vi.fn();
+    const rendererSetViewport = vi.fn();
+    const rendererSetScissor = vi.fn();
+    const rendererSetScissorTest = vi.fn();
     const scene = { kind: "scene" };
     const camera = { kind: "camera" };
+    const renderer = {
+      canvas: document.createElement("canvas"),
+      autoClear: true,
+      setClearAlpha: rendererSetClearAlpha,
+      setViewport: rendererSetViewport,
+      setScissor: rendererSetScissor,
+      setScissorTest: rendererSetScissorTest,
+      dispose: rendererDispose,
+    };
     const WebGLRenderer = vi.fn(
-      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => ({
-        canvas: options.canvas,
-        setClearAlpha: rendererSetClearAlpha,
-        dispose: rendererDispose,
-      }),
+      (options: { canvas: HTMLCanvasElement }): ThreeRendererAdapter => {
+        renderer.canvas = options.canvas;
+        return renderer;
+      },
     );
     const Scene = vi.fn(() => scene);
     const OrthographicCamera = vi.fn(() => camera);
@@ -70,16 +86,26 @@ describe("createThreeRendererHost", () => {
       canvas: host.canvas,
     });
     expect(rendererSetClearAlpha).toHaveBeenCalledWith(0);
+    expect(renderer.autoClear).toBe(false);
     expect(Scene).toHaveBeenCalledTimes(1);
     expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
     expect(host.scene).toBe(scene);
     expect(host.camera).toBe(camera);
     expect(host.sceneAdapter).toEqual(expect.any(Object));
+    expect(host.renderer.setViewport).toEqual(expect.any(Function));
+    expect(host.renderer.setScissor).toEqual(expect.any(Function));
+    expect(host.renderer.setScissorTest).toEqual(expect.any(Function));
+    host.renderer.setViewport?.(20, 30, 320, 180);
+    host.renderer.setScissor?.(20, 30, 320, 180);
+    host.renderer.setScissorTest?.(true);
     host.sceneAdapter.render();
 
     host.dispose();
     host.dispose();
 
+    expect(rendererSetViewport).toHaveBeenCalledWith(20, 30, 320, 180);
+    expect(rendererSetScissor).toHaveBeenCalledWith(20, 30, 320, 180);
+    expect(rendererSetScissorTest).toHaveBeenCalledWith(true);
     expect(rendererDispose).toHaveBeenCalledTimes(1);
     expect(container.querySelector("canvas")).toBeNull();
   });
@@ -149,6 +175,211 @@ describe("createThreeRendererHost", () => {
       textures: 5,
       programs: 2,
     });
+
+    host.dispose();
+  });
+
+  test("uses managed bounds hit testing even when mesh raycast returns no intersections", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    mesh.raycast = () => {};
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(mesh);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: mesh,
+      hitTest: "bounds",
+      pickable: true,
+      pointer: { hover: true, press: true, click: true, drag: true },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toMatchObject({
+      id: "example.model",
+      sceneId: "example.scene",
+      distance: 9,
+    });
+
+    host.dispose();
+  });
+
+  test("uses mesh hit testing when managed candidates request visual hits", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(mesh);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: mesh,
+      hitTest: "mesh",
+      pickable: true,
+      pointer: { hover: true, press: false, click: true, drag: false },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toMatchObject({
+      id: "example.model",
+      sceneId: "example.scene",
+      distance: 9,
+    });
+
+    host.dispose();
+  });
+
+  test("updates object world matrices before mesh hit testing", async () => {
+    const { PerspectiveCamera } = await import("three/src/cameras/PerspectiveCamera.js");
+    const { BoxGeometry } = await import("three/src/geometries/BoxGeometry.js");
+    const { MeshBasicMaterial } = await import("three/src/materials/MeshBasicMaterial.js");
+    const { Group } = await import("three/src/objects/Group.js");
+    const { Mesh } = await import("three/src/objects/Mesh.js");
+    const { Scene } = await import("three/src/scenes/Scene.js");
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(42, 800 / 600, 0.1, 1000);
+    const root = new Group();
+    const mesh = new Mesh(new BoxGeometry(2, 2, 2), new MeshBasicMaterial());
+
+    root.position.set(4, 0, 0);
+    root.add(mesh);
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    scene.add(root);
+
+    const host = createThreeRendererHost(container, {
+      createObjects(canvas) {
+        return {
+          camera,
+          renderer: {
+            canvas,
+            setPixelRatio() {},
+            setSize() {},
+            setClearAlpha() {},
+            dispose() {},
+          },
+          scene,
+        };
+      },
+    });
+    const candidate = {
+      id: "example.model",
+      sceneId: "example.scene",
+      sourceKind: "model/glb",
+      object3D: root,
+      hitTest: "mesh",
+      pickable: true,
+      pointer: { hover: true, press: false, click: true, drag: false },
+    } satisfies ManagedHitCandidate;
+    const pickManagedObjects = host.pickManagedObjects;
+    expect(pickManagedObjects).toEqual(expect.any(Function));
+    if (!pickManagedObjects) {
+      throw new Error("Expected managed picking to be available.");
+    }
+
+    expect(
+      pickManagedObjects(
+        {
+          id: "example.pass",
+          sceneId: "example.scene",
+          order: 0,
+          camera,
+          viewport: { x: 0, y: 0, width: 800, height: 600 },
+        },
+        [candidate],
+        createManagedPickingPointer(),
+      ),
+    ).toBeUndefined();
 
     host.dispose();
   });
@@ -315,6 +546,130 @@ describe("createThreeRendererHost", () => {
     expect(camera.updateProjectionMatrix).toHaveBeenCalledTimes(1);
 
     host.dispose();
+  });
+
+  test("resizes managed DOM-aligned scene cameras to the runtime viewport", async () => {
+    const scene = { add: vi.fn() };
+    const camera = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      position: { set: vi.fn() },
+      updateProjectionMatrix: vi.fn(),
+    };
+    const Scene = vi.fn(() => scene);
+    const OrthographicCamera = vi.fn(() => camera);
+
+    vi.doMock("three/src/cameras/OrthographicCamera.js", () => ({
+      OrthographicCamera,
+    }));
+    vi.doMock("three/src/scenes/Scene.js", () => ({ Scene }));
+
+    const { createManagedDomAlignedSceneAdapter } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedDomAlignedSceneAdapter({
+      canvas: document.createElement("canvas"),
+      render: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    managed.resize({ width: 375, height: 812 });
+
+    expect(OrthographicCamera).toHaveBeenCalledWith(0, 800, 600, 0, 0.1, 1000);
+    expect(camera).toMatchObject({
+      left: 0,
+      right: 375,
+      top: 812,
+      bottom: 0,
+    });
+    expect(camera.position.set).toHaveBeenLastCalledWith(0, 0, 500);
+    expect(camera.updateProjectionMatrix).toHaveBeenCalled();
+
+    managed.dispose();
+  });
+
+  test("creates managed perspective cameras from declarations", async () => {
+    const perspectiveCamera = {
+      aspect: 0,
+      position: { set: vi.fn() },
+      lookAt: vi.fn(),
+      updateProjectionMatrix: vi.fn(),
+    };
+    const PerspectiveCamera = vi.fn(() => perspectiveCamera);
+
+    vi.doMock("three/src/cameras/PerspectiveCamera.js", () => ({
+      PerspectiveCamera,
+    }));
+
+    const { createManagedCamera } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+    });
+
+    expect(PerspectiveCamera).toHaveBeenCalledWith(50, 1, 0.1, 2000);
+
+    managed.resize({ width: 390, height: 844 });
+
+    expect(perspectiveCamera.aspect).toBe(390 / 844);
+    expect(perspectiveCamera.position.set).toHaveBeenLastCalledWith(0, 0, 500);
+    expect(perspectiveCamera.lookAt).toHaveBeenLastCalledWith(0, 0, 0);
+    expect(perspectiveCamera.updateProjectionMatrix).toHaveBeenCalled();
+  });
+
+  test("applies managed perspective camera framing without exposing raw camera handles", async () => {
+    const perspectiveCamera = {
+      aspect: 0,
+      fov: 50,
+      position: { set: vi.fn() },
+      lookAt: vi.fn(),
+      updateProjectionMatrix: vi.fn(),
+    };
+    const PerspectiveCamera = vi.fn(() => perspectiveCamera);
+
+    vi.doMock("three/src/cameras/PerspectiveCamera.js", () => ({
+      PerspectiveCamera,
+    }));
+
+    const { createManagedCamera } = await import("../../../src/lib/renderer/threeRenderer");
+
+    const managed = createManagedCamera({
+      id: "world.camera",
+      sceneId: "world",
+      type: "perspective",
+      mode: "perspective-stage",
+      default: true,
+      fov: 50,
+      near: 0.1,
+      far: 2000,
+      position: [0, 0, 500],
+      target: [0, 0, 0],
+    });
+
+    managed.applyFraming(
+      {
+        position: [0, 120, 520],
+        target: [0, 48, 0],
+        fov: 34,
+      },
+      { width: 390, height: 844 },
+    );
+
+    expect(perspectiveCamera.aspect).toBe(390 / 844);
+    expect(perspectiveCamera.position.set).toHaveBeenLastCalledWith(0, 120, 520);
+    expect(perspectiveCamera.lookAt).toHaveBeenLastCalledWith(0, 48, 0);
+    expect(perspectiveCamera.fov).toBe(34);
+    expect(perspectiveCamera.updateProjectionMatrix).toHaveBeenCalled();
   });
 
   test("caps renderer pixel ratio at 1.5", async () => {
@@ -602,6 +957,27 @@ describe("createWebGLRuntime renderer host", () => {
 
 function canvasCreateCalls(createElement: { mock: { calls: unknown[][] } }) {
   return createElement.mock.calls.filter(([tagName]) => tagName === "canvas");
+}
+
+function createManagedPickingPointer(): WebGLPointerState {
+  return {
+    x: 400,
+    y: 300,
+    normalizedX: 0,
+    normalizedY: 0,
+    isInside: true,
+    isDown: false,
+    downTime: 0,
+    pressDuration: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragDeltaX: 0,
+    dragDeltaY: 0,
+    clickCount: 0,
+    buttons: [],
+    modifiers: { shift: false, alt: false, ctrl: false, meta: false },
+  };
 }
 
 type RuntimeWithRendererHostFactory = Parameters<typeof createWebGLRuntime>[0] & {

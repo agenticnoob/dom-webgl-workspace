@@ -65,6 +65,14 @@ export type ScrollEffectSectionProps = Omit<
   readonly ScrollTrigger?: ScrollTriggerSectionCreator;
 };
 
+export type WebGLScrollTimelineProps = Omit<
+  ScrollEffectSectionProps,
+  "progressKey"
+> & {
+  readonly id: string;
+  readonly progressKey?: string;
+};
+
 const ScrollEffectProgressContext =
   createContext<ScrollEffectProgressContextValue | null>(null);
 
@@ -94,7 +102,19 @@ export function WebGLScrollRuntime({
   );
 }
 
-export function ScrollEffectSection({
+export function WebGLScrollTimeline({
+  id,
+  progressKey = id,
+  ...props
+}: WebGLScrollTimelineProps) {
+  return createScrollTimelineElement({ ...props, progressKey });
+}
+
+export function ScrollEffectSection(props: ScrollEffectSectionProps) {
+  return createScrollTimelineElement(props);
+}
+
+function createScrollTimelineElement({
   as,
   children,
   progressKey,

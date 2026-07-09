@@ -55,6 +55,32 @@ describe("createPointerController", () => {
     pointer.dispose();
   });
 
+  test("captures pointer button and modifier state for camera gestures", () => {
+    const target = createTargetElement({
+      left: 0,
+      top: 0,
+      width: 100,
+      height: 100,
+    });
+    const pointer = createPointerController(target);
+
+    dispatchPointer(target, "pointerdown", {
+      button: 2,
+      buttons: 2,
+      altKey: true,
+      clientX: 40,
+      clientY: 50,
+    });
+
+    expect(pointer.getState()).toMatchObject({
+      button: "secondary",
+      buttons: ["secondary"],
+      modifiers: { alt: true, shift: false, ctrl: false, meta: false },
+    });
+
+    pointer.dispose();
+  });
+
   test("starts dragging after down and movement and reports drag deltas", () => {
     const target = createTargetElement({
       left: 0,
@@ -125,10 +151,14 @@ describe("createPointerController", () => {
     const state = pointer.getState();
     state.x = 999;
     state.isDown = true;
+    state.buttons.push("secondary");
+    state.modifiers.alt = true;
 
     expect(pointer.getState()).toMatchObject({
       x: 10,
       isDown: false,
+      buttons: [],
+      modifiers: { alt: false },
     });
 
     pointer.dispose();
@@ -212,13 +242,29 @@ function createTargetElement(rect: RectInit): HTMLElement {
 function dispatchPointer(
   target: HTMLElement,
   type: "pointermove" | "pointerdown" | "pointerup",
-  init: Pick<MouseEventInit, "clientX" | "clientY">,
+  init: Pick<
+    MouseEventInit,
+    | "altKey"
+    | "button"
+    | "buttons"
+    | "clientX"
+    | "clientY"
+    | "ctrlKey"
+    | "metaKey"
+    | "shiftKey"
+  >,
 ): void {
   target.dispatchEvent(
     new MouseEvent(type, {
       bubbles: true,
+      altKey: init.altKey,
+      button: init.button,
+      buttons: init.buttons,
       clientX: init.clientX,
       clientY: init.clientY,
+      ctrlKey: init.ctrlKey,
+      metaKey: init.metaKey,
+      shiftKey: init.shiftKey,
     }),
   );
 }

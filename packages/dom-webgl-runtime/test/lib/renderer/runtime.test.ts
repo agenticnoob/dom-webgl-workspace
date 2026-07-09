@@ -461,7 +461,7 @@ function createRendererHostStub(
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       canvas.remove();

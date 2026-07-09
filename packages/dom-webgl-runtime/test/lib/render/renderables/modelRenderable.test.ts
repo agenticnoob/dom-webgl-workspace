@@ -233,8 +233,8 @@ describe("createModelRenderable", () => {
     );
   });
 
-  test("updates model animation mixer only while visible and active", async () => {
-    const source = createModelDescriptor("/models/animated.glb");
+  test("does not use app-provided model mixer escape hatches", async () => {
+    const source = createModelDescriptor("/models/external-mixer.glb");
     const descriptor = createTargetDescriptor(
       source.anchor,
       { key: "hero.model" },
@@ -243,10 +243,68 @@ describe("createModelRenderable", () => {
     const mixer = { update: vi.fn() };
     const model = {
       scene: new Group(),
-      animations: [{ name: "Idle" }],
+      animations: [],
       mixer,
     };
     const renderable = createModelRenderable(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 100),
+        loadModel: async () => model,
+      },
+    );
+
+    await renderable.update(createFrameInput({ delta: 16 }));
+    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+
+    renderable.setVisible(false);
+    await renderable.update(createFrameInput({ delta: 16 }));
+
+    expect(mixer.update).not.toHaveBeenCalled();
+    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+  });
+
+  test("creates a runtime-owned animation mixer for GLB animation clips", async () => {
+    vi.resetModules();
+    const update = vi.fn();
+    const stop = vi.fn();
+    const reset = vi.fn(function reset(this: unknown) {
+      return this;
+    });
+    const play = vi.fn(function play(this: unknown) {
+      return this;
+    });
+    const clipAction = vi.fn(() => ({ reset, play, stop }));
+    const uncacheRoot = vi.fn();
+    const AnimationMixer = vi.fn(() => ({
+      update,
+      clipAction,
+      uncacheRoot,
+    }));
+
+    vi.doMock("three/src/animation/AnimationMixer.js", () => ({
+      AnimationMixer,
+    }));
+
+    const { createModelRenderable: createRenderableWithMocks } = await import(
+      "../../../../src/lib/render/renderables/modelRenderable"
+    );
+    const source = createModelDescriptor("/models/animated-runtime.glb");
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model.animated" },
+      0,
+    );
+    const scene = new Group();
+    const model = { scene, animations: [{ name: "Idle" }] };
+    const renderable = createRenderableWithMocks(
       {
         descriptor,
         source,
@@ -266,10 +324,14 @@ describe("createModelRenderable", () => {
 
     renderable.setVisible(false);
     await renderable.update(createFrameInput({ delta: 16 }));
+    renderable.dispose();
 
-    expect(mixer.update).toHaveBeenCalledTimes(1);
-    expect(mixer.update).toHaveBeenCalledWith(0.016);
-    expect(renderable.shouldRenderContinuously?.()).toBe(false);
+    expect(AnimationMixer).toHaveBeenCalledWith(scene);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(0.016);
+    expect(uncacheRoot).toHaveBeenCalledWith(scene);
+
+    vi.doUnmock("three/src/animation/AnimationMixer.js");
   });
 
   test("keeps fallback visible when the model loader fails", async () => {
@@ -311,6 +373,66 @@ describe("createModelRenderable", () => {
         error,
       },
     );
+  });
+
+  test("configures DRACOLoader for Draco-compressed GLB sources", async () => {
+    vi.resetModules();
+    const loadAsync = vi.fn(() =>
+      Promise.resolve({ scene: createModelObject("draco-model") }),
+    );
+    const setDRACOLoader = vi.fn();
+    const setDecoderPath = vi.fn(function setDecoderPath(this: unknown) {
+      return this;
+    });
+    const preload = vi.fn();
+    const dispose = vi.fn();
+
+    vi.doMock("three/addons/loaders/GLTFLoader.js", () => ({
+      GLTFLoader: vi.fn(() => ({ loadAsync, setDRACOLoader })),
+    }));
+    vi.doMock("three/addons/loaders/DRACOLoader.js", () => ({
+      DRACOLoader: vi.fn(() => ({ setDecoderPath, preload, dispose })),
+    }));
+
+    const { createModelRenderable: createRenderableWithMocks } = await import(
+      "../../../../src/lib/render/renderables/modelRenderable"
+    );
+    const source = {
+      kind: "model",
+      type: "glb",
+      anchor: document.createElement("section"),
+      src: "/models/4.glb",
+      loader: { draco: { decoderPath: "/draco/", preload: true } },
+    } satisfies WebGLModelSourceDescriptor;
+    const descriptor = createTargetDescriptor(
+      source.anchor,
+      { key: "hero.model.draco" },
+      0,
+    );
+    const renderable = createRenderableWithMocks(
+      {
+        descriptor,
+        source,
+        role: "model",
+        policy: compileRenderPolicy("model"),
+      },
+      {
+        resourceManager: createResourceManager(),
+        sceneAdapter: createSceneAdapter(),
+        measureElement: () => createMeasurement(0, 0, 100, 100),
+      },
+    );
+
+    await renderable.update(createFrameInput());
+
+    expect(setDecoderPath).toHaveBeenCalledWith("/draco/");
+    expect(preload).toHaveBeenCalledTimes(1);
+    expect(setDRACOLoader).toHaveBeenCalledTimes(1);
+    expect(loadAsync).toHaveBeenCalledWith("/models/4.glb");
+    expect(dispose).toHaveBeenCalledTimes(1);
+
+    vi.doUnmock("three/addons/loaders/GLTFLoader.js");
+    vi.doUnmock("three/addons/loaders/DRACOLoader.js");
   });
 });
 
@@ -448,6 +570,8 @@ function createFrameInput(
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
     ...input,
   };

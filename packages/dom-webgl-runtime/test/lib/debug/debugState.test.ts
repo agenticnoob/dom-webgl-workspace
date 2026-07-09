@@ -156,6 +156,332 @@ describe("debug state", () => {
     ]);
   });
 
+  test("includes managed scene ids without exposing scene objects", () => {
+    const state = createDebugState({
+      targetCount: 1,
+      renderableCount: 1,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      targets: [
+        {
+          key: "world.target",
+          sceneId: "world",
+          sourceKind: "dom/element",
+          renderRole: "surface",
+          resourceStatus: "ready",
+          lifecycleState: "active",
+          visible: true,
+        },
+      ],
+    });
+
+    expect(state.targets[0]).toMatchObject({
+      key: "world.target",
+      sceneId: "world",
+    });
+    expect(state.targets[0]).not.toHaveProperty("scene");
+    expect(state.targets[0]).not.toHaveProperty("camera");
+  });
+
+  test("copies managed stage and light inventory without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      stagePrimitives: [
+        { id: "floor", sceneId: "world", kind: "plane" },
+        { id: "plinth", sceneId: "world", kind: "box" },
+      ],
+      lights: [
+        { id: "ambient", sceneId: "world", kind: "ambient" },
+        { id: "hero", sceneId: "world", kind: "point" },
+      ],
+      targets: [],
+    });
+
+    expect(state.stagePrimitiveCount).toBe(2);
+    expect(state.lightCount).toBe(2);
+    expect(state.stagePrimitives).toEqual([
+      { id: "floor", sceneId: "world", kind: "plane" },
+      { id: "plinth", sceneId: "world", kind: "box" },
+    ]);
+    expect(state.lights).toEqual([
+      { id: "ambient", sceneId: "world", kind: "ambient" },
+      { id: "hero", sceneId: "world", kind: "point" },
+    ]);
+    expect(state.stagePrimitives?.[0]).not.toHaveProperty("object3D");
+    expect(state.lights?.[0]).not.toHaveProperty("light");
+  });
+
+  test("copies descriptor-only scene-object interaction summaries", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      interaction: {
+        hoveredObjectId: "floor",
+        pressedObjectId: "runner",
+        capturedObjectId: "runner",
+        lastClickedObjectId: "floor",
+        activeHit: {
+          objectId: "floor",
+          sceneId: "world",
+          sourceKind: "stage/plane",
+        },
+      },
+      stagePrimitives: [
+        {
+          id: "floor",
+          sceneId: "world",
+          kind: "plane",
+          effects: ["app.floor"],
+          interaction: {
+            pickable: {
+              hitTest: "bounds",
+              pointer: { hover: true, press: true, click: true, drag: false },
+            },
+          },
+        },
+      ],
+      models: [
+        {
+          id: "runner",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "ready",
+          visible: true,
+          clips: [],
+          activeClips: [],
+          effects: ["app.runner"],
+          interaction: {
+            pickable: {
+              hitTest: "bounds",
+              pointer: { hover: true, press: true, click: true, drag: true },
+            },
+          },
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.interaction).toEqual({
+      hoveredObjectId: "floor",
+      pressedObjectId: "runner",
+      capturedObjectId: "runner",
+      lastClickedObjectId: "floor",
+      activeHit: {
+        objectId: "floor",
+        sceneId: "world",
+        sourceKind: "stage/plane",
+      },
+    });
+    expect(state.stagePrimitives?.[0]).toMatchObject({
+      effects: ["app.floor"],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, click: true, drag: false },
+        },
+      },
+    });
+    expect(state.models?.[0]).toMatchObject({
+      effects: ["app.runner"],
+      interaction: {
+        pickable: {
+          hitTest: "bounds",
+          pointer: { hover: true, press: true, click: true, drag: true },
+        },
+      },
+    });
+    expect(state.interaction).not.toHaveProperty("intersection");
+  });
+
+  test("copies descriptor-only camera gesture interaction summaries", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      interaction: {
+        emptySpace: true,
+        cameraController: {
+          cameraId: "world.camera",
+          sceneId: "world",
+          active: true,
+          activeGesture: "pan",
+          damping: false,
+        },
+      },
+      targets: [],
+    });
+
+    expect(state.interaction?.cameraController).toEqual({
+      cameraId: "world.camera",
+      sceneId: "world",
+      active: true,
+      activeGesture: "pan",
+      damping: false,
+    });
+    expect(state.interaction?.cameraController).not.toHaveProperty("camera");
+    expect(state.interaction?.cameraController).not.toHaveProperty("controls");
+    expect(state.interaction?.cameraController).not.toHaveProperty("matrix");
+  });
+
+  test("copies managed model prepare debug state without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      models: [
+        {
+          id: "character",
+          sceneId: "world",
+          src: "/models/Sprint.glb",
+          resourceStatus: "idle",
+          visible: true,
+          prepare: { load: "queued", renderWarmup: "pending" },
+          clips: [],
+          activeClips: [],
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.models?.[0]?.prepare).toEqual({
+      load: "queued",
+      renderWarmup: "pending",
+    });
+    expect(state.models?.[0]?.prepare).not.toHaveProperty("loader");
+    expect(state.models?.[0]?.prepare).not.toHaveProperty("render");
+  });
+
+  test("copies descriptor-only timeline summaries without raw progress handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      stagePrimitives: [
+        {
+          id: "floor",
+          sceneId: "world",
+          kind: "plane",
+          timeline: {
+            id: "hero.3d",
+            progressKey: "hero.3d",
+            active: false,
+          },
+        },
+      ],
+      lights: [
+        {
+          id: "hero",
+          sceneId: "world",
+          kind: "point",
+          timeline: {
+            id: "hero.3d",
+            progressKey: "hero.3d",
+            active: true,
+          },
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.stagePrimitives).toEqual([
+      {
+        id: "floor",
+        sceneId: "world",
+        kind: "plane",
+        timeline: {
+          id: "hero.3d",
+          progressKey: "hero.3d",
+          active: false,
+        },
+      },
+    ]);
+    expect(state.lights).toEqual([
+      {
+        id: "hero",
+        sceneId: "world",
+        kind: "point",
+        timeline: {
+          id: "hero.3d",
+          progressKey: "hero.3d",
+          active: true,
+        },
+      },
+    ]);
+    expect(state.stagePrimitives?.[0].timeline).not.toHaveProperty("source");
+    expect(state.lights?.[0].timeline).not.toHaveProperty("timeline");
+  });
+
+  test("copies descriptor-only camera controller summaries without raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      cameraControllers: [
+        {
+          cameraId: "hero.camera",
+          sceneId: "hero.scene",
+          timelineId: "hero.timeline",
+          progressKey: "hero.progress",
+          progress: 0.5,
+          applied: true,
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.cameraControllers).toEqual([
+      {
+        cameraId: "hero.camera",
+        sceneId: "hero.scene",
+        timelineId: "hero.timeline",
+        progressKey: "hero.progress",
+        progress: 0.5,
+        applied: true,
+      },
+    ]);
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("camera");
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("matrix");
+    expect(state.cameraControllers?.[0]).not.toHaveProperty("controls");
+  });
+
+  test("copies projection and placement mode into public target summaries", () => {
+    expect(
+      createDebugState({
+        targetCount: 1,
+        renderableCount: 1,
+        currentScrollMode: "page",
+        pointer: createPointerState(),
+        targets: [
+          {
+            key: "overlay.badge",
+            sceneId: "overlay",
+            projection: "screen",
+            placementMode: "screen-anchored",
+            sourceKind: "dom/element",
+            renderRole: "surface",
+            resourceStatus: "ready",
+            lifecycleState: "active",
+            visible: true,
+          },
+        ],
+      }).targets[0],
+    ).toMatchObject({
+      key: "overlay.badge",
+      sceneId: "overlay",
+      projection: "screen",
+      placementMode: "screen-anchored",
+    });
+  });
+
   test("reports active gate fields only for gate scroll mode", () => {
     const gateState: DebugRuntimeState = {
       targetCount: 0,
@@ -349,6 +675,52 @@ describe("debug state", () => {
     expect(state).not.toHaveProperty("renderTarget");
   });
 
+  test("reports render pass viewport and postprocess scopes without raw internals", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      postprocessStats: {
+        activeRequests: 2,
+        passCount: 1,
+        maxRenderTargetSize: 320,
+        requests: [
+          { key: "hero.pass.fx", scope: { passId: "hero.pass" } },
+          { key: "canvas.fx", scope: { canvas: true } },
+        ],
+      },
+      renderPasses: [
+        {
+          id: "hero.pass",
+          sceneId: "hero.scene",
+          cameraId: "hero.camera",
+          viewportMode: "dom-rect",
+          viewportAnchorId: "hero.viewport",
+          postprocess: true,
+        },
+      ],
+      targets: [],
+    });
+
+    expect(state.renderPasses).toEqual([
+      {
+        id: "hero.pass",
+        sceneId: "hero.scene",
+        cameraId: "hero.camera",
+        viewportMode: "dom-rect",
+        viewportAnchorId: "hero.viewport",
+        postprocess: true,
+      },
+    ]);
+    expect(state.postprocessRequests).toEqual([
+      { key: "hero.pass.fx", scope: { passId: "hero.pass" } },
+      { key: "canvas.fx", scope: { canvas: true } },
+    ]);
+    expect(state).not.toHaveProperty("composer");
+    expect(state).not.toHaveProperty("renderTarget");
+  });
+
   test("summarizes internal batching candidates without exposing a public batching API", () => {
     const targets = [
       createDebugTargetState("poster.a", "media/image"),
@@ -513,6 +885,105 @@ describe("debug state", () => {
         targets: [],
       }),
     );
+  });
+
+  test("runtime debug state reports managed pass viewport descriptors", async () => {
+    const runtime = await createRuntime({
+      pointerController: createPointerController(),
+      scrollState: createScrollStateController(),
+    });
+    const viewport = document.createElement("section");
+
+    runtime.registerScene({
+      id: "debug.scene",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "debug.camera",
+      sceneId: "debug.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+    });
+    runtime.registerPassViewport({
+      id: "debug.viewport",
+      element: viewport,
+    });
+    runtime.registerRenderPass({
+      id: "debug.pass",
+      sceneId: "debug.scene",
+      cameraId: "debug.camera",
+      viewport: {
+        mode: "dom-rect",
+        anchorId: "debug.viewport",
+        scissor: true,
+      },
+      postprocess: {
+        grain: { amount: 0.025 },
+      },
+    });
+
+    expect(runtime.getDebugState().renderPasses).toContainEqual({
+      id: "debug.pass",
+      sceneId: "debug.scene",
+      cameraId: "debug.camera",
+      viewportMode: "dom-rect",
+      viewportAnchorId: "debug.viewport",
+      postprocess: true,
+    });
+    expect(runtime.getDebugState()).not.toHaveProperty("camera");
+    expect(runtime.getDebugState()).not.toHaveProperty("renderTarget");
+
+    runtime.dispose();
+  });
+
+  test("runtime exposes descriptor-only camera controller summaries", async () => {
+    const runtime = await createRuntime({
+      pointerController: createPointerController(),
+      scrollState: createScrollStateController(),
+      progressSignals: {
+        get: vi.fn(() => 0.5),
+      },
+    });
+
+    runtime.registerScene({
+      id: "debug.scene",
+      projection: "perspective-stage",
+    });
+    runtime.registerCamera({
+      id: "debug.camera",
+      sceneId: "debug.scene",
+      type: "perspective",
+      mode: "perspective-stage",
+      position: [0, 0, 700],
+      target: [0, 0, 0],
+      fov: 44,
+      controller: {
+        timeline: {
+          id: "debug.timeline",
+          progressKey: "debug.progress",
+        },
+        to: {
+          position: [0, 120, 520],
+          target: [0, 48, 0],
+          fov: 34,
+        },
+      },
+    });
+
+    await runtime.sync();
+
+    expect(runtime.getDebugState().cameraControllers).toContainEqual({
+      cameraId: "debug.camera",
+      sceneId: "debug.scene",
+      timelineId: "debug.timeline",
+      progressKey: "debug.progress",
+      progress: 0.5,
+      applied: true,
+    });
+    expect(runtime.getDebugState()).not.toHaveProperty("camera");
+    expect(runtime.getDebugState()).not.toHaveProperty("controls");
+
+    runtime.dispose();
   });
 
   test("runtime notifies debug listeners when async renderable updates fail", async () => {
@@ -709,7 +1180,7 @@ function createRendererHostStub(container: HTMLElement): ThreeRendererHost {
       };
     },
     resizeIfNeeded() {
-      return;
+      return false;
     },
     dispose() {
       canvas.remove();
@@ -777,6 +1248,8 @@ function createPointerState(): WebGLPointerState {
     dragDeltaX: 0,
     dragDeltaY: 0,
     clickCount: 0,
+    buttons: [],
+    modifiers: { shift: false, alt: false, ctrl: false, meta: false },
   };
 }
 

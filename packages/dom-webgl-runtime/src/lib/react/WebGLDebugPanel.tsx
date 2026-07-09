@@ -219,6 +219,8 @@ function createInitialDebugState(): WebGLDebugState {
       dragDeltaX: 0,
       dragDeltaY: 0,
       clickCount: 0,
+      buttons: [],
+      modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     },
     targets: [],
   };
@@ -258,6 +260,62 @@ function renderRoleAbbr(role: string): string {
     default:
       return role.slice(0, 4);
   }
+}
+
+function renderInteractionRows(
+  interaction: WebGLDebugState["interaction"],
+): ReactElement[] {
+  if (!interaction) {
+    return [];
+  }
+
+  const objectState = [
+    interaction.hoveredObjectId ? `hover ${interaction.hoveredObjectId}` : "",
+    interaction.pressedObjectId ? `press ${interaction.pressedObjectId}` : "",
+    interaction.capturedObjectId ? `capture ${interaction.capturedObjectId}` : "",
+    interaction.lastClickedObjectId ? `click ${interaction.lastClickedObjectId}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const rows: ReactElement[] = [
+    createElement(
+      "div",
+      { key: "interaction-objects", style: STYLES.metricRow },
+      createElement("span", { style: STYLES.metricLabel }, "Interaction"),
+      createElement(
+        "span",
+        { style: STYLES.metricValue },
+        objectState || "none",
+      ),
+    ),
+  ];
+
+  if (interaction.cameraController) {
+    const cameraState = [
+      interaction.cameraController.cameraId,
+      interaction.cameraController.sceneId,
+      interaction.cameraController.activeGesture ?? "none",
+      interaction.cameraController.active ? "active" : "idle",
+      interaction.cameraController.damping ? "damping" : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    rows.push(
+      createElement(
+        "div",
+        { key: "interaction-camera", style: STYLES.metricRow },
+        createElement("span", { style: STYLES.metricLabel }, "Camera"),
+        createElement(
+          "span",
+          { style: STYLES.metricValue },
+          cameraState,
+        ),
+      ),
+    );
+  }
+
+  return rows;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -376,6 +434,7 @@ export const WebGLDebugPanel: FunctionComponent<WebGLDebugPanelProps> =
             `${Math.round(state.pointer.x)} \u00D7 ${Math.round(state.pointer.y)}`,
           ),
         ),
+        ...renderInteractionRows(state.interaction),
         // Target list section
         ...(state.targets.length > 0
           ? [

@@ -1,7 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 
+import type { WebGLEffectCanvasDrawer } from "@project/dom-webgl-runtime";
+
 import { createEffectContext } from "./effectContext";
 import {
+  exampleModelDarkSceneEffect,
   exampleSurfaceFillEffect,
   exampleSurfaceGhostCursorEffect,
   exampleSurfacePulseEffect,
@@ -62,6 +65,56 @@ describe("surface example effects", () => {
     expect(surface.setOpacity).toHaveBeenCalledWith(0.72);
     expect(target.setVisible).toHaveBeenCalledWith(true);
     expect(target.setOpacity).not.toHaveBeenCalled();
+  });
+
+  test("model dark scene draws an opaque black WebGL surface backdrop", () => {
+    let drawSurface: WebGLEffectCanvasDrawer | undefined;
+    const surface = {
+      draw: vi.fn((drawer: WebGLEffectCanvasDrawer) => {
+        drawSurface = drawer;
+      }),
+      setOpacity: vi.fn(),
+      setVisible: vi.fn(),
+    };
+    const target = {
+      setVisible: vi.fn(),
+    };
+    const context = createEffectContext({
+      source: {
+        kind: "dom",
+          type: "element",
+        element: document.createElement("section"),
+        surface,
+      },
+      target,
+    });
+
+    exampleModelDarkSceneEffect.update(context, undefined, {
+      kind: "example.modelDarkScene",
+    });
+
+    expect(exampleModelDarkSceneEffect.source).toBe("dom/element");
+    expect(surface.draw).toHaveBeenCalledTimes(1);
+    expect(surface.setVisible).toHaveBeenCalledWith(true);
+    expect(surface.setOpacity).toHaveBeenCalledWith(1);
+    expect(target.setVisible).toHaveBeenCalledWith(true);
+    if (!drawSurface) {
+      throw new Error("Expected example.modelDarkScene to draw a surface");
+    }
+
+    const canvasContext = createModelDarkSceneContext();
+    drawSurface({
+      canvas: document.createElement("canvas"),
+      context: canvasContext,
+      width: 320,
+      height: 180,
+      devicePixelRatio: 1,
+    });
+
+    expect(canvasContext.clearRect).toHaveBeenCalledWith(0, 0, 320, 180);
+    expect(canvasContext.fillStyle).toBe("#000000");
+    expect(canvasContext.fillRect).toHaveBeenCalledWith(0, 0, 320, 180);
+    expect(canvasContext.createRadialGradient).not.toHaveBeenCalled();
   });
 
   test("surface pulse visibly animates surface opacity for element snapshots", () => {
@@ -508,3 +561,26 @@ describe("surface example effects", () => {
   });
 
 });
+
+function createModelDarkSceneContext(): CanvasRenderingContext2D & {
+  fillStyle: string;
+  clearRect: ReturnType<typeof vi.fn>;
+  fillRect: ReturnType<typeof vi.fn>;
+  createRadialGradient: ReturnType<typeof vi.fn>;
+} {
+  const context = {
+    fillStyle: "",
+    clearRect: vi.fn(),
+    fillRect: vi.fn(),
+    createRadialGradient: vi.fn(() => ({
+      addColorStop: vi.fn(),
+    })),
+  };
+
+  return context as unknown as CanvasRenderingContext2D & {
+    fillStyle: string;
+    clearRect: ReturnType<typeof vi.fn>;
+    fillRect: ReturnType<typeof vi.fn>;
+    createRadialGradient: ReturnType<typeof vi.fn>;
+  };
+}
