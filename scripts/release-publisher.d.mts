@@ -33,12 +33,14 @@ export function publishPackages(options: {
   version: string;
   packages: ReleasePackage[];
   runCommand: ReleaseCommandRunner;
+  log?: (message: string) => void;
 }): ReleaseAction[];
 
 export function publishRelease(options: {
   root?: string;
   version: string;
   runCommand?: ReleaseCommandRunner;
+  log?: (message: string) => void;
   createTarballs?: (root: string) => {
     packages: Array<{
       name: string;

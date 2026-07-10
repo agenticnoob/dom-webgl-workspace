@@ -22,6 +22,7 @@ export function publishRelease({
   version,
   runCommand = runCommandSync,
   createTarballs = createVerifiedTarballs,
+  log = console.log,
 } = {}) {
   const repositoryRoot = resolve(root);
   assertAlphaVersion(version);
@@ -35,13 +36,13 @@ export function publishRelease({
       tarballPath: packed.tarballPath,
       manifest: readManifest(packed.packageDirectory),
     }));
-    return publishPackages({ version, packages, runCommand });
+    return publishPackages({ version, packages, runCommand, log });
   } finally {
     tarballs.cleanup();
   }
 }
 
-export function publishPackages({ version, packages, runCommand }) {
+export function publishPackages({ version, packages, runCommand, log = () => {} }) {
   assertAlphaVersion(version);
   assertPackageOrder(packages);
   if (typeof runCommand !== "function") {
@@ -66,7 +67,7 @@ export function publishPackages({ version, packages, runCommand }) {
       actions.push({ name: entry.name, action: "skipped" });
       continue;
     }
-    runNpm(
+    const publishResult = runNpm(
       [
         "publish",
         entry.tarballPath,
@@ -79,6 +80,17 @@ export function publishPackages({ version, packages, runCommand }) {
       runCommand,
       `publish ${entry.name}@${version}`,
     );
+    const publishOutput = [publishResult.stdout, publishResult.stderr]
+      .filter((value) => typeof value === "string" && value.trim().length > 0)
+      .join("\n")
+      .trim();
+    if (publishOutput) log(publishOutput);
+    const confirmation = `+ ${entry.name}@${version}`;
+    if (!publishOutput.includes(confirmation)) {
+      throw new Error(
+        `npm publish output did not confirm ${entry.name}@${version}: ${publishOutput || "<empty output>"}`,
+      );
+    }
     actions.push({ name: entry.name, action: "published" });
   }
 

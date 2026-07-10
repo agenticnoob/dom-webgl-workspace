@@ -150,6 +150,32 @@ describe("idempotent release publisher", () => {
     expect(commands).not.toMatch(/unpublish|--force|overwrite/i);
     expect(commands).toContain("--access public --tag alpha --provenance");
   });
+
+  test("rejects status-zero publish output that does not confirm the package", () => {
+    const fixture = createRegistryFixture();
+    const logs: string[] = [];
+    const runCommand = (command: string, args: string[]) => {
+      if (command === "npm" && args[0] === "publish") {
+        return {
+          status: 0,
+          stdout: "npm notice package archive prepared",
+          stderr: "npm notice Publishing to registry",
+        };
+      }
+      return fixture.runCommand(command, args);
+    };
+
+    expect(() =>
+      publishPackages({
+        version,
+        packages: releasePackages(),
+        runCommand,
+        log: (message) => logs.push(message),
+      }),
+    ).toThrow(/publish output did not confirm @viselora\/dom-webgl@0\.1\.0-alpha\.0/i);
+    expect(logs.join("\n")).toContain("npm notice package archive prepared");
+    expect(logs.join("\n")).toContain("npm notice Publishing to registry");
+  });
 });
 
 type RegistryPackage = {
@@ -245,7 +271,11 @@ function createRegistryFixture(
           dist: { integrity: entry.integrity },
         };
         tags[entry.name] = { alpha: version };
-        return { status: 0, stdout: "+ published", stderr: "" };
+        return {
+          status: 0,
+          stdout: `+ ${entry.name}@${version}`,
+          stderr: "",
+        };
       }
 
       if (args[0] === "view" && args[2] === "dist-tags") {
