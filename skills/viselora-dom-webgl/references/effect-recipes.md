@@ -145,11 +145,15 @@ export const imageHoverOverlayEffect = defineWebGLEffect<Params, State>({
   update(ctx, state) {
     const material = ctx.object.texture?.material;
     if (!material) return;
-    state.layer ??= material.createMaterialLayer({
-      key: `${ctx.key}.hover-overlay`,
-      mode: "overlay",
-      program: { fragmentShader, uniforms: { uHover: 0 } },
-    });
+    if (!state.layer) {
+      const layer = material.createMaterialLayer({
+        key: `${ctx.key}.hover-overlay`,
+        mode: "overlay",
+        program: { fragmentShader, uniforms: { uHover: 0 } },
+      });
+      ctx.resources.addDisposable(() => layer.dispose());
+      state.layer = layer;
+    }
     state.layer.setUniforms({ uHover: ctx.targetPointer.isInside ? 1 : 0 });
     ctx.object.visible = true;
   },
@@ -178,7 +182,9 @@ Render it on `<WebGLTarget as="img" src="/media/product.webp" alt="..." />`; do 
 Share a named timeline between the pinned section and effect. Scrub a real clip and use emissive plus a runtime-owned point light:
 
 ```tsx
-import { defineWebGLEffect } from "@viselora/dom-webgl";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { defineWebGLEffect, type WebGLDeclaration } from "@viselora/dom-webgl";
 import { WebGLTarget } from "@viselora/dom-webgl/react";
 import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
 
@@ -189,10 +195,15 @@ type Params = {
   durationSeconds: number;
 };
 
-export const modelGlowEffect = defineWebGLEffect<Params>({
+type State = { lightRegistered: boolean };
+
+export const modelGlowEffect = defineWebGLEffect<Params, State>({
   kind: "viselora.modelGlow",
   source: "model/glb",
-  update(ctx, _state, params) {
+  setup() {
+    return { lightRegistered: false };
+  },
+  update(ctx, state, params) {
     const progress = Math.min(1, Math.max(0, ctx.progress.get(params.progressKey)));
     ctx.object.animation?.scrub(params.clip, {
       progress,
@@ -202,12 +213,16 @@ export const modelGlowEffect = defineWebGLEffect<Params>({
     ctx.object.model?.meshes.forEach((mesh) => {
       mesh.material.emissive.set("#f6c453", 0.3 + progress * 1.2);
     });
-    ctx.object.lights?.point(`${ctx.key}.glow`, {
+    const glowLight = ctx.object.lights?.point(`${ctx.key}.glow`, {
       color: "#f6c453",
       intensity: 0.8 + progress * 2.2,
       distance: 420,
       follow: "object",
     });
+    if (glowLight && !state.lightRegistered) {
+      ctx.resources.addDisposable(() => glowLight.dispose());
+      state.lightRegistered = true;
+    }
     ctx.object.visible = true;
   },
   dispose(ctx) {
@@ -217,27 +232,36 @@ export const modelGlowEffect = defineWebGLEffect<Params>({
 
 const progressKey = "model-glow-progress";
 
+const pinnedModelDeclaration = {
+  key: "app.pinned-model",
+  timeline: { id: progressKey, progressKey },
+  source: { kind: "model", type: "glb", src: "/models/product.glb" },
+  lifecycle: {
+    hideWhenReady: true,
+    hideMode: "self",
+    offscreen: { strategy: "park", warmTtlMs: 20_000 },
+  },
+  effects: [{
+    kind: "viselora.modelGlow",
+    progressKey,
+    clip: "Reveal",
+    durationSeconds: 2,
+  }],
+} satisfies WebGLDeclaration;
+
+gsap.registerPlugin(ScrollTrigger);
+
 export function PinnedModelGlow() {
   return (
-    <WebGLScrollTimeline id={progressKey} pin scrub>
+    <WebGLScrollTimeline
+      id={progressKey}
+      pin
+      scrub
+      ScrollTrigger={ScrollTrigger}
+    >
       <WebGLTarget
         as="section"
-        webgl={{
-          key: "app.pinned-model",
-          timeline: { id: progressKey, progressKey },
-          source: { kind: "model", type: "glb", src: "/models/product.glb" },
-          lifecycle: {
-            hideWhenReady: true,
-            hideMode: "self",
-            offscreen: { strategy: "park", warmTtlMs: 20_000 },
-          },
-          effects: [{
-            kind: "viselora.modelGlow",
-            progressKey,
-            clip: "Reveal",
-            durationSeconds: 2,
-          }],
-        }}
+        webgl={pinnedModelDeclaration}
       >
         <p>Interactive product model loading…</p>
       </WebGLTarget>
@@ -253,7 +277,14 @@ Replace `Reveal` with a clip name exported by the GLB. Avoid canvas-wide bloom f
 Preload frames before mounting. Keep one stable progress key in the timeline, source, and effect:
 
 ```tsx
-import { defineWebGLEffect, type WebGLImageSequenceFrame } from "@viselora/dom-webgl";
+import { useMemo } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  defineWebGLEffect,
+  type WebGLDeclaration,
+  type WebGLImageSequenceFrame,
+} from "@viselora/dom-webgl";
 import { WebGLTarget } from "@viselora/dom-webgl/react";
 import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
 
@@ -273,31 +304,43 @@ export const imageSequenceEffect = defineWebGLEffect<Params>({
   },
 });
 
+gsap.registerPlugin(ScrollTrigger);
+
 export function ScrollImageSequence(props: {
   frames: readonly WebGLImageSequenceFrame[];
   fallbackSrc: string;
 }) {
   const progressKey = "sequence-progress";
+  const sequenceDeclaration = useMemo<WebGLDeclaration>(
+    () => ({
+      key: "app.image-sequence",
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        frameCount: props.frames.length,
+        frames: props.frames,
+        progressKey,
+      },
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "self",
+        offscreen: { strategy: "restore-dom" },
+      },
+      effects: [{ kind: "viselora.imageSequence", progressKey }],
+    }),
+    [props.frames],
+  );
+
   return (
-    <WebGLScrollTimeline id={progressKey} pin scrub>
+    <WebGLScrollTimeline
+      id={progressKey}
+      pin
+      scrub
+      ScrollTrigger={ScrollTrigger}
+    >
       <WebGLTarget
         as="section"
-        webgl={{
-          key: "app.image-sequence",
-          source: {
-            kind: "media",
-            type: "image-sequence",
-            frameCount: props.frames.length,
-            frames: props.frames,
-            progressKey: "sequence-progress",
-          },
-          lifecycle: {
-            hideWhenReady: true,
-            hideMode: "self",
-            offscreen: { strategy: "restore-dom" },
-          },
-          effects: [{ kind: "viselora.imageSequence", progressKey }],
-        }}
+        webgl={sequenceDeclaration}
       >
         <img alt="Product rotation preview" src={props.fallbackSrc} />
       </WebGLTarget>

@@ -18,6 +18,7 @@ type ImageSequenceParams = {
 };
 type HoverState = { layer: WebGLEffectMaterialLayerHandle | undefined };
 type VideoState = { configured: boolean };
+type ModelGlowState = { lightRegistered: boolean };
 
 const hoverFragmentShader = `
   uniform float uHover;
@@ -90,11 +91,15 @@ export const imageHoverOverlayEffect = defineWebGLEffect<
   update(ctx, state) {
     const material = ctx.object.texture?.material;
     if (!material) return;
-    state.layer ??= material.createMaterialLayer({
-      key: `${ctx.key}.hover-overlay`,
-      mode: "overlay",
-      program: { fragmentShader: hoverFragmentShader, uniforms: { uHover: 0 } },
-    });
+    if (!state.layer) {
+      const layer = material.createMaterialLayer({
+        key: `${ctx.key}.hover-overlay`,
+        mode: "overlay",
+        program: { fragmentShader: hoverFragmentShader, uniforms: { uHover: 0 } },
+      });
+      ctx.resources.addDisposable(() => layer.dispose());
+      state.layer = layer;
+    }
     state.layer.setUniforms({ uHover: ctx.targetPointer.isInside ? 1 : 0 });
     ctx.object.visible = true;
   },
@@ -103,10 +108,13 @@ export const imageHoverOverlayEffect = defineWebGLEffect<
   },
 });
 
-export const modelGlowEffect = defineWebGLEffect<ModelGlowParams>({
+export const modelGlowEffect = defineWebGLEffect<ModelGlowParams, ModelGlowState>({
   kind: "viselora.modelGlow",
   source: "model/glb",
-  update(ctx, _state, params) {
+  setup() {
+    return { lightRegistered: false };
+  },
+  update(ctx, state, params) {
     const progress = Math.min(1, Math.max(0, ctx.progress.get(params.progressKey)));
     ctx.object.animation?.scrub(params.clip, {
       progress,
@@ -116,12 +124,16 @@ export const modelGlowEffect = defineWebGLEffect<ModelGlowParams>({
     ctx.object.model?.meshes.forEach((mesh) => {
       mesh.material.emissive.set("#f6c453", 0.3 + progress * 1.2);
     });
-    ctx.object.lights?.point(`${ctx.key}.glow`, {
+    const glowLight = ctx.object.lights?.point(`${ctx.key}.glow`, {
       color: "#f6c453",
       intensity: 0.8 + progress * 2.2,
       distance: 420,
       follow: "object",
     });
+    if (glowLight && !state.lightRegistered) {
+      ctx.resources.addDisposable(() => glowLight.dispose());
+      state.lightRegistered = true;
+    }
     ctx.object.visible = true;
   },
   dispose(ctx) {

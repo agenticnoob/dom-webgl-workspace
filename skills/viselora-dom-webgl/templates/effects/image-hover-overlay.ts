@@ -38,17 +38,21 @@ export const imageHoverOverlayEffect = defineWebGLEffect<
       return;
     }
 
-    state.layer ??= material.createMaterialLayer({
-      key: `${ctx.key}.hover-overlay`,
-      mode: "overlay",
-      program: {
-        fragmentShader,
-        uniforms: {
-          uColor: params.color ?? [0.49, 0.83, 0.98],
-          uHover: 0,
+    if (!state.layer) {
+      const layer = material.createMaterialLayer({
+        key: `${ctx.key}.hover-overlay`,
+        mode: "overlay",
+        program: {
+          fragmentShader,
+          uniforms: {
+            uColor: params.color ?? [0.49, 0.83, 0.98],
+            uHover: 0,
+          },
         },
-      },
-    });
+      });
+      ctx.resources.addDisposable(() => layer.dispose());
+      state.layer = layer;
+    }
     state.layer.setUniforms({
       uColor: params.color ?? [0.49, 0.83, 0.98],
       uHover: ctx.targetPointer.isInside ? 1 : 0,

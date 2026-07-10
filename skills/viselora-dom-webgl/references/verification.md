@@ -10,7 +10,7 @@ npm run typecheck
 npm run build
 ```
 
-The deterministic verifier reads `package.json` and JavaScript/TypeScript source files without modifying them. It rejects:
+Install the consumer dependencies before running the verifier. The verifier loads the consumer project's own `typescript` compiler API, reads `package.json` and JavaScript/TypeScript source files, builds a semantic AST model, and never modifies the consumer. It rejects:
 
 - missing or non-exact Viselora package versions
 - private, repository-source, or old package imports

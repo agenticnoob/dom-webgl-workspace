@@ -1,4 +1,11 @@
-import { defineWebGLEffect, type WebGLImageSequenceFrame } from "@viselora/dom-webgl";
+import { useMemo } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  defineWebGLEffect,
+  type WebGLDeclaration,
+  type WebGLImageSequenceFrame,
+} from "@viselora/dom-webgl";
 import { WebGLTarget } from "@viselora/dom-webgl/react";
 import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
 
@@ -26,29 +33,40 @@ export type ScrollImageSequenceProps = {
   fallbackSrc: string;
 };
 
+gsap.registerPlugin(ScrollTrigger);
+
 export function ScrollImageSequence({ frames, fallbackSrc }: ScrollImageSequenceProps) {
   const progressKey = "sequence-progress";
+  const sequenceDeclaration = useMemo<WebGLDeclaration>(
+    () => ({
+      key: "viselora.image-sequence",
+      source: {
+        kind: "media",
+        type: "image-sequence",
+        frameCount: frames.length,
+        frames,
+        progressKey,
+      },
+      lifecycle: {
+        hideWhenReady: true,
+        hideMode: "self",
+        offscreen: { strategy: "restore-dom" },
+      },
+      effects: [{ kind: "viselora.imageSequence", progressKey }],
+    }),
+    [frames],
+  );
 
   return (
-    <WebGLScrollTimeline id={progressKey} pin scrub>
+    <WebGLScrollTimeline
+      id={progressKey}
+      pin
+      scrub
+      ScrollTrigger={ScrollTrigger}
+    >
       <WebGLTarget
         as="section"
-        webgl={{
-          key: "viselora.image-sequence",
-          source: {
-            kind: "media",
-            type: "image-sequence",
-            frameCount: frames.length,
-            frames,
-            progressKey: "sequence-progress",
-          },
-          lifecycle: {
-            hideWhenReady: true,
-            hideMode: "self",
-            offscreen: { strategy: "restore-dom" },
-          },
-          effects: [{ kind: "viselora.imageSequence", progressKey }],
-        }}
+        webgl={sequenceDeclaration}
       >
         <img alt="Product rotation preview" src={fallbackSrc} />
       </WebGLTarget>

@@ -14,21 +14,25 @@ Import only these entrypoints:
 Use `WebGLTarget` for DOM-anchored rendering:
 
 ```tsx
+import type { WebGLDeclaration } from "@viselora/dom-webgl";
+
+const productPhotoDeclaration = {
+  key: "product-photo",
+  source: { kind: "media", type: "image", src: "/media/photo.webp" },
+  pointer: { hover: true },
+  lifecycle: {
+    hideWhenReady: true,
+    hideMode: "self",
+    offscreen: { strategy: "restore-dom" },
+  },
+  effects: [{ kind: "app.photoHover" }],
+} satisfies WebGLDeclaration;
+
 <WebGLTarget
   as="img"
   src="/media/photo.webp"
   alt="Product detail"
-  webgl={{
-    key: "product-photo",
-    source: { kind: "media", type: "image", src: "/media/photo.webp" },
-    pointer: { hover: true },
-    lifecycle: {
-      hideWhenReady: true,
-      hideMode: "self",
-      offscreen: { strategy: "restore-dom" },
-    },
-    effects: [{ kind: "app.photoHover" }],
-  }}
+  webgl={productPhotoDeclaration}
 />
 ```
 

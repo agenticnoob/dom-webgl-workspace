@@ -1,11 +1,13 @@
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -101,7 +103,33 @@ describe("viselora-dom-webgl skill", () => {
       'kind: "viselora.modelGlow"',
     );
     expect(read("templates/effects/scroll-image-sequence.tsx")).toContain(
-      'progressKey: "sequence-progress"',
+      'const progressKey = "sequence-progress"',
+    );
+  });
+
+  test("keeps standalone recipes stable, scroll-driven, and resource-owned", () => {
+    const pinnedModel = read("templates/effects/pinned-model-glow.tsx");
+    const imageSequence = read("templates/effects/scroll-image-sequence.tsx");
+    const hoverOverlay = read("templates/effects/image-hover-overlay.ts");
+    const recipes = read("references/effect-recipes.md");
+    const publicApi = read("references/public-api.md");
+
+    expect(pinnedModel.indexOf("const pinnedModelDeclaration")).toBeLessThan(
+      pinnedModel.indexOf("export function PinnedModelGlow"),
+    );
+    expect(pinnedModel).toContain('from "gsap/ScrollTrigger"');
+    expect(pinnedModel).toContain("ScrollTrigger={ScrollTrigger}");
+    expect(pinnedModel).toContain("ctx.resources.addDisposable");
+    expect(imageSequence).toContain("useMemo");
+    expect(imageSequence).toContain('from "gsap/ScrollTrigger"');
+    expect(imageSequence).toContain("ScrollTrigger={ScrollTrigger}");
+    expect(hoverOverlay).toContain("ctx.resources.addDisposable");
+    expect(recipes).toContain("const pinnedModelDeclaration");
+    expect(recipes).toContain("useMemo");
+    expect(recipes).toContain("ScrollTrigger={ScrollTrigger}");
+    expect(recipes).toContain("ctx.resources.addDisposable");
+    expect(publicApi.indexOf("const productPhotoDeclaration")).toBeLessThan(
+      publicApi.indexOf("<WebGLTarget"),
     );
   });
 
@@ -123,6 +151,82 @@ describe("viselora-dom-webgl skill", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("Viselora consumer verification passed");
+  });
+
+  test("accepts an identifier-independent progress key", () => {
+    const fixtureRoot = copyTemplate();
+    replaceAll(fixtureRoot, "src/App.tsx", "sharedProgressKey", "productProgressKey");
+
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  });
+
+  test("accepts the public WebGLModel route for the model recipe", () => {
+    const fixtureRoot = copyTemplate();
+    replace(
+      fixtureRoot,
+      "src/App.tsx",
+      'import { WebGLTarget } from "@viselora/dom-webgl/react";',
+      'import { WebGLModel, WebGLTarget } from "@viselora/dom-webgl/react";',
+    );
+    replace(
+      fixtureRoot,
+      "src/App.tsx",
+      [
+        '          <WebGLTarget as="section" webgl={modelDeclaration}>',
+        "            <p>Interactive product model loading…</p>",
+        "          </WebGLTarget>",
+      ].join("\n"),
+      [
+        "          <section>",
+        "            <p>Interactive product model loading…</p>",
+        "            <WebGLModel",
+        '              id="demo.pinned-model"',
+        '              scene="demo.product-scene"',
+        '              src="/models/product.glb"',
+        "              timeline={{ id: productProgressKey, progressKey: productProgressKey }}",
+        "              effects={modelDeclaration.effects}",
+        "            />",
+        "          </section>",
+      ].join("\n"),
+    );
+    replaceAll(fixtureRoot, "src/App.tsx", "sharedProgressKey", "productProgressKey");
+
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  });
+
+  test("ignores prohibited-looking text in comments and ordinary strings", () => {
+    const fixtureRoot = copyTemplate();
+    append(
+      fixtureRoot,
+      "src/App.tsx",
+      [
+        "",
+        "// <Canvas />; new WebGLRenderer(); import('@project/comment-only')",
+        "const architectureNote = `new WebGLRenderer(); <WebGLRuntime />;`;",
+        "void architectureNote;",
+        "",
+      ].join("\n"),
+    );
+
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  });
+
+  test("reports a clear violation when the consumer has no installed TypeScript", () => {
+    const fixtureRoot = copyTemplate({ installTypeScript: false });
+
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("TypeScript compiler API is unavailable");
   });
 
   test.each([
@@ -154,8 +258,38 @@ describe("viselora-dom-webgl skill", () => {
       "exactly one runtime root",
     ],
     [
+      "an aliased second runtime root",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nimport { WebGLScrollRuntime as ScrollRoot } from "@viselora/scroll-adapters/react";\nconst duplicateRoot = <ScrollRoot />;\n',
+        ),
+      "exactly one runtime root",
+    ],
+    [
+      "an aliased imperative second runtime root",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nimport { createWebGLRuntime as makeRuntime } from "@viselora/dom-webgl";\nmakeRuntime({ container: document.body });\n',
+        ),
+      "exactly one runtime root",
+    ],
+    [
       "a direct Three renderer",
       (root: string) => append(root, "src/App.tsx", "\nnew WebGLRenderer();\n"),
+      "direct WebGLRenderer construction is prohibited",
+    ],
+    [
+      "an aliased Three renderer",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nimport { WebGLRenderer as Renderer } from "three";\nnew Renderer();\n',
+        ),
       "direct WebGLRenderer construction is prohibited",
     ],
     [
@@ -170,12 +304,44 @@ describe("viselora-dom-webgl skill", () => {
       "R3F Canvas roots are prohibited",
     ],
     [
+      "an aliased R3F Canvas",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nimport { Canvas as SceneCanvas } from "@react-three/fiber";\nconst extraCanvas = <SceneCanvas />;\n',
+        ),
+      "React Three Fiber is prohibited",
+    ],
+    [
       "component-scoped runtime effects",
       (root: string) => {
         replace(root, "src/App.tsx", "export function App() {", "export function App() {\n  const runtimeEffects = [];");
         replace(root, "src/App.tsx", "effects={runtimeEffects}", "effects={runtimeEffects}");
       },
       "runtimeEffects must be declared at module scope",
+    ],
+    [
+      "constructed runtime effects",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          "effects={runtimeEffects}",
+          "effects={[...runtimeEffects]}",
+        ),
+      "runtime effects must use one stable module-scope array",
+    ],
+    [
+      "an inline target declaration",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          "webgl={surfaceDeclaration}",
+          "webgl={{ ...surfaceDeclaration }}",
+        ),
+      "target declarations must be stable",
     ],
     [
       "a component-owned scroll listener",
@@ -188,9 +354,56 @@ describe("viselora-dom-webgl skill", () => {
       "scroll and pointer input must use one managed ownership path",
     ],
     [
+      "assigned scroll and pointer listeners",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          "\nwindow.onscroll = () => undefined;\ndocument.onpointermove = () => undefined;\n",
+        ),
+      "scroll and pointer input must use one managed ownership path",
+    ],
+    [
+      "a dynamic private Viselora import",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nvoid import("@viselora/dom-webgl/private");\n',
+        ),
+      "non-public Viselora import",
+    ],
+    [
+      "a dynamic project import",
+      (root: string) =>
+        append(root, "src/App.tsx", '\nvoid import("@project/runtime");\n'),
+      "@project/* imports are prohibited",
+    ],
+    [
+      "a dynamic repository source import",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nvoid import("packages/dom-webgl-runtime/src/index");\n',
+        ),
+      "repository source imports are prohibited",
+    ],
+    [
       "the video surface",
       (root: string) => replace(root, "src/App.tsx", 'type: "video"', 'type: "image"'),
       "missing media/video surface",
+    ],
+    [
+      "a dom/text pulse substitution",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          'source: { kind: "dom", type: "element" }',
+          'source: { kind: "dom", type: "text" }',
+        ),
+      "missing dom/element surface pulse surface",
     ],
     [
       "the pointer-hover surface",
@@ -206,6 +419,54 @@ describe("viselora-dom-webgl skill", () => {
       "the image-sequence surface",
       (root: string) => replace(root, "src/App.tsx", 'type: "image-sequence"', 'type: "image"'),
       "missing media/image-sequence surface",
+    ],
+    [
+      "required lifecycle and offscreen intent",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          '    offscreen: { strategy: "restore-dom" },',
+          "",
+        ),
+      "missing explicit lifecycle/offscreen/fallback evidence",
+    ],
+    [
+      "a required DOM fallback",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          [
+            '          <WebGLTarget as="section" webgl={surfaceDeclaration}>',
+            "            <h1>DOM-first WebGL</h1>",
+            "          </WebGLTarget>",
+          ].join("\n"),
+          '          <WebGLTarget as="section" webgl={surfaceDeclaration} />',
+        ),
+      "missing explicit lifecycle/offscreen/fallback evidence",
+    ],
+    [
+      "an unmanaged overlay handle",
+      (root: string) =>
+        replace(
+          root,
+          "src/effects.ts",
+          "      ctx.resources.addDisposable(() => layer.dispose());\n",
+          "",
+        ),
+      "overlay handles must be registered with ctx.resources.addDisposable",
+    ],
+    [
+      "an unmanaged model light handle",
+      (root: string) =>
+        replace(
+          root,
+          "src/effects.ts",
+          "      ctx.resources.addDisposable(() => glowLight.dispose());\n",
+          "",
+        ),
+      "model handles must be registered with ctx.resources.addDisposable",
     ],
   ])("rejects a consumer with %s", (_name, mutate, message) => {
     const fixtureRoot = copyTemplate();
@@ -239,10 +500,15 @@ function read(path: string): string {
   return readFileSync(resolve(skillRoot, path), "utf8");
 }
 
-function copyTemplate(): string {
+function copyTemplate(options: { installTypeScript?: boolean } = {}): string {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "viselora-skill-consumer-"));
   fixtureRoots.push(fixtureRoot);
   cpSync(templateRoot, fixtureRoot, { recursive: true });
+  if (options.installTypeScript !== false) {
+    const nodeModules = resolve(fixtureRoot, "node_modules");
+    mkdirSync(nodeModules, { recursive: true });
+    symlinkSync(resolve(repoRoot, "node_modules/typescript"), resolve(nodeModules, "typescript"), "dir");
+  }
   return fixtureRoot;
 }
 
@@ -256,6 +522,13 @@ function replace(root: string, path: string, search: string, replacement: string
   const content = readFileSync(absolutePath, "utf8");
   expect(content).toContain(search);
   writeFileSync(absolutePath, content.replace(search, replacement));
+}
+
+function replaceAll(root: string, path: string, search: string, replacement: string): void {
+  const absolutePath = resolve(root, path);
+  const content = readFileSync(absolutePath, "utf8");
+  expect(content).toContain(search);
+  writeFileSync(absolutePath, content.split(search).join(replacement));
 }
 
 function runVerifier(root: string) {
