@@ -34,6 +34,8 @@ export function publishPackages(options: {
   packages: ReleasePackage[];
   runCommand: ReleaseCommandRunner;
   log?: (message: string) => void;
+  readbackDelays?: number[];
+  sleep?: (milliseconds: number) => void;
 }): ReleaseAction[];
 
 export function publishRelease(options: {

@@ -176,6 +176,45 @@ describe("idempotent release publisher", () => {
     expect(logs.join("\n")).toContain("npm notice package archive prepared");
     expect(logs.join("\n")).toContain("npm notice Publishing to registry");
   });
+
+  test("retries confirmed publishes until registry readback becomes visible", () => {
+    const fixture = createRegistryFixture({}, registryTags(), 2);
+    const waits: number[] = [];
+
+    const result = publishPackages({
+      version,
+      packages: releasePackages(),
+      runCommand: fixture.runCommand,
+      readbackDelays: [10, 20],
+      sleep: (milliseconds) => waits.push(milliseconds),
+    });
+
+    expect(result).toEqual([
+      { name: "@viselora/dom-webgl", action: "published" },
+      { name: "@viselora/scroll-adapters", action: "published" },
+    ]);
+    expect(waits).toEqual([10, 20, 10, 20]);
+  });
+
+  test("removes an alpha version accidentally assigned to latest", () => {
+    const tags = registryTags();
+    tags["@viselora/dom-webgl"].latest = version;
+    tags["@viselora/scroll-adapters"].latest = version;
+    const fixture = createRegistryFixture(registryPackages(), tags);
+
+    publishPackages({
+      version,
+      packages: releasePackages(),
+      runCommand: fixture.runCommand,
+    });
+
+    expect(fixture.commands).toContain(
+      "npm dist-tag rm @viselora/dom-webgl latest",
+    );
+    expect(fixture.commands).toContain(
+      "npm dist-tag rm @viselora/scroll-adapters latest",
+    );
+  });
 });
 
 type RegistryPackage = {
@@ -187,7 +226,7 @@ type RegistryPackage = {
 };
 
 type RegistryState = Record<string, RegistryPackage>;
-type TagsState = Record<string, { alpha: string }>;
+type TagsState = Record<string, { alpha: string; latest?: string }>;
 
 function releasePackages() {
   return [
@@ -245,11 +284,13 @@ function registryTags(): TagsState {
 function createRegistryFixture(
   initial: RegistryState = {},
   initialTags: TagsState = registryTags(),
+  visibilityMissesAfterPublish = 0,
 ) {
   const state = structuredClone(initial);
   const tags = structuredClone(initialTags);
   const packages = releasePackages();
   const commands: string[] = [];
+  const remainingVisibilityMisses: Record<string, number> = {};
 
   return {
     commands,
@@ -271,11 +312,17 @@ function createRegistryFixture(
           dist: { integrity: entry.integrity },
         };
         tags[entry.name] = { alpha: version };
+        remainingVisibilityMisses[entry.name] = visibilityMissesAfterPublish;
         return {
           status: 0,
           stdout: `+ ${entry.name}@${version}`,
           stderr: "",
         };
+      }
+
+      if (args[0] === "dist-tag" && args[1] === "rm" && args[3] === "latest") {
+        delete tags[args[2]].latest;
+        return { status: 0, stdout: `-latest: ${args[2]}`, stderr: "" };
       }
 
       if (args[0] === "view" && args[2] === "dist-tags") {
@@ -285,6 +332,10 @@ function createRegistryFixture(
       const entry = packages.find(({ name }) => `${name}@${version}` === args[1]);
       if (args[0] === "view" && entry) {
         const current = state[entry.name];
+        if (current && (remainingVisibilityMisses[entry.name] ?? 0) > 0) {
+          remainingVisibilityMisses[entry.name] -= 1;
+          return { status: 1, stdout: "", stderr: "npm ERR! code E404" };
+        }
         return current
           ? result(current)
           : { status: 1, stdout: "", stderr: "npm ERR! code E404" };
