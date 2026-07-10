@@ -14,7 +14,9 @@
     "check": "npm run typecheck && npm test -- --run",
     "check:imports": "node ./scripts/assert-example-public-imports.mjs",
     "release:version": "node ./scripts/set-release-version.mjs",
-    "verify:versions": "node ./scripts/set-release-version.mjs --check"
+    "verify:versions": "node ./scripts/set-release-version.mjs --check",
+    "pack:verify": "node ./scripts/verify-package-tarballs.mjs",
+    "verify:tarballs": "npm run build && npm run pack:verify"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
