@@ -12,7 +12,7 @@ import {
   type WebGLSceneRenderOptions,
   type WebGLStageBoxProps,
   type WebGLStagePlaneProps,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 const physicsSceneRender = {
   camera: "example.physics.camera",

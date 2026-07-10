@@ -1,4 +1,4 @@
-import { createEffectDeclarations } from "@project/dom-webgl-runtime";
+import { createEffectDeclarations } from "@viselora/dom-webgl";
 
 export type ExampleEffectParams = {
   "example.surfaceFill": { imageSrc?: string; opacity?: number };

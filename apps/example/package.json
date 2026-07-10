@@ -1,5 +1,5 @@
 {
-  "name": "@project/dom-webgl-example",
+  "name": "@viselora/example",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "typecheck": "tsc -p ../../tsconfig.base.json --noEmit"
   },
   "dependencies": {
-    "@project/dom-webgl-runtime": "0.0.0",
-    "@project/dom-webgl-scroll-adapters": "0.0.0",
+    "@viselora/dom-webgl": "0.1.0-alpha.0",
+    "@viselora/scroll-adapters": "0.1.0-alpha.0",
     "gsap": "^3.15.0",
     "lenis": "^1.3.23",
     "react": "^19.1.0",

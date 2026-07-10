@@ -1,4 +1,4 @@
-import type { WebGLScrollAdapter } from "@project/dom-webgl-runtime";
+import type { WebGLScrollAdapter } from "@viselora/dom-webgl";
 
 import {
   createGsapTickerLenisBridge,

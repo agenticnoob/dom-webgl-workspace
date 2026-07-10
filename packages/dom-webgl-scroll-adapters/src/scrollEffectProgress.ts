@@ -1,4 +1,4 @@
-import type { WebGLProgressSignalSource } from "@project/dom-webgl-runtime";
+import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 
 export type ScrollEffectProgressStore = {
   readonly source: WebGLProgressSignalSource;

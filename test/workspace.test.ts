@@ -20,4 +20,36 @@ describe("root workspace configuration", () => {
       check: "npm run typecheck && npm test -- --run",
     });
   });
+
+  test("uses the Viselora public identities for package consumers", () => {
+    const runtimePackage = readPackage(
+      "packages/dom-webgl-runtime/package.json",
+    );
+    const adaptersPackage = readPackage(
+      "packages/dom-webgl-scroll-adapters/package.json",
+    );
+    const examplePackage = readPackage("apps/example/package.json");
+
+    expect(runtimePackage.name).toBe("@viselora/dom-webgl");
+    expect(adaptersPackage.name).toBe("@viselora/scroll-adapters");
+    expect(examplePackage).toMatchObject({
+      name: "@viselora/example",
+      dependencies: {
+        "@viselora/dom-webgl": "0.1.0-alpha.0",
+        "@viselora/scroll-adapters": "0.1.0-alpha.0",
+      },
+    });
+  });
 });
+
+function readPackage(path: string): {
+  name?: string;
+  dependencies?: Record<string, string>;
+} {
+  return JSON.parse(
+    readFileSync(resolve(process.cwd(), path), "utf8"),
+  ) as {
+    name?: string;
+    dependencies?: Record<string, string>;
+  };
+}

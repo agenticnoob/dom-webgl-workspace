@@ -19,15 +19,15 @@ describe("runtime package public exports", () => {
       exports?: Record<string, { import?: string; types?: string }>;
     };
 
-    expect(packageJson.name).toBe("@project/dom-webgl-runtime");
+    expect(packageJson.name).toBe("@viselora/dom-webgl");
     expect(packageJson.exports).toEqual({
       ".": {
-        types: "./src/index.ts",
-        import: "./src/index.ts",
+        types: "./dist/index.d.ts",
+        import: "./dist/index.js",
       },
       "./react": {
-        types: "./src/react.ts",
-        import: "./src/react.ts",
+        types: "./dist/react.d.ts",
+        import: "./dist/react.js",
       },
     });
   });

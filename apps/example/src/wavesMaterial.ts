@@ -1,7 +1,7 @@
 import type {
   WebGLEffectMaterialProgram,
   WebGLEffectUniformValue,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import { defaultWavesConfig } from "./wavesConfig";
 

@@ -2,7 +2,7 @@ import {
   defineWebGLEffect,
   type WebGLEffectMaterialLayerHandle,
   type WebGLEffectUpdateContext,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import { clampNumber } from "./effectMath";
 import {

@@ -1,7 +1,7 @@
 import type {
   WebGLEffectMaterialLayerHandle,
   WebGLEffectUpdateContext,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import type { TargetLocalPointer } from "./surfacePointer";
 

@@ -2,7 +2,7 @@ import { act, createElement, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import type { WebGLDebugState } from "@project/dom-webgl-runtime";
+import type { WebGLDebugState } from "@viselora/dom-webgl";
 
 const runtimeProps: RuntimeMockProps[] = [];
 const scrollRuntimeProps: ScrollRuntimeMockProps[] = [];
@@ -158,7 +158,7 @@ type PassViewportMockProps = {
   readonly children?: ReactNode;
 };
 
-vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
+vi.mock("@viselora/scroll-adapters/react", () => ({
   WebGLScrollRuntime: (props: ScrollRuntimeMockProps) => {
     scrollRuntimeProps.push(props);
     return createElement("div", { "data-testid": "example-scroll-runtime" }, props.children);
@@ -193,7 +193,7 @@ vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   }),
 }));
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLRuntime: (props: RuntimeMockProps) => {
     runtimeProps.push(props);
     return createElement("div", { "data-testid": "example-runtime" }, props.children);

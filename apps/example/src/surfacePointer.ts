@@ -1,4 +1,4 @@
-import type { WebGLEffectUpdateContext } from "@project/dom-webgl-runtime";
+import type { WebGLEffectUpdateContext } from "@viselora/dom-webgl";
 
 type TargetLocalPointerInput = {
   readonly layout: Pick<

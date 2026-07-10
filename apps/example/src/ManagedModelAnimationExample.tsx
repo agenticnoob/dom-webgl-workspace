@@ -2,7 +2,7 @@ import * as React from "react";
 import {
   WebGLScrollTimeline,
   type WebGLScrollTimelineProps,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 import {
   WebGLLight,
   WebGLCamera,
@@ -13,7 +13,7 @@ import {
   type WebGLLightProps,
   type WebGLModelProps,
   type WebGLSceneRenderOptions,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 const modelSceneRender = {
   camera: "example.managedModel.camera",

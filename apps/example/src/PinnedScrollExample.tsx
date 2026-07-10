@@ -1,6 +1,6 @@
 import * as React from "react";
-import { WebGLTarget } from "@project/dom-webgl-runtime/react";
-import { ScrollEffectSection } from "@project/dom-webgl-scroll-adapters/react";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
+import { ScrollEffectSection } from "@viselora/scroll-adapters/react";
 
 import { EffectDescription } from "./EffectDescription";
 

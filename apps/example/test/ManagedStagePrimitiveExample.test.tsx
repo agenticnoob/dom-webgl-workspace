@@ -57,7 +57,7 @@ type PassViewportMockProps = {
   readonly children?: ReactNode;
 };
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLPassViewport: ({ children, ...props }: PassViewportMockProps) => {
     const { as, ...domProps } = props;
     passViewportProps.push({ ...props, children });

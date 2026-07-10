@@ -2,7 +2,7 @@ import {
   defineWebGLEffect,
   type WebGLTextGlyph,
   type WebGLTextGlyphRenderCommand,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import { clampNumber, readTargetViewportProgress } from "./effectMath";
 import { readTargetLocalPointer } from "./surfacePointer";

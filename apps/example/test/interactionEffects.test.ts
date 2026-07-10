@@ -6,7 +6,7 @@ import type {
   WebGLSceneObjectEffectContext,
   WebGLSceneObjectEffectSourceKind,
   WebGLSceneObjectPointerState,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import {
   examplePhysicsKinematicSweepEffect,

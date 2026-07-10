@@ -3,11 +3,11 @@ import {
   WebGLDebugPanel,
   WebGLTarget,
   useWebGLDebugState,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 
 import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";

@@ -1,4 +1,4 @@
-import { defineWebGLSceneObjectEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
 
 import { clampNumber } from "./effectMath";
 

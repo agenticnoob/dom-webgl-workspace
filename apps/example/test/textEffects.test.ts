@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import type { WebGLTextGlyphRenderCommand } from "@project/dom-webgl-runtime";
+import type { WebGLTextGlyphRenderCommand } from "@viselora/dom-webgl";
 
 import { createEffectContext, createGlyph } from "./effectContext";
 import {

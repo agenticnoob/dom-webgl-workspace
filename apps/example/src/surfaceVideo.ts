@@ -1,7 +1,7 @@
 import type {
   WebGLEffectCanvasSurfaceHandle,
   WebGLEffectUpdateContext,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 export type SurfaceVideoBackgroundState = {
   video: HTMLVideoElement | undefined;

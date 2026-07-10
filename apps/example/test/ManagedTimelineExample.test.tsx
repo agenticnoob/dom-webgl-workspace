@@ -125,7 +125,7 @@ type ModelMockProps = {
   readonly timeline?: TimelineMockProps;
 };
 
-vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
+vi.mock("@viselora/scroll-adapters/react", () => ({
   WebGLScrollTimeline: ({
     as = "section",
     children,
@@ -141,7 +141,7 @@ vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   },
 }));
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLPassViewport: ({
     as = "div",
     children,
