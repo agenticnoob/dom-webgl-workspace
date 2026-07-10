@@ -1,0 +1,30 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Use npm 11
+        run: npm install --global npm@11
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test -- --run
+      - run: npm run build
+      - run: npm run check:imports
+      - run: npm run verify:versions
+      - run: npm run verify:tarballs
+      - run: npm run verify:consumer
+      - run: npm run verify:skill
+      - run: git diff --check
