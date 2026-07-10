@@ -50,7 +50,7 @@ click to show the source kind, effect name, and explanation.
 Use public package entrypoints only:
 
 ```tsx
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 import {
   WebGLLight,
   WebGLCamera,
@@ -59,19 +59,19 @@ import {
   WebGLScene,
   WebGLStagePlane,
   WebGLTarget,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 ```
 
 Do not import:
 
 ```ts
-import ... from "<runtime-package>/effects";
+import ... from "@viselora/dom-webgl/effects";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "../example/src/someEffect";
 ```
@@ -79,7 +79,7 @@ import ... from "../example/src/someEffect";
 ## Pinned Scroll Effect Path
 
 For the normal "pinned section drives a WebGL effect" path, use the optional
-React adapter from `@project/dom-webgl-scroll-adapters/react`. It hides the
+React adapter from `@viselora/scroll-adapters/react`. It hides the
 bounded trigger lifecycle from ordinary example code, owns one trigger per
 `ScrollEffectSection`, uses GSAP ScrollTrigger `pin`/`scrub`, and exposes
 progress to effects through a stable key:
@@ -227,7 +227,7 @@ raw Three.js handles.
 Define application-owned effects in local app code:
 
 ```ts
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 export const textWaveEffect = defineWebGLEffect<{
   kind: "example.textWave";

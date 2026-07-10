@@ -13,14 +13,14 @@ evidence, not current authoring guidance. Current public effects use
 ## Summary
 
 `apps/example` was created as a React-only downstream consumer of
-`@project/dom-webgl-runtime`. It imports only public package entrypoints,
+`@viselora/dom-webgl`. It imports only public package entrypoints,
 defines application-owned effects locally, exercises `dom/element`,
 `dom/text`, `media/image`, `media/video`, `media/image-sequence`, and
 `model/glb` source handles through a
 full-width vertical one-effect-per-row catalog, places user-facing explanations
 in a reusable click-to-expand overlay component on each Chinese effect row while
 keeping API identifiers in English. It applies optional Lenis + GSAP +
-ScrollTrigger support through `@project/dom-webgl-scroll-adapters/react`:
+ScrollTrigger support through `@viselora/scroll-adapters/react`:
 `WebGLScrollRuntime` owns the built-in smooth stack from
 `exampleSmoothScrollOptions`, while `ScrollEffectSection` owns bounded pinned
 section progress. This makes `apps/example` the dogfood surface for the
@@ -187,7 +187,7 @@ by writing target scale from the effect.
   canvas and make a valid text renderable look blank.
 - Scene gates are easy to over-apply because they also expose progress. They
   lock page scroll and are not the recommended pinned-scroll story path. Use
-  `@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+  `@viselora/scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
   and stable `progressKey` data for ordinary pinned effects.
 - Runtime replacement from a late-arriving `scrollAdapter` is handled inside the
   React adapter. Consumers should still avoid unnecessary adapter identity churn

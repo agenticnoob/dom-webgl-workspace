@@ -8,8 +8,8 @@ No adapter is required for normal browser scrolling:
 
 ```tsx
 import type { ReactNode } from "react";
-import type { WebGLRuntimeOptions } from "@project/dom-webgl-runtime";
-import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
+import type { WebGLRuntimeOptions } from "@viselora/dom-webgl";
+import { WebGLRuntime } from "@viselora/dom-webgl/react";
 
 export function AppRuntime({ children, runtimeEffects }: {
   children: ReactNode;
@@ -21,19 +21,19 @@ export function AppRuntime({ children, runtimeEffects }: {
 
 ## High-Level Pinned Scroll React Adapter
 
-Use `@project/dom-webgl-scroll-adapters/react` for a pinned section whose
+Use `@viselora/scroll-adapters/react` for a pinned section whose
 progress drives a WebGL effect. This is the recommended pinned-scroll route:
 the React adapter owns the bounded GSAP ScrollTrigger `pin`/`scrub` instance
 and writes keyed progress into the runtime.
 
 ```tsx
 import type { ReactNode } from "react";
-import type { WebGLRuntimeOptions } from "@project/dom-webgl-runtime";
-import { WebGLTarget } from "@project/dom-webgl-runtime/react";
+import type { WebGLRuntimeOptions } from "@viselora/dom-webgl";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export function PinnedRuntime({
@@ -88,9 +88,9 @@ stack.
 ```tsx
 import { useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
-import type { WebGLRuntimeOptions } from "@project/dom-webgl-runtime";
-import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
-import { createLenisGsapScrollStack } from "@project/dom-webgl-scroll-adapters";
+import type { WebGLRuntimeOptions } from "@viselora/dom-webgl";
+import { WebGLRuntime } from "@viselora/dom-webgl/react";
+import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
 
 export function AppScrollRuntime({
   children,

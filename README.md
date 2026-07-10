@@ -1,24 +1,33 @@
-# DOM WebGL Workspace
+# Viselora DOM WebGL
 
 DOM-first interactive WebGL runtime workspace.
 
 ## Status
 
+Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
+
+The first public alpha is prepared as two lockstep ESM-only packages:
+
+- `@viselora/dom-webgl@0.1.0-alpha.0`
+- `@viselora/scroll-adapters@0.1.0-alpha.0`
+
+```bash
+npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
+```
+
+Agents can use `skills/viselora-dom-webgl/`. The release decision and
+validation boundary live in `docs/project-release-validation.md`.
+
 Current implementation truth lives in `docs/STATUS.md`.
 
-The next strategic direction is
-`docs/roadmap/managed-render-system.md`: evolve the runtime from target-local
-capabilities into managed scenes, cameras, projection policies, render passes,
-stage primitives, model animation, scoped input, and scene-native dynamics/physics
-while keeping raw Three.js internals private.
+The managed-render capability phases in
+`docs/roadmap/managed-render-system.md` are complete reference material, not an
+active alpha feature backlog.
 
-This project is intentionally not a React Three Fiber replacement and is not
-being pivoted into an R3F companion runtime. R3F, Drei, and existing scroll-rig
-style libraries already cover free-form Three.js scene authoring well. This
-workspace stays scoped to a DOM-first managed runtime: DOM targets, layout,
-fallback, lifecycle, scroll, pointer, resources, and runtime-owned WebGL output.
-If an agent-first product should use R3F as the rendering layer, prototype it as
-a separate project rather than mixing the ownership models here.
+This project is intentionally not a React Three Fiber replacement or companion
+runtime. It remains a DOM-first managed runtime: DOM targets, layout, fallback,
+lifecycle, scroll, pointer, resources, and runtime-owned WebGL output. R3F is
+not required to consume Viselora.
 
 Completed phase plans and historical execution records are archived under
 `docs/archive/`. Treat archived files as evidence, not current API truth or live
@@ -141,8 +150,8 @@ Current runtime behavior:
 Current example behavior:
 
 - `apps/example` is a React-only Vite app that uses
-  `@project/dom-webgl-runtime`, `@project/dom-webgl-runtime/react`, and the
-  optional `@project/dom-webgl-scroll-adapters` package through public
+  `@viselora/dom-webgl`, `@viselora/dom-webgl/react`, and the
+  optional `@viselora/scroll-adapters` package through public
   entrypoints only.
 - The example registers a stable module-scope `exampleEffects` array and
   declares a full-width vertical catalog of targets across the public source
@@ -410,9 +419,9 @@ Current visual behavior:
   particle systems, animation layers, and raw raycaster/intersection access
   remain intentionally out of scope. Third-party scroll integration now uses a small
   public `WebGLScrollAdapter` protocol in core plus the optional
-  `@project/dom-webgl-scroll-adapters` package for Lenis, GSAP ticker, and
+  `@viselora/scroll-adapters` package for Lenis, GSAP ticker, and
   ScrollTrigger glue. The optional scroll adapters package also exposes
-  `@project/dom-webgl-scroll-adapters/react` for the recommended pinned scroll
+  `@viselora/scroll-adapters/react` for the recommended pinned scroll
   effect path, where `WebGLScrollRuntime` owns the progress store and
   `ScrollEffectSection` owns a bounded trigger instance. Progress sources may
   expose `subscribe(listener)`, and the runtime requests a scroll frame when
@@ -600,7 +609,7 @@ declarations such as `effects.material` or `effects.motion` in new code.
 Matching effect definitions are supplied to the runtime:
 
 ```ts
-import { createWebGLRuntime, defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { createWebGLRuntime, defineWebGLEffect } from "@viselora/dom-webgl";
 
 const appSurfaceEffect = defineWebGLEffect({
   kind: "app.surface",
@@ -640,7 +649,7 @@ that target.
 Application effects use the same API:
 
 ```ts
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 const modelParticleEffect = defineWebGLEffect<{
   kind: "app.modelParticles";
@@ -725,16 +734,16 @@ import type {
   WebGLDebugState,
   WebGLProgressSignalSource,
   WebGLTimelineBindingDeclaration,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 import {
   createWebGLRuntime,
   defineWebGLEffect,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 ```
 
 `apps/example` must not import from `packages/dom-webgl-runtime/src/*`.
@@ -760,7 +769,7 @@ import {
   WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 <WebGLRuntime effects={runtimeEffects}>
   <WebGLScene id="world" render={{ camera: "world.camera" }}>
@@ -849,13 +858,13 @@ signals:
 import {
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "@project/dom-webgl-scroll-adapters/react";
+} from "@viselora/scroll-adapters/react";
 import {
   WebGLLight,
   WebGLCamera,
   WebGLScene,
   WebGLStagePlane,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 <WebGLScrollRuntime effects={runtimeEffects}>
   <WebGLScrollTimeline id="hero.timeline" start="top bottom" end="bottom top" scrub>
@@ -938,7 +947,7 @@ import {
   WebGLRuntime,
   WebGLScene,
   WebGLStagePlane,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 <WebGLRuntime effects={runtimeEffects}>
   <WebGLScene
@@ -1087,7 +1096,7 @@ Phase 2 capability and an optional escape hatch for products that intentionally
 want wheel/touch input to stop page scroll and drive `sceneProgress`.
 
 They are not the recommended way to build a pinned section that drives an
-effect. For that story, use `@project/dom-webgl-scroll-adapters/react`,
+effect. For that story, use `@viselora/scroll-adapters/react`,
 `WebGLScrollRuntime`, `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`,
 `WebGLScrollTimeline`, and `ctx.progress.get(progressKey)` /
 `ctx.runtime.progress.get(progressKey)`.

@@ -1,14 +1,23 @@
 # Current Status
 
-**Last reviewed against:** Phase 9 dynamics and physics implementation plus
-2026-07-09 R3F/product-boundary review
+**Last reviewed against:** 2026-07-10 Viselora alpha release design
 
-This is the active current-truth summary. Completed execution plans and older
+This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
+
+## Project State
+
+Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
+
+The current release target is the lockstep public alpha of
+`@viselora/dom-webgl` and `@viselora/scroll-adapters`, plus the
+`skills/viselora-dom-webgl/` consumer skill. Publication remains gated on local
+verification and explicit confirmation that the npm Organization and bootstrap
+token are ready. See [project-release-validation.md](./project-release-validation.md).
 
 ## Product Boundary
 
-The active product remains a DOM-first managed WebGL runtime. It is not a React
+The product remains a DOM-first managed WebGL runtime. It is not a React
 Three Fiber replacement, not a raw Three.js wrapper, and not an R3F companion
 runtime. R3F/Drei are better suited for free-form Three.js scene authoring and
 agent-authored 3D applications; this repo stays focused on DOM targets,
@@ -19,9 +28,8 @@ effects.
 Do not add R3F parity features just because R3F can express them. In particular,
 do not add raw Three refs, full JSX mapping, `primitive`/`extend`, consumer-owned
 scene graph mutation, raw controls, raw loaders, or raw render hooks to this
-runtime. If an agent-first product should use R3F as its rendering layer, build
-that as a separate project or prototype rather than mixing R3F ownership into
-this package.
+runtime. Free-form R3F applications remain a different ownership model, but
+migration to R3F is not required to publish or consume Viselora.
 
 ## Runtime Truth
 
@@ -179,7 +187,7 @@ this package.
     and managed picking rather than the previous view
   - timeline bindings consume runtime `WebGLProgressSignalSource` values and
     normalize optional active ranges with `from`/`to`
-  - `@project/dom-webgl-scroll-adapters/react` exports
+  - `@viselora/scroll-adapters/react` exports
     `WebGLScrollTimeline` as the broader named progress section, while
     `ScrollEffectSection` remains compatibility sugar for target/effect pinned
     sections
@@ -253,7 +261,7 @@ this package.
   pass. Effects that write `ctx.object.position` or `ctx.object.scale` take over
   placement.
 - Scene-gated scroll remains an optional advanced scroll-locking capability.
-  Ordinary pinned scrub sections should use `@project/dom-webgl-scroll-adapters/react`,
+  Ordinary pinned scrub sections should use `@viselora/scroll-adapters/react`,
   `ScrollEffectSection` or `WebGLScrollTimeline`, stable progress ids, and
   `ctx.progress.get(progressKey)` / `ctx.runtime.progress.get(progressKey)`.
 - Timeline bindings can hide/skip targets, scenes, stage primitives, and lights

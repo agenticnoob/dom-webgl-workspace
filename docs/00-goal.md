@@ -11,7 +11,7 @@ capability through Task 56, including public gate declarations, scroll lock,
 SSR/import-boundary regressions, full verification, and final documentation
 alignment. It is not the current core goal or the recommended pinned-scroll
 route. For pinned sections that drive effects, use
-`@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+`@viselora/scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
 and stable `progressKey` values. Phase 3 visible renderables are complete
 through Task 72: DOM-authored
 element snapshots, text snapshots, images, videos, and GLB models now become
@@ -356,7 +356,7 @@ Users should only configure advanced fields when they need to override a real be
 - Set `renderRole` only when source inference is insufficient.
 - Set `scroll` only when intentionally using advanced scene gates or custom
   scroll ranges. Do not use scene gates as the normal pinned-scroll effect
-  story; use `@project/dom-webgl-scroll-adapters/react`,
+  story; use `@viselora/scroll-adapters/react`,
   `ScrollEffectSection`, GSAP ScrollTrigger `pin`/`scrub`, and a keyed progress
   signal instead.
 - Set `pointer` only when an interaction requires click, press, long press, or drag semantics.
@@ -576,7 +576,7 @@ Normal page scrolling continues. DOM layout changes, viewport measurements updat
 ### Recommended Pinned Scroll Progress
 
 For a pinned section that drives WebGL effects, use
-`@project/dom-webgl-scroll-adapters/react`:
+`@viselora/scroll-adapters/react`:
 
 - `WebGLScrollRuntime` owns the runtime progress store.
 - `ScrollEffectSection` owns one bounded GSAP ScrollTrigger section with `pin`
@@ -798,7 +798,7 @@ import {
   type WebGLScrollBehavior,
   type WebGLPointerState,
   type WebGLFrameInput
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 ```
 
 The library owns:
@@ -824,8 +824,8 @@ The example app owns:
 
 Boundary rules:
 
-- `apps/example/*` may import from `@project/dom-webgl-runtime`.
-- `apps/example/*` must not import from `@project/dom-webgl-runtime/src/lib/*`.
+- `apps/example/*` may import from `@viselora/dom-webgl`.
+- `apps/example/*` must not import from `@viselora/dom-webgl/src/lib/*`.
 - `packages/dom-webgl-runtime/src/lib/*` must not import app code.
 - Runtime/package implementation must not hardcode example-only keys, asset paths,
   DOM structure, layout, or copy. Example needs must be expressed as reusable
@@ -848,7 +848,7 @@ apps/example
 React example import:
 
 ```ts
-import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
+import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
 ```
 
 Vanilla import:
@@ -857,13 +857,13 @@ Vanilla import:
 import {
   createWebGLRuntime,
   registerWebGLTarget
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 ```
 
 Public export direction:
 
 ```ts
-// @project/dom-webgl-runtime
+// @viselora/dom-webgl
 export { createWebGLRuntime, registerWebGLTarget, unregisterWebGLTarget };
 export type {
   WebGLDeclaration,
@@ -874,7 +874,7 @@ export type {
   WebGLDebugState
 };
 
-// @project/dom-webgl-runtime/react
+// @viselora/dom-webgl/react
 export { WebGLRuntime, WebGLTarget, useWebGLRuntime };
 ```
 
@@ -1252,14 +1252,14 @@ Delivered third-party adapter boundary:
   page/gate implementation.
 - Core exposes `WebGLScrollAdapter` for applications that already own Lenis,
   GSAP ScrollTrigger, or another scroll system.
-- Optional third-party glue lives in `@project/dom-webgl-scroll-adapters`.
-- `@project/dom-webgl-scroll-adapters/react` provides the recommended
+- Optional third-party glue lives in `@viselora/scroll-adapters`.
+- `@viselora/scroll-adapters/react` provides the recommended
   high-level pinned scroll effect path: `WebGLScrollRuntime` owns a runtime
   progress store, `ScrollEffectSection` owns one bounded trigger instance, and
   effects read section progress through `ctx.progress.get(progressKey)`. The
   progress source notifies the runtime when keyed values change so external
   scrub updates can wake on-demand renderables such as image sequences.
-- `@project/dom-webgl-scroll-adapters` still provides
+- `@viselora/scroll-adapters` still provides
   `createLenisGsapScrollStack(...)` as the advanced manual stack for
   applications that want to own Lenis + GSAP ticker + ScrollTrigger wiring
   directly.
@@ -1394,7 +1394,7 @@ Success criteria:
 Scene-gated scroll was the second implementation milestone. It is complete and
 is not the current next-phase target. Do not treat this milestone as a request
 to add or finish gate behavior when building ordinary pinned-scroll sections.
-Use `@project/dom-webgl-scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
+Use `@viselora/scroll-adapters/react`, GSAP ScrollTrigger `pin`/`scrub`,
 and stable `progressKey` data for that path.
 
 Must support:

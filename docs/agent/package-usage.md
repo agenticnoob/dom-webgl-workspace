@@ -5,6 +5,10 @@ into downstream applications. This is package-consumer documentation, not a
 workspace example guide and not a human tutorial. Treat every rule below as
 implementation policy.
 
+Install the public alpha packages with
+`npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha`. The
+same-repository agent skill lives at `skills/viselora-dom-webgl/`.
+
 ## Package Truth
 
 - Use public package entrypoints only.
@@ -22,9 +26,9 @@ implementation policy.
 - Native page scroll is the default. Scene gates are historical optional
   scroll-locking behavior. Third-party smooth-scroll systems use
   `WebGLScrollAdapter`; optional Lenis/GSAP/ScrollTrigger glue lives outside
-  core in `<scroll-adapters-package>`.
+  core in `@viselora/scroll-adapters`.
 - Pinned scroll effects are not authored with scene gates. Use the optional
-  `<scroll-adapters-package>/react` layer when a React consumer wants bounded
+  `@viselora/scroll-adapters/react` layer when a React consumer wants bounded
   GSAP-pinned sections that feed stable `progressKey` values into
   `ctx.progress.get(key)`.
 - The package does not provide default visual effects or an official
@@ -67,8 +71,8 @@ first designing their object-facade shape.
 
 ## Public Imports
 
-Replace `<runtime-package>` with the actual published npm package name. In this
-workspace before publication, the package name is `@project/dom-webgl-runtime`.
+The public runtime package name is `@viselora/dom-webgl`; the optional adapter
+package is `@viselora/scroll-adapters`.
 
 Use:
 
@@ -123,7 +127,7 @@ import {
   type WebGLTransformScope,
   type WebGLTuple2,
   type WebGLTuple3,
-} from "<runtime-package>";
+} from "@viselora/dom-webgl";
 ```
 
 Use for React:
@@ -139,7 +143,7 @@ import {
   WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 ```
 
 Use for the high-level pinned scroll React adapter:
@@ -149,17 +153,17 @@ import {
   ScrollEffectSection,
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 ```
 
 Do not use:
 
 ```ts
-import ... from "<runtime-package>/effects";
-import ... from "<runtime-package>/src";
+import ... from "@viselora/dom-webgl/effects";
+import ... from "@viselora/dom-webgl/src";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "packages/dom-webgl-scroll-adapters/src";
-import { createInitialPointerState } from "<runtime-package>";
+import { createInitialPointerState } from "@viselora/dom-webgl";
 ```
 
 ## Runtime Performance Budgets
@@ -225,7 +229,7 @@ There are five supported consumer routes.
 React:
 
 ```tsx
-import { WebGLRuntime, WebGLTarget } from "<runtime-package>/react";
+import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
 
 const runtimeEffects = [appSurfaceEffect, appPointerEffect] as const;
 
@@ -249,7 +253,7 @@ export function App() {
 Vanilla:
 
 ```ts
-import { createWebGLRuntime } from "<runtime-package>";
+import { createWebGLRuntime } from "@viselora/dom-webgl";
 
 const runtime = createWebGLRuntime({
   container,
@@ -299,7 +303,7 @@ import {
   WebGLRuntime,
   WebGLScene,
   WebGLTarget,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -511,7 +515,7 @@ import {
   WebGLStageBox,
   WebGLStagePlane,
   WebGLTarget,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -613,13 +617,13 @@ with a DOM-owned section ref.
 import {
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 import {
   WebGLLight,
   WebGLCamera,
   WebGLScene,
   WebGLStagePlane,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -697,17 +701,17 @@ Rules:
 ### 5. High-Level Pinned Scroll React Adapter
 
 For the normal "pinned section drives an effect" story, use
-`<scroll-adapters-package>/react`. The wrapper owns the runtime progress store;
+`@viselora/scroll-adapters/react`. The wrapper owns the runtime progress store;
 each `ScrollEffectSection` owns one bounded trigger instance and clears only its
 own progress key during cleanup.
 
 ```tsx
-import { defineWebGLEffect } from "<runtime-package>";
-import { WebGLTarget } from "<runtime-package>/react";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const pinnedRevealEffect = defineWebGLEffect<{
@@ -788,7 +792,7 @@ Use a scroll adapter only when the application already owns a third-party
 scroll system:
 
 ```ts
-import { createWebGLRuntime, type WebGLScrollAdapter } from "<runtime-package>";
+import { createWebGLRuntime, type WebGLScrollAdapter } from "@viselora/dom-webgl";
 
 declare const lenisBackedAdapter: WebGLScrollAdapter;
 
@@ -819,11 +823,11 @@ Rules:
 ### Official Smooth Scroll Stack
 
 The advanced manual third-party route is the opt-in Lenis + GSAP ticker +
-ScrollTrigger stack from `<scroll-adapters-package>`. Prefer the React adapter
+ScrollTrigger stack from `@viselora/scroll-adapters`. Prefer the React adapter
 subpath above for ordinary pinned section progress.
 
 ```ts
-import { createLenisGsapScrollStack } from "<scroll-adapters-package>";
+import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
 
 const smoothScroll = createLenisGsapScrollStack({
   lenis,
@@ -952,7 +956,7 @@ import {
   WebGLScene,
   WebGLStageBox,
   WebGLStagePlane,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 <WebGLScene
   id="hero.stage"
@@ -1072,7 +1076,7 @@ accepts scene-object `effects`, not DOM target-local effects. Define those
 effects with `defineWebGLSceneObjectEffect(...)`:
 
 ```ts
-import { defineWebGLSceneObjectEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
 
 type CharacterHoverParams = {
   kind: "app.characterHover";
@@ -1229,7 +1233,7 @@ Define effects with `defineWebGLEffect(...)`. The examples in this section use
 the controlled `ctx.object` facade first:
 
 ```ts
-import { defineWebGLEffect } from "<runtime-package>";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 type AppSurfaceParams = {
   kind: "app.surface";
@@ -1357,7 +1361,7 @@ interface AppEffectParams {
 ### Option 1: `createEffectDeclarations()` (零运行时成本)
 
 ```ts
-import { createEffectDeclarations } from "<runtime-package>";
+import { createEffectDeclarations } from "@viselora/dom-webgl";
 
 const effects = createEffectDeclarations<AppEffectParams>()([
   { kind: "app.surface", opacity: 0.82 },       // ✅ type-safe
@@ -1372,7 +1376,7 @@ const effects = createEffectDeclarations<AppEffectParams>()([
 ### Option 2: `satisfies` + `WebGLEffectsDeclarationOf`（JSX 内联）
 
 ```tsx
-import type { WebGLEffectsDeclarationOf } from "<runtime-package>";
+import type { WebGLEffectsDeclarationOf } from "@viselora/dom-webgl";
 
 const cardEffects = [
   { kind: "app.surface", opacity: 0.82 },

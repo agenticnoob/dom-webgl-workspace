@@ -5,15 +5,15 @@ WebGL runtime. This document is package-consumer policy, not a demo tutorial.
 
 ## Boundary
 
-- `@project/dom-webgl-runtime` owns the public `WebGLScrollAdapter` protocol,
+- `@viselora/dom-webgl` owns the public `WebGLScrollAdapter` protocol,
   native page scroll, scene gates, scroll lock, frame input, progress signal
   reads, and effect context.
-- `@project/dom-webgl-scroll-adapters` owns optional glue for Lenis, GSAP ticker,
+- `@viselora/scroll-adapters` owns optional glue for Lenis, GSAP ticker,
   and ScrollTrigger.
 - The low-level adapter helpers leave third-party scroll instances, trigger
   timelines, animation products, route-level lifecycle, and DOM layout decisions
   in application code.
-- `@project/dom-webgl-scroll-adapters/react` is the high-level exception: it
+- `@viselora/scroll-adapters/react` is the high-level exception: it
   intentionally owns bounded `ScrollTrigger` section instances for
   `ScrollEffectSection`, writes keyed progress into the runtime, and kills only
   its own trigger on cleanup.
@@ -27,7 +27,7 @@ Core must not import `lenis`, `gsap`, or `ScrollTrigger`.
 
 There are three supported routes. Prefer the simplest route that matches the
 product behavior. For ordinary pinned sections, default to route 2:
-`@project/dom-webgl-scroll-adapters/react` with GSAP ScrollTrigger
+`@viselora/scroll-adapters/react` with GSAP ScrollTrigger
 `pin`/`scrub` and stable `progressKey` data.
 
 ### 1. Plain Runtime
@@ -39,11 +39,11 @@ scroll needs no adapter:
 <WebGLRuntime effects={runtimeEffects}>{children}</WebGLRuntime>
 ```
 
-This remains the default for `@project/dom-webgl-runtime`.
+This remains the default for `@viselora/dom-webgl`.
 
 ### 2. High-Level Pinned Scroll React Adapter
 
-Use `@project/dom-webgl-scroll-adapters/react` when the product story is
+Use `@viselora/scroll-adapters/react` when the product story is
 "scroll a section, keep a region pinned, and drive a WebGL effect by section
 progress." This is the recommended pinned-scroll story path. It uses GSAP
 ScrollTrigger `pin`/`scrub` under `ScrollEffectSection` and exposes progress to
@@ -53,8 +53,8 @@ effects through a stable `progressKey`.
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
-} from "@project/dom-webgl-scroll-adapters/react";
-import { WebGLTarget } from "@project/dom-webgl-runtime/react";
+} from "@viselora/scroll-adapters/react";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const runtimeEffects = [pinnedRevealEffect] as const;
@@ -112,8 +112,8 @@ Use `createLenisGsapScrollStack(...)` or a custom `WebGLScrollAdapter` when the
 application needs to own the third-party lifecycle directly.
 
 ```tsx
-import { WebGLRuntime } from "@project/dom-webgl-runtime/react";
-import { createLenisGsapScrollStack } from "@project/dom-webgl-scroll-adapters";
+import { WebGLRuntime } from "@viselora/dom-webgl/react";
+import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
 
 const smoothScroll = createLenisGsapScrollStack({
   lenis,
@@ -189,7 +189,7 @@ Rules:
 - `update()` and `refresh(safe?)` delegate to ScrollTrigger.
 - With the low-level bridge, trigger creation, pinning strategy, scrub
   timelines, and animation semantics stay in application code.
-- With `@project/dom-webgl-scroll-adapters/react`, `ScrollEffectSection` owns a
+- With `@viselora/scroll-adapters/react`, `ScrollEffectSection` owns a
   bounded trigger instance and maps its progress to a notifying keyed runtime
   signal.
 - Cleanup must not call global `killAll()` from a reusable adapter unless the
