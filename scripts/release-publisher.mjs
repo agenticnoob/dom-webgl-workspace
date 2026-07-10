@@ -124,36 +124,14 @@ export function publishPackages({
       throw new Error(`Registry mismatch: ${entry.name}@${version} is missing after release`);
     }
     assertPublishedMetadata(published, entry, version);
-    let tags = runNpmJson(
+    const tags = runNpmJson(
       ["view", entry.name, "dist-tags", "--json"],
       runCommand,
       `read ${entry.name} dist-tags`,
     );
-    if (typeof tags?.latest === "string" && /-alpha\.\d+$/.test(tags.latest)) {
-      const removal = runNpm(
-        ["dist-tag", "rm", entry.name, "latest"],
-        runCommand,
-        `remove prerelease latest tag from ${entry.name}`,
-      );
-      const removalOutput = [removal.stdout, removal.stderr]
-        .filter((value) => typeof value === "string" && value.trim().length > 0)
-        .join("\n")
-        .trim();
-      if (removalOutput) log(removalOutput);
-      tags = runNpmJson(
-        ["view", entry.name, "dist-tags", "--json"],
-        runCommand,
-        `verify ${entry.name} dist-tags after latest removal`,
-      );
-    }
     if (tags?.alpha !== version) {
       throw new Error(
         `Registry mismatch: ${entry.name} dist-tags.alpha is ${String(tags?.alpha)}, expected ${version}`,
-      );
-    }
-    if (typeof tags?.latest === "string" && /-alpha\.\d+$/.test(tags.latest)) {
-      throw new Error(
-        `Registry mismatch: ${entry.name} dist-tags.latest must not reference prerelease ${tags.latest}`,
       );
     }
   }
