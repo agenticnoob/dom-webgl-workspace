@@ -1,4 +1,10 @@
-import { readFileSync, readdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -130,13 +136,48 @@ describe("release package contracts", () => {
     expect(adaptersPackage).not.toHaveProperty("private");
   });
 
-  test.each([
-    ["runtime", "packages/dom-webgl-runtime/dist"],
-    ["adapters", "packages/dom-webgl-scroll-adapters/dist"],
-  ])("builds the %s package to the six public dist files", (_name, distPath) => {
-    expect(readdirSync(resolve(process.cwd(), distPath)).sort()).toEqual(
-      expectedDistFiles,
+  test("accepts the exact package dist file set", async () => {
+    const assertExactPackageDistFiles = await loadDistContractAssertion();
+    const fixtureDir = createDistFixture(expectedDistFiles);
+
+    try {
+      await expect(assertExactPackageDistFiles(fixtureDir)).resolves.toEqual(
+        expectedDistFiles,
+      );
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a package dist with a missing artifact", async () => {
+    const assertExactPackageDistFiles = await loadDistContractAssertion();
+    const fixtureDir = createDistFixture(
+      expectedDistFiles.filter((file) => file !== "react.d.ts"),
     );
+
+    try {
+      await expect(assertExactPackageDistFiles(fixtureDir)).rejects.toThrow(
+        "missing: react.d.ts",
+      );
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a package dist with an extra artifact", async () => {
+    const assertExactPackageDistFiles = await loadDistContractAssertion();
+    const fixtureDir = createDistFixture([
+      ...expectedDistFiles,
+      "unexpected-chunk.d.ts",
+    ]);
+
+    try {
+      await expect(assertExactPackageDistFiles(fixtureDir)).rejects.toThrow(
+        "extra: unexpected-chunk.d.ts",
+      );
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
   });
 
   test("resolves Viselora workspaces from source in clean development checkouts", () => {
@@ -182,4 +223,26 @@ type TypeScriptConfig = {
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8")) as T;
+}
+
+function createDistFixture(files: readonly string[]): string {
+  const fixtureDir = mkdtempSync(resolve(tmpdir(), "viselora-dist-contract-"));
+
+  for (const file of files) {
+    writeFileSync(resolve(fixtureDir, file), "");
+  }
+
+  return fixtureDir;
+}
+
+async function loadDistContractAssertion(): Promise<
+  (distDirectory: string) => Promise<string[]>
+> {
+  // TypeScript does not resolve the colocated .mjs helper declaration.
+  // @ts-expect-error runtime import is covered by the focused tests above.
+  const module = (await import("../scripts/package-dist-contract.mjs")) as {
+    assertExactPackageDistFiles: (distDirectory: string) => Promise<string[]>;
+  };
+
+  return module.assertExactPackageDistFiles;
 }

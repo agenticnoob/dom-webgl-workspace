@@ -2,6 +2,8 @@ import { readdir, rm } from "node:fs/promises";
 
 import { build } from "tsup";
 
+import { assertExactPackageDistFiles } from "./package-dist-contract.mjs";
+
 const outDir = "dist";
 const declarationEntries = {
   index: "src/index.ts",
@@ -25,3 +27,6 @@ for (const file of await readdir(outDir)) {
     await rm(`${outDir}/${file}`);
   }
 }
+
+const distFiles = await assertExactPackageDistFiles(outDir);
+process.stdout.write(`Package dist contract OK: ${distFiles.length}/6 files\n`);
