@@ -16,6 +16,16 @@ const EXPECTED_EXPORTS = Object.freeze({
   ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
   "./react": { types: "./dist/react.d.ts", import: "./dist/react.js" },
 });
+const DEFAULT_READBACK_DELAYS = Object.freeze([
+  10_000,
+  20_000,
+  30_000,
+  30_000,
+  30_000,
+  30_000,
+  30_000,
+  30_000,
+]);
 
 export function publishRelease({
   root = process.cwd(),
@@ -42,7 +52,14 @@ export function publishRelease({
   }
 }
 
-export function publishPackages({ version, packages, runCommand, log = () => {} }) {
+export function publishPackages({
+  version,
+  packages,
+  runCommand,
+  log = () => {},
+  readbackDelays = DEFAULT_READBACK_DELAYS,
+  sleep = sleepSync,
+}) {
   assertAlphaVersion(version);
   assertPackageOrder(packages);
   if (typeof runCommand !== "function") {
@@ -95,24 +112,71 @@ export function publishPackages({ version, packages, runCommand, log = () => {} 
   }
 
   for (const entry of packages) {
-    const published = readPublishedVersion(entry.name, version, runCommand);
+    const published = readPublishedVersionWithRetry({
+      name: entry.name,
+      version,
+      runCommand,
+      readbackDelays,
+      sleep,
+      log,
+    });
     if (!published) {
       throw new Error(`Registry mismatch: ${entry.name}@${version} is missing after release`);
     }
     assertPublishedMetadata(published, entry, version);
-    const tags = runNpmJson(
+    let tags = runNpmJson(
       ["view", entry.name, "dist-tags", "--json"],
       runCommand,
       `read ${entry.name} dist-tags`,
     );
+    if (typeof tags?.latest === "string" && /-alpha\.\d+$/.test(tags.latest)) {
+      const removal = runNpm(
+        ["dist-tag", "rm", entry.name, "latest"],
+        runCommand,
+        `remove prerelease latest tag from ${entry.name}`,
+      );
+      const removalOutput = [removal.stdout, removal.stderr]
+        .filter((value) => typeof value === "string" && value.trim().length > 0)
+        .join("\n")
+        .trim();
+      if (removalOutput) log(removalOutput);
+      tags = runNpmJson(
+        ["view", entry.name, "dist-tags", "--json"],
+        runCommand,
+        `verify ${entry.name} dist-tags after latest removal`,
+      );
+    }
     if (tags?.alpha !== version) {
       throw new Error(
         `Registry mismatch: ${entry.name} dist-tags.alpha is ${String(tags?.alpha)}, expected ${version}`,
       );
     }
+    if (typeof tags?.latest === "string" && /-alpha\.\d+$/.test(tags.latest)) {
+      throw new Error(
+        `Registry mismatch: ${entry.name} dist-tags.latest must not reference prerelease ${tags.latest}`,
+      );
+    }
   }
 
   return actions;
+}
+
+function readPublishedVersionWithRetry({
+  name,
+  version,
+  runCommand,
+  readbackDelays,
+  sleep,
+  log,
+}) {
+  let published = readPublishedVersion(name, version, runCommand);
+  for (const delay of readbackDelays) {
+    if (published) return published;
+    log(`Registry readback pending for ${name}@${version}; retrying in ${delay}ms`);
+    sleep(delay);
+    published = readPublishedVersion(name, version, runCommand);
+  }
+  return published;
 }
 
 function readPublishedVersion(name, version, runCommand) {
@@ -209,6 +273,15 @@ function runCommandSync(command, args) {
   const executable =
     command === "npm" && process.platform === "win32" ? "npm.cmd" : command;
   return spawnSync(executable, args, { encoding: "utf8" });
+}
+
+function sleepSync(milliseconds) {
+  Atomics.wait(
+    new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT)),
+    0,
+    0,
+    milliseconds,
+  );
 }
 
 function readManifest(packageDirectory) {
