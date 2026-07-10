@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-10 Viselora alpha release design
+**Last reviewed against:** 2026-07-11 public alpha publication
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -9,11 +9,13 @@ phase records are archived under [archive/](./archive/).
 
 Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
 
-The current release target is the lockstep public alpha of
-`@viselora/dom-webgl` and `@viselora/scroll-adapters`, plus the
-`skills/viselora-dom-webgl/` consumer skill. Publication remains gated on local
-verification and explicit confirmation that the npm Organization and bootstrap
-token are ready. See [project-release-validation.md](./project-release-validation.md).
+The lockstep `0.1.0-alpha.0` versions of `@viselora/dom-webgl` and
+`@viselora/scroll-adapters` are public on npm with provenance. The
+`skills/viselora-dom-webgl/` consumer skill is published in this repository.
+The remaining bootstrap action is to configure a Trusted Publisher for each npm
+package, then delete the GitHub `NPM_TOKEN` Environment secret and revoke the
+temporary granular token. See
+[project-release-validation.md](./project-release-validation.md).
 
 ## Product Boundary
 

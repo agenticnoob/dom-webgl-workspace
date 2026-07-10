@@ -1,7 +1,7 @@
 # Viselora Alpha Release Validation
 
-**Date:** 2026-07-10
-**Status:** Capability-stable; local release validation in progress
+**Date:** 2026-07-11
+**Status:** Public alpha published; Trusted Publisher handoff pending
 **Baseline before release work:** `72d7e0ac`
 
 ## Decision
@@ -22,6 +22,25 @@ The release units are lockstep ESM-only packages:
 
 The same repository owns the public consumer skill at
 `skills/viselora-dom-webgl/`.
+
+## Publication Result
+
+Both packages were published from GitHub Actions on 2026-07-11 with the
+`alpha` dist-tag and SLSA provenance. The provenance points to workflow
+`release.yml`, the protected `npm-release` Environment, branch `main`, and
+source commit `f577b59343098c402d66393128cc33048b309f30`.
+
+The first registry read immediately after publication returned temporary 404s
+even though both publish commands had succeeded. An idempotent retry later
+skipped the matching versions and verified their integrity, exports,
+dependencies, dist-tags, and attestations. Release automation now uses bounded
+readback retries so later releases do not misclassify registry propagation as a
+publish failure.
+
+npm currently exposes both `alpha` and `latest` for these first package
+versions. The registry rejected removing `latest` with HTTP 400, so consumers
+must use explicit `@alpha` installs until a stable version takes ownership of
+`latest`.
 
 ## Preserved Product Boundary
 
@@ -66,10 +85,10 @@ Skill validation must prove the published workflow uses one runtime, one canvas,
 one scroll source, one pointer source, public entrypoints, stable effect arrays,
 fallback/offscreen/disposal policy, and no R3F or second renderer.
 
-## Publication Gate
+## Publication Gate (Completed)
 
-Local implementation and verification do not authorize publication. The first
-public release may run only after the user explicitly confirms:
+Local implementation and verification did not authorize publication. The first
+public release ran only after the user explicitly confirmed:
 
 1. the `@viselora` npm Organization exists and the publishing account can
    publish public scoped packages;
