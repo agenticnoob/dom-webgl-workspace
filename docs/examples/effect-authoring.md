@@ -16,13 +16,13 @@ From the workspace root:
 
 ```bash
 npm install
-npm run dev --workspace @project/dom-webgl-example
+npm run dev --workspace @viselora/example
 ```
 
 Build the example:
 
 ```bash
-npm run build --workspace @project/dom-webgl-example
+npm run build --workspace @viselora/example
 ```
 
 The example ships its own static assets under `apps/example/public`. The React

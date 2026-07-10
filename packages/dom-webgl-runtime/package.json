@@ -33,6 +33,13 @@
     "url": "https://github.com/agenticnoob/dom-webgl-workspace/issues"
   },
   "homepage": "https://github.com/agenticnoob/dom-webgl-workspace#readme",
+  "keywords": [
+    "viselora",
+    "webgl",
+    "three.js",
+    "dom",
+    "react"
+  ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"

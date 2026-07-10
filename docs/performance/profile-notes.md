@@ -15,7 +15,7 @@
 
 ## Profiling Method
 
-- Started the example with `npm run dev -w @project/dom-webgl-example -- --host 127.0.0.1`.
+- Started the example with `npm run dev -w @viselora/example -- --host 127.0.0.1`.
 - Browser: Playwright CLI wrapper using headless Chromium at 1280x720.
 - Runtime panel data came from `WebGLDebugPanel` text (`targetCount`, `renderableCount`, visible count).
 - Browser instrumentation was injected before reload and counted:

@@ -25,8 +25,8 @@ describe("Viselora release documentation", () => {
       .map((file) => ({ file, content: readFileSync(file, "utf8") }))
       .flatMap(({ file, content }) =>
         [
-          "@project/dom-webgl-runtime",
-          "@project/dom-webgl-scroll-adapters",
+          ["@project/dom-webgl", "runtime"].join("-"),
+          ["@project/dom-webgl", "scroll-adapters"].join("-"),
           "feature-frozen reference project",
           "new R3F-based project",
           "separate R3F-based project",

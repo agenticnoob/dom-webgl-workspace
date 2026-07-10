@@ -48,16 +48,24 @@ export function publishPackages({ version, packages, runCommand }) {
     throw new Error("Release publisher requires a command runner");
   }
 
-  const actions = [];
   for (const entry of packages) {
     assertLocalPackage(entry, version);
+  }
+
+  const registryState = packages.map((entry) => {
     const published = readPublishedVersion(entry.name, version, runCommand);
     if (published) {
       assertPublishedMetadata(published, entry, version);
+    }
+    return { entry, published };
+  });
+
+  const actions = [];
+  for (const { entry, published } of registryState) {
+    if (published) {
       actions.push({ name: entry.name, action: "skipped" });
       continue;
     }
-
     runNpm(
       [
         "publish",

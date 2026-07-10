@@ -11,6 +11,10 @@ The first public alpha is prepared as two lockstep ESM-only packages:
 - `@viselora/dom-webgl@0.1.0-alpha.0`
 - `@viselora/scroll-adapters@0.1.0-alpha.0`
 
+This is a prerelease alpha. Public APIs are capability-stable for release
+validation, but defects and necessary contract corrections may still require a
+new alpha version before a stable release.
+
 ```bash
 npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
 ```
@@ -712,13 +716,13 @@ git diff --check
 Run locally:
 
 ```bash
-npm run dev -w @project/dom-webgl-example
+npm run dev -w @viselora/example
 ```
 
 Run for LAN access:
 
 ```bash
-npm run dev -w @project/dom-webgl-example -- --host 0.0.0.0
+npm run dev -w @viselora/example -- --host 0.0.0.0
 ```
 
 Example assets live under `apps/example/public` and are referenced through

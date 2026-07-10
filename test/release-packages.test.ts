@@ -21,6 +21,7 @@ type PackageManifest = {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  keywords?: string[];
 };
 
 const packageBuildScript =
@@ -66,6 +67,7 @@ describe("release package contracts", () => {
       },
       homepage:
         "https://github.com/agenticnoob/dom-webgl-workspace#readme",
+      keywords: ["viselora", "webgl", "three.js", "dom", "react"],
       exports: {
         ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
         "./react": {
@@ -107,6 +109,7 @@ describe("release package contracts", () => {
       },
       homepage:
         "https://github.com/agenticnoob/dom-webgl-workspace#readme",
+      keywords: ["viselora", "webgl", "scroll", "lenis", "gsap"],
       exports: {
         ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
         "./react": {

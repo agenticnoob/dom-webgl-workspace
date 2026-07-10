@@ -65,6 +65,34 @@ describe("idempotent release publisher", () => {
     expect(fixture.commands).toEqual([]);
   });
 
+  test("validates the second local package before any registry query", () => {
+    const packages = releasePackages();
+    packages[1].manifest.exports["."].import = "./src/index.ts";
+    const fixture = createRegistryFixture();
+
+    expect(() =>
+      publishPackages({ version, packages, runCommand: fixture.runCommand }),
+    ).toThrow(/local package exports mismatch/i);
+    expect(fixture.commands).toEqual([]);
+  });
+
+  test("does not publish missing core when existing adapters conflict", () => {
+    const existing = registryPackages();
+    existing["@viselora/scroll-adapters"].dist.integrity = "sha512-other";
+    const fixture = createRegistryFixture({
+      "@viselora/scroll-adapters": existing["@viselora/scroll-adapters"],
+    });
+
+    expect(() =>
+      publishPackages({
+        version,
+        packages: releasePackages(),
+        runCommand: fixture.runCommand,
+      }),
+    ).toThrow(/integrity mismatch/i);
+    expect(fixture.publishNames()).toEqual([]);
+  });
+
   test("retry skips matching core and publishes only missing adapters", () => {
     const all = registryPackages();
     const fixture = createRegistryFixture({
