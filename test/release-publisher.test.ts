@@ -196,7 +196,7 @@ describe("idempotent release publisher", () => {
     expect(waits).toEqual([10, 20, 10, 20]);
   });
 
-  test("removes an alpha version accidentally assigned to latest", () => {
+  test("accepts the registry-required initial latest tag without mutating it", () => {
     const tags = registryTags();
     tags["@viselora/dom-webgl"].latest = version;
     tags["@viselora/scroll-adapters"].latest = version;
@@ -208,10 +208,10 @@ describe("idempotent release publisher", () => {
       runCommand: fixture.runCommand,
     });
 
-    expect(fixture.commands).toContain(
+    expect(fixture.commands).not.toContain(
       "npm dist-tag rm @viselora/dom-webgl latest",
     );
-    expect(fixture.commands).toContain(
+    expect(fixture.commands).not.toContain(
       "npm dist-tag rm @viselora/scroll-adapters latest",
     );
   });
@@ -318,11 +318,6 @@ function createRegistryFixture(
           stdout: `+ ${entry.name}@${version}`,
           stderr: "",
         };
-      }
-
-      if (args[0] === "dist-tag" && args[1] === "rm" && args[3] === "latest") {
-        delete tags[args[2]].latest;
-        return { status: 0, stdout: `-latest: ${args[2]}`, stderr: "" };
       }
 
       if (args[0] === "view" && args[2] === "dist-tags") {
