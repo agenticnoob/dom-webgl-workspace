@@ -1,0 +1,4 @@
+interface:
+  display_name: "Viselora DOM WebGL"
+  short_description: "Build verified DOM-first WebGL pages with Viselora"
+  default_prompt: "Use $viselora-dom-webgl to build a DOM-first WebGL page with one runtime and verified public package imports."
