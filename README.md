@@ -6,7 +6,8 @@ DOM-first interactive WebGL runtime workspace.
 
 Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
 
-The first public alpha is prepared as two lockstep ESM-only packages:
+The first public alpha was published on 2026-07-11 as two lockstep ESM-only
+packages with npm provenance:
 
 - `@viselora/dom-webgl@0.1.0-alpha.0`
 - `@viselora/scroll-adapters@0.1.0-alpha.0`
@@ -18,6 +19,10 @@ new alpha version before a stable release.
 ```bash
 npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
 ```
+
+Because these are the first versions under their package names, npm currently
+also resolves the default `latest` tag to the same alpha. Consumers should use
+the explicit `@alpha` tag until a stable release is published.
 
 Agents can use `skills/viselora-dom-webgl/`. The release decision and
 validation boundary live in `docs/project-release-validation.md`.
