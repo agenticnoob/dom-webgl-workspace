@@ -16,7 +16,8 @@
     "release:version": "node ./scripts/set-release-version.mjs",
     "verify:versions": "node ./scripts/set-release-version.mjs --check",
     "pack:verify": "node ./scripts/verify-package-tarballs.mjs",
-    "verify:tarballs": "npm run build && npm run pack:verify"
+    "verify:tarballs": "npm run build && npm run pack:verify",
+    "verify:consumer": "node ./scripts/verify-external-consumer.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
