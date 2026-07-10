@@ -81,7 +81,9 @@ function verifyWithTypeScript(ts) {
       jsx: ts.JsxEmit.ReactJSX,
       module: ts.ModuleKind.ESNext,
       moduleResolution: ts.ModuleResolutionKind.Bundler,
+      noLib: true,
       noEmit: true,
+      noResolve: true,
       skipLibCheck: true,
       target: ts.ScriptTarget.ES2022,
     },
@@ -138,6 +140,16 @@ function verifyImports(context) {
       if (
         ts.isCallExpression(node) &&
         node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+        node.arguments.length === 1 &&
+        ts.isStringLiteralLike(node.arguments[0])
+      ) {
+        verifyImportSpecifier(node.arguments[0].text, file);
+        return;
+      }
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "require" &&
         node.arguments.length === 1 &&
         ts.isStringLiteralLike(node.arguments[0])
       ) {
@@ -294,6 +306,19 @@ function verifyInputOwnership(context, jsx) {
         (node.left.expression.text === "window" ||
           node.left.expression.text === "document") &&
         assignedHandlers.has(node.left.name.text.toLowerCase())
+      ) {
+        unmanagedInput = true;
+      }
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isElementAccessExpression(node.left) &&
+        ts.isIdentifier(node.left.expression) &&
+        (node.left.expression.text === "window" ||
+          node.left.expression.text === "document") &&
+        node.left.argumentExpression &&
+        ts.isStringLiteralLike(node.left.argumentExpression) &&
+        assignedHandlers.has(node.left.argumentExpression.text.toLowerCase())
       ) {
         unmanagedInput = true;
       }
@@ -795,8 +820,9 @@ function isStableModuleArray(context, expression) {
 
 function isStableTargetExpression(context, expression) {
   const unwrapped = unwrap(context.ts, expression);
-  if (!context.ts.isIdentifier(unwrapped)) return false;
-  const declaration = resolveValueDeclaration(context, unwrapped);
+  const root = readAccessRoot(context.ts, unwrapped);
+  if (!root) return false;
+  const declaration = resolveValueDeclaration(context, root);
   if (
     !declaration ||
     !context.ts.isVariableDeclaration(declaration) ||
@@ -805,9 +831,15 @@ function isStableTargetExpression(context, expression) {
   ) {
     return false;
   }
-  return (
-    isModuleScopeDeclaration(context.ts, declaration) ||
-    isUseMemoCall(context, declaration.initializer)
+  if (context.ts.isIdentifier(unwrapped)) {
+    return (
+      isModuleScopeDeclaration(context.ts, declaration) ||
+      isUseMemoCall(context, declaration.initializer)
+    );
+  }
+  return Boolean(
+    isModuleScopeDeclaration(context.ts, declaration) &&
+      resolveObjectLiterals(context, unwrapped).length > 0,
   );
 }
 
@@ -820,8 +852,7 @@ function isUseMemoCall(context, expression) {
     candidate.expression,
   );
   return (
-    (reference.module === "react" && reference.imported === "useMemo") ||
-    reference.local === "useMemo"
+    reference.module === "react" && reference.imported === "useMemo"
   );
 }
 
@@ -1116,6 +1147,17 @@ function readAccessPath(ts, node) {
     return prefix ? [...prefix, node.name.text] : undefined;
   }
   return undefined;
+}
+
+function readAccessRoot(ts, node) {
+  let candidate = node;
+  while (
+    ts.isPropertyAccessExpression(candidate) ||
+    ts.isElementAccessExpression(candidate)
+  ) {
+    candidate = candidate.expression;
+  }
+  return ts.isIdentifier(candidate) ? candidate : undefined;
 }
 
 function hasNode(ts, root, predicate) {

@@ -10,7 +10,13 @@ npm run typecheck
 npm run build
 ```
 
-Install the consumer dependencies before running the verifier. The verifier loads the consumer project's own `typescript` compiler API, reads `package.json` and JavaScript/TypeScript source files, builds a semantic AST model, and never modifies the consumer. It rejects:
+Install the consumer dependencies before running the verifier. Keep `typescript`
+in `devDependencies` even for a JavaScript/JSX consumer because the verifier
+uses that parser instead of brittle text matching. The verifier loads the
+consumer project's own `typescript` compiler API, reads `package.json` and
+JavaScript/TypeScript source files, builds a semantic AST model without loading
+library declarations or following imports, and never modifies the consumer. It
+rejects:
 
 - missing or non-exact Viselora package versions
 - private, repository-source, or old package imports

@@ -163,6 +163,26 @@ describe("viselora-dom-webgl skill", () => {
     expect(result.stderr).toBe("");
   });
 
+  test("accepts a stable declaration selected through module-scope property access", () => {
+    const fixtureRoot = copyTemplate();
+    replace(
+      fixtureRoot,
+      "src/App.tsx",
+      "webgl={surfaceDeclaration}",
+      "webgl={declarations.surface}",
+    );
+    append(
+      fixtureRoot,
+      "src/App.tsx",
+      "\nconst declarations = { surface: surfaceDeclaration } as const;\n",
+    );
+
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  });
+
   test("accepts the public WebGLModel route for the model recipe", () => {
     const fixtureRoot = copyTemplate();
     replace(
@@ -388,6 +408,36 @@ describe("viselora-dom-webgl skill", () => {
           '\nvoid import("packages/dom-webgl-runtime/src/index");\n',
         ),
       "repository source imports are prohibited",
+    ],
+    [
+      "a CommonJS private Viselora import",
+      (root: string) =>
+        writeFileSync(
+          resolve(root, "src/private.cjs"),
+          'require("@viselora/dom-webgl/private");\n',
+        ),
+      "non-public Viselora import",
+    ],
+    [
+      "a computed assigned input listener",
+      (root: string) =>
+        append(
+          root,
+          "src/App.tsx",
+          '\nwindow["onscroll"] = () => undefined;\n',
+        ),
+      "scroll and pointer input must use one managed ownership path",
+    ],
+    [
+      "a locally forged useMemo declaration",
+      (root: string) =>
+        replace(
+          root,
+          "src/App.tsx",
+          'import { useEffect, useMemo, useState } from "react";',
+          'import { useEffect, useState } from "react";\nconst useMemo = <T,>(factory: () => T): T => factory();',
+        ),
+      "target declarations must be stable",
     ],
     [
       "the video surface",

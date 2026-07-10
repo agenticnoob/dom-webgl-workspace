@@ -10,7 +10,7 @@ Compatible package version: 0.1.0-alpha.0
 ## Workflow
 
 1. Decide fit. Use Viselora when DOM remains the layout, accessibility, and fallback source of truth while one runtime renders managed WebGL targets. Choose another stack for a free-form R3F scene or a second independently owned canvas.
-2. Install the exact alpha. Follow [quickstart.md](references/quickstart.md).
+2. Install the exact alpha and the verifier's TypeScript parser dependency. Follow [quickstart.md](references/quickstart.md).
 3. Create exactly one `WebGLScrollRuntime` or `WebGLRuntime` root.
 4. Define effect definitions and the `runtimeEffects` array at module scope. Keep both references stable.
 5. Declare DOM-first targets with public React components. Give every target an explicit fallback, lifecycle, and offscreen policy.

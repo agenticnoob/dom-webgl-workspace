@@ -8,7 +8,11 @@ Install exact versions; do not add `^` or `~` to this prerelease:
 
 ```bash
 npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.0 @viselora/scroll-adapters@0.1.0-alpha.0
+npm install --save-dev typescript
 ```
+
+Keep `typescript` installed even in a JavaScript/JSX consumer; the skill's
+verifier uses the consumer-local parser for semantic architecture checks.
 
 Install React when the consumer does not already provide it. Install `gsap` when using `WebGLScrollTimeline`; pass its registered `ScrollTrigger` to the timeline or through the runtime's smooth options. Install `lenis` only when opting into smooth scroll.
 
