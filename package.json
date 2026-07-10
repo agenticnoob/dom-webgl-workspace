@@ -12,7 +12,9 @@
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run typecheck && npm test -- --run",
-    "check:imports": "node ./scripts/assert-example-public-imports.mjs"
+    "check:imports": "node ./scripts/assert-example-public-imports.mjs",
+    "release:version": "node ./scripts/set-release-version.mjs",
+    "verify:versions": "node ./scripts/set-release-version.mjs --check"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
