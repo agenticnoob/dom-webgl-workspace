@@ -6,9 +6,13 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** Phase 9 dynamics and physics implementation plus
-2026-07-09 R3F/product-boundary review
-**Status:** Direction-setting roadmap
+**Last reviewed against:** 2026-07-10 Viselora alpha release design
+**Status:** Capability phases complete; release validation active
+
+> The managed-render capability phases are closed for the alpha release. Do not
+> select a new runtime feature phase from this file during release validation.
+> Package hardening, docs, skill authoring, defect fixes, and external consumer
+> validation remain active work tracked by the release plan.
 
 ## North Star
 
@@ -775,9 +779,14 @@ Status values:
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
 | Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
 | Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, direct pointer-drag manipulation with release inertia, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
-| Phase 10: Advanced Escape Hatch Decision | `[not-started]` | none | Decide only after managed descriptors prove insufficient. |
+| Phase 10: Advanced Escape Hatch Decision | `[superseded]` | none | Superseded by the capability-stable alpha boundary. Release validation does not add raw escape hatches or R3F parity. |
 
 Rules for future updates:
+
+- During alpha release validation, do not start a new feature phase from this
+  table.
+- Package hardening, public docs, skill work, defect fixes, and consumer
+  verification remain allowed and are tracked outside the capability phases.
 
 - Every implementation loop must start by reading this table.
 - When a focused plan is created, update the phase to `[planned]` and link it.
@@ -1911,9 +1920,9 @@ Current decision:
 - Keep new work tied to DOM-first managed runtime needs: DOM target binding,
   fallback/lifecycle, scroll and pointer orchestration, runtime-owned resources,
   controlled effects, and descriptor-only scene-native islands.
-- If a future agent-first product should be built on R3F/Drei/scroll-rig, it
-  should start as a new project and can reuse this repo only as requirements
-  evidence, not as a runtime core to mutate.
+- A future R3F/Drei/scroll-rig experiment may start independently, but it is an
+  optional different product direction rather than a required migration path
+  for Viselora consumers.
 
 ## Migration Strategy
 
@@ -2050,7 +2059,8 @@ The roadmap is successful when:
 
 ## Recommended Next Step
 
-Do not implement this entire roadmap in one pass.
+Keep Phase 1 through Phase 9 closed while completing the Viselora alpha release
+validation plan. Do not use packaging work to reopen runtime architecture.
 
 Phase 1 through Phase 9 define the managed render foundation through
 scene-native `WebGLModel`, runtime-owned model registry, descriptor animation
@@ -2063,10 +2073,11 @@ first-visible scroll-entry stalls, and Phase 8 adds scene-object effects,
 adds advanced camera gesture controllers, and Phase 9 adds descriptor-only
 scene-native physics without raw engine/body handles.
 
-The next suggested implementation loop is Phase 10: Advanced Escape Hatch
-Decision. Do not add an unsafe/raw escape hatch unless the managed descriptors
-that now exist through Phase 9 prove insufficient against real downstream
-needs.
+There is no next runtime feature phase for the alpha. The active loop is package
+build and metadata, lockstep version checks, tarball allowlists, external
+consumer validation, the public skill, release workflows, and publication
+gating. Reconsider runtime capability work only after real public consumer
+feedback identifies a bounded gap.
 
 The safest sequence is:
 

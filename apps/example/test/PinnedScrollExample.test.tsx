@@ -30,7 +30,7 @@ type TargetMockProps = {
   };
 };
 
-vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
+vi.mock("@viselora/scroll-adapters/react", () => ({
   ScrollEffectSection: ({
     as = "section",
     children,
@@ -43,7 +43,7 @@ vi.mock("@project/dom-webgl-scroll-adapters/react", () => ({
   },
 }));
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLTarget: ({ as = "div", children, webgl, ...props }: TargetMockProps) => {
     targetProps.push({ as, children, webgl });
     return createElement(as, props, children);

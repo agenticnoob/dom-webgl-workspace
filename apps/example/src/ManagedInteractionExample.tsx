@@ -10,7 +10,7 @@ import {
   type WebGLModelProps,
   type WebGLSceneRenderOptions,
   type WebGLStagePlaneProps,
-} from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl/react";
 
 const interactionSceneRender = {
   camera: "example.interaction.camera",

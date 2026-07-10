@@ -39,7 +39,7 @@ apps/
 test/                     # repo 级结构/工作区测试
 ```
 
-- `apps/example` 只能通过 `@project/dom-webgl-runtime` / `@project/dom-webgl-runtime/react` 公共入口导入，禁止 `packages/dom-webgl-runtime/src/*` 路径导入。运行时源码不得硬编码 example 的 key、资产路径、DOM 结构、布局或文案。
+- `apps/example` 只能通过 `@viselora/dom-webgl` / `@viselora/dom-webgl/react` 公共入口导入，禁止 `packages/dom-webgl-runtime/src/*` 路径导入。运行时源码不得硬编码 example 的 key、资产路径、DOM 结构、布局或文案。
 - 测试文件不和真实源码混放：package/app 的测试放在对应 workspace 的 `test/` 目录并镜像 `src/` 层级；根级结构/工作区测试放在根 `test/`。
 - 边界守卫：`packages/dom-webgl-runtime/test/open-source-boundary.test.ts`（应用字面量检查）、`scripts/assert-example-public-imports.mjs`（example 导入边界）、`packages/dom-webgl-runtime/test/publicExports.test.ts`（程序化 TS 类型检查确保内部类型不泄漏）、`test/structure.test.ts`（禁止 `src/` 下出现 `.test` / `.spec` 文件）。
 
@@ -55,8 +55,8 @@ npm run test -- --run && npm run typecheck && npm run build && npm run check:imp
 
 - 测试：`npm test`（vitest交互模式）/ `npm run test -- --run`（单次运行）
 - 单包测试：`npm test -- --run packages/dom-webgl-runtime/test/lib/.../xxx.test.ts`
-- 类型检查：`npm run typecheck`（根 tsconfig.base.json）/ `npm run typecheck -w @project/dom-webgl-runtime`（单包）
-- 运行 example：`npm run dev -w @project/dom-webgl-example`
+- 类型检查：`npm run typecheck`（根 tsconfig.base.json）/ `npm run typecheck -w @viselora/dom-webgl`（单包）
+- 运行 example：`npm run dev -w @viselora/example`
 
 测试配置：vitest + jsdom 环境，30s 超时，`globals: true`（describe/test/expect 全局可用）。无 ESLint/Prettier/Biome — 仅依赖 TS strict 模式。
 
@@ -77,7 +77,7 @@ DOM-first WebGL runtime：普通 DOM 元素通过声明进入 WebGL 管线。流
 效果通过 `defineWebGLEffect(...)` 公共 API 定义，通过 runtime-level `effects` 传递给运行时：
 
 ```ts
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 const myEffect = defineWebGLEffect({
   kind: "app.myEffect",
@@ -120,14 +120,14 @@ createWebGLRuntime({ container, effects: [myEffect] });
 
 ## React 使用要点
 
-- `@project/dom-webgl-runtime/react` 导出 `WebGLRuntime`、`WebGLTarget`、`useWebGLRuntime`。
+- `@viselora/dom-webgl/react` 导出 `WebGLRuntime`、`WebGLTarget`、`useWebGLRuntime`。
 - **target 声明挂载后必须稳定**：同一 `WebGLTarget` key 的 `webgl` 对象不能动态改变 `source`/`effects`/`scroll`/`pointer`/`lifecycle`。需要不同的声明时，换 key 或 remount。
 - runtime-level `effects` 数组必须保持引用稳定（通常模块级 `const`），否则 React 会重建 runtime。
 - 可选的 smooth-scroll：只传 `smoothScroll.scrollAdapter` 给 `<WebGLRuntime scrollAdapter={...} />`，不要在渲染中构造 Lenis/GSAP。
 
 ## Scroll 和 Scene Gate
 
-- 默认使用浏览器原生滚动。可选适配器：`@project/dom-webgl-scroll-adapters` 提供 `createLenisGsapScrollStack(...)` 组合 Lenis + GSAP ticker + ScrollTrigger。
+- 默认使用浏览器原生滚动。可选适配器：`@viselora/scroll-adapters` 提供 `createLenisGsapScrollStack(...)` 组合 Lenis + GSAP ticker + ScrollTrigger。
 - 应用拥有 Lenis 实例生命周期，传给适配器时用 `manageLenis: false`，并从应用 cleanup 中销毁 Lenis。
 - Scene gate 声明：`scroll: { type: "gate", start: "top top", duration: 1, release: "both-directions-complete" }`。
 - Gate 激活时锁定页面滚动，把 scroll delta 映射为 `sceneProgress` (0→1)，完成后释放。

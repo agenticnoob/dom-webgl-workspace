@@ -4,14 +4,20 @@ This directory is split into active documents and archived execution records.
 
 ## Start Here
 
-- [STATUS.md](./STATUS.md) - current implementation truth and active direction.
-- [roadmap/managed-render-system.md](./roadmap/managed-render-system.md) - next strategic roadmap for managed scenes, cameras, stages, passes, input, model animation, and physics.
+- [project-release-validation.md](./project-release-validation.md) - alpha release decision, validation boundary, and publication gate.
+- [STATUS.md](./STATUS.md) - current implementation and release-validation truth.
+- [roadmap/managed-render-system.md](./roadmap/managed-render-system.md) - completed capability roadmap reference.
 - [00-goal.md](./00-goal.md) - long-form architecture principles and non-goals.
 
-Current product boundary: this repo remains a DOM-first managed WebGL runtime,
-not a React Three Fiber replacement and not an R3F companion runtime. If the
-product direction changes to R3F as the rendering layer, start a separate
-prototype and keep this repo's docs as the current managed-runtime truth.
+Current product boundary: Viselora is capability-stable while its two public
+alpha packages, external consumer flow, and agent skill are validated. This is
+active release engineering, not a conclusion that the project must migrate to
+another renderer.
+
+## New Project Notes
+
+- [new-project/example-page-background.md](./new-project/example-page-background.md) - background for a later independent Viselora package-and-skill consumer.
+- [new-project/example-page-mvp.md](./new-project/example-page-mvp.md) - later independent MVP target and acceptance criteria; it is not created here.
 
 ## Consumer And Agent Docs
 

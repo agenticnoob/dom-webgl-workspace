@@ -1,9 +1,9 @@
 import type {
   WebGLProgressSignalSource,
   WebGLScrollAdapter,
-} from "@project/dom-webgl-runtime";
-import type { WebGLEffectDefinition } from "@project/dom-webgl-runtime";
-import type { WebGLRuntimeProps } from "@project/dom-webgl-runtime/react";
+} from "@viselora/dom-webgl";
+import type { WebGLEffectDefinition } from "@viselora/dom-webgl";
+import type { WebGLRuntimeProps } from "@viselora/dom-webgl/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -18,13 +18,13 @@ const runtimeMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLRuntime: runtimeMocks.WebGLRuntime,
 }));
 
 const roots: Root[] = [];
 
-describe("@project/dom-webgl-scroll-adapters/react", () => {
+describe("@viselora/scroll-adapters/react", () => {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;
@@ -47,7 +47,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
       expect("window" in globalThis).toBe(false);
       expect("document" in globalThis).toBe(false);
 
-      const reactEntry = await import("@project/dom-webgl-scroll-adapters/react");
+      const reactEntry = await import("@viselora/scroll-adapters/react");
 
       expect(reactEntry).toHaveProperty("WebGLScrollRuntime");
       expect(reactEntry).toHaveProperty("WebGLScrollTimeline");
@@ -60,7 +60,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
   test("passes no scroll adapter when smooth is omitted", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
 
@@ -75,7 +75,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
   test("uses an advanced scroll adapter without creating the smooth stack", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -97,7 +97,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
   test("throws a developer-facing invariant outside WebGLScrollRuntime", async () => {
     const { ScrollEffectSection } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
 
@@ -112,7 +112,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
   test("updates and clears section progress without mutating effect props", async () => {
     const { ScrollEffectSection, WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -162,7 +162,7 @@ describe("@project/dom-webgl-scroll-adapters/react", () => {
 
   test("WebGLScrollTimeline writes progress by id while ScrollEffectSection stays compatible", async () => {
     const { ScrollEffectSection, WebGLScrollRuntime, WebGLScrollTimeline } =
-      await import("@project/dom-webgl-scroll-adapters/react");
+      await import("@viselora/scroll-adapters/react");
     const { root } = createTestRoot();
     const timelineSmooth = createSmoothDeps();
     const sectionSmooth = createSmoothDeps();

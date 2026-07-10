@@ -1,4 +1,4 @@
-import { WebGLRuntime, type WebGLRuntimeProps } from "@project/dom-webgl-runtime/react";
+import { WebGLRuntime, type WebGLRuntimeProps } from "@viselora/dom-webgl/react";
 import {
   createContext,
   createElement,

@@ -1,4 +1,4 @@
-import { defineWebGLEffect } from "@project/dom-webgl-runtime";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 import { clampNumber } from "./effectMath";
 

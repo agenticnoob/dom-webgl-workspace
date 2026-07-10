@@ -13,7 +13,7 @@ const TYPECHECK_TEST_TIMEOUT_MS = 180_000;
 
 describe("public package exports", () => {
   test("root entrypoint exposes runtime APIs without internal helpers", async () => {
-    const rootApi = await import("../src/index");
+    const rootApi = await import("@viselora/dom-webgl");
 
     expect(rootApi.createWebGLRuntime).toEqual(expect.any(Function));
     expect(rootApi.defineWebGLEffect).toEqual(expect.any(Function));
@@ -25,7 +25,7 @@ describe("public package exports", () => {
   });
 
   test("React entrypoint exposes the public React adapter", async () => {
-    const reactApi = await import("../src/react");
+    const reactApi = await import("@viselora/dom-webgl/react");
 
     expect(reactApi.WebGLRuntime).toEqual(expect.any(Function));
     expect(reactApi.WebGLTarget).toEqual(expect.any(Function));

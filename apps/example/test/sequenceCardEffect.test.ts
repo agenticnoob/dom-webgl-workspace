@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import type { WebGLEffectCanvasDrawer } from "@project/dom-webgl-runtime";
+import type { WebGLEffectCanvasDrawer } from "@viselora/dom-webgl";
 
 import { createEffectContext } from "./effectContext";
 

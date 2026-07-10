@@ -1,5 +1,5 @@
 import * as React from "react";
-import { WebGLTarget } from "@project/dom-webgl-runtime/react";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
 
 import { EffectDescription } from "./EffectDescription";
 

@@ -7,7 +7,7 @@ import type {
   WebGLEffectTextureLayerHandle,
   WebGLEffectVideoLayerHandle,
   WebGLModelEffectHandle,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 export type TestEffectSource =
   | {

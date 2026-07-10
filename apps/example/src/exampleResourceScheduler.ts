@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { WebGLImageSequenceFrame } from "@project/dom-webgl-runtime";
+import type { WebGLImageSequenceFrame } from "@viselora/dom-webgl";
 
 export type ExampleResourceState = {
   readonly imageSequenceFrames: readonly WebGLImageSequenceFrame[];

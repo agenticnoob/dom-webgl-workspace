@@ -1,4 +1,4 @@
-import type { WebGLRuntimeProps } from "@project/dom-webgl-runtime/react";
+import type { WebGLRuntimeProps } from "@viselora/dom-webgl/react";
 import { act, createElement, StrictMode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -13,7 +13,7 @@ const runtimeMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("@project/dom-webgl-runtime/react", () => ({
+vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLRuntime: runtimeMocks.WebGLRuntime,
 }));
 
@@ -37,7 +37,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("keeps built-in smooth scroll adapter stable across child rerenders", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -80,7 +80,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("renders before the built-in smooth stack is ready", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -96,7 +96,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("keeps the final strict mode smooth stack alive after initial remount", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDepsWithLenisInstances();
@@ -123,7 +123,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("creates and disposes one smooth stack per mount", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -146,7 +146,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("creates one section trigger after the smooth stack is ready", async () => {
     const { ScrollEffectSection, WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
@@ -173,7 +173,7 @@ describe("WebGLScrollRuntime smooth ownership", () => {
 
   test("does not leak smooth ticker callbacks across strict mode remounts", async () => {
     const { WebGLScrollRuntime } = await import(
-      "@project/dom-webgl-scroll-adapters/react"
+      "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();

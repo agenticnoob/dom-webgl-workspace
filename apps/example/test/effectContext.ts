@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { WebGLEffectContext } from "@project/dom-webgl-runtime";
+import type { WebGLEffectContext } from "@viselora/dom-webgl";
 
 import { createEffectSource, type TestEffectSource } from "./effectSourceHandles";
 

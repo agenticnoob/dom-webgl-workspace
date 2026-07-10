@@ -12,11 +12,20 @@
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run typecheck && npm test -- --run",
-    "check:imports": "node ./scripts/assert-example-public-imports.mjs"
+    "check:imports": "node ./scripts/assert-example-public-imports.mjs",
+    "release:version": "node ./scripts/set-release-version.mjs",
+    "verify:versions": "node ./scripts/set-release-version.mjs --check",
+    "pack:verify": "node ./scripts/verify-package-tarballs.mjs",
+    "verify:tarballs": "npm run build && npm run pack:verify",
+    "verify:consumer": "node ./scripts/verify-external-consumer.mjs",
+    "verify:skill": "npm test -- --run test/skill.test.ts && node skills/viselora-dom-webgl/scripts/verify-consumer.mjs skills/viselora-dom-webgl/templates/react-vite",
+    "verify:release": "npm run typecheck && npm run test -- --run && npm run build && npm run check:imports && npm run verify:versions && npm run verify:tarballs && npm run verify:consumer && npm run verify:skill",
+    "release:publish": "node ./scripts/publish-release.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "jsdom": "^26.1.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

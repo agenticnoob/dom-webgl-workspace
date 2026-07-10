@@ -11,35 +11,49 @@ The runtime lets normal DOM elements enter one shared WebGL scene. Applications
 declare targets in DOM/React, register application-owned effects, and keep DOM as
 the source for layout, content, accessibility, and interaction state.
 
+Repository status: capability-stable and in alpha release validation. Do not add
+runtime features as part of release engineering; package hardening,
+documentation, consumer verification, skill maintenance, and defect fixes
+remain active.
+
 This is not an R3F replacement or R3F companion package. If the downstream task
 is to author a free-form Three.js scene, use React Three Fiber and its ecosystem
 directly. Use this package when the page remains DOM-first and the WebGL layer
 must follow declared DOM targets, fallback, scroll, pointer, lifecycle, and
 runtime-managed resources.
 
+Install from npm using the alpha dist-tag:
+
+```bash
+npm install @viselora/dom-webgl@alpha
+npm install @viselora/scroll-adapters@alpha
+```
+
+For agent-driven integrations, start with `skills/viselora-dom-webgl/SKILL.md`.
+
 Package split:
 
-- `<runtime-package>`: runtime creation, React adapter, target declarations,
+- `@viselora/dom-webgl`: runtime creation, React adapter, target declarations,
   effect authoring primitives, controlled `ctx.object` facade, scroll state,
   pointer state, and managed resources.
-- `<scroll-adapters-package>`: optional Lenis, GSAP ticker, ScrollTrigger, and
+- `@viselora/scroll-adapters`: optional Lenis, GSAP ticker, ScrollTrigger, and
   React pinned-scroll glue.
 - Application code: all concrete visual effects, product copy, assets, layouts,
   third-party instance lifecycle, and visual tuning.
 
-Workspace names before publication:
+Public package names:
 
-- `<runtime-package>` is `@project/dom-webgl-runtime`.
-- `<scroll-adapters-package>` is `@project/dom-webgl-scroll-adapters`.
+- `@viselora/dom-webgl` is `@viselora/dom-webgl`.
+- `@viselora/scroll-adapters` is `@viselora/scroll-adapters`.
 
 ## First Decision
 
 Choose the simplest supported route:
 
-- Normal DOM-to-WebGL effects: use `<runtime-package>` only.
-- React app: use `<runtime-package>/react`.
+- Normal DOM-to-WebGL effects: use `@viselora/dom-webgl` only.
+- React app: use `@viselora/dom-webgl/react`.
 - Pinned section drives WebGL progress: use
-  `<scroll-adapters-package>/react` with GSAP ScrollTrigger `pin`/`scrub` and
+  `@viselora/scroll-adapters/react` with GSAP ScrollTrigger `pin`/`scrub` and
   a stable `progressKey`.
 - Existing Lenis/GSAP/ScrollTrigger lifecycle already owned by the app: pass a
   stable `WebGLScrollAdapter` into the runtime.
@@ -71,7 +85,7 @@ import {
   type WebGLPhysicsDeclaration,
   type WebGLRuntimeOptions,
   type WebGLScrollAdapter,
-} from "<runtime-package>";
+} from "@viselora/dom-webgl";
 ```
 
 ```tsx
@@ -85,7 +99,7 @@ import {
   WebGLStagePlane,
   WebGLTarget,
   useWebGLRuntime,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 ```
 
 ```tsx
@@ -93,14 +107,14 @@ import {
   ScrollEffectSection,
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 ```
 
 Never import:
 
 ```ts
-import ... from "<runtime-package>/effects";
-import ... from "<runtime-package>/src";
+import ... from "@viselora/dom-webgl/effects";
+import ... from "@viselora/dom-webgl/src";
 import ... from "packages/dom-webgl-runtime/src";
 import ... from "packages/dom-webgl-scroll-adapters/src";
 import ... from "../example/src/someEffect";
@@ -123,8 +137,8 @@ handle surface. When designing new package capabilities, read
 `ctx.object` facade instead of adding more source-specific public handles.
 
 ```tsx
-import { defineWebGLEffect } from "<runtime-package>";
-import { WebGLRuntime, WebGLTarget } from "<runtime-package>/react";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
+import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
 
 type AppSurfaceParams = {
   kind: "app.surface";
@@ -200,7 +214,7 @@ import {
   WebGLStageBox,
   WebGLStagePlane,
   WebGLTarget,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -308,7 +322,7 @@ import {
   WebGLStageBox,
   WebGLStagePlane,
   WebGLTarget,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -400,13 +414,13 @@ adapter provides the React convenience component; runtime core only sees a
 import {
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 import {
   WebGLLight,
   WebGLCamera,
   WebGLScene,
   WebGLStagePlane,
-} from "<runtime-package>/react";
+} from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
@@ -475,7 +489,7 @@ Rules:
 ## Minimal Vanilla Integration
 
 ```ts
-import { createWebGLRuntime } from "<runtime-package>";
+import { createWebGLRuntime } from "@viselora/dom-webgl";
 
 const runtime = createWebGLRuntime({
   container,
@@ -677,13 +691,13 @@ Use this when a bounded section should pin/scrub and feed progress to an effect.
 This is the current recommended pinned-scroll route:
 
 ```tsx
-import { defineWebGLEffect } from "<runtime-package>";
-import { WebGLTarget } from "<runtime-package>/react";
+import { defineWebGLEffect } from "@viselora/dom-webgl";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
   WebGLScrollTimeline,
-} from "<scroll-adapters-package>/react";
+} from "@viselora/scroll-adapters/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const pinnedRevealEffect = defineWebGLEffect<{
@@ -758,7 +772,7 @@ Use this only when application code intentionally owns the third-party scroll
 instance lifecycle:
 
 ```ts
-import { createLenisGsapScrollStack } from "<scroll-adapters-package>";
+import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
 
 const smoothScroll = createLenisGsapScrollStack({
   lenis,
@@ -790,7 +804,7 @@ interface AppEffectParams {
 Use `createEffectDeclarations()`:
 
 ```ts
-import { createEffectDeclarations } from "<runtime-package>";
+import { createEffectDeclarations } from "@viselora/dom-webgl";
 
 const effects = createEffectDeclarations<AppEffectParams>()([
   { kind: "app.surface", opacity: 0.82 },
@@ -800,7 +814,7 @@ const effects = createEffectDeclarations<AppEffectParams>()([
 Or use `satisfies`:
 
 ```ts
-import type { WebGLEffectsDeclarationOf } from "<runtime-package>";
+import type { WebGLEffectsDeclarationOf } from "@viselora/dom-webgl";
 
 const effects = [
   { kind: "app.surface", opacity: 0.82 },

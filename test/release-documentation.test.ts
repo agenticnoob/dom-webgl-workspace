@@ -1,0 +1,95 @@
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { relative, resolve, sep } from "node:path";
+
+import { describe, expect, test } from "vitest";
+
+const repoRoot = process.cwd();
+const docsRoot = resolve(repoRoot, "docs");
+const canonicalState =
+  "Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.";
+
+describe("Viselora release documentation", () => {
+  test("uses the release-validation decision instead of the freeze record", () => {
+    expect(existsSync(resolve(docsRoot, "project-release-validation.md"))).toBe(true);
+    expect(existsSync(resolve(docsRoot, "project-freeze.md"))).toBe(false);
+    expect(readFileSync(resolve(repoRoot, "README.md"), "utf8")).toContain(
+      canonicalState,
+    );
+    expect(readFileSync(resolve(docsRoot, "STATUS.md"), "utf8")).toContain(
+      canonicalState,
+    );
+  });
+
+  test("keeps active documentation on public Viselora package names", () => {
+    const violations = activeMarkdownFiles()
+      .map((file) => ({ file, content: readFileSync(file, "utf8") }))
+      .flatMap(({ file, content }) =>
+        [
+          ["@project/dom-webgl", "runtime"].join("-"),
+          ["@project/dom-webgl", "scroll-adapters"].join("-"),
+          "feature-frozen reference project",
+          "new R3F-based project",
+          "separate R3F-based project",
+        ]
+          .filter((term) => content.includes(term))
+          .map((term) => `${display(file)}: ${term}`),
+      );
+
+    expect(violations).toEqual([]);
+  });
+
+  test("documents npm-first package and skill usage", () => {
+    const onboarding = read("agent/package-onboarding.md");
+    const usage = read("agent/package-usage.md");
+    const consumer = read("consumer-standard-usage.md");
+
+    for (const content of [onboarding, usage, consumer]) {
+      expect(content).toContain("@viselora/dom-webgl");
+      expect(content).toContain("@viselora/scroll-adapters");
+    }
+    expect(onboarding).toContain("npm install @viselora/dom-webgl@alpha");
+    expect(onboarding).toContain("skills/viselora-dom-webgl");
+  });
+
+  test("keeps the formal MVP as a later isolated package-plus-skill repository", () => {
+    const background = read("new-project/example-page-background.md");
+    const mvp = read("new-project/example-page-mvp.md");
+    const combined = `${background}\n${mvp}`;
+
+    expect(combined).toContain("@viselora/dom-webgl@alpha");
+    expect(combined).toContain("@viselora/scroll-adapters@alpha");
+    expect(combined).toContain("viselora-dom-webgl");
+    expect(combined).toContain("separate repository");
+    expect(combined).toContain("surface pulse");
+    expect(combined).toContain("video background texture");
+    expect(combined).toContain("image hover overlay");
+    expect(combined).toContain("pinned model animation with emissive glow");
+    expect(combined).toContain("scroll-controlled image sequence");
+    expect(combined).toContain("This repository does not create the formal MVP");
+  });
+});
+
+function activeMarkdownFiles(): string[] {
+  return [resolve(repoRoot, "README.md"), ...collectMarkdown(docsRoot)].filter(
+    (file) =>
+      !file.includes(`${sep}archive${sep}`) &&
+      !file.includes(`${sep}superpowers${sep}plans${sep}`) &&
+      !file.includes(`${sep}superpowers${sep}specs${sep}`),
+  );
+}
+
+function collectMarkdown(directory: string): string[] {
+  return readdirSync(directory).flatMap((entry) => {
+    const path = resolve(directory, entry);
+    if (statSync(path).isDirectory()) return collectMarkdown(path);
+    return path.endsWith(".md") ? [path] : [];
+  });
+}
+
+function read(path: string): string {
+  return readFileSync(resolve(docsRoot, path), "utf8");
+}
+
+function display(file: string): string {
+  return relative(repoRoot, file).split(sep).join("/");
+}

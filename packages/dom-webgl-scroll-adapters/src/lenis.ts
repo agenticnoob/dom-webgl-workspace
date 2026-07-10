@@ -1,7 +1,7 @@
 import type {
   WebGLScrollAdapter,
   WebGLScrollMetrics,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 export type LenisLike = {
   readonly scroll?: number;

@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import type {
   WebGLEffectContext,
   WebGLModelMeshHandle,
-} from "@project/dom-webgl-runtime";
+} from "@viselora/dom-webgl";
 
 import { createEffectContext } from "./effectContext";
 import {

@@ -8,10 +8,10 @@ on decisions agents must make while writing effect definitions.
 ## Boundary
 
 - Effects are application-owned code.
-- `@project/dom-webgl-runtime` exports authoring primitives, the controlled
+- `@viselora/dom-webgl` exports authoring primitives, the controlled
   `ctx.object` facade, frame input, and managed resources.
 - The package does not export concrete effects, preset effects, or
-  `@project/dom-webgl-runtime/effects`.
+  `@viselora/dom-webgl/effects`.
 - Example app effects live under `apps/example` and are copyable examples, not
   package API.
 - Forward capability design should use
@@ -28,7 +28,7 @@ on decisions agents must make while writing effect definitions.
 Keep the executable effect definitions stable:
 
 ```tsx
-import { WebGLRuntime, WebGLTarget } from "@project/dom-webgl-runtime/react";
+import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
 
 import { exampleEffects } from "./exampleEffects";
 

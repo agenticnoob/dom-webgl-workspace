@@ -7,8 +7,10 @@ const IMPORT_PATTERN =
   /\b(?:import|export)\b[\s\S]*?\bfrom\s*["']([^"']+)["']|\bimport\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)|\brequire\s*\(\s*["']([^"']+)["']\s*\)/g;
 
 const ALLOWED_PUBLIC_IMPORTS = new Set([
-  "@project/dom-webgl-runtime",
-  "@project/dom-webgl-runtime/react",
+  "@viselora/dom-webgl",
+  "@viselora/dom-webgl/react",
+  "@viselora/scroll-adapters",
+  "@viselora/scroll-adapters/react",
 ]);
 
 const SOURCE_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]);
@@ -88,8 +90,16 @@ function getViolationReason({
   exampleSourceDir,
   runtimeSourceDir,
 }) {
-  if (specifier.startsWith("@project/dom-webgl-runtime/")) {
-    return ALLOWED_PUBLIC_IMPORTS.has(specifier) ? null : "non-public runtime alias import";
+  if (specifier.startsWith("@project/")) {
+    return "legacy @project package import";
+  }
+
+  if (ALLOWED_PUBLIC_IMPORTS.has(specifier)) {
+    return null;
+  }
+
+  if (specifier.startsWith("@viselora/")) {
+    return "non-public Viselora package import";
   }
 
   if (

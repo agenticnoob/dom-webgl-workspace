@@ -1,4 +1,4 @@
-import type { WebGLProgressSignalSource } from "@project/dom-webgl-runtime";
+import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 import { describe, expect, test } from "vitest";
 
 import { createScrollEffectProgressStore } from "../src/scrollEffectProgress";
