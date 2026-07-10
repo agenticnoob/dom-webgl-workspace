@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -23,12 +23,12 @@ const packagePostbuildScript =
   "node ../../scripts/finalize-package-dts.mjs";
 
 const expectedDistFiles = [
-  "./dist/index.d.ts",
-  "./dist/index.js",
-  "./dist/index.js.map",
-  "./dist/react.d.ts",
-  "./dist/react.js",
-  "./dist/react.js.map",
+  "index.d.ts",
+  "index.js",
+  "index.js.map",
+  "react.d.ts",
+  "react.js",
+  "react.js.map",
 ];
 
 describe("release package contracts", () => {
@@ -131,10 +131,12 @@ describe("release package contracts", () => {
   });
 
   test.each([
-    ["runtime", runtimePackage],
-    ["adapters", adaptersPackage],
-  ])("builds the %s package to the six public dist files", (_name, manifest) => {
-    expect(readExpectedDistFiles(manifest)).toEqual(expectedDistFiles);
+    ["runtime", "packages/dom-webgl-runtime/dist"],
+    ["adapters", "packages/dom-webgl-scroll-adapters/dist"],
+  ])("builds the %s package to the six public dist files", (_name, distPath) => {
+    expect(readdirSync(resolve(process.cwd(), distPath)).sort()).toEqual(
+      expectedDistFiles,
+    );
   });
 
   test("resolves Viselora workspaces from source in clean development checkouts", () => {
@@ -180,19 +182,4 @@ type TypeScriptConfig = {
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8")) as T;
-}
-
-function readExpectedDistFiles(manifest: PackageManifest): string[] {
-  const rootImport = manifest.exports?.["."]?.import;
-  const reactImport = manifest.exports?.["./react"]?.import;
-  const files = [
-    manifest.types,
-    manifest.main,
-    rootImport ? `${rootImport}.map` : undefined,
-    manifest.exports?.["./react"]?.types,
-    reactImport,
-    reactImport ? `${reactImport}.map` : undefined,
-  ];
-
-  return files.filter((file): file is string => file !== undefined).sort();
 }

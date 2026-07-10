@@ -13,11 +13,6 @@ const ALLOWED_PUBLIC_IMPORTS = new Set([
   "@viselora/scroll-adapters/react",
 ]);
 
-const VISELORA_PACKAGE_PREFIXES = [
-  "@viselora/dom-webgl/",
-  "@viselora/scroll-adapters/",
-];
-
 const SOURCE_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]);
 
 export async function findExampleImportViolations({
@@ -103,7 +98,7 @@ function getViolationReason({
     return null;
   }
 
-  if (VISELORA_PACKAGE_PREFIXES.some((prefix) => specifier.startsWith(prefix))) {
+  if (specifier.startsWith("@viselora/")) {
     return "non-public Viselora package import";
   }
 

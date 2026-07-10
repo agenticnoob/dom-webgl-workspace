@@ -77,6 +77,29 @@ describe("example import boundary", () => {
       rmSync(fixtureDir, { recursive: true, force: true });
     }
   });
+
+  test("rejects unrecognized Viselora package imports", async () => {
+    const findViolations = await loadFindExampleImportViolations();
+    const fixtureDir = mkdtempSync(path.join(tmpdir(), "private-imports-"));
+
+    try {
+      writeFileSync(
+        path.join(fixtureDir, "fixture.ts"),
+        'import "@viselora/private-package";',
+      );
+
+      const violations = await findViolations({ exampleSourceDir: fixtureDir });
+
+      expect(violations).toEqual([
+        expect.objectContaining({
+          specifier: "@viselora/private-package",
+          reason: "non-public Viselora package import",
+        }),
+      ]);
+    } finally {
+      rmSync(fixtureDir, { recursive: true, force: true });
+    }
+  });
 });
 
 async function loadFindExampleImportViolations(): Promise<FindExampleImportViolations> {
