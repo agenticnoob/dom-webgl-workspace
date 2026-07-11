@@ -1,38 +1,40 @@
-# Architecture rules
+# Architecture Rules
 
-## Runtime and renderer ownership
+Compatible package version: 0.1.0-alpha.0
 
-- Mount exactly one `WebGLScrollRuntime` or `WebGLRuntime` root for the page.
-- Let the runtime own its single canvas, renderer, scene objects, cameras, loaders, frame loop, disposal, and scheduling.
-- Never create `WebGLRenderer`, R3F `<Canvas>`, or another render loop.
-- Never import repository paths such as `packages/dom-webgl-runtime/src/*`, aliases such as `@project/*`, or non-exported Viselora subpaths.
+## One managed ownership path
 
-## React stability
+- Mount one runtime and one canvas for the page: `WebGLScrollRuntime` or
+  `WebGLRuntime`, never both.
+- Keep one scroll source and one pointer source. Use managed timeline/progress
+  and target/scene pointer declarations instead of component/window listeners.
+- Let the runtime own renderer, scenes, cameras, loaders, frame loop, resources,
+  scheduling and disposal.
+- Do not add R3F, raw `WebGLRenderer`, a second renderer/canvas/runtime, raw
+  Three.js ownership or a consumer render loop.
 
-- Define effect definitions and `runtimeEffects` at module scope.
-- Keep runtime effects and target declarations reference-stable.
-- Remount with a new key when a target's source/effects/scroll/pointer/lifecycle declaration must change.
-- Mount an image-sequence target only after its complete, stable frame array is ready.
+## Stable React declarations
 
-## DOM-first fallback
+- Define effect definitions and the runtime effect array at module scope.
+- Keep runtime effects, scroll integration and mounted target declarations
+  reference-stable.
+- Remount with a new key when source/effects/scroll/pointer/lifecycle changes.
+- Mount image sequences only after a complete stable frame declaration exists.
 
-- Keep semantic DOM content, `alt` text, video attributes, and loading/error UI in React.
-- Set `hideWhenReady: true` only when the WebGL resource is ready to replace the fallback.
-- Use `hideMode: "self"` unless the whole declared subtree is intentionally replaced.
-- Use `offscreen.strategy: "restore-dom"` to restore fallback and release resources.
-- Use `offscreen.strategy: "park"` to keep expensive media/model resources warm.
-- Never hide a fallback while its resource is loading or after it errors.
+## Semantic DOM and fallback
 
-## Input and progress ownership
+- Keep semantic DOM responsible for content, layout, accessibility, controls
+  and fallback.
+- Keep loading/error fallback visible; choose `restore-dom` or `park`
+  deliberately and restore fallback on disposal.
+- Keep buttons, links, forms and navigation as accessible DOM controls.
+- Hover must have touch or scroll parity; reduced motion must preserve meaning.
 
-- Use `WebGLScrollTimeline` or `ScrollEffectSection` for shared progress.
-- Use target `pointer: { hover, press, click, drag }` declarations for managed pointer state.
-- Do not attach window/document/component scroll, wheel, touch, or pointer listeners.
-- Do not construct Lenis, GSAP, or ScrollTrigger objects during React render.
+## Assets and effects
 
-## Placement and effects
-
-- Let model targets fit their DOM anchor unless an effect intentionally takes over scene placement.
-- Use `ctx.object.material` and mesh emissive/light controls for object glow.
-- Remember that postprocessing is runtime-canvas scoped, not target scoped.
-- Dispose material layers or other effect-owned resources in the effect `dispose` hook.
+- Enforce a no production hotlink rule. Store assets locally with source,
+  author, license, purpose, modifications, metadata and fallback.
+- Use only controlled `ctx.object`, `ctx.runtime`, progress, pointer and resource
+  facades. Dispose effect-owned handles through `ctx.resources`/`dispose`.
+- Treat postprocess as canvas/pass scoped. Do not use it as object-local glow.
+- Leave DOM-fitted model placement runtime-owned unless takeover is intentional.

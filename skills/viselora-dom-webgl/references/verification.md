@@ -2,7 +2,15 @@
 
 Compatible package version: 0.1.0-alpha.0
 
-Run verification in this order from the consumer root:
+## Skill integrity
+
+Maintainers validate frontmatter/links, build both packages, check generated
+`.d.ts` drift, public value/type/status coverage, run skill tests, verify the
+selected template, and typecheck/build a clean temporary template copy.
+
+## Selected consumer checks
+
+From the consumer root:
 
 ```bash
 node /absolute/path/to/viselora-dom-webgl/scripts/verify-consumer.mjs .
@@ -10,26 +18,28 @@ npm run typecheck
 npm run build
 ```
 
-Install the consumer dependencies before running the verifier. Keep `typescript`
-in `devDependencies` even for a JavaScript/JSX consumer because the verifier
-uses that parser instead of brittle text matching. The verifier loads the
-consumer project's own `typescript` compiler API, reads `package.json` and
-JavaScript/TypeScript source files, builds a semantic AST model without loading
-library declarations or following imports, and never modifies the consumer. It
-rejects:
+The static verifier checks versions, public imports, one runtime/canvas owner,
+stable declarations, input ownership, selected assets/status/acknowledgements
+and required evidence names. Static success does not prove real-browser output.
+Template typecheck/build proves skill/template self-consistency only.
 
-- missing or non-exact Viselora package versions
-- private, repository-source, or old package imports
-- zero or multiple runtime roots
-- direct Three renderer or R3F canvas ownership
-- component-scoped `runtimeEffects`
-- multiple/manual scroll or pointer ownership paths
-- missing surface-pulse, video, hover-overlay, pinned-model-glow, or image-sequence evidence
+## Real-browser evidence
 
-For this skill repository, also run:
+For every selected dynamic beat, assert final-canvas pixel change or a direct
+behavioral result. Test exactly one canvas, unmount/remount `1 -> 0 -> 1`, slow/
+fast/forward/reverse scroll, pointer plus touch alternative, loading/network
+fallback, video autoplay rejection when selected, offscreen re-entry, clean
+console, desktop/mobile overflow and reduced-motion continuity.
 
-```bash
-python /Users/ai/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/viselora-dom-webgl
-node skills/viselora-dom-webgl/scripts/verify-consumer.mjs skills/viselora-dom-webgl/templates/react-vite
-npm test -- --run test/skill.test.ts
-```
+Callbacks, debug ready/active state, effect-owned pixels and build success are
+not substitutes for final-canvas evidence.
+
+## Narrative review
+
+Review the full desktop, mobile and reduced-motion story. Confirm every beat
+advances the message, pacing and text remain legible, interactions are clear,
+semantic content/navigation survives without WebGL, and every production asset
+is local with deployment-compatible licensing.
+
+Do not claim a consumer browser or narrative pass until those observations are
+recorded in the independent consumer project.

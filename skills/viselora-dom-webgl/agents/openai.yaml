@@ -1,4 +1,4 @@
 interface:
-  display_name: "Viselora DOM WebGL"
-  short_description: "Build verified DOM-first WebGL pages with Viselora"
-  default_prompt: "Use $viselora-dom-webgl to build a DOM-first WebGL page with one runtime and verified public package imports."
+  display_name: "Viselora Development"
+  short_description: "Build verified scroll narratives with public Viselora packages"
+  default_prompt: "Use $viselora-dom-webgl to turn my brief into a DOM-first scroll narrative with local licensed assets, selected public capabilities, and browser-backed verification."

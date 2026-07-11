@@ -298,6 +298,41 @@ describe("viselora-dom-webgl skill", () => {
     }
   });
 
+  test("routes architecture, failure classification, and completion evidence honestly", () => {
+    const architecture = read("references/architecture-rules.md");
+    const troubleshooting = read("references/troubleshooting.md");
+    const verification = read("references/verification.md");
+
+    for (const term of [
+      "one runtime",
+      "one canvas",
+      "one scroll source",
+      "one pointer source",
+      "module scope",
+      "stable",
+      "semantic DOM",
+      "fallback",
+      "no production hotlink",
+    ]) {
+      expect(architecture.toLowerCase()).toContain(term.toLowerCase());
+    }
+    for (const category of [
+      "API/type failures",
+      "Asset failures",
+      "Lifecycle failures",
+      "Visible-output failures",
+      "Package-defect candidates",
+    ]) {
+      expect(troubleshooting).toContain(category);
+    }
+    expect(troubleshooting).toContain("minimal public-boundary reproduction");
+    expect(verification).toContain("Skill integrity");
+    expect(verification).toContain("Selected consumer checks");
+    expect(verification).toContain("Real-browser evidence");
+    expect(verification).toContain("Narrative review");
+    expect(verification).toContain("does not prove real-browser");
+  });
+
   test("accepts a verified subset without unrelated recipes", () => {
     const fixtureRoot = copyTemplate();
     const result = runVerifier(fixtureRoot);

@@ -1,31 +1,65 @@
 ---
 name: viselora-dom-webgl
-description: Build, review, or repair React DOM-first WebGL pages with the public Viselora packages. Use for single-runtime pages that bind WebGL rendering to DOM targets, author managed effects, add shared scroll timelines or pointer hover, render video, images, image sequences, or GLB models, choose fallback lifecycle behavior, and verify consumer architecture.
+description: Use when building a new DOM-first scroll narrative, enhancing an existing React site with public Viselora APIs, selecting capabilities or interactions, planning local assets, debugging lifecycle or rendering failures, or verifying a Viselora consumer.
 ---
 
-# Viselora DOM WebGL
+# Viselora Development
 
 Compatible package version: 0.1.0-alpha.0
 
 ## Workflow
 
-1. Decide fit. Use Viselora when DOM remains the layout, accessibility, and fallback source of truth while one runtime renders managed WebGL targets. Choose another stack for a free-form R3F scene or a second independently owned canvas.
-2. Install the exact alpha and the verifier's TypeScript parser dependency. Follow [quickstart.md](references/quickstart.md).
-3. Create exactly one `WebGLScrollRuntime` or `WebGLRuntime` root.
-4. Define effect definitions and the `runtimeEffects` array at module scope. Keep both references stable.
-5. Declare DOM-first targets with public React components. Give every target an explicit fallback, lifecycle, and offscreen policy.
-6. Add one shared scroll/pointer pipeline. Use the scroll adapter timeline and target `pointer` declarations; do not add component-owned listeners.
-7. Select `restore-dom` for releasable resources or `park` for warm media/model state. Never hide fallback content during loading or error.
-8. Run the consumer verifier, typecheck, and production build. Follow [verification.md](references/verification.md).
+1. Establish audience, core message, outcome, tone, length, interaction density,
+   available assets, accessibility, mobile, performance and reduced-motion
+   constraints. Follow [narrative-design.md](references/narrative-design.md).
+2. When direction is ambiguous, offer 2–3 materially different directions,
+   recommend one, and pause only if the choice materially changes scope.
+3. Define 4–8 story beats with semantic DOM/fallback, entrance/active/exit,
+   scroll owner/range, at most one primary interaction, mobile/reduced motion,
+   assets, capability/status and direct evidence. Copy
+   [story-plan.md](templates/story-plan.md).
+4. Inventory first; freeze production assets locally with provenance, license,
+   metadata and fallback. Follow [asset-pipeline.md](references/asset-pipeline.md)
+   and copy [asset-manifest.json](templates/asset-manifest.json).
+5. Map each dynamic beat to the narrowest public API. Read
+   [public-api.md](references/public-api.md) and
+   [capability-status.md](references/capability-status.md). Use experimental
+   paths only with acknowledgement; use blocked paths only for retained defect
+   reproduction.
+6. Implement with one page-level runtime/canvas, one scroll source, one pointer
+   source, module-scope effect definitions/array, stable mounted declarations,
+   semantic DOM and visible loading/error fallback. Follow
+   [architecture-rules.md](references/architecture-rules.md).
+7. Run the selected-capability verifier, strict typecheck and production build,
+   then collect real-browser pixels/behavior and complete desktop/mobile/
+   reduced-motion narrative review. Follow
+   [verification.md](references/verification.md).
 
 ## Load only what the task needs
 
-- Read [public-api.md](references/public-api.md) before choosing symbols or declarations.
-- Read [architecture-rules.md](references/architecture-rules.md) before changing runtime, canvas, input, resource, or fallback ownership.
-- Read [effect-recipes.md](references/effect-recipes.md) and copy from `templates/effects/` for the five supported recipes.
-- Read [troubleshooting.md](references/troubleshooting.md) after a verifier, typecheck, loading, or rendering failure.
-- Copy `templates/react-vite/` when starting a React/Vite consumer.
+| Need | Reference |
+| --- | --- |
+| Install and start | [quickstart.md](references/quickstart.md) |
+| Effects, targets, materials, textures, text, postprocess | [api-effects-rendering.md](references/api-effects-rendering.md) |
+| Scenes, cameras, passes, stages, models | [api-scenes-models.md](references/api-scenes-models.md) |
+| Scroll, progress, pointer, gestures, physics | [api-scroll-interaction.md](references/api-scroll-interaction.md) |
+| Loading, fallback, debug selectors, disposal, SSR | [api-lifecycle-debug.md](references/api-lifecycle-debug.md) |
+| Optional examples | [effect-recipes.md](references/effect-recipes.md) |
+| Diagnose failures | [troubleshooting.md](references/troubleshooting.md) |
+| Exhaustive exports | [api-surface.generated.md](references/api-surface.generated.md) |
+| Maintainer value mapping | [api-coverage.json](references/api-coverage.json) |
 
 ## Hard boundaries
 
-Do not add R3F, `<Canvas>`, `new WebGLRenderer(...)`, a second runtime/canvas, repository source-path imports, unstable effect arrays, per-component scroll/pointer listeners, or loading/error behavior that hides the DOM fallback.
+- Import only `@viselora/dom-webgl`, `@viselora/dom-webgl/react`,
+  `@viselora/scroll-adapters`, and `@viselora/scroll-adapters/react`.
+- Do not add R3F, `<Canvas>`, raw `WebGLRenderer`, a second renderer/runtime/
+  canvas, a consumer render loop, private/source imports, or duplicate scroll/
+  pointer listeners.
+- Do not mutate mounted target declarations or construct runtime effect arrays
+  during render.
+- Do not hide semantic fallback while loading or after error.
+- Do not hotlink production assets. Do not claim browser verification from the
+  static verifier, skill tests, typecheck or build alone.
+- Route ready/active-but-blank output to public-boundary reproduction; never
+  introduce raw Three.js ownership as a workaround.
