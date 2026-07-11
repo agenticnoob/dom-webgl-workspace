@@ -262,7 +262,7 @@ describe("viselora-dom-webgl skill", () => {
     installImageSequenceFixture(fixtureRoot);
 
     const result = runVerifier(fixtureRoot);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stderr).toBe("");
   });
 
@@ -312,6 +312,11 @@ describe("viselora-dom-webgl skill", () => {
       "touch-or-scroll-alternative",
     ],
     [
+      "an unknown check name",
+      (root: string) => selectCapabilities(root, [{ id: "managed-image-hover", checks: ["final-canvas-pixel-change", "touch-or-scroll-alternative", "loading-error-fallback", "made-up-check"] }]),
+      "unknown check",
+    ],
+    [
       "selected local media without an asset record",
       (root: string) => writeJson(root, "asset-manifest.json", { schemaVersion: 1, assets: [] }),
       "asset record",
@@ -331,6 +336,16 @@ describe("viselora-dom-webgl skill", () => {
       "non-public Viselora import",
     ],
     [
+      "a direct Three renderer",
+      (root: string) => append(root, "src/App.tsx", "\nnew WebGLRenderer();\n"),
+      "direct WebGLRenderer construction is prohibited",
+    ],
+    [
+      "an R3F import",
+      (root: string) => append(root, "src/App.tsx", '\nimport { Canvas } from "@react-three/fiber";\n'),
+      "React Three Fiber is prohibited",
+    ],
+    [
       "a second runtime",
       (root: string) => append(root, "src/App.tsx", "\nconst duplicateRoot = <WebGLScrollRuntime />;\n"),
       "exactly one runtime root",
@@ -339,6 +354,16 @@ describe("viselora-dom-webgl skill", () => {
       "an unstable effect array",
       (root: string) => replace(root, "src/App.tsx", "effects={runtimeEffects}", "effects={[...runtimeEffects]}"),
       "stable module-scope array",
+    ],
+    [
+      "an inline target declaration",
+      (root: string) => replace(root, "src/App.tsx", "webgl={imageDeclaration}", "webgl={{ ...imageDeclaration }}"),
+      "target declarations must be stable",
+    ],
+    [
+      "a consumer render loop",
+      (root: string) => append(root, "src/App.tsx", "\nrequestAnimationFrame(() => undefined);\n"),
+      "consumer render loops are prohibited",
     ],
     [
       "an unmanaged scroll source",
@@ -416,12 +441,50 @@ function copyTemplate(options: { installTypeScript?: boolean } = {}): string {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "viselora-skill-consumer-"));
   fixtureRoots.push(fixtureRoot);
   cpSync(templateRoot, fixtureRoot, { recursive: true });
+  installSelectedCapabilityFixture(fixtureRoot);
   if (options.installTypeScript !== false) {
     const nodeModules = resolve(fixtureRoot, "node_modules");
     mkdirSync(nodeModules, { recursive: true });
     symlinkSync(resolve(repoRoot, "node_modules/typescript"), resolve(nodeModules, "typescript"), "dir");
   }
   return fixtureRoot;
+}
+
+function installSelectedCapabilityFixture(root: string): void {
+  selectCapabilities(root, [
+    {
+      id: "managed-image-hover",
+      checks: [
+        "final-canvas-pixel-change",
+        "touch-or-scroll-alternative",
+        "loading-error-fallback",
+      ],
+    },
+  ]);
+  cpSync(
+    resolve(skillRoot, "templates/asset-manifest.json"),
+    resolve(root, "asset-manifest.json"),
+  );
+
+  const effectsPath = resolve(root, "src/effects.ts");
+  let effects = readFileSync(effectsPath, "utf8");
+  if (effects.includes('mode: "overlay"')) {
+    effects = effects
+      .replace(
+        "  uniform float uHover;",
+        "  uniform sampler2D uSourceTexture;\n  uniform float uHover;",
+      )
+      .replace(
+        "    gl_FragColor = vec4(0.49, 0.83, 0.98, uHover * edge * 0.5);",
+        "    vec4 source = texture2D(uSourceTexture, vUv);\n    gl_FragColor = vec4(mix(source.rgb, vec3(0.49, 0.83, 0.98), uHover * edge * 0.35), source.a);",
+      )
+      .replace('mode: "overlay"', 'mode: "replace-source"')
+      .replace(
+        "        program: { fragmentShader: hoverFragmentShader, uniforms: { uHover: 0 } },",
+        "        sourceTextureUniform: \"uSourceTexture\",\n        program: { fragmentShader: hoverFragmentShader, uniforms: { uHover: 0 } },",
+      );
+    writeFileSync(effectsPath, effects);
+  }
 }
 
 function installImageSequenceFixture(root: string): void {
@@ -431,11 +494,12 @@ function installImageSequenceFixture(root: string): void {
       'import { defineWebGLEffect, type WebGLDeclaration } from "@viselora/dom-webgl";',
       'import { WebGLTarget } from "@viselora/dom-webgl/react";',
       'import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";',
+      'import { ScrollTrigger } from "gsap/ScrollTrigger";',
       'const progressKey = "sequence-progress";',
       'const frames = [{ src: "/media/sequence/frame-01.webp" }];',
       'export const imageSequenceEffect = defineWebGLEffect({ kind: "story.imageSequence", source: "media/image-sequence", update(ctx) { ctx.object.texture?.setTransform({ offsetX: ctx.progress.get(progressKey) }); } });',
       'const declaration = { key: "story.sequence", source: { kind: "media", type: "image-sequence", frameCount: frames.length, frames, progressKey }, lifecycle: { hideWhenReady: true, hideMode: "self", offscreen: { strategy: "restore-dom" } }, effects: [{ kind: "story.imageSequence" }] } satisfies WebGLDeclaration;',
-      'export const sequenceEvidence = <WebGLScrollTimeline id={progressKey}><WebGLTarget webgl={declaration}><img src="/media/sequence/frame-01.webp" alt="Sequence first frame" /></WebGLTarget></WebGLScrollTimeline>;',
+      'export const sequenceEvidence = <WebGLScrollTimeline id={progressKey} ScrollTrigger={ScrollTrigger}><WebGLTarget webgl={declaration}><img src="/media/sequence/frame-01.webp" alt="Sequence first frame" /></WebGLTarget></WebGLScrollTimeline>;',
       "",
     ].join("\n"),
   );

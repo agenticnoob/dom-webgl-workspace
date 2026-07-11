@@ -3,6 +3,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const exactVersion = "0.1.0-alpha.0";
 const allowedViseloraImports = new Set([
@@ -14,13 +15,155 @@ const allowedViseloraImports = new Set([
 const sourcePattern = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 const consumerRoot = resolve(process.argv[2] ?? process.cwd());
 const packageJsonPath = resolve(consumerRoot, "package.json");
+const skillRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const violations = [];
+const capabilityRequirements = {
+  "public-imports-ssr": {
+    requiredChecks: ["browser-public-imports", "ssr-public-imports"],
+    assetKinds: [],
+  },
+  "single-runtime-canvas": {
+    requiredChecks: ["one-canvas-mounted", "unmount-remount-1-0-1"],
+    assetKinds: [],
+  },
+  "runtime-remount": {
+    requiredChecks: ["unmount-remount-1-0-1", "disposed-resources-released"],
+    assetKinds: [],
+  },
+  "managed-image-hover": {
+    requiredChecks: [
+      "final-canvas-pixel-change",
+      "touch-or-scroll-alternative",
+      "loading-error-fallback",
+    ],
+    assetKinds: ["image"],
+  },
+  "managed-video": {
+    requiredChecks: [
+      "playback",
+      "autoplay-rejection-fallback",
+      "network-error-fallback",
+      "offscreen-reentry",
+    ],
+    assetKinds: ["video"],
+  },
+  "shared-scroll-progress": {
+    requiredChecks: [
+      "slow-forward-scroll",
+      "fast-forward-scroll",
+      "reverse-scroll",
+    ],
+    assetKinds: [],
+  },
+  "resource-fallback-lifecycle": {
+    requiredChecks: [
+      "loading-fallback",
+      "network-error-fallback",
+      "offscreen-reentry",
+    ],
+    assetKinds: [],
+  },
+  "glb-loading-lifecycle": {
+    requiredChecks: [
+      "glb-ready-active",
+      "glb-network-error-fallback",
+      "offscreen-reentry",
+    ],
+    assetKinds: ["model"],
+  },
+  "reduced-motion-signaling": {
+    requiredChecks: [
+      "reduced-motion-content-continuity",
+      "reduced-motion-no-required-animation",
+    ],
+    assetKinds: [],
+  },
+  "image-sequence": {
+    requiredChecks: [
+      "final-canvas-pixel-change",
+      "first-frame-fallback",
+      "bounded-cache",
+      "forward-reverse-scroll",
+    ],
+    assetKinds: ["image-sequence"],
+  },
+  "scene-camera-pass": {
+    requiredChecks: [
+      "scene-camera-pass-declarations",
+      "clipped-final-canvas-pixel-change",
+    ],
+    assetKinds: [],
+  },
+  "scene-native-models": {
+    requiredChecks: [
+      "model-asset-ready",
+      "scene-model-final-canvas-pixel-change",
+    ],
+    assetKinds: ["model"],
+  },
+  "scene-object-interaction": {
+    requiredChecks: [
+      "managed-picking",
+      "pointer-touch-alternative",
+      "interaction-final-canvas-pixel-change",
+    ],
+    assetKinds: [],
+  },
+  "camera-gestures": {
+    requiredChecks: [
+      "managed-camera-controller",
+      "mobile-gesture-alternative",
+      "camera-persistence-after-release",
+    ],
+    assetKinds: [],
+  },
+  physics: {
+    requiredChecks: [
+      "managed-physics-descriptors",
+      "direct-drag-release-inertia",
+      "fallback-without-physics",
+    ],
+    assetKinds: [],
+  },
+  "advanced-effect-facades": {
+    requiredChecks: [
+      "public-facade-only",
+      "effect-resource-disposal",
+      "final-canvas-pixel-change",
+    ],
+    assetKinds: [],
+  },
+  "surface-pulse-visible-output": {
+    requiredChecks: [
+      "retained-surface-pulse-reproduction",
+      "effect-surface-pixels-change",
+      "final-canvas-pixel-threshold",
+    ],
+    assetKinds: [],
+  },
+  "dom-anchored-glb-visible-output": {
+    requiredChecks: [
+      "retained-dom-glb-reproduction",
+      "glb-ready-active",
+      "final-canvas-pixel-threshold",
+    ],
+    assetKinds: ["model"],
+  },
+};
 
 verifyPackageJson();
+const capabilityStatuses = readCapabilityStatus();
+const capabilityManifest = readCapabilityManifest();
+const selectedCapabilities = validateCapabilitySelection(
+  capabilityManifest,
+  capabilityStatuses,
+);
+const assetManifest = readAssetManifest(capabilityManifest);
+validateSelectedAssets(selectedCapabilities, assetManifest);
 
 const ts = loadConsumerTypeScript();
 if (ts) {
-  verifyWithTypeScript(ts);
+  verifyWithTypeScript(ts, selectedCapabilities);
 }
 
 if (violations.length > 0) {
@@ -30,6 +173,179 @@ if (violations.length > 0) {
   process.exitCode = 1;
 } else {
   process.stdout.write(`Viselora consumer verification passed: ${consumerRoot}\n`);
+}
+
+function readCapabilityManifest() {
+  return readJsonFile(
+    resolve(consumerRoot, "viselora.capabilities.json"),
+    "viselora.capabilities.json",
+  );
+}
+
+function readCapabilityStatus() {
+  const path = resolve(skillRoot, "references/capability-status.md");
+  let content;
+  try {
+    content = readFileSync(path, "utf8");
+  } catch (error) {
+    add(`capability status could not be read: ${readError(error)}`);
+    return new Map();
+  }
+  const version = content.match(/Compatible package version:\s*`?([^`\s]+)`?/)?.[1];
+  if (version !== exactVersion) {
+    add(`capability status compatible version must be ${exactVersion}`);
+  }
+  const statuses = new Map();
+  for (const line of content.split("\n")) {
+    if (!/^\| [a-z0-9-]+ \| (?:verified|experimental|blocked) \|/.test(line)) {
+      continue;
+    }
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    statuses.set(cells[0], cells[1]);
+  }
+  return statuses;
+}
+
+function validateCapabilitySelection(manifest, statuses) {
+  if (!manifest) return [];
+  if (manifest.schemaVersion !== 1) {
+    add("viselora.capabilities.json schemaVersion must be 1");
+  }
+  if (manifest.compatiblePackageVersion !== exactVersion) {
+    add(`compatiblePackageVersion must be exactly ${exactVersion}`);
+  }
+  if (!new Set(["consumer", "retained-defect-reproduction"]).has(manifest.mode)) {
+    add("capability manifest mode must be consumer or retained-defect-reproduction");
+  }
+  if (!Array.isArray(manifest.capabilities) || manifest.capabilities.length === 0) {
+    add("capability manifest must contain non-empty capabilities");
+    return [];
+  }
+
+  const selected = [];
+  const ids = new Set();
+  const knownChecks = new Set(
+    Object.values(capabilityRequirements).flatMap(
+      (requirement) => requirement.requiredChecks,
+    ),
+  );
+  for (const entry of manifest.capabilities) {
+    if (!entry || typeof entry !== "object" || typeof entry.id !== "string") {
+      add("capability entries require a string id");
+      continue;
+    }
+    if (ids.has(entry.id)) {
+      add(`duplicate capability: ${entry.id}`);
+      continue;
+    }
+    ids.add(entry.id);
+    const status = statuses.get(entry.id);
+    const requirement = capabilityRequirements[entry.id];
+    if (!status || !requirement) {
+      add(`unknown capability: ${entry.id}`);
+      continue;
+    }
+    if (status === "experimental" && entry.acknowledgement !== "experimental") {
+      add(`[${entry.id}] experimental capability requires acknowledgement: experimental`);
+    }
+    if (
+      status === "blocked" &&
+      (manifest.mode !== "retained-defect-reproduction" ||
+        entry.acknowledgement !== "blocked-defect-reproduction")
+    ) {
+      add(
+        `[${entry.id}] blocked capability requires retained-defect-reproduction mode and acknowledgement: blocked-defect-reproduction`,
+      );
+    }
+    const checks = Array.isArray(entry.checks) ? entry.checks : [];
+    for (const check of checks) {
+      if (!knownChecks.has(check)) {
+        add(`[${entry.id}] unknown check: ${check}`);
+      }
+    }
+    for (const check of requirement.requiredChecks) {
+      if (!checks.includes(check)) {
+        add(`[${entry.id}] missing required check: ${check}`);
+      }
+    }
+    selected.push({ ...entry, status, requirement });
+  }
+  return selected;
+}
+
+function readAssetManifest(manifest) {
+  if (!manifest || typeof manifest.assetManifest !== "string") {
+    add("capability manifest requires assetManifest");
+    return undefined;
+  }
+  const absolute = resolve(consumerRoot, manifest.assetManifest);
+  const relativePath = relative(consumerRoot, absolute);
+  if (relativePath.startsWith("..") || relativePath === "") {
+    add("assetManifest must be a relative file inside the consumer root");
+    return undefined;
+  }
+  return readJsonFile(absolute, manifest.assetManifest);
+}
+
+function validateSelectedAssets(selected, manifest) {
+  if (!manifest) return;
+  if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.assets)) {
+    add("asset-manifest.json must use schemaVersion 1 and an assets array");
+    return;
+  }
+  for (const capability of selected) {
+    for (const kind of capability.requirement.assetKinds) {
+      if (!manifest.assets.some((asset) => asset?.kind === kind)) {
+        add(`[${capability.id}] missing ${kind} asset record`);
+      }
+    }
+  }
+  for (const asset of manifest.assets) {
+    validateAssetRecord(asset);
+  }
+}
+
+function validateAssetRecord(asset) {
+  if (!asset || typeof asset !== "object") {
+    add("asset record must be an object");
+    return;
+  }
+  for (const field of ["id", "kind", "localPath", "purpose", "source", "modifications", "metadata", "fallback"]) {
+    if (asset[field] === undefined) add(`asset record missing ${field}`);
+  }
+  if (/^https?:\/\//.test(asset.localPath ?? "")) {
+    add(`asset ${asset.id ?? "unknown"} localPath must be local, not a hotlink`);
+  }
+  for (const field of ["url", "author", "license", "deploymentRights"]) {
+    if (asset.source?.[field] === undefined) {
+      add(`asset ${asset.id ?? "unknown"} source missing ${field}`);
+    }
+  }
+  if (asset.source?.deploymentRights === "local-validation-only") {
+    add(`asset ${asset.id ?? "unknown"} is local-validation-only`);
+  }
+  if (asset.kind === "video" && !asset.metadata?.poster && !asset.fallback?.poster) {
+    add(`asset ${asset.id ?? "unknown"} video requires a poster fallback`);
+  }
+  if (asset.kind === "image-sequence") {
+    for (const field of ["frameCount", "pattern", "startFrame", "progressRange", "firstFrame", "cacheBudget"]) {
+      if (asset.metadata?.[field] === undefined) {
+        add(`asset ${asset.id ?? "unknown"} image-sequence metadata missing ${field}`);
+      }
+    }
+  }
+  if (asset.kind === "model" && !asset.fallback?.localPath && !asset.fallback?.text) {
+    add(`asset ${asset.id ?? "unknown"} model requires poster or text fallback`);
+  }
+}
+
+function readJsonFile(path, label) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    add(`${label} could not be read: ${readError(error)}`);
+    return undefined;
+  }
 }
 
 function verifyPackageJson() {
@@ -71,7 +387,7 @@ function loadConsumerTypeScript() {
   }
 }
 
-function verifyWithTypeScript(ts) {
+function verifyWithTypeScript(ts, selectedCapabilities) {
   const sourcePaths = collectSourceFiles(consumerRoot);
   const program = ts.createProgram({
     rootNames: sourcePaths,
@@ -107,12 +423,38 @@ function verifyWithTypeScript(ts) {
   };
 
   verifyImports(context);
+  verifyNoConsumerRenderLoop(context);
   const jsx = collectJsx(context);
   verifyRuntimeOwnership(context, jsx);
   verifyInputOwnership(context, jsx);
   verifyRuntimeEffects(context, jsx);
   const targets = verifyTargetDeclarations(context, jsx);
-  verifyRecipeSurfaces(context, jsx, targets);
+  verifySelectedCapabilities(
+    context,
+    jsx,
+    targets,
+    selectedCapabilities,
+  );
+}
+
+function verifyNoConsumerRenderLoop(context) {
+  const { ts, records } = context;
+  for (const { file, sourceFile } of records) {
+    if (/(?:^|\/)(?:test|tests|e2e|scripts)\//.test(relative(consumerRoot, file))) {
+      continue;
+    }
+    visit(ts, sourceFile, (node) => {
+      if (!ts.isCallExpression(node)) return;
+      const name = ts.isIdentifier(node.expression)
+        ? node.expression.text
+        : ts.isPropertyAccessExpression(node.expression)
+          ? node.expression.name.text
+          : undefined;
+      if (name === "requestAnimationFrame" || name === "setAnimationLoop") {
+        add(`${display(file)}: consumer render loops are prohibited`);
+      }
+    });
+  }
 }
 
 function verifyImports(context) {
@@ -440,41 +782,103 @@ function verifyTargetDeclarations(context, jsx) {
   return targets;
 }
 
-function verifyRecipeSurfaces(context, jsx, targets) {
+function verifySelectedCapabilities(
+  context,
+  jsx,
+  targets,
+  selectedCapabilities,
+) {
   const definitions = collectEffectDefinitions(context);
   const timelines = collectTimelineProgressExpressions(context, jsx);
+  const sourceText = context.records
+    .map(({ sourceFile }) => sourceFile.getFullText())
+    .join("\n");
 
-  const surface = targets.find(
-    (target) =>
-      target.sourceKind === "dom" &&
-      target.sourceType === "element" &&
-      findUsedDefinition(target, definitions, (definition) =>
-        definitionHasContextCapabilities(context, definition, [
-          ["object", "surface"],
-          ["object", "material"],
-          ["time"],
-        ]),
-      ),
-  );
-  if (!surface) {
-    add("missing dom/element surface pulse surface");
+  for (const capability of selectedCapabilities) {
+    switch (capability.id) {
+      case "managed-image-hover":
+        verifyManagedImageHover(
+          context,
+          targets,
+          definitions,
+          sourceText,
+        );
+        break;
+      case "managed-video":
+        verifyManagedVideo(context, targets, definitions);
+        break;
+      case "shared-scroll-progress":
+        verifySharedScrollProgress(context, targets, definitions, timelines);
+        break;
+      case "image-sequence":
+        verifyImageSequence(context, targets, definitions, timelines);
+        break;
+      case "glb-loading-lifecycle":
+      case "dom-anchored-glb-visible-output":
+        if (
+          !targets.some(
+            (target) =>
+              target.sourceKind === "model" && target.sourceType === "glb",
+          )
+        ) {
+          add(`[${capability.id}] missing managed model/glb declaration`);
+        }
+        break;
+      case "scene-native-models":
+        if (collectModelComponentInfo(context, jsx).length === 0) {
+          add(`[${capability.id}] missing public WebGLModel declaration`);
+        }
+        break;
+      case "scene-camera-pass":
+        if (!sourceText.includes("WebGLScene") || !sourceText.includes("WebGLCamera")) {
+          add(`[${capability.id}] missing managed scene/camera declarations`);
+        }
+        break;
+      case "scene-object-interaction":
+        if (!sourceText.includes("interaction") || !sourceText.includes("pickable")) {
+          add(`[${capability.id}] missing managed picking declaration`);
+        }
+        break;
+      case "camera-gestures":
+        if (!sourceText.includes("controller") || !sourceText.includes("pointer")) {
+          add(`[${capability.id}] missing managed camera controller`);
+        }
+        break;
+      case "physics":
+        if (!sourceText.includes("physics")) {
+          add(`[${capability.id}] missing managed physics descriptors`);
+        }
+        break;
+      case "advanced-effect-facades":
+        if (!sourceText.includes("ctx.resources")) {
+          add(`[${capability.id}] missing effect resource disposal evidence`);
+        }
+        break;
+      case "surface-pulse-visible-output":
+        if (!sourceText.includes("ctx.object.surface")) {
+          add(`[${capability.id}] missing retained surface reproduction`);
+        }
+        break;
+      case "resource-fallback-lifecycle":
+        if (
+          targets.length === 0 ||
+          targets.some(
+            (target) => !target.explicitLifecycle || !target.fallbackEvidence,
+          )
+        ) {
+          add(`[${capability.id}] missing explicit lifecycle/offscreen/fallback evidence`);
+        }
+        break;
+      case "public-imports-ssr":
+      case "single-runtime-canvas":
+      case "runtime-remount":
+      case "reduced-motion-signaling":
+        break;
+    }
   }
+}
 
-  const video = targets.find(
-    (target) =>
-      target.sourceKind === "media" &&
-      target.sourceType === "video" &&
-      findUsedDefinition(target, definitions, (definition) =>
-        definitionHasContextCapabilities(context, definition, [
-          ["object", "texture"],
-          ["object", "video"],
-        ]),
-      ),
-  );
-  if (!video) {
-    add("missing media/video surface");
-  }
-
+function verifyManagedImageHover(context, targets, definitions, sourceText) {
   const hover = targets.find(
     (target) =>
       target.sourceKind === "media" &&
@@ -485,54 +889,76 @@ function verifyRecipeSurfaces(context, jsx, targets) {
       ),
   );
   if (!hover) {
-    add("missing pointer-hover surface");
-  } else {
-    const definition = findUsedDefinition(
-      hover,
-      definitions,
-      (candidate) => definitionHasCall(context, candidate, "createMaterialLayer"),
-    );
-    if (
-      definition &&
-      !definitionHasContextCapabilities(context, definition, [
-        ["resources", "addDisposable"],
-      ])
-    ) {
-      add("overlay handles must be registered with ctx.resources.addDisposable");
+    add("[managed-image-hover] missing managed media/image pointer-hover target");
+    return;
+  }
+  const definition = findUsedDefinition(
+    hover,
+    definitions,
+    (candidate) => definitionHasCall(context, candidate, "createMaterialLayer"),
+  );
+  if (
+    !definition ||
+    !definitionHasContextCapabilities(context, definition, [
+      ["targetPointer"],
+      ["resources", "addDisposable"],
+    ])
+  ) {
+    add("[managed-image-hover] requires managed target pointer and disposable layer ownership");
+  }
+  for (const evidence of [
+    'mode: "replace-source"',
+    "sourceTextureUniform",
+    "uSourceTexture",
+    "texture2D(uSourceTexture",
+  ]) {
+    if (!sourceText.includes(evidence)) {
+      add(`[managed-image-hover] missing source sampling evidence: ${evidence}`);
     }
   }
+  if (!hover.explicitLifecycle || !hover.fallbackEvidence) {
+    add("[managed-image-hover] missing loading/error fallback lifecycle");
+  }
+}
 
-  const modelTarget = targets.find(
+function verifyManagedVideo(context, targets, definitions) {
+  const video = targets.find(
     (target) =>
-      target.sourceKind === "model" &&
-      target.sourceType === "glb" &&
-      target.timelineExpression &&
-      findUsedDefinition(target, definitions, isModelDefinition.bind(undefined, context)),
+      target.sourceKind === "media" &&
+      target.sourceType === "video" &&
+      findUsedDefinition(target, definitions, (definition) =>
+        definitionHasContextCapabilities(context, definition, [
+          ["object", "video"],
+        ]),
+      ),
   );
-  const modelComponent = collectModelComponentInfo(context, jsx).find(
-    (model) =>
-      model.timelineExpression &&
-      findUsedDefinition(model, definitions, isModelDefinition.bind(undefined, context)),
-  );
-  const model = modelTarget ?? modelComponent;
-  if (!model) {
-    add("missing pinned model glow surface");
-  } else {
-    const definition = findUsedDefinition(
-      model,
-      definitions,
-      isModelDefinition.bind(undefined, context),
-    );
-    if (
-      definition &&
-      !definitionHasContextCapabilities(context, definition, [
-        ["resources", "addDisposable"],
-      ])
-    ) {
-      add("model handles must be registered with ctx.resources.addDisposable");
-    }
+  if (!video || !video.explicitLifecycle || !video.fallbackEvidence) {
+    add("[managed-video] missing managed video declaration and fallback lifecycle");
   }
+}
 
+function verifySharedScrollProgress(context, targets, definitions, timelines) {
+  const matched = targets.some((target) => {
+    const effectProgress = target.effectObjects
+      .map((effect) => readObjectPropertyExpression(context.ts, effect, "progressKey"))
+      .find(Boolean);
+    if (!effectProgress) return false;
+    const definition = findUsedDefinition(target, definitions, (candidate) =>
+      definitionHasProperty(context, candidate, "progress"),
+    );
+    return Boolean(
+      definition &&
+        timelines.some((timeline) =>
+          expressionsMatch(context, effectProgress, timeline),
+        ),
+    );
+  });
+  if (!matched) {
+    add("[shared-scroll-progress] missing matching timeline/effect progress path");
+  }
+}
+
+function verifyImageSequence(context, targets, definitions, timelines) {
   const sequence = targets.find((target) => {
     if (
       target.sourceKind !== "media" ||
@@ -546,27 +972,15 @@ function verifyRecipeSurfaces(context, jsx, targets) {
       definitions,
       (candidate) => candidate.source === "media/image-sequence",
     );
-    const effectProgress = target.effectObjects
-      .map((effect) => readObjectPropertyExpression(context.ts, effect, "progressKey"))
-      .find((expression) => expression !== undefined);
     return Boolean(
       definition &&
-        effectProgress &&
-        expressionsMatch(context, target.progressExpression, effectProgress) &&
         timelines.some((timeline) =>
           expressionsMatch(context, target.progressExpression, timeline),
         ),
     );
   });
-  if (!sequence) {
-    add("missing media/image-sequence surface");
-  }
-
-  for (const target of targets.filter(isRequiredTargetSurface)) {
-    if (!target.explicitLifecycle || !target.fallbackEvidence) {
-      add("missing explicit lifecycle/offscreen/fallback evidence");
-      break;
-    }
+  if (!sequence || !sequence.explicitLifecycle || !sequence.fallbackEvidence) {
+    add("[image-sequence] missing stable frames, progress, first-frame fallback or lifecycle evidence");
   }
 }
 
