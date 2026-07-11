@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "compatiblePackageVersion": "0.1.0-alpha.0",
+  "entrypoints": {
+    "@viselora/dom-webgl": {
+      "createEffectDeclarations": { "reference": "api-effects-rendering.md", "section": "Typed effect declarations", "capability": "advanced-effect-facades" },
+      "createWebGLRuntime": { "reference": "api-effects-rendering.md", "section": "Runtime creation", "capability": "single-runtime-canvas" },
+      "defineWebGLEffect": { "reference": "api-effects-rendering.md", "section": "Effect definitions", "capability": "advanced-effect-facades" },
+      "defineWebGLSceneObjectEffect": { "reference": "api-scenes-models.md", "section": "Scene object effects", "capability": "scene-object-interaction" }
+    },
+    "@viselora/dom-webgl/react": {
+      "WebGLRuntimeProvider": { "reference": "api-effects-rendering.md", "section": "Runtime and provider ownership", "capability": "single-runtime-canvas" },
+      "WebGLRuntime": { "reference": "api-effects-rendering.md", "section": "Runtime and provider ownership", "capability": "single-runtime-canvas" },
+      "WebGLTarget": { "reference": "api-effects-rendering.md", "section": "Targets and stable declarations", "capability": "resource-fallback-lifecycle" },
+      "WebGLScene": { "reference": "api-scenes-models.md", "section": "Scene camera pass and viewport", "capability": "scene-camera-pass" },
+      "WebGLCamera": { "reference": "api-scenes-models.md", "section": "Scene camera pass and viewport", "capability": "scene-camera-pass" },
+      "WebGLRenderPass": { "reference": "api-scenes-models.md", "section": "Scene camera pass and viewport", "capability": "scene-camera-pass" },
+      "WebGLPassViewport": { "reference": "api-scenes-models.md", "section": "Scene camera pass and viewport", "capability": "scene-camera-pass" },
+      "WebGLStagePlane": { "reference": "api-scenes-models.md", "section": "Stage primitives and lights", "capability": "scene-camera-pass" },
+      "WebGLStageBox": { "reference": "api-scenes-models.md", "section": "Stage primitives and lights", "capability": "scene-camera-pass" },
+      "WebGLLight": { "reference": "api-scenes-models.md", "section": "Stage primitives and lights", "capability": "scene-camera-pass" },
+      "WebGLModel": { "reference": "api-scenes-models.md", "section": "Scene-native models", "capability": "scene-native-models" },
+      "useWebGLRuntime": { "reference": "api-effects-rendering.md", "section": "Runtime and provider ownership", "capability": "single-runtime-canvas" },
+      "WebGLDebugPanel": { "reference": "api-lifecycle-debug.md", "section": "Debug panel", "capability": "resource-fallback-lifecycle" },
+      "useWebGLDebugState": { "reference": "api-lifecycle-debug.md", "section": "Runtime debug state", "capability": "resource-fallback-lifecycle" }
+    },
+    "@viselora/scroll-adapters": {
+      "createGsapTickerLenisBridge": { "reference": "api-scroll-interaction.md", "section": "Scroll ownership and adapters", "capability": "shared-scroll-progress" },
+      "createLenisScrollAdapter": { "reference": "api-scroll-interaction.md", "section": "Scroll ownership and adapters", "capability": "shared-scroll-progress" },
+      "createLenisGsapScrollStack": { "reference": "api-scroll-interaction.md", "section": "Scroll ownership and adapters", "capability": "shared-scroll-progress" },
+      "createScrollEffectProgressStore": { "reference": "api-scroll-interaction.md", "section": "Progress stores and timelines", "capability": "shared-scroll-progress" },
+      "createScrollTriggerBridge": { "reference": "api-scroll-interaction.md", "section": "ScrollTrigger bridges", "capability": "shared-scroll-progress" },
+      "createScrollTriggerSection": { "reference": "api-scroll-interaction.md", "section": "ScrollTrigger bridges", "capability": "shared-scroll-progress" }
+    },
+    "@viselora/scroll-adapters/react": {
+      "createScrollEffectProgressStore": { "reference": "api-scroll-interaction.md", "section": "Progress stores and timelines", "capability": "shared-scroll-progress" },
+      "WebGLScrollRuntime": { "reference": "api-scroll-interaction.md", "section": "Scroll runtime", "capability": "single-runtime-canvas" },
+      "WebGLScrollTimeline": { "reference": "api-scroll-interaction.md", "section": "Progress stores and timelines", "capability": "shared-scroll-progress" },
+      "ScrollEffectSection": { "reference": "api-scroll-interaction.md", "section": "Progress stores and timelines", "capability": "shared-scroll-progress" },
+      "useScrollEffectProgressStore": { "reference": "api-scroll-interaction.md", "section": "Progress stores and timelines", "capability": "shared-scroll-progress" }
+    }
+  }
+}

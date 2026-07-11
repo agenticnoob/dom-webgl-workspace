@@ -22,6 +22,13 @@ afterEach(() => {
 });
 
 describe("Viselora public API surface", () => {
+  test("current API coverage passes", () => {
+    const result = run(coverage, ["--root", repoRoot]);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Viselora API coverage passed");
+  });
+
   test("current generated API surface is fresh", () => {
     const result = run(generator, ["--check", "--root", repoRoot]);
     expect(result.status).toBe(0);
