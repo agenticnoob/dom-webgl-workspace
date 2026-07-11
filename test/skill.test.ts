@@ -25,21 +25,42 @@ const fixtureRoots: string[] = [];
 const requiredFiles = [
   "SKILL.md",
   "agents/openai.yaml",
+  "references/api-coverage.json",
+  "references/api-effects-rendering.md",
+  "references/api-lifecycle-debug.md",
+  "references/api-scenes-models.md",
+  "references/api-scroll-interaction.md",
+  "references/api-surface.generated.md",
   "references/architecture-rules.md",
+  "references/asset-pipeline.md",
+  "references/capability-status.md",
   "references/effect-recipes.md",
+  "references/narrative-design.md",
   "references/public-api.md",
   "references/quickstart.md",
   "references/troubleshooting.md",
   "references/verification.md",
+  "scripts/check-api-coverage.mjs",
+  "scripts/generate-api-surface.mjs",
   "scripts/verify-consumer.mjs",
+  "templates/asset-manifest.json",
   "templates/effects/image-hover-overlay.ts",
   "templates/effects/pinned-model-glow.tsx",
   "templates/effects/scroll-image-sequence.tsx",
   "templates/effects/surface-pulse.ts",
   "templates/effects/video-background-texture.ts",
+  "templates/react-vite/asset-manifest.json",
+  "templates/react-vite/index.html",
   "templates/react-vite/package.json",
+  "templates/react-vite/public/media/product-source.svg",
   "templates/react-vite/src/App.tsx",
   "templates/react-vite/src/effects.ts",
+  "templates/react-vite/src/main.tsx",
+  "templates/react-vite/src/styles.css",
+  "templates/react-vite/story-plan.md",
+  "templates/react-vite/tsconfig.json",
+  "templates/react-vite/viselora.capabilities.json",
+  "templates/story-plan.md",
 ] as const;
 
 afterEach(() => {
@@ -49,499 +70,231 @@ afterEach(() => {
 });
 
 describe("viselora-dom-webgl skill", () => {
-  test("contains exactly the public skill deliverables", () => {
+  test("contains exactly the general development skill deliverables", () => {
     expect(collectFiles(skillRoot)).toEqual(requiredFiles);
   });
 
-  test("uses minimal skill frontmatter and matching agent metadata", () => {
+  test("keeps SKILL.md concise and routes every reference directly", () => {
+    const skill = read("SKILL.md");
+    const references = requiredFiles.filter((file) => file.startsWith("references/"));
+
+    expect(skill.match(/Compatible package version: 0\.1\.0-alpha\.0/g)).toHaveLength(1);
+    expect(skill).not.toContain("## Export inventory");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(123);
+    for (const reference of references) {
+      expect(skill).toContain(`](${reference})`);
+    }
+    for (const match of skill.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+      expect(existsSync(resolve(skillRoot, match[1])), match[1]).toBe(true);
+    }
+  });
+
+  test("uses minimal skill frontmatter and general-development metadata", () => {
     const skill = read("SKILL.md");
     const frontmatter = skill.match(/^---\n([\s\S]*?)\n---/)?.[1];
 
-    expect(frontmatter).toBeDefined();
     expect(frontmatter?.split("\n").map((line) => line.split(":", 1)[0])).toEqual([
       "name",
       "description",
     ]);
     expect(frontmatter).toContain("name: viselora-dom-webgl");
-    expect(frontmatter).not.toContain("TODO");
+    expect(frontmatter).toMatch(/narrative|story/i);
+    expect(frontmatter).toMatch(/existing|enhance/i);
+    expect(frontmatter).toMatch(/API|capabilit/i);
+    expect(frontmatter).toMatch(/interaction/i);
+    expect(frontmatter).toMatch(/asset/i);
+    expect(frontmatter).toMatch(/debug/i);
+    expect(frontmatter).toMatch(/verif/i);
 
     expect(read("agents/openai.yaml")).toBe(
       [
         "interface:",
-        '  display_name: "Viselora DOM WebGL"',
-        '  short_description: "Build verified DOM-first WebGL pages with Viselora"',
-        '  default_prompt: "Use $viselora-dom-webgl to build a DOM-first WebGL page with one runtime and verified public package imports."',
+        '  display_name: "Viselora Development"',
+        '  short_description: "Build verified scroll narratives with public Viselora packages"',
+        '  default_prompt: "Use $viselora-dom-webgl to turn my brief into a DOM-first scroll narrative with local licensed assets, selected public capabilities, and browser-backed verification."',
         "",
       ].join("\n"),
-    );
-  });
-
-  test("documents the exact alpha and all five complete recipes", () => {
-    const allContent = requiredFiles
-      .filter((file) => /\.(?:md|tsx?)$/.test(file))
-      .map((file) => read(file))
-      .join("\n");
-    const recipes = read("references/effect-recipes.md");
-
-    expect(allContent).toContain("Compatible package version: 0.1.0-alpha.0");
-    expect(recipes).toContain("## Surface pulse");
-    expect(recipes).toContain("## Video background texture");
-    expect(recipes).toContain("## Image hover overlay");
-    expect(recipes).toContain("## Pinned model glow");
-    expect(recipes).toContain("## Scroll image sequence");
-
-    expect(read("templates/effects/surface-pulse.ts")).toContain(
-      'kind: "viselora.surfacePulse"',
-    );
-    expect(read("templates/effects/video-background-texture.ts")).toContain(
-      'kind: "viselora.videoBackground"',
-    );
-    expect(read("templates/effects/image-hover-overlay.ts")).toContain(
-      'kind: "viselora.imageHoverOverlay"',
-    );
-    expect(read("templates/effects/pinned-model-glow.tsx")).toContain(
-      'kind: "viselora.modelGlow"',
-    );
-    expect(read("templates/effects/scroll-image-sequence.tsx")).toContain(
-      'const progressKey = "sequence-progress"',
-    );
-  });
-
-  test("keeps standalone recipes stable, scroll-driven, and resource-owned", () => {
-    const pinnedModel = read("templates/effects/pinned-model-glow.tsx");
-    const imageSequence = read("templates/effects/scroll-image-sequence.tsx");
-    const hoverOverlay = read("templates/effects/image-hover-overlay.ts");
-    const recipes = read("references/effect-recipes.md");
-    const publicApi = read("references/public-api.md");
-
-    expect(pinnedModel.indexOf("const pinnedModelDeclaration")).toBeLessThan(
-      pinnedModel.indexOf("export function PinnedModelGlow"),
-    );
-    expect(pinnedModel).toContain('from "gsap/ScrollTrigger"');
-    expect(pinnedModel).toContain("ScrollTrigger={ScrollTrigger}");
-    expect(pinnedModel).toContain("ctx.resources.addDisposable");
-    expect(imageSequence).toContain("useMemo");
-    expect(imageSequence).toContain('from "gsap/ScrollTrigger"');
-    expect(imageSequence).toContain("ScrollTrigger={ScrollTrigger}");
-    expect(hoverOverlay).toContain("ctx.resources.addDisposable");
-    expect(recipes).toContain("const pinnedModelDeclaration");
-    expect(recipes).toContain("useMemo");
-    expect(recipes).toContain("ScrollTrigger={ScrollTrigger}");
-    expect(recipes).toContain("ctx.resources.addDisposable");
-    expect(publicApi.indexOf("const productPhotoDeclaration")).toBeLessThan(
-      publicApi.indexOf("<WebGLTarget"),
     );
   });
 
   test("uses only public package entrypoints and excludes R3F", () => {
     const content = collectFiles(skillRoot)
+      .filter((file) => /\.(?:md|json|mjs|tsx?|yaml)$/.test(file))
       .map((file) => read(file))
       .join("\n");
 
     expect(content).not.toMatch(/from\s+["']@project\//);
-    expect(content).not.toMatch(
-      /(?:from\s+|import\s+)["'][^"']*packages\/dom-webgl-runtime\/src/,
-    );
+    expect(content).not.toMatch(/(?:from\s+|import\s+)["'][^"']*packages\/dom-webgl-runtime\/src/);
     expect(content).not.toMatch(/from\s+["']@react-three\/fiber["']/);
   });
 
-  test("accepts the supplied React Vite consumer", () => {
-    const result = runVerifier(templateRoot);
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("Viselora consumer verification passed");
-  });
-
-  test("accepts an identifier-independent progress key", () => {
+  test("accepts a verified subset without unrelated recipes", () => {
     const fixtureRoot = copyTemplate();
-    replaceAll(fixtureRoot, "src/App.tsx", "sharedProgressKey", "productProgressKey");
-
     const result = runVerifier(fixtureRoot);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
   });
 
-  test("accepts a stable declaration selected through module-scope property access", () => {
+  test("accepts an acknowledged experimental image sequence without requiring video or model", () => {
     const fixtureRoot = copyTemplate();
-    replace(
-      fixtureRoot,
-      "src/App.tsx",
-      "webgl={surfaceDeclaration}",
-      "webgl={declarations.surface}",
-    );
-    append(
-      fixtureRoot,
-      "src/App.tsx",
-      "\nconst declarations = { surface: surfaceDeclaration } as const;\n",
-    );
+    selectCapabilities(fixtureRoot, [
+      {
+        id: "image-sequence",
+        acknowledgement: "experimental",
+        checks: [
+          "final-canvas-pixel-change",
+          "first-frame-fallback",
+          "bounded-cache",
+          "forward-reverse-scroll",
+        ],
+      },
+    ]);
+    installImageSequenceFixture(fixtureRoot);
 
     const result = runVerifier(fixtureRoot);
-
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
-  });
-
-  test("accepts the public WebGLModel route for the model recipe", () => {
-    const fixtureRoot = copyTemplate();
-    replace(
-      fixtureRoot,
-      "src/App.tsx",
-      'import { WebGLTarget } from "@viselora/dom-webgl/react";',
-      'import { WebGLModel, WebGLTarget } from "@viselora/dom-webgl/react";',
-    );
-    replace(
-      fixtureRoot,
-      "src/App.tsx",
-      [
-        '          <WebGLTarget as="section" webgl={modelDeclaration}>',
-        "            <p>Interactive product model loading…</p>",
-        "          </WebGLTarget>",
-      ].join("\n"),
-      [
-        "          <section>",
-        "            <p>Interactive product model loading…</p>",
-        "            <WebGLModel",
-        '              id="demo.pinned-model"',
-        '              scene="demo.product-scene"',
-        '              src="/models/product.glb"',
-        "              timeline={{ id: productProgressKey, progressKey: productProgressKey }}",
-        "              effects={modelDeclaration.effects}",
-        "            />",
-        "          </section>",
-      ].join("\n"),
-    );
-    replaceAll(fixtureRoot, "src/App.tsx", "sharedProgressKey", "productProgressKey");
-
-    const result = runVerifier(fixtureRoot);
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-  });
-
-  test("ignores prohibited-looking text in comments and ordinary strings", () => {
-    const fixtureRoot = copyTemplate();
-    append(
-      fixtureRoot,
-      "src/App.tsx",
-      [
-        "",
-        "// <Canvas />; new WebGLRenderer(); import('@project/comment-only')",
-        "const architectureNote = `new WebGLRenderer(); <WebGLRuntime />;`;",
-        "void architectureNote;",
-        "",
-      ].join("\n"),
-    );
-
-    const result = runVerifier(fixtureRoot);
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-  });
-
-  test("reports a clear violation when the consumer has no installed TypeScript", () => {
-    const fixtureRoot = copyTemplate({ installTypeScript: false });
-
-    const result = runVerifier(fixtureRoot);
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("TypeScript compiler API is unavailable");
   });
 
   test.each([
     [
-      "wrong package version",
-      (root: string) =>
-        replace(root, "package.json", '"0.1.0-alpha.0"', '"^0.1.0-alpha.0"'),
-      "exactly 0.1.0-alpha.0",
+      "a missing capability manifest",
+      (root: string) => rmSync(resolve(root, "viselora.capabilities.json")),
+      "viselora.capabilities.json",
     ],
     [
-      "project aliases",
-      (root: string) => append(root, "src/App.tsx", '\nimport "@project/runtime";\n'),
-      "@project/* imports are prohibited",
+      "an unknown capability id",
+      (root: string) => selectCapabilities(root, [{ id: "unknown-capability", checks: [] }]),
+      "unknown capability",
     ],
     [
-      "repository source imports",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nimport "packages/dom-webgl-runtime/src/index";\n',
-        ),
-      "repository source imports are prohibited",
-    ],
-    [
-      "two runtime roots",
-      (root: string) =>
-        append(root, "src/App.tsx", "\nconst duplicateRoot = <WebGLScrollRuntime />;\n"),
-      "exactly one runtime root",
-    ],
-    [
-      "an aliased second runtime root",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nimport { WebGLScrollRuntime as ScrollRoot } from "@viselora/scroll-adapters/react";\nconst duplicateRoot = <ScrollRoot />;\n',
-        ),
-      "exactly one runtime root",
-    ],
-    [
-      "an aliased imperative second runtime root",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nimport { createWebGLRuntime as makeRuntime } from "@viselora/dom-webgl";\nmakeRuntime({ container: document.body });\n',
-        ),
-      "exactly one runtime root",
-    ],
-    [
-      "a direct Three renderer",
-      (root: string) => append(root, "src/App.tsx", "\nnew WebGLRenderer();\n"),
-      "direct WebGLRenderer construction is prohibited",
-    ],
-    [
-      "an aliased Three renderer",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nimport { WebGLRenderer as Renderer } from "three";\nnew Renderer();\n',
-        ),
-      "direct WebGLRenderer construction is prohibited",
-    ],
-    [
-      "an R3F import",
-      (root: string) =>
-        append(root, "src/App.tsx", '\nimport { Canvas } from "@react-three/fiber";\n'),
-      "React Three Fiber is prohibited",
-    ],
-    [
-      "an R3F Canvas",
-      (root: string) => append(root, "src/App.tsx", "\nconst extraCanvas = <Canvas />;\n"),
-      "R3F Canvas roots are prohibited",
-    ],
-    [
-      "an aliased R3F Canvas",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nimport { Canvas as SceneCanvas } from "@react-three/fiber";\nconst extraCanvas = <SceneCanvas />;\n',
-        ),
-      "React Three Fiber is prohibited",
-    ],
-    [
-      "component-scoped runtime effects",
+      "a compatible-version mismatch",
       (root: string) => {
-        replace(root, "src/App.tsx", "export function App() {", "export function App() {\n  const runtimeEffects = [];");
-        replace(root, "src/App.tsx", "effects={runtimeEffects}", "effects={runtimeEffects}");
+        const manifest = readJson(root, "viselora.capabilities.json");
+        manifest.compatiblePackageVersion = "0.1.0-alpha.1";
+        writeJson(root, "viselora.capabilities.json", manifest);
       },
-      "runtimeEffects must be declared at module scope",
+      "compatiblePackageVersion",
     ],
     [
-      "constructed runtime effects",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          "effects={runtimeEffects}",
-          "effects={[...runtimeEffects]}",
-        ),
-      "runtime effects must use one stable module-scope array",
+      "an empty capability list",
+      (root: string) => selectCapabilities(root, []),
+      "non-empty capabilities",
     ],
     [
-      "an inline target declaration",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          "webgl={surfaceDeclaration}",
-          "webgl={{ ...surfaceDeclaration }}",
-        ),
-      "target declarations must be stable",
+      "an unacknowledged experimental capability",
+      (root: string) => selectCapabilities(root, [{ id: "image-sequence", checks: [] }]),
+      "acknowledgement",
     ],
     [
-      "a component-owned scroll listener",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nwindow.addEventListener("scroll", () => undefined);\n',
-        ),
-      "scroll and pointer input must use one managed ownership path",
+      "a blocked capability in consumer mode",
+      (root: string) => selectCapabilities(root, [{ id: "surface-pulse-visible-output", acknowledgement: "blocked-defect-reproduction", checks: [] }]),
+      "blocked",
     ],
     [
-      "assigned scroll and pointer listeners",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          "\nwindow.onscroll = () => undefined;\ndocument.onpointermove = () => undefined;\n",
-        ),
-      "scroll and pointer input must use one managed ownership path",
+      "a blocked capability without entry acknowledgement",
+      (root: string) => selectCapabilities(root, [{ id: "surface-pulse-visible-output", checks: [] }], "retained-defect-reproduction"),
+      "blocked-defect-reproduction",
     ],
     [
-      "a dynamic private Viselora import",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nvoid import("@viselora/dom-webgl/private");\n',
-        ),
+      "a selected capability missing a required check",
+      (root: string) => selectCapabilities(root, [{ id: "managed-image-hover", checks: ["final-canvas-pixel-change"] }]),
+      "touch-or-scroll-alternative",
+    ],
+    [
+      "selected local media without an asset record",
+      (root: string) => writeJson(root, "asset-manifest.json", { schemaVersion: 1, assets: [] }),
+      "asset record",
+    ],
+    [
+      "a hotlinked production asset",
+      (root: string) => {
+        const assets = readJson(root, "asset-manifest.json");
+        assets.assets[0].localPath = "https://example.com/product.svg";
+        writeJson(root, "asset-manifest.json", assets);
+      },
+      "localPath",
+    ],
+    [
+      "a private Viselora import",
+      (root: string) => append(root, "src/App.tsx", '\nimport "@viselora/dom-webgl/private";\n'),
       "non-public Viselora import",
     ],
     [
-      "a dynamic project import",
-      (root: string) =>
-        append(root, "src/App.tsx", '\nvoid import("@project/runtime");\n'),
-      "@project/* imports are prohibited",
+      "a second runtime",
+      (root: string) => append(root, "src/App.tsx", "\nconst duplicateRoot = <WebGLScrollRuntime />;\n"),
+      "exactly one runtime root",
     ],
     [
-      "a dynamic repository source import",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nvoid import("packages/dom-webgl-runtime/src/index");\n',
-        ),
-      "repository source imports are prohibited",
+      "an unstable effect array",
+      (root: string) => replace(root, "src/App.tsx", "effects={runtimeEffects}", "effects={[...runtimeEffects]}"),
+      "stable module-scope array",
     ],
     [
-      "a CommonJS private Viselora import",
-      (root: string) =>
-        writeFileSync(
-          resolve(root, "src/private.cjs"),
-          'require("@viselora/dom-webgl/private");\n',
-        ),
-      "non-public Viselora import",
+      "an unmanaged scroll source",
+      (root: string) => append(root, "src/App.tsx", '\nwindow.addEventListener("scroll", () => undefined);\n'),
+      "managed ownership path",
     ],
     [
-      "a computed assigned input listener",
-      (root: string) =>
-        append(
-          root,
-          "src/App.tsx",
-          '\nwindow["onscroll"] = () => undefined;\n',
-        ),
-      "scroll and pointer input must use one managed ownership path",
+      "an unmanaged pointer source",
+      (root: string) => append(root, "src/App.tsx", '\nwindow.addEventListener("pointermove", () => undefined);\n'),
+      "managed ownership path",
     ],
     [
-      "a locally forged useMemo declaration",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          'import { useEffect, useMemo, useState } from "react";',
-          'import { useEffect, useState } from "react";\nconst useMemo = <T,>(factory: () => T): T => factory();',
-        ),
-      "target declarations must be stable",
-    ],
-    [
-      "the video surface",
-      (root: string) => replace(root, "src/App.tsx", 'type: "video"', 'type: "image"'),
-      "missing media/video surface",
-    ],
-    [
-      "a dom/text pulse substitution",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          'source: { kind: "dom", type: "element" }',
-          'source: { kind: "dom", type: "text" }',
-        ),
-      "missing dom/element surface pulse surface",
-    ],
-    [
-      "the pointer-hover surface",
-      (root: string) => replace(root, "src/App.tsx", 'pointer: { hover: true }', ""),
-      "missing pointer-hover surface",
-    ],
-    [
-      "the pinned model glow surface",
-      (root: string) => replace(root, "src/App.tsx", 'kind: "viselora.modelGlow"', 'kind: "viselora.surfacePulse"'),
-      "missing pinned model glow surface",
-    ],
-    [
-      "the image-sequence surface",
-      (root: string) => replace(root, "src/App.tsx", 'type: "image-sequence"', 'type: "image"'),
-      "missing media/image-sequence surface",
-    ],
-    [
-      "required lifecycle and offscreen intent",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          '    offscreen: { strategy: "restore-dom" },',
-          "",
-        ),
-      "missing explicit lifecycle/offscreen/fallback evidence",
-    ],
-    [
-      "a required DOM fallback",
-      (root: string) =>
-        replace(
-          root,
-          "src/App.tsx",
-          [
-            '          <WebGLTarget as="section" webgl={surfaceDeclaration}>',
-            "            <h1>DOM-first WebGL</h1>",
-            "          </WebGLTarget>",
-          ].join("\n"),
-          '          <WebGLTarget as="section" webgl={surfaceDeclaration} />',
-        ),
-      "missing explicit lifecycle/offscreen/fallback evidence",
-    ],
-    [
-      "an unmanaged overlay handle",
-      (root: string) =>
-        replace(
-          root,
-          "src/effects.ts",
-          "      ctx.resources.addDisposable(() => layer.dispose());\n",
-          "",
-        ),
-      "overlay handles must be registered with ctx.resources.addDisposable",
-    ],
-    [
-      "an unmanaged model light handle",
-      (root: string) =>
-        replace(
-          root,
-          "src/effects.ts",
-          "      ctx.resources.addDisposable(() => glowLight.dispose());\n",
-          "",
-        ),
-      "model handles must be registered with ctx.resources.addDisposable",
+      "missing selected capability implementation evidence",
+      (root: string) => replace(root, "src/effects.ts", 'mode: "replace-source"', 'mode: "overlay"'),
+      "managed-image-hover",
     ],
   ])("rejects a consumer with %s", (_name, mutate, message) => {
     const fixtureRoot = copyTemplate();
     mutate(fixtureRoot);
 
     const result = runVerifier(fixtureRoot);
-
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(message);
   });
 });
 
-function collectFiles(root: string): string[] {
-  if (!existsSync(root)) {
-    return [];
-  }
+export function readJson(root: string, path: string): Record<string, any> {
+  return JSON.parse(readFileSync(resolve(root, path), "utf8"));
+}
 
+export function writeJson(root: string, path: string, value: unknown): void {
+  writeFileSync(resolve(root, path), `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export function selectCapabilities(
+  root: string,
+  entries: readonly Record<string, unknown>[],
+  mode = "consumer",
+): void {
+  writeJson(root, "viselora.capabilities.json", {
+    schemaVersion: 1,
+    compatiblePackageVersion: "0.1.0-alpha.0",
+    mode,
+    assetManifest: "./asset-manifest.json",
+    capabilities: entries,
+  });
+}
+
+export function runScript(path: string, args: readonly string[]) {
+  return spawnSync(process.execPath, [path, ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+}
+
+function collectFiles(root: string): string[] {
+  if (!existsSync(root)) return [];
   const files: string[] = [];
   for (const entry of readdirSync(root)) {
     const path = join(root, entry);
     if (statSync(path).isDirectory()) {
       files.push(...collectFiles(path));
-      continue;
+    } else {
+      files.push(relative(skillRoot, path).split(sep).join("/"));
     }
-    files.push(relative(skillRoot, path).split(sep).join("/"));
   }
   return files.sort();
 }
@@ -562,6 +315,37 @@ function copyTemplate(options: { installTypeScript?: boolean } = {}): string {
   return fixtureRoot;
 }
 
+function installImageSequenceFixture(root: string): void {
+  writeFileSync(
+    resolve(root, "src/image-sequence.tsx"),
+    [
+      'import { defineWebGLEffect, type WebGLDeclaration } from "@viselora/dom-webgl";',
+      'import { WebGLTarget } from "@viselora/dom-webgl/react";',
+      'import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";',
+      'const progressKey = "sequence-progress";',
+      'const frames = [{ src: "/media/sequence/frame-01.webp" }];',
+      'export const imageSequenceEffect = defineWebGLEffect({ kind: "story.imageSequence", source: "media/image-sequence", update(ctx) { ctx.object.texture?.setTransform({ offsetX: ctx.progress.get(progressKey) }); } });',
+      'const declaration = { key: "story.sequence", source: { kind: "media", type: "image-sequence", frameCount: frames.length, frames, progressKey }, lifecycle: { hideWhenReady: true, hideMode: "self", offscreen: { strategy: "restore-dom" } }, effects: [{ kind: "story.imageSequence" }] } satisfies WebGLDeclaration;',
+      'export const sequenceEvidence = <WebGLScrollTimeline id={progressKey}><WebGLTarget webgl={declaration}><img src="/media/sequence/frame-01.webp" alt="Sequence first frame" /></WebGLTarget></WebGLScrollTimeline>;',
+      "",
+    ].join("\n"),
+  );
+  const assets = readJson(root, "asset-manifest.json");
+  assets.assets.push({
+    id: "story-sequence",
+    kind: "image-sequence",
+    localPath: "public/media/sequence",
+    storyBeatIds: ["beat-02"],
+    purpose: "Experimental sequence validation",
+    source: { url: "generated-locally", author: "Fixture", license: "CC0-1.0", deploymentRights: "public-deployment-approved" },
+    modifications: [],
+    metadata: { frameCount: 1, pattern: "frame-%02d.webp", startFrame: 1, progressRange: [0, 1], firstFrame: "public/media/sequence/frame-01.webp", cacheBudget: 4 },
+    fallback: { kind: "first-frame", localPath: "public/media/sequence/frame-01.webp" },
+    alt: "Sequence first frame",
+  });
+  writeJson(root, "asset-manifest.json", assets);
+}
+
 function append(root: string, path: string, content: string): void {
   const absolutePath = resolve(root, path);
   writeFileSync(absolutePath, readFileSync(absolutePath, "utf8") + content);
@@ -574,16 +358,6 @@ function replace(root: string, path: string, search: string, replacement: string
   writeFileSync(absolutePath, content.replace(search, replacement));
 }
 
-function replaceAll(root: string, path: string, search: string, replacement: string): void {
-  const absolutePath = resolve(root, path);
-  const content = readFileSync(absolutePath, "utf8");
-  expect(content).toContain(search);
-  writeFileSync(absolutePath, content.split(search).join(replacement));
-}
-
 function runVerifier(root: string) {
-  return spawnSync(process.execPath, [verifierPath, root], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  });
+  return runScript(verifierPath, [root]);
 }
