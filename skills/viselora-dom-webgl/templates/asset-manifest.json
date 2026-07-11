@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "hero-product-image",
+      "kind": "image",
+      "localPath": "public/media/hero-product.webp",
+      "storyBeatIds": ["beat-02"],
+      "purpose": "Preserve the product source beneath the managed hover treatment",
+      "source": {
+        "url": "https://example.com/original-source-page",
+        "author": "Asset author or generating application",
+        "license": "SPDX id or exact license name",
+        "deploymentRights": "public-deployment-approved"
+      },
+      "modifications": ["cropped to 1600x1000", "converted to WebP"],
+      "metadata": {
+        "width": 1600,
+        "height": 1000
+      },
+      "fallback": {
+        "kind": "dom-image",
+        "localPath": "public/media/hero-product.webp"
+      },
+      "alt": "Concise meaningful product description"
+    }
+  ]
+}

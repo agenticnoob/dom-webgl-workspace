@@ -128,6 +128,76 @@ describe("viselora-dom-webgl skill", () => {
     expect(content).not.toMatch(/from\s+["']@react-three\/fiber["']/);
   });
 
+  test("defines the narrative brief, directions, beats, and review gates", () => {
+    const narrative = read("references/narrative-design.md");
+    const storyPlan = read("templates/story-plan.md");
+    const content = `${narrative}\n${storyPlan}`;
+
+    for (const term of [
+      "audience",
+      "core message",
+      "desired outcome",
+      "tone",
+      "page length",
+      "interaction density",
+      "existing assets",
+      "accessibility",
+      "mobile",
+      "performance",
+      "reduced motion",
+      "2–3",
+      "recommend",
+      "4–8",
+      "chronology",
+      "journey",
+      "problem-to-solution",
+      "layered product reveal",
+      "state transformation",
+      "comparison",
+      "spatial exploration",
+    ]) {
+      expect(content.toLowerCase()).toContain(term.toLowerCase());
+    }
+    for (const field of [
+      "Beat id",
+      "Message advance",
+      "Semantic DOM/fallback",
+      "Entrance",
+      "Active",
+      "Exit",
+      "Scroll owner/range",
+      "Primary interaction",
+      "Capability id/status",
+      "Asset ids",
+      "Direct assertion",
+    ]) {
+      expect(storyPlan).toContain(field);
+    }
+  });
+
+  test("defines a local license-aware asset contract", () => {
+    const guidance = read("references/asset-pipeline.md");
+    const manifest = readJson(skillRoot, "templates/asset-manifest.json");
+    const asset = manifest.assets[0];
+
+    expect(guidance).toContain("no production hotlink");
+    for (const field of [
+      "localPath",
+      "storyBeatIds",
+      "purpose",
+      "source",
+      "author",
+      "license",
+      "deploymentRights",
+      "modifications",
+      "metadata",
+      "fallback",
+      "alt",
+    ]) {
+      expect(JSON.stringify(asset)).toContain(field);
+    }
+  });
+
   test("accepts a verified subset without unrelated recipes", () => {
     const fixtureRoot = copyTemplate();
     const result = runVerifier(fixtureRoot);
