@@ -1,71 +1,25 @@
-# Public API
+# Public API Navigation
 
 Compatible package version: 0.1.0-alpha.0
 
-Import only these entrypoints:
+Use only four published entrypoints:
 
-- `@viselora/dom-webgl`: `defineWebGLEffect`, declaration/context types, and the imperative `createWebGLRuntime` API.
-- `@viselora/dom-webgl/react`: `WebGLRuntime`, `WebGLTarget`, `WebGLScene`, `WebGLCamera`, `WebGLRenderPass`, `WebGLPassViewport`, `WebGLStagePlane`, `WebGLStageBox`, `WebGLLight`, `WebGLModel`, and debug hooks.
-- `@viselora/scroll-adapters`: non-React Lenis, GSAP, ScrollTrigger, and progress-store glue.
-- `@viselora/scroll-adapters/react`: `WebGLScrollRuntime`, `WebGLScrollTimeline`, `ScrollEffectSection`, and `useScrollEffectProgressStore`.
+| Entrypoint | Route |
+| --- | --- |
+| `@viselora/dom-webgl` | Runtime creation, effect definitions, public declarations and types → [effects/rendering](api-effects-rendering.md) |
+| `@viselora/dom-webgl/react` | Runtime/target, scene, camera, stage, model and debug React values → [effects/rendering](api-effects-rendering.md), [scenes/models](api-scenes-models.md), [lifecycle/debug](api-lifecycle-debug.md) |
+| `@viselora/scroll-adapters` | Lenis, GSAP, ScrollTrigger and progress-store glue → [scroll/interaction](api-scroll-interaction.md) |
+| `@viselora/scroll-adapters/react` | Scroll runtime, timelines, sections and progress hook → [scroll/interaction](api-scroll-interaction.md) |
 
-## Target declarations
+Read [capability-status.md](capability-status.md) before recommending an API.
+Status belongs to a capability and package version, not to an entire entrypoint.
+An exported symbol can exist while its visible-output path is experimental or
+blocked.
 
-Use `WebGLTarget` for DOM-anchored rendering:
+Search [api-surface.generated.md](api-surface.generated.md) for the exhaustive
+value/type inventory generated from the four published declarations. It is
+discovery data, not recommendation evidence. Human guidance and ownership rules
+live in the capability references above.
 
-```tsx
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
-
-const productPhotoDeclaration = {
-  key: "product-photo",
-  source: { kind: "media", type: "image", src: "/media/photo.webp" },
-  pointer: { hover: true },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "restore-dom" },
-  },
-  effects: [{ kind: "app.photoHover" }],
-} satisfies WebGLDeclaration;
-
-<WebGLTarget
-  as="img"
-  src="/media/photo.webp"
-  alt="Product detail"
-  webgl={productPhotoDeclaration}
-/>
-```
-
-Valid source declarations are:
-
-- `{ kind: "dom", type: "element" | "text" }`
-- `{ kind: "media", type: "image" | "video", src }`
-- `{ kind: "media", type: "image-sequence", frameCount, frames, progressKey, startFrame? }`
-- `{ kind: "model", type: "glb", src, loader? }`
-
-Use effect declarations only in array form: `effects: [{ kind: "app.effect" }]`.
-
-## Effect context
-
-Define application-owned kinds with `defineWebGLEffect`. Use the managed `ctx.object` facade:
-
-- shared: `position`, `rotation`, `scale`, `visible`, `opacity`
-- drawing/material: `surface`, `material`, `material.createLayer(...)`
-- media: `texture`, `video`
-- models: `model.meshes`, `animation`, `lights`
-- progress/input: `ctx.progress.get(key)`, `ctx.scrollProgress`, `ctx.targetPointer`
-- timing/resources: `ctx.time`, `ctx.delta`, `ctx.resources`
-
-Treat all raw renderers, scenes, cameras, loaders, mixers, materials, and render targets as runtime-owned.
-
-## Scroll timelines
-
-Use one named progress path:
-
-```tsx
-<WebGLScrollTimeline id="product-progress" pin scrub>
-  {/* targets use progressKey: "product-progress" */}
-</WebGLScrollTimeline>
-```
-
-The timeline must be inside `WebGLScrollRuntime`. `progressKey` defaults to the timeline `id`.
+Never import package source paths, private subpaths, workspace aliases, example
+implementation files, raw Three.js ownership, or R3F.

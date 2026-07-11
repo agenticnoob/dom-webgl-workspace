@@ -198,6 +198,45 @@ describe("viselora-dom-webgl skill", () => {
     }
   });
 
+  test("keeps every API reference on the shared capability contract", () => {
+    for (const path of [
+      "references/api-effects-rendering.md",
+      "references/api-scenes-models.md",
+      "references/api-scroll-interaction.md",
+      "references/api-lifecycle-debug.md",
+    ]) {
+      const content = read(path);
+      expect(content, path).toContain("## Contents");
+      expect(content, path).toContain("Compatible package version: 0.1.0-alpha.0");
+      expect(content, path).toContain("Public entrypoint");
+      expect(content, path).toContain("When to use");
+      expect(content, path).toContain("Declaration/props shape");
+      expect(content, path).toContain("Ownership and stability");
+      expect(content, path).toContain("Fallback and lifecycle");
+      expect(content, path).toContain("Version limitations");
+      expect(content, path).toMatch(/from "@viselora\//);
+      expect(content, path).toContain("Direct verification");
+    }
+  });
+
+  test("documents four entrypoints, generated discovery, statuses, and React type floor", () => {
+    const publicApi = read("references/public-api.md");
+    const quickstart = read("references/quickstart.md");
+    for (const entrypoint of [
+      "@viselora/dom-webgl",
+      "@viselora/dom-webgl/react",
+      "@viselora/scroll-adapters",
+      "@viselora/scroll-adapters/react",
+    ]) {
+      expect(publicApi).toContain(entrypoint);
+    }
+    expect(publicApi).toContain("api-surface.generated.md");
+    expect(publicApi).toContain("capability-status.md");
+    expect(publicApi).toContain("not recommendation evidence");
+    expect(quickstart).toContain("@types/react >=19.2.0");
+    expect(quickstart).toContain("skipLibCheck: false");
+  });
+
   test("accepts a verified subset without unrelated recipes", () => {
     const fixtureRoot = copyTemplate();
     const result = runVerifier(fixtureRoot);
