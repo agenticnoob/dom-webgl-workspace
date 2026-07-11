@@ -1,352 +1,104 @@
-# Effect recipes
+# Optional Effect Recipes
 
 Compatible package version: 0.1.0-alpha.0
 
-## Contents
-
-- [Surface pulse](#surface-pulse)
-- [Video background texture](#video-background-texture)
-- [Image hover overlay](#image-hover-overlay)
-- [Pinned model glow](#pinned-model-glow)
-- [Scroll image sequence](#scroll-image-sequence)
-
-Register every exported effect in one module-scope `runtimeEffects` array. Copy the standalone source from `templates/effects/` when possible.
+These five recipes are optional examples, not the skill's capability boundary.
+Read [capability-status.md](capability-status.md) before copying one. Never put
+blocked or experimental recipes into a normal default project.
 
 ## Surface pulse
 
-Use a DOM element as layout and fallback, draw through `ctx.object.surface`, and tune its managed material with frame time:
+- **Compatible version:** `0.1.0-alpha.0`.
+- **Status:** `surface-pulse-visible-output` is `blocked`.
+- **Required exports:** `defineWebGLEffect`, `WebGLTarget`.
+- **Assets and fallback:** semantic DOM element/copy; no external asset.
+- **Ownership:** runtime canvas/frame loop; effect uses managed surface only.
+- **Mobile and reduced motion:** keep copy static and meaningful.
+- **Required evidence:** retained effect-surface pixels and final-canvas pixel
+  threshold reproduction.
+- **Limitations:** effect-owned surface pixels change while visible runtime
+  canvas output remains a defect candidate in this version.
 
-```ts
-import { defineWebGLEffect } from "@viselora/dom-webgl";
-
-type Params = { kind: "viselora.surfacePulse"; color?: string };
-
-export const surfacePulseEffect = defineWebGLEffect<Params>({
-  kind: "viselora.surfacePulse",
-  source: "dom/element",
-  schedule: "frame",
-  update(ctx, _state, params) {
-    const surface = ctx.object.surface;
-    if (!surface) return;
-    const pulse = 0.5 + Math.sin(ctx.time / 420) * 0.5;
-    const color = params.color ?? "#7dd3fc";
-    ctx.object.material?.color.set(color);
-    surface.draw(({ context, width, height }) => {
-      context.clearRect(0, 0, width, height);
-      context.globalAlpha = 0.3 + pulse * 0.5;
-      context.fillStyle = color;
-      context.beginPath();
-      context.arc(width / 2, height / 2, Math.min(width, height) * (0.2 + pulse * 0.08), 0, Math.PI * 2);
-      context.fill();
-    });
-    ctx.object.visible = true;
-  },
-});
-
-export const surfacePulseWebgl = {
-  key: "app.surface-pulse",
-  source: { kind: "dom", type: "element" },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "restore-dom" },
-  },
-  effects: [{ kind: "viselora.surfacePulse", color: "#7dd3fc" }],
-} as const;
-```
-
-Render `surfacePulseWebgl` on a semantic `WebGLTarget` containing the readable fallback heading or copy.
+Use [`templates/effects/surface-pulse.ts`](../templates/effects/surface-pulse.ts)
+only in `retained-defect-reproduction` mode. Use DOM/CSS or verified media for
+normal production output.
 
 ## Video background texture
 
-Keep a real DOM video fallback and control only the managed texture/video handles:
+- **Compatible version:** `0.1.0-alpha.0`.
+- **Status:** `managed-video` is `verified`.
+- **Required exports:** `defineWebGLEffect`, `WebGLTarget`.
+- **Assets and fallback:** local video, local poster, semantic/native video
+  fallback and license record.
+- **Ownership:** managed `ctx.object.video`/texture; no `VideoTexture` or custom
+  playback/render loop.
+- **Mobile and reduced motion:** muted/playsInline; replace unnecessary motion
+  with the poster.
+- **Required evidence:** playback, autoplay rejection, network failure and
+  offscreen re-entry.
+- **Limitations:** autoplay policy may require a user gesture.
 
-```ts
-import { defineWebGLEffect } from "@viselora/dom-webgl";
-
-type Params = { kind: "viselora.videoBackground"; playbackRate?: number };
-type State = { configured: boolean };
-
-export const videoBackgroundEffect = defineWebGLEffect<Params, State>({
-  kind: "viselora.videoBackground",
-  source: "media/video",
-  schedule: "frame",
-  setup() {
-    return { configured: false };
-  },
-  update(ctx, state, params) {
-    const video = ctx.object.video;
-    const texture = ctx.object.texture;
-    if (!video || !texture) return;
-    if (!state.configured) {
-      video.setMuted(true);
-      video.setPlaybackRate(params.playbackRate ?? 1);
-      void video.play();
-      state.configured = true;
-    }
-    const drift = (Math.sin(ctx.time / 1800) + 1) * 0.015;
-    texture.setTransform({
-      repeatX: 1.06,
-      repeatY: 1.06,
-      offsetX: drift,
-      offsetY: 0.03 - drift,
-    });
-    ctx.object.visible = true;
-  },
-});
-
-export const videoBackgroundWebgl = {
-  key: "app.video-background",
-  source: {
-    kind: "media",
-    type: "video",
-    src: "/media/background.mp4",
-    playback: { muted: true, loop: true, playsInline: true },
-  },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "park", warmTtlMs: 15_000 },
-  },
-  effects: [{ kind: "viselora.videoBackground", playbackRate: 0.9 }],
-} as const;
-```
-
-Render it with `<WebGLTarget as="video" src="/media/background.mp4" muted loop playsInline ... />` so loading/error retains native fallback.
+See
+[`templates/effects/video-background-texture.ts`](../templates/effects/video-background-texture.ts).
 
 ## Image hover overlay
 
-Request managed hover input and create an effect-owned material layer. Dispose the layer with the effect:
+- **Compatible version:** `0.1.0-alpha.0`.
+- **Status:** `managed-image-hover` is `verified` only for explicit source
+  sampling.
+- **Required exports:** `defineWebGLEffect`, `WebGLTarget`, managed material
+  layer handle.
+- **Assets and fallback:** local licensed image and semantic `<img alt>`.
+- **Ownership:** target `pointer.hover`, `ctx.targetPointer`, disposable
+  source-backed material layer.
+- **Mobile and reduced motion:** hover meaning must have touch or scroll parity;
+  the source image remains readable.
+- **Required evidence:** loading/error fallback and clipped final-canvas pixel
+  change on hover plus the alternative path.
+- **Limitations:** overlay mode did not preserve the source in external alpha
+  validation.
 
-```ts
-import {
-  defineWebGLEffect,
-  type WebGLEffectMaterialLayerHandle,
-} from "@viselora/dom-webgl";
-
-type Params = { kind: "viselora.imageHoverOverlay" };
-type State = { layer: WebGLEffectMaterialLayerHandle | undefined };
-
-const fragmentShader = `
-  uniform float uHover;
-  varying vec2 vUv;
-  void main() {
-    float edge = 1.0 - smoothstep(0.2, 0.8, distance(vUv, vec2(0.5)));
-    gl_FragColor = vec4(0.49, 0.83, 0.98, uHover * edge * 0.5);
-  }
-`;
-
-export const imageHoverOverlayEffect = defineWebGLEffect<Params, State>({
-  kind: "viselora.imageHoverOverlay",
-  source: "media/image",
-  setup() {
-    return { layer: undefined };
-  },
-  update(ctx, state) {
-    const material = ctx.object.texture?.material;
-    if (!material) return;
-    if (!state.layer) {
-      const layer = material.createMaterialLayer({
-        key: `${ctx.key}.hover-overlay`,
-        mode: "overlay",
-        program: { fragmentShader, uniforms: { uHover: 0 } },
-      });
-      ctx.resources.addDisposable(() => layer.dispose());
-      state.layer = layer;
-    }
-    state.layer.setUniforms({ uHover: ctx.targetPointer.isInside ? 1 : 0 });
-    ctx.object.visible = true;
-  },
-  dispose(_ctx, state) {
-    state.layer?.dispose();
-  },
-});
-
-export const imageHoverWebgl = {
-  key: "app.image-hover",
-  source: { kind: "media", type: "image", src: "/media/product.webp" },
-  pointer: { hover: true },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "restore-dom" },
-  },
-  effects: [{ kind: "viselora.imageHoverOverlay" }],
-} as const;
-```
-
-Render it on `<WebGLTarget as="img" src="/media/product.webp" alt="..." />`; do not add DOM pointer listeners.
+The verified shader declares `uniform sampler2D uSourceTexture`, samples
+`texture2D(uSourceTexture, vUv)`, and creates the layer with
+`sourceTextureUniform: "uSourceTexture"` plus `mode: "replace-source"`. See
+[`templates/effects/image-hover-overlay.ts`](../templates/effects/image-hover-overlay.ts).
 
 ## Pinned model glow
 
-Share a named timeline between the pinned section and effect. Scrub a real clip and use emissive plus a runtime-owned point light:
+- **Compatible version:** `0.1.0-alpha.0`.
+- **Status:** `glb-loading-lifecycle` is `verified`, while
+  `dom-anchored-glb-visible-output` is `blocked`.
+- **Required exports:** `defineWebGLEffect`, `WebGLTarget`,
+  `WebGLScrollTimeline`.
+- **Assets and fallback:** local licensed GLB, clip metadata, decoder assets when
+  needed, and poster/text fallback.
+- **Ownership:** runtime loader/mixer/lights; one timeline/progress source.
+- **Mobile and reduced motion:** freeze scrub and keep poster/text meaningful.
+- **Required evidence:** ready/active and network fallback are not sufficient;
+  require a clipped final-canvas model pixel threshold.
+- **Limitations:** default DOM-anchored visible model output remains a blocked
+  defect candidate in this version.
 
-```tsx
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { defineWebGLEffect, type WebGLDeclaration } from "@viselora/dom-webgl";
-import { WebGLTarget } from "@viselora/dom-webgl/react";
-import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
-
-type Params = {
-  kind: "viselora.modelGlow";
-  progressKey: string;
-  clip: string;
-  durationSeconds: number;
-};
-
-type State = { lightRegistered: boolean };
-
-export const modelGlowEffect = defineWebGLEffect<Params, State>({
-  kind: "viselora.modelGlow",
-  source: "model/glb",
-  setup() {
-    return { lightRegistered: false };
-  },
-  update(ctx, state, params) {
-    const progress = Math.min(1, Math.max(0, ctx.progress.get(params.progressKey)));
-    ctx.object.animation?.scrub(params.clip, {
-      progress,
-      durationSeconds: params.durationSeconds,
-    });
-    ctx.object.material?.emissive.set("#f6c453", 0.4 + progress * 1.6);
-    ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.material.emissive.set("#f6c453", 0.3 + progress * 1.2);
-    });
-    const glowLight = ctx.object.lights?.point(`${ctx.key}.glow`, {
-      color: "#f6c453",
-      intensity: 0.8 + progress * 2.2,
-      distance: 420,
-      follow: "object",
-    });
-    if (glowLight && !state.lightRegistered) {
-      ctx.resources.addDisposable(() => glowLight.dispose());
-      state.lightRegistered = true;
-    }
-    ctx.object.visible = true;
-  },
-  dispose(ctx) {
-    ctx.object.lights?.remove(`${ctx.key}.glow`);
-  },
-});
-
-const progressKey = "model-glow-progress";
-
-const pinnedModelDeclaration = {
-  key: "app.pinned-model",
-  timeline: { id: progressKey, progressKey },
-  source: { kind: "model", type: "glb", src: "/models/product.glb" },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "park", warmTtlMs: 20_000 },
-  },
-  effects: [{
-    kind: "viselora.modelGlow",
-    progressKey,
-    clip: "Reveal",
-    durationSeconds: 2,
-  }],
-} satisfies WebGLDeclaration;
-
-gsap.registerPlugin(ScrollTrigger);
-
-export function PinnedModelGlow() {
-  return (
-    <WebGLScrollTimeline
-      id={progressKey}
-      pin
-      scrub
-      ScrollTrigger={ScrollTrigger}
-    >
-      <WebGLTarget
-        as="section"
-        webgl={pinnedModelDeclaration}
-      >
-        <p>Interactive product model loading…</p>
-      </WebGLTarget>
-    </WebGLScrollTimeline>
-  );
-}
-```
-
-Replace `Reveal` with a clip name exported by the GLB. Avoid canvas-wide bloom for a single model.
+Use
+[`templates/effects/pinned-model-glow.tsx`](../templates/effects/pinned-model-glow.tsx)
+only as a lifecycle example or retained reproduction, never as copy-and-ship
+visible-output guidance.
 
 ## Scroll image sequence
 
-Preload frames before mounting. Keep one stable progress key in the timeline, source, and effect:
+- **Compatible version:** `0.1.0-alpha.0`.
+- **Status:** `image-sequence` is `experimental`.
+- **Required exports:** `defineWebGLEffect`, `WebGLTarget`,
+  `WebGLScrollTimeline`, image-sequence frame types.
+- **Assets and fallback:** complete local sequence, first frame, naming/frame
+  metadata, license and bounded cache budget.
+- **Ownership:** one timeline/progress source; mount only a stable complete
+  frame declaration.
+- **Mobile and reduced motion:** retain the first frame and shorten/freeze scrub.
+- **Required evidence:** first-frame fallback, bounded cache, forward/reverse
+  scroll and final-canvas pixel change.
+- **Limitations:** external consumer browser validation is incomplete.
 
-```tsx
-import { useMemo } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import {
-  defineWebGLEffect,
-  type WebGLDeclaration,
-  type WebGLImageSequenceFrame,
-} from "@viselora/dom-webgl";
-import { WebGLTarget } from "@viselora/dom-webgl/react";
-import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
-
-type Params = { kind: "viselora.imageSequence"; progressKey: string };
-
-export const imageSequenceEffect = defineWebGLEffect<Params>({
-  kind: "viselora.imageSequence",
-  source: "media/image-sequence",
-  update(ctx, _state, params) {
-    const progress = Math.min(1, Math.max(0, ctx.progress.get(params.progressKey)));
-    ctx.object.texture?.setTransform({
-      repeatX: 1.02,
-      repeatY: 1.02,
-      offsetX: progress * 0.02,
-    });
-    ctx.object.visible = true;
-  },
-});
-
-gsap.registerPlugin(ScrollTrigger);
-
-export function ScrollImageSequence(props: {
-  frames: readonly WebGLImageSequenceFrame[];
-  fallbackSrc: string;
-}) {
-  const progressKey = "sequence-progress";
-  const sequenceDeclaration = useMemo<WebGLDeclaration>(
-    () => ({
-      key: "app.image-sequence",
-      source: {
-        kind: "media",
-        type: "image-sequence",
-        frameCount: props.frames.length,
-        frames: props.frames,
-        progressKey,
-      },
-      lifecycle: {
-        hideWhenReady: true,
-        hideMode: "self",
-        offscreen: { strategy: "restore-dom" },
-      },
-      effects: [{ kind: "viselora.imageSequence", progressKey }],
-    }),
-    [props.frames],
-  );
-
-  return (
-    <WebGLScrollTimeline
-      id={progressKey}
-      pin
-      scrub
-      ScrollTrigger={ScrollTrigger}
-    >
-      <WebGLTarget
-        as="section"
-        webgl={sequenceDeclaration}
-      >
-        <img alt="Product rotation preview" src={props.fallbackSrc} />
-      </WebGLTarget>
-    </WebGLScrollTimeline>
-  );
-}
-```
-
-Do not update `frames` on an already mounted target. Wait for the complete array or remount with a new key.
+Use
+[`templates/effects/scroll-image-sequence.tsx`](../templates/effects/scroll-image-sequence.tsx)
+only with `acknowledgement: "experimental"` and the required evidence plan.

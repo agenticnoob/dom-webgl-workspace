@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "compatiblePackageVersion": "0.1.0-alpha.0",
+  "mode": "consumer",
+  "assetManifest": "./asset-manifest.json",
+  "capabilities": [
+    {
+      "id": "managed-image-hover",
+      "checks": ["final-canvas-pixel-change", "touch-or-scroll-alternative", "loading-error-fallback"]
+    },
+    {
+      "id": "shared-scroll-progress",
+      "checks": ["slow-forward-scroll", "fast-forward-scroll", "reverse-scroll"]
+    },
+    {
+      "id": "single-runtime-canvas",
+      "checks": ["one-canvas-mounted", "unmount-remount-1-0-1"]
+    },
+    {
+      "id": "resource-fallback-lifecycle",
+      "checks": ["loading-fallback", "network-error-fallback", "offscreen-reentry"]
+    },
+    {
+      "id": "reduced-motion-signaling",
+      "checks": ["reduced-motion-content-continuity", "reduced-motion-no-required-animation"]
+    }
+  ]
+}

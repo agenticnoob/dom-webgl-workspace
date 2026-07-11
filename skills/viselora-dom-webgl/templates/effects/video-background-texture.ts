@@ -1,3 +1,4 @@
+// Optional verified recipe for 0.1.0-alpha.0. Read capability-status.md before use.
 import { defineWebGLEffect } from "@viselora/dom-webgl";
 
 type VideoBackgroundParams = {

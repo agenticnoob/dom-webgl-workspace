@@ -959,14 +959,13 @@ function verifySharedScrollProgress(context, targets, definitions, timelines) {
 }
 
 function verifyImageSequence(context, targets, definitions, timelines) {
-  const sequence = targets.find((target) => {
-    if (
-      target.sourceKind !== "media" ||
-      target.sourceType !== "image-sequence" ||
-      !target.progressExpression
-    ) {
-      return false;
-    }
+  const candidates = targets.filter(
+    (target) =>
+      target.sourceKind === "media" &&
+      target.sourceType === "image-sequence",
+  );
+  const sequence = candidates.find((target) => {
+    if (!target.progressExpression) return false;
     const definition = findUsedDefinition(
       target,
       definitions,
@@ -979,8 +978,34 @@ function verifyImageSequence(context, targets, definitions, timelines) {
         ),
     );
   });
-  if (!sequence || !sequence.explicitLifecycle || !sequence.fallbackEvidence) {
-    add("[image-sequence] missing stable frames, progress, first-frame fallback or lifecycle evidence");
+  if (!sequence) {
+    if (candidates.length === 0) {
+      add("[image-sequence] missing stable media/image-sequence target");
+      return;
+    }
+    const target = candidates[0];
+    if (!target.progressExpression) {
+      add("[image-sequence] source requires a stable progressKey");
+    }
+    if (
+      !findUsedDefinition(
+        target,
+        definitions,
+        (candidate) => candidate.source === "media/image-sequence",
+      )
+    ) {
+      add("[image-sequence] missing matching media/image-sequence effect definition");
+    }
+    if (
+      target.progressExpression &&
+      !timelines.some((timeline) =>
+        expressionsMatch(context, target.progressExpression, timeline),
+      )
+    ) {
+      add("[image-sequence] progressKey does not match a managed timeline");
+    }
+  } else if (!sequence.explicitLifecycle || !sequence.fallbackEvidence) {
+    add("[image-sequence] missing first-frame fallback or lifecycle evidence");
   }
 }
 

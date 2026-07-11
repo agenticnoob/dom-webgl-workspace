@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "product-source",
+      "kind": "image",
+      "localPath": "public/media/product-source.svg",
+      "storyBeatIds": ["beat-02"],
+      "purpose": "Source-preserving managed image hover demonstration",
+      "source": {
+        "url": "generated-locally",
+        "author": "Viselora template geometric generator",
+        "license": "CC0-1.0",
+        "deploymentRights": "public-deployment-approved"
+      },
+      "modifications": ["Authored as local responsive SVG demo artwork"],
+      "metadata": { "width": 1600, "height": 1000 },
+      "fallback": { "kind": "dom-image", "localPath": "public/media/product-source.svg" },
+      "alt": "Layered cyan product study on a dark field"
+    }
+  ]
+}

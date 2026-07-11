@@ -1,3 +1,4 @@
+// Optional verified recipe for 0.1.0-alpha.0. Read capability-status.md before use.
 import {
   defineWebGLEffect,
   type WebGLEffectMaterialLayerHandle,
@@ -13,13 +14,15 @@ type ImageHoverOverlayState = {
 };
 
 const fragmentShader = `
+  uniform sampler2D uSourceTexture;
   uniform float uHover;
-  uniform vec3 uColor;
   varying vec2 vUv;
 
   void main() {
-    float vignette = 1.0 - smoothstep(0.18, 0.72, distance(vUv, vec2(0.5)));
-    gl_FragColor = vec4(uColor, uHover * vignette * 0.52);
+    vec4 source = texture2D(uSourceTexture, vUv);
+    float edge = 1.0 - smoothstep(0.2, 0.8, distance(vUv, vec2(0.5)));
+    vec3 tint = vec3(0.49, 0.83, 0.98);
+    gl_FragColor = vec4(mix(source.rgb, tint, uHover * edge * 0.35), source.a);
   }
 `;
 
@@ -41,11 +44,11 @@ export const imageHoverOverlayEffect = defineWebGLEffect<
     if (!state.layer) {
       const layer = material.createMaterialLayer({
         key: `${ctx.key}.hover-overlay`,
-        mode: "overlay",
+        mode: "replace-source",
+        sourceTextureUniform: "uSourceTexture",
         program: {
           fragmentShader,
           uniforms: {
-            uColor: params.color ?? [0.49, 0.83, 0.98],
             uHover: 0,
           },
         },
@@ -54,7 +57,6 @@ export const imageHoverOverlayEffect = defineWebGLEffect<
       state.layer = layer;
     }
     state.layer.setUniforms({
-      uColor: params.color ?? [0.49, 0.83, 0.98],
       uHover: ctx.targetPointer.isInside ? 1 : 0,
     });
     ctx.object.visible = true;

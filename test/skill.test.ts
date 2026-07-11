@@ -237,6 +237,67 @@ describe("viselora-dom-webgl skill", () => {
     expect(quickstart).toContain("skipLibCheck: false");
   });
 
+  test("samples the image source explicitly through the verified hover path", () => {
+    for (const path of [
+      "templates/effects/image-hover-overlay.ts",
+      "templates/react-vite/src/effects.ts",
+    ]) {
+      const content = read(path);
+      expect(content).toContain("uniform sampler2D uSourceTexture");
+      expect(content).toContain("texture2D(uSourceTexture, vUv)");
+      expect(content).toContain('sourceTextureUniform: "uSourceTexture"');
+      expect(content).toContain('mode: "replace-source"');
+      expect(content).toContain("ctx.targetPointer.isInside");
+      expect(content).toContain("ctx.resources.addDisposable");
+    }
+  });
+
+  test("keeps blocked and experimental effects out of the default template", () => {
+    const app = read("templates/react-vite/src/App.tsx");
+    const effects = read("templates/react-vite/src/effects.ts");
+    const manifest = readJson(skillRoot, "templates/react-vite/viselora.capabilities.json");
+    const combined = `${app}\n${effects}`;
+
+    expect(combined).not.toContain("surfacePulseEffect");
+    expect(combined).not.toContain("modelGlowEffect");
+    expect(combined).not.toContain("imageSequenceEffect");
+    expect(manifest.capabilities.map((entry: { id: string }) => entry.id)).toEqual([
+      "managed-image-hover",
+      "shared-scroll-progress",
+      "single-runtime-canvas",
+      "resource-fallback-lifecycle",
+      "reduced-motion-signaling",
+    ]);
+  });
+
+  test("labels every optional recipe with status-aware implementation metadata", () => {
+    const recipes = read("references/effect-recipes.md");
+    for (const heading of [
+      "Surface pulse",
+      "Video background texture",
+      "Image hover overlay",
+      "Pinned model glow",
+      "Scroll image sequence",
+    ]) {
+      const start = recipes.indexOf(`## ${heading}`);
+      expect(start, heading).toBeGreaterThan(-1);
+      const end = recipes.indexOf("\n## ", start + 4);
+      const section = recipes.slice(start, end < 0 ? undefined : end);
+      for (const field of [
+        "Compatible version",
+        "Status",
+        "Required exports",
+        "Assets and fallback",
+        "Ownership",
+        "Mobile and reduced motion",
+        "Required evidence",
+        "Limitations",
+      ]) {
+        expect(section, `${heading}: ${field}`).toContain(field);
+      }
+    }
+  });
+
   test("accepts a verified subset without unrelated recipes", () => {
     const fixtureRoot = copyTemplate();
     const result = runVerifier(fixtureRoot);
@@ -498,8 +559,8 @@ function installImageSequenceFixture(root: string): void {
       'const progressKey = "sequence-progress";',
       'const frames = [{ src: "/media/sequence/frame-01.webp" }];',
       'export const imageSequenceEffect = defineWebGLEffect({ kind: "story.imageSequence", source: "media/image-sequence", update(ctx) { ctx.object.texture?.setTransform({ offsetX: ctx.progress.get(progressKey) }); } });',
-      'const declaration = { key: "story.sequence", source: { kind: "media", type: "image-sequence", frameCount: frames.length, frames, progressKey }, lifecycle: { hideWhenReady: true, hideMode: "self", offscreen: { strategy: "restore-dom" } }, effects: [{ kind: "story.imageSequence" }] } satisfies WebGLDeclaration;',
-      'export const sequenceEvidence = <WebGLScrollTimeline id={progressKey} ScrollTrigger={ScrollTrigger}><WebGLTarget webgl={declaration}><img src="/media/sequence/frame-01.webp" alt="Sequence first frame" /></WebGLTarget></WebGLScrollTimeline>;',
+      'const declaration = { key: "story.sequence", source: { kind: "media", type: "image-sequence", frameCount: frames.length, frames, progressKey: "sequence-progress" }, lifecycle: { hideWhenReady: true, hideMode: "self", offscreen: { strategy: "restore-dom" } }, effects: [{ kind: "story.imageSequence" }] } satisfies WebGLDeclaration;',
+      'export const sequenceEvidence = <WebGLScrollTimeline id="sequence-progress" ScrollTrigger={ScrollTrigger}><WebGLTarget webgl={declaration}><img src="/media/sequence/frame-01.webp" alt="Sequence first frame" /></WebGLTarget></WebGLScrollTimeline>;',
       "",
     ].join("\n"),
   );
