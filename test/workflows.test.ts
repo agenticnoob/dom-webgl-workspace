@@ -49,11 +49,26 @@ describe("Viselora GitHub workflows", () => {
   test("root scripts keep skill verification portable and release publication explicit", () => {
     const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 
-    expect(manifest.scripts["verify:skill"]).toContain("test/skill.test.ts");
-    expect(manifest.scripts["verify:skill"]).toContain(
-      "skills/viselora-dom-webgl/scripts/verify-consumer.mjs",
+    expect(manifest.scripts["skill:api:generate"]).toBe(
+      "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs",
     );
+    expect(manifest.scripts["skill:api:check"]).toBe(
+      "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs --check && node skills/viselora-dom-webgl/scripts/check-api-coverage.mjs",
+    );
+    expect(manifest.scripts["verify:skill:template"]).toBe(
+      "node ./scripts/verify-skill-template.mjs",
+    );
+    expectInOrder(manifest.scripts["verify:skill"], [
+      "test/skill.test.ts test/skill-api-surface.test.ts",
+      "npm run skill:api:check",
+      "skills/viselora-dom-webgl/scripts/verify-consumer.mjs skills/viselora-dom-webgl/templates/react-vite",
+      "npm run verify:skill:template",
+    ]);
     expect(manifest.scripts["verify:skill"]).not.toContain("/Users/");
+    expectInOrder(manifest.scripts["verify:release"], [
+      "npm run build",
+      "npm run verify:skill",
+    ]);
     expect(manifest.scripts["verify:release"]).toContain("verify:consumer");
     expect(manifest.scripts["release:publish"]).toBe(
       "node ./scripts/publish-release.mjs",

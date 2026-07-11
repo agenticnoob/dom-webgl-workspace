@@ -18,7 +18,10 @@
     "pack:verify": "node ./scripts/verify-package-tarballs.mjs",
     "verify:tarballs": "npm run build && npm run pack:verify",
     "verify:consumer": "node ./scripts/verify-external-consumer.mjs",
-    "verify:skill": "npm test -- --run test/skill.test.ts && node skills/viselora-dom-webgl/scripts/verify-consumer.mjs skills/viselora-dom-webgl/templates/react-vite",
+    "skill:api:generate": "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs",
+    "skill:api:check": "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs --check && node skills/viselora-dom-webgl/scripts/check-api-coverage.mjs",
+    "verify:skill:template": "node ./scripts/verify-skill-template.mjs",
+    "verify:skill": "npm test -- --run test/skill.test.ts test/skill-api-surface.test.ts && npm run skill:api:check && node skills/viselora-dom-webgl/scripts/verify-consumer.mjs skills/viselora-dom-webgl/templates/react-vite && npm run verify:skill:template",
     "verify:release": "npm run typecheck && npm run test -- --run && npm run build && npm run check:imports && npm run verify:versions && npm run verify:tarballs && npm run verify:consumer && npm run verify:skill",
     "release:publish": "node ./scripts/publish-release.mjs"
   },
