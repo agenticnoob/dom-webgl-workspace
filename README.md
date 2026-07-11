@@ -24,8 +24,17 @@ Because these are the first versions under their package names, npm currently
 also resolves the default `latest` tag to the same alpha. Consumers should use
 the explicit `@alpha` tag until a stable release is published.
 
-Agents can use `skills/viselora-dom-webgl/`. The release decision and
-validation boundary live in `docs/project-release-validation.md`.
+Agents can use `skills/viselora-dom-webgl/` as the general brief-to-browser development skill:
+it routes narrative directions, story beats, local licensed assets, public API
+selection, implementation, and browser/narrative verification. Capability truth
+is versioned in
+`skills/viselora-dom-webgl/references/capability-status.md`; the exhaustive
+published declaration index is
+`skills/viselora-dom-webgl/references/api-surface.generated.md`. The
+selected-capability verification and template typecheck/build gates prove static
+skill/template consistency; that evidence does not prove real-browser consumer
+experience, and not all public APIs are externally verified. The release
+decision and validation boundary live in `docs/project-release-validation.md`.
 
 Current implementation truth lives in `docs/STATUS.md`.
 

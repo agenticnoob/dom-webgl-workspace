@@ -30,6 +30,10 @@ npm install @viselora/scroll-adapters@alpha
 ```
 
 For agent-driven integrations, start with `skills/viselora-dom-webgl/SKILL.md`.
+The skill is the consumer workflow from narrative brief through beats, local
+assets, capability status, implementation and browser evidence. This onboarding
+document remains the package-contract reference; it does not replace the skill's
+planning and selected-capability verification flow.
 
 Package split:
 

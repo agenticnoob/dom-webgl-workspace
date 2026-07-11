@@ -21,6 +21,9 @@ another renderer.
 
 ## Consumer And Agent Docs
 
+- [../skills/viselora-dom-webgl/SKILL.md](../skills/viselora-dom-webgl/SKILL.md) - general brief-to-browser development skill.
+- [superpowers/specs/2026-07-11-viselora-general-development-skill-design.md](./superpowers/specs/2026-07-11-viselora-general-development-skill-design.md) - approved general-skill design.
+- [superpowers/plans/2026-07-11-viselora-general-development-skill.md](./superpowers/plans/2026-07-11-viselora-general-development-skill.md) - implementation plan and verification boundary.
 - [consumer-standard-usage.md](./consumer-standard-usage.md) - standard consumer usage guide.
 - [agent/package-onboarding.md](./agent/package-onboarding.md) - single entrypoint for agents starting from zero.
 - [agent/package-usage.md](./agent/package-usage.md) - detailed downstream package contract.

@@ -17,7 +17,11 @@ npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
 - Runtime 包：`@viselora/dom-webgl`
 - 可选滚动适配包：`@viselora/scroll-adapters`
 
-Agent 集成可从 `skills/viselora-dom-webgl/SKILL.md` 开始。
+Agent 集成可从 `skills/viselora-dom-webgl/SKILL.md` 开始。这个通用 workflow
+先从 brief、2–3 个叙事方向、4–8 个 story beats、本地资产与许可证记录开始，
+再读取 `skills/viselora-dom-webgl/references/capability-status.md` 选择当前
+版本可用的 public capability，最后进入实现与真实浏览器验证。项目只声明自己
+选择的 capability；verifier 不再强制五个 recipe。
 
 ## 一句话心智模型
 

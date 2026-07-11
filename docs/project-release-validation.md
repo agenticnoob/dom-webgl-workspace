@@ -81,9 +81,14 @@ README, LICENSE, JavaScript, declarations, and sourcemaps, and a repository-
 external React/Vite fixture can install both tarballs and validate types, SSR
 imports, one runtime canvas, cleanup, and a production build.
 
-Skill validation must prove the published workflow uses one runtime, one canvas,
-one scroll source, one pointer source, public entrypoints, stable effect arrays,
-fallback/offscreen/disposal policy, and no R3F or second renderer.
+Skill validation builds both packages, checks generated `.d.ts` drift, maps every
+public value export to human guidance, indexes every public type, validates
+versioned capability statuses, runs selected-capability verification, and
+typechecks/builds the tracked template in a temporary copy. It also proves one
+runtime/canvas, one scroll source, one pointer source, public entrypoints, stable
+effect arrays, fallback/offscreen/disposal policy, and no R3F or second renderer.
+These gates prove skill/template self-consistency and do not prove real-browser
+pixels, mobile pacing, reduced-motion continuity, or a new consumer experience.
 
 ## Publication Gate (Completed)
 

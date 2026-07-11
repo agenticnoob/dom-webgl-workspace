@@ -51,6 +51,23 @@ describe("Viselora release documentation", () => {
     expect(onboarding).toContain("skills/viselora-dom-webgl");
   });
 
+  test("documents the general skill, selected verification, and status truth", () => {
+    const rootReadme = readFileSync(resolve(repoRoot, "README.md"), "utf8");
+    const docsIndex = read("README.md");
+    const status = read("STATUS.md");
+    const release = read("project-release-validation.md");
+    const consumer = read("consumer-standard-usage.md");
+    const onboarding = read("agent/package-onboarding.md");
+    const combined = [rootReadme, docsIndex, status, release, consumer, onboarding].join("\n");
+
+    expect(combined).toContain("general brief-to-browser development skill");
+    expect(combined).toContain("skills/viselora-dom-webgl/references/capability-status.md");
+    expect(combined).toContain("skills/viselora-dom-webgl/references/api-surface.generated.md");
+    expect(combined).toContain("selected-capability verification");
+    expect(combined).toContain("does not prove real-browser");
+    expect(combined).toContain("not all public APIs are externally verified");
+  });
+
   test("keeps the formal MVP as a later isolated package-plus-skill repository", () => {
     const background = read("new-project/example-page-background.md");
     const mvp = read("new-project/example-page-mvp.md");

@@ -12,6 +12,14 @@ Capability-stable, release-validation stage. Runtime capabilities are not expand
 The lockstep `0.1.0-alpha.0` versions of `@viselora/dom-webgl` and
 `@viselora/scroll-adapters` are public on npm with provenance. The
 `skills/viselora-dom-webgl/` consumer skill is published in this repository.
+That skill is now a general brief-to-browser development workflow rather than a
+five-recipe requirement: it covers narrative directions, 4–8 beats, local asset
+provenance, public capability mapping, selected-capability verification, and
+downstream browser/narrative evidence. Versioned recommendations live in
+`skills/viselora-dom-webgl/references/capability-status.md`, while
+`skills/viselora-dom-webgl/references/api-surface.generated.md` indexes every
+published value/type export. This work does not expand runtime capabilities or
+claim that all public APIs are externally verified.
 The remaining bootstrap action is to configure a Trusted Publisher for each npm
 package, then delete the GitHub `NPM_TOKEN` Environment secret and revoke the
 temporary granular token. See
