@@ -251,6 +251,7 @@ describe("debug state", () => {
           sceneId: "world",
           src: "/models/Sprint.glb",
           resourceStatus: "ready",
+          attached: true,
           visible: true,
           clips: [],
           activeClips: [],
@@ -341,7 +342,9 @@ describe("debug state", () => {
           sceneId: "world",
           src: "/models/Sprint.glb",
           resourceStatus: "idle",
-          visible: true,
+          attached: false,
+          visible: false,
+          error: "Model assembly failed",
           prepare: { load: "queued", renderWarmup: "pending" },
           clips: [],
           activeClips: [],
@@ -353,6 +356,11 @@ describe("debug state", () => {
     expect(state.models?.[0]?.prepare).toEqual({
       load: "queued",
       renderWarmup: "pending",
+    });
+    expect(state.models?.[0]).toMatchObject({
+      attached: false,
+      visible: false,
+      error: "Model assembly failed",
     });
     expect(state.models?.[0]?.prepare).not.toHaveProperty("loader");
     expect(state.models?.[0]?.prepare).not.toHaveProperty("render");

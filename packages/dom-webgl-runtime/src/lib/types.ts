@@ -805,7 +805,9 @@ export type WebGLDebugModelSummary = {
   sceneId: string;
   src: string;
   resourceStatus: WebGLResourceStatus;
+  attached: boolean;
   visible: boolean;
+  error?: string;
   timeline?: WebGLDebugTimelineSummary;
   prepare?: WebGLDebugModelPrepareSummary;
   clips: readonly string[];

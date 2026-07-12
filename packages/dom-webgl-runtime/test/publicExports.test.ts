@@ -2233,7 +2233,9 @@ describe("public package exports", () => {
           sceneId: "world",
           src: "/models/hero.glb",
           resourceStatus: "ready",
+          attached: true,
           visible: true,
+          error: undefined,
           timeline: { id: "hero.timeline", progressKey: "hero.timeline", active: true },
           prepare: modelPrepareDebug,
           clips: ["Idle", "Walk"],
@@ -2242,6 +2244,8 @@ describe("public package exports", () => {
           bones: ["Head"],
           diagnostics: [modelDebugDiagnostic],
         } satisfies WebGLDebugModelSummary;
+        modelDebugSummary.attached satisfies boolean;
+        modelDebugSummary.error satisfies string | undefined;
 	        const debugState = {
 	          targetCount: 1,
 	          renderableCount: 1,

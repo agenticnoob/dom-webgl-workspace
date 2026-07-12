@@ -812,13 +812,17 @@ function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
             : {}),
         }
       : undefined;
+  const attached = entry.controller?.attached ?? false;
+  const error = readErrorMessage(entry.error);
 
   return {
     id: entry.declaration.id,
     sceneId: entry.declaration.sceneId,
     src: entry.declaration.source.src,
     resourceStatus: entry.resource.record.status,
-    visible: readEffectiveVisibility(entry),
+    attached,
+    visible: attached && readEffectiveVisibility(entry),
+    ...(error ? { error } : {}),
     ...(entry.declaration.timeline ? { timeline: readDebugTimeline(entry) } : {}),
     ...(prepare ? { prepare } : {}),
     clips: entry.animation?.clips() ?? [],
@@ -837,6 +841,18 @@ function inspectEntry(entry: ManagedModelEntry): WebGLDebugModelSummary {
       : {}),
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
   };
+}
+
+function readErrorMessage(error: unknown): string | undefined {
+  if (error === undefined || error === null) {
+    return undefined;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 function mapAnimationDiagnostic(

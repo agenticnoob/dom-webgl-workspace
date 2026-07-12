@@ -3,6 +3,7 @@ import { AnimationClip } from "three/src/animation/AnimationClip.js";
 import { Group } from "three/src/objects/Group.js";
 
 import {
+  defineWebGLEffect,
   defineWebGLSceneObjectEffect,
   type WebGLEffectScopeSnapshot,
   type WebGLSceneObjectPointerState,
@@ -24,6 +25,37 @@ import type { WebGLModelSourceDescriptor } from "../../../src/lib/source/sourceD
 import type { WebGLFrameInput } from "../../../src/lib/types";
 
 describe("managed model registry", () => {
+  test("reports decoded models that fail scene-object effect assembly as unattached", async () => {
+    const targetOnlyEffect = defineWebGLEffect({
+      kind: "app.targetOnly",
+      update() {
+        return;
+      },
+    });
+    const registry = createRegistry({
+      worldAdapter: createSceneAdapter(),
+      loadModel: async () => ({ scene: new Group() }),
+      effectRegistry: createWebGLEffectRegistry([targetOnlyEffect]),
+    });
+
+    registry.registerModel({
+      id: "character",
+      sceneId: "world",
+      src: "/models/Sprint.glb",
+      effects: [{ kind: "app.targetOnly" }],
+    });
+
+    await expect(registry.update({ delta: 16 }, { get: () => 0 })).rejects.toThrow(
+      'Effect "app.targetOnly" is not a scene-object effect.',
+    );
+    expect(registry.inspect().models[0]).toMatchObject({
+      resourceStatus: "ready",
+      attached: false,
+      visible: false,
+      error: 'Effect "app.targetOnly" is not a scene-object effect.',
+    });
+  });
+
   test("loads a scene-native model and attaches it to the declared scene", async () => {
     const worldAdapter = createSceneAdapter();
     const sourceScene = new Group();
