@@ -42,7 +42,34 @@ describe("external consumer fixture", () => {
       typecheck: "tsc --noEmit",
       test: "vitest run",
       build: "vite build",
+      "test:browser": "playwright test --project=chromium",
     });
+  });
+
+  test("generates a real Chromium model and final-canvas capability gate", () => {
+    const root = createFixture();
+    const packageJson = JSON.parse(read(root, "package.json"));
+    const effects = read(root, "src/effects.ts");
+    const app = read(root, "src/App.tsx");
+    const browser = read(root, "e2e/capabilities.spec.ts");
+    const config = read(root, "playwright.config.ts");
+
+    expect(packageJson.scripts["test:browser"]).toContain("playwright test");
+    expect(existsSync(resolve(root, "public/models/hero.glb"))).toBe(true);
+    expect(app).toContain('<WebGLModel');
+    expect(app).toContain('src="/models/hero.glb"');
+    expect(app).toContain("progressSignals={fixtureProgress.source}");
+    expect(effects).toContain("model.sampling.vertices");
+    expect(effects).toContain("model.points.create");
+    expect(effects).toContain("ctx.pointer.normalizedX");
+    expect(browser).toContain("changedPixelCount");
+    expect(browser).toContain("solidToPoints");
+    expect(browser).toContain("pointsToSolid");
+    expect(browser).toContain("pageerror");
+    expect(browser).toContain("consoleErrors");
+    expect(browser).toContain("attached");
+    expect(browser).toContain("toHaveCount(0)");
+    expect(config).toContain('name: "chromium"');
   });
 
   test("uses all four public entrypoints without monorepo escape hatches", () => {
@@ -103,6 +130,9 @@ const requiredFiles = [
   "src/App.tsx",
   "src/effects.ts",
   "src/main.tsx",
+  "public/models/hero.glb",
+  "playwright.config.ts",
+  "e2e/capabilities.spec.ts",
   "scripts/verify-ssr.mjs",
   "vitest.config.ts",
   "test/WebGLRendererMock.ts",

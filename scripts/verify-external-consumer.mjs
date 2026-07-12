@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -26,6 +26,10 @@ try {
   run("npm", ["run", "typecheck"]);
   run("npm", ["test"]);
   run("npm", ["run", "build"]);
+  run("npm", ["run", "test:browser"]);
+  process.stdout.write(
+    `External browser evidence: ${readFileSync(join(fixtureRoot, "evidence/browser-capabilities.json"), "utf8")}`,
+  );
   process.stdout.write("External consumer verification passed\n");
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
