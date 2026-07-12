@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { defineWebGLEffect } from "../../../src/lib/effects/effectAuthoring";
+import {
+  defineWebGLEffect,
+  defineWebGLSceneObjectEffect,
+  isWebGLSceneObjectEffectDefinition,
+} from "../../../src/lib/effects/effectAuthoring";
 
 describe("defineWebGLEffect", () => {
   test("returns the definition unchanged so authors can keep stable references", () => {
@@ -84,5 +88,81 @@ describe("defineWebGLEffect", () => {
     });
 
     expect(definition.kind).toBe("custom.objectOnlySyntax");
+  });
+});
+
+describe("defineWebGLSceneObjectEffect", () => {
+  test("returns the original definition without changing consumer-owned keys", () => {
+    const definition = Object.defineProperty(
+      {
+        kind: "custom.sceneObject",
+        update() {
+          return;
+        },
+      },
+      "consumerMetadata",
+      { value: "kept", enumerable: false },
+    );
+    const keysBefore = Reflect.ownKeys(definition);
+    const descriptorBefore = Object.getOwnPropertyDescriptor(
+      definition,
+      "consumerMetadata",
+    );
+
+    const result = defineWebGLSceneObjectEffect(definition);
+
+    expect(result).toBe(definition);
+    expect(Reflect.ownKeys(definition)).toEqual(keysBefore);
+    expect(Object.getOwnPropertyDescriptor(definition, "consumerMetadata")).toEqual(
+      descriptorBefore,
+    );
+    expect(isWebGLSceneObjectEffectDefinition(result)).toBe(true);
+  });
+
+  test("classifies frozen definitions without branding the consumer object", () => {
+    const definition = Object.freeze({
+      kind: "custom.frozenSceneObject",
+      update() {
+        return;
+      },
+    });
+
+    expect(defineWebGLSceneObjectEffect(definition)).toBe(definition);
+    expect(isWebGLSceneObjectEffectDefinition(definition)).toBe(true);
+  });
+
+  test("does not classify target effects as scene-object effects", () => {
+    const definition = defineWebGLEffect({
+      kind: "custom.targetOnly",
+      update() {
+        return;
+      },
+    });
+
+    expect(isWebGLSceneObjectEffectDefinition(definition)).toBe(false);
+  });
+
+  test("stores definitions in the WeakSet shared by the global symbol registry", () => {
+    const definition = defineWebGLSceneObjectEffect({
+      kind: "custom.globalSceneObject",
+      update() {
+        return;
+      },
+    });
+    const key = Symbol.for(
+      "@viselora/dom-webgl/scene-object-effect-definitions",
+    );
+    const first = Reflect.get(globalThis, key);
+    const second = Reflect.get(
+      globalThis,
+      Symbol.for("@viselora/dom-webgl/scene-object-effect-definitions"),
+    );
+
+    expect(first).toBeInstanceOf(WeakSet);
+    expect(second).toBe(first);
+    if (!(first instanceof WeakSet)) {
+      throw new Error("Expected a shared scene-object definition WeakSet.");
+    }
+    expect(first.has(definition)).toBe(true);
   });
 });

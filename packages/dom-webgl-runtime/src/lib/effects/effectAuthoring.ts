@@ -481,7 +481,25 @@ export type WebGLSceneObjectEffectDefinition<
   ): void;
 };
 
-const sceneObjectEffectDefinitions = new WeakSet<object>();
+const sceneObjectEffectDefinitionsKey = Symbol.for(
+  "@viselora/dom-webgl/scene-object-effect-definitions",
+);
+
+function readSceneObjectEffectDefinitions(): WeakSet<object> {
+  const existing = Reflect.get(globalThis, sceneObjectEffectDefinitionsKey);
+  if (existing instanceof WeakSet) {
+    return existing;
+  }
+
+  const created = new WeakSet<object>();
+  Object.defineProperty(globalThis, sceneObjectEffectDefinitionsKey, {
+    value: created,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return created;
+}
 
 /**
  * Consumer-maintained mapping of effect kind string → params shape.
@@ -564,12 +582,12 @@ export function defineWebGLSceneObjectEffect<
 >(
   definition: WebGLSceneObjectEffectDefinition<TParams, TState>,
 ): WebGLSceneObjectEffectDefinition<TParams, TState> {
-  sceneObjectEffectDefinitions.add(definition);
+  readSceneObjectEffectDefinitions().add(definition);
   return definition;
 }
 
 export function isWebGLSceneObjectEffectDefinition(
   definition: WebGLEffectDefinition | WebGLSceneObjectEffectDefinition,
 ): definition is WebGLSceneObjectEffectDefinition {
-  return sceneObjectEffectDefinitions.has(definition);
+  return readSceneObjectEffectDefinitions().has(definition);
 }
