@@ -1,3 +1,5 @@
+import { HeroExperience } from "../src/HeroExperience";
+
 export default function Page() {
-  return <main className="hero-space" aria-label="Tetrahedron visual study" />;
+  return <HeroExperience />;
 }
