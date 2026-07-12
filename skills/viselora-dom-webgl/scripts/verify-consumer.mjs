@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const exactVersion = "0.1.0-alpha.0";
+const exactVersion = "0.1.0-alpha.1";
 const allowedViseloraImports = new Set([
   "@viselora/dom-webgl",
   "@viselora/dom-webgl/react",

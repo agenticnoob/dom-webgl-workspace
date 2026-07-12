@@ -12,6 +12,14 @@ packages with npm provenance:
 - `@viselora/dom-webgl@0.1.0-alpha.0`
 - `@viselora/scroll-adapters@0.1.0-alpha.0`
 
+The current source is a local lockstep `0.1.0-alpha.1` release candidate. It
+fixes cross-entrypoint scene-object effect classification by sharing the
+definition registry across the root and React bundles. The exact alpha.0 error
+was `Effect "<kind>" is not a scene-object effect.` The alpha.1 source is
+implemented and local tarball browser verified; registry publication pending
+and downstream consumer verification pending. Do not install alpha.1 from npm
+until publication is explicitly authorized and completed.
+
 This is a prerelease alpha. Public APIs are capability-stable for release
 validation, but defects and necessary contract corrections may still require a
 new alpha version before a stable release.

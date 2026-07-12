@@ -1,6 +1,6 @@
 # Optional Effect Recipes
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 These five recipes are optional examples, not the skill's capability boundary.
 Read [capability-status.md](capability-status.md) before copying one. Never put
@@ -8,7 +8,7 @@ blocked or experimental recipes into a normal default project.
 
 ## Surface pulse
 
-- **Compatible version:** `0.1.0-alpha.0`.
+- **Compatible version:** `0.1.0-alpha.1`.
 - **Status:** `surface-pulse-visible-output` is `blocked`.
 - **Required exports:** `defineWebGLEffect`, `WebGLTarget`.
 - **Assets and fallback:** semantic DOM element/copy; no external asset.
@@ -25,7 +25,7 @@ normal production output.
 
 ## Video background texture
 
-- **Compatible version:** `0.1.0-alpha.0`.
+- **Compatible version:** `0.1.0-alpha.1`.
 - **Status:** `managed-video` is `verified`.
 - **Required exports:** `defineWebGLEffect`, `WebGLTarget`.
 - **Assets and fallback:** local video, local poster, semantic/native video
@@ -43,7 +43,7 @@ See
 
 ## Image hover overlay
 
-- **Compatible version:** `0.1.0-alpha.0`.
+- **Compatible version:** `0.1.0-alpha.1`.
 - **Status:** `managed-image-hover` is `verified` only for explicit source
   sampling.
 - **Required exports:** `defineWebGLEffect`, `WebGLTarget`, managed material
@@ -65,7 +65,7 @@ The verified shader declares `uniform sampler2D uSourceTexture`, samples
 
 ## Pinned model glow
 
-- **Compatible version:** `0.1.0-alpha.0`.
+- **Compatible version:** `0.1.0-alpha.1`.
 - **Status:** `glb-loading-lifecycle` is `verified`, while
   `dom-anchored-glb-visible-output` is `blocked`.
 - **Required exports:** `defineWebGLEffect`, `WebGLTarget`,
@@ -86,7 +86,7 @@ visible-output guidance.
 
 ## Scroll image sequence
 
-- **Compatible version:** `0.1.0-alpha.0`.
+- **Compatible version:** `0.1.0-alpha.1`.
 - **Status:** `image-sequence` is `experimental`.
 - **Required exports:** `defineWebGLEffect`, `WebGLTarget`,
   `WebGLScrollTimeline`, image-sequence frame types.

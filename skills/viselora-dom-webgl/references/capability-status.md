@@ -1,6 +1,6 @@
 # Capability Status
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 This matrix is authoritative for recommendations made by this skill. API
 presence alone does not upgrade a capability's evidence status.
@@ -35,7 +35,7 @@ presence alone does not upgrade a capability's evidence status.
 | image-sequence | experimental | Final-canvas pixels, first-frame fallback, bounded cache, forward/reverse scroll | Require explicit experimental acknowledgement until external verification completes. |
 | scene-camera-pass | experimental | Managed declarations and clipped final-canvas pixels | Use public descriptors and collect browser evidence. |
 | scene-native-models | experimental | Model ready plus scene-model final-canvas pixels | Keep a poster/text fallback in the story even when the scene object has no DOM fallback. |
-| scene-object-effect-registration | blocked | Root-defined effect attaches through the React entrypoint, `ready + attached`, clean errors, final pixels | `0.1.0-alpha.0` is blocked by cross-entrypoint classification. Local `0.1.0-alpha.1` tarballs are verified for registration by the packed-browser gate; registry publication is still pending. |
+| scene-object-effect-registration | verified | Root-defined effect attaches through the React entrypoint, `ready + attached`, clean errors, final pixels | `0.1.0-alpha.0` is blocked by cross-entrypoint classification. Local `0.1.0-alpha.1` tarballs are verified for registration by the packed-browser gate; registry publication is still pending. |
 | scene-object-interaction | experimental | Managed picking, pointer/touch alternative, final-canvas pixels | Keep controls accessible in DOM. |
 | camera-gestures | experimental | Managed controller, mobile alternative, camera persistence after release | Avoid duplicate wheel/touch ownership. |
 | physics | experimental | Managed descriptors, direct drag/release inertia, fallback without physics | Do not claim solver behavior beyond collected evidence. |

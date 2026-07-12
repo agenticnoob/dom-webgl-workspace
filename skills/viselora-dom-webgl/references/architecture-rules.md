@@ -1,6 +1,6 @@
 # Architecture Rules
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 ## One managed ownership path
 

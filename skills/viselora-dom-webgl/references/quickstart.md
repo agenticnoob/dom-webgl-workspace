@@ -1,13 +1,13 @@
 # Quickstart
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 ## Install
 
 Pin the public prerelease packages exactly:
 
 ```bash
-npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.0 @viselora/scroll-adapters@0.1.0-alpha.0
+npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.1 @viselora/scroll-adapters@0.1.0-alpha.1
 npm install react react-dom gsap
 npm install --save-dev typescript vite @types/react@^19.2.0 @types/react-dom@^19.2.0
 ```

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "compatiblePackageVersion": "0.1.0-alpha.0",
+  "compatiblePackageVersion": "0.1.0-alpha.1",
   "entrypoints": {
     "@viselora/dom-webgl": {
       "createEffectDeclarations": { "reference": "api-effects-rendering.md", "section": "Typed effect declarations", "capability": "advanced-effect-facades" },

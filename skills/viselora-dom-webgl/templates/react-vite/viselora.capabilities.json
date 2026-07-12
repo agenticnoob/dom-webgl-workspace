@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "compatiblePackageVersion": "0.1.0-alpha.0",
+  "compatiblePackageVersion": "0.1.0-alpha.1",
   "mode": "consumer",
   "assetManifest": "./asset-manifest.json",
   "capabilities": [

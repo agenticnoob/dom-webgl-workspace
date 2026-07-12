@@ -50,7 +50,7 @@ describe("release package contracts", () => {
   test("publishes the runtime package with exact alpha metadata", () => {
     expect(runtimePackage).toMatchObject({
       name: "@viselora/dom-webgl",
-      version: "0.1.0-alpha.0",
+      version: "0.1.0-alpha.1",
       type: "module",
       files: ["dist", "README.md", "LICENSE"],
       main: "./dist/index.js",
@@ -92,7 +92,7 @@ describe("release package contracts", () => {
   test("publishes the adapters package in core-version lockstep", () => {
     expect(adaptersPackage).toMatchObject({
       name: "@viselora/scroll-adapters",
-      version: "0.1.0-alpha.0",
+      version: "0.1.0-alpha.1",
       type: "module",
       files: ["dist", "README.md", "LICENSE"],
       main: "./dist/index.js",
@@ -124,7 +124,7 @@ describe("release package contracts", () => {
       },
     });
     expect(adaptersPackage.dependencies).toEqual({
-      "@viselora/dom-webgl": "0.1.0-alpha.0",
+      "@viselora/dom-webgl": "0.1.0-alpha.1",
     });
     expect(adaptersPackage.peerDependencies).toEqual({
       gsap: ">=3.12.0",

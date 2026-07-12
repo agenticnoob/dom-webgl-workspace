@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 Classify the failure before changing architecture.
 
@@ -46,6 +46,6 @@ npm versions, public imports, asset provenance, debug selector output and pixel
 threshold. Do not add R3F, raw renderer/camera/loader/material ownership, a
 second canvas, private imports or a consumer render loop.
 
-For `0.1.0-alpha.0`, surface pulse visible output and default DOM-anchored GLB
+For `0.1.0-alpha.1`, surface pulse visible output and default DOM-anchored GLB
 visible output are blocked defect candidates. GLB loading/lifecycle being
 verified does not make final model pixels verified.

@@ -68,6 +68,34 @@ describe("Viselora release documentation", () => {
     expect(combined).toContain("not all public APIs are externally verified");
   });
 
+  test("documents the alpha.1 recovery candidate without claiming publication", () => {
+    const rootReadme = readFileSync(resolve(repoRoot, "README.md"), "utf8");
+    const runtimeReadme = readFileSync(
+      resolve(repoRoot, "packages/dom-webgl-runtime/README.md"),
+      "utf8",
+    );
+    const adaptersReadme = readFileSync(
+      resolve(repoRoot, "packages/dom-webgl-scroll-adapters/README.md"),
+      "utf8",
+    );
+    const status = read("STATUS.md");
+    const release = read("project-release-validation.md");
+    const combined = [rootReadme, runtimeReadme, adaptersReadme, status, release].join("\n");
+    const scripts = JSON.parse(
+      readFileSync(resolve(repoRoot, "package.json"), "utf8"),
+    ).scripts;
+
+    expect(combined).toContain("0.1.0-alpha.1");
+    expect(combined).toContain("cross-entrypoint");
+    expect(combined).toContain(
+      'Effect "<kind>" is not a scene-object effect.',
+    );
+    expect(combined).toContain("local tarball browser verified");
+    expect(combined).toContain("registry publication pending");
+    expect(combined).toContain("downstream consumer verification pending");
+    expect(scripts["verify:release"]).toContain("verify:consumer");
+  });
+
   test("keeps the formal MVP as a later isolated package-plus-skill repository", () => {
     const background = read("new-project/example-page-background.md");
     const mvp = read("new-project/example-page-mvp.md");

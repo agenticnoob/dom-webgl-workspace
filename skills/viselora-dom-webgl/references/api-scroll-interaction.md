@@ -1,6 +1,6 @@
 # Scroll And Interaction API
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 ## Contents
 
@@ -101,4 +101,4 @@ managed `interaction.pickable` and `ctx.objectPointer`. Cameras use managed
 controller descriptors; scene-native physics uses descriptor-only bodies,
 colliders and constraints. Do not add component/window pointer, wheel or touch
 listeners. Keep buttons/forms in DOM and provide touch or scroll alternatives
-for hover. These advanced paths are experimental in 0.1.0-alpha.0.
+for hover. These advanced paths are experimental in 0.1.0-alpha.1.

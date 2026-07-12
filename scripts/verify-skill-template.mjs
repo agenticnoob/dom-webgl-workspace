@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { createVerifiedTarballs } from "./package-tarballs.mjs";
+
 const repoRoot = process.cwd();
 const templateRoot = resolve(
   repoRoot,
@@ -14,14 +16,23 @@ const templateRoot = resolve(
 const temporaryRoot = await mkdtemp(
   resolve(tmpdir(), "viselora-skill-template-"),
 );
+const packed = createVerifiedTarballs(repoRoot);
 
 try {
   await cp(templateRoot, temporaryRoot, { recursive: true });
-  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]);
+  run("npm", [
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    packed.packages[0].tarballPath,
+    packed.packages[1].tarballPath,
+  ]);
   run("npm", ["run", "typecheck"]);
   run("npm", ["run", "build"]);
   process.stdout.write("Viselora skill template typecheck/build passed\n");
 } finally {
+  packed.cleanup();
   await rm(temporaryRoot, { force: true, recursive: true });
 }
 

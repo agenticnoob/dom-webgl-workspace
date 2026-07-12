@@ -5,7 +5,7 @@ description: Use when building a new DOM-first scroll narrative, enhancing an ex
 
 # Viselora Development
 
-Compatible package version: 0.1.0-alpha.0
+Compatible package version: 0.1.0-alpha.1
 
 ## Workflow
 

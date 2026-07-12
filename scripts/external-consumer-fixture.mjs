@@ -418,7 +418,7 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
   const evidence = {
-    packageVersion: "0.1.0-alpha.0",
+    packageVersion: "0.1.0-alpha.1",
     capabilityId: "scene-object-effect-registration",
     passed: true,
     capture: "canvas-element-only",

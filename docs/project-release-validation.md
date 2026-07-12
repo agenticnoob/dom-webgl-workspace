@@ -1,7 +1,7 @@
 # Viselora Alpha Release Validation
 
 **Date:** 2026-07-11
-**Status:** Public alpha published; Trusted Publisher handoff pending
+**Status:** Alpha.0 public; local alpha.1 recovery candidate awaiting authorization
 **Baseline before release work:** `72d7e0ac`
 
 ## Decision
@@ -22,6 +22,35 @@ The release units are lockstep ESM-only packages:
 
 The same repository owns the public consumer skill at
 `skills/viselora-dom-webgl/`.
+
+## Alpha.1 Recovery Candidate
+
+The current lockstep local candidate is:
+
+- `@viselora/dom-webgl@0.1.0-alpha.1`
+- `@viselora/scroll-adapters@0.1.0-alpha.1`
+
+Alpha.0 built root and React as independent non-splitting bundles, so each held
+a private scene-object definition `WeakSet`. A root-defined effect used through
+the React runtime failed cross-entrypoint classification with
+`Effect "<kind>" is not a scene-object effect.` Alpha.1 uses one lazy
+`Symbol.for(...)` registry on `globalThis`, keeps definition identity, supports
+frozen definitions and preserves the four-entrypoint ESM tarball contract.
+
+Current state is deliberately separated:
+
+- source implemented;
+- local tarball unit and real-browser verified;
+- registry publication pending;
+- downstream consumer verification pending.
+
+The packed-browser gate installs both generated tarballs into an external
+React/Vite consumer and runs SSR, type, unit, production build and real Chrome
+checks. It verifies root-defined registration through React, model
+`ready + attached`, progress and runtime pointer transforms, model sampling,
+managed Points, reversible solid/points final pixels, clean console/page errors
+and Canvas `1 -> 0 -> 1`. `npm run verify:release` includes this
+`verify:consumer` gate. It does not authorize publication.
 
 ## Publication Result
 
@@ -79,7 +108,8 @@ Package validation must prove that exports resolve only to `dist`, the two
 versions remain lockstep, each tarball contains only its package metadata,
 README, LICENSE, JavaScript, declarations, and sourcemaps, and a repository-
 external React/Vite fixture can install both tarballs and validate types, SSR
-imports, one runtime canvas, cleanup, and a production build.
+imports, one runtime canvas, cleanup, a production build, and real-browser
+final-canvas capability evidence.
 
 Skill validation builds both packages, checks generated `.d.ts` drift, maps every
 public value export to human guidance, indexes every public type, validates

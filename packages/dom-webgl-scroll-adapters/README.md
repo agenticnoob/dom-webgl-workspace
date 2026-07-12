@@ -28,7 +28,11 @@ import {
 
 ## Core version lockstep
 
-Adapters and core releases use exact version lockstep. `@viselora/scroll-adapters@0.1.0-alpha.0` depends on exactly `@viselora/dom-webgl@0.1.0-alpha.0`; upgrade both packages together.
+Adapters and core releases use exact version lockstep. The local
+`@viselora/scroll-adapters@0.1.0-alpha.1` candidate depends on exactly
+`@viselora/dom-webgl@0.1.0-alpha.1`; upgrade both packages together. The
+candidate is local tarball browser verified; registry publication pending and
+downstream consumer verification pending.
 
 ## License
 

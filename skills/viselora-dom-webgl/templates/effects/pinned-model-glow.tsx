@@ -1,4 +1,4 @@
-// GLB lifecycle is verified, but DOM-anchored visible output is blocked in 0.1.0-alpha.0.
+// GLB lifecycle is verified, but DOM-anchored visible output is blocked in 0.1.0-alpha.1.
 // Read capability-status.md before using this retained reproduction.
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";

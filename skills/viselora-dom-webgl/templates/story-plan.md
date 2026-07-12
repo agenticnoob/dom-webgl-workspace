@@ -54,7 +54,7 @@ Describe desktop, mobile, overflow, content continuity, and motion replacement.
 
 ## Capability selection summary
 
-List each selected id, status for 0.1.0-alpha.0, entrypoint, fallback, and
+List each selected id, status for 0.1.0-alpha.1, entrypoint, fallback, and
 required checks.
 
 ## Experimental public-boundary preflights

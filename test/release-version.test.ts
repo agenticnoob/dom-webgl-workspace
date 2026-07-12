@@ -22,6 +22,16 @@ afterEach(() => {
 });
 
 describe("release version management", () => {
+  test("keeps the current release candidate lockstep at alpha.1", () => {
+    const result = spawnSync(process.execPath, [cliPath, "--check"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Release versions OK: 0.1.0-alpha.1");
+  });
+
   test("accepts a complete lockstep alpha state", () => {
     const root = createFixture("0.1.0-alpha.0");
 

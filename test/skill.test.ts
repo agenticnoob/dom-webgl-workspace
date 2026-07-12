@@ -78,7 +78,7 @@ describe("viselora-dom-webgl skill", () => {
     const skill = read("SKILL.md");
     const references = requiredFiles.filter((file) => file.startsWith("references/"));
 
-    expect(skill.match(/Compatible package version: 0\.1\.0-alpha\.0/g)).toHaveLength(1);
+    expect(skill.match(/Compatible package version: 0\.1\.0-alpha\.1/g)).toHaveLength(1);
     expect(skill).not.toContain("## Export inventory");
     expect(skill.split("\n").length).toBeLessThanOrEqual(123);
     for (const reference of references) {
@@ -207,7 +207,7 @@ describe("viselora-dom-webgl skill", () => {
     ]) {
       const content = read(path);
       expect(content, path).toContain("## Contents");
-      expect(content, path).toContain("Compatible package version: 0.1.0-alpha.0");
+      expect(content, path).toContain("Compatible package version: 0.1.0-alpha.1");
       expect(content, path).toContain("Public entrypoint");
       expect(content, path).toContain("When to use");
       expect(content, path).toContain("Declaration/props shape");
@@ -370,7 +370,7 @@ describe("viselora-dom-webgl skill", () => {
   });
 
   test("rejects experimental capability checks without browser preflight evidence", () => {
-    const fixtureRoot = copyTemplate();
+    const fixtureRoot = copyTemplate({ installTypeScript: false });
     selectCapabilities(fixtureRoot, [
       {
         id: "image-sequence",
@@ -430,15 +430,8 @@ describe("viselora-dom-webgl skill", () => {
     expect(result.stderr).toBe("");
   });
 
-  test.each([
-    ["packageVersion", (evidence: Record<string, any>) => { evidence.packageVersion = "0.1.0-alpha.9"; }],
-    ["capabilityId", (evidence: Record<string, any>) => { evidence.capabilityId = "wrong"; }],
-    ["passed", (evidence: Record<string, any>) => { evidence.passed = false; }],
-    ["consoleErrors", (evidence: Record<string, any>) => { evidence.consoleErrors = ["boom"]; }],
-    ["pageErrors", (evidence: Record<string, any>) => { evidence.pageErrors = ["boom"]; }],
-    ["measurement", (evidence: Record<string, any>) => { evidence.measurements = {}; }],
-  ])("rejects invalid experimental preflight %s evidence", (_field, mutate) => {
-    const fixtureRoot = copyTemplate();
+  test("rejects invalid experimental preflight evidence fields", () => {
+    const fixtureRoot = copyTemplate({ installTypeScript: false });
     selectCapabilities(fixtureRoot, [
       {
         id: "image-sequence",
@@ -456,14 +449,28 @@ describe("viselora-dom-webgl skill", () => {
       },
     ]);
     installImageSequenceFixture(fixtureRoot);
-    writeBrowserEvidence(fixtureRoot, "image-sequence");
-    const evidence = readJson(fixtureRoot, "docs/evidence/image-sequence.json");
-    mutate(evidence);
-    writeJson(fixtureRoot, "docs/evidence/image-sequence.json", evidence);
+    mkdirSync(resolve(fixtureRoot, "docs/evidence"), { recursive: true });
+    writeJson(fixtureRoot, "docs/evidence/image-sequence.json", {
+      packageVersion: "0.1.0-alpha.9",
+      capabilityId: "wrong",
+      passed: false,
+      consoleErrors: ["boom"],
+      pageErrors: ["boom"],
+      measurements: {},
+    });
 
     const result = runVerifier(fixtureRoot);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("preflight");
+    for (const field of [
+      "packageVersion",
+      "capabilityId",
+      "passed",
+      "consoleErrors",
+      "pageErrors",
+      "measurement",
+    ]) {
+      expect(result.stderr).toContain(field);
+    }
   });
 
   test.each([
@@ -481,7 +488,7 @@ describe("viselora-dom-webgl skill", () => {
       "a compatible-version mismatch",
       (root: string) => {
         const manifest = readJson(root, "viselora.capabilities.json");
-        manifest.compatiblePackageVersion = "0.1.0-alpha.1";
+        manifest.compatiblePackageVersion = "0.1.0-alpha.9";
         writeJson(root, "viselora.capabilities.json", manifest);
       },
       "compatiblePackageVersion",
@@ -605,7 +612,7 @@ export function selectCapabilities(
 ): void {
   writeJson(root, "viselora.capabilities.json", {
     schemaVersion: 1,
-    compatiblePackageVersion: "0.1.0-alpha.0",
+    compatiblePackageVersion: "0.1.0-alpha.1",
     mode,
     assetManifest: "./asset-manifest.json",
     capabilities: entries,
@@ -727,7 +734,7 @@ function append(root: string, path: string, content: string): void {
 function writeBrowserEvidence(root: string, capabilityId: string): void {
   mkdirSync(resolve(root, "docs/evidence"), { recursive: true });
   writeJson(root, `docs/evidence/${capabilityId}.json`, {
-    packageVersion: "0.1.0-alpha.0",
+    packageVersion: "0.1.0-alpha.1",
     capabilityId,
     passed: true,
     consoleErrors: [],

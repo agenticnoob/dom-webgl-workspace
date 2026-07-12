@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-11 public alpha publication
+**Last reviewed against:** 2026-07-12 local alpha.1 release candidate
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -24,6 +24,15 @@ The remaining bootstrap action is to configure a Trusted Publisher for each npm
 package, then delete the GitHub `NPM_TOKEN` Environment secret and revoke the
 temporary granular token. See
 [project-release-validation.md](./project-release-validation.md).
+
+The current source is a lockstep local `0.1.0-alpha.1` release candidate. It
+fixes the cross-entrypoint scene-object effect registry defect whose exact
+alpha.0 error was `Effect "<kind>" is not a scene-object effect.` Source is
+implemented; packed root/React tarballs are unit and real-Chromium verified,
+including `ready + attached`, progress/pointer transforms, managed Points,
+reversible solid/points pixels, clean console/page errors and Canvas `1 -> 0 ->
+1`. Registry publication pending and downstream consumer verification pending.
+Those latter states must not be inferred from local release gates.
 
 ## Product Boundary
 
