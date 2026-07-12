@@ -9,10 +9,12 @@ This directory is split into active documents and archived execution records.
 - [roadmap/managed-render-system.md](./roadmap/managed-render-system.md) - completed capability roadmap reference.
 - [00-goal.md](./00-goal.md) - long-form architecture principles and non-goals.
 
-Current product boundary: Viselora is capability-stable while its two public
-alpha packages, external consumer flow, and agent skill are validated. This is
-active release engineering, not a conclusion that the project must migrate to
-another renderer.
+Current product boundary: Viselora is capability-stable; the lockstep alpha.1
+packages are public, and the agent skill and package release gates remain the
+upstream validation surfaces. Independent consumer implementation and browser
+acceptance are owned by their downstream repositories. This is active release
+engineering, not a conclusion that the project must migrate to another
+renderer.
 
 ## New Project Notes
 

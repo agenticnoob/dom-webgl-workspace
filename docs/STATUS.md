@@ -1,16 +1,20 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-12 local alpha.1 release candidate
+**Last reviewed against:** 2026-07-13 published alpha.1 registry and source
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
 
 ## Project State
 
-Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
+Capability-stable, release-validation stage. Runtime capabilities are not
+expanding during alpha release work; package hardening, public documentation,
+skill authoring, and defect fixes remain valid upstream work. Independent
+consumer implementation and acceptance stay in downstream repositories.
 
-The lockstep `0.1.0-alpha.0` versions of `@viselora/dom-webgl` and
-`@viselora/scroll-adapters` are public on npm with provenance. The
+The lockstep `0.1.0-alpha.1` versions of `@viselora/dom-webgl` and
+`@viselora/scroll-adapters` are public on npm with provenance. npm's `alpha`
+dist-tag points to alpha.1, while `latest` remains on alpha.0. The
 `skills/viselora-dom-webgl/` consumer skill is published in this repository.
 That skill is now a general brief-to-browser development workflow rather than a
 five-recipe requirement: it covers narrative directions, 4–8 beats, local asset
@@ -25,14 +29,14 @@ package, then delete the GitHub `NPM_TOKEN` Environment secret and revoke the
 temporary granular token. See
 [project-release-validation.md](./project-release-validation.md).
 
-The current source is a lockstep local `0.1.0-alpha.1` release candidate. It
-fixes the cross-entrypoint scene-object effect registry defect whose exact
-alpha.0 error was `Effect "<kind>" is not a scene-object effect.` Source is
-implemented; packed root/React tarballs are unit and real-Chromium verified,
+Alpha.1 fixes the cross-entrypoint scene-object effect registry defect whose
+exact alpha.0 error was `Effect "<kind>" is not a scene-object effect.` The
+published source passed packed root/React tarball unit and real-Chromium gates,
 including `ready + attached`, progress/pointer transforms, managed Points,
 reversible solid/points pixels, clean console/page errors and Canvas `1 -> 0 ->
-1`. Registry publication pending and downstream consumer verification pending.
-Those latter states must not be inferred from local release gates.
+1`. That installed-tarball fixture is release-gate evidence, not a claim that an
+independent downstream application has completed its own implementation or
+browser acceptance. Downstream consumer work is owned and reported separately.
 
 ## Product Boundary
 

@@ -6,13 +6,14 @@
 
 **Date:** 2026-07-03
 **Baseline discussed at:** `b641a93f Tame model glow example`
-**Last reviewed against:** 2026-07-10 Viselora alpha release design
-**Status:** Capability phases complete; release validation active
+**Last reviewed against:** 2026-07-13 published Viselora alpha.1 recovery release
+**Status:** Capability phases complete; alpha.1 upstream release gate closed
 
 > The managed-render capability phases are closed for the alpha release. Do not
 > select a new runtime feature phase from this file during release validation.
-> Package hardening, docs, skill authoring, defect fixes, and external consumer
-> validation remain active work tracked by the release plan.
+> Package hardening, docs, skill authoring, and defect fixes remain valid
+> upstream work. Independent consumer implementation and browser acceptance are
+> owned by downstream repositories and do not reopen these capability phases.
 
 ## North Star
 

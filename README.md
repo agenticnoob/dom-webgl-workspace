@@ -4,7 +4,10 @@ DOM-first interactive WebGL runtime workspace.
 
 ## Status
 
-Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.
+Capability-stable, release-validation stage. Runtime capabilities are not
+expanding during alpha release work; package hardening, public documentation,
+skill authoring, and defect fixes remain valid upstream work. Independent
+consumer implementation and acceptance stay in downstream repositories.
 
 The first public alpha was published on 2026-07-11 as two lockstep ESM-only
 packages with npm provenance:
@@ -12,13 +15,13 @@ packages with npm provenance:
 - `@viselora/dom-webgl@0.1.0-alpha.0`
 - `@viselora/scroll-adapters@0.1.0-alpha.0`
 
-The current source is a local lockstep `0.1.0-alpha.1` release candidate. It
+The lockstep `0.1.0-alpha.1` recovery release was published on 2026-07-12. It
 fixes cross-entrypoint scene-object effect classification by sharing the
 definition registry across the root and React bundles. The exact alpha.0 error
-was `Effect "<kind>" is not a scene-object effect.` The alpha.1 source is
-implemented and local tarball browser verified; registry publication pending
-and downstream consumer verification pending. Do not install alpha.1 from npm
-until publication is explicitly authorized and completed.
+was `Effect "<kind>" is not a scene-object effect.` Alpha.1 passed the installed-
+tarball Chromium release gate before publication. Independent downstream
+consumer implementation and validation remain owned by those consumer
+projects, not by this repository's release closeout.
 
 This is a prerelease alpha. Public APIs are capability-stable for release
 validation, but defects and necessary contract corrections may still require a
@@ -28,9 +31,9 @@ new alpha version before a stable release.
 npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
 ```
 
-Because these are the first versions under their package names, npm currently
-also resolves the default `latest` tag to the same alpha. Consumers should use
-the explicit `@alpha` tag until a stable release is published.
+npm currently resolves `alpha` to `0.1.0-alpha.1`, while the default `latest`
+tag remains on `0.1.0-alpha.0`. Consumers should use the explicit `@alpha` tag
+or pin `0.1.0-alpha.1` exactly until a stable release is published.
 
 Agents can use `skills/viselora-dom-webgl/` as the general brief-to-browser development skill:
 it routes narrative directions, story beats, local licensed assets, public API

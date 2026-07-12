@@ -28,11 +28,12 @@ import {
 
 ## Core version lockstep
 
-Adapters and core releases use exact version lockstep. The local
-`@viselora/scroll-adapters@0.1.0-alpha.1` candidate depends on exactly
+Adapters and core releases use exact version lockstep. The published
+`@viselora/scroll-adapters@0.1.0-alpha.1` release depends on exactly
 `@viselora/dom-webgl@0.1.0-alpha.1`; upgrade both packages together. The
-candidate is local tarball browser verified; registry publication pending and
-downstream consumer verification pending.
+published tarballs passed the installed-tarball Chromium release gate.
+Independent downstream consumer acceptance remains a consumer-project
+responsibility.
 
 ## License
 

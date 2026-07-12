@@ -1,7 +1,7 @@
 # Viselora Alpha Release Validation
 
-**Date:** 2026-07-11
-**Status:** Alpha.0 public; local alpha.1 recovery candidate awaiting authorization
+**Date:** 2026-07-13
+**Status:** Alpha.1 published and upstream release gate complete
 **Baseline before release work:** `72d7e0ac`
 
 ## Decision
@@ -12,20 +12,21 @@ future work had to migrate to React Three Fiber is withdrawn.
 Viselora's implemented DOM-first runtime is a publishable capability set. The
 runtime is capability-stable for the first alpha: release engineering must not
 be used to add features or redesign the public API, but package hardening,
-documentation, the public agent skill, defect fixes, and external-consumer
-validation are active work.
+documentation, the public agent skill, and defect fixes remain valid upstream
+work. Independent consumer implementation and acceptance remain downstream
+work.
 
-The release units are lockstep ESM-only packages:
+The current release units are lockstep ESM-only packages:
 
-- `@viselora/dom-webgl@0.1.0-alpha.0`
-- `@viselora/scroll-adapters@0.1.0-alpha.0`
+- `@viselora/dom-webgl@0.1.0-alpha.1`
+- `@viselora/scroll-adapters@0.1.0-alpha.1`
 
 The same repository owns the public consumer skill at
 `skills/viselora-dom-webgl/`.
 
-## Alpha.1 Recovery Candidate
+## Alpha.1 Recovery Release
 
-The current lockstep local candidate is:
+The published lockstep recovery release is:
 
 - `@viselora/dom-webgl@0.1.0-alpha.1`
 - `@viselora/scroll-adapters@0.1.0-alpha.1`
@@ -41,8 +42,9 @@ Current state is deliberately separated:
 
 - source implemented;
 - local tarball unit and real-browser verified;
-- registry publication pending;
-- downstream consumer verification pending.
+- registry publication verified;
+- independent downstream consumer implementation and acceptance are owned and
+  reported by downstream projects.
 
 The packed-browser gate installs both generated tarballs into an external
 React/Vite consumer and runs SSR, type, unit, production build and real Chrome
@@ -52,7 +54,7 @@ managed Points, reversible solid/points final pixels, clean console/page errors
 and Canvas `1 -> 0 -> 1`. `npm run verify:release` includes this
 `verify:consumer` gate. It does not authorize publication.
 
-## Publication Result
+## Alpha.0 Publication Result
 
 Both packages were published from GitHub Actions on 2026-07-11 with the
 `alpha` dist-tag and SLSA provenance. The provenance points to workflow
@@ -70,6 +72,25 @@ npm currently exposes both `alpha` and `latest` for these first package
 versions. The registry rejected removing `latest` with HTTP 400, so consumers
 must use explicit `@alpha` installs until a stable version takes ownership of
 `latest`.
+
+## Alpha.1 Publication Result
+
+Alpha.1 was published from GitHub Actions on 2026-07-12 by successful release
+run `29187080682`, using protected Environment `npm-release`, workflow
+`release.yml`, branch `main`, and source commit
+`8d32fc02b56779f71d012bf34877caf0be7050b3`. The workflow ran the full release
+gate, installed Chromium, published core before adapters, and verified registry
+readback.
+
+Registry truth verified on 2026-07-13:
+
+- `@viselora/dom-webgl@0.1.0-alpha.1` integrity
+  `sha512-wmmuOYwtwUHd49UtUwdo/vJNSaE+jhF8DxkCwDhlymT8zrJxc6rmjgrDhslxzRaSN748V84UJEeMFZ9pdOL3+Q==`;
+- `@viselora/scroll-adapters@0.1.0-alpha.1` integrity
+  `sha512-Oui+tefDLWrLAlnSJsfoTbfgMhfo3BpZ5Mvd9WemUjwxUiO/IVtYhiFV+n4CjPk0jQ0ZQrbFdhIxuyddlMtD4A==`;
+- both `alpha` dist-tags point to `0.1.0-alpha.1`;
+- both `latest` dist-tags remain on `0.1.0-alpha.0`;
+- the adapter depends exactly on `@viselora/dom-webgl@0.1.0-alpha.1`.
 
 ## Preserved Product Boundary
 
@@ -137,8 +158,9 @@ verify an OIDC release, and revoke the bootstrap token. Release automation must
 skip an already-published matching version, fail on a mismatch, and never
 unpublish or overwrite a version.
 
-## Later Consumer MVP
+## Independent Consumer Work
 
-A formal MVP may be created later in a separate repository after the packages
-and skill are public. The notes under `docs/new-project/` describe that future
-consumer-validation project. This repository does not create the formal MVP.
+A formal MVP may be implemented and validated in a separate downstream
+repository using the public packages and skill. The notes under
+`docs/new-project/` describe that consumer boundary. This repository does not
+implement, modify, commit, push, deploy, or close out the independent consumer.

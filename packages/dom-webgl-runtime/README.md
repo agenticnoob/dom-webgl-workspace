@@ -10,14 +10,14 @@ npm install @viselora/dom-webgl@alpha
 
 React is an optional peer dependency. Install React 18 or newer when using the React entrypoint.
 
-## Alpha.1 release candidate
+## Alpha.1 recovery release
 
-The local `0.1.0-alpha.1` candidate fixes cross-entrypoint scene-object effect
+Published `0.1.0-alpha.1` fixes cross-entrypoint scene-object effect
 registration between `@viselora/dom-webgl` definitions and
 `@viselora/dom-webgl/react` consumers. The alpha.0 failure was
-`Effect "<kind>" is not a scene-object effect.` This candidate is local tarball
-browser verified; registry publication pending and downstream consumer
-verification pending.
+`Effect "<kind>" is not a scene-object effect.` The published tarballs passed
+the installed-tarball Chromium release gate. Independent downstream consumer
+acceptance remains a consumer-project responsibility.
 
 ## Entrypoints
 

@@ -5,8 +5,7 @@ import { describe, expect, test } from "vitest";
 
 const repoRoot = process.cwd();
 const docsRoot = resolve(repoRoot, "docs");
-const canonicalState =
-  "Capability-stable, release-validation stage. Runtime capabilities are not expanding during the alpha release work; package hardening, public documentation, skill authoring, defect fixes, and external-consumer validation remain active.";
+const canonicalState = "Capability-stable, release-validation stage.";
 
 describe("Viselora release documentation", () => {
   test("uses the release-validation decision instead of the freeze record", () => {
@@ -17,6 +16,12 @@ describe("Viselora release documentation", () => {
     );
     expect(readFileSync(resolve(docsRoot, "STATUS.md"), "utf8")).toContain(
       canonicalState,
+    );
+    expect(readFileSync(resolve(repoRoot, "README.md"), "utf8")).toContain(
+      "Independent\nconsumer implementation and acceptance stay in downstream repositories.",
+    );
+    expect(readFileSync(resolve(docsRoot, "STATUS.md"), "utf8")).toContain(
+      "Independent\nconsumer implementation and acceptance stay in downstream repositories.",
     );
   });
 
@@ -68,7 +73,7 @@ describe("Viselora release documentation", () => {
     expect(combined).toContain("not all public APIs are externally verified");
   });
 
-  test("documents the alpha.1 recovery candidate without claiming publication", () => {
+  test("documents the published alpha.1 recovery and downstream ownership boundary", () => {
     const rootReadme = readFileSync(resolve(repoRoot, "README.md"), "utf8");
     const runtimeReadme = readFileSync(
       resolve(repoRoot, "packages/dom-webgl-runtime/README.md"),
@@ -90,9 +95,12 @@ describe("Viselora release documentation", () => {
     expect(combined).toContain(
       'Effect "<kind>" is not a scene-object effect.',
     );
-    expect(combined).toContain("local tarball browser verified");
-    expect(combined).toContain("registry publication pending");
-    expect(combined).toContain("downstream consumer verification pending");
+    expect(combined).toContain("published on 2026-07-12");
+    expect(combined).toContain("installed-tarball Chromium release gate");
+    expect(combined).toContain("registry publication verified");
+    expect(combined).toContain("Independent downstream consumer");
+    expect(combined).not.toContain("registry publication pending");
+    expect(combined).not.toContain("downstream consumer verification pending");
     expect(scripts["verify:release"]).toContain("verify:consumer");
   });
 
