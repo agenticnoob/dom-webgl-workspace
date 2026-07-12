@@ -38,6 +38,29 @@ reversible solid/points pixels, clean console/page errors and Canvas `1 -> 0 ->
 independent downstream application has completed its own implementation or
 browser acceptance. Downstream consumer work is owned and reported separately.
 
+## 2026-07-13 Next.js Tetrahedron Hero
+
+**Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
+consumes only the public Viselora package entrypoints. It keeps the reserved
+default scene empty and places the GLB in `hero.tetrahedron.scene`, using a
+managed perspective camera, three runtime-owned lights, a scene-object effect,
+the copied Draco asset path, and the public Lenis/GSAP scroll stack. The hero is
+pure visual, responsive, and static under `prefers-reduced-motion`.
+
+**Verified:** focused Vitest contracts cover the workspace shell, stable scene
+declarations, managed motion/scale behavior, copied assets, and visual CSS.
+The hero workspace passes TypeScript and a Next.js production build. In-app
+browser evidence at 1440×1000 and 390×844 confirmed one canvas, an empty DOM
+content layer, no overflow, GLB plus WASM Draco responses at HTTP 200, a
+five-second breath, a byte-identical reduced-motion frame pair, and Lenis wheel
+updates after a temporary QA-only page-height injection. The final browser
+screenshot was captured before `devIndicators: false` was added; the browser
+URL policy then prevented a post-config screenshot rerun, so the no-indicator
+state is configuration/test/build verified rather than screenshot verified.
+
+**Unchanged:** runtime/package behavior, public APIs, release versions, the
+managed-render roadmap, publication state, and release gates were not changed.
+
 ## Product Boundary
 
 The product remains a DOM-first managed WebGL runtime. It is not a React
@@ -69,8 +92,9 @@ migration to R3F is not required to publish or consume Viselora.
   pass ordering are not public API.
 - Current source declaration is `source.kind: "dom" | "media" | "model"` plus
   `source.type`.
-- `apps/example` is the only app workspace and is the downstream consumer
-  dogfood/tutorial surface.
+- `apps/example` remains the public dogfood/tutorial surface.
+- `apps/hero-next` is a private repo-local Next.js public-API consumer and does
+  not change runtime/package behavior or release scope.
 
 ## Implemented Public Surface
 

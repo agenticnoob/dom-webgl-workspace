@@ -16,6 +16,11 @@ acceptance are owned by their downstream repositories. This is active release
 engineering, not a conclusion that the project must migrate to another
 renderer.
 
+## App Workspaces
+
+- [`apps/example`](../apps/example/) - React-only public API dogfood and effect-authoring tutorial.
+- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a browser-verified managed tetrahedron hero, Lenis, and GSAP.
+
 ## New Project Notes
 
 - [new-project/example-page-background.md](./new-project/example-page-background.md) - background for a later independent Viselora package-and-skill consumer.
@@ -26,6 +31,8 @@ renderer.
 - [../skills/viselora-dom-webgl/SKILL.md](../skills/viselora-dom-webgl/SKILL.md) - general brief-to-browser development skill.
 - [superpowers/specs/2026-07-11-viselora-general-development-skill-design.md](./superpowers/specs/2026-07-11-viselora-general-development-skill-design.md) - approved general-skill design.
 - [superpowers/plans/2026-07-11-viselora-general-development-skill.md](./superpowers/plans/2026-07-11-viselora-general-development-skill.md) - implementation plan and verification boundary.
+- [superpowers/specs/2026-07-13-nextjs-tetrahedron-hero-design.md](./superpowers/specs/2026-07-13-nextjs-tetrahedron-hero-design.md) - approved repo-local Next.js tetrahedron hero design.
+- [superpowers/plans/2026-07-13-nextjs-tetrahedron-hero.md](./superpowers/plans/2026-07-13-nextjs-tetrahedron-hero.md) - task-by-task implementation and browser acceptance plan.
 - [consumer-standard-usage.md](./consumer-standard-usage.md) - standard consumer usage guide.
 - [agent/package-onboarding.md](./agent/package-onboarding.md) - single entrypoint for agents starting from zero.
 - [agent/package-usage.md](./agent/package-usage.md) - detailed downstream package contract.

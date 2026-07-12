@@ -26,24 +26,36 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+export function resolveHeroBaseScale(
+  viewportWidth: number,
+  baseScale: number,
+): number {
+  return viewportWidth <= 700 ? baseScale * 0.6 : baseScale;
+}
+
+export function resolveHeroYOffset(viewportWidth: number): number {
+  return viewportWidth <= 700 ? 0.19 : 0;
+}
+
 export function applyHeroFrame(
   target: HeroTarget,
   state: HeroMotionState,
   baseScale: number,
+  yOffset = 0,
 ): void {
   if (state.reducedMotion) {
     target.scale.setScalar(baseScale);
-    target.position.set(0, 0, 0);
-    target.rotation.set(-0.22, 0.58, 0.05);
+    target.position.set(0, yOffset, 0);
+    target.rotation.set(-0.45, 0.92, 0.08);
     return;
   }
 
   target.scale.setScalar(baseScale * (1 + state.breath * 0.02));
-  target.position.set(0, state.float * 0.035, 0);
+  target.position.set(0, yOffset + state.float * 0.035, 0);
   target.rotation.set(
-    -0.22 + Math.sin(state.phase) * 0.08,
-    0.58 + Math.cos(state.phase) * 0.06,
-    0.05,
+    -0.45 + Math.sin(state.phase) * 0.08,
+    0.92 + Math.cos(state.phase) * 0.06,
+    0.08,
   );
 }
 
@@ -63,10 +75,10 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     } satisfies HeroMotionState;
 
     ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.material.color.set("#050607");
-      mesh.material.emissive.set("#08090b", 0.08);
-      mesh.material.metalness = 0.94;
-      mesh.material.roughness = 0.16;
+      mesh.material.color.set("#24282e");
+      mesh.material.emissive.set("#020304", 0.015);
+      mesh.material.metalness = 0.18;
+      mesh.material.roughness = 0.14;
       mesh.material.opacity = 1;
     });
 
@@ -104,7 +116,15 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
   },
   update(ctx, state, params) {
     ctx.object.visible = true;
-    applyHeroFrame(ctx.object, state, params.baseScale ?? 1.08);
+    const baseScale = params.baseScale ?? 1.08;
+    const viewportWidth =
+      typeof window === "undefined" ? Number.POSITIVE_INFINITY : window.innerWidth;
+    applyHeroFrame(
+      ctx.object,
+      state,
+      resolveHeroBaseScale(viewportWidth, baseScale),
+      resolveHeroYOffset(viewportWidth),
+    );
   },
 });
 

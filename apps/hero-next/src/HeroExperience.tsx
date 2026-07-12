@@ -43,7 +43,7 @@ const cameraPosition = [
 ] satisfies NonNullable<WebGLCameraProps["position"]>;
 const cameraTarget = [
   0,
-  0.12,
+  0.32,
   0,
 ] satisfies NonNullable<WebGLCameraProps["target"]>;
 const coolLightPosition = [
@@ -52,10 +52,15 @@ const coolLightPosition = [
   2.2,
 ] satisfies NonNullable<WebGLLightProps["position"]>;
 const warmLightPosition = [
-  2.1,
-  -0.4,
-  1.4,
+  2.8,
+  -2.4,
+  2,
 ] satisfies NonNullable<WebGLLightProps["position"]>;
+const lightTarget = [
+  0,
+  0,
+  0,
+] satisfies NonNullable<WebGLLightProps["target"]>;
 
 export function HeroExperience() {
   return (
@@ -92,25 +97,23 @@ export function HeroExperience() {
             id="hero.tetrahedron.fill"
             kind="ambient"
             color="#dfe3e5"
-            intensity={0.42}
+            intensity={0.28}
           />
           <WebGLLight
             id="hero.tetrahedron.cool-rim"
-            kind="point"
+            kind="directional"
             color="#d9e5ec"
-            intensity={10.5}
-            distance={8}
-            decay={2}
+            intensity={3.4}
             position={coolLightPosition}
+            target={lightTarget}
           />
           <WebGLLight
             id="hero.tetrahedron.warm-rim"
-            kind="point"
+            kind="directional"
             color="#e8ded2"
-            intensity={8.2}
-            distance={7}
-            decay={2}
+            intensity={3.4}
             position={warmLightPosition}
+            target={lightTarget}
           />
         </WebGLScene>
       </main>

@@ -25,7 +25,15 @@ describe("hero Next.js workspace shell", () => {
       private?: boolean;
       scripts?: Record<string, string>;
     };
+    const nextConfigSource = readFileSync(
+      resolve(appRoot, "next.config.ts"),
+      "utf8",
+    );
     const pageSource = readFileSync(resolve(appRoot, "app/page.tsx"), "utf8");
+    const heroSource = readFileSync(
+      resolve(appRoot, "src/HeroExperience.tsx"),
+      "utf8",
+    );
 
     expect(packageJson).toMatchObject({
       name: "@viselora/hero-next",
@@ -37,7 +45,9 @@ describe("hero Next.js workspace shell", () => {
         typecheck: "tsc --noEmit",
       },
     });
-    expect(pageSource).toContain('className="hero-space"');
-    expect(pageSource).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
+    expect(nextConfigSource).toContain("devIndicators: false");
+    expect(pageSource).toContain("<HeroExperience />");
+    expect(heroSource).toContain('className="hero-space"');
+    expect(heroSource).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
   });
 });
