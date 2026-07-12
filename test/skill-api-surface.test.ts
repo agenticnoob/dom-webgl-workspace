@@ -1,5 +1,6 @@
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -10,12 +11,40 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 const repoRoot = process.cwd();
 const generator = resolve(repoRoot, "skills/viselora-dom-webgl/scripts/generate-api-surface.mjs");
 const coverage = resolve(repoRoot, "skills/viselora-dom-webgl/scripts/check-api-coverage.mjs");
 const fixtures: string[] = [];
+
+beforeAll(() => {
+  const declarations = [
+    "packages/dom-webgl-runtime/dist/index.d.ts",
+    "packages/dom-webgl-runtime/dist/react.d.ts",
+    "packages/dom-webgl-scroll-adapters/dist/index.d.ts",
+    "packages/dom-webgl-scroll-adapters/dist/react.d.ts",
+  ];
+  if (declarations.every((path) => existsSync(resolve(repoRoot, path)))) return;
+
+  const result = spawnSync(
+    "npm",
+    [
+      "run",
+      "build",
+      "--workspace",
+      "@viselora/dom-webgl",
+      "--workspace",
+      "@viselora/scroll-adapters",
+    ],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      `Could not build public declarations for API surface tests:\n${result.stderr || result.stdout}`,
+    );
+  }
+}, 60_000);
 
 afterEach(() => {
   for (const fixture of fixtures.splice(0)) rmSync(fixture, { recursive: true, force: true });
