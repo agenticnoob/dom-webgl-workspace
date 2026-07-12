@@ -78,7 +78,10 @@ function writeText(root, path, content) {
   writeFileSync(resolve(root, path), content);
 }
 
-const effectsSource = `import { defineWebGLEffect } from "@viselora/dom-webgl";
+const effectsSource = `import {
+  defineWebGLEffect,
+  defineWebGLSceneObjectEffect,
+} from "@viselora/dom-webgl";
 
 export const fixtureEffect = defineWebGLEffect({
   kind: "fixture.surface",
@@ -89,11 +92,27 @@ export const fixtureEffect = defineWebGLEffect({
   },
 });
 
-export const runtimeEffects = [fixtureEffect] as const;
+export const fixtureSceneObjectEffect = defineWebGLSceneObjectEffect({
+  kind: "fixture.sceneObject",
+  source: "stage/box",
+  update(ctx) {
+    ctx.object.opacity = 1;
+    ctx.object.visible = true;
+  },
+});
+
+export const runtimeEffects = [fixtureEffect, fixtureSceneObjectEffect] as const;
 `;
 
 const appSource = `import type { WebGLDebugState, WebGLDeclaration } from "@viselora/dom-webgl";
-import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
+import {
+  WebGLCamera,
+  WebGLRenderPass,
+  WebGLRuntime,
+  WebGLScene,
+  WebGLStageBox,
+  WebGLTarget,
+} from "@viselora/dom-webgl/react";
 import { createScrollEffectProgressStore } from "@viselora/scroll-adapters";
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 
@@ -123,6 +142,28 @@ export function App({
       <WebGLTarget data-fixture-target="true" webgl={targetDeclaration}>
         <p>Visible DOM fallback</p>
       </WebGLTarget>
+      <WebGLScene id="fixture.scene" projection="perspective-stage">
+        <WebGLCamera
+          id="fixture.camera"
+          type="perspective"
+          mode="perspective-stage"
+          position={[0, 0, 5]}
+          target={[0, 0, 0]}
+          default
+        />
+        <WebGLRenderPass
+          id="fixture.pass"
+          camera="fixture.camera"
+          order={10}
+          clear
+        />
+        <WebGLStageBox
+          id="fixture.stage"
+          size={[1, 1, 1]}
+          material={{ kind: "basic", color: "#ffffff" }}
+          effects={[{ kind: "fixture.sceneObject" }]}
+        />
+      </WebGLScene>
     </WebGLRuntime>
   );
 }
@@ -247,21 +288,39 @@ afterEach(() => {
 
 test("mounts one runtime canvas and one target from installed tarballs", async () => {
   const debugStates: WebGLDebugState[] = [];
+  const runtimeErrors: string[] = [];
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    runtimeErrors.push(args.map(String).join(" "));
+    originalConsoleError(...args);
+  };
   const root = createRoot(host);
 
-  await act(async () => {
-    root.render(createElement(App, { onDebugStateChange: (state) => debugStates.push(state) }));
-  });
+  try {
+    await act(async () => {
+      root.render(createElement(App, { onDebugStateChange: (state) => debugStates.push(state) }));
+    });
 
-  expect(
-    host.querySelectorAll("canvas"),
-    JSON.stringify(debugStates),
-  ).toHaveLength(1);
-  expect(host.querySelectorAll("[data-fixture-target]")).toHaveLength(1);
-  expect(debugStates.some((state) => state.targetCount === 1)).toBe(true);
+    expect(
+      host.querySelectorAll("canvas"),
+      JSON.stringify(debugStates),
+    ).toHaveLength(1);
+    expect(host.querySelectorAll("[data-fixture-target]")).toHaveLength(1);
+    expect(debugStates.some((state) => state.targetCount === 1)).toBe(true);
+    expect(
+      debugStates.some((state) =>
+        state.stagePrimitives?.some(
+          (stage) => stage.effects?.includes("fixture.sceneObject"),
+        ),
+      ),
+    ).toBe(true);
+    expect(runtimeErrors).toEqual([]);
 
-  await act(async () => root.unmount());
-  expect(host.querySelectorAll("canvas")).toHaveLength(0);
+    await act(async () => root.unmount());
+    expect(host.querySelectorAll("canvas")).toHaveLength(0);
+  } finally {
+    console.error = originalConsoleError;
+  }
 });
 
 function createCanvasContext(canvas: HTMLCanvasElement) {

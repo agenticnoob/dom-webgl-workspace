@@ -67,13 +67,22 @@ describe("external consumer fixture", () => {
     const ssr = read(root, "scripts/verify-ssr.mjs");
 
     expect(effects).toContain("const runtimeEffects");
+    expect(effects).toContain("defineWebGLSceneObjectEffect");
+    expect(effects).toContain('kind: "fixture.sceneObject"');
     expect(app).toContain("<WebGLRuntime");
     expect(app).toContain("effects={runtimeEffects}");
     expect(app).toContain("<WebGLTarget");
+    expect(app).toContain("<WebGLScene");
+    expect(app).toContain("<WebGLCamera");
+    expect(app).toContain("<WebGLRenderPass");
+    expect(app).toContain("<WebGLStageBox");
     expect(runtimeTest).toContain("@vitest-environment jsdom");
     expect(runtimeTest).toContain("function (this: HTMLCanvasElement)");
     expect(runtimeTest).toContain('querySelectorAll("canvas")');
     expect(runtimeTest).toContain("targetCount");
+    expect(runtimeTest).toContain("fixture.sceneObject");
+    expect(runtimeTest).toContain("console.error");
+    expect(runtimeTest).toContain("runtimeErrors");
     expect(runtimeTest).toContain("root.unmount()");
     expect(rendererMock).toContain("class WebGLRendererMock");
     expect(vitestConfig).toContain('"three/src/renderers/WebGLRenderer.js"');
