@@ -47,6 +47,8 @@ describe("release version management", () => {
       ["runtime", (root) => setJson(root, "packages/dom-webgl-runtime/package.json", ["version"], "0.1.0-alpha.1")],
       ["adapters", (root) => setJson(root, "packages/dom-webgl-scroll-adapters/package.json", ["version"], "0.1.0-alpha.1")],
       ["dependency", (root) => setJson(root, "packages/dom-webgl-scroll-adapters/package.json", ["dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
+      ["appRuntime", (root) => setJson(root, "apps/example/package.json", ["dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
+      ["appAdapters", (root) => setJson(root, "apps/example/package.json", ["dependencies", "@viselora/scroll-adapters"], "0.1.0-alpha.1")],
       ["skill", (root) => replace(root, "skills/viselora-dom-webgl/SKILL.md", "0.1.0-alpha.0", "0.1.0-alpha.1")],
       ["lockfile", (root) => setJson(root, "package-lock.json", ["packages", "packages/dom-webgl-runtime", "version"], "0.1.0-alpha.1")],
     ];
@@ -71,6 +73,8 @@ describe("release version management", () => {
       runtime: "0.1.0-alpha.3",
       adapters: "0.1.0-alpha.3",
       dependency: "0.1.0-alpha.3",
+      appRuntime: "0.1.0-alpha.3",
+      appAdapters: "0.1.0-alpha.3",
       skill: "0.1.0-alpha.3",
       lockRuntime: "0.1.0-alpha.3",
       lockAdapters: "0.1.0-alpha.3",
@@ -112,6 +116,7 @@ function createFixture(version: string): string {
   fixtureRoots.push(root);
   mkdirSync(resolve(root, "packages/dom-webgl-runtime"), { recursive: true });
   mkdirSync(resolve(root, "packages/dom-webgl-scroll-adapters"), { recursive: true });
+  mkdirSync(resolve(root, "apps/example"), { recursive: true });
   mkdirSync(resolve(root, "skills/viselora-dom-webgl"), { recursive: true });
   writeJson(root, "packages/dom-webgl-runtime/package.json", {
     name: "@viselora/dom-webgl",
@@ -121,6 +126,14 @@ function createFixture(version: string): string {
     name: "@viselora/scroll-adapters",
     version,
     dependencies: { "@viselora/dom-webgl": version },
+  });
+  writeJson(root, "apps/example/package.json", {
+    name: "@viselora/example",
+    version: "0.0.0",
+    dependencies: {
+      "@viselora/dom-webgl": version,
+      "@viselora/scroll-adapters": version,
+    },
   });
   writeFileSync(
     resolve(root, "skills/viselora-dom-webgl/SKILL.md"),
@@ -176,6 +189,12 @@ function readVersionState(root: string) {
     runtime: runtime.version,
     adapters: adapters.version,
     dependency: adapters.dependencies["@viselora/dom-webgl"],
+    appRuntime: readJson(root, "apps/example/package.json").dependencies[
+      "@viselora/dom-webgl"
+    ],
+    appAdapters: readJson(root, "apps/example/package.json").dependencies[
+      "@viselora/scroll-adapters"
+    ],
     skill,
     lockRuntime: lock.packages["packages/dom-webgl-runtime"].version,
     lockAdapters: lock.packages["packages/dom-webgl-scroll-adapters"].version,
@@ -195,6 +214,7 @@ function snapshot(root: string): Record<string, string> {
     [
       "packages/dom-webgl-runtime/package.json",
       "packages/dom-webgl-scroll-adapters/package.json",
+      "apps/example/package.json",
       "skills/viselora-dom-webgl/SKILL.md",
       "package-lock.json",
     ].map((path) => [path, readFileSync(resolve(root, path), "utf8")]),

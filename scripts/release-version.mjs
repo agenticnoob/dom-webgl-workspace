@@ -6,6 +6,7 @@ export const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+-alpha\.\d+$/;
 const releaseFiles = {
   runtime: "packages/dom-webgl-runtime/package.json",
   adapters: "packages/dom-webgl-scroll-adapters/package.json",
+  app: "apps/example/package.json",
   skill: "skills/viselora-dom-webgl/SKILL.md",
   lockfile: "package-lock.json",
 };
@@ -82,6 +83,7 @@ function readDocuments(root) {
 function prepareNextDocuments(documents, version) {
   const runtime = parseJson(documents.runtime, releaseFiles.runtime);
   const adapters = parseJson(documents.adapters, releaseFiles.adapters);
+  const app = parseJson(documents.app, releaseFiles.app);
   const lockfile = parseJson(documents.lockfile, releaseFiles.lockfile);
 
   runtime.version = version;
@@ -89,6 +91,9 @@ function prepareNextDocuments(documents, version) {
   requireObject(adapters, "dependencies", releaseFiles.adapters)[
     "@viselora/dom-webgl"
   ] = version;
+  const appDependencies = requireObject(app, "dependencies", releaseFiles.app);
+  appDependencies["@viselora/dom-webgl"] = version;
+  appDependencies["@viselora/scroll-adapters"] = version;
 
   const packages = requireObject(lockfile, "packages", releaseFiles.lockfile);
   const lockRuntime = requireObject(
@@ -107,13 +112,13 @@ function prepareNextDocuments(documents, version) {
   requireObject(lockAdapters, "dependencies", releaseFiles.lockfile)[
     "@viselora/dom-webgl"
   ] = version;
-  const appDependencies = requireObject(
+  const lockAppDependencies = requireObject(
     lockApp,
     "dependencies",
     releaseFiles.lockfile,
   );
-  appDependencies["@viselora/dom-webgl"] = version;
-  appDependencies["@viselora/scroll-adapters"] = version;
+  lockAppDependencies["@viselora/dom-webgl"] = version;
+  lockAppDependencies["@viselora/scroll-adapters"] = version;
 
   const compatibleVersionPattern = /(Compatible package version:\s*)(\S+)/;
   if (!compatibleVersionPattern.test(documents.skill)) {
@@ -125,6 +130,7 @@ function prepareNextDocuments(documents, version) {
   return {
     runtime: formatJson(runtime),
     adapters: formatJson(adapters),
+    app: formatJson(app),
     skill: documents.skill.replace(compatibleVersionPattern, `$1${version}`),
     lockfile: formatJson(lockfile),
   };
@@ -133,6 +139,7 @@ function prepareNextDocuments(documents, version) {
 function readState(documents) {
   const runtime = parseJson(documents.runtime, releaseFiles.runtime);
   const adapters = parseJson(documents.adapters, releaseFiles.adapters);
+  const app = parseJson(documents.app, releaseFiles.app);
   const lockfile = parseJson(documents.lockfile, releaseFiles.lockfile);
   const skill = documents.skill.match(/Compatible package version:\s*(\S+)/)?.[1];
   if (!skill) {
@@ -157,6 +164,12 @@ function readState(documents) {
     adapters: adapters.version,
     dependency: requireObject(adapters, "dependencies", releaseFiles.adapters)[
       "@viselora/dom-webgl"
+    ],
+    appRuntime: requireObject(app, "dependencies", releaseFiles.app)[
+      "@viselora/dom-webgl"
+    ],
+    appAdapters: requireObject(app, "dependencies", releaseFiles.app)[
+      "@viselora/scroll-adapters"
     ],
     skill,
     lockRuntime: lockRuntime.version,

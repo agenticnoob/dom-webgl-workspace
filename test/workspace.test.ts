@@ -35,8 +35,8 @@ describe("root workspace configuration", () => {
     expect(examplePackage).toMatchObject({
       name: "@viselora/example",
       dependencies: {
-        "@viselora/dom-webgl": "0.1.0-alpha.0",
-        "@viselora/scroll-adapters": "0.1.0-alpha.0",
+        "@viselora/dom-webgl": runtimePackage.version,
+        "@viselora/scroll-adapters": adaptersPackage.version,
       },
     });
   });
@@ -44,12 +44,14 @@ describe("root workspace configuration", () => {
 
 function readPackage(path: string): {
   name?: string;
+  version?: string;
   dependencies?: Record<string, string>;
 } {
   return JSON.parse(
     readFileSync(resolve(process.cwd(), path), "utf8"),
   ) as {
     name?: string;
+    version?: string;
     dependencies?: Record<string, string>;
   };
 }
