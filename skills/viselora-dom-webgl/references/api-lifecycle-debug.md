@@ -22,6 +22,9 @@ when selected values are unchanged.
 **Fallback and lifecycle:** debug values explain loading/ready/error and
 active/inactive/parked state; they do not own fallback.
 **Version limitations:** ready/active is not proof of visible final pixels.
+For scene-native models, verify `resourceStatus`, `attached`, `error` and final
+pixels together. Decoded `resourceStatus: "ready"` does not imply assembly or
+attachment succeeded.
 
 ```tsx
 import type { WebGLDebugState } from "@viselora/dom-webgl";
@@ -90,3 +93,7 @@ ready, lifecycle is active, the console is clean and pixels remain unchanged,
 keep fallback visible and create a minimal reproduction using only public npm
 entrypoints. Do not add private imports, raw loaders/cameras/renderers, R3F, a
 second canvas or a consumer render loop.
+
+For models, `ready != attached`: treat `resourceStatus: "ready"`,
+`attached: false` and a populated `error` as an assembly failure, not visible
+model success.

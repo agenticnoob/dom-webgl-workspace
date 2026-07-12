@@ -26,11 +26,16 @@ Compatible package version: 0.1.0-alpha.0
    [capability-status.md](references/capability-status.md). Use experimental
    paths only with acknowledgement; use blocked paths only for retained defect
    reproduction.
-6. Implement with one page-level runtime/canvas, one scroll source, one pointer
+6. Before implementation, run an **experimental public-boundary preflight** for
+   every experimental or blocked slice in a minimal public-npm browser spike.
+   Record direct measurements, package version, clean console/page errors and
+   capability id. Continue only after the preflight passes; do not derive bulk
+   assets or delete the old implementation first.
+7. Implement with one page-level runtime/canvas, one scroll source, one pointer
    source, module-scope effect definitions/array, stable mounted declarations,
    semantic DOM and visible loading/error fallback. Follow
    [architecture-rules.md](references/architecture-rules.md).
-7. Run the selected-capability verifier, strict typecheck and production build,
+8. Run the selected-capability verifier, strict typecheck and production build,
    then collect real-browser pixels/behavior and complete desktop/mobile/
    reduced-motion narrative review. Follow
    [verification.md](references/verification.md).

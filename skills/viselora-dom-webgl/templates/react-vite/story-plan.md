@@ -26,3 +26,8 @@ Collect one-canvas/remount, hover pixels, slow/fast/reverse scroll,
 loading/network fallback, mobile overflow, and reduced-motion continuity in the
 real consumer project. This tracked template has only static verifier,
 typecheck, and production-build evidence.
+
+If an experimental capability is added, run its minimal public-npm browser
+preflight before full implementation and record the evidence JSON in the
+capability manifest. Keep opaque backgrounds on the runtime ancestor and the
+Canvas-overlying content stage transparent.

@@ -6,7 +6,7 @@
       "createEffectDeclarations": { "reference": "api-effects-rendering.md", "section": "Typed effect declarations", "capability": "advanced-effect-facades" },
       "createWebGLRuntime": { "reference": "api-effects-rendering.md", "section": "Runtime creation", "capability": "single-runtime-canvas" },
       "defineWebGLEffect": { "reference": "api-effects-rendering.md", "section": "Effect definitions", "capability": "advanced-effect-facades" },
-      "defineWebGLSceneObjectEffect": { "reference": "api-scenes-models.md", "section": "Scene object effects", "capability": "scene-object-interaction" }
+      "defineWebGLSceneObjectEffect": { "reference": "api-scenes-models.md", "section": "Scene object effects", "capability": "scene-object-effect-registration" }
     },
     "@viselora/dom-webgl/react": {
       "WebGLRuntimeProvider": { "reference": "api-effects-rendering.md", "section": "Runtime and provider ownership", "capability": "single-runtime-canvas" },

@@ -101,6 +101,16 @@ const capabilityRequirements = {
     ],
     assetKinds: ["model"],
   },
+  "scene-object-effect-registration": {
+    requiredChecks: [
+      "root-defined-scene-object-effect",
+      "react-scene-object-consumer",
+      "model-ready-attached",
+      "clean-browser-errors",
+      "final-canvas-pixel-change",
+    ],
+    assetKinds: [],
+  },
   "scene-object-interaction": {
     requiredChecks: [
       "managed-picking",
@@ -172,7 +182,8 @@ if (violations.length > 0) {
   }
   process.exitCode = 1;
 } else {
-  process.stdout.write(`Viselora consumer verification passed: ${consumerRoot}\n`);
+  process.stdout.write("Viselora static consumer contract verification passed.\n");
+  process.stdout.write("Real-browser evidence was not executed by this verifier.\n");
 }
 
 function readCapabilityManifest() {
@@ -248,6 +259,9 @@ function validateCapabilitySelection(manifest, statuses) {
     if (status === "experimental" && entry.acknowledgement !== "experimental") {
       add(`[${entry.id}] experimental capability requires acknowledgement: experimental`);
     }
+    if (status === "experimental") {
+      validateBrowserPreflight(entry);
+    }
     if (
       status === "blocked" &&
       (manifest.mode !== "retained-defect-reproduction" ||
@@ -271,6 +285,54 @@ function validateCapabilitySelection(manifest, statuses) {
     selected.push({ ...entry, status, requirement });
   }
   return selected;
+}
+
+function validateBrowserPreflight(entry) {
+  if (
+    !entry.preflight ||
+    entry.preflight.status !== "browser-passed" ||
+    typeof entry.preflight.evidence !== "string"
+  ) {
+    add(`[${entry.id}] experimental capability requires browser-passed preflight evidence`);
+    return;
+  }
+  const absolute = resolve(consumerRoot, entry.preflight.evidence);
+  const relativePath = relative(consumerRoot, absolute);
+  if (relativePath.startsWith("..") || relativePath === "") {
+    add(`[${entry.id}] preflight evidence must be inside the consumer root`);
+    return;
+  }
+  const evidence = readJsonFile(
+    absolute,
+    entry.preflight.evidence,
+    `[${entry.id}] preflight evidence`,
+  );
+  if (!evidence) return;
+  if (evidence.packageVersion !== exactVersion) {
+    add(`[${entry.id}] preflight packageVersion must be ${exactVersion}`);
+  }
+  if (evidence.capabilityId !== entry.id) {
+    add(`[${entry.id}] preflight capabilityId mismatch`);
+  }
+  if (evidence.passed !== true) {
+    add(`[${entry.id}] preflight passed must be true`);
+  }
+  if (!Array.isArray(evidence.consoleErrors) || evidence.consoleErrors.length > 0) {
+    add(`[${entry.id}] preflight consoleErrors must be an empty array`);
+  }
+  if (!Array.isArray(evidence.pageErrors) || evidence.pageErrors.length > 0) {
+    add(`[${entry.id}] preflight pageErrors must be an empty array`);
+  }
+  const measurements = evidence.measurements;
+  if (
+    !measurements ||
+    typeof measurements !== "object" ||
+    !Object.values(measurements).some(
+      (value) => typeof value === "number" && Number.isFinite(value) && value > 0,
+    )
+  ) {
+    add(`[${entry.id}] preflight requires a positive direct measurement`);
+  }
 }
 
 function readAssetManifest(manifest) {
@@ -793,6 +855,20 @@ function verifySelectedCapabilities(
   const sourceText = context.records
     .map(({ sourceFile }) => sourceFile.getFullText())
     .join("\n");
+  const selectedIds = new Set(selectedCapabilities.map((capability) => capability.id));
+  if (
+    sourceText.includes("defineWebGLSceneObjectEffect") &&
+    !selectedIds.has("scene-object-effect-registration")
+  ) {
+    add("defineWebGLSceneObjectEffect requires scene-object-effect-registration capability");
+  }
+  if (
+    selectedIds.has("advanced-effect-facades") &&
+    /ctx\.object\.model|model\.sampling|model\.points/.test(sourceText) &&
+    !selectedIds.has("scene-object-effect-registration")
+  ) {
+    add("advanced-effect-facades scene/model path requires scene-object-effect-registration capability");
+  }
 
   for (const capability of selectedCapabilities) {
     switch (capability.id) {
@@ -827,6 +903,14 @@ function verifySelectedCapabilities(
       case "scene-native-models":
         if (collectModelComponentInfo(context, jsx).length === 0) {
           add(`[${capability.id}] missing public WebGLModel declaration`);
+        }
+        break;
+      case "scene-object-effect-registration":
+        if (
+          !sourceText.includes("defineWebGLSceneObjectEffect") ||
+          (!sourceText.includes("WebGLModel") && !sourceText.includes("WebGLStage"))
+        ) {
+          add(`[${capability.id}] missing root-defined effect and React scene-object consumer`);
         }
         break;
       case "scene-camera-pass":

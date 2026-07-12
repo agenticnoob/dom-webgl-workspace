@@ -89,6 +89,11 @@ import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 
 **Direct verification:** assert one canvas and one scroll source across remount.
 
+`smooth={false}` disables the smooth-scroll stack; it does not create a
+timeline ScrollTrigger. A reduced-mode timeline must still pass
+`ScrollTrigger={ScrollTrigger}` explicitly (or use stable immediate Lenis/
+ScrollTrigger options) when progress is required.
+
 ## Pointer picking gestures and physics
 
 Use target `pointer` declarations and `ctx.targetPointer`; scene objects use

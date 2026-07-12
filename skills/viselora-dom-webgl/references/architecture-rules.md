@@ -29,6 +29,9 @@ Compatible package version: 0.1.0-alpha.0
   deliberately and restore fallback on disposal.
 - Keep buttons, links, forms and navigation as accessible DOM controls.
 - Hover must have touch or scroll parity; reduced motion must preserve meaning.
+- The runtime Canvas z-index 0 sits below the React content z-index 1. Keep the
+  content stage transparent; an opaque overlay hides WebGL even when debug is
+  ready/attached. Put opaque/radial backgrounds on the runtime ancestor.
 
 ## Assets and effects
 

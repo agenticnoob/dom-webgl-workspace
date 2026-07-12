@@ -333,15 +333,43 @@ describe("viselora-dom-webgl skill", () => {
     expect(verification).toContain("does not prove real-browser");
   });
 
-  test("accepts a verified subset without unrelated recipes", () => {
-    const fixtureRoot = copyTemplate();
-    const result = runVerifier(fixtureRoot);
+  test("requires experimental public-boundary preflight before implementation", () => {
+    const skill = read("SKILL.md");
+    const status = read("references/capability-status.md");
+    const architecture = read("references/architecture-rules.md");
+    const scroll = read("references/api-scroll-interaction.md");
+    const lifecycle = read("references/api-lifecycle-debug.md");
+    const troubleshooting = read("references/troubleshooting.md");
+    const verification = read("references/verification.md");
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
+    expect(skill).toContain("experimental public-boundary preflight");
+    expect(skill.indexOf("experimental public-boundary preflight")).toBeLessThan(
+      skill.indexOf("Implement with one page-level runtime"),
+    );
+    expect(status).toContain("scene-object-effect-registration");
+    expect(status).toContain("0.1.0-alpha.0");
+    expect(status).toContain("blocked");
+    expect(status).toContain("0.1.0-alpha.1");
+    expect(status).toMatch(/scene-object-interaction \| experimental/);
+    expect(status).toMatch(/advanced-effect-facades \| experimental/);
+    expect(architecture).toContain("Canvas z-index 0");
+    expect(architecture).toContain("content z-index 1");
+    expect(architecture).toContain("opaque overlay");
+    expect(scroll).toContain("smooth={false}");
+    expect(scroll).toContain("ScrollTrigger={ScrollTrigger}");
+    expect(lifecycle).toContain("resourceStatus");
+    expect(lifecycle).toContain("attached");
+    expect(lifecycle).toContain("final pixels");
+    expect(troubleshooting).toContain(
+      'Effect "<kind>" is not a scene-object effect.',
+    );
+    expect(troubleshooting).toContain("ready != attached");
+    expect(verification).toContain(
+      "Real-browser evidence was not executed by this verifier.",
+    );
   });
 
-  test("accepts an acknowledged experimental image sequence without requiring video or model", () => {
+  test("rejects experimental capability checks without browser preflight evidence", () => {
     const fixtureRoot = copyTemplate();
     selectCapabilities(fixtureRoot, [
       {
@@ -358,8 +386,84 @@ describe("viselora-dom-webgl skill", () => {
     installImageSequenceFixture(fixtureRoot);
 
     const result = runVerifier(fixtureRoot);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("preflight");
+  });
+
+  test("accepts a verified subset without unrelated recipes", () => {
+    const fixtureRoot = copyTemplate();
+    const result = runVerifier(fixtureRoot);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain(
+      "Viselora static consumer contract verification passed.",
+    );
+    expect(result.stdout).toContain(
+      "Real-browser evidence was not executed by this verifier.",
+    );
+  });
+
+  test("accepts an acknowledged experimental image sequence without requiring video or model", () => {
+    const fixtureRoot = copyTemplate();
+    selectCapabilities(fixtureRoot, [
+      {
+        id: "image-sequence",
+        acknowledgement: "experimental",
+        preflight: {
+          status: "browser-passed",
+          evidence: "docs/evidence/image-sequence.json",
+        },
+        checks: [
+          "final-canvas-pixel-change",
+          "first-frame-fallback",
+          "bounded-cache",
+          "forward-reverse-scroll",
+        ],
+      },
+    ]);
+    installImageSequenceFixture(fixtureRoot);
+    writeBrowserEvidence(fixtureRoot, "image-sequence");
+
+    const result = runVerifier(fixtureRoot);
     expect(result.status, result.stderr).toBe(0);
     expect(result.stderr).toBe("");
+  });
+
+  test.each([
+    ["packageVersion", (evidence: Record<string, any>) => { evidence.packageVersion = "0.1.0-alpha.9"; }],
+    ["capabilityId", (evidence: Record<string, any>) => { evidence.capabilityId = "wrong"; }],
+    ["passed", (evidence: Record<string, any>) => { evidence.passed = false; }],
+    ["consoleErrors", (evidence: Record<string, any>) => { evidence.consoleErrors = ["boom"]; }],
+    ["pageErrors", (evidence: Record<string, any>) => { evidence.pageErrors = ["boom"]; }],
+    ["measurement", (evidence: Record<string, any>) => { evidence.measurements = {}; }],
+  ])("rejects invalid experimental preflight %s evidence", (_field, mutate) => {
+    const fixtureRoot = copyTemplate();
+    selectCapabilities(fixtureRoot, [
+      {
+        id: "image-sequence",
+        acknowledgement: "experimental",
+        preflight: {
+          status: "browser-passed",
+          evidence: "docs/evidence/image-sequence.json",
+        },
+        checks: [
+          "final-canvas-pixel-change",
+          "first-frame-fallback",
+          "bounded-cache",
+          "forward-reverse-scroll",
+        ],
+      },
+    ]);
+    installImageSequenceFixture(fixtureRoot);
+    writeBrowserEvidence(fixtureRoot, "image-sequence");
+    const evidence = readJson(fixtureRoot, "docs/evidence/image-sequence.json");
+    mutate(evidence);
+    writeJson(fixtureRoot, "docs/evidence/image-sequence.json", evidence);
+
+    const result = runVerifier(fixtureRoot);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("preflight");
   });
 
   test.each([
@@ -618,6 +722,18 @@ function installImageSequenceFixture(root: string): void {
 function append(root: string, path: string, content: string): void {
   const absolutePath = resolve(root, path);
   writeFileSync(absolutePath, readFileSync(absolutePath, "utf8") + content);
+}
+
+function writeBrowserEvidence(root: string, capabilityId: string): void {
+  mkdirSync(resolve(root, "docs/evidence"), { recursive: true });
+  writeJson(root, `docs/evidence/${capabilityId}.json`, {
+    packageVersion: "0.1.0-alpha.0",
+    capabilityId,
+    passed: true,
+    consoleErrors: [],
+    pageErrors: [],
+    measurements: { changedPixels: 120 },
+  });
 }
 
 function replace(root: string, path: string, search: string, replacement: string): void {

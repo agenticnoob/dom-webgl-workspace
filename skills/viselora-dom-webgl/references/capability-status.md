@@ -35,6 +35,7 @@ presence alone does not upgrade a capability's evidence status.
 | image-sequence | experimental | Final-canvas pixels, first-frame fallback, bounded cache, forward/reverse scroll | Require explicit experimental acknowledgement until external verification completes. |
 | scene-camera-pass | experimental | Managed declarations and clipped final-canvas pixels | Use public descriptors and collect browser evidence. |
 | scene-native-models | experimental | Model ready plus scene-model final-canvas pixels | Keep a poster/text fallback in the story even when the scene object has no DOM fallback. |
+| scene-object-effect-registration | blocked | Root-defined effect attaches through the React entrypoint, `ready + attached`, clean errors, final pixels | `0.1.0-alpha.0` is blocked by cross-entrypoint classification. Local `0.1.0-alpha.1` tarballs are verified for registration by the packed-browser gate; registry publication is still pending. |
 | scene-object-interaction | experimental | Managed picking, pointer/touch alternative, final-canvas pixels | Keep controls accessible in DOM. |
 | camera-gestures | experimental | Managed controller, mobile alternative, camera persistence after release | Avoid duplicate wheel/touch ownership. |
 | physics | experimental | Managed descriptors, direct drag/release inertia, fallback without physics | Do not claim solver behavior beyond collected evidence. |
@@ -45,6 +46,12 @@ presence alone does not upgrade a capability's evidence status.
 `glb-loading-lifecycle` being verified does not upgrade
 `dom-anchored-glb-visible-output`. `managed-image-hover` is verified only for
 the explicit source-sampling `replace-source` path.
+
+The exact `0.1.0-alpha.0` registration defect is
+`Effect "<kind>" is not a scene-object effect.` when root and React bundles own
+different classification registries. Registration recovery does not upgrade
+`scene-object-interaction` or `advanced-effect-facades`; those remain
+experimental and need their own browser preflights.
 
 ## Blocked reproductions
 

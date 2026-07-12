@@ -23,6 +23,31 @@ stable declarations, input ownership, selected assets/status/acknowledgements
 and required evidence names. Static success does not prove real-browser output.
 Template typecheck/build proves skill/template self-consistency only.
 
+Successful output is explicit:
+
+```text
+Viselora static consumer contract verification passed.
+Real-browser evidence was not executed by this verifier.
+```
+
+The verifier validates recorded evidence metadata; it does not launch a
+browser. Real-browser evidence was not executed by this verifier.
+
+Each experimental manifest entry requires:
+
+```json
+{
+  "preflight": {
+    "status": "browser-passed",
+    "evidence": "docs/evidence/<capability>.json"
+  }
+}
+```
+
+The evidence file must stay inside the consumer and match the package version
+and capability id, set `passed: true`, contain empty console/page error arrays,
+and include at least one positive direct measurement.
+
 ## Real-browser evidence
 
 For every selected dynamic beat, assert final-canvas pixel change or a direct

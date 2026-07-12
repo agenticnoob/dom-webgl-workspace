@@ -57,6 +57,12 @@ Describe desktop, mobile, overflow, content continuity, and motion replacement.
 List each selected id, status for 0.1.0-alpha.0, entrypoint, fallback, and
 required checks.
 
+## Experimental public-boundary preflights
+
+Before full implementation, asset batch derivation or old-path deletion,
+record the minimal public-npm browser spike, evidence JSON path, direct
+measurement and clean console/page errors for every experimental/blocked slice.
+
 ## Asset ids
 
 Link every id to `asset-manifest.json`.

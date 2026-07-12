@@ -24,6 +24,12 @@ re-entry and disposal. Use the narrow selector in
 [api-lifecycle-debug.md](api-lifecycle-debug.md); do not store the full
 frame-frequency debug object in React state.
 
+The exact `Effect "<kind>" is not a scene-object effect.` error means a
+scene-object definition failed registration/classification. In model debug,
+`ready != attached`: decoded GLB data can be `ready` while effect assembly
+failed before controller attachment. Require `attached: true`, no `error`, and
+final Canvas pixels before claiming success.
+
 ## Visible-output failures
 
 Changing callbacks, uniforms, effect-owned canvas pixels or ready/active state
