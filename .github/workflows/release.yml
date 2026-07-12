@@ -26,6 +26,7 @@ jobs:
       - name: Use npm 11
         run: npm install --global npm@11
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - name: Verify release candidate
         run: npm run verify:release
       - run: git diff --check

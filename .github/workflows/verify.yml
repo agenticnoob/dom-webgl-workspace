@@ -19,6 +19,7 @@ jobs:
       - name: Use npm 11
         run: npm install --global npm@11
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run typecheck
       - run: npm run test -- --run
       - run: npm run build

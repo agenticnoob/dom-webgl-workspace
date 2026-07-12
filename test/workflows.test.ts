@@ -14,6 +14,7 @@ describe("Viselora GitHub workflows", () => {
     expect(workflow).toContain("node-version: 24");
     expect(workflow).toContain("npm@11");
     expect(workflow).toContain("npm ci");
+    expect(workflow).toContain("npx playwright install --with-deps chromium");
     expectInOrder(workflow, [
       "npm run typecheck",
       "npm run test -- --run",
@@ -40,6 +41,7 @@ describe("Viselora GitHub workflows", () => {
     expect(workflow).toContain("package-manager-cache: false");
     expect(workflow).not.toContain("cache: npm");
     expect(workflow).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
+    expect(workflow).toContain("npx playwright install --with-deps chromium");
     expect(workflow).toContain("npm run verify:release");
     expect(workflow).toContain("RELEASE_VERSION: ${{ inputs.version }}");
     expect(workflow).toContain('npm run release:publish -- "$RELEASE_VERSION"');
