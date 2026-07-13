@@ -33,6 +33,12 @@ describe("hero Ghost Cursor material programs", () => {
     expect(program.blend).toBe("normal");
     expect(program.fragmentShader).toContain("float fbm(vec2 p)");
     expect(program.fragmentShader).toContain("vec4 blob(");
+    expect(program.fragmentShader).toContain(
+      "float radius = 0.24 + 0.14 / iScale",
+    );
+    expect(program.fragmentShader).not.toContain(
+      "float radius = 0.5 + 0.3 / iScale",
+    );
     expect(program.fragmentShader).toContain("vec3(0.027, 0.020, 0.047)");
     expect(program.fragmentShader).not.toContain("uSource");
     expect(program.fragmentShader).not.toContain("Boo!");

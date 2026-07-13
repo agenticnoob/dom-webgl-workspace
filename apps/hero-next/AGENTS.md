@@ -66,6 +66,10 @@ are insufficient.
 The previous CSS-owned studio artwork has been removed. The current hero uses
 one managed scene, camera, render pass, canvas, and renderer for the background
 Ghost Cursor, GLB tetrahedron, foreground Ghost Cursor, and managed lights.
+The two Ghost Cursor effects apply responsive `1.06` world-scale overscan to
+cover the transparent canvas under the tilted camera, and the pointer blob uses
+the compact `0.24 + 0.14 / iScale` radius. Keep both treatments effect-owned;
+do not add a CSS background fallback or CSS transform.
 
 Current verified design and completed execution record:
 

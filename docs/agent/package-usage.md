@@ -440,10 +440,14 @@ Rules:
   perspective cameras with `mode: "perspective-stage"` for perspective-stage
   scenes.
 - `screen-depth` uses the DOM rect for screen position/size and projects that
-  point along the active `WebGLCamera` basis at the requested depth.
-  `screen-plane` casts the DOM rect center through the active camera to a named
-  stage plane and applies optional descriptor `offset`/`scale`. Keep the scene
-  default camera aligned with the camera used by the scene render pass.
+  point along the active `WebGLCamera` basis at the requested depth, but does
+  not rotate the target plane into a camera-facing billboard. Keep the scene
+  default camera aligned with the camera used by the scene render pass. For a
+  fullscreen surface under a tilted camera, either keep the camera plane
+  aligned or let an app-owned effect intentionally replace the projected scale
+  with responsive overscan. `screen-plane` casts the DOM rect center through
+  the active camera to a named stage plane and applies optional descriptor
+  `offset`/`scale`.
 - In React, prefer `WebGLScene render` for scene-owned rendering. Vanilla users
   can use `registerRenderPass`, and React still exposes `WebGLRenderPass` for
   advanced explicit pass descriptors.

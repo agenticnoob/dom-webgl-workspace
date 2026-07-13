@@ -28,7 +28,12 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       key: string;
       placement?: { mode?: string; depth?: number };
       renderRole?: string;
-      effects?: readonly { kind: string }[];
+      effects?: readonly {
+        kind: string;
+        depth?: number;
+        fov?: number;
+        overscan?: number;
+      }[];
     };
     className?: string;
   }) =>
@@ -39,6 +44,9 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-depth": webgl.placement?.depth,
       "data-render-role": webgl.renderRole,
       "data-effect": webgl.effects?.[0]?.kind,
+      "data-effect-depth": webgl.effects?.[0]?.depth,
+      "data-effect-fov": webgl.effects?.[0]?.fov,
+      "data-effect-overscan": webgl.effects?.[0]?.overscan,
     }),
 }));
 
@@ -53,11 +61,15 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-target="hero.ghost.background"');
     expect(html).toContain('data-effect="hero.ghost.background"');
     expect(html).toContain('data-depth="5"');
+    expect(html).toContain('data-effect-depth="5"');
+    expect(html).toContain('data-effect-fov="38"');
+    expect(html).toContain('data-effect-overscan="1.06"');
     expect(html).toContain('data-model="hero.tetrahedron.model"');
     expect(html).toContain('data-src="/models/4.glb"');
     expect(html).toContain('data-target="hero.ghost.foreground"');
     expect(html).toContain('data-effect="hero.ghost.foreground"');
     expect(html).toContain('data-depth="2"');
+    expect(html).toContain('data-effect-depth="2"');
     expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(2);
     expect(html.match(/data-render-role="model"/g)).toHaveLength(2);
     expect(html.match(/data-light=/g)).toHaveLength(3);

@@ -855,8 +855,11 @@ Managed scenes support explicit `projection: "dom-aligned" | "screen" |
 passes can request `clear` or `clearDepth`. `screen-depth` uses the DOM rect for
 screen position/size and projects that point along the active `WebGLCamera`
 basis at the requested depth, so the scene default camera should stay aligned
-  with the render pass camera. A managed perspective-stage camera can use a
-  nested `controller` descriptor for timeline-driven `position`, `target`, and
+with the render pass camera. It does not rotate the target plane into a
+camera-facing billboard; fullscreen surfaces under a tilted camera must either
+keep the camera aligned or apply app-owned effect overscan. A managed
+perspective-stage camera can use a
+nested `controller` descriptor for timeline-driven `position`, `target`, and
   `fov`; the runtime applies that camera frame before `screen-depth` projection
   and pass rendering, and re-applies it after managed camera resize so a
   scroll-held camera does not snap back to its declaration base frame while

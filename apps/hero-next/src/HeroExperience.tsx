@@ -36,7 +36,14 @@ const ghostBackgroundDeclaration = {
   renderRole: "model",
   lifecycle: { hideWhenReady: true, hideMode: "self" },
   effects: [
-    { kind: "hero.ghost.background", color: "#b497cf", brightness: 0.72 },
+    {
+      kind: "hero.ghost.background",
+      color: "#b497cf",
+      brightness: 0.72,
+      depth: 5,
+      fov: 38,
+      overscan: 1.06,
+    },
   ],
 } satisfies WebGLDeclaration;
 
@@ -47,7 +54,14 @@ const ghostForegroundDeclaration = {
   renderRole: "model",
   lifecycle: { hideWhenReady: true, hideMode: "self" },
   effects: [
-    { kind: "hero.ghost.foreground", color: "#b497cf", brightness: 0.2 },
+    {
+      kind: "hero.ghost.foreground",
+      color: "#b497cf",
+      brightness: 0.2,
+      depth: 2,
+      fov: 38,
+      overscan: 1.06,
+    },
   ],
 } satisfies WebGLDeclaration;
 

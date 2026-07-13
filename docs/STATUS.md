@@ -251,10 +251,13 @@ migration to R3F is not required to publish or consume Viselora.
 - Managed scenes/cameras/passes are opt-in. `WebGLTarget` alone remains the
   shortest and default DOM-first path.
 - `screen-depth` projects DOM rect screen position/size through the active
-  `WebGLCamera` basis at a fixed depth. `screen-plane` casts the DOM rect center
-  through the active camera to a named stage plane and applies optional
-  descriptor `offset`/`scale`; when the plane/camera intersection cannot be
-  resolved, debug/layout diagnostics stay descriptor-only.
+  `WebGLCamera` basis at a fixed depth, but it does not rotate the target plane
+  into a camera-facing billboard. Fullscreen surfaces under a tilted camera
+  must keep the camera aligned or apply app-owned effect overscan.
+  `screen-plane` casts the DOM rect center through the active camera to a named
+  stage plane and applies optional descriptor `offset`/`scale`; when the
+  plane/camera intersection cannot be resolved, debug/layout diagnostics stay
+  descriptor-only.
 - `stage-local` placement sets explicit scene-local layout for a target.
   Scene-native `WebGLModel` is available for managed-scene GLB assets that do
   not need DOM fallback or target-local effects. Models that should follow DOM

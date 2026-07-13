@@ -15,22 +15,53 @@ import {
   type HeroGhostCursorState,
 } from "./heroGhostCursorState";
 
-type HeroGhostBackgroundParams = {
-  kind: "hero.ghost.background";
+type HeroGhostProjectionParams = {
   color?: string;
   brightness?: number;
+  depth: number;
+  fov: number;
+  overscan: number;
 };
 
-type HeroGhostForegroundParams = {
+type HeroGhostBackgroundParams = HeroGhostProjectionParams & {
+  kind: "hero.ghost.background";
+};
+
+type HeroGhostForegroundParams = HeroGhostProjectionParams & {
   kind: "hero.ghost.foreground";
-  color?: string;
-  brightness?: number;
 };
 
 type HeroGhostEffectState = {
   motion: HeroGhostCursorState;
   materialLayer: WebGLEffectMaterialLayerHandle | undefined;
 };
+
+type HeroGhostOverscanInput = {
+  readonly width: number;
+  readonly height: number;
+  readonly viewportHeight: number;
+  readonly depth: number;
+  readonly fov: number;
+  readonly overscan: number;
+};
+
+export function resolveHeroGhostOverscanScale({
+  width,
+  height,
+  viewportHeight,
+  depth,
+  fov,
+  overscan,
+}: HeroGhostOverscanInput): [number, number, number] {
+  const verticalSpan = 2 * depth * Math.tan((fov * Math.PI) / 360);
+  const unitsPerPixel = verticalSpan / Math.max(1, viewportHeight);
+
+  return [
+    width * unitsPerPixel * overscan,
+    height * unitsPerPixel * overscan,
+    1,
+  ];
+}
 
 export const heroGhostBackgroundEffect = defineWebGLEffect<
   HeroGhostBackgroundParams,
@@ -105,7 +136,7 @@ function updateEffect(
   layer: HeroGhostLayer,
   ctx: WebGLEffectUpdateContext,
   state: HeroGhostEffectState,
-  params: { color?: string; brightness?: number },
+  params: HeroGhostProjectionParams,
 ): void {
   const surface = ctx.object.surface;
   if (!surface) {
@@ -136,6 +167,17 @@ function updateEffect(
     x: active ? localX : ctx.layout.width * 0.5,
     y: active ? localY : ctx.layout.height * 0.5,
   });
+
+  ctx.object.scale.set(
+    ...resolveHeroGhostOverscanScale({
+      width: ctx.layout.width,
+      height: ctx.layout.height,
+      viewportHeight: ctx.layout.viewport.height,
+      depth: params.depth,
+      fov: params.fov,
+      overscan: params.overscan,
+    }),
+  );
 
   state.materialLayer.setUniforms(
     createHeroGhostCursorUniforms(

@@ -138,7 +138,7 @@ const heroGhostCursorFragmentShader = `
       fbm(point * iScale + q * 1.5 + vec2(8.3, 2.8) + iTime * 0.15)
     );
     float smoke = fbm(point * iScale + r * 0.8);
-    float radius = 0.5 + 0.3 / iScale;
+    float radius = 0.24 + 0.14 / iScale;
     float distanceMask = 1.0 - smoothstep(
       0.0,
       radius * max(iOpacity, 0.001),

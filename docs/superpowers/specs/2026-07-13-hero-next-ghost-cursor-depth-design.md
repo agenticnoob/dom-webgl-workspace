@@ -65,6 +65,11 @@
 scene。它们使用 `source: { kind: "dom", type: "element" }`、稳定声明对象和
 `lifecycle.hideWhenReady: true`。DOM 本身不产生可见画面。
 
+由于当前 camera 带有轻微俯仰，而 `screen-depth` target 保持世界 XY 朝向，两个
+Ghost Cursor effect 使用与各自 `depth` 和 camera `fov` 一致的响应式 world-scale
+换算，并在宽高方向加入 `1.06` overscan。overscan 只通过受控
+`ctx.object.scale` 实现，用于消除透明 canvas 边缘，不得改成 CSS 背景兜底。
+
 ## Ghost Cursor Shader
 
 从 `apps/example/src/ghostCursorSurface.ts` 移植 FBM、blob、pointer trail 和 uniform
@@ -77,6 +82,8 @@ scene。它们使用 `source: { kind: "dom", type: "element" }`、稳定声明�
 
 - 输出不透明的深黑紫底色，初始基色沿用 Ghost Cursor 的 `#07050c`；
 - 保留完整 FBM 烟雾、当前 pointer blob 和最多 36 个 trail samples；
+- pointer blob 使用收紧后的 `0.24 + 0.14 / iScale` 半径，避免在较矮宽屏中
+  形成大面积泛光；
 - 初始烟雾色使用 `#b497cf`，允许在真实浏览器中向更冷或更灰方向小幅调节；
 - 不采样或显示 DOM 文案，不绘制边框；
 - 负责清晰建立页面的暗色基底，不能依赖 CSS fallback color。
@@ -184,6 +191,8 @@ GLB 各面的方向光高光和轮廓分离为验收依据。
 
 - 页面只声明一个显式 scene、一个 camera、一个 model 和两个 Ghost Cursor target；
 - 两个 target 使用同一 scene，并满足有序的 `screen-depth` placement；
+- 两个 target 的 effect 声明携带匹配的 `depth`、`fov` 和 `1.06` overscan，且
+  world scale 随 viewport 响应式换算；
 - 页面不出现 `Boo!`、标题、段落、导航、按钮或链接；
 - 背景 program 输出不透明暗色基底并使用 36-sample 上限；
 - 前景 program 保持透明、使用 12-sample 上限且不输出 full-screen base；
