@@ -45,6 +45,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@types/three": "^0.184.1",
     "three": "^0.184.0"
   },
   "peerDependencies": {
@@ -54,8 +55,5 @@
     "react": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "@types/three": "^0.184.1"
   }
 }

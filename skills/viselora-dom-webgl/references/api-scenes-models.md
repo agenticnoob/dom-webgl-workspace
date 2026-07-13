@@ -5,10 +5,18 @@ Compatible package version: 0.1.0-alpha.1
 ## Contents
 
 - [Scene camera pass and viewport](#scene-camera-pass-and-viewport)
-- [Stage primitives and lights](#stage-primitives-and-lights)
+- [Procedural meshes and lights](#procedural-meshes-and-lights)
 - [Scene-native models](#scene-native-models)
 - [Scene object effects](#scene-object-effects)
 - [Placement and model controls](#placement-and-model-controls)
+
+Choose the public visual entrypoint first:
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
 
 ## Scene camera pass and viewport
 
@@ -33,24 +41,62 @@ import { WebGLCamera, WebGLPassViewport, WebGLScene } from "@viselora/dom-webgl/
 **Direct verification:** assert the pass is clipped, offscreen work is skipped,
 one canvas remains, and final pixels change inside—not outside—the viewport.
 
-## Stage primitives and lights
+## Procedural meshes and lights
 
-**When to use:** choose `WebGLStagePlane`, `WebGLStageBox` and `WebGLLight` for
-managed lit scene substrate.
+**When to use:** choose `WebGLMesh` for runtime-owned procedural geometry and
+`WebGLLight` for managed lighting.
 **Public entrypoint:** `@viselora/dom-webgl/react`.
-**Declaration/props shape:** provide scene/id, size/transform, descriptor-only
-material/light, optional timeline/interaction/physics.
-**Ownership and stability:** runtime owns geometry, materials and lights.
-**Fallback and lifecycle:** stage objects have no DOM fallback; the surrounding
-story beat must remain meaningful without them.
-**Version limitations:** scene/stage browser coverage is experimental here.
+**Declaration/props shape:** provide scene/id, a `geometry` descriptor,
+transform, descriptor-only material/light, and optional timeline/interaction/
+physics. Physics colliders stay explicit and are never inferred from visual
+geometry.
+**Ownership and stability:** runtime owns geometry, materials, lights and
+disposal. Keep reusable `geometry` descriptors at module scope or memoized.
+**Fallback and lifecycle:** meshes have no DOM fallback; the surrounding story
+beat must remain meaningful without them.
+**Version limitations:** scene/mesh browser coverage is experimental here.
 
 ```tsx
-import { WebGLLight, WebGLStagePlane } from "@viselora/dom-webgl/react";
-<><WebGLStagePlane id="floor" scene="story.scene" role="floor" /><WebGLLight id="key" scene="story.scene" kind="point" /></>;
+import { WebGLLight, WebGLMesh } from "@viselora/dom-webgl/react";
+
+const tetrahedron = { kind: "tetrahedron", radius: 1 } as const;
+
+<>
+  <WebGLMesh id="shape" scene="story.scene" geometry={tetrahedron} />
+  <WebGLLight id="key" scene="story.scene" kind="point" />
+</>;
 ```
 
-**Direct verification:** assert lighting/material pixels and cleanup on unmount.
+Built-in geometry defaults:
+
+| Kind | Defaults |
+| --- | --- |
+| `plane` | `size: [1, 1]`; optional `role`; `floor` defaults rotation to `[-Math.PI / 2, 0, 0]` |
+| `box` | `size: [1, 1, 1]` |
+| `sphere` | `radius: 1`, `widthSegments: 32`, `heightSegments: 16` |
+| `cylinder` | `radiusTop: 1`, `radiusBottom: 1`, `height: 1`, `radialSegments: 32`, `heightSegments: 1`, `openEnded: false` |
+| `cone` | `radius: 1`, `height: 1`, `radialSegments: 32`, `heightSegments: 1`, `openEnded: false` |
+| `tetrahedron` | `radius: 1`, `detail: 0` |
+
+Advanced custom geometry is the only narrow Three.js exception:
+
+```ts
+import { TorusKnotGeometry } from "three";
+
+export const customGeometry = {
+  kind: "custom",
+  create: () => new TorusKnotGeometry(1, 0.3),
+} as const;
+```
+
+Declare `three` as a direct consumer dependency. The stable factory must return
+a fresh `BufferGeometry` on every call; the runtime validates, owns and disposes
+it. The factory runs at runtime, not during SSR module evaluation. It does not
+grant scene, renderer, camera, `Object3D`, material, loader, render-target,
+lifecycle, scheduling or disposal ownership.
+
+**Direct verification:** assert lighting/material pixels, geometry/material
+single disposal under repeated cleanup, and cleanup on unmount.
 
 ## Scene-native models
 
@@ -76,7 +122,7 @@ pixels, named animation/morph behavior and network fallback.
 
 ## Scene object effects
 
-**When to use:** choose `defineWebGLSceneObjectEffect` for stage/model visual or
+**When to use:** choose `defineWebGLSceneObjectEffect` for mesh/model visual or
 managed picking behavior.
 **Public entrypoint:** `@viselora/dom-webgl`.
 **Declaration/props shape:** register a module-scope definition and reference its

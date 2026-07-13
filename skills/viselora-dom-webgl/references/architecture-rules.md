@@ -12,6 +12,12 @@ Compatible package version: 0.1.0-alpha.1
   scheduling and disposal.
 - Do not add R3F, raw `WebGLRenderer`, a second renderer/canvas/runtime, raw
   Three.js ownership or a consumer render loop.
+- The only narrow Three.js exception is a stable
+  `geometry: { kind: "custom", create }` descriptor. The consumer declares
+  `three` directly; each call returns a fresh `BufferGeometry`, while the
+  runtime validates, owns and disposes it. The factory runs at runtime, not SSR
+  module evaluation, and grants no scene/renderer/camera/object/material/loader
+  or scheduling ownership.
 
 ## Stable React declarations
 

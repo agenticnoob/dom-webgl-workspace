@@ -81,7 +81,11 @@ describe("release package contracts", () => {
         postbuild: packagePostbuildScript,
       },
     });
-    expect(runtimePackage.dependencies).toEqual({ three: "^0.184.0" });
+    expect(runtimePackage.dependencies).toEqual({
+      "@types/three": "^0.184.1",
+      three: "^0.184.0",
+    });
+    expect(runtimePackage).not.toHaveProperty("devDependencies");
     expect(runtimePackage.peerDependencies).toEqual({ react: ">=18.0.0" });
     expect(runtimePackage.peerDependenciesMeta).toEqual({
       react: { optional: true },

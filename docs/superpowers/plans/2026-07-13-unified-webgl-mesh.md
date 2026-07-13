@@ -488,7 +488,7 @@ git commit -m "refactor: migrate consumers to WebGLMesh"
 - Modify: `skills/viselora-dom-webgl/references/api-coverage.json`
 - Regenerate: `skills/viselora-dom-webgl/references/api-surface.generated.md`
 
-- [ ] Update active docs to teach exactly this three-way choice near their first usage guidance:
+- [x] Update active docs to teach exactly this three-way choice near their first usage guidance:
 
 ```text
 DOM-backed visual -> WebGLTarget
@@ -496,13 +496,13 @@ Procedural 3D geometry -> WebGLMesh
 GLB asset -> WebGLModel
 ```
 
-- [ ] Show one built-in tetrahedron example before advanced customization. List all built-in geometry kinds and their default values in the reference docs.
-- [ ] Document custom geometry as an advanced escape hatch: it exposes only a factory returning a fresh `BufferGeometry`; it does not grant access to scene, renderer, camera, `Object3D`, material, loader, render targets, lifecycle, or scheduling.
-- [ ] Update wording that currently says raw Three.js is never allowed so it accurately describes this narrow exception without weakening the general ownership boundary.
-- [ ] Document disposal ownership, direct `three` dependency guidance for custom users, stable React descriptor references, SSR timing, and explicit physics colliders.
-- [ ] Update `apps/hero-next/AGENTS.md` from the old “planes and boxes only” limitation to current WebGLMesh truth. Do not touch `apps/hero-next/next-env.d.ts`.
-- [ ] Update the roadmap current-truth section. Do not rewrite archived plans/specs as if history had used the new API. Active guidance must use only the current Mesh terminology even when it links to historical evidence.
-- [ ] Update API coverage records for added/removed symbols, then regenerate the public API surface:
+- [x] Show one built-in tetrahedron example before advanced customization. List all built-in geometry kinds and their default values in the reference docs.
+- [x] Document custom geometry as an advanced escape hatch: it exposes only a factory returning a fresh `BufferGeometry`; it does not grant access to scene, renderer, camera, `Object3D`, material, loader, render targets, lifecycle, or scheduling.
+- [x] Update wording that currently says raw Three.js is never allowed so it accurately describes this narrow exception without weakening the general ownership boundary.
+- [x] Document disposal ownership, direct `three` dependency guidance for custom users, stable React descriptor references, SSR timing, and explicit physics colliders.
+- [x] Update `apps/hero-next/AGENTS.md` from the old “planes and boxes only” limitation to current WebGLMesh truth. Do not touch `apps/hero-next/next-env.d.ts`.
+- [x] Update the roadmap current-truth section. Do not rewrite archived plans/specs as if history had used the new API. Active guidance must use only the current Mesh terminology even when it links to historical evidence.
+- [x] Update API coverage records for added/removed symbols, then regenerate the public API surface:
 
 ```bash
 npm run skill:api:generate
@@ -511,7 +511,7 @@ npm run verify:skill
 
 Expected: both commands exit 0 and generated output contains `WebGLMesh` but no current `WebGLStagePlane` / `WebGLStageBox` export.
 
-- [ ] Run a focused stale-guidance scan:
+- [x] Run a focused stale-guidance scan:
 
 ```bash
 rg -n 'WebGLStage(Plane|Box)|stage/(plane|box)|registerStagePrimitive|stagePrimitiveCount|stagePrimitives' \
@@ -521,7 +521,7 @@ rg -n 'WebGLStage(Plane|Box)|stage/(plane|box)|registerStagePrimitive|stagePrimi
 
 Expected: no matches.
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add README.md docs/STATUS.md docs/roadmap/managed-render-system.md docs/agent docs/consumer-standard-usage.md docs/examples/effect-authoring.md apps/hero-next/AGENTS.md skills/viselora-dom-webgl

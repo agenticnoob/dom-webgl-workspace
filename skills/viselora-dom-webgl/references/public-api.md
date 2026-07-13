@@ -7,7 +7,7 @@ Use only four published entrypoints:
 | Entrypoint | Route |
 | --- | --- |
 | `@viselora/dom-webgl` | Runtime creation, effect definitions, public declarations and types → [effects/rendering](api-effects-rendering.md) |
-| `@viselora/dom-webgl/react` | Runtime/target, scene, camera, stage, model and debug React values → [effects/rendering](api-effects-rendering.md), [scenes/models](api-scenes-models.md), [lifecycle/debug](api-lifecycle-debug.md) |
+| `@viselora/dom-webgl/react` | Runtime/target, scene, camera, mesh, model and debug React values → [effects/rendering](api-effects-rendering.md), [scenes/models](api-scenes-models.md), [lifecycle/debug](api-lifecycle-debug.md) |
 | `@viselora/scroll-adapters` | Lenis, GSAP, ScrollTrigger and progress-store glue → [scroll/interaction](api-scroll-interaction.md) |
 | `@viselora/scroll-adapters/react` | Scroll runtime, timelines, sections and progress hook → [scroll/interaction](api-scroll-interaction.md) |
 
@@ -22,4 +22,6 @@ discovery data, not recommendation evidence. Human guidance and ownership rules
 live in the capability references above.
 
 Never import package source paths, private subpaths, workspace aliases, example
-implementation files, raw Three.js ownership, or R3F.
+implementation files, raw Three.js ownership, or R3F. A direct `three` geometry
+constructor import is allowed only inside the controlled `WebGLMesh` custom
+factory described in [scenes/models](api-scenes-models.md).

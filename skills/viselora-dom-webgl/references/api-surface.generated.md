@@ -37,6 +37,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLColliderDeclaration | type | type WebGLColliderDeclaration = { readonly kind?: "bounds"; readonly padding?: number \| WebGLTuple3; } \| { readonly kind: "box"; readonly size?: WebGLTuple3; readonly center?: WebGLTuple3; } \| { readonly kind: "sphere"; readonly radius?: n… |  |
 | WebGLColorValue | type | type WebGLColorValue = string \| number \| readonly [number, number, number]; |  |
 | WebGLDebugInteractionSummary | type | type WebGLDebugInteractionSummary = { readonly hoveredObjectId?: string; readonly pressedObjectId?: string; readonly capturedObjectId?: string; readonly lastClickedObjectId?: string; readonly emptySpace?: boolean; readonly activeHit?: { re… |  |
+| WebGLDebugMeshSummary | type | type WebGLDebugMeshSummary = { id: string; sceneId: string; geometryKind: WebGLMeshGeometryDeclaration["kind"]; timeline?: WebGLDebugTimelineSummary; effects?: readonly string[]; interaction?: WebGLDebugSceneObjectInteractionSummary; }; |  |
 | WebGLDebugModelDiagnostic | type | type WebGLDebugModelDiagnostic = { kind: "missing-clip" \| "missing-morph" \| "missing-bone"; name: string; }; |  |
 | WebGLDebugModelPrepareLoadState | type | type WebGLDebugModelPrepareLoadState = "queued" \| "loading" \| "ready"; |  |
 | WebGLDebugModelPrepareSummary | type | type WebGLDebugModelPrepareSummary = { readonly load?: WebGLDebugModelPrepareLoadState; readonly renderWarmup?: "pending" \| "complete"; }; |  |
@@ -45,7 +46,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLDebugPhysicsSummary | type | type WebGLDebugPhysicsSummary = { readonly bodyCount: number; readonly activeBodyCount: number; readonly collisionCount: number; readonly bodies: readonly WebGLDebugPhysicsBodySummary[]; }; |  |
 | WebGLDebugSceneObjectInteractionSummary | type | type WebGLDebugSceneObjectInteractionSummary = { pickable?: { hitTest: "bounds" \| "mesh"; pointer: WebGLDebugSceneObjectPointerSummary; }; }; |  |
 | WebGLDebugSceneObjectPointerSummary | type | type WebGLDebugSceneObjectPointerSummary = { hover: boolean; press: boolean; click: boolean; drag: boolean; }; |  |
-| WebGLDebugState | type | type WebGLDebugState = { targetCount: number; renderableCount: number; currentScrollMode: "page" \| "gate"; activeGateKey?: string; sceneProgress?: number; pointer: WebGLPointerState; warnings?: WebGLPerformanceWarning[]; stagePrimitiveCoun… |  |
+| WebGLDebugState | type | type WebGLDebugState = { targetCount: number; renderableCount: number; currentScrollMode: "page" \| "gate"; activeGateKey?: string; sceneProgress?: number; pointer: WebGLPointerState; warnings?: WebGLPerformanceWarning[]; meshCount?: number… |  |
 | WebGLDeclaration | type | type WebGLDeclaration = { key: string; sceneId?: string; timeline?: WebGLTimelineBindingDeclaration; placement?: WebGLPlacementDeclaration; source?: WebGLSourceDeclaration; renderRole?: WebGLRenderRole; scroll?: WebGLScrollBehavior; pointe… |  |
 | WebGLDOMAnchoredPlacementDeclaration | type | type WebGLDOMAnchoredPlacementDeclaration = { mode?: "dom-anchored"; }; |  |
 | WebGLDOMSourceDeclaration | type | type WebGLDOMSourceDeclaration = { kind: "dom"; type?: "element" \| "text"; }; |  |
@@ -124,6 +125,9 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLMediaSourceDeclaration | type | type WebGLMediaSourceDeclaration = WebGLMediaImageSourceDeclaration \| WebGLMediaVideoSourceDeclaration \| WebGLMediaImageSequenceSourceDeclaration; |  |
 | WebGLMediaVideoPlaybackDeclaration | type | type WebGLMediaVideoPlaybackDeclaration = { muted?: boolean; loop?: boolean; autoplay?: boolean; playsInline?: boolean; playbackRate?: number; visibility?: "pause-resume" \| "continue"; }; |  |
 | WebGLMediaVideoSourceDeclaration | type | type WebGLMediaVideoSourceDeclaration = { kind: "media"; type: "video"; src?: string; playback?: WebGLMediaVideoPlaybackDeclaration; }; |  |
+| WebGLMeshDeclaration | type | type WebGLMeshDeclaration = { id: string; sceneId: string; geometry: WebGLMeshGeometryDeclaration; position?: WebGLTuple3; rotation?: WebGLTuple3; scale?: number \| WebGLTuple3; visible?: boolean; material?: WebGLMeshMaterialDeclaration; ti… |  |
+| WebGLMeshGeometryDeclaration | type | type WebGLMeshGeometryDeclaration = { kind: "plane"; role?: WebGLPlaneRole; size?: WebGLTuple2; } \| { kind: "box"; size?: WebGLTuple3; } \| { kind: "sphere"; radius?: number; widthSegments?: number; heightSegments?: number; } \| { kind: "cyl… |  |
+| WebGLMeshMaterialDeclaration | type | type WebGLMeshMaterialDeclaration = { kind?: "standard"; isMaterial?: never; color?: WebGLColorValue; emissive?: WebGLColorValue; emissiveIntensity?: number; opacity?: number; metalness?: number; roughness?: number; } \| { kind: "basic"; is… |  |
 | WebGLModelAnimationDeclaration | type | type WebGLModelAnimationDeclaration = { readonly defaultClip?: WebGLModelClipPlaybackDeclaration; readonly defaultClips?: readonly WebGLModelClipPlaybackDeclaration[]; readonly scrub?: WebGLModelClipScrubDeclaration; readonly blend?: WebGL… |  |
 | WebGLModelAnimationLoop | type | type WebGLModelAnimationLoop = "once" \| "repeat"; |  |
 | WebGLModelClipBlendDeclaration | type | type WebGLModelClipBlendDeclaration = { readonly from: string; readonly to: string; readonly timeline: WebGLTimelineBindingDeclaration; readonly fadeMs?: number; readonly range?: WebGLTimelineActiveRangeDeclaration; }; |  |
@@ -150,6 +154,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLPickableDeclaration | type | type WebGLPickableDeclaration = boolean \| { readonly hitTest?: "bounds" \| "mesh"; readonly pointer?: WebGLObjectPointerDeclaration; }; |  |
 | WebGLPlacementDeclaration | type | type WebGLPlacementDeclaration = WebGLDOMAnchoredPlacementDeclaration \| WebGLScreenAnchoredPlacementDeclaration \| WebGLScreenDepthPlacementDeclaration \| WebGLStageLocalPlacementDeclaration \| WebGLScreenPlanePlacementDeclaration; |  |
 | WebGLPlacementMode | type | type WebGLPlacementMode = "dom-anchored" \| "screen-anchored" \| "screen-depth" \| "stage-local" \| "screen-plane"; |  |
+| WebGLPlaneRole | type | type WebGLPlaneRole = "floor" \| "wall" \| "backdrop"; |  |
 | WebGLPointerButton | type | type WebGLPointerButton = WebGLCameraGestureButton; |  |
 | WebGLPointerDeclaration | type | type WebGLPointerDeclaration = { hover?: boolean; press?: boolean; click?: boolean; drag?: boolean; }; |  |
 | WebGLPointerModifiers | type | type WebGLPointerModifiers = { shift: boolean; alt: boolean; ctrl: boolean; meta: boolean; }; |  |
@@ -166,7 +171,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLSceneDeclaration | type | type WebGLSceneDeclaration = { id: string; projection?: WebGLSceneProjection; defaultCameraId?: string; defaultPass?: boolean; timeline?: WebGLTimelineBindingDeclaration; }; |  |
 | WebGLSceneObjectEffectContext | type | type WebGLSceneObjectEffectContext = { readonly objectId: string; readonly sourceKind: WebGLSceneObjectEffectSourceKind; readonly input: WebGLFrameInput; readonly pointer: WebGLFrameInput["pointer"]; readonly objectPointer: WebGLSceneObjec… |  |
 | WebGLSceneObjectEffectDefinition | type | type WebGLSceneObjectEffectDefinition<TParams extends WebGLEffectDeclaration = WebGLEffectDeclaration, TState = unknown> = { readonly kind: TParams["kind"]; readonly source?: WebGLSceneObjectEffectSourceKind \| readonly WebGLSceneObjectEffe… |  |
-| WebGLSceneObjectEffectSourceKind | type | type WebGLSceneObjectEffectSourceKind = "model/glb" \| "stage/plane" \| "stage/box"; |  |
+| WebGLSceneObjectEffectSourceKind | type | type WebGLSceneObjectEffectSourceKind = "model/glb" \| "mesh"; |  |
 | WebGLSceneObjectInteractionDeclaration | type | type WebGLSceneObjectInteractionDeclaration = { readonly pickable?: WebGLPickableDeclaration; }; |  |
 | WebGLSceneObjectPointerState | type | type WebGLSceneObjectPointerState = { readonly isHovered: boolean; readonly isPressed: boolean; readonly isDragging: boolean; readonly wasClicked: boolean; readonly pointerId?: number; readonly dragStartX: number; readonly dragStartY: numb… |  |
 | WebGLSceneProjection | type | type WebGLSceneProjection = "dom-aligned" \| "screen" \| "perspective-stage"; |  |
@@ -180,13 +185,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLScrollGateState | type | type WebGLScrollGateState = { active: false; } \| { active: true; key: string; progress: number; }; |  |
 | WebGLScrollMetrics | type | type WebGLScrollMetrics = { scrollY: number; scrollHeight: number; viewportHeight: number; }; |  |
 | WebGLSourceDeclaration | type | type WebGLSourceDeclaration = WebGLDOMSourceDeclaration \| WebGLMediaSourceDeclaration \| WebGLModelSourceDeclaration; |  |
-| WebGLStageBoxDeclaration | type | type WebGLStageBoxDeclaration = WebGLStagePrimitiveBaseDeclaration & { kind: "box"; size?: WebGLTuple3; }; |  |
 | WebGLStageLocalPlacementDeclaration | type | type WebGLStageLocalPlacementDeclaration = { mode: "stage-local"; position?: WebGLTuple3; rotation?: WebGLTuple3; scale?: number \| WebGLTuple3; size?: WebGLTuple2; }; |  |
-| WebGLStageMaterialDeclaration | type | type WebGLStageMaterialDeclaration = { kind?: "standard"; isMaterial?: never; color?: WebGLColorValue; emissive?: WebGLColorValue; emissiveIntensity?: number; opacity?: number; metalness?: number; roughness?: number; } \| { kind: "basic"; i… |  |
-| WebGLStagePlaneDeclaration | type | type WebGLStagePlaneDeclaration = WebGLStagePrimitiveBaseDeclaration & { kind: "plane"; role?: WebGLStagePlaneRole; size?: WebGLTuple2; }; |  |
-| WebGLStagePlaneRole | type | type WebGLStagePlaneRole = "floor" \| "wall" \| "backdrop"; |  |
-| WebGLStagePrimitiveDeclaration | type | type WebGLStagePrimitiveDeclaration = WebGLStagePlaneDeclaration \| WebGLStageBoxDeclaration; |  |
-| WebGLStagePrimitiveKind | type | type WebGLStagePrimitiveKind = "plane" \| "box"; |  |
 | WebGLTargetPointerState | type | type WebGLTargetPointerState = { localX: number; localY: number; normalizedX: number; normalizedY: number; isInside: boolean; isPressed: boolean; pressDuration: number; isDragging: boolean; dragStartLocalX: number; dragStartLocalY: number;… |  |
 | WebGLTextGlyph | type | type WebGLTextGlyph = { index: number; char: string; line: number; x: number; y: number; width: number; height: number; baseline: number; }; |  |
 | WebGLTextGlyphRenderCommand | type | type WebGLTextGlyphRenderCommand = Partial<WebGLTextGlyph> & { index: number; char?: string; opacity?: number; scaleX?: number; scaleY?: number; rotation?: number; color?: string; }; |  |
@@ -206,18 +205,18 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLCamera | value | declare function WebGLCamera({ id, scene, type, mode, fov, near, far, position, target, zoom, controller, default: isDefault, }: WebGLCameraProps): null; |  |
 | WebGLDebugPanel | value | declare const WebGLDebugPanel: FunctionComponent<WebGLDebugPanelProps>; |  |
 | WebGLLight | value | declare function WebGLLight({ id, scene, kind, color, intensity, position, target, distance, decay, visible, timeline, }: WebGLLightProps): null; |  |
+| WebGLMesh | value | declare function WebGLMesh({ id, scene, geometry, position, rotation, scale, visible, material, timeline, effects, interaction, physics, }: WebGLMeshProps): null; |  |
 | WebGLModel | value | declare function WebGLModel({ id, scene, src, loader, position, rotation, scale, visible, timeline, animation, prepare, effects, interaction, physics, }: WebGLModelProps): null; |  |
 | WebGLPassViewport | value | declare function WebGLPassViewport<TElement extends ElementType = "div">({ id, as, children, ...props }: WebGLPassViewportProps<TElement>): react.FunctionComponentElement<react.ProviderProps<string \| undefined>>; |  |
 | WebGLRenderPass | value | declare function WebGLRenderPass({ id, scene, camera, order, clear, clearDepth, viewport, postprocess, }: WebGLRenderPassProps): null; |  |
 | WebGLRuntime | value | declare function WebGLRuntime({ children, className, style, effects, progressSignals, scrollAdapter, modelLoader, onDebugStateChange, }: WebGLRuntimeProps): react.DetailedReactHTMLElement<{ ref: react.RefObject<HTMLDivElement \| null>; clas… |  |
 | WebGLRuntimeProvider | value | declare function WebGLRuntimeProvider({ runtime, children, }: WebGLRuntimeProviderProps): react.JSX.Element; |  |
 | WebGLScene | value | declare function WebGLScene({ id, projection, defaultCameraId, defaultPass, timeline, render, children, }: WebGLSceneProps): react.FunctionComponentElement<WebGLSceneProviderProps>; |  |
-| WebGLStageBox | value | declare function WebGLStageBox({ id, scene, size, position, rotation, scale, visible, material, timeline, effects, interaction, physics, }: WebGLStageBoxProps): null; |  |
-| WebGLStagePlane | value | declare function WebGLStagePlane({ id, scene, role, size, position, rotation, scale, visible, material, timeline, effects, interaction, physics, }: WebGLStagePlaneProps): null; |  |
 | WebGLTarget | value | declare function WebGLTarget<TElement extends WebGLTargetElement = "div">({ as, webgl, children, ...props }: WebGLTargetProps<TElement>): react.DetailedReactHTMLElement<Omit<WebGLTargetProps<TElement>, "children" \| "as" \| "webgl"> & { ref:… |  |
 | WebGLCameraProps | type | type WebGLCameraProps = Omit<WebGLCameraDeclaration, "sceneId"> & { scene?: string; }; |  |
 | WebGLDebugPanelProps | type | type WebGLDebugPanelProps = { state: WebGLDebugState; }; |  |
 | WebGLLightProps | type | type WebGLLightProps = Omit<WebGLLightDeclaration, "sceneId"> & { scene?: string; }; |  |
+| WebGLMeshProps | type | type WebGLMeshProps = Omit<WebGLMeshDeclaration, "sceneId"> & { scene?: string; }; |  |
 | WebGLModelProps | type | type WebGLModelProps = Omit<WebGLModelDeclaration, "sceneId"> & { scene?: string; }; |  |
 | WebGLPassViewportProps | type | type WebGLPassViewportProps<TElement extends ElementType = "div"> = { id: string; as?: TElement; children?: ReactNode; } & Omit<ComponentPropsWithoutRef<TElement>, "as" \| "id">; |  |
 | WebGLRenderPassProps | type | type WebGLRenderPassProps = { id?: string; scene?: string; camera?: string; order?: number; clear?: boolean; clearDepth?: boolean; viewport?: WebGLRenderPassDeclaration["viewport"]; postprocess?: WebGLRenderPassDeclaration["postprocess"]; … |  |
@@ -225,8 +224,6 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLRuntimeProviderProps | type | type WebGLRuntimeProviderProps = { runtime: WebGLRuntime$1; children?: ReactNode; }; |  |
 | WebGLSceneProps | type | type WebGLSceneProps = WebGLSceneDeclaration & { render?: boolean \| WebGLSceneRenderOptions; children?: ReactNode; }; |  |
 | WebGLSceneRenderOptions | type | type WebGLSceneRenderOptions = { id?: string; camera?: string; order?: number; clear?: boolean; clearDepth?: boolean; viewport?: WebGLRenderPassDeclaration["viewport"]; postprocess?: WebGLRenderPassDeclaration["postprocess"]; }; |  |
-| WebGLStageBoxProps | type | type WebGLStageBoxProps = Omit<WebGLStageBoxDeclaration, "kind" \| "sceneId"> & { scene?: string; }; |  |
-| WebGLStagePlaneProps | type | type WebGLStagePlaneProps = Omit<WebGLStagePlaneDeclaration, "kind" \| "sceneId"> & { scene?: string; }; |  |
 | WebGLTargetProps | type | type WebGLTargetProps<TElement extends WebGLTargetElement = "div"> = { as?: TElement; webgl: WebGLDeclaration; children?: ReactNode; } & Omit<ComponentPropsWithoutRef<TElement>, "as" \| "children">; |  |
 
 ## `@viselora/scroll-adapters`

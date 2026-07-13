@@ -77,6 +77,14 @@ scene graph mutation, raw controls, raw loaders, or raw render hooks to this
 runtime. Free-form R3F applications remain a different ownership model, but
 migration to R3F is not required to publish or consume Viselora.
 
+The public visual choice tree is intentionally singular:
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 ## Runtime Truth
 
 - One runtime instance creates one fixed transparent WebGL canvas.
@@ -155,20 +163,23 @@ migration to R3F is not required to publish or consume Viselora.
   - debug summaries can expose descriptor-only target scene facts, render pass
     viewport facts, and postprocess request scopes, but not raw
     scene/camera/pass/renderer/composer/render-target objects
-- Opt-in managed stage primitives and scene-owned lights:
-  - React exports `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
-  - vanilla runtime exposes `registerStagePrimitive`, `unregisterStagePrimitive`,
+- Opt-in managed procedural meshes and scene-owned lights:
+  - React exports `WebGLMesh` and `WebGLLight`
+  - vanilla runtime exposes `registerMesh`, `unregisterMesh`,
     `registerLight`, and `unregisterLight`
-  - supported primitives are `plane` and `box`, with plane roles `floor`,
-    `wall`, and `backdrop`
+  - `WebGLMesh.geometry` supports `plane`, `box`, `sphere`, `cylinder`, `cone`,
+    and `tetrahedron`; plane roles are `floor`, `wall`, and `backdrop`
+  - the advanced `custom` geometry descriptor accepts a stable factory that
+    returns a fresh `BufferGeometry`; the consumer declares `three` directly,
+    while runtime validation, ownership, and disposal remain managed
   - supported stage materials are descriptor-only `standard` and `basic`
     solid-color materials
   - supported scene-owned lights are `ambient`, `directional`, and `point`
   - stage meshes, geometry, materials, groups, light targets, and lights are
     runtime-owned and disposed by unregister, scene unregister, or runtime
     dispose
-  - debug state can report descriptor-only stage primitive and light inventory
-    counts/ids without exposing raw Three.js objects
+  - debug state reports `meshCount`, `meshes`, and each `geometryKind`, plus
+    descriptor-only light inventory, without exposing raw Three.js objects
 - Opt-in scene-native managed models:
   - React exports `WebGLModel`; vanilla runtime exposes `registerModel` and
     `unregisterModel`
@@ -193,7 +204,7 @@ migration to R3F is not required to publish or consume Viselora.
     timeline activity, available clips, active clips, morph names, bone names,
     and missing clip/morph diagnostics without exposing raw GLTF, mixer,
     action, mesh, skeleton, or morph arrays
-  - `WebGLModel` and stage primitives can declare scene-object `effects` and
+  - `WebGLModel` and procedural meshes can declare scene-object `effects` and
     `interaction.pickable`; these use explicit scene-object scope, not
     DOM-target layout/fallback semantics
   - scene-object effects are registered with `defineWebGLSceneObjectEffect(...)`
@@ -201,7 +212,7 @@ migration to R3F is not required to publish or consume Viselora.
     `ctx.runtime` without raw intersections, raycasters, cameras, or
     `ctx.targetPointer`
 - Opt-in scene-native dynamics/physics:
-  - `WebGLStagePlane`, `WebGLStageBox`, and `WebGLModel` can declare
+  - `WebGLMesh` and `WebGLModel` can declare
     descriptor-only `physics`
   - supported body types are `static`, `dynamic`, and `kinematic`
   - supported collider descriptors are `bounds`, `box`, `sphere`, and `plane`
@@ -216,7 +227,7 @@ migration to R3F is not required to publish or consume Viselora.
     objects
 - Managed timeline bindings and effect scope metadata:
   - public declarations can bind `timeline` data on `WebGLTarget`,
-    `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`
+    `WebGLScene`, `WebGLMesh` and `WebGLLight`
   - `WebGLCameraDeclaration` intentionally does not accept top-level
     `timeline`; managed perspective-stage cameras can declare one nested
     `controller` that reads progress and drives `position`, `target`, and `fov`
@@ -238,7 +249,7 @@ migration to R3F is not required to publish or consume Viselora.
     `WebGLScrollTimeline` as the broader named progress section, while
     `ScrollEffectSection` remains compatibility sugar for target/effect pinned
     sections
-  - targets, render passes, and stage primitives/lights can activate from
+  - targets, render passes, and procedural meshes/lights can activate from
     timeline ranges without React descriptor churn
   - debug state can report descriptor-only camera controller summaries without
     exposing raw camera objects, matrices, controls, or render-loop hooks
@@ -270,7 +281,7 @@ migration to R3F is not required to publish or consume Viselora.
 - Model-local glow should use material/emissive controls and runtime-owned
   lights unless whole-pass bloom is intentional.
 - `dom/element` surfaces are canvas texture planes and do not respond to Three.js
-  lighting. Use managed stage primitives for lit floors, walls, and backdrops.
+  lighting. Use managed procedural meshes for lit floors, walls, and backdrops.
 - `WebGLPassViewport` is only for opt-in managed scene/pass work. Level 1
   `WebGLTarget` usage does not need viewport anchors. Nesting a `WebGLScene`
   alone still does not create a local DOM viewport; the render pass must declare
@@ -280,7 +291,7 @@ migration to R3F is not required to publish or consume Viselora.
   passes are clipped rather than compressed into the visible slice. Fully
   offscreen pass viewports are skipped instead of drawing behind unrelated DOM
   sections.
-- Managed stage primitives and scene-owned lights are stable descriptors. Use
+- Managed procedural meshes and scene-owned lights are stable descriptors. Use
   them to declare scene substrate; do not drive high-frequency animation through
   React prop churn. Use timeline bindings and managed effect/controller state
   for progress-driven scene, stage, and light activation.
@@ -314,7 +325,7 @@ migration to R3F is not required to publish or consume Viselora.
   Ordinary pinned scrub sections should use `@viselora/scroll-adapters/react`,
   `ScrollEffectSection` or `WebGLScrollTimeline`, stable progress ids, and
   `ctx.progress.get(progressKey)` / `ctx.runtime.progress.get(progressKey)`.
-- Timeline bindings can hide/skip targets, scenes, stage primitives, and lights
+- Timeline bindings can hide/skip targets, scenes, procedural meshes, and lights
   by progress range. Active ranges do not override explicit effect visibility or
   `visible: false` declarations. They also do not make a nested `WebGLScene` a
   local clipped viewport; local pass clipping is the separate
@@ -348,17 +359,17 @@ migration to R3F is not required to publish or consume Viselora.
   `viewport: { mode: "dom-rect", scissor: true }` so the pinned section DOM rect
   clips the managed pass on the shared runtime canvas. The card effect enters
   from the named progress signal and holds its final visible state through the
-  end of the pinned timeline. The separate managed stage primitive dogfood is
+  end of the pinned timeline. The separate managed procedural mesh dogfood is
   ordered before this pinned timeline so the timeline exit does not hand off
   directly into another similar 3D stage pass.
-- The managed stage primitive example is mounted in `apps/example` and dogfoods
+- The managed procedural mesh example is mounted in `apps/example` and dogfoods
   `WebGLPassViewport` with pass `viewport: { mode: "dom-rect", scissor: true }`
   and descriptor-level bloom/grain/blur postprocess. It remains one runtime
   canvas; the pass is clipped by the visible DOM rect without remapping into
   the visible slice, instead of becoming a second canvas or drawing as a
   full-canvas background while offscreen.
 - The managed interaction example is mounted in `apps/example` as the Phase 8B
-  dogfood surface with a pickable `WebGLStagePlane` floor and one pickable
+  dogfood surface with a pickable `WebGLMesh` floor and one pickable
   scene-native `/models/hero.glb` model. It keeps the managed `WebGLScene`,
   `WebGLCamera`, `WebGLPassViewport`, minimal lights, floor/model scene-object
   effects registered with `defineWebGLSceneObjectEffect(...)`, pass-local
@@ -372,7 +383,7 @@ migration to R3F is not required to publish or consume Viselora.
   `WebGLCamera`, and `WebGLPassViewport` and covers the full Phase 9 v1
   descriptor surface: static, dynamic, and kinematic bodies; plane, box,
   sphere, and bounds colliders; anchor and spring constraints; direct
-  pointer-drag manipulation; stage primitive physics; and scene-native
+  pointer-drag manipulation; procedural mesh physics; and scene-native
   `WebGLModel` physics.
   The blue and yellow bodies visibly move from anchor/spring constraints, the
   model sweeps as a kinematic body, and the orange crate is pointer-draggable.
@@ -394,11 +405,11 @@ scene/camera/pass declarations are verified behind managed descriptors while
 the default Level 1 path still flows through internal generated
 scene/camera/pass entries. Phase 3 projection policies are verified through
 explicit scene projections, managed camera modes, target placement descriptors,
-and pass clear controls. Phase 4 managed stage primitives add scene-native
+and pass clear controls. Phase 4 managed procedural meshes add scene-native
 plane/box descriptors and scene-owned lights without raw Three.js handles:
 [2026-07-04-managed-stage-primitives.md](./superpowers/plans/2026-07-04-managed-stage-primitives.md).
 Phase 5 target routing, scroll timelines, and effect scope adds named timeline
-bindings for targets/scenes/stage primitives/lights, the `WebGLScrollTimeline`
+bindings for targets/scenes/procedural meshes/lights, the `WebGLScrollTimeline`
 React adapter, and `ctx.runtime`/`ctx.scene` scope metadata while keeping camera
 timeline control out of `WebGLCameraDeclaration`:
 [2026-07-04-target-routing-scroll-timelines-effect-scope.md](./superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md).
@@ -487,7 +498,7 @@ Relationship rules from the active roadmap:
 
 - managed scenes and cameras
 - managed render passes
-- managed lit stage primitives
+- managed lit procedural meshes
 - scoped effect contexts for object, scene, camera, and runtime
 - managed scroll timelines/progress signals
 - pass/runtime-scoped postprocess

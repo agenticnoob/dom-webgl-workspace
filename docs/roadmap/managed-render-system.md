@@ -19,6 +19,14 @@
 
 Build a DOM-first managed WebGL render system.
 
+The completed public visual choice tree is:
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 DOM remains the authoring anchor. Consumers declare DOM targets first. When a
 page needs more structure, it can opt into managed scenes, cameras, stage
 objects, lights, effects, and render passes. The runtime owns Three.js renderer,
@@ -155,7 +163,7 @@ If a feature only helps Level 3, it must be opt-in and absent from Level 1 setup
 - `example.model.float-glow` intentionally uses emissive material controls and a
   runtime-owned point light instead of canvas-scoped postprocess bloom.
 - `example.model.dark-scene` is a `dom/element` surface: an unlit canvas texture
-  plane, not a managed lit stage primitive.
+  plane, not a managed lit procedural mesh.
 - Current `transformScope: "subtree"` creates internal transform groups from the
   DOM target tree, but it is not a public raw scene graph.
 
@@ -192,7 +200,7 @@ The internal model can still use Three.js:
 ```text
 WebGLScene descriptor     -> internal THREE.Scene or scene layer
 WebGLCamera descriptor    -> internal THREE.Camera
-WebGLStage primitive      -> internal THREE.Mesh / Geometry / Material
+WebGLMesh      -> internal THREE.Mesh / Geometry / Material
 WebGLLight descriptor     -> internal THREE.Light
 WebGLRenderPass descriptor-> internal render(scene, camera) and framebuffer work
 ```
@@ -208,7 +216,7 @@ measurement, target-local pointer state, and target-local effects. A
 in user code.
 
 `WebGLScene` is an optional grouping and projection boundary. It can provide a
-camera default, pass scope, lighting environment, stage primitives, input routing
+camera default, pass scope, lighting environment, procedural meshes, input routing
 scope, and timeline bindings. It is not a public `THREE.Scene`, and it must not
 turn every DOM target into scene graph authoring.
 
@@ -238,7 +246,7 @@ abstraction is a managed render model that can describe:
 - which scene/layer an object belongs to;
 - which camera views that scene;
 - how DOM rects project into that scene;
-- what stage primitives live in that scene;
+- what procedural meshes live in that scene;
 - which lights affect them;
 - which passes draw them to canvas;
 - which postprocess effects apply to a pass or canvas.
@@ -321,11 +329,10 @@ needed:
       target={[0, 0, 0]}
     />
 
-    <WebGLStagePlane
+    <WebGLMesh
       id="floor"
-      size={[1200, 800]}
+      geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
       position={[0, -260, -80]}
-      rotation={[-Math.PI / 2, 0, 0]}
       material={{
         kind: "standard",
         color: "#05070a",
@@ -374,7 +381,7 @@ Rules:
 - Non-React consumers use equivalent descriptors with explicit `sceneId`,
   `cameraId`, and `pass` fields.
 - `WebGLTarget` remains DOM-backed and owns fallback/lifecycle behavior.
-- Scene-native descriptors such as `WebGLModel`, `WebGLStagePlane`, and
+- Scene-native descriptors such as `WebGLModel`, `WebGLMesh`, and
   `WebGLLight` do not require DOM anchors or fallback DOM.
 - `WebGLModel` should be used only when a model is authored as scene-native. A
   model that should follow DOM layout should stay a `WebGLTarget` model source.
@@ -389,7 +396,7 @@ flowchart TD
   Pass["WebGLRenderPass descriptor"]
   Target["WebGLTarget"]
   Model["WebGLModel"]
-  Stage["WebGLStage primitive"]
+  Stage["WebGLMesh"]
   Light["WebGLLight"]
   Effect["defineWebGLEffect"]
 
@@ -737,7 +744,7 @@ Make these explicit opt-in capabilities:
 - additional scenes, additional cameras, overlay passes, minimap/viewport passes,
   and pass-scoped postprocess;
 - `perspective-stage` projection and `stage-local` placement;
-- scene-native `WebGLModel`, stage primitives, lights, and materialized floors,
+- scene-native `WebGLModel`, procedural meshes, lights, and materialized floors,
   walls, or backdrops;
 - managed scroll timelines beyond basic progress keys;
 - camera controls, scene-level input routing, raycast/picking, colliders, and
@@ -769,7 +776,7 @@ Status values:
 | Phase 1: Internal Render Layer Foundations | `[verified]` | [2026-07-03-internal-render-layer-foundations.md](../superpowers/plans/2026-07-03-internal-render-layer-foundations.md) | Internal generated scene/camera/pass foundation is implemented and verified; public API remains unchanged. |
 | Phase 2: Opt-In Scene, Camera, and Pass Declarations | `[verified]` | [2026-07-03-opt-in-scene-camera-pass-declarations.md](../superpowers/plans/2026-07-03-opt-in-scene-camera-pass-declarations.md) | Public declarations, runtime descriptor parity, target scene inheritance, and Level 1 compatibility are verified. |
 | Phase 3: Projection Policies | `[verified]` | [2026-07-03-projection-policies.md](../superpowers/plans/2026-07-03-projection-policies.md) | Projection and placement policies are implemented and verified; Phase 4 can start from explicit stage contracts. |
-| Phase 4: Managed Stage Primitives | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public stage primitive/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` was intentionally deferred out of Phase 4 and handled in Phase 8. |
+| Phase 4: Managed WebGLMesh Geometry | `[verified]` | [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md) | Public procedural mesh/light descriptors, runtime wiring, tests, docs, and commit are closed; `screen-plane` was intentionally deferred out of Phase 4 and handled in Phase 8. |
 | Phase 5: Target Routing, Scroll Timelines, and Effect Scope | `[verified]` | [2026-07-04-target-routing-scroll-timelines-effect-scope.md](../superpowers/plans/2026-07-04-target-routing-scroll-timelines-effect-scope.md) | Timeline bindings, `WebGLScrollTimeline`, target/scene/stage/light activation, scoped effect metadata, tests, docs, and commit are closed; camera timeline control intentionally stayed out of Phase 5 and is handled by Phase 6A. |
 | Phase 6: Pass Viewport And Postprocess Scope Correction | `[verified]` | [2026-07-04-pass-viewport-postprocess-scope.md](../superpowers/plans/2026-07-04-pass-viewport-postprocess-scope.md) | DOM-bound pass viewport/scissor, pass descriptors, runtime/pass postprocess scope, clip-not-compress browser correction, debug summaries, tests, docs, and commit are closed; no camera behavior ships here. |
 | Phase 6A: Managed Camera Controllers | `[verified]` | [2026-07-04-managed-camera-controllers.md](../superpowers/plans/2026-07-04-managed-camera-controllers.md) | A single optional `WebGLCamera.controller` descriptor drives progress-based perspective-stage `position`/`target`/`fov`; tests, docs, and commit are closed. Top-level `WebGLCameraDeclaration.timeline`, implicit `ctx.camera`, pass-bound controller scope, orthographic/screen/framing-box controllers, and pointer-driven interaction remain out of scope. |
@@ -779,7 +786,7 @@ Status values:
 | Phase 7D: Model Load And Prepare Performance | `[verified]` | [2026-07-06-phase-7d-model-load-prepare-performance.md](../superpowers/plans/2026-07-06-phase-7d-model-load-prepare-performance.md) | Scene-native prepared model loading is viewport-proximity aware and instrumented; prepared managed models stay queued while far from view, load/warm up inside the prepare margin, and remain smooth at visible row entry. |
 | Phase 8: Interaction and Picking | `[verified]` | [2026-07-06-phase-8-interaction-picking.md](../superpowers/plans/2026-07-06-phase-8-interaction-picking.md) | Scene-object effects, `screen-plane`, runtime-owned pick routing, object pointer/capture state, minimal primary orbit drag, tests, docs, browser verification, and commit are closed without raw raycaster/intersection/camera handles. |
 | Phase 8B: Advanced Camera Gesture Controllers | `[verified]` | [2026-07-06-phase-8b-advanced-camera-gesture-controllers.md](../superpowers/plans/2026-07-06-phase-8b-advanced-camera-gesture-controllers.md) | Drag-based orbit/pan/dolly/parallax/damping/reset are implemented under `WebGLCamera.controller.pointer`; hover/click-only object hits do not block camera drag, hover/click picking reads the current-frame gesture-updated camera, pointer gesture frames persist after movement stops/release and re-apply after true managed camera resize, explicit object drag capture still blocks, wheel/pinch zoom stay deferred out of v1, and tests/docs/commit are closed. |
-| Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed stage primitives and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, direct pointer-drag manipulation with release inertia, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
+| Phase 9: Dynamics and Physics | `[verified]` | [2026-07-07-phase-9-dynamics-physics.md](../superpowers/plans/2026-07-07-phase-9-dynamics-physics.md) | Descriptor-only scene-native physics is implemented for managed procedural meshes and `WebGLModel`: runtime-owned bodies, colliders, anchor/spring constraints, direct pointer-drag manipulation with release inertia, transform writes, debug summaries, example dogfood, tests, docs, and commit are closed while external engines, Level 1 target physics, raw body handles, dynamic-vs-dynamic impulses, joints, and collision events stay out of scope. |
 | Phase 10: Advanced Escape Hatch Decision | `[superseded]` | none | Superseded by the capability-stable alpha boundary. Release validation does not add raw escape hatches or R3F parity. |
 
 Rules for future updates:
@@ -1039,13 +1046,13 @@ Acceptance criteria:
 - Existing Level 1 targets continue to use the generated DOM-aligned
   scene/camera/pass.
 
-### Phase 4: Managed Stage Primitives
+### Phase 4: Managed WebGLMesh Geometry
 
 - **Status:** `[verified]`
 - **Focused plan:** [2026-07-04-managed-stage-primitives.md](../superpowers/plans/2026-07-04-managed-stage-primitives.md)
 - **Depends on:** Phase 3
 - **Last updated:** 2026-07-04
-- **Exit criteria:** runtime-owned lit stage primitives can coexist with GLB
+- **Exit criteria:** runtime-owned lit procedural meshes can coexist with GLB
   models without exposing raw meshes, materials, or lights; Phase 3's deferred
   `screen-plane` placement decision is explicitly resolved or recorded as a
   follow-up.
@@ -1058,16 +1065,15 @@ Public direction:
 <WebGLScene id="world">
   <WebGLCamera id="main" default type="perspective" />
 
-  <WebGLStagePlane
+  <WebGLMesh
     id="floor"
-    role="floor"
-    size={[1200, 800]}
+    geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
     material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
   />
 
-  <WebGLStagePlane
+  <WebGLMesh
     id="backdrop"
-    role="backdrop"
+    geometry={{ kind: "plane", role: "backdrop" }}
     material={{ kind: "standard", color: "#020617" }}
   />
 
@@ -1076,18 +1082,21 @@ Public direction:
 </WebGLScene>
 ```
 
-Initial primitive set:
+Current geometry set:
 
-- `plane`;
-- `box`;
+- built-ins: `plane`, `box`, `sphere`, `cylinder`, `cone`, `tetrahedron`;
+- advanced custom geometry: a stable factory returning a fresh
+  `BufferGeometry`, with validation, ownership, and disposal retained by the
+  runtime;
+- physics colliders remain explicit and are not inferred from visual geometry.
 - role aliases: `floor`, `wall`, `backdrop`;
 - material descriptors: `basic`, `standard`;
 - light descriptors: `ambient`, `directional`, `point`.
 
 Focused plan reminders:
 
-- Start with concrete React components such as `WebGLStagePlane` and
-  `WebGLStageBox`. Do not add a generic `<WebGLStage kind="...">` wrapper until
+- Start with concrete React components such as `WebGLMesh` and
+  `WebGLMesh`. Do not add a generic `<WebGLStage kind="...">` wrapper until
   more primitive kinds prove that abstraction useful.
 - Initial stage materials are solid-color descriptor data. Do not add
   `material.map`, texture URL, image texture, normal map, or roughness map
@@ -1101,7 +1110,7 @@ Phase 3 deferred `screen-plane` follow-up:
 - If Phase 4 introduces named stage planes, the focused Phase 4 plan must
   explicitly decide whether to add `placement: { mode: "screen-plane", planeId }`
   in the same phase.
-- If `screen-plane` would expand Phase 4 beyond the managed stage primitive
+- If `screen-plane` would expand Phase 4 beyond the managed procedural mesh
   substrate, the Phase 4 plan must record it as an explicit follow-up tied to
   named stage planes. Do not leave it as an implicit open question.
 - Focused plan decision: Phase 4 does not implement `screen-plane`; the exact
@@ -1110,7 +1119,7 @@ Phase 3 deferred `screen-plane` follow-up:
 
 Rules:
 
-- Stage primitives are internal meshes, not raw `THREE.Mesh`.
+- Procedural meshes are internal meshes, not raw `THREE.Mesh`.
 - Materials are descriptors or managed facades, not raw `THREE.Material`.
 - Lights are keyed runtime-owned objects.
 - Stage objects participate in the scene's lighting and depth.
@@ -1122,7 +1131,7 @@ Acceptance criteria:
 
 - A point light can visibly affect a floor/backdrop with standard material.
 - Existing `dom/element` surfaces remain unlit unless explicitly materialized as
-  stage primitives.
+  procedural meshes.
 - Runtime owns disposal for geometry, material, texture, light, and generated
   objects.
 - If Phase 4 keeps stage materials solid-color only, it should explicitly record
@@ -1167,14 +1176,14 @@ Deliverables:
 Completion notes:
 
 - Public `timeline` bindings exist on `WebGLTarget`, `WebGLScene`,
-  `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight`.
+  `WebGLMesh` and `WebGLLight`.
 - `WebGLCameraDeclaration` intentionally does not have top-level `timeline`;
   camera motion/focus/framing will consume named timeline signals only through a
   Phase 6A `WebGLCamera.controller` descriptor.
 - `WebGLScrollTimeline` is the broader React scroll timeline component.
   `ScrollEffectSection` remains compatibility sugar for target/effect pinned
   sections.
-- Target renderables, scene render passes, and stage primitive/light
+- Target renderables, scene render passes, and procedural mesh/light
   controllers can consume active timeline ranges without React descriptor churn.
   Active ranges compose with effect/declaration visibility instead of forcing
   hidden objects visible.
@@ -1182,7 +1191,7 @@ Completion notes:
   descriptor/timeline metadata. They do not expose raw scenes, cameras, passes,
   renderers, or `ctx.camera`.
 - Phase 4 debug inventory shape is preserved and extended only with
-  descriptor-only timeline summaries for stage primitives and lights.
+  descriptor-only timeline summaries for procedural meshes and lights.
 
 Rules:
 
@@ -1204,7 +1213,7 @@ Acceptance criteria:
 
 - Existing target-local effects keep working.
 - Existing `ScrollEffectSection` usage keeps working.
-- A scene, target, stage primitive/light, image sequence, or later model
+- A scene, target, procedural mesh/light, image sequence, or later model
   animation can consume the same named timeline/progress signal through managed
   runtime state.
 - Future camera controllers have documented ownership for reusing the same
@@ -1378,7 +1387,7 @@ Implemented v1:
 - `apps/example` dogfoods `human_male_base.glb` through public `WebGLModel`,
   and pinned `WalkCycle` scrub in a dedicated
   `ManagedModelAnimationExample` / `example.managedModel.*` scene. Keep this
-  model dogfood separate from camera-controller and stage primitive rows; do not
+  model dogfood separate from camera-controller and procedural mesh rows; do not
   turn it into inferred all-clip playback.
 
 Model asset requirements:
@@ -1618,7 +1627,7 @@ Goal: support interaction in managed 3D scenes without exposing raw `Raycaster`.
 Capabilities:
 
 - scene-native object/effect scope via `defineWebGLSceneObjectEffect(...)` for
-  `WebGLModel` and stage primitive descriptors. Scene-object effects receive
+  `WebGLModel` and procedural mesh descriptors. Scene-object effects receive
   object/scene/runtime scope and `ctx.objectPointer`, not DOM layout, fallback,
   or `ctx.targetPointer`;
 - `screen-plane` placement against named stage planes, using runtime-owned
@@ -1626,7 +1635,7 @@ Capabilities:
   meshes, planes, or cameras;
 - runtime-owned input router with hover/click object routing separated from
   primary camera drag;
-- pickable descriptors for stage primitives and models;
+- pickable descriptors for procedural meshes and models;
 - effect-readable object hover, press, click, drag, and pointer capture state;
 - descriptor-only interaction debug summaries;
 - minimal primary orbit drag that ignores hover/click-only object hits while
@@ -1639,7 +1648,7 @@ Rules:
   scope. Do not add implicit DOM-target layout, fallback, or `ctx.targetPointer`
   semantics to scene-native models.
 - Scene-object effects are not target-local effects. They are allowed on
-  scene-native `WebGLModel` and stage primitive descriptors, not as a way to give
+  scene-native `WebGLModel` and procedural mesh descriptors, not as a way to give
   those objects DOM fallback/lifecycle semantics.
 - Do not expose raw raycaster or intersection objects.
 - Do not expose raw camera controls as the default contract.
@@ -1657,8 +1666,8 @@ Rules:
 
 Acceptance criteria:
 
-- A stage primitive can receive managed hover/click state.
-- Stage primitives and models can expose managed hover/click hit state using
+- A procedural mesh can receive managed hover/click state.
+- Procedural meshes and models can expose managed hover/click hit state using
   mesh-level visual hits or coarse bounds hits.
 - Primary drag can drive a minimal managed orbit camera controller without
   stacking hover/click object routing while dragging.
@@ -1735,7 +1744,7 @@ stable.
 
 Implemented v1 layers:
 
-- descriptor-only `physics` on `WebGLStagePlane`, `WebGLStageBox`, and
+- descriptor-only `physics` on `WebGLMesh` and
   `WebGLModel`;
 - `static`, `dynamic`, and `kinematic` body types;
 - `bounds`, `box`, `sphere`, and `plane` colliders;
@@ -1747,7 +1756,7 @@ Implemented v1 layers:
 - example dogfood in `apps/example/src/ManagedPhysicsExample.tsx` covering
   static, dynamic, and kinematic bodies; plane, box, sphere, and bounds
   colliders; anchor and spring constraints; direct pointer-drag manipulation;
-  stage primitive physics; scene-native `WebGLModel` physics; and visible
+  procedural mesh physics; scene-native `WebGLModel` physics; and visible
   static collider bounce/inertia after releasing the red block.
 
 Rules:
@@ -1761,7 +1770,7 @@ Rules:
 
 Acceptance criteria:
 
-- Stage-local objects, stage primitives, and eligible model targets can
+- Stage-local objects, procedural meshes, and eligible model targets can
   participate in basic constraints.
 - Pointer dragging can move a managed body through a constraint or force model.
 - Physics or dynamics pause/dispose with runtime lifecycle.
@@ -1960,7 +1969,7 @@ Only advanced users opt into:
 - pass-scoped postprocess;
 - managed scroll timelines beyond current progress keys;
 - managed model animation;
-- managed stage primitives;
+- managed procedural meshes;
 - interaction/collider/physics.
 
 ## Non-Goals
@@ -2029,7 +2038,7 @@ Do not make these default roadmap items:
     picking for current stage/model dogfood, and coarse bounds as a fallback
     mode before adding physics drag.
 - Placement mode defaults.
-  - Recommendation: `WebGLTarget` defaults to `dom-anchored`; stage primitives
+  - Recommendation: `WebGLTarget` defaults to `dom-anchored`; procedural meshes
     and scene-native models default to `stage-local`; overlay helpers default to
     `screen-anchored`.
 - Scroll timeline naming and scope.
@@ -2043,7 +2052,7 @@ Do not make these default roadmap items:
 The roadmap is successful when:
 
 - simple DOM-first usage remains as easy as today;
-- advanced users can declare managed scenes, cameras, stage primitives, lights,
+- advanced users can declare managed scenes, cameras, procedural meshes, lights,
   and passes without touching raw Three.js internals;
 - DOM rect projection remains a first-class contract;
 - at least one managed scene can be pure `stage-local` 3D without DOM-anchored

@@ -9,6 +9,12 @@ Compatible package version: 0.1.0-alpha.1
 
 ## Workflow
 
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 1. Establish audience, core message, outcome, tone, length, interaction density,
    available assets, accessibility, mobile, performance and reduced-motion
    constraints. Follow [narrative-design.md](references/narrative-design.md).
@@ -26,6 +32,8 @@ Compatible package version: 0.1.0-alpha.1
    [capability-status.md](references/capability-status.md). Use experimental
    paths only with acknowledgement; use blocked paths only for retained defect
    reproduction.
+   Use one visual choice tree: DOM-backed visual -> `WebGLTarget`; procedural
+   3D geometry -> `WebGLMesh`; GLB asset -> `WebGLModel`.
 6. Before implementation, run an **experimental public-boundary preflight** for
    every experimental or blocked slice in a minimal public-npm browser spike.
    Record direct measurements, package version, clean console/page errors and
@@ -56,8 +64,9 @@ Compatible package version: 0.1.0-alpha.1
 
 ## Hard boundaries
 
-- Import only `@viselora/dom-webgl`, `@viselora/dom-webgl/react`,
-  `@viselora/scroll-adapters`, and `@viselora/scroll-adapters/react`.
+- Use only the four Viselora entrypoints above. A direct `three` dependency is
+  allowed solely for a `WebGLMesh` custom geometry factory that returns a fresh
+  `BufferGeometry`; it grants no raw scene/render ownership.
 - Do not add R3F, `<Canvas>`, raw `WebGLRenderer`, a second renderer/runtime/
   canvas, a consumer render loop, private/source imports, or duplicate scroll/
   pointer listeners.

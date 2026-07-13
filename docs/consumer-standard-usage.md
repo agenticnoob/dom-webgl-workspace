@@ -39,16 +39,24 @@ helper、Rapier 物理或 raw ref 控制时，直接用 R3F。这个 runtime 适
 
 ## 先选哪条路
 
+唯一选择树：
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 | 你要做什么 | 用什么 |
 | --- | --- |
 | 普通 DOM/text/image/video/image-sequence/跟随 DOM 的 GLB 效果 | `WebGLRuntime` + `WebGLTarget` |
 | 自定义视觉效果 | `defineWebGLEffect(...)` + runtime `effects` |
 | 滚动进度驱动 effect | `WebGLScrollRuntime` + `ScrollEffectSection` |
 | 真正的 3D 场景，有独立 scene/camera/pass | `WebGLScene` + `WebGLCamera` |
-| 有灯光的地板、墙、盒子、背景板 | `WebGLStagePlane` / `WebGLStageBox` |
+| 程序化 3D geometry（含有灯光的地板、墙、盒子） | `WebGLMesh` |
 | scene-native GLB 模型 | `WebGLModel` |
 | scene-native 物体 hover/click/drag effect | `defineWebGLSceneObjectEffect(...)` |
-| scene-native 物理 | `WebGLStagePlane` / `WebGLStageBox` / `WebGLModel` 上的 `physics` |
+| scene-native 物理 | `WebGLMesh` / `WebGLModel` 上的 `physics` |
 
 默认先用 `WebGLTarget`。只有产品确实需要 scene/camera/pass/model/stage/physics
 时，再进入高级 API。
@@ -83,8 +91,7 @@ import {
   WebGLModel,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
+  WebGLMesh,
 } from "@viselora/dom-webgl/react";
 ```
 
@@ -322,9 +329,9 @@ DOM-backed target 的 pointer data 在 target declaration 里打开：
 scene-native stage/model object 用 `interaction.pickable`：
 
 ```tsx
-<WebGLStagePlane
+<WebGLMesh
   id="floor"
-  role="floor"
+  geometry={{ kind: "plane", role: "floor" }}
   interaction={{
     pickable: {
       hitTest: "mesh",
@@ -422,10 +429,9 @@ GSAP 或 ScrollTrigger instance。
       position={[0, 80, 420]}
       target={[0, 0, 0]}
     />
-    <WebGLStagePlane
+    <WebGLMesh
       id="floor"
-      role="floor"
-      size={[800, 800]}
+      geometry={{ kind: "plane", role: "floor", size: [800, 800] }}
       rotation={[-Math.PI / 2, 0, 0]}
       material={{ kind: "standard", color: "#101418", roughness: 0.72 }}
     />
@@ -461,13 +467,13 @@ GSAP 或 ScrollTrigger instance。
 
 ## Physics 标准用法
 
-Physics 只属于 scene-native object。用在 `WebGLStagePlane`、`WebGLStageBox`、
+Physics 只属于 scene-native object。用在 `WebGLMesh`、
 `WebGLModel` 上。
 
 ```tsx
-<WebGLStageBox
+<WebGLMesh
   id="floating.box"
-  size={[40, 40, 40]}
+  geometry={{ kind: "box", size: [40, 40, 40] }}
   position={[0, 120, 0]}
   physics={{
     body: {

@@ -10,6 +10,14 @@ The examples use `ctx.object` as the public visual authoring surface. Source,
 target, and visual handles are internal runtime assembly details; new package
 capability design should follow `docs/agent/effect-object-boundary.md`.
 
+Choose the visual entrypoint first:
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 ## Install And Run
 
 From the workspace root:
@@ -57,7 +65,7 @@ import {
   WebGLPassViewport,
   WebGLRuntime,
   WebGLScene,
-  WebGLStagePlane,
+  WebGLMesh,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
 import {
@@ -181,11 +189,14 @@ pinned sections.
             easing: "smoothstep",
           }}
         />
-        <WebGLStagePlane
+        <WebGLMesh
           id="example.managedStage.floor"
-          role="floor"
+          geometry={{ kind: "plane", role: "floor" }}
         />
-        <WebGLStageBox id="example.managedStage.plinth" />
+        <WebGLMesh
+          id="example.managedStage.plinth"
+          geometry={{ kind: "box" }}
+        />
         <WebGLLight
           id="example.managedStage.key"
           kind="point"
@@ -344,7 +355,7 @@ its pass viewport is far from the page viewport, then load and warm before the
 model row reaches view. Debug state reports descriptor-only `prepare.load` and
 `prepare.renderWarmup`; these are not loader callbacks or raw render hooks. The
 example does not use target-local effects and is not mixed into the pinned
-managed timeline or stage primitive dogfood rows.
+managed timeline or procedural mesh dogfood rows.
 
 Scene-native `WebGLModel` effects use explicit scene-object scope through
 `defineWebGLSceneObjectEffect(...)`. `apps/example` dogfoods this in
@@ -355,7 +366,7 @@ gestures for primary-drag orbit, secondary-drag pan, Alt + primary-drag dolly,
 camera parallax, damping, and double-click reset. Phase 9 physics dogfood lives
 in the separate `ManagedPhysicsExample`, where static, dynamic, and kinematic
 bodies cover plane, box, sphere, and bounds colliders, anchor and spring
-constraints, direct pointer-drag manipulation, stage primitive physics, and
+constraints, direct pointer-drag manipulation, procedural mesh physics, and
 scene-native `WebGLModel` physics. Its visible validation path is the moving
 blue/yellow constraint bodies, the sweeping kinematic model, and the
 pointer-draggable orange crate. The red block is the direct drag/release test
@@ -526,13 +537,13 @@ renderable even when no card effect is active in the viewport.
 The managed timeline dogfood uses a pinned `WebGLPassViewport` section,
 separately from the pinned image-sequence section. It feeds a named progress
 signal to a perspective-stage camera controller and the default-pipeline WebGL
-target surface effect, while the managed scene, stage primitives, and
+target surface effect, while the managed scene, procedural meshes, and
 scene-owned lights display directly. The card effect holds its final visible
 state at progress `1`; the section leaves by pass viewport clipping rather than
 an effect-level exit fade. In the example catalog, the separate managed stage
 primitive dogfood is mounted before this timeline so the timeline exit is not
 immediately followed by another similar 3D stage pass.
-The managed stage primitive dogfood also uses `WebGLPassViewport` so managed
+The managed procedural mesh dogfood also uses `WebGLPassViewport` so managed
 passes are clipped to DOM rects on the same runtime canvas without exposing
 renderer viewport/scissor calls. The runtime intersects each DOM rect with the
 current canvas viewport; the full DOM rect still defines the pass mapping, so

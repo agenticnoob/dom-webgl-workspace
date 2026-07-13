@@ -11,6 +11,14 @@ same-repository agent skill lives at `skills/viselora-dom-webgl/`.
 
 ## Package Truth
 
+Choose the visual entrypoint before adding scene/camera details:
+
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 - Use public package entrypoints only.
 - The package is a DOM-first managed WebGL runtime, not a React Three Fiber
   replacement, raw Three.js wrapper, or R3F companion runtime.
@@ -116,12 +124,10 @@ import {
   type WebGLScreenAnchor,
   type WebGLSceneDeclaration,
   type WebGLSceneProjection,
-  type WebGLStageBoxDeclaration,
-  type WebGLStageMaterialDeclaration,
-  type WebGLStagePlaneDeclaration,
-  type WebGLStagePlaneRole,
-  type WebGLStagePrimitiveDeclaration,
-  type WebGLStagePrimitiveKind,
+  type WebGLMeshDeclaration,
+  type WebGLMeshGeometryDeclaration,
+  type WebGLMeshMaterialDeclaration,
+  type WebGLPlaneRole,
   type WebGLTimelineBindingDeclaration,
   type WebGLProgressSignalSource,
   type WebGLTransformScope,
@@ -139,8 +145,7 @@ import {
   WebGLModel,
   WebGLRuntime,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
+  WebGLMesh,
   WebGLTarget,
   useWebGLRuntime,
 } from "@viselora/dom-webgl/react";
@@ -504,10 +509,10 @@ const cameraController = {
 } satisfies WebGLCameraProps["controller"];
 ```
 
-### 3. Opt-In Managed Stage Primitives
+### 3. Opt-In Managed WebGLMesh Geometry
 
-Use stage primitives only after choosing a managed scene. `WebGLTarget` remains
-the default DOM-first path. Stage primitives are scene-native objects with no
+Use procedural meshes only after choosing a managed scene. `WebGLTarget` remains
+the default DOM-first path. Procedural meshes are scene-native objects with no
 fallback DOM:
 
 ```tsx
@@ -516,8 +521,7 @@ import {
   WebGLLight,
   WebGLRuntime,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
+  WebGLMesh,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
 
@@ -541,15 +545,14 @@ export function App() {
           type="perspective"
           mode="perspective-stage"
         />
-        <WebGLStagePlane
+        <WebGLMesh
           id="floor"
-          role="floor"
-          size={[1200, 800]}
+          geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
           material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
         />
-        <WebGLStageBox
+        <WebGLMesh
           id="plinth"
-          size={[180, 80, 180]}
+          geometry={{ kind: "box", size: [180, 80, 180] }}
           position={[0, -120, -40]}
           material={{ kind: "basic", color: "#111827" }}
         />
@@ -569,12 +572,10 @@ export function App() {
 Vanilla:
 
 ```ts
-runtime.registerStagePrimitive({
+runtime.registerMesh({
   id: "floor",
   sceneId: "world",
-  kind: "plane",
-  role: "floor",
-  size: [1200, 800],
+  geometry: { kind: "plane", role: "floor", size: [1200, 800] },
   material: { kind: "standard", color: "#05070a", roughness: 0.8 },
 });
 
@@ -589,21 +590,33 @@ runtime.registerLight({
 
 Rules:
 
-- `WebGLStagePlane`, `WebGLStageBox`, and `WebGLLight` are descriptor
+- `WebGLMesh` and `WebGLLight` are descriptor
   components, not raw Three.js wrappers.
-- In React, declare stage primitives under `WebGLScene` or pass an explicit
+- In React, declare procedural meshes under `WebGLScene` or pass an explicit
   `scene` prop. Vanilla descriptors use `sceneId`.
 - React nesting communicates scene ownership only. It does not clip a managed
   scene to the containing DOM section by itself; DOM-bound viewport/scissor
   clipping uses `WebGLPassViewport` plus a pass
   `viewport: { mode: "dom-rect" }` descriptor.
-- Treat stage primitive and light props as stable scene declarations. Ordinary
+- Treat procedural mesh and light props as stable scene declarations. Ordinary
   React updates are supported through mount/unmount registration, but
   high-frequency animation should use timeline bindings plus managed runtime
   state, effects, or controllers instead of prop churn.
 - The runtime creates and disposes internal Three meshes, geometry, materials,
   and lights. Do not pass raw Three meshes, materials, geometries, lights,
   scenes, cameras, renderers, or render-loop handles.
+- Built-in geometry kinds are `plane`, `box`, `sphere`, `cylinder`, `cone`, and
+  `tetrahedron`; a built-in tetrahedron needs no consumer Three.js import.
+- Advanced custom geometry is the only narrow Three.js exception. Declare
+  `three` as a direct dependency and keep a module-scope or memoized descriptor
+  whose `create` factory returns a fresh `BufferGeometry` on each call. The
+  factory runs after mount at runtime, not during SSR module evaluation; the
+  runtime validates, owns, and disposes both geometry and material, including
+  idempotent repeated cleanup.
+- Custom geometry does not grant scene, renderer, camera, `Object3D`, material,
+  loader, render-target, lifecycle, scheduling, or disposal ownership.
+- Physics colliders are separate explicit descriptors and are never inferred
+  from the visual `geometry` kind.
 - Stage materials are solid-color `basic` or `standard` descriptors. Texture
   descriptors for stage materials are not public yet.
 - DOM targets that need to sit on a named stage plane can use
@@ -613,7 +626,7 @@ Rules:
 ### 4. Managed Scroll Timelines And Scope Metadata
 
 Use named timelines when one progress signal should drive targets, managed
-scenes, stage primitives, scene-owned lights, or effects. The runtime consumes
+scenes, procedural meshes, scene-owned lights, or effects. The runtime consumes
 `WebGLProgressSignalSource`; the React scroll adapter can create that signal
 with a DOM-owned section ref.
 
@@ -626,7 +639,7 @@ import {
   WebGLLight,
   WebGLCamera,
   WebGLScene,
-  WebGLStagePlane,
+  WebGLMesh,
 } from "@viselora/dom-webgl/react";
 
 export function App() {
@@ -653,9 +666,9 @@ export function App() {
               easing: "smoothstep",
             }}
           />
-          <WebGLStagePlane
+          <WebGLMesh
             id="hero.floor"
-            role="floor"
+            geometry={{ kind: "plane", role: "floor" }}
             timeline={{ id: "hero.timeline", active: { from: 0.2, to: 1 } }}
           />
           <WebGLLight
@@ -678,14 +691,14 @@ Rules:
 - `WebGLScrollTimeline` defaults its `progressKey` to `id`.
 - `ScrollEffectSection` remains compatible sugar for ordinary target/effect
   pinned sections that only need a `progressKey`.
-- `WebGLTarget`, `WebGLScene`, `WebGLStagePlane`, `WebGLStageBox`, and
+- `WebGLTarget`, `WebGLScene`, `WebGLMesh` and
   `WebGLLight` can bind top-level timelines. `WebGLCamera` cannot.
 - Use nested `WebGLCamera.controller.timeline` on managed
   `perspective-stage` cameras when the same progress signal should drive camera
   `position`, `target`, or `fov`. Vanilla consumers pass the same `controller`
   data to `runtime.registerCamera(...)`. Controller framing survives managed
   camera resize/reframing passes even when the progress signal has not changed.
-- Timeline bindings can activate/skip targets, scene passes, stage primitives,
+- Timeline bindings can activate/skip targets, scene passes, procedural meshes,
   and lights by progress range without rebuilding descriptors every frame.
   Entering an active range restores only the declaration/effect-owned
   visibility; it does not override `visible: false` or
@@ -958,8 +971,7 @@ import {
   WebGLCamera,
   WebGLModel,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
+  WebGLMesh,
 } from "@viselora/dom-webgl/react";
 
 <WebGLScene
@@ -1019,19 +1031,18 @@ Scene-native physics is descriptor-only on managed stage/model objects:
     type="perspective"
     mode="perspective-stage"
   />
-  <WebGLStagePlane
+  <WebGLMesh
     id="physics.floor"
-    role="floor"
-    size={[1200, 800]}
+    geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
     position={[0, -180, 0]}
     physics={{
       body: { type: "static" },
       collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
     }}
   />
-  <WebGLStageBox
+  <WebGLMesh
     id="physics.crate"
-    size={[72, 72, 72]}
+    geometry={{ kind: "box", size: [72, 72, 72] }}
     position={[0, -90, 0]}
     interaction={{
       pickable: {
@@ -1739,7 +1750,7 @@ skill:
 - For managed physics drift debugging, use the separate
   `ManagedPhysicsExample` surface. It intentionally covers static, dynamic,
   and kinematic bodies; plane, box, sphere, and bounds colliders; anchor and
-  spring constraints; direct pointer-drag manipulation; stage primitive
+  spring constraints; direct pointer-drag manipulation; procedural mesh
   physics; and scene-native `WebGLModel` physics. Do not mix new physics
   coverage back into the Phase 8B interaction/camera dogfood.
 - Keep app visuals app-owned. Ghost Cursor, ReactBits-style effects, image

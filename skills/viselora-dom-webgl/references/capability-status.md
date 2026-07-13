@@ -34,6 +34,7 @@ presence alone does not upgrade a capability's evidence status.
 | reduced-motion-signaling | verified | Content continuity and no required animation | Freeze, shorten, or replace motion without removing meaning. |
 | image-sequence | experimental | Final-canvas pixels, first-frame fallback, bounded cache, forward/reverse scroll | Require explicit experimental acknowledgement until external verification completes. |
 | scene-camera-pass | experimental | Managed declarations and clipped final-canvas pixels | Use public descriptors and collect browser evidence. |
+| procedural-meshes | experimental | Built-in/custom geometry pixels, custom validation, and idempotent geometry/material disposal | Prefer built-ins. Custom users declare `three` directly, return a fresh `BufferGeometry`, keep descriptors stable, and declare physics colliders explicitly. |
 | scene-native-models | experimental | Model ready plus scene-model final-canvas pixels | Keep a poster/text fallback in the story even when the scene object has no DOM fallback. |
 | scene-object-effect-registration | verified | Root-defined effect attaches through the React entrypoint, `ready + attached`, clean errors, final pixels | `0.1.0-alpha.0` is blocked by cross-entrypoint classification. Published `0.1.0-alpha.1` tarballs are verified for registration by the installed-tarball browser gate. |
 | scene-object-interaction | experimental | Managed picking, pointer/touch alternative, final-canvas pixels | Keep controls accessible in DOM. |
@@ -61,4 +62,5 @@ Blocked ids may be selected only with top-level mode
 retain semantic fallback, record ready/active state where relevant, and compare
 clipped final-canvas pixels against a declared threshold. It must not introduce
 private imports, raw Three.js ownership, R3F, a second canvas, or a consumer
-render loop.
+render loop. The controlled custom-geometry factory is allowed, but it must not
+be used to acquire any broader Three.js ownership.

@@ -8,6 +8,12 @@ Its rules apply to the entire `apps/hero-next` subtree.
 `hero-next` is a strict downstream dogfood consumer of the current public
 Viselora packages.
 
+```text
+DOM-backed visual -> WebGLTarget
+Procedural 3D geometry -> WebGLMesh
+GLB asset -> WebGLModel
+```
+
 - CSS may only perform document reset, sizing, positioning, layout, stacking,
   overflow control, and pointer-event routing.
 - CSS must not create any visible artwork or visual treatment. Do not use CSS
@@ -22,8 +28,11 @@ Viselora packages.
 - App-owned effects created with `defineWebGLEffect(...)` or
   `defineWebGLSceneObjectEffect(...)` are allowed when they use only the
   package-managed effect context and public capability facades.
-- Do not import `three`, React Three Fiber, package `src/` files, or private
-  renderer, scene, camera, material, loader, or object handles.
+- Do not import React Three Fiber, package `src/` files, or private renderer,
+  scene, camera, material, loader, or object handles. A direct `three` geometry
+  constructor import is allowed only for a stable `WebGLMesh`
+  `geometry: { kind: "custom", create }` descriptor whose factory returns a
+  fresh `BufferGeometry`; runtime owns validation and disposal.
 
 The CSS allowlist is intentionally narrow. New declarations should be limited
 to properties such as `box-sizing`, `margin`, `width`, `height`, `min-height`,
@@ -44,19 +53,20 @@ When the current public package cannot express a required effect:
 4. Describe the smallest general public capability that would unblock it.
 5. Wait for explicit authorization before changing package code.
 
-Never bypass a capability gap with CSS artwork, raw Three.js, a private import,
+Never bypass a capability gap with CSS artwork, raw Three.js ownership, a private import,
 DOM scanning, a second renderer, or an app-specific branch in runtime code.
 
 Known current limits relevant to the studio hero:
 
-- Stage materials expose basic/standard color and PBR scalar properties, but
+- Mesh materials expose basic/standard color and PBR scalar properties, but
   no gradient, texture mask, or stage material program.
 - Stage-plane effects do not currently expose a managed material facade.
 - Managed light declarations do not expose cast/receive shadow configuration.
-- Managed stage geometry is limited to planes and boxes; scene fog is not a
-  public declaration.
+- `WebGLMesh` provides `plane`, `box`, `sphere`, `cylinder`, `cone`, and
+  `tetrahedron` descriptors plus the controlled custom `BufferGeometry`
+  factory; scene fog is not a public declaration.
 
-Use the capabilities that exist—managed scenes, cameras, planes, boxes,
+Use the capabilities that exist—managed scenes, cameras, `WebGLMesh` geometry,
 models, basic/standard materials, lights, transforms, timelines,
 postprocessing, and app-owned public effects—and report the boundary when they
 are insufficient.
