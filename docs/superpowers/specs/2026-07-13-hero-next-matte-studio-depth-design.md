@@ -1,7 +1,9 @@
-# Hero Next 哑光灰白摄影棚纵深设计
+# Hero Next 哑光灰白摄影棚纵深设计（历史方案）
 
 **日期：** 2026-07-13
-**状态：** 已确认，等待用户复核文档
+**状态：** 已被 `2026-07-13-hero-next-package-only-visual-boundary-design.md` 替代
+
+> 该方案通过 CSS 渐变、颗粒和阴影承担画面效果，不符合当前 `apps/hero-next/AGENTS.md` 的 package-only 视觉边界，不再作为后续实现依据。
 
 ## 目标
 

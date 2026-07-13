@@ -1,4 +1,6 @@
-# Hero Next Matte Studio Depth Implementation Plan
+# Hero Next Matte Studio Depth Implementation Plan（历史方案）
+
+> 状态：已完成但已被 `apps/hero-next/AGENTS.md` 的 package-only 视觉边界替代。该计划中的 CSS 画面实现不得继续复制或扩展。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
