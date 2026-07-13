@@ -134,8 +134,8 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     ctx.object.model?.meshes.forEach((mesh) => {
       mesh.material.color.set("#171a20");
       mesh.material.emissive.set("#050208", 0.02);
-      mesh.material.metalness = 0.94;
-      mesh.material.roughness = 0.08;
+      mesh.material.metalness = 0.9;
+      mesh.material.roughness = 0.12;
       mesh.material.opacity = 1;
     });
     return createHeroMotionState(prefersReducedMotion());
@@ -148,7 +148,7 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       pointerX: ctx.pointer.normalizedX,
       pointerY: ctx.pointer.normalizedY,
     });
-    const baseScale = params.baseScale ?? 1.08;
+    const baseScale = params.baseScale ?? 1.12;
     const viewportWidth =
       typeof window === "undefined" ? Number.POSITIVE_INFINITY : window.innerWidth;
     applyHeroFrame(

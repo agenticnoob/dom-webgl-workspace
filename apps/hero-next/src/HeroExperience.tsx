@@ -36,7 +36,7 @@ const ghostBackgroundDeclaration = {
   renderRole: "model",
   lifecycle: { hideWhenReady: true, hideMode: "self" },
   effects: [
-    { kind: "hero.ghost.background", color: "#b497cf", brightness: 0.9 },
+    { kind: "hero.ghost.background", color: "#b497cf", brightness: 0.72 },
   ],
 } satisfies WebGLDeclaration;
 
@@ -47,7 +47,7 @@ const ghostForegroundDeclaration = {
   renderRole: "model",
   lifecycle: { hideWhenReady: true, hideMode: "self" },
   effects: [
-    { kind: "hero.ghost.foreground", color: "#b497cf", brightness: 0.18 },
+    { kind: "hero.ghost.foreground", color: "#b497cf", brightness: 0.2 },
   ],
 } satisfies WebGLDeclaration;
 
@@ -56,7 +56,7 @@ const modelLoader = {
 } satisfies NonNullable<WebGLModelProps["loader"]>;
 
 const modelEffects = [
-  { kind: "hero.tetrahedron.motion", baseScale: 1.08 },
+  { kind: "hero.tetrahedron.motion", baseScale: 1.12 },
 ] satisfies NonNullable<WebGLModelProps["effects"]>;
 
 const modelPrepare = {
@@ -126,13 +126,13 @@ export function HeroExperience() {
             id="hero.tetrahedron.fill"
             kind="ambient"
             color="#d9dce3"
-            intensity={0.16}
+            intensity={0.22}
           />
           <WebGLLight
             id="hero.tetrahedron.key"
             kind="directional"
             color="#eef2f7"
-            intensity={3.2}
+            intensity={3.8}
             position={keyLightPosition}
             target={lightTarget}
           />
@@ -140,7 +140,7 @@ export function HeroExperience() {
             id="hero.tetrahedron.rim"
             kind="directional"
             color="#b497cf"
-            intensity={2.6}
+            intensity={3.2}
             position={rimLightPosition}
             target={lightTarget}
           />
