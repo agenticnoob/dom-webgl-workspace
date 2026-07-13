@@ -7,6 +7,10 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
     createElement("div", null, children),
 }));
 
+vi.mock("../src/heroScroll", () => ({
+  heroSmoothScroll: false,
+}));
+
 vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLScene: ({ id, children }: PropsWithChildren<{ id: string }>) =>
     createElement("div", { "data-scene": id }, children),
