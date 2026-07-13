@@ -217,8 +217,8 @@ git commit -m "feat: define unified WebGLMesh public contract"
 - Modify: `packages/dom-webgl-runtime/test/lib/renderer/stageDeclarations.test.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/stageDeclarations.ts`
 
-- [ ] Add `normalizeMeshDeclaration` cases for common fields and all seven geometry variants. Keep the existing Stage primitive normalization tests until Task 6 so this commit does not break current consumers.
-- [ ] Lock these defaults in tests:
+- [x] Add `normalizeMeshDeclaration` cases for common fields and all seven geometry variants. Keep the existing Stage primitive normalization tests until Task 6 so this commit does not break current consumers.
+- [x] Lock these defaults in tests:
 
 ```ts
 const expectedDefaults = {
@@ -244,10 +244,10 @@ const expectedDefaults = {
 };
 ```
 
-- [ ] Preserve plane-role rotation defaults: floor -> `[-Math.PI / 2, 0, 0]`; wall/backdrop -> `[0, 0, 0]`; an explicit rotation always wins.
-- [ ] Add failure cases for blank ids, blank scene ids, non-positive tuple sizes, non-positive sphere/cone/tetrahedron radii and heights, negative cylinder radii, segment counts below Three.js-safe minimums, non-integer segments/detail, non-finite values, and missing/non-function custom factories. Cylinder top or bottom radius may be zero, but not both at once.
-- [ ] Define segment minimums explicitly: sphere `widthSegments >= 3`, sphere `heightSegments >= 2`, cylinder/cone `radialSegments >= 3`, `heightSegments >= 1`, tetrahedron `detail >= 0`.
-- [ ] Run the focused test and observe failure on the old two-kind normalizer:
+- [x] Preserve plane-role rotation defaults: floor -> `[-Math.PI / 2, 0, 0]`; wall/backdrop -> `[0, 0, 0]`; an explicit rotation always wins.
+- [x] Add failure cases for blank ids, blank scene ids, non-positive tuple sizes, non-positive sphere/cone/tetrahedron radii and heights, negative cylinder radii, segment counts below Three.js-safe minimums, non-integer segments/detail, non-finite values, and missing/non-function custom factories. Cylinder top or bottom radius may be zero, but not both at once.
+- [x] Define segment minimums explicitly: sphere `widthSegments >= 3`, sphere `heightSegments >= 2`, cylinder/cone `radialSegments >= 3`, `heightSegments >= 1`, tetrahedron `detail >= 0`.
+- [x] Run the focused test and observe failure on the old two-kind normalizer:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/lib/renderer/stageDeclarations.test.ts
@@ -255,12 +255,12 @@ npm test -- --run packages/dom-webgl-runtime/test/lib/renderer/stageDeclarations
 
 Expected: non-zero exit because `normalizeMeshDeclaration` and the extra variants do not exist.
 
-- [ ] Add a discriminated `NormalizedMeshDeclaration` whose common fields stay at the top level and whose `geometry` preserves the public discriminator with all defaults filled. Keep the old normalizer temporarily; Task 6 removes it after the registry and consumers switch.
-- [ ] Rename material normalization symbols and error messages from `stage material` to `mesh material`.
-- [ ] Keep light normalization behavior unchanged in this file.
-- [ ] Use exhaustive switches for both public and normalized geometry unions; do not add a `default` branch.
-- [ ] Re-run the focused test and confirm exit 0.
-- [ ] Commit:
+- [x] Add a discriminated `NormalizedMeshDeclaration` whose common fields stay at the top level and whose `geometry` preserves the public discriminator with all defaults filled. Keep the old normalizer temporarily; Task 6 removes it after the registry and consumers switch.
+- [x] Rename material normalization symbols and error messages from `stage material` to `mesh material`.
+- [x] Keep light normalization behavior unchanged in this file.
+- [x] Use exhaustive switches for both public and normalized geometry unions; do not add a `default` branch.
+- [x] Re-run the focused test and confirm exit 0.
+- [x] Commit:
 
 ```bash
 git add packages/dom-webgl-runtime/test/lib/renderer/stageDeclarations.test.ts packages/dom-webgl-runtime/src/lib/renderer/stageDeclarations.ts

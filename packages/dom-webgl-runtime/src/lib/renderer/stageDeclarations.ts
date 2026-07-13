@@ -3,6 +3,9 @@ import type {
   WebGLEffectsDeclaration,
   WebGLLightDeclaration,
   WebGLLightKind,
+  WebGLMeshDeclaration,
+  WebGLMeshMaterialDeclaration,
+  WebGLPlaneRole,
   WebGLStageMaterialDeclaration,
   WebGLStagePlaneRole,
   WebGLStagePrimitiveDeclaration,
@@ -23,7 +26,7 @@ import {
   type NormalizedSceneObjectInteractionDeclaration,
 } from "./sceneObjectInteractionDeclarations";
 
-export type NormalizedStageMaterialDeclaration =
+export type NormalizedMeshMaterialDeclaration =
   | {
       kind: "standard";
       color: WebGLColorValue;
@@ -38,6 +41,66 @@ export type NormalizedStageMaterialDeclaration =
       color: WebGLColorValue;
       opacity: number;
     };
+
+export type NormalizedStageMaterialDeclaration = NormalizedMeshMaterialDeclaration;
+
+export type NormalizedMeshGeometryDeclaration =
+  | {
+      kind: "plane";
+      role?: WebGLPlaneRole;
+      size: WebGLTuple2;
+    }
+  | {
+      kind: "box";
+      size: WebGLTuple3;
+    }
+  | {
+      kind: "sphere";
+      radius: number;
+      widthSegments: number;
+      heightSegments: number;
+    }
+  | {
+      kind: "cylinder";
+      radiusTop: number;
+      radiusBottom: number;
+      height: number;
+      radialSegments: number;
+      heightSegments: number;
+      openEnded: boolean;
+    }
+  | {
+      kind: "cone";
+      radius: number;
+      height: number;
+      radialSegments: number;
+      heightSegments: number;
+      openEnded: boolean;
+    }
+  | {
+      kind: "tetrahedron";
+      radius: number;
+      detail: number;
+    }
+  | {
+      kind: "custom";
+      create: Extract<WebGLMeshDeclaration["geometry"], { kind: "custom" }>["create"];
+    };
+
+export type NormalizedMeshDeclaration = {
+  id: string;
+  sceneId: string;
+  geometry: NormalizedMeshGeometryDeclaration;
+  position: WebGLTuple3;
+  rotation: WebGLTuple3;
+  scale: number | WebGLTuple3;
+  visible: boolean;
+  material: NormalizedMeshMaterialDeclaration;
+  timeline?: NormalizedTimelineBinding;
+  effects?: WebGLEffectsDeclaration;
+  interaction?: NormalizedSceneObjectInteractionDeclaration;
+  physics?: NormalizedPhysicsDeclaration;
+};
 
 export type NormalizedStagePrimitiveDeclaration =
   | {
@@ -86,6 +149,180 @@ export type NormalizedLightDeclaration = {
   timeline?: NormalizedTimelineBinding;
 };
 
+export function normalizeMeshDeclaration(
+  declaration: WebGLMeshDeclaration,
+): NormalizedMeshDeclaration {
+  const id = normalizePublicId(declaration.id, "mesh");
+  const sceneId = normalizePublicId(declaration.sceneId, "scene");
+  const position = normalizeTuple3(
+    declaration.position,
+    [0, 0, 0],
+    "mesh position",
+  );
+  const geometry = normalizeMeshGeometryDeclaration(declaration.geometry);
+  const rotation = normalizeTuple3(
+    declaration.rotation,
+    readNormalizedMeshGeometryRotation(geometry),
+    "mesh rotation",
+  );
+  const scale = normalizeScale(declaration.scale, "mesh scale");
+  const material = normalizeMeshMaterialDeclaration(declaration.material);
+  const timeline = normalizeTimelineBinding(declaration.timeline);
+  const effects = normalizeSceneObjectEffects(declaration.effects);
+  const interaction = normalizeSceneObjectInteraction(declaration.interaction);
+  const physics = normalizePhysicsDeclaration(declaration.physics);
+
+  return {
+    id,
+    sceneId,
+    geometry,
+    position,
+    rotation,
+    scale,
+    visible: declaration.visible ?? true,
+    material,
+    ...(timeline ? { timeline } : {}),
+    ...(effects ? { effects } : {}),
+    ...(interaction ? { interaction } : {}),
+    ...(physics ? { physics } : {}),
+  };
+}
+
+function normalizeMeshGeometryDeclaration(
+  geometry: WebGLMeshDeclaration["geometry"],
+): NormalizedMeshGeometryDeclaration {
+  switch (geometry.kind) {
+    case "plane":
+      return {
+        kind: "plane",
+        ...(geometry.role ? { role: geometry.role } : {}),
+        size: normalizePositiveTuple2(
+          geometry.size,
+          [1, 1],
+          "mesh plane size",
+        ),
+      };
+    case "box":
+      return {
+        kind: "box",
+        size: normalizePositiveTuple3(
+          geometry.size,
+          [1, 1, 1],
+          "mesh box size",
+        ),
+      };
+    case "sphere":
+      return {
+        kind: "sphere",
+        radius: normalizePositiveNumber(
+          geometry.radius,
+          1,
+          "mesh sphere radius",
+        ),
+        widthSegments: normalizeIntegerAtLeast(
+          geometry.widthSegments,
+          32,
+          3,
+          "mesh sphere widthSegments",
+        ),
+        heightSegments: normalizeIntegerAtLeast(
+          geometry.heightSegments,
+          16,
+          2,
+          "mesh sphere heightSegments",
+        ),
+      };
+    case "cylinder": {
+      const radiusTop = normalizeNonNegativeNumber(
+        geometry.radiusTop,
+        1,
+        "mesh cylinder radiusTop",
+      );
+      const radiusBottom = normalizeNonNegativeNumber(
+        geometry.radiusBottom,
+        1,
+        "mesh cylinder radiusBottom",
+      );
+
+      if (radiusTop === 0 && radiusBottom === 0) {
+        throw new Error("WebGL mesh cylinder radii cannot both be zero.");
+      }
+
+      return {
+        kind: "cylinder",
+        radiusTop,
+        radiusBottom,
+        height: normalizePositiveNumber(
+          geometry.height,
+          1,
+          "mesh cylinder height",
+        ),
+        radialSegments: normalizeIntegerAtLeast(
+          geometry.radialSegments,
+          32,
+          3,
+          "mesh cylinder radialSegments",
+        ),
+        heightSegments: normalizeIntegerAtLeast(
+          geometry.heightSegments,
+          1,
+          1,
+          "mesh cylinder heightSegments",
+        ),
+        openEnded: geometry.openEnded ?? false,
+      };
+    }
+    case "cone":
+      return {
+        kind: "cone",
+        radius: normalizePositiveNumber(
+          geometry.radius,
+          1,
+          "mesh cone radius",
+        ),
+        height: normalizePositiveNumber(
+          geometry.height,
+          1,
+          "mesh cone height",
+        ),
+        radialSegments: normalizeIntegerAtLeast(
+          geometry.radialSegments,
+          32,
+          3,
+          "mesh cone radialSegments",
+        ),
+        heightSegments: normalizeIntegerAtLeast(
+          geometry.heightSegments,
+          1,
+          1,
+          "mesh cone heightSegments",
+        ),
+        openEnded: geometry.openEnded ?? false,
+      };
+    case "tetrahedron":
+      return {
+        kind: "tetrahedron",
+        radius: normalizePositiveNumber(
+          geometry.radius,
+          1,
+          "mesh tetrahedron radius",
+        ),
+        detail: normalizeIntegerAtLeast(
+          geometry.detail,
+          0,
+          0,
+          "mesh tetrahedron detail",
+        ),
+      };
+    case "custom":
+      if (typeof geometry.create !== "function") {
+        throw new Error("WebGL mesh custom geometry requires a create function.");
+      }
+
+      return { kind: "custom", create: geometry.create };
+  }
+}
+
 export function normalizeStagePrimitiveDeclaration(
   declaration: WebGLStagePrimitiveDeclaration,
 ): NormalizedStagePrimitiveDeclaration {
@@ -101,7 +338,7 @@ export function normalizeStagePrimitiveDeclaration(
   );
   const scale = normalizeScale(declaration.scale, "stage primitive scale");
   const visible = declaration.visible ?? true;
-  const material = normalizeStageMaterialDeclaration(declaration.material);
+  const material = normalizeMeshMaterialDeclaration(declaration.material);
   const timeline = normalizeTimelineBinding(declaration.timeline);
   const effects = normalizeSceneObjectEffects(declaration.effects);
   const interaction = normalizeSceneObjectInteraction(declaration.interaction);
@@ -192,9 +429,9 @@ export function normalizeLightDeclaration(
   };
 }
 
-function normalizeStageMaterialDeclaration(
-  declaration: WebGLStageMaterialDeclaration | undefined,
-): NormalizedStageMaterialDeclaration {
+function normalizeMeshMaterialDeclaration(
+  declaration: WebGLMeshMaterialDeclaration | WebGLStageMaterialDeclaration | undefined,
+): NormalizedMeshMaterialDeclaration {
   if (!declaration || declaration.kind === undefined || declaration.kind === "standard") {
     return {
       kind: "standard",
@@ -203,22 +440,22 @@ function normalizeStageMaterialDeclaration(
       emissiveIntensity: normalizeNonNegativeNumber(
         declaration?.emissiveIntensity,
         1,
-        "stage material emissiveIntensity",
+        "mesh material emissiveIntensity",
       ),
       opacity: normalizeNonNegativeNumber(
         declaration?.opacity,
         1,
-        "stage material opacity",
+        "mesh material opacity",
       ),
       metalness: normalizeNonNegativeNumber(
         declaration?.metalness,
         0,
-        "stage material metalness",
+        "mesh material metalness",
       ),
       roughness: normalizeNonNegativeNumber(
         declaration?.roughness,
         1,
-        "stage material roughness",
+        "mesh material roughness",
       ),
     };
   }
@@ -229,7 +466,7 @@ function normalizeStageMaterialDeclaration(
     opacity: normalizeNonNegativeNumber(
       declaration.opacity,
       1,
-      "stage material opacity",
+      "mesh material opacity",
     ),
   };
 }
@@ -245,13 +482,29 @@ function normalizePublicId(value: string, kind: string): string {
 }
 
 function readPlaneRoleRotation(
-  role: WebGLStagePlaneRole | undefined,
+  role: WebGLPlaneRole | WebGLStagePlaneRole | undefined,
 ): WebGLTuple3 {
   if (role === "floor") {
     return [-Math.PI / 2, 0, 0];
   }
 
   return [0, 0, 0];
+}
+
+function readNormalizedMeshGeometryRotation(
+  geometry: NormalizedMeshGeometryDeclaration,
+): WebGLTuple3 {
+  switch (geometry.kind) {
+    case "plane":
+      return readPlaneRoleRotation(geometry.role);
+    case "box":
+    case "sphere":
+    case "cylinder":
+    case "cone":
+    case "tetrahedron":
+    case "custom":
+      return [0, 0, 0];
+  }
 }
 
 function normalizeTuple3(
@@ -352,6 +605,25 @@ function normalizeNonNegativeNumber(
 
   if (!Number.isFinite(value) || value < 0) {
     throw new Error(`WebGL ${label} must be a finite non-negative number.`);
+  }
+
+  return value;
+}
+
+function normalizeIntegerAtLeast(
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+  label: string,
+): number {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isInteger(value) || value < minimum) {
+    throw new Error(
+      `WebGL ${label} must be an integer greater than or equal to ${minimum}.`,
+    );
   }
 
   return value;
