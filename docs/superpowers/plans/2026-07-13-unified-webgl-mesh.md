@@ -274,27 +274,27 @@ git commit -m "feat: normalize WebGLMesh geometry descriptors"
 - Modify: `packages/dom-webgl-runtime/test/lib/renderer/managedStageObjects.test.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/renderer/managedStageObjects.ts`
 
-- [ ] Add `createManagedMeshObject` tests for `PlaneGeometry`, `BoxGeometry`, `SphereGeometry`, `CylinderGeometry`, `ConeGeometry`, and `TetrahedronGeometry` constructor arguments. Keep old managed primitive tests until the final migration.
-- [ ] Add a custom-factory test proving the factory is called exactly once per registration and its returned geometry is attached to the runtime-owned `Mesh`.
-- [ ] Add a failure test where `create` returns a non-geometry object; require this error:
+- [x] Add `createManagedMeshObject` tests for `PlaneGeometry`, `BoxGeometry`, `SphereGeometry`, `CylinderGeometry`, `ConeGeometry`, and `TetrahedronGeometry` constructor arguments. Keep old managed primitive tests until the final migration.
+- [x] Add a custom-factory test proving the factory is called exactly once per registration and its returned geometry is attached to the runtime-owned `Mesh`.
+- [x] Add a failure test where `create` returns a non-geometry object; require this error:
 
 ```text
 WebGL mesh "<id>" custom geometry factory must return a Three.js BufferGeometry.
 ```
 
-- [ ] Add disposal tests proving geometry and material are each disposed once even when the managed object is disposed twice.
-- [ ] Add preparation tests proving a valid custom triangle without normals receives computed vertex normals, and missing bounding box/sphere values are computed once for picking/layout consumers.
-- [ ] Run the focused test and confirm it fails before implementation:
+- [x] Add disposal tests proving geometry and material are each disposed once even when the managed object is disposed twice.
+- [x] Add preparation tests proving a valid custom triangle without normals receives computed vertex normals, and missing bounding box/sphere values are computed once for picking/layout consumers.
+- [x] Run the focused test and confirm it fails before implementation:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/lib/renderer/managedStageObjects.test.ts
 ```
 
-- [ ] Import Three.js geometry constructors from their source modules, matching existing SSR-safe import practice.
-- [ ] Implement `createManagedMeshObject` with an exhaustive geometry switch. For `custom`, invoke `create` inside object creation, validate `geometry.isBufferGeometry === true`, compute missing normals/bounds, and transfer ownership to the managed object only after validation succeeds.
-- [ ] Do not expose the created `Mesh`, geometry, or material through public APIs.
-- [ ] Re-run the focused test and confirm exit 0.
-- [ ] Commit:
+- [x] Import Three.js geometry constructors from their source modules, matching existing SSR-safe import practice.
+- [x] Implement `createManagedMeshObject` with an exhaustive geometry switch. For `custom`, invoke `create` inside object creation, validate `geometry.isBufferGeometry === true`, compute missing normals/bounds, and transfer ownership to the managed object only after validation succeeds.
+- [x] Do not expose the created `Mesh`, geometry, or material through public APIs.
+- [x] Re-run the focused test and confirm exit 0.
+- [x] Commit:
 
 ```bash
 git add packages/dom-webgl-runtime/test/lib/renderer/managedStageObjects.test.ts packages/dom-webgl-runtime/src/lib/renderer/managedStageObjects.ts

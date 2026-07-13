@@ -1,5 +1,9 @@
 import { BoxGeometry } from "three/src/geometries/BoxGeometry.js";
+import { ConeGeometry } from "three/src/geometries/ConeGeometry.js";
+import { CylinderGeometry } from "three/src/geometries/CylinderGeometry.js";
 import { PlaneGeometry } from "three/src/geometries/PlaneGeometry.js";
+import { SphereGeometry } from "three/src/geometries/SphereGeometry.js";
+import { TetrahedronGeometry } from "three/src/geometries/TetrahedronGeometry.js";
 import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
 import { PointLight } from "three/src/lights/PointLight.js";
@@ -8,15 +12,126 @@ import { MeshStandardMaterial } from "three/src/materials/MeshStandardMaterial.j
 import { Object3D } from "three/src/core/Object3D.js";
 import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
+import type { BufferGeometry } from "three/src/core/BufferGeometry.js";
 
 import type { WebGLColorValue, WebGLTuple3 } from "../types";
 
 import type {
   NormalizedLightDeclaration,
-  NormalizedStageMaterialDeclaration,
+  NormalizedMeshDeclaration,
+  NormalizedMeshGeometryDeclaration,
+  NormalizedMeshMaterialDeclaration,
   NormalizedStagePrimitiveDeclaration,
 } from "./stageDeclarations";
 import type { WebGLSceneObject } from "./sceneObject";
+
+export function createManagedMeshObject(
+  declaration: NormalizedMeshDeclaration,
+): WebGLSceneObject {
+  const geometry = createMeshGeometry(declaration.id, declaration.geometry);
+  const material = createMaterial(declaration.material);
+  const mesh = new Mesh(geometry, material);
+  let disposed = false;
+
+  applyTransform(mesh, declaration.position, declaration.rotation, declaration.scale);
+  mesh.visible = declaration.visible;
+
+  return {
+    key: declaration.id,
+    object3D: mesh,
+    setVisible(visible): void {
+      mesh.visible = visible;
+    },
+    updateLayout(): void {
+      return;
+    },
+    dispose(): void {
+      if (disposed) {
+        return;
+      }
+
+      disposed = true;
+      geometry.dispose();
+      material.dispose();
+    },
+  };
+}
+
+function createMeshGeometry(
+  id: string,
+  declaration: NormalizedMeshGeometryDeclaration,
+): BufferGeometry {
+  switch (declaration.kind) {
+    case "plane":
+      return new PlaneGeometry(declaration.size[0], declaration.size[1]);
+    case "box":
+      return new BoxGeometry(
+        declaration.size[0],
+        declaration.size[1],
+        declaration.size[2],
+      );
+    case "sphere":
+      return new SphereGeometry(
+        declaration.radius,
+        declaration.widthSegments,
+        declaration.heightSegments,
+      );
+    case "cylinder":
+      return new CylinderGeometry(
+        declaration.radiusTop,
+        declaration.radiusBottom,
+        declaration.height,
+        declaration.radialSegments,
+        declaration.heightSegments,
+        declaration.openEnded,
+      );
+    case "cone":
+      return new ConeGeometry(
+        declaration.radius,
+        declaration.height,
+        declaration.radialSegments,
+        declaration.heightSegments,
+        declaration.openEnded,
+      );
+    case "tetrahedron":
+      return new TetrahedronGeometry(declaration.radius, declaration.detail);
+    case "custom": {
+      const geometry: unknown = declaration.create();
+
+      if (!isBufferGeometry(geometry)) {
+        throw new Error(
+          `WebGL mesh "${id}" custom geometry factory must return a Three.js BufferGeometry.`,
+        );
+      }
+
+      prepareCustomGeometry(geometry);
+      return geometry;
+    }
+  }
+}
+
+function isBufferGeometry(value: unknown): value is BufferGeometry {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "isBufferGeometry" in value &&
+    value.isBufferGeometry === true
+  );
+}
+
+function prepareCustomGeometry(geometry: BufferGeometry): void {
+  if (geometry.getAttribute("position") && !geometry.getAttribute("normal")) {
+    geometry.computeVertexNormals();
+  }
+
+  if (geometry.boundingBox === null) {
+    geometry.computeBoundingBox();
+  }
+
+  if (geometry.boundingSphere === null) {
+    geometry.computeBoundingSphere();
+  }
+}
 
 export function createManagedStagePrimitiveObject(
   declaration: NormalizedStagePrimitiveDeclaration,
@@ -86,7 +201,7 @@ export function createManagedLightObject(
 }
 
 function createMaterial(
-  declaration: NormalizedStageMaterialDeclaration,
+  declaration: NormalizedMeshMaterialDeclaration,
 ): MeshBasicMaterial | MeshStandardMaterial {
   switch (declaration.kind) {
     case "basic":
