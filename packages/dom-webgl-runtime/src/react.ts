@@ -27,6 +27,7 @@ export {
   WebGLPassViewport,
   type WebGLPassViewportProps,
 } from "./lib/react/WebGLPassViewport";
+export { WebGLMesh, type WebGLMeshProps } from "./lib/react/WebGLMesh";
 export {
   WebGLStagePlane,
   type WebGLStagePlaneProps,

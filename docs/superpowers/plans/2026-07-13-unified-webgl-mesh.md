@@ -359,25 +359,25 @@ git commit -m "refactor: route procedural objects through WebGLMesh"
 - Modify: `packages/dom-webgl-runtime/test/lib/react/WebGLRuntime.test.tsx`
 - Modify as required by compile fallout: the other React tests under `packages/dom-webgl-runtime/test/lib/react/`
 
-- [ ] Write `WebGLMesh.test.tsx` first. Cover explicit `scene`, inherited `WebGLScene`, missing-scene error, full declaration forwarding, unregister-on-unmount, and re-registration when a declaration prop changes.
-- [ ] Require this missing-scene error:
+- [x] Write `WebGLMesh.test.tsx` first. Cover explicit `scene`, inherited `WebGLScene`, missing-scene error, full declaration forwarding, unregister-on-unmount, and re-registration when a declaration prop changes.
+- [x] Require this missing-scene error:
 
 ```text
 WebGL mesh "<id>" requires a scene prop or a parent WebGLScene.
 ```
 
-- [ ] Run the new focused test and confirm it fails because the component is absent:
+- [x] Run the new focused test and confirm it fails because the component is absent:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/lib/react/WebGLMesh.test.tsx
 ```
 
-- [ ] Implement `WebGLMeshProps` as `Omit<WebGLMeshDeclaration, "sceneId"> & { scene?: string }` and forward one declaration to `runtime.registerMesh`.
-- [ ] Preserve the existing declarative lifecycle: cleanup unregisters by id; changed declaration references re-register. Document that reusable custom `geometry` descriptors should be module constants or memoized.
-- [ ] Change the pending runtime stub in `WebGLRuntime.tsx` to expose no-op `registerMesh` / `unregisterMesh`; retain the old no-op methods until Task 6.
-- [ ] Export `WebGLMesh` and `WebGLMeshProps` from `@viselora/dom-webgl/react`. Keep the two old component exports only until current consumers migrate in Task 6.
-- [ ] Add public export fixtures for `WebGLMesh` and `WebGLMeshProps`; final absence assertions for the old components remain in Task 6.
-- [ ] Run all React adapter tests:
+- [x] Implement `WebGLMeshProps` as `Omit<WebGLMeshDeclaration, "sceneId"> & { scene?: string }` and forward one declaration to `runtime.registerMesh`.
+- [x] Preserve the existing declarative lifecycle: cleanup unregisters by id; changed declaration references re-register. Document that reusable custom `geometry` descriptors should be module constants or memoized.
+- [x] Change the pending runtime stub in `WebGLRuntime.tsx` to expose no-op `registerMesh` / `unregisterMesh`; retain the old no-op methods until Task 6.
+- [x] Export `WebGLMesh` and `WebGLMeshProps` from `@viselora/dom-webgl/react`. Keep the two old component exports only until current consumers migrate in Task 6.
+- [x] Add public export fixtures for `WebGLMesh` and `WebGLMeshProps`; final absence assertions for the old components remain in Task 6.
+- [x] Run all React adapter tests:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/lib/react
@@ -386,7 +386,7 @@ npm test -- --run packages/dom-webgl-runtime/test/publicExports.test.ts
 
 Expected: exit 0.
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add packages/dom-webgl-runtime/src/lib/react packages/dom-webgl-runtime/src/react.ts packages/dom-webgl-runtime/test/lib/react packages/dom-webgl-runtime/test/publicExports.test.ts

@@ -33,6 +33,7 @@ describe("public package exports", () => {
     expect(reactApi.WebGLCamera).toEqual(expect.any(Function));
     expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
     expect(reactApi.WebGLPassViewport).toEqual(expect.any(Function));
+    expect(reactApi.WebGLMesh).toEqual(expect.any(Function));
     expect(reactApi.WebGLStagePlane).toEqual(expect.any(Function));
     expect(reactApi.WebGLStageBox).toEqual(expect.any(Function));
     expect(reactApi.WebGLLight).toEqual(expect.any(Function));
@@ -73,6 +74,7 @@ describe("public package exports", () => {
           WebGLRenderPass,
           WebGLRuntime,
           WebGLScene,
+          WebGLMesh,
           WebGLStageBox,
           WebGLStagePlane,
           WebGLModel,
@@ -86,6 +88,7 @@ describe("public package exports", () => {
           WebGLRuntimeProps,
           WebGLSceneProps,
           WebGLSceneRenderOptions,
+          WebGLMeshProps,
           WebGLStageBoxProps,
           WebGLStagePlaneProps,
           WebGLModelProps,
@@ -127,6 +130,7 @@ describe("public package exports", () => {
         WebGLCamera satisfies unknown;
         WebGLPassViewport satisfies unknown;
         WebGLRenderPass satisfies unknown;
+        WebGLMesh satisfies unknown;
         WebGLStagePlane satisfies unknown;
         WebGLStageBox satisfies unknown;
         WebGLLight satisfies unknown;
@@ -189,6 +193,11 @@ describe("public package exports", () => {
                   mode="perspective-stage"
                   position={[0, 0, 500]}
                   target={[0, 0, 0]}
+                />
+                <WebGLMesh
+                  id="stage.tetrahedron"
+                  geometry={{ kind: "tetrahedron", radius: 80 }}
+                  material={{ kind: "standard", color: "#f5f1e8" }}
                 />
                 <WebGLStagePlane
                   id="stage.floor"
@@ -280,6 +289,22 @@ describe("public package exports", () => {
         levelTwoElement satisfies ReactElement;
 
         // Stable scene declarations keep descriptor identity stable across renders.
+        const stableMeshGeometry = {
+          kind: "tetrahedron",
+          radius: 2,
+          detail: 1,
+        } satisfies WebGLMeshProps["geometry"];
+
+        const stableMesh = (
+          <WebGLMesh
+            id="stable.mesh"
+            scene="world.stage"
+            geometry={stableMeshGeometry}
+          />
+        );
+
+        stableMesh satisfies unknown;
+
         const stableStageMaterial = {
           kind: "standard",
           color: "#05070a",
