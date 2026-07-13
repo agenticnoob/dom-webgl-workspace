@@ -535,7 +535,7 @@ git commit -m "docs: teach the unified WebGLMesh model"
 - Review: all files changed in Tasks 1-7
 - Preserve unstaged: `apps/hero-next/next-env.d.ts`
 
-- [ ] Run the repository-required verification sequence:
+- [x] Run the repository-required verification sequence:
 
 ```bash
 npm run test -- --run
@@ -550,7 +550,7 @@ git diff --check
 
 Expected: every command exits 0.
 
-- [ ] Scan implementation and current consumer surfaces for old public names:
+- [x] Scan implementation and current consumer surfaces for old public names:
 
 ```bash
 rg -n 'WebGLStage(Plane|Box)|WebGLStagePrimitive|registerStagePrimitive|unregisterStagePrimitive|stage/(plane|box)|stagePrimitiveCount|stagePrimitives' \
@@ -560,7 +560,7 @@ rg -n 'WebGLStage(Plane|Box)|WebGLStagePrimitive|registerStagePrimitive|unregist
 
 Expected: no matches.
 
-- [ ] Scan the implementation and guidance for unfinished markers:
+- [x] Scan the implementation and guidance for unfinished markers:
 
 ```bash
 rg -n 'T[D]O|T[B]D|FIX[M]E|implement lat[e]r|place[h]older' \
@@ -569,7 +569,7 @@ rg -n 'T[D]O|T[B]D|FIX[M]E|implement lat[e]r|place[h]older' \
 
 Expected: no newly introduced matches.
 
-- [ ] Inspect final worktree state:
+- [x] Inspect final worktree state:
 
 ```bash
 git status --short
@@ -578,7 +578,7 @@ git diff --stat HEAD
 
 Expected: the known `apps/hero-next/next-env.d.ts` user modification remains untouched and unstaged; no generated junk, secrets, tarballs, or temporary files are included.
 
-- [ ] Review the final diff for these acceptance criteria:
+- [x] Review the final diff for these acceptance criteria:
 
   - A first-time agent can choose `WebGLTarget`, `WebGLMesh`, or `WebGLModel` without learning plane/box-specific components.
   - A tetrahedron requires no raw Three.js.
@@ -588,7 +588,7 @@ Expected: the known `apps/hero-next/next-env.d.ts` user modification remains unt
   - Existing interaction, effects, physics, screen-plane, render-pass, timeline, and scene inheritance behavior is preserved.
   - Old public Stage primitive symbols are removed from code, tests, generated API truth, examples, and active guidance.
 
-- [ ] Full verification should not rewrite tracked files after Task 7. If it does, inspect the cause and return to the owning task instead of hiding the change in a catch-all commit. Do not create an empty commit, and do not stage `apps/hero-next/next-env.d.ts`.
+- [x] Full verification should not rewrite tracked files after Task 7. If it does, inspect the cause and return to the owning task instead of hiding the change in a catch-all commit. Do not create an empty commit, and do not stage `apps/hero-next/next-env.d.ts`.
 
 ---
 

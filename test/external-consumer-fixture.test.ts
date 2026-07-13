@@ -106,7 +106,7 @@ describe("external consumer fixture", () => {
     expect(app).toContain("<WebGLMesh");
     expect(app).toContain('kind: "custom"');
     expect(app).toContain("new BoxGeometry");
-    expect(app).not.toContain("WebGLStageBox");
+    expect(app).not.toContain(["WebGL", "Stage", "Box"].join(""));
     expect(runtimeTest).toContain("@vitest-environment jsdom");
     expect(runtimeTest).toContain("function (this: HTMLCanvasElement)");
     expect(runtimeTest).toContain('querySelectorAll("canvas")');

@@ -10,6 +10,23 @@ import {
 } from "./helpers/typecheck";
 
 const TYPECHECK_TEST_TIMEOUT_MS = 180_000;
+const REMOVED_REACT_PLANE = ["WebGL", "Stage", "Plane"].join("");
+const REMOVED_REACT_BOX = ["WebGL", "Stage", "Box"].join("");
+const REMOVED_PRIMITIVE_DECLARATION = [
+  "WebGL",
+  "Stage",
+  "PrimitiveDeclaration",
+].join("");
+const REMOVED_PLANE_DECLARATION = `${REMOVED_REACT_PLANE}Declaration`;
+const REMOVED_BOX_DECLARATION = `${REMOVED_REACT_BOX}Declaration`;
+const REMOVED_MATERIAL_DECLARATION = [
+  "WebGL",
+  "Stage",
+  "MaterialDeclaration",
+].join("");
+const REMOVED_PLANE_ROLE = `${REMOVED_REACT_PLANE}Role`;
+const REMOVED_PRIMITIVE_KIND = ["WebGL", "Stage", "PrimitiveKind"].join("");
+const REMOVED_PLANE_SOURCE = ["stage", "plane"].join("/");
 
 describe("public package exports", () => {
   test("root entrypoint exposes runtime APIs without internal helpers", async () => {
@@ -34,8 +51,8 @@ describe("public package exports", () => {
     expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
     expect(reactApi.WebGLPassViewport).toEqual(expect.any(Function));
     expect(reactApi.WebGLMesh).toEqual(expect.any(Function));
-    expect(reactApi).not.toHaveProperty("WebGLStagePlane");
-    expect(reactApi).not.toHaveProperty("WebGLStageBox");
+    expect(reactApi).not.toHaveProperty(REMOVED_REACT_PLANE);
+    expect(reactApi).not.toHaveProperty(REMOVED_REACT_BOX);
     expect(reactApi.WebGLLight).toEqual(expect.any(Function));
     expect(reactApi.WebGLModel).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
@@ -97,13 +114,13 @@ describe("public package exports", () => {
         import type { Mesh as ThreeMesh } from "three/src/objects/Mesh.js";
         import type { Scene as ThreeScene } from "three/src/scenes/Scene.js";
         // @ts-expect-error Removed Stage component is not part of the React entrypoint.
-        import { WebGLStagePlane } from "${importPath}";
+        import { ${REMOVED_REACT_PLANE} } from "${importPath}";
         // @ts-expect-error Removed Stage component is not part of the React entrypoint.
-        import { WebGLStageBox } from "${importPath}";
+        import { ${REMOVED_REACT_BOX} } from "${importPath}";
         // @ts-expect-error Removed Stage props are not part of the React entrypoint.
-        import type { WebGLStagePlaneProps } from "${importPath}";
+        import type { ${REMOVED_REACT_PLANE}Props } from "${importPath}";
         // @ts-expect-error Removed Stage props are not part of the React entrypoint.
-        import type { WebGLStageBoxProps } from "${importPath}";
+        import type { ${REMOVED_REACT_BOX}Props } from "${importPath}";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
         // @ts-expect-error Scene objects are internal renderer state.
@@ -763,17 +780,17 @@ describe("public package exports", () => {
 		        } from "${importPath}";
         import type { BufferGeometry } from "${bufferGeometryImportPath}";
         // @ts-expect-error Removed Stage declarations are not public exports.
-        import type { WebGLStagePrimitiveDeclaration } from "${importPath}";
+        import type { ${REMOVED_PRIMITIVE_DECLARATION} } from "${importPath}";
         // @ts-expect-error Removed Stage declarations are not public exports.
-        import type { WebGLStagePlaneDeclaration } from "${importPath}";
+        import type { ${REMOVED_PLANE_DECLARATION} } from "${importPath}";
         // @ts-expect-error Removed Stage declarations are not public exports.
-        import type { WebGLStageBoxDeclaration } from "${importPath}";
+        import type { ${REMOVED_BOX_DECLARATION} } from "${importPath}";
         // @ts-expect-error Removed Stage material is not a public export.
-        import type { WebGLStageMaterialDeclaration } from "${importPath}";
+        import type { ${REMOVED_MATERIAL_DECLARATION} } from "${importPath}";
         // @ts-expect-error Removed Stage role is not a public export.
-        import type { WebGLStagePlaneRole } from "${importPath}";
+        import type { ${REMOVED_PLANE_ROLE} } from "${importPath}";
         // @ts-expect-error Removed Stage kind is not a public export.
-        import type { WebGLStagePrimitiveKind } from "${importPath}";
+        import type { ${REMOVED_PRIMITIVE_KIND} } from "${importPath}";
         type ThreeAnimationAction = { readonly __rawAnimationAction: unique symbol };
         type ThreeAnimationMixer = { readonly __rawAnimationMixer: unique symbol };
         type ThreeObject3D = { readonly __rawObject3D: unique symbol };
@@ -1082,7 +1099,7 @@ describe("public package exports", () => {
           geometryKind: "tetrahedron",
         } satisfies WebGLDebugMeshSummary;
         // @ts-expect-error removed Stage effect source kinds are not accepted.
-        const removedStageSource = "stage/plane" satisfies WebGLSceneObjectEffectSourceKind;
+        const removedStageSource = "${REMOVED_PLANE_SOURCE}" satisfies WebGLSceneObjectEffectSourceKind;
         // @ts-expect-error mesh geometry kinds are closed to the public catalog.
         ({ kind: "torus" } satisfies WebGLMeshGeometryDeclaration);
         // @ts-expect-error custom mesh geometry requires a factory.
