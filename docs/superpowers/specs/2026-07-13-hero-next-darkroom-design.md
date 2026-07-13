@@ -1,4 +1,6 @@
-# Hero Next 暗室空间设计
+# Hero Next 暗室空间设计（已被替代）
+
+> 状态：已被 `2026-07-13-hero-next-matte-studio-depth-design.md` 替代，不再作为当前实现依据。
 
 ## 目标
 
