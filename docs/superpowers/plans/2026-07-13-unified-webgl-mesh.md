@@ -181,10 +181,10 @@ The factory must return a new instance rather than a shared singleton because ru
 - Modify: `packages/dom-webgl-runtime/src/lib/types.ts`
 - Modify: `packages/dom-webgl-runtime/src/index.ts`
 
-- [ ] Add compile fixtures that import `WebGLMeshDeclaration`, `WebGLMeshGeometryDeclaration`, `WebGLMeshMaterialDeclaration`, and `WebGLPlaneRole` from the root entry point. React component and runtime/debug exports are introduced in later tasks.
-- [ ] Add positive type cases for every built-in geometry kind, the custom `BufferGeometry` factory, scene id, material, effects, interaction, and physics.
-- [ ] Add `@ts-expect-error` cases for an unknown geometry kind, missing custom `create`, non-`BufferGeometry` custom return, and invalid tuple dimensions. Old source-kind and export-removal assertions belong to Task 6, after runtime and consumers have migrated.
-- [ ] Run the public export test and confirm it fails because the new surface is not implemented:
+- [x] Add compile fixtures that import `WebGLMeshDeclaration`, `WebGLMeshGeometryDeclaration`, `WebGLMeshMaterialDeclaration`, and `WebGLPlaneRole` from the root entry point. React component and runtime/debug exports are introduced in later tasks.
+- [x] Add positive type cases for every built-in geometry kind, the custom `BufferGeometry` factory, scene id, material, effects, interaction, and physics.
+- [x] Add `@ts-expect-error` cases for an unknown geometry kind, missing custom `create`, non-`BufferGeometry` custom return, and invalid tuple dimensions. Old source-kind and export-removal assertions belong to Task 6, after runtime and consumers have migrated.
+- [x] Run the public export test and confirm it fails because the new surface is not implemented:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/publicExports.test.ts
@@ -192,9 +192,9 @@ npm test -- --run packages/dom-webgl-runtime/test/publicExports.test.ts
 
 Expected: non-zero exit with missing mesh declaration exports.
 
-- [ ] Implement and export the public geometry, material, and declaration types exactly as defined above. Keep the existing Stage types temporarily so the current runtime remains buildable until Task 6.
-- [ ] Keep `BufferGeometry` as a type-only import so importing the package does not eagerly evaluate additional Three.js modules.
-- [ ] Re-run the focused test:
+- [x] Implement and export the public geometry, material, and declaration types exactly as defined above. Keep the existing Stage types temporarily so the current runtime remains buildable until Task 6.
+- [x] Keep `BufferGeometry` as a type-only import so importing the package does not eagerly evaluate additional Three.js modules.
+- [x] Re-run the focused test:
 
 ```bash
 npm test -- --run packages/dom-webgl-runtime/test/publicExports.test.ts
@@ -203,7 +203,7 @@ npm run typecheck -w @viselora/dom-webgl
 
 Expected: exit 0.
 
-- [ ] Commit after focused verification:
+- [x] Commit after focused verification:
 
 ```bash
 git add packages/dom-webgl-runtime/test/publicExports.test.ts packages/dom-webgl-runtime/src/lib/types.ts packages/dom-webgl-runtime/src/index.ts

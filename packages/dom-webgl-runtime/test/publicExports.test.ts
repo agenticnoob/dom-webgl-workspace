@@ -576,6 +576,19 @@ describe("public package exports", () => {
     const importPath = relativeIndexPath.startsWith(".")
       ? relativeIndexPath
       : `./${relativeIndexPath}`;
+    const bufferGeometryPath = resolve(
+      repoRoot,
+      "node_modules/@types/three/src/core/BufferGeometry.d.ts",
+    );
+    const relativeBufferGeometryPath = relative(
+      dirname(fixturePath),
+      bufferGeometryPath,
+    )
+      .split(sep)
+      .join("/");
+    const bufferGeometryImportPath = relativeBufferGeometryPath.startsWith(".")
+      ? relativeBufferGeometryPath
+      : `./${relativeBufferGeometryPath}`;
 
     writeFileSync(
       fixturePath,
@@ -673,6 +686,9 @@ describe("public package exports", () => {
                   WebGLModelMeshHandle,
                   WebGLModelMorphWeightDeclaration,
                   WebGLModelPrepareDeclaration,
+                  WebGLMeshDeclaration,
+                  WebGLMeshGeometryDeclaration,
+                  WebGLMeshMaterialDeclaration,
                   WebGLEffectsDeclaration,
 				          WebGLFrameInput,
 				          WebGLGateScrollBehavior,
@@ -720,6 +736,7 @@ describe("public package exports", () => {
           WebGLScrollAdapter,
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
+          WebGLPlaneRole,
           WebGLStageBoxDeclaration,
           WebGLStageMaterialDeclaration,
           WebGLStagePlaneDeclaration,
@@ -740,11 +757,13 @@ describe("public package exports", () => {
 	          WebGLTuple2,
 	          WebGLTuple3,
 		        } from "${importPath}";
+        import type { BufferGeometry } from "${bufferGeometryImportPath}";
         type ThreeAnimationAction = { readonly __rawAnimationAction: unique symbol };
         type ThreeAnimationMixer = { readonly __rawAnimationMixer: unique symbol };
         type ThreeObject3D = { readonly __rawObject3D: unique symbol };
         type ThreeBone = { readonly __rawBone: unique symbol };
         type ThreeSkeleton = { readonly __rawSkeleton: unique symbol };
+        declare const createBufferGeometry: () => BufferGeometry;
 
         // @ts-expect-error legacy material declarations are no longer public exports.
         import type { WebGLMaterialDeclaration } from "${importPath}";
@@ -1013,6 +1032,86 @@ describe("public package exports", () => {
         invalidPhysics satisfies WebGLPhysicsDeclaration;
         const stagePrimitiveDeclaration =
           stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        const meshPlaneRole = "floor" satisfies WebGLPlaneRole;
+        const meshStandardMaterial = {
+          kind: "standard",
+          color: "#f5f1e8",
+          emissive: "#100f0d",
+          emissiveIntensity: 0.2,
+          opacity: 0.9,
+          metalness: 0.08,
+          roughness: 0.72,
+        } satisfies WebGLMeshMaterialDeclaration;
+        const meshBasicMaterial = {
+          kind: "basic",
+          color: 0xffffff,
+          opacity: 0.5,
+        } satisfies WebGLMeshMaterialDeclaration;
+        const meshPlaneGeometry = {
+          kind: "plane",
+          role: meshPlaneRole,
+          size: [12, 8],
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshBoxGeometry = {
+          kind: "box",
+          size: [2, 1, 2],
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshSphereGeometry = {
+          kind: "sphere",
+          radius: 2,
+          widthSegments: 24,
+          heightSegments: 12,
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshCylinderGeometry = {
+          kind: "cylinder",
+          radiusTop: 0.5,
+          radiusBottom: 1,
+          height: 3,
+          radialSegments: 16,
+          heightSegments: 2,
+          openEnded: true,
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshConeGeometry = {
+          kind: "cone",
+          radius: 1,
+          height: 2,
+          radialSegments: 12,
+          heightSegments: 2,
+          openEnded: false,
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshTetrahedronGeometry = {
+          kind: "tetrahedron",
+          radius: 1,
+          detail: 0,
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshCustomGeometry = {
+          kind: "custom",
+          create: createBufferGeometry,
+        } satisfies WebGLMeshGeometryDeclaration;
+        const meshDeclaration = {
+          id: "hero.shape",
+          sceneId: "world",
+          geometry: meshTetrahedronGeometry,
+          position: [0, 1, 0],
+          rotation: [0, Math.PI / 4, 0],
+          scale: [1, 1, 1],
+          visible: true,
+          material: meshStandardMaterial,
+          timeline: sceneTimeline,
+          effects: [{ kind: "custom.managedThreeLike" }],
+          interaction: { pickable: { hitTest: "mesh", pointer: { click: true } } },
+          physics: stagePhysics,
+        } satisfies WebGLMeshDeclaration;
+        // @ts-expect-error mesh geometry kinds are closed to the public catalog.
+        ({ kind: "torus" } satisfies WebGLMeshGeometryDeclaration);
+        // @ts-expect-error custom mesh geometry requires a factory.
+        ({ kind: "custom" } satisfies WebGLMeshGeometryDeclaration);
+        // @ts-expect-error custom mesh factories must return BufferGeometry.
+        ({ kind: "custom", create: () => ({}) } satisfies WebGLMeshGeometryDeclaration);
+        // @ts-expect-error plane size requires exactly two values.
+        ({ kind: "plane", size: [1, 1, 1] } satisfies WebGLMeshGeometryDeclaration);
+        // @ts-expect-error box size requires exactly three values.
+        ({ kind: "box", size: [1, 1] } satisfies WebGLMeshGeometryDeclaration);
         const lightDeclaration = {
           id: "stage.hero",
           sceneId: "world",
@@ -1247,6 +1346,16 @@ describe("public package exports", () => {
         stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
         stageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
         stagePrimitiveDeclaration satisfies WebGLStagePrimitiveDeclaration;
+        meshStandardMaterial satisfies WebGLMeshMaterialDeclaration;
+        meshBasicMaterial satisfies WebGLMeshMaterialDeclaration;
+        meshPlaneGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshBoxGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshSphereGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshCylinderGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshConeGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshTetrahedronGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshCustomGeometry satisfies WebGLMeshGeometryDeclaration;
+        meshDeclaration satisfies WebGLMeshDeclaration;
         lightDeclaration satisfies WebGLLightDeclaration;
         modelDefaultClip satisfies WebGLModelClipPlaybackDeclaration;
         modelScrub satisfies WebGLModelClipScrubDeclaration;

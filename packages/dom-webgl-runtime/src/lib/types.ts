@@ -3,6 +3,7 @@ import type {
   WebGLSceneObjectEffectDefinition,
   WebGLSceneObjectEffectSourceKind,
 } from "./effects/effectAuthoring";
+import type { BufferGeometry } from "three";
 
 export type WebGLRenderRole =
   | "surface"
@@ -499,6 +500,84 @@ export type WebGLColorValue =
   | string
   | number
   | readonly [number, number, number];
+
+export type WebGLPlaneRole = "floor" | "wall" | "backdrop";
+
+export type WebGLMeshGeometryDeclaration =
+  | {
+      kind: "plane";
+      role?: WebGLPlaneRole;
+      size?: WebGLTuple2;
+    }
+  | {
+      kind: "box";
+      size?: WebGLTuple3;
+    }
+  | {
+      kind: "sphere";
+      radius?: number;
+      widthSegments?: number;
+      heightSegments?: number;
+    }
+  | {
+      kind: "cylinder";
+      radiusTop?: number;
+      radiusBottom?: number;
+      height?: number;
+      radialSegments?: number;
+      heightSegments?: number;
+      openEnded?: boolean;
+    }
+  | {
+      kind: "cone";
+      radius?: number;
+      height?: number;
+      radialSegments?: number;
+      heightSegments?: number;
+      openEnded?: boolean;
+    }
+  | {
+      kind: "tetrahedron";
+      radius?: number;
+      detail?: number;
+    }
+  | {
+      kind: "custom";
+      create: () => BufferGeometry;
+    };
+
+export type WebGLMeshMaterialDeclaration =
+  | {
+      kind?: "standard";
+      isMaterial?: never;
+      color?: WebGLColorValue;
+      emissive?: WebGLColorValue;
+      emissiveIntensity?: number;
+      opacity?: number;
+      metalness?: number;
+      roughness?: number;
+    }
+  | {
+      kind: "basic";
+      isMaterial?: never;
+      color?: WebGLColorValue;
+      opacity?: number;
+    };
+
+export type WebGLMeshDeclaration = {
+  id: string;
+  sceneId: string;
+  geometry: WebGLMeshGeometryDeclaration;
+  position?: WebGLTuple3;
+  rotation?: WebGLTuple3;
+  scale?: number | WebGLTuple3;
+  visible?: boolean;
+  material?: WebGLMeshMaterialDeclaration;
+  timeline?: WebGLTimelineBindingDeclaration;
+  effects?: WebGLEffectsDeclaration;
+  interaction?: WebGLSceneObjectInteractionDeclaration;
+  physics?: WebGLPhysicsDeclaration;
+};
 
 export type WebGLStagePrimitiveKind = "plane" | "box";
 
