@@ -38,7 +38,7 @@ describe("hero Ghost Cursor material programs", () => {
     expect(program.fragmentShader).not.toContain("Boo!");
   });
 
-  test("compiles a transparent 12-sample foreground program", () => {
+  test("compiles a transparent 12-sample foreground without double alpha attenuation", () => {
     const program = createHeroGhostCursorMaterialProgram("foreground", baseOptions);
 
     expect(heroGhostTrailLengths.foreground).toBe(12);
@@ -46,11 +46,13 @@ describe("hero Ghost Cursor material programs", () => {
       HERO_FOREGROUND: 1,
       MAX_TRAIL_LENGTH: 12,
     });
-    expect(program.blend).toBe("screen");
+    expect(program.blend).toBe("normal");
     expect(program.fragmentShader).toContain("#if HERO_FOREGROUND == 1");
     expect(program.fragmentShader).toContain(
-      "vec4(colorAcc * 0.32, outAlpha * 0.18)",
+      "vec4(foregroundTint, outAlpha * iBrightness * 1.5)",
     );
+    expect(program.fragmentShader).not.toContain("colorAcc * 0.32");
+    expect(program.fragmentShader).not.toContain("foregroundTint * iBrightness");
   });
 
   test("normalizes DOM pointer and pads the layer-specific trail", () => {

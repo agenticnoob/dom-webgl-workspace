@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  applyHeroMaterial,
   applyHeroFrame,
   createHeroMotionState,
   heroTetrahedronEffect,
@@ -10,6 +11,24 @@ import {
 } from "../src/heroEffect";
 
 describe("hero tetrahedron effect", () => {
+  test("keeps black-silver facets readable without environment lighting", () => {
+    const material = {
+      color: { set: vi.fn() },
+      emissive: { set: vi.fn() },
+      metalness: 0,
+      roughness: 0,
+      opacity: 0,
+    };
+
+    applyHeroMaterial({ material });
+
+    expect(material.color.set).toHaveBeenCalledWith("#30343b");
+    expect(material.emissive.set).toHaveBeenCalledWith("#0d0a12", 0.06);
+    expect(material.metalness).toBe(0.9);
+    expect(material.roughness).toBe(0.12);
+    expect(material.opacity).toBe(1);
+  });
+
   test("completes one slow base rotation in 48 seconds", () => {
     const target = {
       position: { set: vi.fn() },

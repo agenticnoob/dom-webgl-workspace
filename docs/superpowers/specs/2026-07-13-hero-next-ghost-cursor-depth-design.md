@@ -1,7 +1,7 @@
 # Hero Next Ghost Cursor 空间层次设计
 
 **日期：** 2026-07-13
-**状态：** 已确认设计，等待用户复核文档
+**状态：** 已实现并通过自动化与真实浏览器验证
 
 ## 目标
 
@@ -230,3 +230,49 @@ git diff --check
 - 四面体是唯一主体，尺寸克制、各面可辨，并具有慢速自转与短暂 pointer parallax；
 - 所有可见输出来自 package public API 和 app-owned managed effects；
 - 自动化验证和真实浏览器验收全部通过。
+
+## 验证结果
+
+最终实现保持一个 `WebGLScrollRuntime`、一个 managed canvas/renderer、一个显式
+`hero.tetrahedron.scene`、一个 camera 和一个 render pass。两个 Ghost Cursor target
+都通过公开 `renderRole: "model"` 启用几何深度，并与 GLB、灯光处于同一 scene。
+
+接受的空间和视觉参数：
+
+- foreground depth `2`、model camera distance `3.2`、background depth `5`；
+- background brightness `0.72`、foreground brightness `0.20`；
+- foreground 使用 normal alpha compositing，最终 alpha 为
+  `outAlpha * iBrightness * 1.5`，在当前亮度下最大为 `0.30`；
+- model color `#30343b`、emissive `#0d0a12` / `0.06`、metalness `0.90`、
+  roughness `0.12`；
+- ambient `0.22`、key `3.8`、rim `3.2`；
+- desktop baseScale `1.12`，移动端继续使用 `0.6` 响应式倍率和 `0.19` Y offset；
+- 自转周期 `48s`，pointer 静止约 `120ms` 后进入阻尼回正。
+
+真实 production browser 结果：
+
+- `1440x1000`：一个 canvas、空 body 文案、`scrollWidth === innerWidth === 1440`；
+  背景烟雾被模型遮挡，短前景烟迹可掠过模型表面，黑银模型面和轮廓高光可读；
+- `390x844`：一个 canvas、`scrollWidth === innerWidth === 390`；触摸期间产生短烟迹，
+  pointer up 后快速衰减，构图居中且无横向 overflow；
+- `/models/4.glb`、`/draco/gltf/draco_wasm_wrapper.js` 和
+  `/draco/gltf/draco_decoder.wasm` 均返回 HTTP 200；
+- desktop/mobile console 均为 `0 errors / 0 warnings`；
+- `prefers-reduced-motion: reduce` 下，两张相隔 pointer 移动和 `700ms` 的截图
+  SHA-256 同为
+  `52064ad59b5fd1eb96d49699291ca232feb9f881aba08e8d91b43422cf2b67da`，
+  证明模型静止、背景冻结且前景隐藏。
+
+最终自动化验证：
+
+```text
+npm run test -- --run      149 files / 961 tests passed
+npm run typecheck          passed
+npm run build              package dist contracts passed; example 328 modules;
+                           hero routes /, /_not-found, /icon.svg
+npm run check:imports      Example import boundary OK
+git diff --check           passed
+```
+
+Vite 现有大 chunk warning 和 Next.js 多 lockfile workspace-root warning 仍存在；本次
+没有新增 runtime error、capability gap、package 修改或 CSS 视觉 workaround。

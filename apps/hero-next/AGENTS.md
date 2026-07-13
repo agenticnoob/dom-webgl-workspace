@@ -61,17 +61,19 @@ models, basic/standard materials, lights, transforms, timelines,
 postprocessing, and app-owned public effects—and report the boundary when they
 are insufficient.
 
-## Current Migration Debt
+## Current Implementation Truth
 
-`app/globals.css` currently contains visual gradients, grain, and shadow layers
-from an earlier implementation. That code is non-compliant with this file and
-must not be copied or extended. The next visual implementation task must remove
-those declarations and rebuild the visible result through current package APIs.
+The previous CSS-owned studio artwork has been removed. The current hero uses
+one managed scene, camera, render pass, canvas, and renderer for the background
+Ghost Cursor, GLB tetrahedron, foreground Ghost Cursor, and managed lights.
 
-The previous CSS-owned studio design and plan are historical evidence only:
+Current verified design and completed execution record:
 
-- `docs/superpowers/specs/2026-07-13-hero-next-matte-studio-depth-design.md`
-- `docs/superpowers/plans/2026-07-13-hero-next-matte-studio-depth.md`
+- `docs/superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md`
+- `docs/archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md`
+
+The earlier matte-studio documents and plans are historical evidence only and
+must not be treated as active implementation guidance.
 
 ## Verification
 

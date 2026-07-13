@@ -33,7 +33,7 @@ export function createHeroGhostCursorMaterialProgram(
     },
     fragmentShader: heroGhostCursorFragmentShader,
     uniforms: createHeroGhostCursorUniforms(layer, options),
-    blend: layer === "foreground" ? "screen" : "normal",
+    blend: "normal",
   };
 }
 
@@ -175,7 +175,8 @@ const heroGhostCursorFragmentShader = `
     float outAlpha = clamp(alphaAcc * iOpacity, 0.0, 1.0);
 
     #if HERO_FOREGROUND == 1
-      gl_FragColor = vec4(colorAcc * 0.32, outAlpha * 0.18);
+      vec3 foregroundTint = mix(iBaseColor, vec3(0.86, 0.90, 1.0), 0.24);
+      gl_FragColor = vec4(foregroundTint, outAlpha * iBrightness * 1.5);
     #else
       vec3 base = vec3(0.027, 0.020, 0.047);
       gl_FragColor = vec4(base + colorAcc * outAlpha, 1.0);
