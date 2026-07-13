@@ -121,7 +121,7 @@ describe("createWebGLSceneObjectEffectController", () => {
     const disposeEffect = vi.fn();
     const controller = createWebGLSceneObjectEffectController({
       objectId: "floor",
-      sourceKind: "stage/plane",
+      sourceKind: "mesh",
       declaration: [{ kind: "app.floor" }],
       getObject: createObjectHandle,
       registry: createWebGLEffectRegistry([

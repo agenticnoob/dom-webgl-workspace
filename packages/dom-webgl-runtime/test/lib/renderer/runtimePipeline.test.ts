@@ -3829,7 +3829,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("runtime registers stage primitives and lights into managed scenes", async () => {
+  test("runtime registers meshes and lights into managed scenes", async () => {
     const mainAdapter = createObjectRecordingSceneAdapter();
     const worldAdapter = createObjectRecordingSceneAdapter();
     const { registry } = createRenderLayerRegistryStub(mainAdapter, {
@@ -3841,10 +3841,10 @@ describe("runtime pipeline sync", () => {
       },
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "floor",
       sceneId: "world",
-      kind: "plane",
+      geometry: { kind: "plane" },
       material: { kind: "standard", color: "#05070a" },
     });
     runtime.registerLight({
@@ -3861,19 +3861,19 @@ describe("runtime pipeline sync", () => {
     ]);
     expect(runtime.getDebugState().targetCount).toBe(0);
     expect(runtime.getDebugState()).toMatchObject({
-      stagePrimitiveCount: 1,
+      meshCount: 1,
       lightCount: 1,
-      stagePrimitives: [{ id: "floor", sceneId: "world", kind: "plane" }],
+      meshes: [{ id: "floor", sceneId: "world", geometryKind: "plane" }],
       lights: [{ id: "hero", sceneId: "world", kind: "point" }],
     });
 
-    runtime.unregisterStagePrimitive("floor");
+    runtime.unregisterMesh("floor");
     runtime.unregisterLight("hero");
 
     expect(worldAdapter.objects).toHaveLength(0);
-    expect(runtime.getDebugState().stagePrimitiveCount).toBeUndefined();
+    expect(runtime.getDebugState().meshCount).toBeUndefined();
     expect(runtime.getDebugState().lightCount).toBeUndefined();
-    expect(runtime.getDebugState().stagePrimitives).toBeUndefined();
+    expect(runtime.getDebugState().meshes).toBeUndefined();
     expect(runtime.getDebugState().lights).toBeUndefined();
     runtime.dispose();
   });
@@ -3929,10 +3929,10 @@ describe("runtime pipeline sync", () => {
       },
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "crate",
       sceneId: "world",
-      kind: "box",
+      geometry: { kind: "box" },
       position: [0, 0, 0],
       physics: {
         body: { type: "dynamic", velocity: [60, 0, 0], gravityScale: 0 },
@@ -3951,7 +3951,7 @@ describe("runtime pipeline sync", () => {
         {
           id: "crate",
           sceneId: "world",
-          sourceKind: "stage/box",
+          sourceKind: "mesh",
           type: "dynamic",
           active: true,
         },
@@ -3969,7 +3969,7 @@ describe("runtime pipeline sync", () => {
     expect(runtime.getDebugState().physics).toBeUndefined();
   });
 
-  test("runtime updates timeline-bound stage object visibility from progress signals", async () => {
+  test("runtime updates timeline-bound mesh visibility from progress signals", async () => {
     let progress = 0;
     const mainAdapter = createObjectRecordingSceneAdapter();
     const worldAdapter = createObjectRecordingSceneAdapter();
@@ -3987,10 +3987,10 @@ describe("runtime pipeline sync", () => {
       },
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "floor",
       sceneId: "world",
-      kind: "plane",
+      geometry: { kind: "plane" },
       timeline: { id: "hero.3d", active: { from: 0.25, to: 0.75 } },
     });
 
@@ -3999,7 +3999,7 @@ describe("runtime pipeline sync", () => {
     await runtime.sync();
 
     expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: false });
-    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+    expect(runtime.getDebugState().meshes?.[0]).toMatchObject({
       id: "floor",
       timeline: {
         id: "hero.3d",
@@ -4012,7 +4012,7 @@ describe("runtime pipeline sync", () => {
     await runtime.sync();
 
     expect(worldAdapter.objects[0]?.object3D).toMatchObject({ visible: true });
-    expect(runtime.getDebugState().stagePrimitives?.[0]).toMatchObject({
+    expect(runtime.getDebugState().meshes?.[0]).toMatchObject({
       timeline: {
         active: true,
       },
@@ -4463,7 +4463,7 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
-  test("unregistering a managed scene releases stage primitives and lights first", async () => {
+  test("unregistering a managed scene releases meshes and lights first", async () => {
     const mainAdapter = createObjectRecordingSceneAdapter();
     const worldAdapter = createObjectRecordingSceneAdapter();
     const { registry, unregisterScene } = createRenderLayerRegistryStub(
@@ -4476,10 +4476,10 @@ describe("runtime pipeline sync", () => {
       },
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "floor",
       sceneId: "world",
-      kind: "plane",
+      geometry: { kind: "plane" },
     });
     runtime.registerLight({
       id: "hero",
@@ -4821,10 +4821,10 @@ describe("runtime pipeline sync", () => {
       }),
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "floor",
       sceneId: "world",
-      kind: "plane",
+      geometry: { kind: "plane" },
       interaction: {
         pickable: {
           hitTest: "bounds",
@@ -4918,10 +4918,10 @@ describe("runtime pipeline sync", () => {
       }),
     });
 
-    runtime.registerStagePrimitive({
+    runtime.registerMesh({
       id: "floor",
       sceneId: "world",
-      kind: "plane",
+      geometry: { kind: "plane" },
       interaction: {
         pickable: {
           hitTest: "bounds",

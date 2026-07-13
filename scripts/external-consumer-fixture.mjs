@@ -32,6 +32,7 @@ export function createExternalConsumerFixture(
       lenis: "^1.3.23",
       react: "^19.1.0",
       "react-dom": "^19.1.0",
+      three: "^0.178.0",
     },
     devDependencies: {
       "@types/react": "^19.1.8",
@@ -107,7 +108,7 @@ export const fixtureEffect = defineWebGLEffect({
 
 export const fixtureSceneObjectEffect = defineWebGLSceneObjectEffect({
   kind: "fixture.sceneObject",
-  source: "stage/box",
+  source: "mesh",
   update(ctx) {
     ctx.object.opacity = 1;
     ctx.object.visible = true;
@@ -162,14 +163,15 @@ export const runtimeEffects = [
 `;
 
 const appSource = `import type { WebGLDebugState, WebGLDeclaration } from "@viselora/dom-webgl";
+import { BoxGeometry } from "three/src/geometries/BoxGeometry.js";
 import {
   WebGLCamera,
   WebGLLight,
+  WebGLMesh,
   WebGLModel,
   WebGLRenderPass,
   WebGLRuntime,
   WebGLScene,
-  WebGLStageBox,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
 import { createScrollEffectProgressStore } from "@viselora/scroll-adapters";
@@ -184,7 +186,11 @@ fixtureProgress.set("fixture.visible", 1);
 const cameraPosition = [120, 132, 620] as const;
 const cameraTarget = [120, -78, -70] as const;
 const modelEffects = [{ kind: "fixture.modelCapability" }] as const;
-const stageEffects = [{ kind: "fixture.sceneObject" }] as const;
+const meshEffects = [{ kind: "fixture.sceneObject" }] as const;
+const customGeometry = {
+  kind: "custom",
+  create: () => new BoxGeometry(1, 1, 1),
+} as const;
 
 const targetDeclaration = {
   key: "fixture.target",
@@ -233,13 +239,13 @@ export function App({
           order={10}
           clear
         />
-        <WebGLStageBox
+        <WebGLMesh
           id="fixture.stage"
-          size={[1, 1, 1]}
+          geometry={customGeometry}
           position={[10000, 10000, 10000]}
           visible={false}
           material={{ kind: "basic", color: "#ffffff" }}
-          effects={stageEffects}
+          effects={meshEffects}
         />
         {includeModel ? (
           <>
@@ -363,7 +369,7 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
     visible: true,
   });
   const debug = await readDebug(page);
-  expect(debug.stagePrimitives).toEqual(
+  expect(debug.meshes).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ id: "fixture.stage", effects: ["fixture.sceneObject"] }),
     ]),
@@ -613,8 +619,8 @@ test("mounts one runtime canvas and one target from installed tarballs", async (
     expect(debugStates.some((state) => state.targetCount === 1)).toBe(true);
     expect(
       debugStates.some((state) =>
-        state.stagePrimitives?.some(
-          (stage) => stage.effects?.includes("fixture.sceneObject"),
+        state.meshes?.some(
+          (mesh) => mesh.effects?.includes("fixture.sceneObject"),
         ),
       ),
     ).toBe(true);

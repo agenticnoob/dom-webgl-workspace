@@ -2,16 +2,14 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLMesh,
   WebGLModel,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
   type WebGLCameraProps,
+  type WebGLMeshProps,
   type WebGLModelProps,
   type WebGLSceneRenderOptions,
-  type WebGLStageBoxProps,
-  type WebGLStagePlaneProps,
 } from "@viselora/dom-webgl/react";
 
 const physicsSceneRender = {
@@ -28,42 +26,46 @@ const cameraTarget = [40, -104, -70] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 
-const floorSize = [760, 420] satisfies NonNullable<WebGLStagePlaneProps["size"]>;
-const floorRole = "floor" satisfies NonNullable<WebGLStagePlaneProps["role"]>;
+const floorGeometry = {
+  kind: "plane",
+  role: "floor",
+  size: [760, 420],
+} satisfies WebGLMeshProps["geometry"];
 const floorPosition = [40, -182, -70] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const floorMaterial = {
   kind: "standard",
   color: "#1f3531",
   roughness: 0.74,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const floorInteraction = {
   pickable: {
     hitTest: "mesh",
     pointer: { hover: true, click: true },
   },
-} satisfies NonNullable<WebGLStagePlaneProps["interaction"]>;
+} satisfies NonNullable<WebGLMeshProps["interaction"]>;
 const floorPhysics = {
   body: { type: "static" },
   collider: { kind: "plane", normal: [0, 1, 0], offset: 0 },
-} satisfies NonNullable<WebGLStagePlaneProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const crateSize = [72, 72, 72] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const crateSize = [72, 72, 72] as const;
+const crateGeometry = { kind: "box", size: crateSize } satisfies WebGLMeshProps["geometry"];
 const cratePosition = [40, -118, -70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const crateMaterial = {
   kind: "standard",
   color: "#c87f47",
   roughness: 0.56,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const crateInteraction = {
   pickable: {
     hitTest: "bounds",
     pointer: { hover: true, press: true, drag: true },
   },
-} satisfies NonNullable<WebGLStageBoxProps["interaction"]>;
+} satisfies NonNullable<WebGLMeshProps["interaction"]>;
 const cratePhysics = {
   body: {
     type: "dynamic",
@@ -74,17 +76,21 @@ const cratePhysics = {
   },
   collider: { kind: "box", size: crateSize },
   pointerDrag: true,
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const anchorBoxSize = [44, 44, 44] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const anchorBoxSize = [44, 44, 44] as const;
+const anchorBoxGeometry = {
+  kind: "box",
+  size: anchorBoxSize,
+} satisfies WebGLMeshProps["geometry"];
 const anchorBoxPosition = [-236, -122, -70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const anchorBoxMaterial = {
   kind: "standard",
   color: "#7dd3fc",
   roughness: 0.42,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const anchorBoxPhysics = {
   body: {
     type: "dynamic",
@@ -97,17 +103,21 @@ const anchorBoxPhysics = {
   constraints: [
     { kind: "anchor", target: [-176, -122, -70], stiffness: 0.95, damping: 0 },
   ],
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const springBoxSize = [54, 54, 54] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const springBoxSize = [54, 54, 54] as const;
+const springBoxGeometry = {
+  kind: "box",
+  size: springBoxSize,
+} satisfies WebGLMeshProps["geometry"];
 const springBoxPosition = [216, -118, -70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const springBoxMaterial = {
   kind: "standard",
   color: "#f6c453",
   roughness: 0.38,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const springBoxPhysics = {
   body: {
     type: "dynamic",
@@ -121,54 +131,63 @@ const springBoxPhysics = {
   constraints: [
     { kind: "spring", target: [146, -118, -70], restLength: 92, stiffness: 0.72, damping: 0 },
   ],
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const bumperSize = [58, 150, 72] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const bumperSize = [58, 150, 72] as const;
+const bumperGeometry = { kind: "box", size: bumperSize } satisfies WebGLMeshProps["geometry"];
 const bumperPosition = [-84, -112, -70] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const bumperMaterial = {
   kind: "standard",
   color: "#94663f",
   roughness: 0.66,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const bumperPhysics = {
   body: { type: "static" },
   collider: { kind: "box", size: bumperSize },
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const collisionWallSize = [32, 140, 80] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const collisionWallSize = [32, 140, 80] as const;
+const collisionWallGeometry = {
+  kind: "box",
+  size: collisionWallSize,
+} satisfies WebGLMeshProps["geometry"];
 const leftWallPosition = [-330, -116, 24] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const rightWallPosition = [-40, -116, 24] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const collisionWallMaterial = {
   kind: "standard",
   color: "#4f5f5b",
   roughness: 0.7,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const collisionWallPhysics = {
   body: { type: "static" },
   collider: { kind: "box", size: collisionWallSize },
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
-const inertiaBlockSize = [56, 56, 56] satisfies NonNullable<WebGLStageBoxProps["size"]>;
+const inertiaBlockSize = [56, 56, 56] as const;
+const inertiaBlockGeometry = {
+  kind: "box",
+  size: inertiaBlockSize,
+} satisfies WebGLMeshProps["geometry"];
 const inertiaBlockPosition = [-236, -70, 24] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const inertiaBlockMaterial = {
   kind: "standard",
   color: "#d95f42",
   roughness: 0.34,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const inertiaBlockInteraction = {
   pickable: {
     hitTest: "bounds",
     pointer: { hover: true, press: true, drag: true },
   },
-} satisfies NonNullable<WebGLStageBoxProps["interaction"]>;
+} satisfies NonNullable<WebGLMeshProps["interaction"]>;
 const inertiaBlockEffects = [
   {
     kind: "example.sceneObjectHoverPulse",
@@ -189,7 +208,7 @@ const inertiaBlockPhysics = {
   },
   collider: { kind: "sphere", radius: 34 },
   pointerDrag: true,
-} satisfies NonNullable<WebGLStageBoxProps["physics"]>;
+} satisfies NonNullable<WebGLMeshProps["physics"]>;
 
 const modelPosition = [252, -132, -70] satisfies NonNullable<
   WebGLModelProps["position"]
@@ -270,61 +289,60 @@ export function ManagedPhysicsExample() {
             position={cameraPosition}
             target={cameraTarget}
           />
-          <WebGLStagePlane
+          <WebGLMesh
             id="example.physics.floor"
-            role={floorRole}
-            size={floorSize}
+            geometry={floorGeometry}
             position={floorPosition}
             material={floorMaterial}
             interaction={floorInteraction}
             physics={floorPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.crate"
-            size={crateSize}
+            geometry={crateGeometry}
             position={cratePosition}
             material={crateMaterial}
             interaction={crateInteraction}
             physics={cratePhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.anchor"
-            size={anchorBoxSize}
+            geometry={anchorBoxGeometry}
             position={anchorBoxPosition}
             material={anchorBoxMaterial}
             physics={anchorBoxPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.spring"
-            size={springBoxSize}
+            geometry={springBoxGeometry}
             position={springBoxPosition}
             material={springBoxMaterial}
             physics={springBoxPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.bumper"
-            size={bumperSize}
+            geometry={bumperGeometry}
             position={bumperPosition}
             material={bumperMaterial}
             physics={bumperPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.leftWall"
-            size={collisionWallSize}
+            geometry={collisionWallGeometry}
             position={leftWallPosition}
             material={collisionWallMaterial}
             physics={collisionWallPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.rightWall"
-            size={collisionWallSize}
+            geometry={collisionWallGeometry}
             position={rightWallPosition}
             material={collisionWallMaterial}
             physics={collisionWallPhysics}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.physics.inertia"
-            size={inertiaBlockSize}
+            geometry={inertiaBlockGeometry}
             position={inertiaBlockPosition}
             material={inertiaBlockMaterial}
             interaction={inertiaBlockInteraction}

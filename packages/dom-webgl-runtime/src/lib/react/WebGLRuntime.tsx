@@ -150,8 +150,6 @@ function createPendingRuntime(): RuntimeInstance {
     unregisterPassViewport() {},
     registerMesh() {},
     unregisterMesh() {},
-    registerStagePrimitive() {},
-    unregisterStagePrimitive() {},
     registerLight() {},
     unregisterLight() {},
     registerModel() {},

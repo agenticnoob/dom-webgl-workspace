@@ -37,6 +37,7 @@ describe("external consumer fixture", () => {
       "@viselora/scroll-adapters": `file:${adaptersTarball}`,
       react: expect.any(String),
       "react-dom": expect.any(String),
+      three: expect.any(String),
     });
     expect(packageJson.scripts).toEqual({
       typecheck: "tsc --noEmit",
@@ -102,7 +103,10 @@ describe("external consumer fixture", () => {
     expect(app).toContain("<WebGLScene");
     expect(app).toContain("<WebGLCamera");
     expect(app).toContain("<WebGLRenderPass");
-    expect(app).toContain("<WebGLStageBox");
+    expect(app).toContain("<WebGLMesh");
+    expect(app).toContain('kind: "custom"');
+    expect(app).toContain("new BoxGeometry");
+    expect(app).not.toContain("WebGLStageBox");
     expect(runtimeTest).toContain("@vitest-environment jsdom");
     expect(runtimeTest).toContain("function (this: HTMLCanvasElement)");
     expect(runtimeTest).toContain('querySelectorAll("canvas")');

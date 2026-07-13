@@ -352,7 +352,7 @@ function createCandidate(
   object: TestSceneObject,
   physics: WebGLPhysicsDeclaration,
   objectPointer?: WebGLSceneObjectPointerState,
-  sourceKind: ManagedPhysicsCandidate["sourceKind"] = "stage/box",
+  sourceKind: ManagedPhysicsCandidate["sourceKind"] = "mesh",
 ): ManagedPhysicsCandidate {
   const normalizedPhysics = normalizePhysicsDeclaration(physics);
 

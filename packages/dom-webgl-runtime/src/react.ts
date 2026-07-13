@@ -28,14 +28,6 @@ export {
   type WebGLPassViewportProps,
 } from "./lib/react/WebGLPassViewport";
 export { WebGLMesh, type WebGLMeshProps } from "./lib/react/WebGLMesh";
-export {
-  WebGLStagePlane,
-  type WebGLStagePlaneProps,
-} from "./lib/react/WebGLStagePlane";
-export {
-  WebGLStageBox,
-  type WebGLStageBoxProps,
-} from "./lib/react/WebGLStageBox";
 export { WebGLLight, type WebGLLightProps } from "./lib/react/WebGLLight";
 export { WebGLModel, type WebGLModelProps } from "./lib/react/WebGLModel";
 export { useWebGLRuntime } from "./lib/react/useWebGLRuntime";

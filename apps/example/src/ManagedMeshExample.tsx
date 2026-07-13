@@ -2,14 +2,12 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLMesh,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
   type WebGLCameraProps,
+  type WebGLMeshProps,
   type WebGLSceneRenderOptions,
-  type WebGLStageBoxProps,
-  type WebGLStagePlaneProps,
 } from "@viselora/dom-webgl/react";
 
 const stageSceneRender = {
@@ -31,66 +29,65 @@ const cameraTarget = [0, -80, 0] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 
-const floorSize = [900, 520] satisfies NonNullable<
-  WebGLStagePlaneProps["size"]
->;
 const floorPosition = [0, -180, 0] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const floorMaterial = {
   kind: "standard",
   color: "#0f172a",
   roughness: 0.64,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
-const floorPlaneProps = {
+} satisfies NonNullable<WebGLMeshProps["material"]>;
+const floorMeshProps = {
   id: "example.stage.floor",
-  role: "floor",
-  size: floorSize,
+  geometry: { kind: "plane", role: "floor", size: [900, 520] },
   position: floorPosition,
   material: floorMaterial,
-} satisfies WebGLStagePlaneProps;
+} satisfies WebGLMeshProps;
 
-const backdropSize = [900, 420] satisfies NonNullable<
-  WebGLStagePlaneProps["size"]
->;
 const backdropPosition = [0, 20, -260] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const backdropMaterial = {
   kind: "standard",
   color: "#1d4ed8",
   roughness: 0.48,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
-const backdropPlaneProps = {
+} satisfies NonNullable<WebGLMeshProps["material"]>;
+const backdropMeshProps = {
   id: "example.stage.backdrop",
-  role: "backdrop",
-  size: backdropSize,
+  geometry: { kind: "plane", role: "backdrop", size: [900, 420] },
   position: backdropPosition,
   material: backdropMaterial,
-} satisfies WebGLStagePlaneProps;
+} satisfies WebGLMeshProps;
 
-const plinthSize = [180, 96, 180] satisfies NonNullable<
-  WebGLStageBoxProps["size"]
->;
+const plinthGeometry = {
+  kind: "box",
+  size: [180, 96, 180],
+} satisfies WebGLMeshProps["geometry"];
 const plinthPosition = [0, -128, -40] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const plinthMaterial = {
   kind: "standard",
   color: "#f6c453",
   roughness: 0.38,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 
-const bloomRailSize = [520, 18, 22] satisfies NonNullable<
-  WebGLStageBoxProps["size"]
->;
+const bloomRailGeometry = {
+  kind: "box",
+  size: [520, 18, 22],
+} satisfies WebGLMeshProps["geometry"];
 const bloomRailPosition = [0, -34, -236] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const bloomRailMaterial = {
   kind: "basic",
   color: "#f8fafc",
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
+
+const tetrahedronGeometry = {
+  kind: "tetrahedron",
+  radius: 72,
+} satisfies WebGLMeshProps["geometry"];
 
 const keyLightPosition = [120, 80, 160] satisfies NonNullable<
   WebGLCameraProps["position"]
@@ -99,7 +96,7 @@ const rimLightPosition = [-220, -12, 120] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
 
-export function ManagedStagePrimitiveExample() {
+export function ManagedMeshExample() {
   return (
     <section className="example-row example-stage-dogfood">
       <div className="example-stage-copy">
@@ -130,19 +127,25 @@ export function ManagedStagePrimitiveExample() {
             position={cameraPosition}
             target={cameraTarget}
           />
-          <WebGLStagePlane {...floorPlaneProps} />
-          <WebGLStagePlane {...backdropPlaneProps} />
-          <WebGLStageBox
+          <WebGLMesh {...floorMeshProps} />
+          <WebGLMesh {...backdropMeshProps} />
+          <WebGLMesh
             id="example.stage.plinth"
-            size={plinthSize}
+            geometry={plinthGeometry}
             position={plinthPosition}
             material={plinthMaterial}
           />
-          <WebGLStageBox
+          <WebGLMesh
             id="example.stage.bloomRail"
-            size={bloomRailSize}
+            geometry={bloomRailGeometry}
             position={bloomRailPosition}
             material={bloomRailMaterial}
+          />
+          <WebGLMesh
+            id="example.stage.tetrahedron"
+            geometry={tetrahedronGeometry}
+            position={[180, -82, -40]}
+            material={{ kind: "standard", color: "#7dd3fc", roughness: 0.28 }}
           />
           <WebGLLight id="example.stage.ambient" kind="ambient" intensity={0.38} />
           <WebGLLight

@@ -6,8 +6,8 @@ const scrollTimelineProps: ScrollTimelineMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: StagePlaneMockProps[] = [];
-const stageBoxProps: StageBoxMockProps[] = [];
+const stagePlaneProps: MeshMockProps[] = [];
+const stageBoxProps: MeshMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
@@ -87,18 +87,13 @@ type CameraMockProps = {
   };
 };
 
-type StagePlaneMockProps = {
+type MeshMockProps = {
   readonly id: string;
-  readonly role?: string;
-  readonly size?: readonly [number, number];
-  readonly position?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
-  readonly timeline?: TimelineMockProps;
-};
-
-type StageBoxMockProps = {
-  readonly id: string;
-  readonly size?: readonly [number, number, number];
+  readonly geometry: {
+    readonly kind: string;
+    readonly role?: string;
+    readonly size?: readonly number[];
+  };
   readonly position?: readonly [number, number, number];
   readonly rotation?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
@@ -162,12 +157,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     cameraProps.push(props);
     return null;
   },
-  WebGLStagePlane: (props: StagePlaneMockProps) => {
-    stagePlaneProps.push(props);
-    return null;
-  },
-  WebGLStageBox: (props: StageBoxMockProps) => {
-    stageBoxProps.push(props);
+  WebGLMesh: (props: MeshMockProps) => {
+    (props.geometry.kind === "plane" ? stagePlaneProps : stageBoxProps).push(props);
     return null;
   },
   WebGLLight: (props: LightMockProps) => {
@@ -253,15 +244,13 @@ describe("ManagedTimelineExample", () => {
     expect(stagePlaneProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.floor",
-        role: "floor",
-        size: [920, 520],
+        geometry: { kind: "plane", role: "floor", size: [920, 520] },
         position: [0, -178, 0],
         material: { kind: "standard", color: "#16241f", roughness: 0.82 },
       }),
       expect.objectContaining({
         id: "example.managedStage.backdrop",
-        role: "backdrop",
-        size: [920, 430],
+        geometry: { kind: "plane", role: "backdrop", size: [920, 430] },
         position: [0, 18, -290],
         material: { kind: "standard", color: "#1f3a32", roughness: 0.7 },
       }),
@@ -270,7 +259,7 @@ describe("ManagedTimelineExample", () => {
     expect(stageBoxProps).toEqual([
       expect.objectContaining({
         id: "example.managedStage.plinth",
-        size: [220, 96, 180],
+        geometry: { kind: "box", size: [220, 96, 180] },
         position: [0, -130, -56],
         material: { kind: "standard", color: "#566b61", roughness: 0.56 },
       }),

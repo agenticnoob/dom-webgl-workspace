@@ -17,7 +17,7 @@ import { ManagedInteractionExample } from "./ManagedInteractionExample";
 import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
 import { ManagedPhysicsExample } from "./ManagedPhysicsExample";
 import { ManagedTimelineExample } from "./ManagedTimelineExample";
-import { ManagedStagePrimitiveExample } from "./ManagedStagePrimitiveExample";
+import { ManagedMeshExample } from "./ManagedMeshExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
 
@@ -81,7 +81,7 @@ export default function App() {
 
         <div className="example-stack">
           <SnapshotElementExamples />
-          <ManagedStagePrimitiveExample />
+          <ManagedMeshExample />
           <ManagedModelAnimationExample />
           <ManagedTimelineExample />
           <ManagedInteractionExample />

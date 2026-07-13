@@ -4,8 +4,8 @@ import { describe, expect, test, vi } from "vitest";
 
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: StagePlaneMockProps[] = [];
-const stageBoxProps: StageBoxMockProps[] = [];
+const stagePlaneProps: MeshMockProps[] = [];
+const stageBoxProps: MeshMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
@@ -28,21 +28,16 @@ type CameraMockProps = {
   readonly controller?: Record<string, unknown>;
 };
 
-type StagePlaneMockProps = {
+type MeshMockProps = {
   readonly id: string;
-  readonly role?: string;
-  readonly size?: readonly [number, number];
+  readonly geometry: {
+    readonly kind: string;
+    readonly role?: string;
+    readonly size?: readonly number[];
+  };
   readonly position?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
-  readonly interaction?: Record<string, unknown>;
-  readonly physics?: Record<string, unknown>;
-};
-
-type StageBoxMockProps = {
-  readonly id: string;
-  readonly size?: readonly [number, number, number];
-  readonly position?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
+  readonly effects?: readonly Record<string, unknown>[];
   readonly interaction?: Record<string, unknown>;
   readonly physics?: Record<string, unknown>;
 };
@@ -88,12 +83,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     cameraProps.push(props);
     return null;
   },
-  WebGLStagePlane: (props: StagePlaneMockProps) => {
-    stagePlaneProps.push(props);
-    return null;
-  },
-  WebGLStageBox: (props: StageBoxMockProps) => {
-    stageBoxProps.push(props);
+  WebGLMesh: (props: MeshMockProps) => {
+    (props.geometry.kind === "plane" ? stagePlaneProps : stageBoxProps).push(props);
     return null;
   },
   WebGLModel: (props: ModelMockProps) => {
@@ -156,8 +147,7 @@ describe("ManagedPhysicsExample", () => {
     expect(stagePlaneProps).toEqual([
       expect.objectContaining({
         id: "example.physics.floor",
-        role: "floor",
-        size: [760, 420],
+        geometry: { kind: "plane", role: "floor", size: [760, 420] },
         position: [40, -182, -70],
         material: { kind: "standard", color: "#1f3531", roughness: 0.74 },
         interaction: {
@@ -175,7 +165,7 @@ describe("ManagedPhysicsExample", () => {
     expect(stageBoxProps).toEqual([
       expect.objectContaining({
         id: "example.physics.crate",
-        size: [72, 72, 72],
+        geometry: { kind: "box", size: [72, 72, 72] },
         position: [40, -118, -70],
         material: { kind: "standard", color: "#c87f47", roughness: 0.56 },
         interaction: {
@@ -198,7 +188,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.anchor",
-        size: [44, 44, 44],
+        geometry: { kind: "box", size: [44, 44, 44] },
         position: [-236, -122, -70],
         material: { kind: "standard", color: "#7dd3fc", roughness: 0.42 },
         physics: {
@@ -222,7 +212,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.spring",
-        size: [54, 54, 54],
+        geometry: { kind: "box", size: [54, 54, 54] },
         position: [216, -118, -70],
         material: { kind: "standard", color: "#f6c453", roughness: 0.38 },
         physics: {
@@ -248,7 +238,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.bumper",
-        size: [58, 150, 72],
+        geometry: { kind: "box", size: [58, 150, 72] },
         position: [-84, -112, -70],
         material: { kind: "standard", color: "#94663f", roughness: 0.66 },
         physics: {
@@ -258,7 +248,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.leftWall",
-        size: [32, 140, 80],
+        geometry: { kind: "box", size: [32, 140, 80] },
         position: [-330, -116, 24],
         material: { kind: "standard", color: "#4f5f5b", roughness: 0.7 },
         physics: {
@@ -268,7 +258,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.rightWall",
-        size: [32, 140, 80],
+        geometry: { kind: "box", size: [32, 140, 80] },
         position: [-40, -116, 24],
         material: { kind: "standard", color: "#4f5f5b", roughness: 0.7 },
         physics: {
@@ -278,7 +268,7 @@ describe("ManagedPhysicsExample", () => {
       }),
       expect.objectContaining({
         id: "example.physics.inertia",
-        size: [56, 56, 56],
+        geometry: { kind: "box", size: [56, 56, 56] },
         position: [-236, -70, 24],
         material: { kind: "standard", color: "#d95f42", roughness: 0.34 },
         interaction: {

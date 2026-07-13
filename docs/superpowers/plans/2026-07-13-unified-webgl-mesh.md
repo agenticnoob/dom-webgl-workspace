@@ -436,22 +436,22 @@ git commit -m "feat: add the WebGLMesh React component"
 - Delete: `packages/dom-webgl-runtime/test/lib/react/WebGLStagePlane.test.tsx`
 - Delete: `packages/dom-webgl-runtime/test/lib/react/WebGLStageBox.test.tsx`
 
-- [ ] Update tests first to expect `WebGLMesh`, `geometry={{ kind: ... }}`, and effect source `"mesh"`.
-- [ ] Add one tetrahedron example using the built-in descriptor; it must not import Three.js.
-- [ ] Add one packed-consumer custom geometry compile fixture that imports a Three.js geometry constructor, declares `three` directly in the fixture package manifest, and returns it through `geometry.kind: "custom"`.
-- [ ] Run the focused app and fixture tests and confirm they fail against the old examples:
+- [x] Update tests first to expect `WebGLMesh`, `geometry={{ kind: ... }}`, and effect source `"mesh"`.
+- [x] Add one tetrahedron example using the built-in descriptor; it must not import Three.js.
+- [x] Add one packed-consumer custom geometry compile fixture that imports a Three.js geometry constructor, declares `three` directly in the fixture package manifest, and returns it through `geometry.kind: "custom"`.
+- [x] Run the focused app and fixture tests and confirm they fail against the old examples:
 
 ```bash
 npm test -- --run apps/example/test test/external-consumer-fixture.test.ts
 ```
 
-- [ ] Replace all plane/box component calls with `WebGLMesh`; keep existing ids, transforms, effects, interactions, physics, and user-visible behavior.
-- [ ] Rename `ManagedStagePrimitiveExample` to `ManagedMeshExample`, rename its test, and update navigation/imports atomically. Do not rename unrelated stage concepts such as scenes, lights, cameras, or render passes.
-- [ ] Use module-scope constants for geometry descriptors reused across renders. Inline literal descriptors are allowed for static one-shot examples, but custom factories must be stable and return a fresh geometry per call.
-- [ ] Change interaction-effect source filters from `"stage/plane" | "stage/box"` to `"mesh"`.
-- [ ] Delete the old React components/tests, Stage declaration/normalization/managed-object paths, primitive registry/runtime methods, old debug fields, old effect source kinds, and all old root/react exports.
-- [ ] Extend `publicExports.test.ts` with `WebGLMesh`, `WebGLMeshProps`, runtime/debug exports, and `@ts-expect-error` coverage for `"stage/plane"`. Add export-boundary assertions proving old Stage symbols are absent.
-- [ ] Verify import boundaries:
+- [x] Replace all plane/box component calls with `WebGLMesh`; keep existing ids, transforms, effects, interactions, physics, and user-visible behavior.
+- [x] Rename `ManagedStagePrimitiveExample` to `ManagedMeshExample`, rename its test, and update navigation/imports atomically. Do not rename unrelated stage concepts such as scenes, lights, cameras, or render passes.
+- [x] Use module-scope constants for geometry descriptors reused across renders. Inline literal descriptors are allowed for static one-shot examples, but custom factories must be stable and return a fresh geometry per call.
+- [x] Change interaction-effect source filters from `"stage/plane" | "stage/box"` to `"mesh"`.
+- [x] Delete the old React components/tests, Stage declaration/normalization/managed-object paths, primitive registry/runtime methods, old debug fields, old effect source kinds, and all old root/react exports.
+- [x] Extend `publicExports.test.ts` with `WebGLMesh`, `WebGLMeshProps`, runtime/debug exports, and `@ts-expect-error` coverage for `"stage/plane"`. Add export-boundary assertions proving old Stage symbols are absent.
+- [x] Verify import boundaries:
 
 ```bash
 npm test -- --run apps/example/test test/external-consumer-fixture.test.ts
@@ -461,7 +461,7 @@ npm run typecheck
 
 Expected: all three commands exit 0; no example imports runtime internals.
 
-- [ ] Commit:
+- [x] Commit:
 
 ```bash
 git add apps/example scripts/external-consumer-fixture.mjs test/external-consumer-fixture.test.ts packages/dom-webgl-runtime/src packages/dom-webgl-runtime/test

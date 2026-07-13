@@ -6,16 +6,14 @@ import {
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLMesh,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStageBox,
-  WebGLStagePlane,
   WebGLTarget,
   type WebGLCameraProps,
   type WebGLLightProps,
+  type WebGLMeshProps,
   type WebGLSceneRenderOptions,
-  type WebGLStageBoxProps,
-  type WebGLStagePlaneProps,
   type WebGLTargetProps,
 } from "@viselora/dom-webgl/react";
 
@@ -53,55 +51,48 @@ const cameraController = {
   easing: "smoothstep",
 } satisfies NonNullable<WebGLCameraProps["controller"]>;
 
-const floorSize = [920, 520] satisfies NonNullable<
-  WebGLStagePlaneProps["size"]
->;
 const floorPosition = [0, -178, 0] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const floorMaterial = {
   kind: "standard",
   color: "#16241f",
   roughness: 0.82,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
-const floorPlaneProps = {
+} satisfies NonNullable<WebGLMeshProps["material"]>;
+const floorMeshProps = {
   id: "example.managedStage.floor",
-  role: "floor",
-  size: floorSize,
+  geometry: { kind: "plane", role: "floor", size: [920, 520] },
   position: floorPosition,
   material: floorMaterial,
-} satisfies WebGLStagePlaneProps;
+} satisfies WebGLMeshProps;
 
-const backdropSize = [920, 430] satisfies NonNullable<
-  WebGLStagePlaneProps["size"]
->;
 const backdropPosition = [0, 18, -290] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const backdropMaterial = {
   kind: "standard",
   color: "#1f3a32",
   roughness: 0.7,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
-const backdropPlaneProps = {
+} satisfies NonNullable<WebGLMeshProps["material"]>;
+const backdropMeshProps = {
   id: "example.managedStage.backdrop",
-  role: "backdrop",
-  size: backdropSize,
+  geometry: { kind: "plane", role: "backdrop", size: [920, 430] },
   position: backdropPosition,
   material: backdropMaterial,
-} satisfies WebGLStagePlaneProps;
+} satisfies WebGLMeshProps;
 
-const plinthSize = [220, 96, 180] satisfies NonNullable<
-  WebGLStageBoxProps["size"]
->;
+const plinthGeometry = {
+  kind: "box",
+  size: [220, 96, 180],
+} satisfies WebGLMeshProps["geometry"];
 const plinthPosition = [0, -130, -56] satisfies NonNullable<
-  WebGLStageBoxProps["position"]
+  WebGLMeshProps["position"]
 >;
 const plinthMaterial = {
   kind: "standard",
   color: "#566b61",
   roughness: 0.56,
-} satisfies NonNullable<WebGLStageBoxProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 
 const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
   WebGLLightProps["position"]
@@ -159,11 +150,11 @@ export function ManagedTimelineExample() {
             fov={42}
             controller={cameraController}
           />
-          <WebGLStagePlane {...floorPlaneProps} />
-          <WebGLStagePlane {...backdropPlaneProps} />
-          <WebGLStageBox
+          <WebGLMesh {...floorMeshProps} />
+          <WebGLMesh {...backdropMeshProps} />
+          <WebGLMesh
             id="example.managedStage.plinth"
-            size={plinthSize}
+            geometry={plinthGeometry}
             position={plinthPosition}
             material={plinthMaterial}
           />

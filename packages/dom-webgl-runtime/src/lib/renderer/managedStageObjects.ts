@@ -21,7 +21,6 @@ import type {
   NormalizedMeshDeclaration,
   NormalizedMeshGeometryDeclaration,
   NormalizedMeshMaterialDeclaration,
-  NormalizedStagePrimitiveDeclaration,
 } from "./stageDeclarations";
 import type { WebGLSceneObject } from "./sceneObject";
 
@@ -131,45 +130,6 @@ function prepareCustomGeometry(geometry: BufferGeometry): void {
   if (geometry.boundingSphere === null) {
     geometry.computeBoundingSphere();
   }
-}
-
-export function createManagedStagePrimitiveObject(
-  declaration: NormalizedStagePrimitiveDeclaration,
-): WebGLSceneObject {
-  const geometry =
-    declaration.kind === "plane"
-      ? new PlaneGeometry(declaration.size[0], declaration.size[1])
-      : new BoxGeometry(
-          declaration.size[0],
-          declaration.size[1],
-          declaration.size[2],
-        );
-  const material = createMaterial(declaration.material);
-  const mesh = new Mesh(geometry, material);
-  let disposed = false;
-
-  applyTransform(mesh, declaration.position, declaration.rotation, declaration.scale);
-  mesh.visible = declaration.visible;
-
-  return {
-    key: declaration.id,
-    object3D: mesh,
-    setVisible(visible): void {
-      mesh.visible = visible;
-    },
-    updateLayout(): void {
-      return;
-    },
-    dispose(): void {
-      if (disposed) {
-        return;
-      }
-
-      disposed = true;
-      geometry.dispose();
-      material.dispose();
-    },
-  };
 }
 
 export function createManagedLightObject(

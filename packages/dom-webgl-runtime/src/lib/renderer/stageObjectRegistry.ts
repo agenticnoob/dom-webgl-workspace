@@ -1,12 +1,10 @@
 import type {
   WebGLDebugLightSummary,
   WebGLDebugMeshSummary,
-  WebGLDebugStagePrimitiveSummary,
   WebGLFrameInput,
   WebGLLightDeclaration,
   WebGLMeshDeclaration,
   WebGLProgressSignalSource,
-  WebGLStagePrimitiveDeclaration,
 } from "../types";
 import type {
   WebGLEffectScopeSnapshot,
@@ -24,15 +22,12 @@ import { readTimelineProgress } from "../timeline/timelineDeclarations";
 import {
   createManagedLightObject,
   createManagedMeshObject,
-  createManagedStagePrimitiveObject,
 } from "./managedStageObjects";
 import {
   normalizeLightDeclaration,
   normalizeMeshDeclaration,
-  normalizeStagePrimitiveDeclaration,
   type NormalizedLightDeclaration,
   type NormalizedMeshDeclaration,
-  type NormalizedStagePrimitiveDeclaration,
 } from "./stageDeclarations";
 import {
   inspectSceneObjectEffectKinds,
@@ -55,8 +50,6 @@ import type { NormalizedPhysicsDeclaration } from "./physicsDeclarations";
 export type StageObjectRegistry = {
   registerMesh(declaration: WebGLMeshDeclaration): void;
   unregisterMesh(id: string): void;
-  registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
-  unregisterStagePrimitive(id: string): void;
   registerLight(declaration: WebGLLightDeclaration): void;
   unregisterLight(id: string): void;
   unregisterScene(sceneId: string): void;
@@ -74,16 +67,12 @@ export type StageObjectRegistry = {
 
 export type StageObjectRegistryDebugState = {
   meshes: WebGLDebugMeshSummary[];
-  stagePrimitives: WebGLDebugStagePrimitiveSummary[];
   lights: WebGLDebugLightSummary[];
 };
 
 export type StageObjectRegistryOptions = {
   getSceneAdapter(sceneId: string): WebGLSceneAdapter;
   createMeshObject?(declaration: NormalizedMeshDeclaration): WebGLSceneObject;
-  createPrimitiveObject?(
-    declaration: NormalizedStagePrimitiveDeclaration,
-  ): WebGLSceneObject;
   createLightObject?(declaration: NormalizedLightDeclaration): WebGLSceneObject;
   effectRegistry?: WebGLEffectRegistry;
   readEffectScopes?(sceneId: string): WebGLEffectScopeSnapshot;
@@ -97,14 +86,6 @@ type RegistryEntry = {
   timeline?: NormalizedTimelineBinding;
   timelineActive?: boolean;
   effectController?: WebGLSceneObjectEffectController;
-};
-
-type StagePrimitiveRegistryEntry = RegistryEntry & {
-  kind: WebGLStagePrimitiveDeclaration["kind"];
-  effects?: WebGLEffectsDeclaration;
-  interaction?: NormalizedSceneObjectInteractionDeclaration;
-  physics?: NormalizedPhysicsDeclaration;
-  screenPlane?: ScreenPlanePlacementPlane;
 };
 
 type MeshRegistryEntry = RegistryEntry & {
@@ -123,10 +104,7 @@ export function createStageObjectRegistry(
   options: StageObjectRegistryOptions,
 ): StageObjectRegistry {
   const meshEntries = new Map<string, MeshRegistryEntry>();
-  const primitiveEntries = new Map<string, StagePrimitiveRegistryEntry>();
   const lightEntries = new Map<string, LightRegistryEntry>();
-  const createPrimitiveObject =
-    options.createPrimitiveObject ?? createManagedStagePrimitiveObject;
   const createMeshObject = options.createMeshObject ?? createManagedMeshObject;
   const createLightObject = options.createLightObject ?? createManagedLightObject;
 
@@ -174,44 +152,6 @@ export function createStageObjectRegistry(
     unregisterMesh(id): void {
       unregisterEntry(meshEntries, id);
     },
-    registerStagePrimitive(declaration): void {
-      const normalized = normalizeStagePrimitiveDeclaration(declaration);
-
-      if (primitiveEntries.has(normalized.id)) {
-        throw new Error(
-          `WebGL stage primitive id "${normalized.id}" is already registered.`,
-        );
-      }
-
-      const adapter = options.getSceneAdapter(normalized.sceneId);
-      const object = createPrimitiveObject(normalized);
-      const controller = createSceneObjectController(adapter, object);
-      const screenPlane = createScreenPlaneFact(normalized);
-      const effectController = createRegistryEffectController(options, {
-        id: normalized.id,
-        sceneId: normalized.sceneId,
-        sourceKind: readStagePrimitiveSourceKind(normalized.kind),
-        object,
-        effects: normalized.effects,
-      });
-
-      controller.attach();
-      primitiveEntries.set(normalized.id, {
-        sceneId: normalized.sceneId,
-        kind: normalized.kind,
-        visible: normalized.visible,
-        ...(normalized.timeline ? { timeline: normalized.timeline } : {}),
-        ...(normalized.effects ? { effects: normalized.effects } : {}),
-        ...(normalized.interaction ? { interaction: normalized.interaction } : {}),
-        ...(normalized.physics ? { physics: normalized.physics } : {}),
-        ...(screenPlane ? { screenPlane } : {}),
-        ...(effectController ? { effectController } : {}),
-        controller,
-      });
-    },
-    unregisterStagePrimitive(id): void {
-      unregisterEntry(primitiveEntries, id);
-    },
     registerLight(declaration): void {
       const normalized = normalizeLightDeclaration(declaration);
 
@@ -239,28 +179,16 @@ export function createStageObjectRegistry(
       const normalizedSceneId = sceneId.trim();
 
       unregisterEntriesForScene(meshEntries, normalizedSceneId);
-      unregisterEntriesForScene(primitiveEntries, normalizedSceneId);
       unregisterEntriesForScene(lightEntries, normalizedSceneId);
     },
     updateTimelineState(progressSignals): void {
       updateTimelineEntries(meshEntries, progressSignals);
-      updateTimelineEntries(primitiveEntries, progressSignals);
       updateTimelineEntries(lightEntries, progressSignals);
     },
     updateEffects(input): boolean {
       let continuous = false;
 
       for (const entry of meshEntries.values()) {
-        if (!entry.effectController || !readEffectiveVisibility(entry)) {
-          continue;
-        }
-
-        entry.effectController.update(input);
-        continuous =
-          continuous || entry.effectController.schedulingMode === "frame";
-      }
-
-      for (const entry of primitiveEntries.values()) {
         if (!entry.effectController || !readEffectiveVisibility(entry)) {
           continue;
         }
@@ -291,26 +219,7 @@ export function createStageObjectRegistry(
           },
         ];
       });
-      const stagePrimitives = Array.from(primitiveEntries.values()).flatMap((entry) => {
-        const pickable = entry.interaction?.pickable;
-        if (!pickable || !readEffectiveVisibility(entry)) {
-          return [];
-        }
-
-        return [
-          {
-            id: entry.controller.object.key,
-            sceneId: entry.sceneId,
-            sourceKind: readStagePrimitiveSourceKind(entry.kind),
-            object3D: entry.controller.object.object3D,
-            hitTest: pickable.hitTest,
-            pickable: true,
-            pointer: pickable.pointer,
-          },
-        ];
-      });
-
-      return [...meshes, ...stagePrimitives];
+      return meshes;
     },
     collectPhysicsCandidates(): ManagedPhysicsCandidate[] {
       const meshes: ManagedPhysicsCandidate[] = Array.from(meshEntries).flatMap(([id, entry]) => {
@@ -331,26 +240,7 @@ export function createStageObjectRegistry(
           },
         ];
       });
-      const stagePrimitives = Array.from(primitiveEntries).flatMap(([id, entry]) => {
-        if (!entry.physics?.body || !readEffectiveVisibility(entry)) {
-          return [];
-        }
-
-        return [
-          {
-            id,
-            sceneId: entry.sceneId,
-            sourceKind: readStagePrimitiveSourceKind(entry.kind),
-            object: entry.controller.object,
-            physics: entry.physics,
-            ...(options.readObjectPointerState
-              ? { objectPointer: options.readObjectPointerState(id) }
-              : {}),
-          },
-        ];
-      });
-
-      return [...meshes, ...stagePrimitives];
+      return meshes;
     },
     readMeshPlane(planeId, sceneId): ScreenPlanePlacementPlane | undefined {
       const meshEntry = meshEntries.get(planeId.trim());
@@ -358,12 +248,7 @@ export function createStageObjectRegistry(
         return meshEntry.screenPlane;
       }
 
-      const entry = primitiveEntries.get(planeId.trim());
-      if (!entry?.screenPlane || entry.sceneId !== sceneId.trim()) {
-        return undefined;
-      }
-
-      return entry.screenPlane;
+      return undefined;
     },
     inspect(): StageObjectRegistryDebugState {
       return {
@@ -371,18 +256,6 @@ export function createStageObjectRegistry(
           id,
           sceneId: entry.sceneId,
           geometryKind: entry.geometryKind,
-          ...(entry.timeline ? { timeline: readDebugTimeline(entry) } : {}),
-          ...(entry.effects
-            ? { effects: inspectSceneObjectEffectKinds(entry.effects) }
-            : {}),
-          ...(entry.interaction
-            ? { interaction: inspectSceneObjectInteraction(entry.interaction) }
-            : {}),
-        })),
-        stagePrimitives: Array.from(primitiveEntries, ([id, entry]) => ({
-          id,
-          sceneId: entry.sceneId,
-          kind: entry.kind,
           ...(entry.timeline ? { timeline: readDebugTimeline(entry) } : {}),
           ...(entry.effects
             ? { effects: inspectSceneObjectEffectKinds(entry.effects) }
@@ -401,28 +274,9 @@ export function createStageObjectRegistry(
     },
     dispose(): void {
       disposeEntries(meshEntries);
-      disposeEntries(primitiveEntries);
       disposeEntries(lightEntries);
     },
   };
-}
-
-function createScreenPlaneFact(
-  declaration: NormalizedStagePrimitiveDeclaration,
-): ScreenPlanePlacementPlane | undefined {
-  switch (declaration.kind) {
-    case "plane":
-      return {
-        id: declaration.id,
-        sceneId: declaration.sceneId,
-        position: declaration.position,
-        rotation: declaration.rotation,
-        scale: declaration.scale,
-        size: declaration.size,
-      };
-    case "box":
-      return undefined;
-  }
 }
 
 function createMeshScreenPlaneFact(
@@ -505,17 +359,6 @@ function updateTimelineEntries<TEntry extends RegistryEntry>(
 
 function readEffectiveVisibility(entry: RegistryEntry): boolean {
   return entry.visible && (entry.timelineActive ?? true);
-}
-
-function readStagePrimitiveSourceKind(
-  kind: WebGLStagePrimitiveDeclaration["kind"],
-): "stage/plane" | "stage/box" {
-  switch (kind) {
-    case "plane":
-      return "stage/plane";
-    case "box":
-      return "stage/box";
-  }
 }
 
 function readEffectScopes(

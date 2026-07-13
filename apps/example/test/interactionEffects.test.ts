@@ -14,10 +14,10 @@ import {
 } from "../src/interactionEffects";
 
 describe("managed interaction example effects", () => {
-  test("scene object hover pulse supports stage and model object sources", () => {
-    const object = createObjectHandle("stage/plane");
+  test("scene object hover pulse supports mesh and model object sources", () => {
+    const object = createObjectHandle("mesh");
     const context = createSceneObjectContext({
-      sourceKind: "stage/plane",
+      sourceKind: "mesh",
       object,
       objectPointer: createObjectPointerState({ isHovered: true }),
     });
@@ -37,8 +37,7 @@ describe("managed interaction example effects", () => {
     });
 
     expect(exampleSceneObjectHoverPulseEffect.source).toEqual([
-      "stage/plane",
-      "stage/box",
+      "mesh",
       "model/glb",
     ]);
     expect(object.opacity).toBe(0.92);

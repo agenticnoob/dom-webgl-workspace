@@ -34,8 +34,8 @@ describe("public package exports", () => {
     expect(reactApi.WebGLRenderPass).toEqual(expect.any(Function));
     expect(reactApi.WebGLPassViewport).toEqual(expect.any(Function));
     expect(reactApi.WebGLMesh).toEqual(expect.any(Function));
-    expect(reactApi.WebGLStagePlane).toEqual(expect.any(Function));
-    expect(reactApi.WebGLStageBox).toEqual(expect.any(Function));
+    expect(reactApi).not.toHaveProperty("WebGLStagePlane");
+    expect(reactApi).not.toHaveProperty("WebGLStageBox");
     expect(reactApi.WebGLLight).toEqual(expect.any(Function));
     expect(reactApi.WebGLModel).toEqual(expect.any(Function));
     expect(reactApi.useWebGLRuntime).toEqual(expect.any(Function));
@@ -75,8 +75,6 @@ describe("public package exports", () => {
           WebGLRuntime,
           WebGLScene,
           WebGLMesh,
-          WebGLStageBox,
-          WebGLStagePlane,
           WebGLModel,
           WebGLTarget,
         } from "${importPath}";
@@ -89,8 +87,6 @@ describe("public package exports", () => {
           WebGLSceneProps,
           WebGLSceneRenderOptions,
           WebGLMeshProps,
-          WebGLStageBoxProps,
-          WebGLStagePlaneProps,
           WebGLModelProps,
           WebGLTargetProps,
         } from "${importPath}";
@@ -100,6 +96,14 @@ describe("public package exports", () => {
         import type { Material as ThreeMaterial } from "three/src/materials/Material.js";
         import type { Mesh as ThreeMesh } from "three/src/objects/Mesh.js";
         import type { Scene as ThreeScene } from "three/src/scenes/Scene.js";
+        // @ts-expect-error Removed Stage component is not part of the React entrypoint.
+        import { WebGLStagePlane } from "${importPath}";
+        // @ts-expect-error Removed Stage component is not part of the React entrypoint.
+        import { WebGLStageBox } from "${importPath}";
+        // @ts-expect-error Removed Stage props are not part of the React entrypoint.
+        import type { WebGLStagePlaneProps } from "${importPath}";
+        // @ts-expect-error Removed Stage props are not part of the React entrypoint.
+        import type { WebGLStageBoxProps } from "${importPath}";
         // @ts-expect-error Runtime internals are not part of the React entrypoint.
         import { createWebGLRuntime } from "${importPath}";
         // @ts-expect-error Scene objects are internal renderer state.
@@ -131,8 +135,6 @@ describe("public package exports", () => {
         WebGLPassViewport satisfies unknown;
         WebGLRenderPass satisfies unknown;
         WebGLMesh satisfies unknown;
-        WebGLStagePlane satisfies unknown;
-        WebGLStageBox satisfies unknown;
         WebGLLight satisfies unknown;
         declare const effects: WebGLRuntimeProps["effects"];
         declare const progressSignals: WebGLRuntimeProps["progressSignals"];
@@ -199,15 +201,14 @@ describe("public package exports", () => {
                   geometry={{ kind: "tetrahedron", radius: 80 }}
                   material={{ kind: "standard", color: "#f5f1e8" }}
                 />
-                <WebGLStagePlane
+                <WebGLMesh
                   id="stage.floor"
-                  role="floor"
-                  size={[1200, 800]}
+                  geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
                   material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
                 />
-                <WebGLStageBox
+                <WebGLMesh
                   id="stage.box"
-                  size={[120, 80, 120]}
+                  geometry={{ kind: "box", size: [120, 80, 120] }}
                   position={[0, -40, 0]}
                   material={{ kind: "basic", color: "#ffffff", opacity: 0.5 }}
                 />
@@ -250,15 +251,14 @@ describe("public package exports", () => {
                 position={[0, 0, 500]}
                 target={[0, 0, 0]}
               />
-              <WebGLStagePlane
+              <WebGLMesh
                 id="stage.floor"
-                role="floor"
-                size={[1200, 800]}
+                geometry={{ kind: "plane", role: "floor", size: [1200, 800] }}
                 material={{ kind: "standard", color: "#05070a", roughness: 0.8 }}
               />
-              <WebGLStageBox
+              <WebGLMesh
                 id="stage.box"
-                size={[120, 80, 120]}
+                geometry={{ kind: "box", size: [120, 80, 120] }}
                 position={[0, -40, 0]}
                 material={{ kind: "basic", color: "#ffffff", opacity: 0.5 }}
               />
@@ -304,23 +304,6 @@ describe("public package exports", () => {
         );
 
         stableMesh satisfies unknown;
-
-        const stableStageMaterial = {
-          kind: "standard",
-          color: "#05070a",
-          roughness: 0.8,
-        } satisfies WebGLStagePlaneProps["material"];
-
-        const stableStagePlane = (
-          <WebGLStagePlane
-            id="stable.floor"
-            scene="world.stage"
-            role="floor"
-            material={stableStageMaterial}
-          />
-        );
-
-        stableStagePlane satisfies unknown;
 
         const sceneRender = {
           camera: "world.camera",
@@ -503,20 +486,21 @@ describe("public package exports", () => {
         } satisfies WebGLCameraProps;
         rawControllerProps satisfies WebGLCameraProps;
 
-        // @ts-expect-error Stage planes do not accept raw Three mesh handles.
-        const rawMeshPlaneProps = { id: "raw.plane", mesh: rawMesh } satisfies WebGLStagePlaneProps;
+        // @ts-expect-error WebGLMesh does not accept raw Three mesh handles.
+        const rawMeshProps = { id: "raw.mesh", geometry: { kind: "box" }, mesh: rawMesh } satisfies WebGLMeshProps;
 
-        // @ts-expect-error Stage material is a descriptor, not a raw Three material.
-        const rawMaterialPlaneProps = { id: "raw.material", material: rawMaterial } satisfies WebGLStagePlaneProps;
+        // @ts-expect-error Mesh material is a descriptor, not a raw Three material.
+        const rawMaterialMeshProps = { id: "raw.material", geometry: { kind: "box" }, material: rawMaterial } satisfies WebGLMeshProps;
 
         // @ts-expect-error WebGLLight is a descriptor, not a raw Three light wrapper.
         const rawLightProps = { id: "raw.light", light: rawLight } satisfies WebGLLightProps;
 
-        const updateCallbackPlaneProps = {
+        const updateCallbackMeshProps = {
           id: "raw.update",
-          // @ts-expect-error Stage components do not expose an imperative update callback.
+          geometry: { kind: "box" },
+          // @ts-expect-error Mesh components do not expose an imperative update callback.
           onUpdate() {},
-        } satisfies WebGLStagePlaneProps;
+        } satisfies WebGLMeshProps;
 
 			const props = {
 		  webgl: {
@@ -634,6 +618,7 @@ describe("public package exports", () => {
                   WebGLCameraType,
                   WebGLColorValue,
                   WebGLDebugModelDiagnostic,
+                  WebGLDebugMeshSummary,
                   WebGLDebugModelPrepareSummary,
                   WebGLDebugModelSummary,
 					          WebGLDebugState,
@@ -762,12 +747,6 @@ describe("public package exports", () => {
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
           WebGLPlaneRole,
-          WebGLStageBoxDeclaration,
-          WebGLStageMaterialDeclaration,
-          WebGLStagePlaneDeclaration,
-          WebGLStagePlaneRole,
-          WebGLStagePrimitiveDeclaration,
-          WebGLStagePrimitiveKind,
 	          WebGLScrollGateState,
 	          WebGLScrollMetrics,
           WebGLTransformScope,
@@ -783,6 +762,18 @@ describe("public package exports", () => {
 	          WebGLTuple3,
 		        } from "${importPath}";
         import type { BufferGeometry } from "${bufferGeometryImportPath}";
+        // @ts-expect-error Removed Stage declarations are not public exports.
+        import type { WebGLStagePrimitiveDeclaration } from "${importPath}";
+        // @ts-expect-error Removed Stage declarations are not public exports.
+        import type { WebGLStagePlaneDeclaration } from "${importPath}";
+        // @ts-expect-error Removed Stage declarations are not public exports.
+        import type { WebGLStageBoxDeclaration } from "${importPath}";
+        // @ts-expect-error Removed Stage material is not a public export.
+        import type { WebGLStageMaterialDeclaration } from "${importPath}";
+        // @ts-expect-error Removed Stage role is not a public export.
+        import type { WebGLStagePlaneRole } from "${importPath}";
+        // @ts-expect-error Removed Stage kind is not a public export.
+        import type { WebGLStagePrimitiveKind } from "${importPath}";
         type ThreeAnimationAction = { readonly __rawAnimationAction: unique symbol };
         type ThreeAnimationMixer = { readonly __rawAnimationMixer: unique symbol };
         type ThreeObject3D = { readonly __rawObject3D: unique symbol };
@@ -980,41 +971,7 @@ describe("public package exports", () => {
           viewport: passViewport,
           postprocess: passPostprocess,
         } satisfies WebGLRenderPassDeclaration;
-        const stageColor = "#05070a" satisfies WebGLColorValue;
-        const stagePlaneRole = "floor" satisfies WebGLStagePlaneRole;
-        const stagePrimitiveKind = "plane" satisfies WebGLStagePrimitiveKind;
         const lightKind = "point" satisfies WebGLLightKind;
-        const standardStageMaterial = {
-          kind: "standard",
-          color: stageColor,
-          emissive: "#000000",
-          emissiveIntensity: 0.25,
-          opacity: 0.82,
-          metalness: 0.1,
-          roughness: 0.8,
-        } satisfies WebGLStageMaterialDeclaration;
-        const basicStageMaterial = {
-          kind: "basic",
-          color: 0xffffff,
-          opacity: 0.5,
-        } satisfies WebGLStageMaterialDeclaration;
-        const stagePlaneDeclaration = {
-          id: "stage.floor",
-          sceneId: "world",
-          kind: stagePrimitiveKind,
-          role: stagePlaneRole,
-          size: [1200, 800],
-          material: standardStageMaterial,
-          timeline: sceneTimeline,
-        } satisfies WebGLStagePlaneDeclaration;
-        const stageBoxDeclaration = {
-          id: "stage.box",
-          sceneId: "world",
-          kind: "box",
-          size: [120, 80, 120],
-          position: [0, -40, 0],
-          material: basicStageMaterial,
-        } satisfies WebGLStageBoxDeclaration;
         const physicsBodyType = "dynamic" satisfies WebGLPhysicsBodyType;
         const physicsBody = {
           type: physicsBodyType,
@@ -1037,26 +994,18 @@ describe("public package exports", () => {
           damping: 0.16,
           maxForce: 1800,
         } satisfies WebGLPhysicsPointerDragDeclaration;
-        const stagePhysics = {
+        const meshPhysics = {
           body: physicsBody,
           collider: physicsCollider,
           pointerDrag: physicsPointerDrag,
           constraints: [physicsConstraint],
         } satisfies WebGLPhysicsDeclaration;
-        const physicsStageBoxDeclaration = {
-          id: "stage.physics.box",
-          sceneId: "world",
-          kind: "box",
-          physics: stagePhysics,
-        } satisfies WebGLStageBoxDeclaration;
         const invalidPhysics = {
           body: { type: "dynamic" },
           // @ts-expect-error public physics descriptors cannot expose raw engine bodies.
           rigidBody: {},
         } satisfies WebGLPhysicsDeclaration;
         invalidPhysics satisfies WebGLPhysicsDeclaration;
-        const stagePrimitiveDeclaration =
-          stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
         const meshPlaneRole = "floor" satisfies WebGLPlaneRole;
         const meshStandardMaterial = {
           kind: "standard",
@@ -1125,8 +1074,15 @@ describe("public package exports", () => {
           timeline: sceneTimeline,
           effects: [{ kind: "custom.managedThreeLike" }],
           interaction: { pickable: { hitTest: "mesh", pointer: { click: true } } },
-          physics: stagePhysics,
+          physics: meshPhysics,
         } satisfies WebGLMeshDeclaration;
+        const meshDebugSummary = {
+          id: "hero.shape",
+          sceneId: "world",
+          geometryKind: "tetrahedron",
+        } satisfies WebGLDebugMeshSummary;
+        // @ts-expect-error removed Stage effect source kinds are not accepted.
+        const removedStageSource = "stage/plane" satisfies WebGLSceneObjectEffectSourceKind;
         // @ts-expect-error mesh geometry kinds are closed to the public catalog.
         ({ kind: "torus" } satisfies WebGLMeshGeometryDeclaration);
         // @ts-expect-error custom mesh geometry requires a factory.
@@ -1213,7 +1169,7 @@ describe("public package exports", () => {
 				          timeline: activeTimeline,
 				          animation: modelAnimation,
 				          prepare: modelPrepare,
-                  physics: stagePhysics,
+                  physics: meshPhysics,
                 interaction: {
                   pickable: {
                     hitTest: "bounds",
@@ -1365,12 +1321,6 @@ describe("public package exports", () => {
         passScopedPostprocess satisfies WebGLRuntimePostprocessRequest;
         canvasScopedPostprocess satisfies WebGLRuntimePostprocessRequest;
         scopedPass satisfies WebGLRenderPassDeclaration;
-        stageColor satisfies WebGLColorValue;
-        standardStageMaterial satisfies WebGLStageMaterialDeclaration;
-        basicStageMaterial satisfies WebGLStageMaterialDeclaration;
-        stagePlaneDeclaration satisfies WebGLStagePrimitiveDeclaration;
-        stageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
-        stagePrimitiveDeclaration satisfies WebGLStagePrimitiveDeclaration;
         meshStandardMaterial satisfies WebGLMeshMaterialDeclaration;
         meshBasicMaterial satisfies WebGLMeshMaterialDeclaration;
         meshPlaneGeometry satisfies WebGLMeshGeometryDeclaration;
@@ -1388,11 +1338,10 @@ describe("public package exports", () => {
         modelMorphWeight satisfies WebGLModelMorphWeightDeclaration;
         modelAnimation satisfies WebGLModelAnimationDeclaration;
         modelDeclaration satisfies WebGLModelDeclaration;
-        physicsStageBoxDeclaration satisfies WebGLStagePrimitiveDeclaration;
         const physicsDebugBody = {
           id: "stage.physics.box",
           sceneId: "world",
-          sourceKind: "stage/box",
+          sourceKind: "mesh",
           type: "dynamic",
           active: true,
           collider: { kind: "box" },
@@ -1583,10 +1532,10 @@ describe("public package exports", () => {
         declare const rawThreeLight: unknown;
         // @ts-expect-error camera descriptors do not accept raw Three camera handles.
         ({ id: "raw.camera", sceneId: "world", camera: rawThreeCamera } satisfies WebGLCameraDeclaration);
-        // @ts-expect-error stage primitive descriptors do not accept raw Three mesh handles.
-        ({ id: "raw.stage", sceneId: "world", kind: "plane", mesh: rawThreeMesh } satisfies WebGLStagePrimitiveDeclaration);
-        // @ts-expect-error stage material descriptors do not accept raw Three material handles.
-        ({ id: "raw.material", sceneId: "world", kind: "plane", material: rawThreeMaterial } satisfies WebGLStagePrimitiveDeclaration);
+        // @ts-expect-error mesh descriptors do not accept raw Three mesh handles.
+        ({ id: "raw.mesh", sceneId: "world", geometry: { kind: "plane" }, mesh: rawThreeMesh } satisfies WebGLMeshDeclaration);
+        // @ts-expect-error mesh material descriptors do not accept raw Three material handles.
+        ({ id: "raw.material", sceneId: "world", geometry: { kind: "plane" }, material: rawThreeMaterial } satisfies WebGLMeshDeclaration);
         // @ts-expect-error light descriptors do not accept raw Three light handles.
         ({ id: "raw.light", sceneId: "world", kind: "point", light: rawThreeLight } satisfies WebGLLightDeclaration);
         // @ts-expect-error placement does not accept raw Object3D handles.
@@ -2262,8 +2211,8 @@ describe("public package exports", () => {
 			          source: { kind: "model", type: "glb", src: "/product.glb" },
 			          effects: [{ kind: "custom.glbParticles", density: 0.6 }],
 			        });
-        customRuntime.registerStagePrimitive(stagePlaneDeclaration);
-        customRuntime.unregisterStagePrimitive(stagePlaneDeclaration.id);
+        customRuntime.registerMesh(meshDeclaration);
+        customRuntime.unregisterMesh(meshDeclaration.id);
         customRuntime.registerLight(lightDeclaration);
         customRuntime.unregisterLight(lightDeclaration.id);
         customRuntime.registerModel(modelDeclaration);

@@ -506,22 +506,6 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
-    registerStagePrimitive(declaration) {
-      if (disposed) {
-        throw new Error(
-          "Cannot register a WebGL stage primitive after runtime disposal.",
-        );
-      }
-
-      stageObjects.registerStagePrimitive(declaration);
-      rendererLoopRequestFrame("target-register");
-      emitDebugState(true);
-    },
-    unregisterStagePrimitive(id) {
-      stageObjects.unregisterStagePrimitive(id);
-      rendererLoopRequestFrame("target-unregister");
-      emitDebugState(true);
-    },
     registerLight(declaration) {
       if (disposed) {
         throw new Error("Cannot register a WebGL light after runtime disposal.");
@@ -642,7 +626,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const frameInput = frameInputSource.getState();
     const scroll = scrollState.getState();
     const stageObjectDebugState = disposed
-      ? { meshes: [], stagePrimitives: [], lights: [] }
+      ? { meshes: [], lights: [] }
       : stageObjects.inspect();
     const modelDebugState = disposed ? { models: [] } : managedModels.inspect();
     const physicsDebugState = disposed ? undefined : physicsWorld.inspect();
@@ -655,7 +639,6 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         pointer: frameInput.pointer,
         performanceBudget: options.performanceBudget,
         meshes: [],
-        stagePrimitives: [],
         lights: [],
         models: [],
         targets: [],
@@ -675,7 +658,6 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rendererStats: rendererHost.readRendererStats(),
       postprocessStats: postprocessController.inspect(),
       meshes: stageObjectDebugState.meshes,
-      stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
       models: modelDebugState.models,
       ...(physicsDebugState ? { physics: physicsDebugState } : {}),

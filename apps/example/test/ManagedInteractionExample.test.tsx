@@ -4,8 +4,8 @@ import { describe, expect, test, vi } from "vitest";
 
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: StagePlaneMockProps[] = [];
-const stageBoxProps: StageBoxMockProps[] = [];
+const stagePlaneProps: MeshMockProps[] = [];
+const stageBoxProps: MeshMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
@@ -29,21 +29,13 @@ type CameraMockProps = {
   readonly controller?: Record<string, unknown>;
 };
 
-type StagePlaneMockProps = {
+type MeshMockProps = {
   readonly id: string;
-  readonly role?: string;
-  readonly size?: readonly [number, number];
-  readonly position?: readonly [number, number, number];
-  readonly rotation?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
-  readonly effects?: readonly Record<string, unknown>[];
-  readonly interaction?: Record<string, unknown>;
-  readonly physics?: Record<string, unknown>;
-};
-
-type StageBoxMockProps = {
-  readonly id: string;
-  readonly size?: readonly [number, number, number];
+  readonly geometry: {
+    readonly kind: string;
+    readonly role?: string;
+    readonly size?: readonly number[];
+  };
   readonly position?: readonly [number, number, number];
   readonly rotation?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
@@ -109,12 +101,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     cameraProps.push(props);
     return null;
   },
-  WebGLStagePlane: (props: StagePlaneMockProps) => {
-    stagePlaneProps.push(props);
-    return null;
-  },
-  WebGLStageBox: (props: StageBoxMockProps) => {
-    stageBoxProps.push(props);
+  WebGLMesh: (props: MeshMockProps) => {
+    (props.geometry.kind === "plane" ? stagePlaneProps : stageBoxProps).push(props);
     return null;
   },
   WebGLModel: (props: ModelMockProps) => {
@@ -207,8 +195,7 @@ describe("ManagedInteractionExample", () => {
     expect(stagePlaneProps).toEqual([
       expect.objectContaining({
         id: "example.interaction.floor",
-        role: "floor",
-        size: [820, 460],
+        geometry: { kind: "plane", role: "floor", size: [820, 460] },
         position: [0, -180, -70],
         material: { kind: "standard", color: "#23322f", roughness: 0.72 },
         effects: [

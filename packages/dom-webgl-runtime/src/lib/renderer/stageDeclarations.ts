@@ -6,9 +6,6 @@ import type {
   WebGLMeshDeclaration,
   WebGLMeshMaterialDeclaration,
   WebGLPlaneRole,
-  WebGLStageMaterialDeclaration,
-  WebGLStagePlaneRole,
-  WebGLStagePrimitiveDeclaration,
   WebGLTuple2,
   WebGLTuple3,
 } from "../types";
@@ -41,8 +38,6 @@ export type NormalizedMeshMaterialDeclaration =
       color: WebGLColorValue;
       opacity: number;
     };
-
-export type NormalizedStageMaterialDeclaration = NormalizedMeshMaterialDeclaration;
 
 export type NormalizedMeshGeometryDeclaration =
   | {
@@ -101,39 +96,6 @@ export type NormalizedMeshDeclaration = {
   interaction?: NormalizedSceneObjectInteractionDeclaration;
   physics?: NormalizedPhysicsDeclaration;
 };
-
-export type NormalizedStagePrimitiveDeclaration =
-  | {
-      id: string;
-      sceneId: string;
-      kind: "plane";
-      role?: WebGLStagePlaneRole;
-      size: WebGLTuple2;
-      position: WebGLTuple3;
-      rotation: WebGLTuple3;
-      scale: number | WebGLTuple3;
-      visible: boolean;
-      material: NormalizedStageMaterialDeclaration;
-      timeline?: NormalizedTimelineBinding;
-      effects?: WebGLEffectsDeclaration;
-      interaction?: NormalizedSceneObjectInteractionDeclaration;
-      physics?: NormalizedPhysicsDeclaration;
-    }
-  | {
-      id: string;
-      sceneId: string;
-      kind: "box";
-      size: WebGLTuple3;
-      position: WebGLTuple3;
-      rotation: WebGLTuple3;
-      scale: number | WebGLTuple3;
-      visible: boolean;
-      material: NormalizedStageMaterialDeclaration;
-      timeline?: NormalizedTimelineBinding;
-      effects?: WebGLEffectsDeclaration;
-      interaction?: NormalizedSceneObjectInteractionDeclaration;
-      physics?: NormalizedPhysicsDeclaration;
-    };
 
 export type NormalizedLightDeclaration = {
   id: string;
@@ -323,84 +285,6 @@ function normalizeMeshGeometryDeclaration(
   }
 }
 
-export function normalizeStagePrimitiveDeclaration(
-  declaration: WebGLStagePrimitiveDeclaration,
-): NormalizedStagePrimitiveDeclaration {
-  const id = normalizePublicId(
-    declaration.id,
-    "stage primitive",
-  );
-  const sceneId = normalizePublicId(declaration.sceneId, "scene");
-  const position = normalizeTuple3(
-    declaration.position,
-    [0, 0, 0],
-    "stage primitive position",
-  );
-  const scale = normalizeScale(declaration.scale, "stage primitive scale");
-  const visible = declaration.visible ?? true;
-  const material = normalizeMeshMaterialDeclaration(declaration.material);
-  const timeline = normalizeTimelineBinding(declaration.timeline);
-  const effects = normalizeSceneObjectEffects(declaration.effects);
-  const interaction = normalizeSceneObjectInteraction(declaration.interaction);
-  const physics = normalizePhysicsDeclaration(declaration.physics);
-
-  switch (declaration.kind) {
-    case "plane": {
-      const role = declaration.role;
-      const rotation = normalizeTuple3(
-        declaration.rotation,
-        readPlaneRoleRotation(role),
-        "stage primitive rotation",
-      );
-
-      return {
-        id,
-        sceneId,
-        kind: "plane",
-        ...(role ? { role } : {}),
-        size: normalizePositiveTuple2(
-          declaration.size,
-          [1, 1],
-          "stage plane size",
-        ),
-        position,
-        rotation,
-        scale,
-        visible,
-        material,
-        ...(timeline ? { timeline } : {}),
-        ...(effects ? { effects } : {}),
-        ...(interaction ? { interaction } : {}),
-        ...(physics ? { physics } : {}),
-      };
-    }
-    case "box":
-      return {
-        id,
-        sceneId,
-        kind: "box",
-        size: normalizePositiveTuple3(
-          declaration.size,
-          [1, 1, 1],
-          "stage box size",
-        ),
-        position,
-        rotation: normalizeTuple3(
-          declaration.rotation,
-          [0, 0, 0],
-          "stage primitive rotation",
-        ),
-        scale,
-        visible,
-        material,
-        ...(timeline ? { timeline } : {}),
-        ...(effects ? { effects } : {}),
-        ...(interaction ? { interaction } : {}),
-        ...(physics ? { physics } : {}),
-      };
-  }
-}
-
 export function normalizeLightDeclaration(
   declaration: WebGLLightDeclaration,
 ): NormalizedLightDeclaration {
@@ -430,7 +314,7 @@ export function normalizeLightDeclaration(
 }
 
 function normalizeMeshMaterialDeclaration(
-  declaration: WebGLMeshMaterialDeclaration | WebGLStageMaterialDeclaration | undefined,
+  declaration: WebGLMeshMaterialDeclaration | undefined,
 ): NormalizedMeshMaterialDeclaration {
   if (!declaration || declaration.kind === undefined || declaration.kind === "standard") {
     return {
@@ -482,7 +366,7 @@ function normalizePublicId(value: string, kind: string): string {
 }
 
 function readPlaneRoleRotation(
-  role: WebGLPlaneRole | WebGLStagePlaneRole | undefined,
+  role: WebGLPlaneRole | undefined,
 ): WebGLTuple3 {
   if (role === "floor") {
     return [-Math.PI / 2, 0, 0];

@@ -6,7 +6,6 @@ import type {
   NormalizedLightDeclaration,
   NormalizedMeshDeclaration,
   NormalizedMeshGeometryDeclaration,
-  NormalizedStagePrimitiveDeclaration,
 } from "../../../src/lib/renderer/stageDeclarations";
 
 describe("managed mesh object factory", () => {
@@ -138,70 +137,7 @@ describe("managed mesh object factory", () => {
   });
 });
 
-describe("managed stage object factories", () => {
-  test("creates a runtime-owned plane mesh from a normalized declaration", async () => {
-    vi.resetModules();
-    const geometry = createDisposable("geometry");
-    const material = createDisposable("material");
-    const mesh = createObject3D("mesh");
-    const mocks = installThreeMocks({
-      PlaneGeometry: vi.fn(() => geometry),
-      MeshStandardMaterial: vi.fn(() => material),
-      Mesh: vi.fn(() => mesh),
-    });
-    const { createManagedStagePrimitiveObject } = await import(
-      "../../../src/lib/renderer/managedStageObjects"
-    );
-
-    const normalizedFloor = {
-      id: "floor",
-      sceneId: "world",
-      kind: "plane",
-      role: "floor",
-      size: [1200, 800],
-      position: [0, -180, 0],
-      rotation: [-Math.PI / 2, 0, 0],
-      scale: 1,
-      visible: true,
-      material: {
-        kind: "standard",
-        color: "#05070a",
-        emissive: "#000000",
-        emissiveIntensity: 1,
-        opacity: 1,
-        metalness: 0,
-        roughness: 0.8,
-      },
-    } satisfies NormalizedStagePrimitiveDeclaration;
-
-    const object = createManagedStagePrimitiveObject(normalizedFloor);
-
-    expect(mocks.PlaneGeometry).toHaveBeenCalledWith(1200, 800);
-    expect(mocks.MeshStandardMaterial).toHaveBeenCalledWith(
-      expect.objectContaining({
-        color: "#05070a",
-        emissive: "#000000",
-        emissiveIntensity: 1,
-        roughness: 0.8,
-      }),
-    );
-    expect(mocks.Mesh).toHaveBeenCalledWith(geometry, material);
-    expect(mesh.position.set).toHaveBeenCalledWith(0, -180, 0);
-    expect(mesh.rotation.set).toHaveBeenCalledWith(-Math.PI / 2, 0, 0);
-    expect(mesh.scale.setScalar).toHaveBeenCalledWith(1);
-    expect(object.key).toBe("floor");
-    expect(object.object3D).toBe(mesh);
-
-    object.setVisible(false);
-    expect(mesh.visible).toBe(false);
-
-    object.dispose();
-    object.dispose();
-
-    expect(geometry.dispose).toHaveBeenCalledTimes(1);
-    expect(material.dispose).toHaveBeenCalledTimes(1);
-  });
-
+describe("managed light object factory", () => {
   test("creates a directional light with a managed target object", async () => {
     vi.resetModules();
     const group = createObject3D("group");

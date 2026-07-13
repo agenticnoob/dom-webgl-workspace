@@ -579,58 +579,6 @@ export type WebGLMeshDeclaration = {
   physics?: WebGLPhysicsDeclaration;
 };
 
-export type WebGLStagePrimitiveKind = "plane" | "box";
-
-export type WebGLStagePlaneRole = "floor" | "wall" | "backdrop";
-
-export type WebGLStageMaterialDeclaration =
-  | {
-      kind?: "standard";
-      isMaterial?: never;
-      color?: WebGLColorValue;
-      emissive?: WebGLColorValue;
-      emissiveIntensity?: number;
-      opacity?: number;
-      metalness?: number;
-      roughness?: number;
-    }
-  | {
-      kind: "basic";
-      isMaterial?: never;
-      color?: WebGLColorValue;
-      opacity?: number;
-    };
-
-export type WebGLStagePrimitiveBaseDeclaration = {
-  id: string;
-  sceneId: string;
-  position?: WebGLTuple3;
-  rotation?: WebGLTuple3;
-  scale?: number | WebGLTuple3;
-  visible?: boolean;
-  material?: WebGLStageMaterialDeclaration;
-  timeline?: WebGLTimelineBindingDeclaration;
-  effects?: WebGLEffectsDeclaration;
-  interaction?: WebGLSceneObjectInteractionDeclaration;
-  physics?: WebGLPhysicsDeclaration;
-};
-
-export type WebGLStagePlaneDeclaration =
-  WebGLStagePrimitiveBaseDeclaration & {
-    kind: "plane";
-    role?: WebGLStagePlaneRole;
-    size?: WebGLTuple2;
-  };
-
-export type WebGLStageBoxDeclaration = WebGLStagePrimitiveBaseDeclaration & {
-  kind: "box";
-  size?: WebGLTuple3;
-};
-
-export type WebGLStagePrimitiveDeclaration =
-  | WebGLStagePlaneDeclaration
-  | WebGLStageBoxDeclaration;
-
 export type WebGLLightKind = "ambient" | "directional" | "point";
 
 export type WebGLLightDeclaration = {
@@ -733,8 +681,6 @@ export type WebGLRuntime = {
   unregisterPassViewport(id: string): void;
   registerMesh(declaration: WebGLMeshDeclaration): void;
   unregisterMesh(id: string): void;
-  registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
-  unregisterStagePrimitive(id: string): void;
   registerLight(declaration: WebGLLightDeclaration): void;
   unregisterLight(id: string): void;
   registerModel(declaration: WebGLModelDeclaration): void;
@@ -851,15 +797,6 @@ export type WebGLDebugTimelineSummary = {
   id: string;
   progressKey: string;
   active?: boolean;
-};
-
-export type WebGLDebugStagePrimitiveSummary = {
-  id: string;
-  sceneId: string;
-  kind: WebGLStagePrimitiveKind;
-  timeline?: WebGLDebugTimelineSummary;
-  effects?: readonly string[];
-  interaction?: WebGLDebugSceneObjectInteractionSummary;
 };
 
 export type WebGLDebugMeshSummary = {
@@ -995,11 +932,9 @@ export type WebGLDebugState = {
   pointer: WebGLPointerState;
   warnings?: WebGLPerformanceWarning[];
   meshCount?: number;
-  stagePrimitiveCount?: number;
   lightCount?: number;
   modelCount?: number;
   meshes?: WebGLDebugMeshSummary[];
-  stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
   lights?: WebGLDebugLightSummary[];
   models?: WebGLDebugModelSummary[];
   cameraControllers?: WebGLDebugCameraControllerSummary[];

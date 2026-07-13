@@ -11,8 +11,8 @@ const scrollTimelineProps: ScrollTimelineMockProps[] = [];
 const targetProps: TargetMockProps[] = [];
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: StagePlaneMockProps[] = [];
-const stageBoxProps: StageBoxMockProps[] = [];
+const stagePlaneProps: MeshMockProps[] = [];
+const stageBoxProps: MeshMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
@@ -103,25 +103,19 @@ type CameraMockProps = {
   readonly controller?: Record<string, unknown>;
 };
 
-type StagePlaneMockProps = {
+type MeshMockProps = {
   readonly id: string;
-  readonly role?: string;
-  readonly size?: readonly [number, number];
+  readonly geometry: {
+    readonly kind: string;
+    readonly role?: string;
+    readonly size?: readonly number[];
+    readonly radius?: number;
+  };
   readonly position?: readonly [number, number, number];
   readonly rotation?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
   readonly timeline?: Record<string, unknown>;
   readonly effects?: readonly Record<string, unknown>[];
-  readonly interaction?: Record<string, unknown>;
-  readonly physics?: Record<string, unknown>;
-};
-
-type StageBoxMockProps = {
-  readonly id: string;
-  readonly size?: readonly [number, number, number];
-  readonly position?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
-  readonly timeline?: Record<string, unknown>;
   readonly interaction?: Record<string, unknown>;
   readonly physics?: Record<string, unknown>;
 };
@@ -210,12 +204,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     cameraProps.push(props);
     return null;
   },
-  WebGLStagePlane: (props: StagePlaneMockProps) => {
-    stagePlaneProps.push(props);
-    return null;
-  },
-  WebGLStageBox: (props: StageBoxMockProps) => {
-    stageBoxProps.push(props);
+  WebGLMesh: (props: MeshMockProps) => {
+    (props.geometry.kind === "plane" ? stagePlaneProps : stageBoxProps).push(props);
     return null;
   },
   WebGLLight: (props: LightMockProps) => {
@@ -526,6 +516,7 @@ describe("effect authoring example app", () => {
     expect(stageBoxProps.map(({ id }) => id)).toEqual([
       "example.stage.plinth",
       "example.stage.bloomRail",
+      "example.stage.tetrahedron",
       "example.managedStage.plinth",
       "example.physics.crate",
       "example.physics.anchor",

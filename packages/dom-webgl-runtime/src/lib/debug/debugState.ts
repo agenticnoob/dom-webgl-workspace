@@ -9,7 +9,6 @@ import type {
   WebGLDebugRenderPassSummary,
   WebGLDebugSceneObjectInteractionSummary,
   WebGLDebugState,
-  WebGLDebugStagePrimitiveSummary,
   WebGLPerformanceBudget,
   WebGLPerformanceWarning,
   WebGLPlacementMode,
@@ -52,7 +51,6 @@ export type DebugRuntimeState = {
   rendererStats?: DebugRendererStats;
   postprocessStats?: DebugPostprocessStats;
   meshes?: readonly WebGLDebugMeshSummary[];
-  stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
   lights?: readonly WebGLDebugLightSummary[];
   models?: readonly WebGLDebugModelSummary[];
   cameraControllers?: readonly WebGLDebugCameraControllerSummary[];
@@ -148,28 +146,6 @@ export function createDebugState(
       return summary;
     }),
   };
-
-  if (runtimeState.stagePrimitives && runtimeState.stagePrimitives.length > 0) {
-    state.stagePrimitiveCount = runtimeState.stagePrimitives.length;
-    state.stagePrimitives = runtimeState.stagePrimitives.map((entry) => ({
-      id: entry.id,
-      sceneId: entry.sceneId,
-      kind: entry.kind,
-      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
-      ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
-      ...(entry.timeline
-        ? {
-            timeline: {
-              id: entry.timeline.id,
-              progressKey: entry.timeline.progressKey,
-              ...(entry.timeline.active !== undefined
-                ? { active: entry.timeline.active }
-                : {}),
-            },
-          }
-        : {}),
-    }));
-  }
 
   if (runtimeState.meshes && runtimeState.meshes.length > 0) {
     state.meshCount = runtimeState.meshes.length;

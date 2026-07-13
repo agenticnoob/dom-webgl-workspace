@@ -2,14 +2,14 @@ import * as React from "react";
 import {
   WebGLLight,
   WebGLCamera,
+  WebGLMesh,
   WebGLModel,
   WebGLPassViewport,
   WebGLScene,
-  WebGLStagePlane,
   type WebGLCameraProps,
+  type WebGLMeshProps,
   type WebGLModelProps,
   type WebGLSceneRenderOptions,
-  type WebGLStagePlaneProps,
 } from "@viselora/dom-webgl/react";
 
 const interactionSceneRender = {
@@ -56,16 +56,19 @@ const cameraController = {
   },
 } satisfies NonNullable<WebGLCameraProps["controller"]>;
 
-const floorSize = [820, 460] satisfies NonNullable<WebGLStagePlaneProps["size"]>;
-const floorRole = "floor" satisfies NonNullable<WebGLStagePlaneProps["role"]>;
+const floorGeometry = {
+  kind: "plane",
+  role: "floor",
+  size: [820, 460],
+} satisfies WebGLMeshProps["geometry"];
 const floorPosition = [0, -180, -70] satisfies NonNullable<
-  WebGLStagePlaneProps["position"]
+  WebGLMeshProps["position"]
 >;
 const floorMaterial = {
   kind: "standard",
   color: "#23322f",
   roughness: 0.72,
-} satisfies NonNullable<WebGLStagePlaneProps["material"]>;
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 const floorEffects = [
   {
     kind: "example.sceneObjectHoverPulse",
@@ -79,7 +82,7 @@ const floorInteraction = {
     hitTest: "mesh",
     pointer: { hover: true, click: true },
   },
-} satisfies NonNullable<WebGLStagePlaneProps["interaction"]>;
+} satisfies NonNullable<WebGLMeshProps["interaction"]>;
 const heroModelPosition = [160, -180, -70] satisfies NonNullable<
   WebGLModelProps["position"]
 >;
@@ -142,10 +145,9 @@ export function ManagedInteractionExample() {
             target={cameraTarget}
             controller={cameraController}
           />
-          <WebGLStagePlane
+          <WebGLMesh
             id="example.interaction.floor"
-            role={floorRole}
-            size={floorSize}
+            geometry={floorGeometry}
             position={floorPosition}
             material={floorMaterial}
             effects={floorEffects}

@@ -28,7 +28,7 @@ describe("interaction router", () => {
 
     expect(result.debug).toEqual({
       hoveredObjectId: "box",
-      activeHit: { objectId: "box", sceneId: "world", sourceKind: "stage/box" },
+      activeHit: { objectId: "box", sceneId: "world", sourceKind: "mesh" },
     });
     expect("intersection" in result.debug).toBe(false);
     expect(router.getObjectPointerState("box")).toMatchObject({
@@ -247,7 +247,7 @@ describe("interaction router", () => {
       activeHit: {
         objectId: "crate",
         sceneId: "world",
-        sourceKind: "stage/box",
+        sourceKind: "mesh",
       },
     });
     expect(router.getObjectPointerState("crate")).toMatchObject({
@@ -291,7 +291,7 @@ function createCandidate(
   return {
     id,
     sceneId: options.sceneId ?? "world",
-    sourceKind: options.sourceKind ?? "stage/box",
+    sourceKind: options.sourceKind ?? "mesh",
     object3D: options.object3D ?? {},
     hitTest: "bounds",
     pickable: options.pickable ?? true,

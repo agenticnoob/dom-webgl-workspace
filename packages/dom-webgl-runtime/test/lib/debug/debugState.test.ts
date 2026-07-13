@@ -183,15 +183,15 @@ describe("debug state", () => {
     expect(state.targets[0]).not.toHaveProperty("camera");
   });
 
-  test("copies managed stage and light inventory without raw handles", () => {
+  test("copies managed mesh and light inventory without raw handles", () => {
     const state = createDebugState({
       targetCount: 0,
       renderableCount: 0,
       currentScrollMode: "page",
       pointer: createPointerState(),
-      stagePrimitives: [
-        { id: "floor", sceneId: "world", kind: "plane" },
-        { id: "plinth", sceneId: "world", kind: "box" },
+      meshes: [
+        { id: "floor", sceneId: "world", geometryKind: "plane" },
+        { id: "plinth", sceneId: "world", geometryKind: "box" },
       ],
       lights: [
         { id: "ambient", sceneId: "world", kind: "ambient" },
@@ -200,17 +200,17 @@ describe("debug state", () => {
       targets: [],
     });
 
-    expect(state.stagePrimitiveCount).toBe(2);
+    expect(state.meshCount).toBe(2);
     expect(state.lightCount).toBe(2);
-    expect(state.stagePrimitives).toEqual([
-      { id: "floor", sceneId: "world", kind: "plane" },
-      { id: "plinth", sceneId: "world", kind: "box" },
+    expect(state.meshes).toEqual([
+      { id: "floor", sceneId: "world", geometryKind: "plane" },
+      { id: "plinth", sceneId: "world", geometryKind: "box" },
     ]);
     expect(state.lights).toEqual([
       { id: "ambient", sceneId: "world", kind: "ambient" },
       { id: "hero", sceneId: "world", kind: "point" },
     ]);
-    expect(state.stagePrimitives?.[0]).not.toHaveProperty("object3D");
+    expect(state.meshes?.[0]).not.toHaveProperty("object3D");
     expect(state.lights?.[0]).not.toHaveProperty("light");
   });
 
@@ -251,14 +251,14 @@ describe("debug state", () => {
         activeHit: {
           objectId: "floor",
           sceneId: "world",
-          sourceKind: "stage/plane",
+          sourceKind: "mesh",
         },
       },
-      stagePrimitives: [
+      meshes: [
         {
           id: "floor",
           sceneId: "world",
-          kind: "plane",
+          geometryKind: "plane",
           effects: ["app.floor"],
           interaction: {
             pickable: {
@@ -298,10 +298,10 @@ describe("debug state", () => {
       activeHit: {
         objectId: "floor",
         sceneId: "world",
-        sourceKind: "stage/plane",
+        sourceKind: "mesh",
       },
     });
-    expect(state.stagePrimitives?.[0]).toMatchObject({
+    expect(state.meshes?.[0]).toMatchObject({
       effects: ["app.floor"],
       interaction: {
         pickable: {
@@ -395,11 +395,11 @@ describe("debug state", () => {
       renderableCount: 0,
       currentScrollMode: "page",
       pointer: createPointerState(),
-      stagePrimitives: [
+      meshes: [
         {
           id: "floor",
           sceneId: "world",
-          kind: "plane",
+          geometryKind: "plane",
           timeline: {
             id: "hero.3d",
             progressKey: "hero.3d",
@@ -422,11 +422,11 @@ describe("debug state", () => {
       targets: [],
     });
 
-    expect(state.stagePrimitives).toEqual([
+    expect(state.meshes).toEqual([
       {
         id: "floor",
         sceneId: "world",
-        kind: "plane",
+        geometryKind: "plane",
         timeline: {
           id: "hero.3d",
           progressKey: "hero.3d",
@@ -446,7 +446,7 @@ describe("debug state", () => {
         },
       },
     ]);
-    expect(state.stagePrimitives?.[0].timeline).not.toHaveProperty("source");
+    expect(state.meshes?.[0].timeline).not.toHaveProperty("source");
     expect(state.lights?.[0].timeline).not.toHaveProperty("timeline");
   });
 

@@ -4,8 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 
 const sceneProps: SceneMockProps[] = [];
 const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: StagePlaneMockProps[] = [];
-const stageBoxProps: StageBoxMockProps[] = [];
+const meshProps: MeshMockProps[] = [];
 const lightProps: LightMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
 
@@ -25,19 +24,16 @@ type CameraMockProps = {
   readonly target?: readonly [number, number, number];
 };
 
-type StagePlaneMockProps = {
+type MeshMockProps = {
   readonly id: string;
-  readonly role?: string;
-  readonly size?: readonly [number, number];
+  readonly geometry: {
+    readonly kind: string;
+    readonly role?: string;
+    readonly size?: readonly number[];
+    readonly radius?: number;
+  };
   readonly position?: readonly [number, number, number];
   readonly rotation?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
-};
-
-type StageBoxMockProps = {
-  readonly id: string;
-  readonly size?: readonly [number, number, number];
-  readonly position?: readonly [number, number, number];
   readonly material?: Record<string, unknown>;
 };
 
@@ -71,12 +67,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     cameraProps.push(props);
     return null;
   },
-  WebGLStagePlane: (props: StagePlaneMockProps) => {
-    stagePlaneProps.push(props);
-    return null;
-  },
-  WebGLStageBox: (props: StageBoxMockProps) => {
-    stageBoxProps.push(props);
+  WebGLMesh: (props: MeshMockProps) => {
+    meshProps.push(props);
     return null;
   },
   WebGLLight: (props: LightMockProps) => {
@@ -85,13 +77,13 @@ vi.mock("@viselora/dom-webgl/react", () => ({
   },
 }));
 
-describe("ManagedStagePrimitiveExample", () => {
-  test("declares a lit managed scene with public stage descriptors", async () => {
-    const { ManagedStagePrimitiveExample } = await import(
-      "../src/ManagedStagePrimitiveExample"
+describe("ManagedMeshExample", () => {
+  test("declares a lit managed scene with public mesh descriptors", async () => {
+    const { ManagedMeshExample } = await import(
+      "../src/ManagedMeshExample"
     );
 
-    const markup = renderToStaticMarkup(createElement(ManagedStagePrimitiveExample));
+    const markup = renderToStaticMarkup(createElement(ManagedMeshExample));
 
     expect(markup).toContain("example-stage-dogfood");
     expect(markup).toContain("同一张 runtime canvas");
@@ -127,34 +119,34 @@ describe("ManagedStagePrimitiveExample", () => {
         target: [0, -80, 0],
       }),
     ]);
-    expect(stagePlaneProps).toEqual([
+    expect(meshProps).toEqual([
       expect.objectContaining({
         id: "example.stage.floor",
-        role: "floor",
-        size: [900, 520],
+        geometry: { kind: "plane", role: "floor", size: [900, 520] },
         position: [0, -180, 0],
         material: { kind: "standard", color: "#0f172a", roughness: 0.64 },
       }),
       expect.objectContaining({
         id: "example.stage.backdrop",
-        role: "backdrop",
-        size: [900, 420],
+        geometry: { kind: "plane", role: "backdrop", size: [900, 420] },
         position: [0, 20, -260],
         material: { kind: "standard", color: "#1d4ed8", roughness: 0.48 },
       }),
-    ]);
-    expect(stageBoxProps).toEqual([
       expect.objectContaining({
         id: "example.stage.plinth",
-        size: [180, 96, 180],
+        geometry: { kind: "box", size: [180, 96, 180] },
         position: [0, -128, -40],
         material: { kind: "standard", color: "#f6c453", roughness: 0.38 },
       }),
       expect.objectContaining({
         id: "example.stage.bloomRail",
-        size: [520, 18, 22],
+        geometry: { kind: "box", size: [520, 18, 22] },
         position: [0, -34, -236],
         material: { kind: "basic", color: "#f8fafc" },
+      }),
+      expect.objectContaining({
+        id: "example.stage.tetrahedron",
+        geometry: { kind: "tetrahedron", radius: 72 },
       }),
     ]);
     expect(lightProps).toEqual([
