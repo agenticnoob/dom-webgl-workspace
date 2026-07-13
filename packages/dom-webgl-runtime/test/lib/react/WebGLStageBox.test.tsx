@@ -109,6 +109,8 @@ function createRuntimeStub(): WebGLRuntime & {
     unregisterRenderPass: vi.fn(),
     registerPassViewport: vi.fn(),
     unregisterPassViewport: vi.fn(),
+    registerMesh: vi.fn(),
+    unregisterMesh: vi.fn(),
     registerStagePrimitive: vi.fn(),
     unregisterStagePrimitive: vi.fn(),
     registerLight: vi.fn(),

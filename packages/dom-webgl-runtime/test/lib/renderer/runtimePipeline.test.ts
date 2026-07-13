@@ -3878,6 +3878,41 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("runtime registers meshes and exposes geometry debug summaries", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const worldAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: worldAdapter },
+    });
+    const runtime = await createPipelineRuntime({
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerMesh({
+      id: "hero.shape",
+      sceneId: "world",
+      geometry: { kind: "tetrahedron", radius: 2, detail: 0 },
+      material: { kind: "standard", color: "#f5f1e8" },
+    });
+
+    expect(worldAdapter.objects.map((object) => object.key)).toEqual(["hero.shape"]);
+    expect(runtime.getDebugState()).toMatchObject({
+      meshCount: 1,
+      meshes: [
+        { id: "hero.shape", sceneId: "world", geometryKind: "tetrahedron" },
+      ],
+    });
+
+    runtime.unregisterMesh("hero.shape");
+
+    expect(worldAdapter.objects).toHaveLength(0);
+    expect(runtime.getDebugState().meshCount).toBeUndefined();
+    expect(runtime.getDebugState().meshes).toBeUndefined();
+    runtime.dispose();
+  });
+
   test("runtime advances scene-native physics bodies and exposes debug summaries", async () => {
     let now = 0;
     const mainAdapter = createObjectRecordingSceneAdapter();

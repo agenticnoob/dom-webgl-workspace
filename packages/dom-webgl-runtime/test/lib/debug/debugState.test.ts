@@ -214,6 +214,29 @@ describe("debug state", () => {
     expect(state.lights?.[0]).not.toHaveProperty("light");
   });
 
+  test("copies managed mesh inventory with geometry kinds and no raw handles", () => {
+    const state = createDebugState({
+      targetCount: 0,
+      renderableCount: 0,
+      currentScrollMode: "page",
+      pointer: createPointerState(),
+      meshes: [
+        { id: "hero", sceneId: "world", geometryKind: "tetrahedron" },
+        { id: "custom", sceneId: "world", geometryKind: "custom" },
+      ],
+      targets: [],
+    });
+
+    expect(state.meshCount).toBe(2);
+    expect(state.meshes).toEqual([
+      { id: "hero", sceneId: "world", geometryKind: "tetrahedron" },
+      { id: "custom", sceneId: "world", geometryKind: "custom" },
+    ]);
+    expect(state.meshes?.[0]).not.toHaveProperty("object3D");
+    expect(state.meshes?.[0]).not.toHaveProperty("geometry");
+    expect(state.meshes?.[0]).not.toHaveProperty("material");
+  });
+
   test("copies descriptor-only scene-object interaction summaries", () => {
     const state = createDebugState({
       targetCount: 0,

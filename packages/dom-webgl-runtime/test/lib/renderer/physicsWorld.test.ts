@@ -280,6 +280,33 @@ describe("managed physics world", () => {
     expect(readPosition(object)[0]).toBeGreaterThan(90);
   });
 
+  test("keeps mesh visual geometry independent from its explicit collider", () => {
+    const world = createPhysicsWorld();
+    const sphereVisual = createSceneObject("sphere-visual", [0, 0, 0]);
+
+    world.update({
+      frameInput: createFrameInput({ delta: 16 }),
+      candidates: [
+        createCandidate(
+          "sphere-visual",
+          sphereVisual,
+          {
+            body: { type: "dynamic", gravityScale: 0 },
+            collider: { kind: "box", size: [3, 4, 5] },
+          },
+          undefined,
+          "mesh",
+        ),
+      ],
+    });
+
+    expect(world.inspect().bodies[0]).toMatchObject({
+      id: "sphere-visual",
+      sourceKind: "mesh",
+      collider: { kind: "box" },
+    });
+  });
+
   test("dispose clears bodies and inspect returns an empty summary", () => {
     const world = createPhysicsWorld();
     const object = createSceneObject("body", [0, 0, 0]);
@@ -325,6 +352,7 @@ function createCandidate(
   object: TestSceneObject,
   physics: WebGLPhysicsDeclaration,
   objectPointer?: WebGLSceneObjectPointerState,
+  sourceKind: ManagedPhysicsCandidate["sourceKind"] = "stage/box",
 ): ManagedPhysicsCandidate {
   const normalizedPhysics = normalizePhysicsDeclaration(physics);
 
@@ -335,7 +363,7 @@ function createCandidate(
   return {
     id,
     sceneId: "world",
-    sourceKind: "stage/box",
+    sourceKind,
     object,
     physics: normalizedPhysics,
     ...(objectPointer ? { objectPointer } : {}),

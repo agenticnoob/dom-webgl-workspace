@@ -87,6 +87,35 @@ describe("createWebGLSceneObjectEffectController", () => {
     expect("targetPointer" in update.mock.calls[0]![0]).toBe(false);
   });
 
+  test("runs procedural geometry effects with the unified mesh source kind", () => {
+    const update = vi.fn();
+    const controller = createWebGLSceneObjectEffectController({
+      objectId: "hero.shape",
+      sourceKind: "mesh",
+      declaration: [{ kind: "app.mesh" }],
+      getObject: createObjectHandle,
+      registry: createWebGLEffectRegistry([
+        defineWebGLSceneObjectEffect({
+          kind: "app.mesh",
+          source: "mesh",
+          update(ctx) {
+            update(ctx);
+          },
+        }),
+      ]),
+      readScopes: createScopes,
+    });
+
+    controller.update(createFrameInput());
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objectId: "hero.shape",
+        sourceKind: "mesh",
+      }),
+    );
+  });
+
   test("disposes scene-object effect resources once", () => {
     const disposeResource = vi.fn();
     const disposeEffect = vi.fn();

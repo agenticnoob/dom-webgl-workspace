@@ -52,6 +52,8 @@ function createRuntimeStub(): WebGLRuntime {
     unregisterRenderPass() {},
     registerPassViewport() {},
     unregisterPassViewport() {},
+    registerMesh() {},
+    unregisterMesh() {},
     registerStagePrimitive() {},
     unregisterStagePrimitive() {},
     registerLight() {},

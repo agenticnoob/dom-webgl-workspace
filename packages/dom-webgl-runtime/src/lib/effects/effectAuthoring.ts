@@ -26,6 +26,7 @@ export type WebGLEffectSourceKind =
 
 export type WebGLSceneObjectEffectSourceKind =
   | "model/glb"
+  | "mesh"
   | "stage/plane"
   | "stage/box";
 

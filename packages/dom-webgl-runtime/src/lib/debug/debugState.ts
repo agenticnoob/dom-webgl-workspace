@@ -2,6 +2,7 @@ import type {
   WebGLDebugLightSummary,
   WebGLDebugCameraControllerSummary,
   WebGLDebugInteractionSummary,
+  WebGLDebugMeshSummary,
   WebGLDebugModelSummary,
   WebGLDebugPhysicsSummary,
   WebGLDebugPostprocessRequestSummary,
@@ -50,6 +51,7 @@ export type DebugRuntimeState = {
   textureTelemetry?: readonly TextureUploadTelemetry[];
   rendererStats?: DebugRendererStats;
   postprocessStats?: DebugPostprocessStats;
+  meshes?: readonly WebGLDebugMeshSummary[];
   stagePrimitives?: readonly WebGLDebugStagePrimitiveSummary[];
   lights?: readonly WebGLDebugLightSummary[];
   models?: readonly WebGLDebugModelSummary[];
@@ -155,6 +157,30 @@ export function createDebugState(
       kind: entry.kind,
       ...(entry.effects ? { effects: entry.effects.slice() } : {}),
       ...(entry.interaction ? { interaction: cloneSceneObjectInteraction(entry.interaction) } : {}),
+      ...(entry.timeline
+        ? {
+            timeline: {
+              id: entry.timeline.id,
+              progressKey: entry.timeline.progressKey,
+              ...(entry.timeline.active !== undefined
+                ? { active: entry.timeline.active }
+                : {}),
+            },
+          }
+        : {}),
+    }));
+  }
+
+  if (runtimeState.meshes && runtimeState.meshes.length > 0) {
+    state.meshCount = runtimeState.meshes.length;
+    state.meshes = runtimeState.meshes.map((entry) => ({
+      id: entry.id,
+      sceneId: entry.sceneId,
+      geometryKind: entry.geometryKind,
+      ...(entry.effects ? { effects: entry.effects.slice() } : {}),
+      ...(entry.interaction
+        ? { interaction: cloneSceneObjectInteraction(entry.interaction) }
+        : {}),
       ...(entry.timeline
         ? {
             timeline: {

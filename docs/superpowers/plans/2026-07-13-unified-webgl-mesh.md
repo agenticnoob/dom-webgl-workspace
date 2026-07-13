@@ -317,14 +317,14 @@ git commit -m "feat: create runtime-owned WebGLMesh geometry"
 - Modify: `packages/dom-webgl-runtime/src/lib/types.ts`
 - Modify: `packages/dom-webgl-runtime/src/lib/effects/effectAuthoring.ts`
 
-- [ ] Add registry tests for `registerMesh` / `unregisterMesh` and all geometry discriminators. Assert duplicate-id, missing-scene, scene-removal, effect lifecycle, visibility, render-pass membership, and disposal behavior remain unchanged. Keep old primitive tests temporarily.
-- [ ] Add a regression test proving a custom factory is not invoked when its scene registration fails, and is invoked/disposed once on successful register/unregister.
-- [ ] Add effect-controller tests so the new procedural geometry path reports source kind `"mesh"`; model effects continue to report `"model/glb"`. Existing Stage source kinds remain only until Task 6.
-- [ ] Add debug assertions for `meshCount` and `meshes`, and assert each summary includes `geometryKind`. Remove old debug fields in Task 6.
-- [ ] Preserve screen-plane placement only when `geometry.kind === "plane"`; rename the internal reader to `readMeshPlane` and make non-plane ids return `undefined`.
-- [ ] Keep picking based on the managed Three.js object so built-in and custom meshes work without new public picking APIs.
-- [ ] Keep physics declarations and collider resolution independent of geometry kind; add a sphere-visual/box-collider case to prove no implicit collider inference was introduced.
-- [ ] Run the affected tests and observe failures on the old registry contract:
+- [x] Add registry tests for `registerMesh` / `unregisterMesh` and all geometry discriminators. Assert duplicate-id, missing-scene, scene-removal, effect lifecycle, visibility, render-pass membership, and disposal behavior remain unchanged. Keep old primitive tests temporarily.
+- [x] Add a regression test proving a custom factory is not invoked when its scene registration fails, and is invoked/disposed once on successful register/unregister.
+- [x] Add effect-controller tests so the new procedural geometry path reports source kind `"mesh"`; model effects continue to report `"model/glb"`. Existing Stage source kinds remain only until Task 6.
+- [x] Add debug assertions for `meshCount` and `meshes`, and assert each summary includes `geometryKind`. Remove old debug fields in Task 6.
+- [x] Preserve screen-plane placement only when `geometry.kind === "plane"`; rename the internal reader to `readMeshPlane` and make non-plane ids return `undefined`.
+- [x] Keep picking based on the managed Three.js object so built-in and custom meshes work without new public picking APIs.
+- [x] Keep physics declarations and collider resolution independent of geometry kind; add a sphere-visual/box-collider case to prove no implicit collider inference was introduced.
+- [x] Run the affected tests and observe failures on the old registry contract:
 
 ```bash
 npm test -- --run \
@@ -336,11 +336,11 @@ npm test -- --run \
   packages/dom-webgl-runtime/test/lib/renderer/physicsWorld.test.ts
 ```
 
-- [ ] Add mesh maps, entry types, methods, source-kind routing, errors, and debug assembly using mesh terminology. Reuse shared scene-object helpers rather than duplicating behavior. Retain old primitive entry points only until Task 6.
-- [ ] Register a normalized declaration only after scene validation and managed-object creation succeed; on any failure, leave registry maps and scene children unchanged.
-- [ ] Update runtime delegation and debug-state construction to the new methods/fields.
-- [ ] Re-run the six focused tests and confirm exit 0.
-- [ ] Commit:
+- [x] Add mesh maps, entry types, methods, source-kind routing, errors, and debug assembly using mesh terminology. Reuse shared scene-object helpers rather than duplicating behavior. Retain old primitive entry points only until Task 6.
+- [x] Register a normalized declaration only after scene validation and managed-object creation succeed; on any failure, leave registry maps and scene children unchanged.
+- [x] Update runtime delegation and debug-state construction to the new methods/fields.
+- [x] Re-run the six focused tests and confirm exit 0.
+- [x] Commit:
 
 ```bash
 git add packages/dom-webgl-runtime/test/lib/renderer/stageObjectRegistry.test.ts packages/dom-webgl-runtime/test/lib/renderer/runtimePipeline.test.ts packages/dom-webgl-runtime/test/lib/debug/debugState.test.ts packages/dom-webgl-runtime/test/lib/effects/sceneObjectEffectController.test.ts packages/dom-webgl-runtime/test/lib/renderer/interactionRouter.test.ts packages/dom-webgl-runtime/test/lib/renderer/physicsWorld.test.ts packages/dom-webgl-runtime/src/lib/renderer/stageObjectRegistry.ts packages/dom-webgl-runtime/src/lib/renderer/runtime.ts packages/dom-webgl-runtime/src/lib/debug/debugState.ts packages/dom-webgl-runtime/src/lib/types.ts packages/dom-webgl-runtime/src/lib/effects/effectAuthoring.ts

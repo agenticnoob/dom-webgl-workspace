@@ -492,6 +492,20 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       rendererLoopRequestFrame("target-unregister");
       emitDebugState(true);
     },
+    registerMesh(declaration) {
+      if (disposed) {
+        throw new Error("Cannot register a WebGL mesh after runtime disposal.");
+      }
+
+      stageObjects.registerMesh(declaration);
+      rendererLoopRequestFrame("target-register");
+      emitDebugState(true);
+    },
+    unregisterMesh(id) {
+      stageObjects.unregisterMesh(id);
+      rendererLoopRequestFrame("target-unregister");
+      emitDebugState(true);
+    },
     registerStagePrimitive(declaration) {
       if (disposed) {
         throw new Error(
@@ -628,7 +642,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     const frameInput = frameInputSource.getState();
     const scroll = scrollState.getState();
     const stageObjectDebugState = disposed
-      ? { stagePrimitives: [], lights: [] }
+      ? { meshes: [], stagePrimitives: [], lights: [] }
       : stageObjects.inspect();
     const modelDebugState = disposed ? { models: [] } : managedModels.inspect();
     const physicsDebugState = disposed ? undefined : physicsWorld.inspect();
@@ -640,6 +654,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
         ...readDebugScrollState(scroll),
         pointer: frameInput.pointer,
         performanceBudget: options.performanceBudget,
+        meshes: [],
         stagePrimitives: [],
         lights: [],
         models: [],
@@ -659,6 +674,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       ).flat(),
       rendererStats: rendererHost.readRendererStats(),
       postprocessStats: postprocessController.inspect(),
+      meshes: stageObjectDebugState.meshes,
       stagePrimitives: stageObjectDebugState.stagePrimitives,
       lights: stageObjectDebugState.lights,
       models: modelDebugState.models,
@@ -1908,7 +1924,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
       viewport,
       screenPlane: {
         resolvePlane(planeId) {
-          return stageObjects.readStagePlane(planeId, sceneId);
+          return stageObjects.readMeshPlane(planeId, sceneId);
         },
       },
     });

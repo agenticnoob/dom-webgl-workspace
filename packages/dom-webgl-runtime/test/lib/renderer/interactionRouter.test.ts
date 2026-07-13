@@ -38,6 +38,32 @@ describe("interaction router", () => {
     });
   });
 
+  test("routes unified mesh candidates through their runtime-owned object", () => {
+    const router = createInteractionRouter();
+    const object3D = { runtimeOwned: true };
+
+    const result = router.update({
+      input: createFrameInput({ x: 100, y: 100, isDown: false }),
+      passes: [createPass("world", 0)],
+      candidates: [
+        createCandidate(
+          "custom",
+          { hover: true },
+          { sourceKind: "mesh", object3D },
+        ),
+      ],
+      pickManagedObjects(_pass, candidates) {
+        expect(candidates[0]?.object3D).toBe(object3D);
+        return createHit("custom");
+      },
+    });
+
+    expect(result.debug).toEqual({
+      hoveredObjectId: "custom",
+      activeHit: { objectId: "custom", sceneId: "world", sourceKind: "mesh" },
+    });
+  });
+
   test("honors pass viewport gating and higher order pass priority", () => {
     const router = createInteractionRouter();
     const calls: string[] = [];
@@ -259,13 +285,14 @@ function createCandidate(
     readonly sceneId?: string;
     readonly sourceKind?: ManagedHitCandidate["sourceKind"];
     readonly pickable?: boolean;
+    readonly object3D?: unknown;
   } = {},
 ): ManagedHitCandidate {
   return {
     id,
     sceneId: options.sceneId ?? "world",
     sourceKind: options.sourceKind ?? "stage/box",
-    object3D: {},
+    object3D: options.object3D ?? {},
     hitTest: "bounds",
     pickable: options.pickable ?? true,
     pointer: {

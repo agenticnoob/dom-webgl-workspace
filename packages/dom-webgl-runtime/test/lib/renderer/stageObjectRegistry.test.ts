@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { BufferGeometry } from "three/src/core/BufferGeometry.js";
 
 import {
   defineWebGLSceneObjectEffect,
@@ -20,6 +21,218 @@ import type {
 } from "../../../src/lib/renderer/sceneObject";
 
 describe("stage object registry", () => {
+  test("registers every mesh geometry discriminator and unregisters idempotently", () => {
+    const worldAdapter = createSceneAdapter();
+    const normalizedDeclarations: unknown[] = [];
+    const objects: WebGLSceneObject[] = [];
+    const registry = createStageObjectRegistry({
+      getSceneAdapter() {
+        return worldAdapter;
+      },
+      createMeshObject(declaration) {
+        normalizedDeclarations.push(declaration);
+        const object = createSceneObject(declaration.id);
+        objects.push(object);
+        return object;
+      },
+    });
+    const create = () => new BufferGeometry();
+
+    registry.registerMesh({ id: "plane", sceneId: "world", geometry: { kind: "plane" } });
+    registry.registerMesh({ id: "box", sceneId: "world", geometry: { kind: "box" } });
+    registry.registerMesh({ id: "sphere", sceneId: "world", geometry: { kind: "sphere" } });
+    registry.registerMesh({
+      id: "cylinder",
+      sceneId: "world",
+      geometry: { kind: "cylinder" },
+    });
+    registry.registerMesh({ id: "cone", sceneId: "world", geometry: { kind: "cone" } });
+    registry.registerMesh({
+      id: "tetrahedron",
+      sceneId: "world",
+      geometry: { kind: "tetrahedron" },
+    });
+    registry.registerMesh({ id: "custom", sceneId: "world", geometry: { kind: "custom", create } });
+
+    expect(normalizedDeclarations).toEqual([
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "plane" }) }),
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "box" }) }),
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "sphere" }) }),
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "cylinder" }) }),
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "cone" }) }),
+      expect.objectContaining({ geometry: expect.objectContaining({ kind: "tetrahedron" }) }),
+      expect.objectContaining({ geometry: { kind: "custom", create } }),
+    ]);
+    expect(worldAdapter.addObject).toHaveBeenCalledTimes(7);
+    expect(registry.inspect().meshes.map((mesh) => mesh.geometryKind)).toEqual([
+      "plane",
+      "box",
+      "sphere",
+      "cylinder",
+      "cone",
+      "tetrahedron",
+      "custom",
+    ]);
+    expect(() =>
+      registry.registerMesh({
+        id: "plane",
+        sceneId: "world",
+        geometry: { kind: "plane" },
+      }),
+    ).toThrow('WebGL mesh id "plane" is already registered.');
+
+    registry.unregisterMesh("plane");
+    registry.unregisterMesh("plane");
+
+    expect(objects[0]?.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  test("preserves mesh effects, interaction, physics, visibility, and screen-plane facts", () => {
+    const planeObject = createSceneObject("plane");
+    const sphereObject = createSceneObject("sphere");
+    const disposeResource = vi.fn();
+    const update = vi.fn();
+    const registry = createStageObjectRegistry({
+      getSceneAdapter() {
+        return createSceneAdapter();
+      },
+      createMeshObject(declaration) {
+        return declaration.id === "plane" ? planeObject : sphereObject;
+      },
+      effectRegistry: createWebGLEffectRegistry([
+        defineWebGLSceneObjectEffect({
+          kind: "app.mesh",
+          source: "mesh",
+          setup(ctx) {
+            ctx.resources.addDisposable(disposeResource);
+          },
+          update(ctx) {
+            update(ctx);
+          },
+        }),
+      ]),
+      readEffectScopes: createScopes,
+      readObjectPointerState: createObjectPointerState,
+    });
+
+    registry.registerMesh({
+      id: "plane",
+      sceneId: "world",
+      geometry: { kind: "plane", size: [12, 8] },
+      timeline: { id: "hero", active: { from: 0.25, to: 0.75 } },
+      effects: [{ kind: "app.mesh" }],
+      interaction: {
+        pickable: { hitTest: "mesh", pointer: { hover: true, drag: true } },
+      },
+    });
+    registry.registerMesh({
+      id: "sphere",
+      sceneId: "world",
+      geometry: { kind: "sphere", radius: 2 },
+      physics: {
+        body: { type: "dynamic" },
+        collider: { kind: "box", size: [3, 4, 5] },
+      },
+    });
+
+    expect(registry.readMeshPlane("plane", "world")).toEqual({
+      id: "plane",
+      sceneId: "world",
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: 1,
+      size: [12, 8],
+    });
+    expect(registry.readMeshPlane("sphere", "world")).toBeUndefined();
+    expect(registry.collectHitCandidates()).toEqual([
+      expect.objectContaining({
+        id: "plane",
+        sourceKind: "mesh",
+        object3D: planeObject.object3D,
+        hitTest: "mesh",
+      }),
+    ]);
+    expect(registry.collectPhysicsCandidates()).toEqual([
+      expect.objectContaining({
+        id: "sphere",
+        sourceKind: "mesh",
+        object: sphereObject,
+        physics: expect.objectContaining({
+          collider: expect.objectContaining({ kind: "box", size: [3, 4, 5] }),
+        }),
+      }),
+    ]);
+    expect(registry.updateEffects(createFrameInput())).toBe(true);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ objectId: "plane", sourceKind: "mesh" }),
+    );
+
+    registry.updateTimelineState({ get: () => 0.1 });
+    registry.updateTimelineState({ get: () => 0.5 });
+    expect(planeObject.setVisible).toHaveBeenNthCalledWith(1, false);
+    expect(planeObject.setVisible).toHaveBeenNthCalledWith(2, true);
+    expect(registry.inspect().meshes).toEqual([
+      expect.objectContaining({
+        id: "plane",
+        sceneId: "world",
+        geometryKind: "plane",
+        effects: ["app.mesh"],
+      }),
+      expect.objectContaining({
+        id: "sphere",
+        sceneId: "world",
+        geometryKind: "sphere",
+      }),
+    ]);
+
+    registry.unregisterScene("world");
+    registry.unregisterScene("world");
+    registry.dispose();
+    expect(planeObject.dispose).toHaveBeenCalledTimes(1);
+    expect(sphereObject.dispose).toHaveBeenCalledTimes(1);
+    expect(disposeResource).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not invoke custom geometry before scene validation and owns successful geometry", () => {
+    const worldAdapter = createSceneAdapter();
+    const geometry = new BufferGeometry();
+    const disposeGeometry = vi.spyOn(geometry, "dispose");
+    const create = vi.fn(() => geometry);
+    const registry = createStageObjectRegistry({
+      getSceneAdapter(sceneId) {
+        if (sceneId !== "world") {
+          throw new Error(`Unknown WebGL scene "${sceneId}".`);
+        }
+
+        return worldAdapter;
+      },
+    });
+
+    expect(() =>
+      registry.registerMesh({
+        id: "missing.custom",
+        sceneId: "missing",
+        geometry: { kind: "custom", create },
+      }),
+    ).toThrow('Unknown WebGL scene "missing".');
+    expect(create).not.toHaveBeenCalled();
+    expect(registry.inspect().meshes).toEqual([]);
+    expect(worldAdapter.addObject).not.toHaveBeenCalled();
+
+    registry.registerMesh({
+      id: "custom",
+      sceneId: "world",
+      geometry: { kind: "custom", create },
+    });
+    registry.unregisterMesh("custom");
+    registry.unregisterMesh("custom");
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(disposeGeometry).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.addObject).toHaveBeenCalledTimes(1);
+    expect(worldAdapter.removeObject).toHaveBeenCalledTimes(1);
+  });
+
   test("registers and unregisters stage primitives and lights", () => {
     const worldAdapter = createSceneAdapter();
     const floorObject = createSceneObject("primitive:floor");
@@ -159,6 +372,7 @@ describe("stage object registry", () => {
     });
 
     expect(registry.inspect()).toEqual({
+      meshes: [],
       stagePrimitives: [{ id: "floor", sceneId: "world", kind: "plane" }],
       lights: [{ id: "hero", sceneId: "world", kind: "point" }],
     });
@@ -502,6 +716,7 @@ function createSceneAdapter(): WebGLSceneAdapter {
 function createSceneObject(key: string): WebGLSceneObject {
   return {
     key,
+    object3D: { key },
     setVisible: vi.fn(),
     updateLayout: vi.fn(),
     dispose: vi.fn(),

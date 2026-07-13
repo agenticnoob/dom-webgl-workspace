@@ -731,6 +731,8 @@ export type WebGLRuntime = {
   unregisterRenderPass(id: string): void;
   registerPassViewport(declaration: { id: string; element: HTMLElement }): void;
   unregisterPassViewport(id: string): void;
+  registerMesh(declaration: WebGLMeshDeclaration): void;
+  unregisterMesh(id: string): void;
   registerStagePrimitive(declaration: WebGLStagePrimitiveDeclaration): void;
   unregisterStagePrimitive(id: string): void;
   registerLight(declaration: WebGLLightDeclaration): void;
@@ -860,6 +862,15 @@ export type WebGLDebugStagePrimitiveSummary = {
   interaction?: WebGLDebugSceneObjectInteractionSummary;
 };
 
+export type WebGLDebugMeshSummary = {
+  id: string;
+  sceneId: string;
+  geometryKind: WebGLMeshGeometryDeclaration["kind"];
+  timeline?: WebGLDebugTimelineSummary;
+  effects?: readonly string[];
+  interaction?: WebGLDebugSceneObjectInteractionSummary;
+};
+
 export type WebGLDebugLightSummary = {
   id: string;
   sceneId: string;
@@ -983,9 +994,11 @@ export type WebGLDebugState = {
   sceneProgress?: number;
   pointer: WebGLPointerState;
   warnings?: WebGLPerformanceWarning[];
+  meshCount?: number;
   stagePrimitiveCount?: number;
   lightCount?: number;
   modelCount?: number;
+  meshes?: WebGLDebugMeshSummary[];
   stagePrimitives?: WebGLDebugStagePrimitiveSummary[];
   lights?: WebGLDebugLightSummary[];
   models?: WebGLDebugModelSummary[];
