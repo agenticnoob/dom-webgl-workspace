@@ -33,28 +33,29 @@ describe("hero assets and visual surface", () => {
     }
   });
 
-  test("defines the matte studio depth layers and motion fallback", () => {
+  test("keeps hero CSS layout-only", () => {
     const css = readFileSync(resolve(appRoot, "app/globals.css"), "utf8");
 
-    expect(css).toContain("#d2d0ca");
-    expect(css).toContain("#efeee9");
-    expect(css).toContain("#e4e2dc");
-    expect(css).toContain("#cfcdc6");
-    expect(css).toMatch(
-      /\.hero-runtime[\s\S]*radial-gradient[\s\S]*linear-gradient[\s\S]*100svh[\s\S]*overflow:\s*hidden/,
-    );
-    expect(css).toMatch(
-      /\.hero-runtime::before[\s\S]*z-index:\s*0[\s\S]*radial-gradient[\s\S]*linear-gradient[\s\S]*filter:\s*blur\(10px\)/,
-    );
-    expect(css).toMatch(
-      /\.hero-runtime canvas[\s\S]*position:\s*fixed[\s\S]*z-index:\s*1/,
-    );
-    expect(css).toMatch(
-      /\.hero-space[\s\S]*z-index:\s*2[\s\S]*\.hero-space::after[\s\S]*feTurbulence[\s\S]*opacity:\s*\.07/,
-    );
-    expect(css).toContain("@media (max-width: 700px)");
-    expect(css).toContain("ellipse 30% 7% at 50% 72%");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain("scroll-behavior: auto");
+    expect(css).toMatch(/\.hero-runtime[\s\S]*height:\s*100svh/);
+    expect(css).toMatch(/\.hero-runtime canvas[\s\S]*position:\s*fixed/);
+    expect(css).toMatch(/\.hero-ghost-surface[\s\S]*position:\s*fixed/);
+    expect(css).toMatch(/\.hero-ghost-surface[\s\S]*pointer-events:\s*none/);
+
+    for (const forbidden of [
+      /\bbackground(?:-image)?\s*:/,
+      /\bcolor\s*:/,
+      /\bborder(?:-[\w-]+)?\s*:/,
+      /\bbox-shadow\s*:/,
+      /\bfilter\s*:/,
+      /\bopacity\s*:/,
+      /\bmix-blend-mode\s*:/,
+      /\btransform\s*:/,
+      /\banimation(?:-[\w-]+)?\s*:/,
+      /::before|::after/,
+      /gradient\(/,
+      /data:image/,
+    ]) {
+      expect(css).not.toMatch(forbidden);
+    }
   });
 });

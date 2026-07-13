@@ -6,7 +6,6 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #d2d0ca;
 }
 
 body {
@@ -20,52 +19,11 @@ body {
   height: 100svh;
   min-height: 100svh;
   overflow: hidden;
-  background:
-    radial-gradient(
-      ellipse 48% 36% at 50% 42%,
-      rgba(255, 255, 252, 0.82) 0%,
-      rgba(239, 238, 233, 0.42) 58%,
-      rgba(239, 238, 233, 0) 100%
-    ),
-    linear-gradient(
-      180deg,
-      #efeee9 0%,
-      #e9e7e1 48%,
-      #e4e2dc 59%,
-      #d9d7d0 72%,
-      #cfcdc6 100%
-    );
-}
-
-.hero-runtime::before {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  content: "";
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse 26% 8% at 50% 69%,
-      rgba(74, 72, 67, 0.2) 0%,
-      rgba(91, 88, 82, 0.1) 42%,
-      rgba(117, 113, 105, 0) 76%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 54%,
-      rgba(135, 131, 122, 0.08) 61%,
-      rgba(255, 255, 252, 0.12) 69%,
-      rgba(255, 255, 255, 0) 88%
-    );
-  filter: blur(10px);
-  opacity: 0.82;
 }
 
 .hero-runtime canvas {
   position: fixed;
   inset: 0;
-  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
@@ -73,7 +31,6 @@ body {
 
 .hero-space {
   position: relative;
-  z-index: 2;
   width: 100%;
   height: 100svh;
   min-height: 100svh;
@@ -81,56 +38,10 @@ body {
   pointer-events: none;
 }
 
-.hero-space::after {
+.hero-ghost-surface {
   position: fixed;
   inset: 0;
-  content: "";
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='.34'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  opacity: .07;
-  mix-blend-mode: soft-light;
-}
-
-@media (max-width: 700px) {
-  .hero-runtime {
-    background:
-      radial-gradient(
-        ellipse 62% 38% at 50% 44%,
-        rgba(255, 255, 252, 0.76) 0%,
-        rgba(239, 238, 233, 0.32) 62%,
-        rgba(239, 238, 233, 0) 100%
-      ),
-      linear-gradient(
-        180deg,
-        #efeee9 0%,
-        #e8e6e0 51%,
-        #dfddd7 64%,
-        #cfcdc6 100%
-      );
-  }
-
-  .hero-runtime::before {
-    background:
-      radial-gradient(
-        ellipse 30% 7% at 50% 72%,
-        rgba(74, 72, 67, 0.17) 0%,
-        rgba(91, 88, 82, 0.08) 46%,
-        rgba(117, 113, 105, 0) 78%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0) 58%,
-        rgba(135, 131, 122, 0.07) 65%,
-        rgba(255, 255, 252, 0.1) 73%,
-        rgba(255, 255, 255, 0) 90%
-      );
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
 }
