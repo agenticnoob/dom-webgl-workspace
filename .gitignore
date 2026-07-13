@@ -5,6 +5,7 @@ coverage/
 
 .codegraph/
 .omo/
+.worktrees/
 
 *.log
 .DS_Store
