@@ -1,16 +1,27 @@
 import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
-import gsap from "gsap";
 
 type HeroEffectParams = {
-  kind: "hero.tetrahedron.breathe";
+  kind: "hero.tetrahedron.motion";
   baseScale?: number;
 };
 
 export type HeroMotionState = {
-  breath: number;
-  float: number;
-  phase: number;
-  reducedMotion: boolean;
+  readonly reducedMotion: boolean;
+  previousPointerX: number;
+  previousPointerY: number;
+  lastSignificantMoveTime: number;
+  tiltX: number;
+  tiltY: number;
+  targetTiltX: number;
+  targetTiltY: number;
+};
+
+export type HeroMotionInput = {
+  readonly time: number;
+  readonly delta: number;
+  readonly pointerInside: boolean;
+  readonly pointerX: number;
+  readonly pointerY: number;
 };
 
 type HeroTarget = {
@@ -19,10 +30,74 @@ type HeroTarget = {
   scale: { setScalar(value: number): void };
 };
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+export function createHeroMotionState(reducedMotion: boolean): HeroMotionState {
+  return {
+    reducedMotion,
+    previousPointerX: 0,
+    previousPointerY: 0,
+    lastSignificantMoveTime: 0,
+    tiltX: 0,
+    tiltY: 0,
+    targetTiltX: 0,
+    targetTiltY: 0,
+  };
+}
+
+export function stepHeroMotionState(
+  state: HeroMotionState,
+  input: HeroMotionInput,
+): void {
+  if (state.reducedMotion) {
+    state.tiltX = 0;
+    state.tiltY = 0;
+    state.targetTiltX = 0;
+    state.targetTiltY = 0;
+    return;
+  }
+
+  const movement = Math.hypot(
+    input.pointerX - state.previousPointerX,
+    input.pointerY - state.previousPointerY,
+  );
+  const nearCenter = Math.hypot(input.pointerX, input.pointerY) <= 0.75;
+  const moving = input.pointerInside && nearCenter && movement >= 0.0025;
+
+  if (moving) {
+    state.lastSignificantMoveTime = input.time;
+    state.targetTiltX = clamp(-input.pointerY * 0.08, -0.08, 0.08);
+    state.targetTiltY = clamp(input.pointerX * 0.1, -0.1, 0.1);
+  } else if (input.time - state.lastSignificantMoveTime >= 120) {
+    state.targetTiltX = 0;
+    state.targetTiltY = 0;
+  }
+
+  const damping = 1 - Math.exp(-Math.max(0, input.delta) / 160);
+  state.tiltX += (state.targetTiltX - state.tiltX) * damping;
+  state.tiltY += (state.targetTiltY - state.tiltY) * damping;
+  state.previousPointerX = input.pointerX;
+  state.previousPointerY = input.pointerY;
+}
+
+export function applyHeroFrame(
+  target: HeroTarget,
+  state: HeroMotionState,
+  time: number,
+  baseScale: number,
+  yOffset = 0,
+): void {
+  target.scale.setScalar(baseScale);
+  target.position.set(0, yOffset, 0);
+
+  if (state.reducedMotion) {
+    target.rotation.set(-0.45, 0.92, 0.08);
+    return;
+  }
+
+  const phase = (time / 48_000) * Math.PI * 2;
+  target.rotation.set(
+    -0.45 + Math.sin(phase * 0.6) * 0.05 + state.tiltX,
+    0.92 + phase + state.tiltY,
+    0.08 + Math.sin(phase * 0.35) * 0.03,
   );
 }
 
@@ -37,25 +112,14 @@ export function resolveHeroYOffset(viewportWidth: number): number {
   return viewportWidth <= 700 ? 0.19 : 0;
 }
 
-export function applyHeroFrame(
-  target: HeroTarget,
-  state: HeroMotionState,
-  baseScale: number,
-  yOffset = 0,
-): void {
-  if (state.reducedMotion) {
-    target.scale.setScalar(baseScale);
-    target.position.set(0, yOffset, 0);
-    target.rotation.set(-0.45, 0.92, 0.08);
-    return;
-  }
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
 
-  target.scale.setScalar(baseScale * (1 + state.breath * 0.02));
-  target.position.set(0, yOffset + state.float * 0.035, 0);
-  target.rotation.set(
-    -0.45 + Math.sin(state.phase) * 0.08,
-    0.92 + Math.cos(state.phase) * 0.06,
-    0.08,
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 }
 
@@ -63,68 +127,38 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
   HeroEffectParams,
   HeroMotionState
 >({
-  kind: "hero.tetrahedron.breathe",
+  kind: "hero.tetrahedron.motion",
   source: "model/glb",
   schedule: "frame",
   setup(ctx) {
-    const state = {
-      breath: 0,
-      float: -0.5,
-      phase: 0,
-      reducedMotion: prefersReducedMotion(),
-    } satisfies HeroMotionState;
-
     ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.material.color.set("#24282e");
-      mesh.material.emissive.set("#020304", 0.015);
-      mesh.material.metalness = 0.18;
-      mesh.material.roughness = 0.14;
+      mesh.material.color.set("#171a20");
+      mesh.material.emissive.set("#050208", 0.02);
+      mesh.material.metalness = 0.94;
+      mesh.material.roughness = 0.08;
       mesh.material.opacity = 1;
     });
-
-    if (!state.reducedMotion) {
-      const breath = gsap.to(state, {
-        breath: 1,
-        duration: 2.5,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-      });
-      const float = gsap.to(state, {
-        float: 0.5,
-        duration: 2.8,
-        delay: 0.35,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-      });
-      const phase = gsap.to(state, {
-        phase: Math.PI * 2,
-        duration: 24,
-        ease: "none",
-        repeat: -1,
-      });
-
-      ctx.resources.addDisposable(() => {
-        breath.kill();
-        float.kill();
-        phase.kill();
-      });
-    }
-
-    return state;
+    return createHeroMotionState(prefersReducedMotion());
   },
   update(ctx, state, params) {
-    ctx.object.visible = true;
+    stepHeroMotionState(state, {
+      time: ctx.time,
+      delta: ctx.delta,
+      pointerInside: ctx.pointer.isInside,
+      pointerX: ctx.pointer.normalizedX,
+      pointerY: ctx.pointer.normalizedY,
+    });
     const baseScale = params.baseScale ?? 1.08;
     const viewportWidth =
       typeof window === "undefined" ? Number.POSITIVE_INFINITY : window.innerWidth;
     applyHeroFrame(
       ctx.object,
       state,
+      ctx.time,
       resolveHeroBaseScale(viewportWidth, baseScale),
       resolveHeroYOffset(viewportWidth),
     );
+    ctx.object.visible = true;
   },
 });
 
