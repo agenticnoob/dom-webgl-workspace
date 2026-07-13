@@ -27,10 +27,10 @@
 
 ## 场景与组件边界
 
-- CSS 负责页面加载期的灰白 fallback、中心光区、边缘压暗和细颗粒，避免 WebGL 尚未就绪时出现白闪。
+- CSS 在 runtime canvas 后方负责灰白摄影棚、中心光区、边缘压暗、弧形地平线、柔和接触阴影和细颗粒，避免 WebGL 尚未就绪时出现白闪。
 - `hero.tetrahedron.scene` 继续拥有四面体、相机和灯光。
-- 使用公开的 `WebGLStagePlane` 声明地面/背景承托层，不直接创建 Three.js scene、renderer、camera 或 material。
-- 接触阴影使用受控 stage-plane effect 生成径向透明度，不依赖当前公开 API 尚未提供的实时阴影开关。
+- 不增加 `WebGLStagePlane`：当前 stage-plane effect 只暴露 transform/opacity，不能通过公开 API 生成所需的柔边径向遮罩；CSS 背景层能以更小范围完成相同视觉目标。
+- 接触阴影使用 canvas 后方的 CSS 径向渐变，不依赖当前公开 API 尚未提供的实时阴影开关。
 - 四面体继续使用现有 managed model effect；仅在浏览器证据表明轮廓分离不足时微调材质粗糙度和现有冷暖轮廓光。
 - 保留默认 scene 为空，不修改 runtime/package 公共行为。
 
@@ -56,9 +56,9 @@
 
 ## 预计修改范围
 
-- `apps/hero-next/src/HeroExperience.tsx`：声明背景/地面/阴影 stage planes，并保持 props 引用稳定。
-- `apps/hero-next/src/heroEffect.ts`：增加静态接触阴影 effect；按浏览器结果小幅调整主体材质。
-- `apps/hero-next/app/globals.css`：重构灰白 fallback 渐变、地平线和磨砂颗粒 token。
+- `apps/hero-next/src/HeroExperience.tsx`：保持现有声明结构；仅在浏览器证据要求时微调灯光 token。
+- `apps/hero-next/src/heroEffect.ts`：保持现有主体 effect；仅在浏览器证据要求时小幅调整主体材质。
+- `apps/hero-next/app/globals.css`：实现灰白摄影棚渐变、地平线、接触阴影和磨砂颗粒 token。
 - `apps/hero-next/test/`：覆盖新增公开声明、稳定 effect registry、视觉 token 和 reduced-motion fallback。
 
 ## 验收标准
