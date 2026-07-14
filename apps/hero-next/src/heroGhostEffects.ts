@@ -27,10 +27,6 @@ type HeroGhostBackgroundParams = HeroGhostProjectionParams & {
   kind: "hero.ghost.background";
 };
 
-type HeroGhostForegroundParams = HeroGhostProjectionParams & {
-  kind: "hero.ghost.foreground";
-};
-
 type HeroGhostEffectState = {
   motion: HeroGhostCursorState;
   materialLayer: WebGLEffectMaterialLayerHandle | undefined;
@@ -82,29 +78,7 @@ export const heroGhostBackgroundEffect = defineWebGLEffect<
   },
 });
 
-export const heroGhostForegroundEffect = defineWebGLEffect<
-  HeroGhostForegroundParams,
-  HeroGhostEffectState
->({
-  kind: "hero.ghost.foreground",
-  source: "dom/element",
-  schedule: "frame",
-  setup(ctx, params) {
-    return createEffectState("foreground", ctx, params);
-  },
-  update(ctx, state, params) {
-    updateEffect("foreground", ctx, state, params);
-  },
-  dispose(_ctx, state) {
-    state.materialLayer?.dispose();
-    state.materialLayer = undefined;
-  },
-});
-
-export const heroGhostEffects = [
-  heroGhostBackgroundEffect,
-  heroGhostForegroundEffect,
-] as const;
+export const heroGhostEffects = [heroGhostBackgroundEffect] as const;
 
 function createEffectState(
   layer: HeroGhostLayer,

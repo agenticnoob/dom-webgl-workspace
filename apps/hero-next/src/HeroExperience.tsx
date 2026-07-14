@@ -4,12 +4,12 @@ import type { WebGLDeclaration } from "@viselora/dom-webgl";
 import {
   WebGLCamera,
   WebGLLight,
-  WebGLModel,
+  WebGLMesh,
   WebGLScene,
   WebGLTarget,
   type WebGLCameraProps,
   type WebGLLightProps,
-  type WebGLModelProps,
+  type WebGLMeshProps,
   type WebGLSceneRenderOptions,
 } from "@viselora/dom-webgl/react";
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
@@ -47,35 +47,23 @@ const ghostBackgroundDeclaration = {
   ],
 } satisfies WebGLDeclaration;
 
-const ghostForegroundDeclaration = {
-  key: "hero.ghost.foreground",
-  placement: { mode: "screen-depth", depth: 2, size: "dom" },
-  source: { kind: "dom", type: "element" },
-  renderRole: "model",
-  lifecycle: { hideWhenReady: true, hideMode: "self" },
-  effects: [
-    {
-      kind: "hero.ghost.foreground",
-      color: "#b497cf",
-      brightness: 0.2,
-      depth: 2,
-      fov: 38,
-      overscan: 1.06,
-    },
-  ],
-} satisfies WebGLDeclaration;
+const tetrahedronGeometry = {
+  kind: "tetrahedron",
+  radius: 0.52,
+} satisfies WebGLMeshProps["geometry"];
 
-const modelLoader = {
-  draco: { decoderPath: "/draco/gltf/" },
-} satisfies NonNullable<WebGLModelProps["loader"]>;
+const tetrahedronMaterial = {
+  kind: "standard",
+  color: "#30343b",
+  emissive: "#0d0a12",
+  emissiveIntensity: 0.06,
+  metalness: 0.9,
+  roughness: 0.12,
+} satisfies NonNullable<WebGLMeshProps["material"]>;
 
-const modelEffects = [
+const tetrahedronEffects = [
   { kind: "hero.tetrahedron.motion", baseScale: 1.12 },
-] satisfies NonNullable<WebGLModelProps["effects"]>;
-
-const modelPrepare = {
-  renderWarmup: "idle",
-} satisfies NonNullable<WebGLModelProps["prepare"]>;
+] satisfies NonNullable<WebGLMeshProps["effects"]>;
 
 const cameraPosition = [0, 0.18, 3.2] satisfies NonNullable<
   WebGLCameraProps["position"]
@@ -123,18 +111,11 @@ export function HeroExperience() {
             aria-hidden="true"
             webgl={ghostBackgroundDeclaration}
           />
-          <WebGLModel
-            id="hero.tetrahedron.model"
-            src="/models/4.glb"
-            loader={modelLoader}
-            effects={modelEffects}
-            prepare={modelPrepare}
-          />
-          <WebGLTarget
-            as="div"
-            className="hero-ghost-surface hero-ghost-surface--foreground"
-            aria-hidden="true"
-            webgl={ghostForegroundDeclaration}
+          <WebGLMesh
+            id="hero.tetrahedron.mesh"
+            geometry={tetrahedronGeometry}
+            material={tetrahedronMaterial}
+            effects={tetrahedronEffects}
           />
           <WebGLLight
             id="hero.tetrahedron.fill"

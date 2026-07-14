@@ -6,30 +6,14 @@ const workspaceRoot = process.cwd();
 const appRoot = resolve(workspaceRoot, "apps/hero-next");
 
 describe("hero assets and visual surface", () => {
-  test("copies only the required tetrahedron and Draco files byte-for-byte", () => {
-    const assetPairs = [
-      ["models/4.glb", "models/4.glb"],
-      ["draco/gltf/draco_decoder.js", "draco/gltf/draco_decoder.js"],
-      ["draco/gltf/draco_decoder.wasm", "draco/gltf/draco_decoder.wasm"],
-      [
-        "draco/gltf/draco_wasm_wrapper.js",
-        "draco/gltf/draco_wasm_wrapper.js",
-      ],
-    ];
-
-    expect(
-      assetPairs.every(([, target]) =>
-        existsSync(resolve(appRoot, "public", target)),
-      ),
-    ).toBe(true);
-
-    for (const [source, target] of assetPairs) {
-      const sourceBytes = readFileSync(
-        resolve(workspaceRoot, "apps/example/public", source),
-      );
-      const targetBytes = readFileSync(resolve(appRoot, "public", target));
-
-      expect(targetBytes.equals(sourceBytes)).toBe(true);
+  test("does not ship legacy GLB or Draco assets", () => {
+    for (const path of [
+      "models/4.glb",
+      "draco/gltf/draco_decoder.js",
+      "draco/gltf/draco_decoder.wasm",
+      "draco/gltf/draco_wasm_wrapper.js",
+    ]) {
+      expect(existsSync(resolve(appRoot, "public", path))).toBe(false);
     }
   });
 

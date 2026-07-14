@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-13 published alpha.1 registry and source
+**Last reviewed against:** 2026-07-15 source and published alpha.1 registry
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -38,25 +38,35 @@ reversible solid/points pixels, clean console/page errors and Canvas `1 -> 0 ->
 independent downstream application has completed its own implementation or
 browser acceptance. Downstream consumer work is owned and reported separately.
 
-## 2026-07-13 Next.js Tetrahedron Hero
+## 2026-07-14 Next.js WebGLMesh Tetrahedron Hero
 
 **Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
 consumes only the public Viselora package entrypoints. It keeps the reserved
-default scene empty and places the GLB in `hero.tetrahedron.scene`, using a
-managed perspective camera, three runtime-owned lights, a scene-object effect,
-the copied Draco asset path, and the public Lenis/GSAP scroll stack. The hero is
-pure visual, responsive, and static under `prefers-reduced-motion`.
+default scene empty and places a public `WebGLMesh` tetrahedron in
+`hero.tetrahedron.scene`, using a managed perspective camera, three
+runtime-owned lights, a scene-object effect, and the public Lenis/GSAP scroll
+stack. The previous `4.glb` and app-local Draco decoder assets were removed.
+The foreground Ghost Cursor layer was removed, and the tetrahedron radius was
+reduced from the initial `0.65` to `0.52`. The hero remains pure visual,
+responsive, and static under `prefers-reduced-motion`.
 
 **Verified:** focused Vitest contracts cover the workspace shell, stable scene
-declarations, managed motion/scale behavior, copied assets, and visual CSS.
-The hero workspace passes TypeScript and a Next.js production build. In-app
-browser evidence at 1440×1000 and 390×844 confirmed one canvas, an empty DOM
-content layer, no overflow, GLB plus WASM Draco responses at HTTP 200, a
-five-second breath, a byte-identical reduced-motion frame pair, and Lenis wheel
-updates after a temporary QA-only page-height injection. The final browser
-screenshot was captured before `devIndicators: false` was added; the browser
-URL policy then prevented a post-config screenshot rerun, so the no-indicator
-state is configuration/test/build verified rather than screenshot verified.
+declarations, `WebGLMesh` geometry/material, managed motion/scale behavior,
+legacy asset removal, and visual CSS. The hero workspace passes TypeScript and
+a Next.js production build. Real-browser evidence at 1200×835 and 390×844
+confirmed the initial `WebGLMesh` replacement, one managed canvas, no page
+console errors, and no GLB or Draco resource requests. The later foreground-layer
+removal and `radius: 0.52` adjustment are automated-test/typecheck/build verified;
+their final visual acceptance is explicitly owned by the user and has not been
+re-run in the browser by the agent.
+
+**Pending experiment, not implemented:** a mouse-follow point light can be owned
+by the existing background `WebGLTarget` effect through
+`ctx.object.lights.point(...)` and updated under a stable key. The light remains
+scene-scoped rather than truly target-scoped. In the current hero it should
+visually affect only the standard-material tetrahedron because the background
+Ghost Cursor uses an unlit custom shader. Do not modify `packages/` or claim
+general per-target light isolation for this experiment.
 
 **Unchanged:** runtime/package behavior, public APIs, release versions, the
 managed-render roadmap, publication state, and release gates were not changed.

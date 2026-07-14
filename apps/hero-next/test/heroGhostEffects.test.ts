@@ -3,26 +3,17 @@ import { describe, expect, test } from "vitest";
 import {
   heroGhostBackgroundEffect,
   heroGhostEffects,
-  heroGhostForegroundEffect,
   resolveHeroGhostOverscanScale,
 } from "../src/heroGhostEffects";
 
 describe("hero Ghost Cursor effects", () => {
-  test("registers two frame-scheduled dom element effects", () => {
+  test("registers only the frame-scheduled background effect", () => {
     expect(heroGhostBackgroundEffect).toMatchObject({
       kind: "hero.ghost.background",
       source: "dom/element",
       schedule: "frame",
     });
-    expect(heroGhostForegroundEffect).toMatchObject({
-      kind: "hero.ghost.foreground",
-      source: "dom/element",
-      schedule: "frame",
-    });
-    expect(heroGhostEffects).toEqual([
-      heroGhostBackgroundEffect,
-      heroGhostForegroundEffect,
-    ]);
+    expect(heroGhostEffects).toEqual([heroGhostBackgroundEffect]);
   });
 
   test("resolves responsive world scale with six-percent overscan", () => {

@@ -75,15 +75,17 @@ are insufficient.
 
 The previous CSS-owned studio artwork has been removed. The current hero uses
 one managed scene, camera, render pass, canvas, and renderer for the background
-Ghost Cursor, GLB tetrahedron, foreground Ghost Cursor, and managed lights.
-The two Ghost Cursor effects apply responsive `1.06` world-scale overscan to
-cover the transparent canvas under the tilted camera, and the pointer blob uses
-the compact `0.24 + 0.14 / iScale` radius. Keep both treatments effect-owned;
-do not add a CSS background fallback or CSS transform.
+Ghost Cursor, `WebGLMesh` tetrahedron, and managed lights. The foreground Ghost
+Cursor layer has been removed, and the tetrahedron currently uses `radius: 0.52`.
+The background effect applies responsive `1.06` world-scale overscan to cover the
+transparent canvas under the tilted camera, and the pointer blob uses the compact
+`0.24 + 0.14 / iScale` radius. Keep this treatment effect-owned; do not add a CSS
+background fallback or CSS transform.
 
 Current verified design and completed execution record:
 
 - `docs/superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md`
+- `docs/superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md`
 - `docs/archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md`
 
 The earlier matte-studio documents and plans are historical evidence only and
@@ -101,5 +103,5 @@ npm run check:imports
 git diff --check
 ```
 
-Browser verification must use the real package runtime, GLB, Draco decoder,
-and managed canvas. Static markup or type success is not visual proof.
+Browser verification must use the real package runtime, `WebGLMesh`, and managed
+canvas. Static markup or type success is not visual proof.

@@ -30,24 +30,6 @@ type HeroTarget = {
   scale: { setScalar(value: number): void };
 };
 
-type HeroMaterialTarget = {
-  material: {
-    color: { set(value: string): void };
-    emissive: { set(value: string, intensity: number): void };
-    metalness: number;
-    roughness: number;
-    opacity: number;
-  };
-};
-
-export function applyHeroMaterial(mesh: HeroMaterialTarget): void {
-  mesh.material.color.set("#30343b");
-  mesh.material.emissive.set("#0d0a12", 0.06);
-  mesh.material.metalness = 0.9;
-  mesh.material.roughness = 0.12;
-  mesh.material.opacity = 1;
-}
-
 export function createHeroMotionState(reducedMotion: boolean): HeroMotionState {
   return {
     reducedMotion,
@@ -127,7 +109,7 @@ export function resolveHeroBaseScale(
 }
 
 export function resolveHeroYOffset(viewportWidth: number): number {
-  return viewportWidth <= 700 ? 0.19 : 0;
+  return viewportWidth <= 700 ? 0.555 : 0.365;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -146,10 +128,9 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
   HeroMotionState
 >({
   kind: "hero.tetrahedron.motion",
-  source: "model/glb",
+  source: "mesh",
   schedule: "frame",
-  setup(ctx) {
-    ctx.object.model?.meshes.forEach(applyHeroMaterial);
+  setup() {
     return createHeroMotionState(prefersReducedMotion());
   },
   update(ctx, state, params) {

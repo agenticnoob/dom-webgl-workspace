@@ -19,7 +19,7 @@ renderer.
 ## App Workspaces
 
 - [`apps/example`](../apps/example/) - React-only public API dogfood and effect-authoring tutorial.
-- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a browser-verified managed tetrahedron hero, Lenis, and GSAP.
+- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a browser-verified managed `WebGLMesh` tetrahedron hero, Lenis, and GSAP.
 
 ## New Project Notes
 
@@ -32,6 +32,7 @@ renderer.
 - [superpowers/specs/2026-07-11-viselora-general-development-skill-design.md](./superpowers/specs/2026-07-11-viselora-general-development-skill-design.md) - approved general-skill design.
 - [superpowers/plans/2026-07-11-viselora-general-development-skill.md](./superpowers/plans/2026-07-11-viselora-general-development-skill.md) - implementation plan and verification boundary.
 - [superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md](./superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md) - implemented and browser-verified single-scene Ghost Cursor tetrahedron hero design.
+- [superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md](./superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md) - implemented replacement of the hero GLB with a public `WebGLMesh` tetrahedron; latest foreground removal and size tuning await user visual QA.
 - [archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md](./archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md) - completed task-by-task implementation and browser acceptance record.
 - [consumer-standard-usage.md](./consumer-standard-usage.md) - standard consumer usage guide.
 - [agent/package-onboarding.md](./agent/package-onboarding.md) - single entrypoint for agents starting from zero.

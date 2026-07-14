@@ -1,7 +1,16 @@
 # Hero Next Ghost Cursor 空间层次设计
 
 **日期：** 2026-07-13
-**状态：** 已实现并通过自动化与真实浏览器验证
+**状态：** 已实现并通过自动化与真实浏览器验证；中央 GLB 来源已被后续设计替换
+
+> 2026-07-14 更新：本设计的 Ghost Cursor、单 scene、相机、灯光和交互继续有效；
+> 中央主体的 GLB-only 章节已由
+> `2026-07-14-hero-next-webglmesh-tetrahedron-design.md` 替换。当前主体使用公开
+> `WebGLMesh` tetrahedron descriptor，不再携带 GLB/Draco 资源。
+
+> 2026-07-15 更新：前景 Ghost Cursor target 和 effect 注册已移除。本文后续关于
+> 前景薄烟、foreground depth 和双层 Ghost Cursor 的内容仅保留为历史设计证据；
+> 当前画面只保留背景 Ghost Cursor 与中央 `WebGLMesh` 四面体。
 
 ## 目标
 

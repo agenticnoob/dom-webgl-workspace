@@ -1,7 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  applyHeroMaterial,
   applyHeroFrame,
   createHeroMotionState,
   heroTetrahedronEffect,
@@ -11,24 +10,6 @@ import {
 } from "../src/heroEffect";
 
 describe("hero tetrahedron effect", () => {
-  test("keeps black-silver facets readable without environment lighting", () => {
-    const material = {
-      color: { set: vi.fn() },
-      emissive: { set: vi.fn() },
-      metalness: 0,
-      roughness: 0,
-      opacity: 0,
-    };
-
-    applyHeroMaterial({ material });
-
-    expect(material.color.set).toHaveBeenCalledWith("#30343b");
-    expect(material.emissive.set).toHaveBeenCalledWith("#0d0a12", 0.06);
-    expect(material.metalness).toBe(0.9);
-    expect(material.roughness).toBe(0.12);
-    expect(material.opacity).toBe(1);
-  });
-
   test("completes one slow base rotation in 48 seconds", () => {
     const target = {
       position: { set: vi.fn() },
@@ -91,15 +72,15 @@ describe("hero tetrahedron effect", () => {
     expect(target.rotation.set).toHaveBeenCalledWith(-0.45, 0.92, 0.08);
   });
 
-  test("declares managed GLB frame scheduling and responsive framing", () => {
+  test("declares managed mesh frame scheduling and responsive framing", () => {
     expect(heroTetrahedronEffect).toMatchObject({
       kind: "hero.tetrahedron.motion",
-      source: "model/glb",
+      source: "mesh",
       schedule: "frame",
     });
     expect(resolveHeroBaseScale(1440, 1.08)).toBe(1.08);
     expect(resolveHeroBaseScale(390, 1.08)).toBeCloseTo(0.648, 6);
-    expect(resolveHeroYOffset(1440)).toBe(0);
-    expect(resolveHeroYOffset(390)).toBe(0.19);
+    expect(resolveHeroYOffset(1440)).toBe(0.365);
+    expect(resolveHeroYOffset(390)).toBe(0.555);
   });
 });

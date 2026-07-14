@@ -1,7 +1,7 @@
 # Hero Next WebGLMesh 正四面体替换设计
 
 **日期：** 2026-07-14
-**状态：** 已确认，待实现
+**状态：** 已实现；自动化验证通过，最新视觉调优待用户 QA
 
 ## 目标
 
@@ -21,7 +21,7 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、慢速
 ```tsx
 <WebGLMesh
   id="hero.tetrahedron.mesh"
-  geometry={{ kind: "tetrahedron", radius: 1 }}
+  geometry={{ kind: "tetrahedron", radius: 0.52 }}
   material={{
     kind: "standard",
     color: "#30343b",
@@ -68,16 +68,22 @@ renderer 或 disposal 生命周期。
 - 一个显式 `hero.tetrahedron.scene`、一个 camera、一个 render pass；
 - 背景 Ghost Cursor depth `5`；
 - 中央正四面体；
-- 前景 Ghost Cursor depth `2`；
 - ambient、directional key 和 directional rim 三盏 managed lights；
 - Ghost Cursor overscan、颜色、brightness、pointer trail 和 shader 状态。
 
-`WebGLMesh` 正四面体必须继续位于相机和两层 Ghost Cursor 之间，并保持现有黑银
-镜面观感。替换不引入新的 postprocess、CSS 视觉层、纹理或粒子效果。
+`WebGLMesh` 正四面体必须继续位于背景 Ghost Cursor 前方，并保持现有黑银镜面
+观感。前景 Ghost Cursor 已于 2026-07-15 移除。替换不引入新的 postprocess、
+CSS 视觉层、纹理或粒子效果。
 
-`radius` 的初始值使用 `1`，现有 `baseScale: 1.12` 和移动端 `0.6` 倍率继续负责
-构图尺寸。真实浏览器验证若显示与现有主体尺寸存在明显差异，只允许在 app 内调整
-`radius` 或现有 baseScale，不改变 package/runtime。
+旧 GLB 的 accessor bounds 与节点命名表明其外接半径约为 `0.65`，且几何中心位于
+`Y≈0.365`。初次替换以此为基准；2026-07-15 视觉调优再将半径缩小五分之一至
+`0.52`。effect 的桌面基准 Y 保持 `0.365`，移动端在此基础上保留原有 `0.19`
+偏移（最终 `0.555`）。现有 `baseScale: 1.12` 和移动端 `0.6` 倍率继续负责响应式
+构图尺寸。
+
+最初 `radius: 0.65` 的 `WebGLMesh` 替换已做真实浏览器验证。2026-07-15 的前景
+Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查和生产构建；最终
+视觉 QA 由用户接手。
 
 ## 资源清理
 
@@ -113,7 +119,7 @@ renderer 或 disposal 生命周期。
 
 自动化验证必须证明：
 
-- 页面仍只声明一个 scene、一个 camera、两个 Ghost Cursor target 和三盏灯；
+- 页面仍只声明一个 scene、一个 camera、一个背景 Ghost Cursor target 和三盏灯；
 - 中央主体是一个 `WebGLMesh`，geometry 为 `tetrahedron`；
 - mesh 使用 standard 黑银材质与 `hero.tetrahedron.motion` effect；
 - effect source 为 `mesh`，原有 rotation、pointer tilt、idle return、responsive 和
