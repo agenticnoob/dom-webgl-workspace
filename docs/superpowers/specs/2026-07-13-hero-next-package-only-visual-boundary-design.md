@@ -1,7 +1,7 @@
 # Hero Next Package-Only Visual Boundary Design
 
 **日期：** 2026-07-13
-**状态：** 已确认，等待用户复核文档
+**状态：** 已确认并生效，作为 `apps/hero-next` 当前硬边界
 
 ## 目标
 

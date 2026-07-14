@@ -55,9 +55,9 @@ const tetrahedronGeometry = {
 const tetrahedronMaterial = {
   kind: "standard",
   color: "#30343b",
-  emissive: "#0d0a12",
-  emissiveIntensity: 0.06,
-  metalness: 0.9,
+  emissive: "#0a1012",
+  emissiveIntensity: 0.03,
+  metalness: 0.8,
   roughness: 0.12,
 } satisfies NonNullable<WebGLMeshProps["material"]>;
 
@@ -117,28 +117,28 @@ export function HeroExperience() {
             material={tetrahedronMaterial}
             effects={tetrahedronEffects}
           />
-          <WebGLLight
+          {/* <WebGLLight
             id="hero.tetrahedron.fill"
             kind="ambient"
             color="#d9dce3"
             intensity={0.22}
-          />
-          <WebGLLight
+          /> */}
+          {/* <WebGLLight
             id="hero.tetrahedron.key"
             kind="directional"
             color="#eef2f7"
             intensity={3.8}
             position={keyLightPosition}
             target={lightTarget}
-          />
-          <WebGLLight
+          /> */}
+          {/* <WebGLLight
             id="hero.tetrahedron.rim"
             kind="directional"
             color="#b497cf"
             intensity={3.2}
             position={rimLightPosition}
             target={lightTarget}
-          />
+          /> */}
         </WebGLScene>
       </main>
     </WebGLScrollRuntime>

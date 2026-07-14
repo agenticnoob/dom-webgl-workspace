@@ -1,7 +1,11 @@
 # Next.js Tetrahedron Hero Design
 
 **Date:** 2026-07-13
-**Status:** Approved for implementation planning
+**Status:** Implemented baseline; visual direction and GLB details superseded by the later Ghost Cursor and `WebGLMesh` hero designs
+
+> Current implementation truth lives in
+> `2026-07-14-hero-next-webglmesh-tetrahedron-design.md`. This document remains
+> historical evidence for the initial application shell and pure-visual hero boundary.
 
 ## Goal
 

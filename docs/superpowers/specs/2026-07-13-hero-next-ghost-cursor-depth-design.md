@@ -3,14 +3,22 @@
 **日期：** 2026-07-13
 **状态：** 已实现并通过自动化与真实浏览器验证；中央 GLB 来源已被后续设计替换
 
-> 2026-07-14 更新：本设计的 Ghost Cursor、单 scene、相机、灯光和交互继续有效；
+> 2026-07-14 更新：本设计的 Ghost Cursor、单 scene、相机和交互继续有效；
 > 中央主体的 GLB-only 章节已由
 > `2026-07-14-hero-next-webglmesh-tetrahedron-design.md` 替换。当前主体使用公开
-> `WebGLMesh` tetrahedron descriptor，不再携带 GLB/Draco 资源。
+> `WebGLMesh` tetrahedron descriptor，不再携带 GLB/Draco 资源；灯光与材质当前
+> 真值也以后续设计及本文顶部最新调优说明为准。
 
 > 2026-07-15 更新：前景 Ghost Cursor target 和 effect 注册已移除。本文后续关于
 > 前景薄烟、foreground depth 和双层 Ghost Cursor 的内容仅保留为历史设计证据；
 > 当前画面只保留背景 Ghost Cursor 与中央 `WebGLMesh` 四面体。
+
+> 2026-07-15 后续调优：原 ambient/key/rim 三盏声明式灯已注释且不注册；当前唯一
+> 活跃灯光是背景 target effect 管理的 scene-scoped `hero.pointer-light`。四面体
+> 当前材质为 `#30343b`、emissive `#0a1012` / `0.03`、metalness `0.8`、
+> roughness `0.12`；pointer light 当前为 `#a883ff`、target intensity `6`、
+> `distance: 1.8`、`decay: 3`、相机侧 `Z=1.1`。下文旧 GLB、前景层、固定灯和
+> 浏览器验收参数只作当时证据，不是当前实现真值。
 
 ## 目标
 

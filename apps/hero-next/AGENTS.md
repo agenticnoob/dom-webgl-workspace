@@ -80,7 +80,16 @@ Cursor layer has been removed, and the tetrahedron currently uses `radius: 0.52`
 The background effect applies responsive `1.06` world-scale overscan to cover the
 transparent canvas under the tilted camera, and the pointer blob uses the compact
 `0.24 + 0.14 / iScale` radius. Keep this treatment effect-owned; do not add a CSS
-background fallback or CSS transform.
+background fallback or CSS transform. The same background target effect owns the
+scene-scoped `hero.pointer-light` through the managed lights facade; it uses a
+stable key, damped target-local pointer mapping, exit intensity decay, a static
+reduced-motion state, and managed removal on effect dispose. This is visually
+isolated only because the tetrahedron is the current scene's sole lit material,
+not because the runtime provides general per-target light isolation. The three
+declarative ambient/key/rim lights are currently commented out and are not
+registered. The active point light uses `#a883ff`, target intensity `6`,
+`distance: 1.8`, `decay: 3`, and camera-side `Z=1.1`; it remains omnidirectional,
+not a managed spotlight.
 
 Current verified design and completed execution record:
 

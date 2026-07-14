@@ -43,9 +43,10 @@ browser acceptance. Downstream consumer work is owned and reported separately.
 **Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
 consumes only the public Viselora package entrypoints. It keeps the reserved
 default scene empty and places a public `WebGLMesh` tetrahedron in
-`hero.tetrahedron.scene`, using a managed perspective camera, three
-runtime-owned lights, a scene-object effect, and the public Lenis/GSAP scroll
-stack. The previous `4.glb` and app-local Draco decoder assets were removed.
+`hero.tetrahedron.scene`, using a managed perspective camera, one effect-owned
+pointer light, a scene-object effect, and the public Lenis/GSAP scroll stack.
+The three earlier declarative ambient/key/rim lights are currently commented
+out and are not registered. The previous `4.glb` and app-local Draco decoder assets were removed.
 The foreground Ghost Cursor layer was removed, and the tetrahedron radius was
 reduced from the initial `0.65` to `0.52`. The hero remains pure visual,
 responsive, and static under `prefers-reduced-motion`.
@@ -56,17 +57,24 @@ legacy asset removal, and visual CSS. The hero workspace passes TypeScript and
 a Next.js production build. Real-browser evidence at 1200×835 and 390×844
 confirmed the initial `WebGLMesh` replacement, one managed canvas, no page
 console errors, and no GLB or Draco resource requests. The later foreground-layer
-removal and `radius: 0.52` adjustment are automated-test/typecheck/build verified;
-their final visual acceptance is explicitly owned by the user and has not been
+removal, `radius: 0.52` adjustment, declarative-light disablement, material
+tuning, and pointer-light behavior are automated-test/typecheck/build verified.
+Their final visual acceptance is explicitly owned by the user and has not been
 re-run in the browser by the agent.
 
-**Pending experiment, not implemented:** a mouse-follow point light can be owned
-by the existing background `WebGLTarget` effect through
-`ctx.object.lights.point(...)` and updated under a stable key. The light remains
-scene-scoped rather than truly target-scoped. In the current hero it should
-visually affect only the standard-material tetrahedron because the background
-Ghost Cursor uses an unlit custom shader. Do not modify `packages/` or claim
-general per-target light isolation for this experiment.
+**Implemented:** the existing background `WebGLTarget` effect owns a
+mouse-follow point light through `ctx.object.lights.point(...)`. It maps the
+full-screen target-local pointer into world coordinates near the tetrahedron,
+updates the stable `hero.pointer-light` key with damped position and intensity,
+fades intensity after pointer exit, keeps a static low-intensity light under
+reduced motion, and removes the light through the managed facade on effect
+dispose. Its current color is `#a883ff`; the camera-side position uses `Z=1.1`,
+active target intensity `6`, `distance: 1.8`, and `decay: 3` as an app-local
+tighter-range approximation. The light remains omnidirectional and scene-scoped
+rather than truly target-scoped. In the
+current hero it is visually isolated to the standard-material tetrahedron
+because the background Ghost Cursor uses an unlit custom shader; this does not
+claim general per-target light isolation.
 
 **Unchanged:** runtime/package behavior, public APIs, release versions, the
 managed-render roadmap, publication state, and release gates were not changed.

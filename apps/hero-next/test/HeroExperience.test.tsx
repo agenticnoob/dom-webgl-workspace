@@ -98,9 +98,9 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-radius="0.52"');
     expect(html).toContain('data-material="standard"');
     expect(html).toContain('data-color="#30343b"');
-    expect(html).toContain('data-emissive="#0d0a12"');
-    expect(html).toContain('data-emissive-intensity="0.06"');
-    expect(html).toContain('data-metalness="0.9"');
+    expect(html).toContain('data-emissive="#0a1012"');
+    expect(html).toContain('data-emissive-intensity="0.03"');
+    expect(html).toContain('data-metalness="0.8"');
     expect(html).toContain('data-roughness="0.12"');
     expect(html).toContain('data-mesh-effect="hero.tetrahedron.motion"');
     expect(html).toContain('data-base-scale="1.12"');
@@ -108,7 +108,7 @@ describe("HeroExperience", () => {
     expect(html).not.toContain('data-effect="hero.ghost.foreground"');
     expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(1);
     expect(html.match(/data-render-role="model"/g)).toHaveLength(1);
-    expect(html.match(/data-light=/g)).toHaveLength(3);
+    expect(html).not.toContain("data-light=");
     expect(html).not.toContain("Boo!");
     expect(html).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
   });

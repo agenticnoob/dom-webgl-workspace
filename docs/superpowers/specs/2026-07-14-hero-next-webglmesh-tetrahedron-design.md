@@ -25,9 +25,9 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、慢速
   material={{
     kind: "standard",
     color: "#30343b",
-    emissive: "#0d0a12",
-    emissiveIntensity: 0.06,
-    metalness: 0.9,
+    emissive: "#0a1012",
+    emissiveIntensity: 0.03,
+    metalness: 0.8,
     roughness: 0.12,
   }}
   effects={[{ kind: "hero.tetrahedron.motion", baseScale: 1.12 }]}
@@ -68,7 +68,9 @@ renderer 或 disposal 生命周期。
 - 一个显式 `hero.tetrahedron.scene`、一个 camera、一个 render pass；
 - 背景 Ghost Cursor depth `5`；
 - 中央正四面体；
-- ambient、directional key 和 directional rim 三盏 managed lights；
+- ambient、directional key 和 directional rim 三盏固定 managed lights 当前已注释，
+  不注册到 runtime；
+- 由背景 `WebGLTarget` effect 管理的 `hero.pointer-light` 点光源；
 - Ghost Cursor overscan、颜色、brightness、pointer trail 和 shader 状态。
 
 `WebGLMesh` 正四面体必须继续位于背景 Ghost Cursor 前方，并保持现有黑银镜面
@@ -84,6 +86,29 @@ CSS 视觉层、纹理或粒子效果。
 最初 `radius: 0.65` 的 `WebGLMesh` 替换已做真实浏览器验证。2026-07-15 的前景
 Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查和生产构建；最终
 视觉 QA 由用户接手。
+
+## 2026-07-15 鼠标局部高光增补
+
+现有 `hero.ghost.background` DOM target effect 通过公开
+`ctx.object.lights?.point(...)` facade 管理一个稳定 key 为
+`hero.pointer-light` 的点光源。它使用背景全屏 target 的 target-local pointer，
+把横向位置映射到 `[-1.05, 1.05]`，把纵向位置围绕四面体基准
+`Y=0.365` 映射到 `±0.72`，并固定在相机侧的 `Z=1.1`。
+
+位置和强度都使用基于 frame delta 的阻尼。pointer 离开 viewport 后保持最后位置并
+逐渐把强度衰减到 `0`；reduced-motion 下固定在 `[0, 0.365, 1.1]`，使用静态
+低强度冷紫白光，不持续跟随 pointer。每帧用相同 key 更新既有 runtime-owned
+PointLight，effect dispose 时通过 lights facade 移除；没有 lights facade 时安全
+no-op。当前颜色为 `#a883ff`，active target intensity 为 `6`，`distance: 1.8`、
+`decay: 3`，用更短照明距离和更高衰减近似更集中的局部高光。它仍是全向
+PointLight，不具备朝向或 target，不能宣称为定向聚光。
+
+该灯光在 runtime 中仍是 scene-scoped，并不具备通用 per-target light isolation。
+当前场景只有 standard 材质四面体响应场景灯光，Ghost Cursor 背景使用不响应场景
+灯光的自定义 shader，因此当前构图中形成视觉隔离。这个增补不修改四面体尺寸、
+材质、自转、pointer tilt、相机或背景 shader，也不修改 `packages/`。原有三盏
+固定灯由用户注释，当前场景只启用 effect-owned pointer light。本次只做自动化
+验证，最终视觉 QA 由用户接手。
 
 ## 资源清理
 
@@ -119,7 +144,9 @@ Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查
 
 自动化验证必须证明：
 
-- 页面仍只声明一个 scene、一个 camera、一个背景 Ghost Cursor target 和三盏灯；
+- 页面仍只声明一个 scene、一个 camera、一个背景 Ghost Cursor target，且不注册
+  已注释的三盏固定灯；
+- 背景 effect 只注册一次，并以稳定 key 更新、衰减和 dispose pointer light；
 - 中央主体是一个 `WebGLMesh`，geometry 为 `tetrahedron`；
 - mesh 使用 standard 黑银材质与 `hero.tetrahedron.motion` effect；
 - effect source 为 `mesh`，原有 rotation、pointer tilt、idle return、responsive 和
@@ -146,7 +173,7 @@ console 中不再出现 GLB/Draco 请求或错误。
 
 - 修改 `packages/`、public API、runtime 行为或 package version；
 - custom geometry、手写 `BufferGeometry`、raw Three.js object ownership；
-- 改造 Ghost Cursor、场景构图、灯光方案或交互语法；
+- 改造 Ghost Cursor shader、场景构图、原有三盏固定灯或交互语法；
 - CSS 画面、第二 scene、第二 pass、第二 canvas 或第二 renderer；
 - 部署、发布、push 或 PR。
 
