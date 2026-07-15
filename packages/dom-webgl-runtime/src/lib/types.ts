@@ -656,6 +656,11 @@ export type WebGLPerformanceWarning = {
   limit: number;
 };
 
+export type WebGLRenderQualityDeclaration = {
+  antialias?: boolean;
+  maxDevicePixelRatio?: number;
+};
+
 export type WebGLRuntimeOptions = {
   container: HTMLElement;
   effects?: readonly (
@@ -666,6 +671,7 @@ export type WebGLRuntimeOptions = {
   scrollAdapter?: WebGLScrollAdapter;
   modelLoader?: WebGLModelLoaderDeclaration;
   performanceBudget?: WebGLPerformanceBudget;
+  renderQuality?: WebGLRenderQualityDeclaration;
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 

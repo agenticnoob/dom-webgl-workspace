@@ -110,6 +110,34 @@ describe("createThreeRendererHost", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
+  test("opts into renderer antialiasing through managed render quality", async () => {
+    const renderer = {
+      autoClear: true,
+      setClearAlpha: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const WebGLRenderer = vi.fn(() => renderer);
+
+    vi.doMock("three/src/renderers/WebGLRenderer.js", () => ({
+      WebGLRenderer,
+    }));
+
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const container = document.createElement("div");
+    const host = createThreeRendererHost(container, {
+      renderQuality: { antialias: true, maxDevicePixelRatio: 2 },
+    });
+
+    expect(WebGLRenderer).toHaveBeenCalledWith({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance",
+      canvas: host.canvas,
+    });
+
+    host.dispose();
+  });
+
   test("creates and appends exactly one canvas for one injected renderer host", async () => {
     const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
     const container = document.createElement("div");
@@ -699,6 +727,38 @@ describe("createThreeRendererHost", () => {
     });
 
     expect(setPixelRatio).toHaveBeenCalledWith(1.5);
+
+    host.dispose();
+  });
+
+  test("uses an opt-in renderer pixel ratio cap", async () => {
+    const { createThreeRendererHost } = await import("../../../src/lib/renderer/threeRenderer");
+    const setPixelRatio = vi.fn();
+    const container = document.createElement("div");
+
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 3,
+    });
+
+    const host = createThreeRendererHost(container, {
+      renderQuality: { antialias: true, maxDevicePixelRatio: 2 },
+      createObjects(canvas) {
+        return {
+          camera: {},
+          renderer: {
+            canvas,
+            setPixelRatio,
+            setSize: vi.fn(),
+            render: vi.fn(),
+            dispose: vi.fn(),
+          },
+          scene: {},
+        };
+      },
+    });
+
+    expect(setPixelRatio).toHaveBeenCalledWith(2);
 
     host.dispose();
   });

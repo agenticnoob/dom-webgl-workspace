@@ -78,6 +78,10 @@ The previous CSS-owned studio artwork has been removed. The current hero uses
 one managed scene, camera, render pass, canvas, and renderer for the background
 Ghost Cursor, `WebGLMesh` tetrahedron, and managed lights. The foreground Ghost
 Cursor layer has been removed, and the tetrahedron currently uses `radius: 0.52`.
+The runtime uses a stable app-level `renderQuality` declaration with
+`antialias: true` and `maxDevicePixelRatio: 2` to smooth tilted tetrahedron
+silhouettes. Keep this on the public runtime prop; do not raise tetrahedron
+`detail`, create a second renderer, or use CSS to imitate antialiasing.
 The background effect applies responsive `1.06` world-scale overscan to cover the
 transparent canvas under the tilted camera, and the pointer blob uses the compact
 `0.24 + 0.14 / iScale` radius. Keep this treatment effect-owned; do not add a CSS

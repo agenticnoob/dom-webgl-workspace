@@ -209,10 +209,10 @@ function createLightsFacade() {
     dispose: vi.fn(),
   };
   const lights = {
-    ambient: vi.fn(() => lightHandle),
-    directional: vi.fn(() => lightHandle),
-    point: vi.fn(() => lightHandle),
-    remove: vi.fn(),
+    ambient: vi.fn<WebGLEffectLightsFacade["ambient"]>(() => lightHandle),
+    directional: vi.fn<WebGLEffectLightsFacade["directional"]>(() => lightHandle),
+    point: vi.fn<WebGLEffectLightsFacade["point"]>(() => lightHandle),
+    remove: vi.fn<WebGLEffectLightsFacade["remove"]>(),
   } satisfies WebGLEffectLightsFacade;
 
   return { lights };

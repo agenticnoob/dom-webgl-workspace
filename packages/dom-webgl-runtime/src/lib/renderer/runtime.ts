@@ -137,6 +137,7 @@ import {
   type TargetRuntimeState,
 } from "./targetRuntimeState";
 import type { WebGLSceneAdapter, WebGLSceneGroup } from "./sceneObject";
+import { normalizeWebGLRenderQuality } from "./renderQuality";
 import { readTimelineProgress } from "../timeline/timelineDeclarations";
 
 export type { WebGLRuntime, WebGLRuntimeOptions } from "../types";
@@ -215,8 +216,11 @@ const missingDOMMessage =
 export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
   assertBrowserDOMAvailable();
   const internalOptions = options as RuntimeInternalOptions;
+  const renderQuality = normalizeWebGLRenderQuality(options.renderQuality);
   const rendererHostFactory =
-    internalOptions.rendererHostFactory ?? createThreeRendererHost;
+    internalOptions.rendererHostFactory ??
+    ((container: HTMLElement) =>
+      createThreeRendererHost(container, { renderQuality }));
   const rendererHost = rendererHostFactory(options.container);
   const renderLayers =
     internalOptions.renderLayerRegistryFactory?.(rendererHost) ??
@@ -293,6 +297,7 @@ export function createWebGLRuntime(options: WebGLRuntimeOptions): WebGLRuntime {
     measureElement: internalOptions.measureElement ?? measureElement,
     getViewportSize: () => rendererHost.getViewportSize(),
     getDevicePixelRatio: () => window.devicePixelRatio || 1,
+    maxDevicePixelRatio: renderQuality.maxDevicePixelRatio,
   });
   let requestRenderFrame: ((reason: RenderDirtyReason) => void) | undefined;
   let cameraInteractionSummary:

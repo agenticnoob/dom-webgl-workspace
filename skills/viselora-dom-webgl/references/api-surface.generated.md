@@ -163,6 +163,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLPostprocessScopeDeclaration | type | type WebGLPostprocessScopeDeclaration = { canvas: true; passId?: never; } \| { passId: string; canvas?: never; }; |  |
 | WebGLProgressSignalSource | type | type WebGLProgressSignalSource = { get(key: string): number; subscribe?(listener: () => void): () => void; }; |  |
 | WebGLRenderPassDeclaration | type | type WebGLRenderPassDeclaration = { id?: string; sceneId: string; cameraId?: string; order?: number; clear?: boolean; clearDepth?: boolean; viewport?: WebGLPassViewportDeclaration; postprocess?: WebGLPostprocessDeclaration; }; |  |
+| WebGLRenderQualityDeclaration | type | type WebGLRenderQualityDeclaration = { antialias?: boolean; maxDevicePixelRatio?: number; }; |  |
 | WebGLRenderRole | type | type WebGLRenderRole = "surface" \| "content" \| "media" \| "model" \| "overlay"; |  |
 | WebGLResourceStatus | type | type WebGLResourceStatus = "idle" \| "loading" \| "ready" \| "error"; |  |
 | WebGLRuntime | type | type WebGLRuntime = { readonly container: HTMLElement; registerScene(declaration: WebGLSceneDeclaration): void; unregisterScene(id: string): void; registerCamera(declaration: WebGLCameraDeclaration): void; unregisterCamera(id: string): voi… |  |
@@ -209,7 +210,7 @@ Compatible package version: 0.1.0-alpha.1
 | WebGLModel | value | declare function WebGLModel({ id, scene, src, loader, position, rotation, scale, visible, timeline, animation, prepare, effects, interaction, physics, }: WebGLModelProps): null; |  |
 | WebGLPassViewport | value | declare function WebGLPassViewport<TElement extends ElementType = "div">({ id, as, children, ...props }: WebGLPassViewportProps<TElement>): react.FunctionComponentElement<react.ProviderProps<string \| undefined>>; |  |
 | WebGLRenderPass | value | declare function WebGLRenderPass({ id, scene, camera, order, clear, clearDepth, viewport, postprocess, }: WebGLRenderPassProps): null; |  |
-| WebGLRuntime | value | declare function WebGLRuntime({ children, className, style, effects, progressSignals, scrollAdapter, modelLoader, onDebugStateChange, }: WebGLRuntimeProps): react.DetailedReactHTMLElement<{ ref: react.RefObject<HTMLDivElement \| null>; clas… |  |
+| WebGLRuntime | value | declare function WebGLRuntime({ children, className, style, effects, progressSignals, scrollAdapter, modelLoader, renderQuality, onDebugStateChange, }: WebGLRuntimeProps): react.DetailedReactHTMLElement<{ ref: react.RefObject<HTMLDivElemen… |  |
 | WebGLRuntimeProvider | value | declare function WebGLRuntimeProvider({ runtime, children, }: WebGLRuntimeProviderProps): react.JSX.Element; |  |
 | WebGLScene | value | declare function WebGLScene({ id, projection, defaultCameraId, defaultPass, timeline, render, children, }: WebGLSceneProps): react.FunctionComponentElement<WebGLSceneProviderProps>; |  |
 | WebGLTarget | value | declare function WebGLTarget<TElement extends WebGLTargetElement = "div">({ as, webgl, children, ...props }: WebGLTargetProps<TElement>): react.DetailedReactHTMLElement<Omit<WebGLTargetProps<TElement>, "children" \| "as" \| "webgl"> & { ref:… |  |

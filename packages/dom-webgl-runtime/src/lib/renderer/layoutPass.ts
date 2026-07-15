@@ -37,6 +37,7 @@ export function createLayoutPass(options: {
   measureElement(element: HTMLElement): ElementMeasurement;
   getViewportSize?(): DOMViewportSize;
   getDevicePixelRatio?(): number;
+  maxDevicePixelRatio?: number;
 }): LayoutPass {
   return {
     measure(targets): Map<string, ElementLayoutSnapshot> {
@@ -57,6 +58,7 @@ export function createLayoutPass(options: {
       const viewport = options.getViewportSize?.() ?? readViewportSize();
       const devicePixelRatio = capDevicePixelRatio(
         options.getDevicePixelRatio?.() ?? globalThis.window?.devicePixelRatio ?? 1,
+        options.maxDevicePixelRatio,
       );
 
       for (const target of targets) {
@@ -91,12 +93,15 @@ export function createLayoutPass(options: {
   };
 }
 
-export function capDevicePixelRatio(devicePixelRatio: number): number {
+export function capDevicePixelRatio(
+  devicePixelRatio: number,
+  maximum = 1.5,
+): number {
   if (!Number.isFinite(devicePixelRatio) || devicePixelRatio <= 0) {
     return 1;
   }
 
-  return Math.min(devicePixelRatio, 1.5);
+  return Math.min(devicePixelRatio, maximum);
 }
 
 function readViewportSize(): DOMViewportSize {

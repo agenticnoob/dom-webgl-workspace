@@ -11,6 +11,13 @@
 > tests、typecheck、production build，并在 1200×835 生产浏览器中确认完整浅灰背景、
 > 深灰烟雾、暗银四面体、单 managed canvas 和零 console error/warning。
 
+> 2026-07-16 边缘质量更新：经单独授权，runtime 新增受控的公开
+> `renderQuality` 声明；hero-next 通过稳定的
+> `{ antialias: true, maxDevicePixelRatio: 2 }` opt-in 平滑倾斜四面体轮廓。
+> 默认消费者仍保持 `false / 1.5`。该修复不增加 tetrahedron `detail`，也不暴露
+> renderer/context handle；本文原始“不修改 packages”约束只描述替换四面体时的
+> 初始边界。
+
 ## 目标
 
 把 `apps/hero-next` 当前由 `/models/4.glb` 提供的中央四面体替换为公开

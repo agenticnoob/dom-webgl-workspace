@@ -12,6 +12,10 @@ import { Group } from "three/src/objects/Group.js";
 import { WebGLRenderer } from "three/src/renderers/WebGLRenderer.js";
 import { Scene } from "three/src/scenes/Scene.js";
 import { capDevicePixelRatio } from "./layoutPass";
+import {
+  normalizeWebGLRenderQuality,
+  type NormalizedWebGLRenderQuality,
+} from "./renderQuality";
 import type {
   WebGLSceneAdapter,
   WebGLSceneGroup,
@@ -27,6 +31,7 @@ import type { NormalizedRenderLayerCameraDeclaration } from "./renderLayerDeclar
 import type {
   WebGLCameraControllerFrameDeclaration,
   WebGLPointerState,
+  WebGLRenderQualityDeclaration,
 } from "../types";
 
 export type ThreeRendererAdapter = {
@@ -67,6 +72,7 @@ export type ThreeRendererObjectsFactory = (
 
 export type ThreeRendererHostOptions = {
   createObjects?: ThreeRendererObjectsFactory;
+  renderQuality?: WebGLRenderQualityDeclaration;
 };
 
 export type ThreeRendererHost = {
@@ -109,9 +115,10 @@ export function createThreeRendererHost(
   options: ThreeRendererHostOptions = {},
 ): ThreeRendererHost {
   const canvas = container.ownerDocument.createElement("canvas");
-  const objects = (options.createObjects ?? createDefaultThreeRendererObjects)(
-    canvas,
-  );
+  const renderQuality = normalizeWebGLRenderQuality(options.renderQuality);
+  const objects = options.createObjects
+    ? options.createObjects(canvas)
+    : createDefaultThreeRendererObjects(canvas, renderQuality);
   let disposed = false;
 
   configureCanvasStage(container, canvas);
@@ -122,6 +129,7 @@ export function createThreeRendererHost(
     canvas,
     objects.renderer,
     objects.camera,
+    renderQuality.maxDevicePixelRatio,
   );
 
   // Throttle renderer.setSize to avoid GL_INVALID_VALUE spam from Chrome's
@@ -147,7 +155,11 @@ export function createThreeRendererHost(
       return pickManagedObjects(pass, candidates, pointer);
     },
     resizeIfNeeded(): boolean {
-      const nextViewport = readCSSPixelViewport(container, canvas);
+      const nextViewport = readCSSPixelViewport(
+        container,
+        canvas,
+        renderQuality.maxDevicePixelRatio,
+      );
 
       if (
         viewport.width === nextViewport.width &&
@@ -407,10 +419,11 @@ export function createManagedCamera(
 
 function createDefaultThreeRendererObjects(
   canvas: HTMLCanvasElement,
+  renderQuality: NormalizedWebGLRenderQuality,
 ): ThreeRendererObjects {
   const scene = new Scene();
   const renderer = new WebGLRenderer({
-    antialias: false,
+    antialias: renderQuality.antialias,
     alpha: true,
     powerPreference: "high-performance",
     canvas,
@@ -541,8 +554,13 @@ function configureCSSPixelViewport(
   canvas: HTMLCanvasElement,
   renderer: ThreeRendererAdapter,
   camera: object,
+  maxDevicePixelRatio: number,
 ): DOMViewportState {
-  const viewport = readCSSPixelViewport(container, canvas);
+  const viewport = readCSSPixelViewport(
+    container,
+    canvas,
+    maxDevicePixelRatio,
+  );
 
   applyCSSPixelViewport(renderer, camera, viewport);
 
@@ -556,6 +574,7 @@ type DOMViewportState = DOMViewportSize & {
 function readCSSPixelViewport(
   container: HTMLElement,
   canvas: HTMLCanvasElement,
+  maxDevicePixelRatio: number,
 ): DOMViewportState {
   const stageRect = canvas.getBoundingClientRect();
   const width = readFirstPositiveNumber(
@@ -576,7 +595,10 @@ function readCSSPixelViewport(
   return {
     width,
     height,
-    devicePixelRatio: capDevicePixelRatio(window.devicePixelRatio || 1),
+    devicePixelRatio: capDevicePixelRatio(
+      window.devicePixelRatio || 1,
+      maxDevicePixelRatio,
+    ),
   };
 }
 

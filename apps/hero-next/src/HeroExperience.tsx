@@ -1,6 +1,9 @@
 "use client";
 
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
+import type {
+  WebGLDeclaration,
+  WebGLRenderQualityDeclaration,
+} from "@viselora/dom-webgl";
 import {
   WebGLCamera,
   WebGLLight,
@@ -20,6 +23,11 @@ import { heroGhostEffects } from "./heroGhostEffects";
 import { heroSmoothScroll } from "./heroScroll";
 
 const heroEffects = [heroTetrahedronEffect, ...heroGhostEffects] as const;
+
+const heroRenderQuality = {
+  antialias: true,
+  maxDevicePixelRatio: 2,
+} satisfies WebGLRenderQualityDeclaration;
 
 const renderOptions = {
   id: "hero.tetrahedron.pass",
@@ -87,6 +95,7 @@ export function HeroExperience() {
     <WebGLScrollRuntime
       className="hero-runtime"
       effects={heroEffects}
+      renderQuality={heroRenderQuality}
       smooth={heroSmoothScroll}
     >
       <main className="hero-space" aria-label="Tetrahedron visual study">

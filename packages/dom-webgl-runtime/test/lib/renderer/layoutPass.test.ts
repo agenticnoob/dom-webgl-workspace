@@ -87,4 +87,20 @@ describe("layout pass", () => {
     expect(snapshot?.layoutSignature).toContain("390");
     expect(snapshot?.layoutSignature).not.toContain("rgb(10, 20, 30)");
   });
+
+  test("uses an opt-in DPR cap for layout snapshots", () => {
+    const element = document.createElement("section");
+    const layoutPass = createLayoutPass({
+      measureElement: () => new DOMRect(0, 0, 100, 50),
+      getViewportSize: () => ({ width: 1200, height: 900 }),
+      getDevicePixelRatio: () => 3,
+      maxDevicePixelRatio: 2,
+    });
+
+    const snapshots = layoutPass.measure([
+      { key: "hero", element, active: true },
+    ]);
+
+    expect(snapshots.get("hero")?.devicePixelRatio).toBe(2);
+  });
 });

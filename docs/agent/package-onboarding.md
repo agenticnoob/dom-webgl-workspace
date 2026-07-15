@@ -201,6 +201,12 @@ Rules:
 - Target `webgl.effects` is data only. It names effect kinds and params.
 - Definition `kind` must exactly match target declaration `kind`.
 - Target `key` must be stable and unique inside one runtime.
+- Runtime render quality defaults to `{ antialias: false,
+  maxDevicePixelRatio: 1.5 }`. For geometry-heavy scenes that need smoother
+  diagonal edges, pass a module-scope `renderQuality={{ antialias: true,
+  maxDevicePixelRatio: 2 }}` declaration to `WebGLRuntime` or
+  `WebGLScrollRuntime`. Keep its reference stable because a change recreates the
+  WebGL context; higher quality increases GPU and memory cost.
 - Treat `webgl` declaration contents as registration-time static. If `source`,
   `effects`, `scroll`, `pointer`, or `lifecycle` needs to change, use a new key
   or remount the target.

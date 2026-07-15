@@ -391,8 +391,10 @@ Current visual behavior:
 - Renderer viewport and orthographic camera sizing use the fixed canvas's actual
   rendered CSS box, so scrollbar gutters do not put DOM rects and WebGL
   projection in different coordinate spaces.
-- Renderer defaults keep the stage transparent over the page background and cap
-  device pixel ratio.
+- Renderer defaults keep the stage transparent over the page background, disable
+  antialiasing, and cap device pixel ratio at `1.5`. Consumers can opt into a
+  stable runtime-level `renderQuality` declaration without receiving raw renderer
+  or context access.
 - Snapshot content rebuilds are driven by layout, size, DPR, content, and
   resource boundaries. Computed-style capture is limited to placement-critical
   layout/content fields, not DOM visual paint cloning.
@@ -676,6 +678,27 @@ createWebGLRuntime({
   effects: [appSurfaceEffect, appPointerTiltEffect],
 });
 ```
+
+Runtime render quality is opt-in and remains runtime-owned. The default keeps
+`antialias: false` with a `1.5` maximum device pixel ratio. A scene that needs
+smoother diagonal geometry edges can use a stable declaration:
+
+```ts
+import type { WebGLRenderQualityDeclaration } from "@viselora/dom-webgl";
+
+const renderQuality = {
+  antialias: true,
+  maxDevicePixelRatio: 2,
+} satisfies WebGLRenderQualityDeclaration;
+
+createWebGLRuntime({ container, renderQuality });
+```
+
+React accepts the same `renderQuality` prop on `WebGLRuntime` and
+`WebGLScrollRuntime`. Keep the object reference stable because changing it
+recreates the runtime; MSAA is selected when the WebGL context is created.
+Higher DPR and antialiasing improve edge quality at additional GPU and memory
+cost.
 
 React target declarations are registration-time static. Keep a given
 `WebGLTarget` key's `webgl` declaration stable after mount; do not dynamically

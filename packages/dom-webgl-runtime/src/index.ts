@@ -164,6 +164,7 @@ export type {
   WebGLTimelineActiveRangeDeclaration,
   WebGLTimelineBindingDeclaration,
   WebGLRenderPassDeclaration,
+  WebGLRenderQualityDeclaration,
   WebGLRenderRole,
   WebGLResourceStatus,
   WebGLRuntime,

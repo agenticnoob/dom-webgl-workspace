@@ -19,7 +19,7 @@ renderer.
 ## App Workspaces
 
 - [`apps/example`](../apps/example/) - React-only public API dogfood and effect-authoring tutorial.
-- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a neutral grayscale background Ghost Cursor, dark-silver managed `WebGLMesh` tetrahedron, two fixed directional lights, an effect-owned pointer light, and app-owned breathing/floating/pointer-parallax motion without continuous self-rotation; the latest `opacity: 0.92` alpha experiment is automated-verified, but user visual QA found a white/milky metallic result rather than physical transmission.
+- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a neutral grayscale background Ghost Cursor, dark-silver managed `WebGLMesh` tetrahedron, two fixed directional lights, an effect-owned pointer light, app-owned breathing/floating/pointer-parallax motion without continuous self-rotation, and opt-in runtime antialiasing at maximum DPR `2`; the latest `opacity: 0.92` alpha experiment is automated-verified, but user visual QA found a white/milky metallic result rather than physical transmission.
 
 ## New Project Notes
 

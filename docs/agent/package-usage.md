@@ -278,6 +278,13 @@ Rules:
 
 - Keep the runtime-level `effects` array reference stable. In React, define it at
   module scope or memoize it.
+- `renderQuality` is an optional runtime-level declaration. Its default is
+  `{ antialias: false, maxDevicePixelRatio: 1.5 }`; opt into
+  `{ antialias: true, maxDevicePixelRatio: 2 }` for smoother diagonal geometry
+  edges when the extra GPU and memory cost is acceptable. Keep the declaration
+  reference stable because MSAA is a context-creation option and changing the
+  reference recreates the runtime. `WebGLScrollRuntime` accepts and forwards the
+  same prop.
 - Every target key must be stable and unique inside one runtime.
 - Treat each target `webgl` declaration as registration-time static. Do not
   dynamically change `source`, `effects`, `scroll`, `pointer`, `lifecycle`, or

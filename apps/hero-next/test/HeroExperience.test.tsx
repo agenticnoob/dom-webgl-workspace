@@ -3,8 +3,23 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("@viselora/scroll-adapters/react", () => ({
-  WebGLScrollRuntime: ({ children }: PropsWithChildren) =>
-    createElement("div", null, children),
+  WebGLScrollRuntime: ({
+    children,
+    renderQuality,
+  }: PropsWithChildren<{
+    renderQuality?: {
+      antialias?: boolean;
+      maxDevicePixelRatio?: number;
+    };
+  }>) =>
+    createElement(
+      "div",
+      {
+        "data-antialias": renderQuality?.antialias,
+        "data-max-device-pixel-ratio": renderQuality?.maxDevicePixelRatio,
+      },
+      children,
+    ),
 }));
 
 vi.mock("../src/heroScroll", () => ({
@@ -125,6 +140,8 @@ describe("HeroExperience", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
     expect(html.match(/data-scene=/g)).toHaveLength(1);
+    expect(html).toContain('data-antialias="true"');
+    expect(html).toContain('data-max-device-pixel-ratio="2"');
     expect(html).toContain('data-scene="hero.tetrahedron.scene"');
     expect(html).toContain('data-position="0,0,3.2"');
     expect(html).toContain('data-target-position="0,0.32,0"');

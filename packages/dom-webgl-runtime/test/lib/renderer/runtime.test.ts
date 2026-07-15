@@ -109,6 +109,23 @@ describe("createWebGLRuntime", () => {
     expect(container.querySelector("canvas")).toBeNull();
   });
 
+  test("rejects invalid render quality before creating the renderer host", async () => {
+    const rendererHostFactory = vi.fn(createRendererHostStub);
+    const container = document.createElement("div");
+    const { createWebGLRuntime } = await import("../../../src/lib/renderer/runtime");
+
+    expect(() =>
+      createWebGLRuntime({
+        container,
+        renderQuality: { maxDevicePixelRatio: 0 },
+        rendererHostFactory,
+      } as RuntimeInternalTestOptions),
+    ).toThrow(
+      "WebGL render quality maxDevicePixelRatio must be a finite positive number.",
+    );
+    expect(rendererHostFactory).not.toHaveBeenCalled();
+  });
+
   test("runtime dispose releases an active gate scroll lock", async () => {
     const scrollMetrics = installRuntimeScrollMetrics();
     const runtime = await createRuntimeForCleanupTest();

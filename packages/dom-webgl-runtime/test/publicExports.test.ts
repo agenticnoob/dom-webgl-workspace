@@ -153,11 +153,16 @@ describe("public package exports", () => {
         WebGLRenderPass satisfies unknown;
         WebGLMesh satisfies unknown;
         WebGLLight satisfies unknown;
-        declare const effects: WebGLRuntimeProps["effects"];
-        declare const progressSignals: WebGLRuntimeProps["progressSignals"];
+	        declare const effects: WebGLRuntimeProps["effects"];
+	        declare const progressSignals: WebGLRuntimeProps["progressSignals"];
+	        declare const renderQuality: WebGLRuntimeProps["renderQuality"];
 
-		        const runtimeElement = (
-		          <WebGLRuntime effects={effects} progressSignals={progressSignals}>
+			        const runtimeElement = (
+			          <WebGLRuntime
+			            effects={effects}
+			            progressSignals={progressSignals}
+			            renderQuality={renderQuality}
+			          >
 		            <WebGLTarget
 		              webgl={{
 		                key: "react.custom-effect",
@@ -760,6 +765,7 @@ describe("public package exports", () => {
 	          WebGLRuntimePostprocessRequest,
 	          WebGLRuntime,
 	          WebGLRuntimeOptions,
+	          WebGLRenderQualityDeclaration,
           WebGLScrollAdapter,
           WebGLScrollBehavior,
           WebGLScrollDeltaRouter,
@@ -1417,10 +1423,14 @@ describe("public package exports", () => {
         timelineDeclaration satisfies WebGLDeclaration;
         overlayPass satisfies WebGLRenderPassDeclaration;
         cameraFraming satisfies WebGLCameraFramingDeclaration;
-		        const runtimeOptionsWithScrollAdapter = {
+	        const runtimeOptionsWithScrollAdapter = {
 	          container: document.createElement("div"),
 	          scrollAdapter,
 	          progressSignals,
+	          renderQuality: {
+	            antialias: true,
+	            maxDevicePixelRatio: 2,
+	          } satisfies WebGLRenderQualityDeclaration,
 		          performanceBudget: {
 		            maxActiveTargets: 48,
 		            maxActiveSnapshots: 24,

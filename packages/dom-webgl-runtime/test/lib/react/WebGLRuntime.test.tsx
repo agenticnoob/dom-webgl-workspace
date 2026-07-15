@@ -186,6 +186,55 @@ describe("WebGLRuntime", () => {
     );
   });
 
+  test("passes render quality to the runtime on mount", async () => {
+    const { WebGLRuntime } = await import("../../../src/react");
+    const { root } = createTestRoot();
+    const renderQuality = { antialias: true, maxDevicePixelRatio: 2 } as const;
+
+    await act(async () => {
+      root.render(createElement(WebGLRuntime, { renderQuality }));
+    });
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({ renderQuality }),
+    );
+  });
+
+  test("recreates the runtime when render quality changes", async () => {
+    const { WebGLRuntime } = await import("../../../src/react");
+    const { root } = createTestRoot();
+    const firstRenderQuality = {
+      antialias: false,
+      maxDevicePixelRatio: 1.5,
+    } as const;
+    const secondRenderQuality = {
+      antialias: true,
+      maxDevicePixelRatio: 2,
+    } as const;
+
+    await act(async () => {
+      root.render(
+        createElement(WebGLRuntime, { renderQuality: firstRenderQuality }),
+      );
+    });
+
+    const firstRuntime = runtimeMocks.createWebGLRuntime.mock.results[0]
+      .value as RuntimeInstance;
+
+    await act(async () => {
+      root.render(
+        createElement(WebGLRuntime, { renderQuality: secondRenderQuality }),
+      );
+    });
+    await flushRuntimeDisposal();
+
+    expect(runtimeMocks.createWebGLRuntime).toHaveBeenCalledTimes(2);
+    expect(firstRuntime.dispose).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.createWebGLRuntime.mock.calls[1][0]).toEqual(
+      expect.objectContaining({ renderQuality: secondRenderQuality }),
+    );
+  });
+
   test("recreates the runtime when progress signals change", async () => {
     const { WebGLRuntime } = await import("../../../src/react");
     const { root } = createTestRoot();

@@ -31,6 +31,7 @@ export type WebGLRuntimeProps = {
   progressSignals?: WebGLRuntimeOptions["progressSignals"];
   scrollAdapter?: WebGLRuntimeOptions["scrollAdapter"];
   modelLoader?: WebGLRuntimeOptions["modelLoader"];
+  renderQuality?: WebGLRuntimeOptions["renderQuality"];
   onDebugStateChange?: (state: WebGLDebugState) => void;
 };
 
@@ -42,6 +43,7 @@ export function WebGLRuntime({
   progressSignals,
   scrollAdapter,
   modelLoader,
+  renderQuality,
   onDebugStateChange,
 }: WebGLRuntimeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +79,7 @@ export function WebGLRuntime({
         progressSignals,
         scrollAdapter,
         modelLoader,
+        renderQuality,
         onDebugStateChange(state) {
           onDebugStateChangeRef.current?.(state);
         },
@@ -101,7 +104,7 @@ export function WebGLRuntime({
     if (previousRuntime) {
       scheduleRuntimeDisposal(previousRuntime);
     }
-  }, [effects, progressSignals, scrollAdapter, modelLoader]);
+  }, [effects, progressSignals, scrollAdapter, modelLoader, renderQuality]);
 
   useLayoutEffect(() => {
     return () => {

@@ -85,6 +85,22 @@ the neutral rim uses `#b8b8b8`, position `[1.8, -1.4, 2]`, and intensity `2.2`.
 The smoke composites by mixing the light-gray base toward its dark-gray tint;
 it no longer uses the earlier additive path that made neutral smoke appear white.
 
+**Implemented:** runtime render quality is now a controlled public declaration.
+Existing consumers keep `antialias: false` and maximum DPR `1.5` by default;
+`apps/hero-next` passes a stable `{ antialias: true, maxDevicePixelRatio: 2 }`
+declaration through `WebGLScrollRuntime`. The runtime applies the same normalized
+DPR cap to the managed renderer and layout snapshots, while DOM-backed texture
+modules retain their stricter internal safety caps. This improves tilted geometry
+edge sampling without changing tetrahedron `detail` or exposing raw renderer/context
+handles, at the cost of additional GPU and memory work.
+
+**Verified:** render-quality normalization, renderer construction, DPR capping,
+runtime/React forwarding, public type exports, and the hero-next declaration are
+covered by focused tests. The full repo tests, root typecheck, workspace build,
+import boundary, skill/API surface, package tarball, and external consumer gates
+pass. The external consumer gate also passes its Chromium final-canvas check;
+hero-next edge smoothness remains user-owned visual QA rather than an agent claim.
+
 **Open visual gap:** user QA does not accept the current alpha experiment as
 light passing through the tetrahedron. With `metalness: 0.9`, `roughness: 0.12`,
 and strong scene lights, the 92%-opaque standard material preserves bright
@@ -107,8 +123,8 @@ current hero it is visually isolated to the standard-material tetrahedron
 because the background Ghost Cursor uses an unlit custom shader; this does not
 claim general per-target light isolation.
 
-**Unchanged:** runtime/package behavior, public APIs, release versions, the
-managed-render roadmap, publication state, and release gates were not changed.
+**Unchanged:** release versions, the managed-render roadmap, publication state,
+and release gates were not changed by the hero render-quality opt-in.
 
 ## Product Boundary
 
