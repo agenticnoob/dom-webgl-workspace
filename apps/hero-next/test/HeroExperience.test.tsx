@@ -41,6 +41,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       color?: string;
       emissive?: string;
       emissiveIntensity?: number;
+      opacity?: number;
       metalness?: number;
       roughness?: number;
     };
@@ -54,6 +55,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-color": material?.color,
       "data-emissive": material?.emissive,
       "data-emissive-intensity": material?.emissiveIntensity,
+      "data-opacity": material?.opacity,
       "data-metalness": material?.metalness,
       "data-roughness": material?.roughness,
       "data-mesh-effect": effects?.[0]?.kind,
@@ -132,6 +134,7 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-color="#30343b"');
     expect(html).toContain('data-emissive="#0a1012"');
     expect(html).toContain('data-emissive-intensity="0.06"');
+    expect(html).toContain('data-opacity="0.92"');
     expect(html).toContain('data-metalness="0.9"');
     expect(html).toContain('data-roughness="0.12"');
     expect(html).toContain('data-mesh-effect="hero.tetrahedron.motion"');

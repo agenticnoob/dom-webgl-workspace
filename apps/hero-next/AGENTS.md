@@ -59,7 +59,8 @@ DOM scanning, a second renderer, or an app-specific branch in runtime code.
 Known current limits relevant to the studio hero:
 
 - Mesh materials expose basic/standard color and PBR scalar properties, but
-  no gradient, texture mask, or stage material program.
+  no gradient, texture mask, stage material program, physical transmission,
+  thickness, or index-of-refraction controls.
 - Stage-plane effects do not currently expose a managed material facade.
 - Managed light declarations do not expose cast/receive shadow configuration.
 - `WebGLMesh` provides `plane`, `box`, `sphere`, `cylinder`, `cone`, and
@@ -96,7 +97,11 @@ The tetrahedron does not continuously self-rotate. Normal motion uses base
 rotation `[-0.6, 0.82, 0.08]`, a six-second `±1.2%` breathing scale, an
 eight-second `±0.018` Y float, and the existing damped pointer tilt. Reduced
 motion is static at `[-0.6, 0.85, 0.08]`. Current material values are emissive
-intensity `0.06`, metalness `0.9`, and roughness `0.12`; camera position is
+intensity `0.06`, opacity `0.92`, metalness `0.9`, and roughness `0.12`.
+The opacity value is an alpha-transparency experiment, not physical light
+transmission. User visual QA reports that the strongly lit metallic surface
+looks white/milky rather than transparently refractive, so that treatment is
+not accepted as the requested light-through-solid effect. Camera position is
 `[0, 0, 3.2]` with target `[0, 0.32, 0]`.
 
 Current verified design and completed execution record:

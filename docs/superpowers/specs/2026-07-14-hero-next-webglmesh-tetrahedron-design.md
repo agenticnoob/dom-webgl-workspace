@@ -1,7 +1,7 @@
 # Hero Next WebGLMesh 正四面体替换设计
 
 **日期：** 2026-07-14
-**状态：** 已实现；自动化验证通过，最新视觉调优待用户 QA
+**状态：** 已实现；自动化验证通过，Alpha 透明实验未通过用户视觉 QA
 
 ## 目标
 
@@ -27,6 +27,7 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、呼吸
     color: "#30343b",
     emissive: "#0a1012",
     emissiveIntensity: 0.06,
+    opacity: 0.92,
     metalness: 0.9,
     roughness: 0.12,
   }}
@@ -37,6 +38,10 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、呼吸
 geometry、material 和 effects descriptor 都必须使用模块级稳定常量并通过
 `WebGLMeshProps` 校验。最终字段名以当前公开类型为准；实现不得为匹配示例代码而
 修改 package API。
+
+`opacity: 0.92` 是当前已实现的普通 Alpha 透明实验。用户视觉 QA 观察到它保留了
+强金属高光并呈白色/乳白效果，没有形成所需的透明或光穿透观感，因此该参数不能
+被记录为已验收的透射方案。
 
 不采用以下替代方案：
 
@@ -108,13 +113,21 @@ PointLight，不具备朝向或 target，不能宣称为定向聚光。
 该灯光在 runtime 中仍是 scene-scoped，并不具备通用 per-target light isolation。
 当前场景只有 standard 材质四面体响应场景灯光，Ghost Cursor 背景使用不响应场景
 灯光的自定义 shader，因此当前构图中形成视觉隔离。后续用户调优把材质更新为
-emissive intensity `0.06`、metalness `0.9`、roughness `0.12`，camera position
-更新为 `[0, 0, 3.2]`；directional key 使用 position `[1.2, 1.2, 2]`、intensity
+emissive intensity `0.06`、opacity `0.92`、metalness `0.9`、roughness `0.12`；
+其中 opacity 只启用 Alpha 混合，不是物理透射或折射。用户视觉 QA 认为高
+metalness、低 roughness 和强光下的结果呈白色/乳白金属感，未接受为光穿透效果。
+camera position 更新为
+`[0, 0, 3.2]`；directional key 使用 position `[1.2, 1.2, 2]`、intensity
 `4.8`，directional rim 使用 `[1.8, -1.4, 2]`、intensity `2.2`，ambient fill
 继续禁用。四面体移除持续自转，normal base rotation 为
 `[-0.6, 0.82, 0.08]`，叠加六秒呼吸、八秒浮动和现有 pointer tilt；
 reduced-motion 静态角度为 `[-0.6, 0.85, 0.08]`。这些调优不修改 `packages/`，
-只做自动化验证，最终视觉 QA 由用户接手。
+只做自动化验证；用户已完成本轮视觉 QA，并明确暴露上述材质能力缺口。
+
+当前 public `WebGLMesh.material` 只提供 basic/standard 材质及 color、opacity、
+emissive、metalness、roughness 等标量，不提供 physical transmission、thickness
+或 IOR。真正的折射/实体透光需要先设计通用 package capability；在用户单独授权
+package 工作前，`hero-next` 不使用 CSS、raw Three.js 或 private import 绕过该边界。
 
 ## 资源清理
 

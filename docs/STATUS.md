@@ -60,19 +60,28 @@ confirmed the initial `WebGLMesh` replacement, one managed canvas, no page
 console errors, and no GLB or Draco resource requests. The later foreground-layer
 removal and `radius: 0.52` adjustment were automated-test/typecheck/build
 verified. The latest material, camera, fixed-light, non-spinning motion, and
-pointer-light tuning is automated-verified in this closeout.
-Their final visual acceptance is explicitly owned by the user and has not been
-re-run in the browser by the agent.
+pointer-light tuning is automated-verified in this closeout. The user has now
+visually checked the `opacity: 0.92` experiment and reports that it appears
+white/milky rather than transparent; the agent did not repeat browser QA.
 
 **Implemented:** the tetrahedron no longer has time-driven self-rotation. Its
 normal-motion base rotation is `[-0.6, 0.82, 0.08]`, with the existing damped
 pointer tilt added on X/Y. It uses a subtle six-second `±1.2%` breathing scale
 and eight-second `±0.018` Y float. Reduced motion remains static at
 `[-0.6, 0.85, 0.08]`. The standard material is currently `#30343b`, emissive
-`#0a1012` at `0.06`, metalness `0.9`, and roughness `0.12`; camera position is
-`[0, 0, 3.2]` with target `[0, 0.32, 0]`. The directional key uses position
-`[1.2, 1.2, 2]` and intensity `4.8`; the rim uses `[1.8, -1.4, 2]` and
-intensity `2.2`.
+`#0a1012` at `0.06`, opacity `0.92`, metalness `0.9`, and roughness `0.12`;
+the opacity is ordinary alpha blending, not physical transmission or refraction.
+Camera position is `[0, 0, 3.2]` with target `[0, 0.32, 0]`. The directional
+key uses position `[1.2, 1.2, 2]` and intensity `4.8`; the rim uses
+`[1.8, -1.4, 2]` and intensity `2.2`.
+
+**Open visual gap:** user QA does not accept the current alpha experiment as
+light passing through the tetrahedron. With `metalness: 0.9`, `roughness: 0.12`,
+and strong scene lights, the 92%-opaque standard material preserves bright
+metallic highlights and reads as white/milky. Public `WebGLMesh` materials do
+not currently expose physical transmission, thickness, or IOR, so a true
+refractive treatment remains a package capability gap rather than an app-local
+parameter adjustment.
 
 **Implemented:** the existing background `WebGLTarget` effect owns a
 mouse-follow point light through `ctx.object.lights.point(...)`. It maps the

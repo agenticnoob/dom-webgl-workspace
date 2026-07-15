@@ -57,6 +57,7 @@ const tetrahedronMaterial = {
   color: "#30343b",
   emissive: "#0a1012",
   emissiveIntensity: 0.06,
+  opacity: 0.92,
   metalness: 0.9,
   roughness: 0.12,
 } satisfies NonNullable<WebGLMeshProps["material"]>;

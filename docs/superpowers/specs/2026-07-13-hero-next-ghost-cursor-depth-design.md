@@ -15,7 +15,9 @@
 
 > 2026-07-15 后续调优：ambient fill 保持禁用，directional key/rim 已重新启用；
 > 背景 target effect 继续管理 scene-scoped `hero.pointer-light`。四面体当前材质为
-> `#30343b`、emissive `#0a1012` / `0.06`、metalness `0.9`、roughness `0.12`；
+> `#30343b`、emissive `#0a1012` / `0.06`、opacity `0.92`、metalness `0.9`、
+> roughness `0.12`。该 opacity 只是 Alpha 透明实验，不代表物理透射或折射；
+> 用户视觉 QA 观察到白色/乳白金属感，未接受为所需的光穿透效果。
 > pointer light 当前 target intensity `10`。主体不再持续自转，改为六秒呼吸、
 > 八秒浮动并保留 pointer tilt。完整当前参数以后续 `WebGLMesh` 设计为准；下文旧
 > GLB、前景层、固定灯和浏览器验收参数只作当时证据，不是当前实现真值。
@@ -125,7 +127,8 @@ material facade 修改 GLB 材质：
 - metalness 初始为 `0.9–0.96`；
 - roughness 初始为 `0.06–0.12`；
 - emissive 只用于防止暗面完全丢失，不能把主体变成自发光物体；
-- opacity 保持 `1`。
+- 当时 opacity 保持 `1`；当前 `WebGLMesh` 的 `0.92` 仅为未通过用户视觉验收的
+  Alpha 透明实验。
 
 灯光使用一个低强度 ambient、一个中性偏冷 directional key light 和一个紫色
 directional rim light。当前 package 不提供 environment map 或 cast/receive shadow
