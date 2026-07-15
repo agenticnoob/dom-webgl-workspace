@@ -15,12 +15,17 @@
 
 > 2026-07-15 后续调优：ambient fill 保持禁用，directional key/rim 已重新启用；
 > 背景 target effect 继续管理 scene-scoped `hero.pointer-light`。四面体当前材质为
-> `#30343b`、emissive `#0a1012` / `0.06`、opacity `0.92`、metalness `0.9`、
+> `#5f5f5f`、emissive `#0d0d0d` / `0.06`、opacity `0.92`、metalness `0.9`、
 > roughness `0.12`。该 opacity 只是 Alpha 透明实验，不代表物理透射或折射；
 > 用户视觉 QA 观察到白色/乳白金属感，未接受为所需的光穿透效果。
 > pointer light 当前 target intensity `10`。主体不再持续自转，改为六秒呼吸、
 > 八秒浮动并保留 pointer tilt。完整当前参数以后续 `WebGLMesh` 设计为准；下文旧
 > GLB、前景层、固定灯和浏览器验收参数只作当时证据，不是当前实现真值。
+
+> 2026-07-16 配色更新：当前实现已切换为中性浅灰体系，背景、深灰烟雾、暗银色
+> `#5f5f5f` 四面体和三组可见灯光均为灰阶，不再使用紫色。本文后续“深黑紫”
+> “紫白”“紫色 rim”等描述
+> 仅记录 2026-07-13 的原始视觉方向，不能作为当前配色真值。
 
 ## 目标
 

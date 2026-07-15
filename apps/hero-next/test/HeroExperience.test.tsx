@@ -64,12 +64,14 @@ vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLLight: ({
     id,
     kind,
+    color,
     intensity,
     position,
     target,
   }: {
     id: string;
     kind: string;
+    color?: string;
     intensity?: number;
     position?: readonly number[];
     target?: readonly number[];
@@ -77,6 +79,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     createElement("div", {
       "data-light": id,
       "data-light-kind": kind,
+      "data-light-color": color,
       "data-light-intensity": intensity,
       "data-light-position": position?.join(","),
       "data-light-target": target?.join(","),
@@ -91,6 +94,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       renderRole?: string;
       effects?: readonly {
         kind: string;
+        color?: string;
+        brightness?: number;
         depth?: number;
         fov?: number;
         overscan?: number;
@@ -105,6 +110,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-depth": webgl.placement?.depth,
       "data-render-role": webgl.renderRole,
       "data-effect": webgl.effects?.[0]?.kind,
+      "data-effect-color": webgl.effects?.[0]?.color,
+      "data-effect-brightness": webgl.effects?.[0]?.brightness,
       "data-effect-depth": webgl.effects?.[0]?.depth,
       "data-effect-fov": webgl.effects?.[0]?.fov,
       "data-effect-overscan": webgl.effects?.[0]?.overscan,
@@ -123,6 +130,8 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-target-position="0,0.32,0"');
     expect(html).toContain('data-target="hero.ghost.background"');
     expect(html).toContain('data-effect="hero.ghost.background"');
+    expect(html).toContain('data-effect-color="#3f3f3f"');
+    expect(html).toContain('data-effect-brightness="0.72"');
     expect(html).toContain('data-depth="5"');
     expect(html).toContain('data-effect-depth="5"');
     expect(html).toContain('data-effect-fov="38"');
@@ -131,8 +140,8 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-geometry="tetrahedron"');
     expect(html).toContain('data-radius="0.52"');
     expect(html).toContain('data-material="standard"');
-    expect(html).toContain('data-color="#30343b"');
-    expect(html).toContain('data-emissive="#0a1012"');
+    expect(html).toContain('data-color="#5f5f5f"');
+    expect(html).toContain('data-emissive="#0d0d0d"');
     expect(html).toContain('data-emissive-intensity="0.06"');
     expect(html).toContain('data-opacity="0.92"');
     expect(html).toContain('data-metalness="0.9"');
@@ -145,6 +154,8 @@ describe("HeroExperience", () => {
     expect(html.match(/data-render-role="model"/g)).toHaveLength(1);
     expect(html).toContain('data-light="hero.tetrahedron.key"');
     expect(html).toContain('data-light="hero.tetrahedron.rim"');
+    expect(html).toContain('data-light-color="#f2f2f2"');
+    expect(html).toContain('data-light-color="#b8b8b8"');
     expect(html).toContain('data-light-intensity="4.8"');
     expect(html).toContain('data-light-intensity="2.2"');
     expect(html).toContain('data-light-position="1.2,1.2,2"');

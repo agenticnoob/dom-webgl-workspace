@@ -3,6 +3,14 @@
 **日期：** 2026-07-14
 **状态：** 已实现；自动化验证通过，Alpha 透明实验未通过用户视觉 QA
 
+> 2026-07-16 配色更新：当前画面已改为中性浅灰体系并移除紫色视觉源。背景 shader
+> 使用不透明 `vec3(0.72)` 浅灰，烟雾使用 `#3f3f3f`，并通过混合向深灰压暗而非
+> 加法提亮；四面体使用暗银色 `#5f5f5f` /
+> `#0d0d0d`，key/rim/pointer lights 分别使用 `#f2f2f2` / `#b8b8b8` / `#f0f0f0`。
+> 下文涉及早期暗色或紫色方案的描述只保留为实现演进证据。本次配色已通过 focused
+> tests、typecheck、production build，并在 1200×835 生产浏览器中确认完整浅灰背景、
+> 深灰烟雾、暗银四面体、单 managed canvas 和零 console error/warning。
+
 ## 目标
 
 把 `apps/hero-next` 当前由 `/models/4.glb` 提供的中央四面体替换为公开
@@ -24,8 +32,8 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、呼吸
   geometry={{ kind: "tetrahedron", radius: 0.52 }}
   material={{
     kind: "standard",
-    color: "#30343b",
-    emissive: "#0a1012",
+    color: "#5f5f5f",
+    emissive: "#0d0d0d",
     emissiveIntensity: 0.06,
     opacity: 0.92,
     metalness: 0.9,
@@ -104,9 +112,9 @@ Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查
 
 位置和强度都使用基于 frame delta 的阻尼。pointer 离开 viewport 后保持最后位置并
 逐渐把强度衰减到 `0`；reduced-motion 下固定在 `[0, 0.365, 1.1]`，使用静态
-低强度冷紫白光，不持续跟随 pointer。每帧用相同 key 更新既有 runtime-owned
+低强度中性灰白光，不持续跟随 pointer。每帧用相同 key 更新既有 runtime-owned
 PointLight，effect dispose 时通过 lights facade 移除；没有 lights facade 时安全
-no-op。当前颜色为 `#a883ff`，active target intensity 为 `10`，`distance: 1.8`、
+no-op。当前颜色为 `#f0f0f0`，active target intensity 为 `10`，`distance: 1.8`、
 `decay: 3`，用更短照明距离和更高衰减近似更集中的局部高光。它仍是全向
 PointLight，不具备朝向或 target，不能宣称为定向聚光。
 

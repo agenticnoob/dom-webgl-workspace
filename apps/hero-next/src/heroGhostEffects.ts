@@ -136,7 +136,7 @@ export function updateHeroPointerLight(
   }
 
   lights?.point(heroPointerLightKey, {
-    color: "#a883ff",
+    color: "#f0f0f0",
     intensity: state.intensity,
     distance: 1.8,
     decay: 3,
@@ -297,7 +297,7 @@ function createProgramOptions(
     pointerY: motion.pointerY,
     pointerIntensity: motion.intensity,
     time: motion.reducedMotion ? 0 : ctx.time,
-    color: params.color ?? "#b497cf",
+    color: params.color ?? "#3f3f3f",
     brightness: params.brightness ?? (layer === "background" ? 0.9 : 0.18),
     trailPoints: motion.trail,
   };

@@ -90,7 +90,7 @@ describe("hero Ghost Cursor effects", () => {
       heroPointerLightKey,
     ]);
     expect(lights.point).toHaveBeenLastCalledWith(heroPointerLightKey, {
-      color: "#a883ff",
+      color: "#f0f0f0",
       intensity: state.intensity,
       distance: 1.8,
       decay: 3,

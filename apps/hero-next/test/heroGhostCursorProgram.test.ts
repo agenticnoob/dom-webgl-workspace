@@ -13,7 +13,7 @@ const baseOptions = {
   pointerY: 450,
   pointerIntensity: 0.8,
   time: 1200,
-  color: "#b497cf",
+  color: "#3f3f3f",
   brightness: 0.9,
   trailPoints: [
     [600, 450],
@@ -39,7 +39,18 @@ describe("hero Ghost Cursor material programs", () => {
     expect(program.fragmentShader).not.toContain(
       "float radius = 0.5 + 0.3 / iScale",
     );
-    expect(program.fragmentShader).toContain("vec3(0.027, 0.020, 0.047)");
+    expect(program.fragmentShader).toContain("vec3 base = vec3(0.72)");
+    expect(program.fragmentShader).toContain("vec3 tint = iBaseColor");
+    expect(program.fragmentShader).toContain(
+      "vec3 fogTint = colorAcc / max(alphaAcc, 0.0001)",
+    );
+    expect(program.fragmentShader).toContain(
+      "float fogStrength = clamp(outAlpha * iBrightness, 0.0, 1.0)",
+    );
+    expect(program.fragmentShader).toContain(
+      "mix(base, fogTint, fogStrength)",
+    );
+    expect(program.fragmentShader).not.toContain("base + colorAcc * outAlpha");
     expect(program.fragmentShader).not.toContain("uSource");
     expect(program.fragmentShader).not.toContain("Boo!");
   });
@@ -67,7 +78,7 @@ describe("hero Ghost Cursor material programs", () => {
     expect(uniforms.iTime).toBe(1.2);
     expect(uniforms.iResolution).toEqual([1200, 900, 1]);
     expect(uniforms.iMouse).toEqual([0.5, 0.5]);
-    expect(uniforms.iBaseColor).toEqual([180 / 255, 151 / 255, 207 / 255]);
+    expect(uniforms.iBaseColor).toEqual([63 / 255, 63 / 255, 63 / 255]);
     expect(uniforms.iPrevMouse).toEqual(
       expect.arrayContaining([
         [0.5, 0.5],

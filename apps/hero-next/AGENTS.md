@@ -89,7 +89,12 @@ isolated only because the tetrahedron is the current scene's sole lit material,
 not because the runtime provides general per-target light isolation. The ambient
 fill remains commented out; the directional key and rim lights are active with
 positions `[1.2, 1.2, 2]` / `[1.8, -1.4, 2]` and intensities `4.8` / `2.2`.
-The active point light uses `#a883ff`, target intensity `10`,
+The active palette is neutral grayscale: the background shader uses opaque
+`vec3(0.72)` light gray, smoke uses `#3f3f3f`, the tetrahedron uses dark-silver `#5f5f5f`
+with `#0d0d0d` emissive, and the key/rim lights use `#f2f2f2` / `#b8b8b8`.
+The background shader mixes toward the dark smoke tint instead of additively
+brightening it. Do not restore purple or chromatic shader tints without an
+explicit visual-direction change. The active point light uses `#f0f0f0`, target intensity `10`,
 `distance: 1.8`, `decay: 3`, and camera-side `Z=1.1`; it remains omnidirectional,
 not a managed spotlight.
 

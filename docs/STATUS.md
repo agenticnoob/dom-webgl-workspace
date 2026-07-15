@@ -62,18 +62,28 @@ removal and `radius: 0.52` adjustment were automated-test/typecheck/build
 verified. The latest material, camera, fixed-light, non-spinning motion, and
 pointer-light tuning is automated-verified in this closeout. The user has now
 visually checked the `opacity: 0.92` experiment and reports that it appears
-white/milky rather than transparent; the agent did not repeat browser QA.
+white/milky rather than transparent. The 2026-07-16 neutral grayscale palette
+change is focused-test/typecheck/build verified and production-browser verified
+at 1200×835 with one managed canvas, a full light-gray background, and no console
+errors or warnings; the stable visual capture used reduced motion and synchronized
+after two animation frames to avoid mid-frame WebGL screenshot artifacts.
+The subsequent dark-gray smoke and dark-silver tetrahedron pass was also verified
+against the production build with one managed canvas and no console errors or warnings.
 
 **Implemented:** the tetrahedron no longer has time-driven self-rotation. Its
 normal-motion base rotation is `[-0.6, 0.82, 0.08]`, with the existing damped
 pointer tilt added on X/Y. It uses a subtle six-second `±1.2%` breathing scale
 and eight-second `±0.018` Y float. Reduced motion remains static at
-`[-0.6, 0.85, 0.08]`. The standard material is currently `#30343b`, emissive
-`#0a1012` at `0.06`, opacity `0.92`, metalness `0.9`, and roughness `0.12`;
+`[-0.6, 0.85, 0.08]`. The hero now uses a neutral grayscale palette with no
+purple visual sources: the opaque background shader base is `vec3(0.72)`, its
+smoke is `#3f3f3f`, the dark-silver standard material is `#5f5f5f`, and its emissive is
+`#0d0d0d` at `0.06`. Opacity remains `0.92`, metalness `0.9`, and roughness `0.12`;
 the opacity is ordinary alpha blending, not physical transmission or refraction.
-Camera position is `[0, 0, 3.2]` with target `[0, 0.32, 0]`. The directional
-key uses position `[1.2, 1.2, 2]` and intensity `4.8`; the rim uses
-`[1.8, -1.4, 2]` and intensity `2.2`.
+Camera position is `[0, 0, 3.2]` with target `[0, 0.32, 0]`. The neutral
+directional key uses `#f2f2f2`, position `[1.2, 1.2, 2]`, and intensity `4.8`;
+the neutral rim uses `#b8b8b8`, position `[1.8, -1.4, 2]`, and intensity `2.2`.
+The smoke composites by mixing the light-gray base toward its dark-gray tint;
+it no longer uses the earlier additive path that made neutral smoke appear white.
 
 **Open visual gap:** user QA does not accept the current alpha experiment as
 light passing through the tetrahedron. With `metalness: 0.9`, `roughness: 0.12`,
@@ -89,7 +99,7 @@ full-screen target-local pointer into world coordinates near the tetrahedron,
 updates the stable `hero.pointer-light` key with damped position and intensity,
 fades intensity after pointer exit, keeps a static low-intensity light under
 reduced motion, and removes the light through the managed facade on effect
-dispose. Its current color is `#a883ff`; the camera-side position uses `Z=1.1`,
+dispose. Its current color is neutral `#f0f0f0`; the camera-side position uses `Z=1.1`,
 active target intensity `10`, `distance: 1.8`, and `decay: 3` as an app-local
 tighter-range approximation. The light remains omnidirectional and scene-scoped
 rather than truly target-scoped. In the

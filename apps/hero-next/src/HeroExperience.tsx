@@ -38,7 +38,7 @@ const ghostBackgroundDeclaration = {
   effects: [
     {
       kind: "hero.ghost.background",
-      color: "#b497cf",
+      color: "#3f3f3f",
       brightness: 0.72,
       depth: 5,
       fov: 38,
@@ -54,8 +54,8 @@ const tetrahedronGeometry = {
 
 const tetrahedronMaterial = {
   kind: "standard",
-  color: "#30343b",
-  emissive: "#0a1012",
+  color: "#5f5f5f",
+  emissive: "#0d0d0d",
   emissiveIntensity: 0.06,
   opacity: 0.92,
   metalness: 0.9,
@@ -121,13 +121,13 @@ export function HeroExperience() {
           {/* <WebGLLight
             id="hero.tetrahedron.fill"
             kind="ambient"
-            color="#d9dce3"
+            color="#d8d8d8"
             intensity={0.22}
           /> */}
           <WebGLLight
             id="hero.tetrahedron.key"
             kind="directional"
-            color="#eef2f7"
+            color="#f2f2f2"
             intensity={4.8}
             position={keyLightPosition}
             target={lightTarget}
@@ -135,7 +135,7 @@ export function HeroExperience() {
           <WebGLLight
             id="hero.tetrahedron.rim"
             kind="directional"
-            color="#b497cf"
+            color="#b8b8b8"
             intensity={2.2}
             position={rimLightPosition}
             target={lightTarget}

@@ -87,7 +87,7 @@ function readColor(color: string): [number, number, number] {
     ];
   }
 
-  return [180 / 255, 151 / 255, 207 / 255];
+  return [63 / 255, 63 / 255, 63 / 255];
 }
 
 const heroGhostCursorFragmentShader = `
@@ -145,7 +145,7 @@ const heroGhostCursorFragmentShader = `
       length(point - mouse)
     );
     float alpha = pow(smoke, 2.5) * distanceMask * strength;
-    vec3 tint = mix(iBaseColor, vec3(0.86, 0.90, 1.0), 0.24);
+    vec3 tint = iBaseColor;
     return vec4(tint * alpha, alpha);
   }
 
@@ -171,15 +171,16 @@ const heroGhostCursorFragmentShader = `
       }
     }
 
-    colorAcc *= iBrightness;
     float outAlpha = clamp(alphaAcc * iOpacity, 0.0, 1.0);
 
     #if HERO_FOREGROUND == 1
-      vec3 foregroundTint = mix(iBaseColor, vec3(0.86, 0.90, 1.0), 0.24);
+      vec3 foregroundTint = iBaseColor;
       gl_FragColor = vec4(foregroundTint, outAlpha * iBrightness * 1.5);
     #else
-      vec3 base = vec3(0.027, 0.020, 0.047);
-      gl_FragColor = vec4(base + colorAcc * outAlpha, 1.0);
+      vec3 base = vec3(0.72);
+      vec3 fogTint = colorAcc / max(alphaAcc, 0.0001);
+      float fogStrength = clamp(outAlpha * iBrightness, 0.0, 1.0);
+      gl_FragColor = vec4(mix(base, fogTint, fogStrength), 1.0);
     #endif
   }
 `;
