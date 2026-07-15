@@ -70,7 +70,7 @@ const heroPointerLightPosition = [0, 0.365, 1.1] satisfies readonly [
   number,
   number,
 ];
-const heroPointerLightIntensity = 6;
+const heroPointerLightIntensity = 10;
 const heroPointerLightReducedMotionIntensity = 0.45;
 
 export function createHeroPointerLightState(

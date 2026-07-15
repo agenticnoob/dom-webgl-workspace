@@ -99,7 +99,7 @@ describe("hero Ghost Cursor effects", () => {
     });
   });
 
-  test("raises the focused pointer light toward intensity six", () => {
+  test("raises the focused pointer light toward intensity ten", () => {
     const { lights } = createLightsFacade();
     const state = createHeroPointerLightState(false);
 
@@ -114,7 +114,7 @@ describe("hero Ghost Cursor effects", () => {
       });
     }
 
-    expect(state.intensity).toBeCloseTo(6, 3);
+    expect(state.intensity).toBeCloseTo(10, 3);
   });
 
   test("fades pointer-light intensity after the pointer leaves", () => {

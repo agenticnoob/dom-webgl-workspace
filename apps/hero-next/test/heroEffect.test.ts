@@ -10,22 +10,40 @@ import {
 } from "../src/heroEffect";
 
 describe("hero tetrahedron effect", () => {
-  test("completes one slow base rotation in 48 seconds", () => {
+  test("breathes and floats without time-driven rotation", () => {
     const target = {
       position: { set: vi.fn() },
       rotation: { set: vi.fn() },
       scale: { setScalar: vi.fn() },
     };
     const state = createHeroMotionState(false);
+    state.tiltX = 0.02;
+    state.tiltY = -0.03;
 
-    applyHeroFrame(target, state, 48_000, 1.08, 0);
+    applyHeroFrame(target, state, 1_500, 1.08, 0.365);
+    applyHeroFrame(target, state, 4_500, 1.08, 0.365);
 
-    expect(target.scale.setScalar).toHaveBeenCalledWith(1.08);
-    expect(target.position.set).toHaveBeenCalledWith(0, 0, 0);
-    expect(target.rotation.set).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.closeTo(0.92 + Math.PI * 2, 6),
-      expect.any(Number),
+    expect(target.scale.setScalar).toHaveBeenNthCalledWith(
+      1,
+      expect.closeTo(1.08 * 1.012, 6),
+    );
+    expect(target.position.set).toHaveBeenNthCalledWith(
+      1,
+      0,
+      expect.closeTo(0.365 + Math.sin((1_500 / 8_000) * Math.PI * 2) * 0.018, 6),
+      0,
+    );
+    expect(target.rotation.set).toHaveBeenNthCalledWith(
+      1,
+      expect.closeTo(-0.58, 6),
+      expect.closeTo(0.79, 6),
+      0.08,
+    );
+    expect(target.rotation.set).toHaveBeenNthCalledWith(
+      2,
+      expect.closeTo(-0.58, 6),
+      expect.closeTo(0.79, 6),
+      0.08,
     );
   });
 
@@ -69,7 +87,7 @@ describe("hero tetrahedron effect", () => {
     });
     applyHeroFrame(target, state, 24_000, 1.08, 0);
 
-    expect(target.rotation.set).toHaveBeenCalledWith(-0.45, 0.92, 0.08);
+    expect(target.rotation.set).toHaveBeenCalledWith(-0.6, 0.85, 0.08);
   });
 
   test("declares managed mesh frame scheduling and responsive framing", () => {

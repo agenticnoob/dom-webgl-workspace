@@ -13,12 +13,12 @@
 > 前景薄烟、foreground depth 和双层 Ghost Cursor 的内容仅保留为历史设计证据；
 > 当前画面只保留背景 Ghost Cursor 与中央 `WebGLMesh` 四面体。
 
-> 2026-07-15 后续调优：原 ambient/key/rim 三盏声明式灯已注释且不注册；当前唯一
-> 活跃灯光是背景 target effect 管理的 scene-scoped `hero.pointer-light`。四面体
-> 当前材质为 `#30343b`、emissive `#0a1012` / `0.03`、metalness `0.8`、
-> roughness `0.12`；pointer light 当前为 `#a883ff`、target intensity `6`、
-> `distance: 1.8`、`decay: 3`、相机侧 `Z=1.1`。下文旧 GLB、前景层、固定灯和
-> 浏览器验收参数只作当时证据，不是当前实现真值。
+> 2026-07-15 后续调优：ambient fill 保持禁用，directional key/rim 已重新启用；
+> 背景 target effect 继续管理 scene-scoped `hero.pointer-light`。四面体当前材质为
+> `#30343b`、emissive `#0a1012` / `0.06`、metalness `0.9`、roughness `0.12`；
+> pointer light 当前 target intensity `10`。主体不再持续自转，改为六秒呼吸、
+> 八秒浮动并保留 pointer tilt。完整当前参数以后续 `WebGLMesh` 设计为准；下文旧
+> GLB、前景层、固定灯和浏览器验收参数只作当时证据，不是当前实现真值。
 
 ## 目标
 

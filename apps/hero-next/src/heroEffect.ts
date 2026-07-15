@@ -85,19 +85,21 @@ export function applyHeroFrame(
   baseScale: number,
   yOffset = 0,
 ): void {
-  target.scale.setScalar(baseScale);
-  target.position.set(0, yOffset, 0);
-
   if (state.reducedMotion) {
-    target.rotation.set(-0.45, 0.92, 0.08);
+    target.scale.setScalar(baseScale);
+    target.position.set(0, yOffset, 0);
+    target.rotation.set(-0.6, 0.85, 0.08);
     return;
   }
 
-  const phase = (time / 48_000) * Math.PI * 2;
+  const breathingPhase = (time / 6_000) * Math.PI * 2;
+  const floatingPhase = (time / 8_000) * Math.PI * 2;
+  target.scale.setScalar(baseScale * (1 + Math.sin(breathingPhase) * 0.012));
+  target.position.set(0, yOffset + Math.sin(floatingPhase) * 0.018, 0);
   target.rotation.set(
-    -0.45 + Math.sin(phase * 0.6) * 0.05 + state.tiltX,
-    0.92 + phase + state.tiltY,
-    0.08 + Math.sin(phase * 0.35) * 0.03,
+    -0.6 + state.tiltX,
+    0.82 + state.tiltY,
+    0.08,
   );
 }
 

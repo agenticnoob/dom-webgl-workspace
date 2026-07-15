@@ -19,7 +19,7 @@ renderer.
 ## App Workspaces
 
 - [`apps/example`](../apps/example/) - React-only public API dogfood and effect-authoring tutorial.
-- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a managed `WebGLMesh` tetrahedron, background Ghost Cursor, effect-owned pointer light, Lenis, and GSAP; latest light/material tuning is automated-verified and awaits user visual QA.
+- [`apps/hero-next`](../apps/hero-next/) - private Next.js App Router consumer with a managed `WebGLMesh` tetrahedron, background Ghost Cursor, two fixed directional lights, an effect-owned pointer light, and app-owned breathing/floating/pointer-parallax motion without continuous self-rotation; latest visual tuning is automated-verified and awaits user visual QA.
 
 ## New Project Notes
 
@@ -32,7 +32,7 @@ renderer.
 - [superpowers/specs/2026-07-11-viselora-general-development-skill-design.md](./superpowers/specs/2026-07-11-viselora-general-development-skill-design.md) - approved general-skill design.
 - [superpowers/plans/2026-07-11-viselora-general-development-skill.md](./superpowers/plans/2026-07-11-viselora-general-development-skill.md) - implementation plan and verification boundary.
 - [superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md](./superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md) - implemented and browser-verified single-scene Ghost Cursor tetrahedron hero design.
-- [superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md](./superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md) - current hero truth for the public `WebGLMesh` tetrahedron, material tuning, disabled fixed lights, and effect-owned pointer light; latest tuning awaits user visual QA.
+- [superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md](./superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md) - current hero truth for the public `WebGLMesh` tetrahedron, material/camera/motion tuning, two active directional lights, and effect-owned pointer light; latest tuning awaits user visual QA.
 - [archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md](./archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md) - completed task-by-task implementation and browser acceptance record.
 - [consumer-standard-usage.md](./consumer-standard-usage.md) - standard consumer usage guide.
 - [agent/package-onboarding.md](./agent/package-onboarding.md) - single entrypoint for agents starting from zero.

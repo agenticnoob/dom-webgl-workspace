@@ -85,11 +85,19 @@ scene-scoped `hero.pointer-light` through the managed lights facade; it uses a
 stable key, damped target-local pointer mapping, exit intensity decay, a static
 reduced-motion state, and managed removal on effect dispose. This is visually
 isolated only because the tetrahedron is the current scene's sole lit material,
-not because the runtime provides general per-target light isolation. The three
-declarative ambient/key/rim lights are currently commented out and are not
-registered. The active point light uses `#a883ff`, target intensity `6`,
+not because the runtime provides general per-target light isolation. The ambient
+fill remains commented out; the directional key and rim lights are active with
+positions `[1.2, 1.2, 2]` / `[1.8, -1.4, 2]` and intensities `4.8` / `2.2`.
+The active point light uses `#a883ff`, target intensity `10`,
 `distance: 1.8`, `decay: 3`, and camera-side `Z=1.1`; it remains omnidirectional,
 not a managed spotlight.
+
+The tetrahedron does not continuously self-rotate. Normal motion uses base
+rotation `[-0.6, 0.82, 0.08]`, a six-second `±1.2%` breathing scale, an
+eight-second `±0.018` Y float, and the existing damped pointer tilt. Reduced
+motion is static at `[-0.6, 0.85, 0.08]`. Current material values are emissive
+intensity `0.06`, metalness `0.9`, and roughness `0.12`; camera position is
+`[0, 0, 3.2]` with target `[0, 0.32, 0]`.
 
 Current verified design and completed execution record:
 

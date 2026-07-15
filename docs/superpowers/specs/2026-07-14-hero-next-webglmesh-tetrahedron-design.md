@@ -7,7 +7,7 @@
 
 把 `apps/hero-next` 当前由 `/models/4.glb` 提供的中央四面体替换为公开
 `WebGLMesh` API 绘制的正四面体。替换只改变主体的几何来源，不重做现有
-Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、慢速自转、鼠标视差或
+Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、呼吸浮动、鼠标视差或
 响应式构图。
 
 实现继续遵守 `apps/hero-next/AGENTS.md` 的 package-only 视觉边界：CSS 只做布局，
@@ -26,8 +26,8 @@ Ghost Cursor 空间、单 scene 架构、相机、灯光、材质观感、慢速
     kind: "standard",
     color: "#30343b",
     emissive: "#0a1012",
-    emissiveIntensity: 0.03,
-    metalness: 0.8,
+    emissiveIntensity: 0.06,
+    metalness: 0.9,
     roughness: 0.12,
   }}
   effects={[{ kind: "hero.tetrahedron.motion", baseScale: 1.12 }]}
@@ -49,7 +49,9 @@ geometry、material 和 effects descriptor 都必须使用模块级稳定常量�
 
 `hero.tetrahedron.motion` 继续负责：
 
-- 48 秒一圈的缓慢多轴自转；
+- 不进行时间驱动的持续自转；
+- 六秒周期、`±1.2%` 的轻微呼吸缩放；
+- 八秒周期、`±0.018` 的 Y 轴浮动；
 - 指针在中央邻域移动时的轻微倾斜；
 - 指针静止约 120ms 后阻尼回正；
 - reduced-motion 下的固定构图；
@@ -68,8 +70,8 @@ renderer 或 disposal 生命周期。
 - 一个显式 `hero.tetrahedron.scene`、一个 camera、一个 render pass；
 - 背景 Ghost Cursor depth `5`；
 - 中央正四面体；
-- ambient、directional key 和 directional rim 三盏固定 managed lights 当前已注释，
-  不注册到 runtime；
+- ambient fill 当前已注释；directional key 和 directional rim 两盏固定 managed
+  lights 已启用；
 - 由背景 `WebGLTarget` effect 管理的 `hero.pointer-light` 点光源；
 - Ghost Cursor overscan、颜色、brightness、pointer trail 和 shader 状态。
 
@@ -87,7 +89,7 @@ CSS 视觉层、纹理或粒子效果。
 Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查和生产构建；最终
 视觉 QA 由用户接手。
 
-## 2026-07-15 鼠标局部高光增补
+## 2026-07-15 鼠标局部高光与后续视觉调优
 
 现有 `hero.ghost.background` DOM target effect 通过公开
 `ctx.object.lights?.point(...)` facade 管理一个稳定 key 为
@@ -99,16 +101,20 @@ Ghost Cursor 移除和 `radius: 0.52` 调优只做自动化测试、类型检查
 逐渐把强度衰减到 `0`；reduced-motion 下固定在 `[0, 0.365, 1.1]`，使用静态
 低强度冷紫白光，不持续跟随 pointer。每帧用相同 key 更新既有 runtime-owned
 PointLight，effect dispose 时通过 lights facade 移除；没有 lights facade 时安全
-no-op。当前颜色为 `#a883ff`，active target intensity 为 `6`，`distance: 1.8`、
+no-op。当前颜色为 `#a883ff`，active target intensity 为 `10`，`distance: 1.8`、
 `decay: 3`，用更短照明距离和更高衰减近似更集中的局部高光。它仍是全向
 PointLight，不具备朝向或 target，不能宣称为定向聚光。
 
 该灯光在 runtime 中仍是 scene-scoped，并不具备通用 per-target light isolation。
 当前场景只有 standard 材质四面体响应场景灯光，Ghost Cursor 背景使用不响应场景
-灯光的自定义 shader，因此当前构图中形成视觉隔离。这个增补不修改四面体尺寸、
-材质、自转、pointer tilt、相机或背景 shader，也不修改 `packages/`。原有三盏
-固定灯由用户注释，当前场景只启用 effect-owned pointer light。本次只做自动化
-验证，最终视觉 QA 由用户接手。
+灯光的自定义 shader，因此当前构图中形成视觉隔离。后续用户调优把材质更新为
+emissive intensity `0.06`、metalness `0.9`、roughness `0.12`，camera position
+更新为 `[0, 0, 3.2]`；directional key 使用 position `[1.2, 1.2, 2]`、intensity
+`4.8`，directional rim 使用 `[1.8, -1.4, 2]`、intensity `2.2`，ambient fill
+继续禁用。四面体移除持续自转，normal base rotation 为
+`[-0.6, 0.82, 0.08]`，叠加六秒呼吸、八秒浮动和现有 pointer tilt；
+reduced-motion 静态角度为 `[-0.6, 0.85, 0.08]`。这些调优不修改 `packages/`，
+只做自动化验证，最终视觉 QA 由用户接手。
 
 ## 资源清理
 
@@ -144,13 +150,13 @@ PointLight，不具备朝向或 target，不能宣称为定向聚光。
 
 自动化验证必须证明：
 
-- 页面仍只声明一个 scene、一个 camera、一个背景 Ghost Cursor target，且不注册
-  已注释的三盏固定灯；
+- 页面仍只声明一个 scene、一个 camera、一个背景 Ghost Cursor target；ambient
+  fill 不注册，directional key/rim 按当前参数注册；
 - 背景 effect 只注册一次，并以稳定 key 更新、衰减和 dispose pointer light；
 - 中央主体是一个 `WebGLMesh`，geometry 为 `tetrahedron`；
 - mesh 使用 standard 黑银材质与 `hero.tetrahedron.motion` effect；
-- effect source 为 `mesh`，原有 rotation、pointer tilt、idle return、responsive 和
-  reduced-motion 行为保持；
+- effect source 为 `mesh`，无持续自转，breathing、floating、pointer tilt、idle
+  return、responsive 和 reduced-motion 行为符合当前真值；
 - `apps/hero-next/public` 不再存在 `4.glb` 或 Draco decoder；
 - CSS 仍满足 layout-only 约束。
 
@@ -165,15 +171,15 @@ git diff --check
 ```
 
 真实浏览器必须使用 package runtime 和 managed canvas，在桌面与移动 viewport
-确认：正四面体可见、四面等边且各面可辨；主体尺寸与深度关系合理；材质高光、慢速
-自转、pointer tilt、Ghost Cursor 前后层次和 reduced-motion 没有回归；Network 与
+确认：正四面体可见、四面等边且各面可辨；主体尺寸与深度关系合理；材质高光、呼吸
+浮动、pointer tilt、Ghost Cursor 前后层次和 reduced-motion 没有回归；Network 与
 console 中不再出现 GLB/Draco 请求或错误。
 
 ## 范围外
 
 - 修改 `packages/`、public API、runtime 行为或 package version；
 - custom geometry、手写 `BufferGeometry`、raw Three.js object ownership；
-- 改造 Ghost Cursor shader、场景构图、原有三盏固定灯或交互语法；
+- 改造 Ghost Cursor shader、增加阴影或其他 package 能力、改动交互语法；
 - CSS 画面、第二 scene、第二 pass、第二 canvas 或第二 renderer；
 - 部署、发布、push 或 PR。
 

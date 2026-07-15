@@ -43,10 +43,11 @@ browser acceptance. Downstream consumer work is owned and reported separately.
 **Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
 consumes only the public Viselora package entrypoints. It keeps the reserved
 default scene empty and places a public `WebGLMesh` tetrahedron in
-`hero.tetrahedron.scene`, using a managed perspective camera, one effect-owned
-pointer light, a scene-object effect, and the public Lenis/GSAP scroll stack.
-The three earlier declarative ambient/key/rim lights are currently commented
-out and are not registered. The previous `4.glb` and app-local Draco decoder assets were removed.
+`hero.tetrahedron.scene`, using a managed perspective camera, two declarative
+directional lights, one effect-owned pointer light, a scene-object effect, and
+the public Lenis/GSAP scroll stack. The ambient fill remains commented out;
+directional key and rim lights are registered with the current user-tuned
+positions and intensities. The previous `4.glb` and app-local Draco decoder assets were removed.
 The foreground Ghost Cursor layer was removed, and the tetrahedron radius was
 reduced from the initial `0.65` to `0.52`. The hero remains pure visual,
 responsive, and static under `prefers-reduced-motion`.
@@ -57,10 +58,21 @@ legacy asset removal, and visual CSS. The hero workspace passes TypeScript and
 a Next.js production build. Real-browser evidence at 1200×835 and 390×844
 confirmed the initial `WebGLMesh` replacement, one managed canvas, no page
 console errors, and no GLB or Draco resource requests. The later foreground-layer
-removal, `radius: 0.52` adjustment, declarative-light disablement, material
-tuning, and pointer-light behavior are automated-test/typecheck/build verified.
+removal and `radius: 0.52` adjustment were automated-test/typecheck/build
+verified. The latest material, camera, fixed-light, non-spinning motion, and
+pointer-light tuning is automated-verified in this closeout.
 Their final visual acceptance is explicitly owned by the user and has not been
 re-run in the browser by the agent.
+
+**Implemented:** the tetrahedron no longer has time-driven self-rotation. Its
+normal-motion base rotation is `[-0.6, 0.82, 0.08]`, with the existing damped
+pointer tilt added on X/Y. It uses a subtle six-second `±1.2%` breathing scale
+and eight-second `±0.018` Y float. Reduced motion remains static at
+`[-0.6, 0.85, 0.08]`. The standard material is currently `#30343b`, emissive
+`#0a1012` at `0.06`, metalness `0.9`, and roughness `0.12`; camera position is
+`[0, 0, 3.2]` with target `[0, 0.32, 0]`. The directional key uses position
+`[1.2, 1.2, 2]` and intensity `4.8`; the rim uses `[1.8, -1.4, 2]` and
+intensity `2.2`.
 
 **Implemented:** the existing background `WebGLTarget` effect owns a
 mouse-follow point light through `ctx.object.lights.point(...)`. It maps the
@@ -69,7 +81,7 @@ updates the stable `hero.pointer-light` key with damped position and intensity,
 fades intensity after pointer exit, keeps a static low-intensity light under
 reduced motion, and removes the light through the managed facade on effect
 dispose. Its current color is `#a883ff`; the camera-side position uses `Z=1.1`,
-active target intensity `6`, `distance: 1.8`, and `decay: 3` as an app-local
+active target intensity `10`, `distance: 1.8`, and `decay: 3` as an app-local
 tighter-range approximation. The light remains omnidirectional and scene-scoped
 rather than truly target-scoped. In the
 current hero it is visually isolated to the standard-material tetrahedron

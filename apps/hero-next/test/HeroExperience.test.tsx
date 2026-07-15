@@ -14,8 +14,20 @@ vi.mock("../src/heroScroll", () => ({
 vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLScene: ({ id, children }: PropsWithChildren<{ id: string }>) =>
     createElement("div", { "data-scene": id }, children),
-  WebGLCamera: ({ id }: { id: string }) =>
-    createElement("div", { "data-camera": id }),
+  WebGLCamera: ({
+    id,
+    position,
+    target,
+  }: {
+    id: string;
+    position?: readonly number[];
+    target?: readonly number[];
+  }) =>
+    createElement("div", {
+      "data-camera": id,
+      "data-position": position?.join(","),
+      "data-target-position": target?.join(","),
+    }),
   WebGLMesh: ({
     id,
     geometry,
@@ -47,8 +59,26 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-mesh-effect": effects?.[0]?.kind,
       "data-base-scale": effects?.[0]?.baseScale,
     }),
-  WebGLLight: ({ id }: { id: string }) =>
-    createElement("div", { "data-light": id }),
+  WebGLLight: ({
+    id,
+    kind,
+    intensity,
+    position,
+    target,
+  }: {
+    id: string;
+    kind: string;
+    intensity?: number;
+    position?: readonly number[];
+    target?: readonly number[];
+  }) =>
+    createElement("div", {
+      "data-light": id,
+      "data-light-kind": kind,
+      "data-light-intensity": intensity,
+      "data-light-position": position?.join(","),
+      "data-light-target": target?.join(","),
+    }),
   WebGLTarget: ({
     webgl,
     className,
@@ -82,11 +112,13 @@ vi.mock("@viselora/dom-webgl/react", () => ({
 import { HeroExperience } from "../src/HeroExperience";
 
 describe("HeroExperience", () => {
-  test("declares one managed scene with background Ghost Cursor only", () => {
+  test("declares one managed scene with the current background, mesh, and lights", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
     expect(html.match(/data-scene=/g)).toHaveLength(1);
     expect(html).toContain('data-scene="hero.tetrahedron.scene"');
+    expect(html).toContain('data-position="0,0,3.2"');
+    expect(html).toContain('data-target-position="0,0.32,0"');
     expect(html).toContain('data-target="hero.ghost.background"');
     expect(html).toContain('data-effect="hero.ghost.background"');
     expect(html).toContain('data-depth="5"');
@@ -99,8 +131,8 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-material="standard"');
     expect(html).toContain('data-color="#30343b"');
     expect(html).toContain('data-emissive="#0a1012"');
-    expect(html).toContain('data-emissive-intensity="0.03"');
-    expect(html).toContain('data-metalness="0.8"');
+    expect(html).toContain('data-emissive-intensity="0.06"');
+    expect(html).toContain('data-metalness="0.9"');
     expect(html).toContain('data-roughness="0.12"');
     expect(html).toContain('data-mesh-effect="hero.tetrahedron.motion"');
     expect(html).toContain('data-base-scale="1.12"');
@@ -108,7 +140,14 @@ describe("HeroExperience", () => {
     expect(html).not.toContain('data-effect="hero.ghost.foreground"');
     expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(1);
     expect(html.match(/data-render-role="model"/g)).toHaveLength(1);
-    expect(html).not.toContain("data-light=");
+    expect(html).toContain('data-light="hero.tetrahedron.key"');
+    expect(html).toContain('data-light="hero.tetrahedron.rim"');
+    expect(html).toContain('data-light-intensity="4.8"');
+    expect(html).toContain('data-light-intensity="2.2"');
+    expect(html).toContain('data-light-position="1.2,1.2,2"');
+    expect(html).toContain('data-light-position="1.8,-1.4,2"');
+    expect(html).not.toContain('data-light="hero.tetrahedron.fill"');
+    expect(html.match(/data-light=/g)).toHaveLength(2);
     expect(html).not.toContain("Boo!");
     expect(html).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
   });

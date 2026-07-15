@@ -56,8 +56,8 @@ const tetrahedronMaterial = {
   kind: "standard",
   color: "#30343b",
   emissive: "#0a1012",
-  emissiveIntensity: 0.03,
-  metalness: 0.8,
+  emissiveIntensity: 0.06,
+  metalness: 0.9,
   roughness: 0.12,
 } satisfies NonNullable<WebGLMeshProps["material"]>;
 
@@ -65,16 +65,16 @@ const tetrahedronEffects = [
   { kind: "hero.tetrahedron.motion", baseScale: 1.12 },
 ] satisfies NonNullable<WebGLMeshProps["effects"]>;
 
-const cameraPosition = [0, 0.18, 3.2] satisfies NonNullable<
+const cameraPosition = [0, 0, 3.2] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
 const cameraTarget = [0, 0.32, 0] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
-const keyLightPosition = [-2.4, 1.2, 2.2] satisfies NonNullable<
+const keyLightPosition = [1.2, 1.2, 2] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
-const rimLightPosition = [2.8, -2.4, 2] satisfies NonNullable<
+const rimLightPosition = [1.8, -1.4, 2] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
 const lightTarget = [0, 0, 0] satisfies NonNullable<
@@ -123,22 +123,22 @@ export function HeroExperience() {
             color="#d9dce3"
             intensity={0.22}
           /> */}
-          {/* <WebGLLight
+          <WebGLLight
             id="hero.tetrahedron.key"
             kind="directional"
             color="#eef2f7"
-            intensity={3.8}
+            intensity={4.8}
             position={keyLightPosition}
             target={lightTarget}
-          /> */}
-          {/* <WebGLLight
+          />
+          <WebGLLight
             id="hero.tetrahedron.rim"
             kind="directional"
             color="#b497cf"
-            intensity={3.2}
+            intensity={2.2}
             position={rimLightPosition}
             target={lightTarget}
-          /> */}
+          />
         </WebGLScene>
       </main>
     </WebGLScrollRuntime>
