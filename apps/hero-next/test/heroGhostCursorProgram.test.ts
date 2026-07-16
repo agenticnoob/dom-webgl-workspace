@@ -13,7 +13,13 @@ const baseOptions = {
   pointerY: 450,
   pointerIntensity: 0.8,
   time: 1200,
-  color: "#3f3f3f",
+  baseBackgroundColor: "#B8B8B8",
+  baseForegroundColor: "#5F5F5F",
+  targetBackgroundColor: "#5F5F5F",
+  targetForegroundColor: "#B8B8B8",
+  radialOrigin: [0.25, 0.75],
+  radialRadiusPx: 420,
+  radialEdgePx: 1.5,
   brightness: 0.9,
   trailPoints: [
     [600, 450],
@@ -22,8 +28,11 @@ const baseOptions = {
 } as const;
 
 describe("hero Ghost Cursor material programs", () => {
-  test("compiles an opaque 36-sample background program without source copy", () => {
-    const program = createHeroGhostCursorMaterialProgram("background", baseOptions);
+  test("renders the exact pixel-space circular semantic mask", () => {
+    const program = createHeroGhostCursorMaterialProgram(
+      "background",
+      baseOptions,
+    );
 
     expect(heroGhostTrailLengths.background).toBe(36);
     expect(program.defines).toEqual({
@@ -36,49 +45,62 @@ describe("hero Ghost Cursor material programs", () => {
     expect(program.fragmentShader).toContain(
       "float radius = 0.24 + 0.14 / iScale",
     );
-    expect(program.fragmentShader).not.toContain(
-      "float radius = 0.5 + 0.3 / iScale",
-    );
-    expect(program.fragmentShader).toContain("vec3 base = vec3(0.72)");
-    expect(program.fragmentShader).toContain("vec3 tint = iBaseColor");
     expect(program.fragmentShader).toContain(
-      "vec3 fogTint = colorAcc / max(alphaAcc, 0.0001)",
+      "vec2 radialPointPx = vUv * iResolution.xy",
     );
     expect(program.fragmentShader).toContain(
-      "float fogStrength = clamp(outAlpha * iBrightness, 0.0, 1.0)",
+      "length(radialPointPx - radialOriginPx)",
+    );
+    expect(program.fragmentShader).toContain("smoothstep(");
+    expect(program.fragmentShader).toContain(
+      "mix(iBaseBackgroundColor, iTargetBackgroundColor, radialMask)",
     );
     expect(program.fragmentShader).toContain(
-      "mix(base, fogTint, fogStrength)",
+      "mix(iBaseForegroundColor, iTargetForegroundColor, radialMask)",
     );
-    expect(program.fragmentShader).not.toContain("base + colorAcc * outAlpha");
+    expect(program.fragmentShader).toContain(
+      "mix(radialBackground, fogTint, fogStrength)",
+    );
+    expect(program.fragmentShader).not.toContain("vec3(0.72)");
+    expect(program.fragmentShader).not.toContain("uniform vec3 iBackgroundColor");
+    expect(program.fragmentShader).not.toContain("uniform vec3 iForegroundColor");
     expect(program.fragmentShader).not.toContain("uSource");
     expect(program.fragmentShader).not.toContain("Boo!");
   });
 
-  test("compiles a transparent 12-sample foreground without double alpha attenuation", () => {
-    const program = createHeroGhostCursorMaterialProgram("foreground", baseOptions);
+  test("keeps the transparent foreground path on the resolved radial foreground", () => {
+    const program = createHeroGhostCursorMaterialProgram(
+      "foreground",
+      baseOptions,
+    );
 
     expect(heroGhostTrailLengths.foreground).toBe(12);
     expect(program.defines).toEqual({
       HERO_FOREGROUND: 1,
       MAX_TRAIL_LENGTH: 12,
     });
-    expect(program.blend).toBe("normal");
     expect(program.fragmentShader).toContain("#if HERO_FOREGROUND == 1");
     expect(program.fragmentShader).toContain(
-      "vec4(foregroundTint, outAlpha * iBrightness * 1.5)",
+      "vec4(radialForeground, outAlpha * iBrightness * 1.5)",
     );
     expect(program.fragmentShader).not.toContain("colorAcc * 0.32");
-    expect(program.fragmentShader).not.toContain("foregroundTint * iBrightness");
   });
 
-  test("normalizes DOM pointer and pads the layer-specific trail", () => {
+  test("normalizes pointer, radial, semantic colors, and trail uniforms", () => {
     const uniforms = createHeroGhostCursorUniforms("foreground", baseOptions);
 
-    expect(uniforms.iTime).toBe(1.2);
-    expect(uniforms.iResolution).toEqual([1200, 900, 1]);
-    expect(uniforms.iMouse).toEqual([0.5, 0.5]);
-    expect(uniforms.iBaseColor).toEqual([63 / 255, 63 / 255, 63 / 255]);
+    expect(uniforms).toMatchObject({
+      iTime: 1.2,
+      iResolution: [1200, 900, 1],
+      iMouse: [0.5, 0.5],
+      iBaseBackgroundColor: [184 / 255, 184 / 255, 184 / 255],
+      iBaseForegroundColor: [95 / 255, 95 / 255, 95 / 255],
+      iTargetBackgroundColor: [95 / 255, 95 / 255, 95 / 255],
+      iTargetForegroundColor: [184 / 255, 184 / 255, 184 / 255],
+      iRadialOrigin: [0.25, 0.75],
+      iRadialRadiusPx: 420,
+      iRadialEdgePx: 1.5,
+    });
     expect(uniforms.iPrevMouse).toEqual(
       expect.arrayContaining([
         [0.5, 0.5],

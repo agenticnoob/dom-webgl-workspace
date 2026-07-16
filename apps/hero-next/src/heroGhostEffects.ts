@@ -15,10 +15,18 @@ import {
   stepHeroGhostCursorState,
   type HeroGhostCursorState,
 } from "./heroGhostCursorState";
+import {
+  resolveHeroRadialGeometry,
+  resolveHeroTransitionVisual,
+  type HeroViewport,
+} from "./heroHoldTransition";
+import { heroTransitionConfig } from "./heroTransitionConfig";
+import {
+  readHeroTransitionSignals,
+  type HeroTransitionSignalReader,
+} from "./heroTransitionSignals";
 
 type HeroGhostProjectionParams = {
-  color?: string;
-  brightness?: number;
   depth: number;
   fov: number;
   overscan: number;
@@ -65,7 +73,7 @@ type HeroGhostOverscanInput = {
 
 export const heroPointerLightKey = "hero.pointer-light";
 
-const heroPointerLightPosition = [0, 0.365, 1.1] satisfies readonly [
+const heroPointerLightPosition = [0, 0.365, 0.8] satisfies readonly [
   number,
   number,
   number,
@@ -169,6 +177,37 @@ export function resolveHeroGhostOverscanScale({
   ];
 }
 
+export function resolveHeroGhostProgramState(
+  reader: HeroTransitionSignalReader,
+  viewport: HeroViewport,
+): {
+  readonly baseBackgroundColor: string;
+  readonly baseForegroundColor: string;
+  readonly targetBackgroundColor: string;
+  readonly targetForegroundColor: string;
+  readonly radialOrigin: readonly [number, number];
+  readonly radialRadiusPx: number;
+  readonly radialEdgePx: number;
+} {
+  const snapshot = readHeroTransitionSignals(reader);
+  const visual = resolveHeroTransitionVisual(snapshot);
+  const radial = resolveHeroRadialGeometry(
+    snapshot.coverage,
+    snapshot.origin,
+    viewport,
+  );
+
+  return {
+    baseBackgroundColor: visual.committed.background,
+    baseForegroundColor: visual.committed.foreground,
+    targetBackgroundColor: visual.target.background,
+    targetForegroundColor: visual.target.foreground,
+    radialOrigin: [radial.origin.x, radial.origin.y],
+    radialRadiusPx: radial.radiusPx,
+    radialEdgePx: radial.edgeFeatherPx,
+  };
+}
+
 export const heroGhostBackgroundEffect = defineWebGLEffect<
   HeroGhostBackgroundParams,
   HeroGhostEffectState
@@ -194,7 +233,7 @@ export const heroGhostEffects = [heroGhostBackgroundEffect] as const;
 function createEffectState(
   layer: HeroGhostLayer,
   ctx: WebGLEffectUpdateContext,
-  params: { color?: string; brightness?: number },
+  _params: HeroGhostProjectionParams,
 ): HeroGhostEffectState {
   const reducedMotion =
     typeof window !== "undefined" &&
@@ -211,7 +250,7 @@ function createEffectState(
     mode: "replace-source",
     program: createHeroGhostCursorMaterialProgram(
       layer,
-      createProgramOptions(layer, ctx, motion, params),
+      createProgramOptions(layer, ctx, motion),
     ),
   });
 
@@ -257,7 +296,7 @@ function updateEffect(
       mode: "replace-source",
       program: createHeroGhostCursorMaterialProgram(
         layer,
-        createProgramOptions(layer, ctx, state.motion, params),
+        createProgramOptions(layer, ctx, state.motion),
       ),
     });
   }
@@ -276,7 +315,7 @@ function updateEffect(
   state.materialLayer.setUniforms(
     createHeroGhostCursorUniforms(
       layer,
-      createProgramOptions(layer, ctx, state.motion, params),
+      createProgramOptions(layer, ctx, state.motion),
     ),
   );
   ctx.object.visible = true;
@@ -288,8 +327,12 @@ function createProgramOptions(
   layer: HeroGhostLayer,
   ctx: WebGLEffectUpdateContext,
   motion: HeroGhostCursorState,
-  params: { color?: string; brightness?: number },
 ) {
+  const programState = resolveHeroGhostProgramState(
+    ctx.progress,
+    ctx.layout.viewport,
+  );
+
   return {
     width: ctx.layout.width,
     height: ctx.layout.height,
@@ -297,8 +340,11 @@ function createProgramOptions(
     pointerY: motion.pointerY,
     pointerIntensity: motion.intensity,
     time: motion.reducedMotion ? 0 : ctx.time,
-    color: params.color ?? "#3f3f3f",
-    brightness: params.brightness ?? (layer === "background" ? 0.9 : 0.18),
+    ...programState,
+    brightness:
+      layer === "background"
+        ? heroTransitionConfig.visual.ghostBrightness
+        : 0.18,
     trailPoints: motion.trail,
   };
 }

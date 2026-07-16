@@ -7,10 +7,17 @@ import {
   heroGhostBackgroundEffect,
   heroGhostEffects,
   heroPointerLightKey,
+  resolveHeroGhostProgramState,
   resolveHeroPointerLightTarget,
   resolveHeroGhostOverscanScale,
   updateHeroPointerLight,
 } from "../src/heroGhostEffects";
+import { createHeroHoldTransitionState } from "../src/heroHoldTransition";
+import {
+  publishHeroTransitionSignals,
+  type HeroTransitionSignalReader,
+  type HeroTransitionSignalWriter,
+} from "../src/heroTransitionSignals";
 
 describe("hero Ghost Cursor effects", () => {
   test("registers only the frame-scheduled background effect", () => {
@@ -40,6 +47,93 @@ describe("hero Ghost Cursor effects", () => {
     ]);
   });
 
+  test("resolves semantic radial state from shared transition signals", () => {
+    const viewport = { width: 1200, height: 835 };
+    const values = new Map<string, number>();
+    const writer = {
+      set(key: string, value: number) {
+        values.set(key, value);
+      },
+    } satisfies HeroTransitionSignalWriter;
+    const reader = {
+      get(key: string) {
+        return values.get(key) ?? 0;
+      },
+    } satisfies HeroTransitionSignalReader;
+    const idle = createHeroHoldTransitionState("initial");
+
+    publishHeroTransitionSignals(writer, idle);
+    expect(resolveHeroGhostProgramState(reader, viewport)).toEqual({
+      baseBackgroundColor: "#B8B8B8",
+      baseForegroundColor: "#5F5F5F",
+      targetBackgroundColor: "#B8B8B8",
+      targetForegroundColor: "#5F5F5F",
+      radialOrigin: [0.5, 0.5],
+      radialRadiusPx: 0,
+      radialEdgePx: 1.5,
+    });
+
+    const expanding = {
+      ...idle,
+      targetScheme: "inverted" as const,
+      coverage: 0.5,
+      origin: { x: 0.25, y: 0.75 },
+      phase: "expanding" as const,
+      shakeActive: true,
+    };
+    publishHeroTransitionSignals(writer, expanding);
+    const expandingProgram = resolveHeroGhostProgramState(reader, viewport);
+    expect(expandingProgram).toMatchObject({
+      baseBackgroundColor: "#B8B8B8",
+      baseForegroundColor: "#5F5F5F",
+      targetBackgroundColor: "#5F5F5F",
+      targetForegroundColor: "#B8B8B8",
+      radialOrigin: [0.25, 0.75],
+      radialRadiusPx: expect.any(Number),
+      radialEdgePx: 1.5,
+    });
+    expect(expandingProgram.radialRadiusPx).toBeGreaterThan(0);
+    expect(expanding).toMatchObject({
+      coverage: 0.5,
+      origin: { x: 0.25, y: 0.75 },
+      phase: "expanding",
+    });
+
+    publishHeroTransitionSignals(writer, {
+      ...expanding,
+      coverage: 0.25,
+      phase: "retracting",
+      shakeActive: false,
+    });
+    expect(resolveHeroGhostProgramState(reader, viewport)).toMatchObject({
+      baseBackgroundColor: "#B8B8B8",
+      targetBackgroundColor: "#5F5F5F",
+      targetForegroundColor: "#B8B8B8",
+    });
+
+    publishHeroTransitionSignals(writer, idle);
+    expect(resolveHeroGhostProgramState(reader, viewport)).toMatchObject({
+      baseBackgroundColor: "#B8B8B8",
+      targetBackgroundColor: "#B8B8B8",
+      targetForegroundColor: "#5F5F5F",
+      radialRadiusPx: 0,
+    });
+
+    publishHeroTransitionSignals(writer, {
+      ...idle,
+      committedScheme: "inverted",
+      targetScheme: "inverted",
+      coverage: 1,
+      phase: "awaiting-release",
+    });
+    expect(resolveHeroGhostProgramState(reader, viewport)).toMatchObject({
+      baseBackgroundColor: "#5F5F5F",
+      baseForegroundColor: "#B8B8B8",
+      targetBackgroundColor: "#5F5F5F",
+      targetForegroundColor: "#B8B8B8",
+    });
+  });
+
   test("maps target-local pointer coordinates around the tetrahedron", () => {
     expect(
       resolveHeroPointerLightTarget({
@@ -48,7 +142,7 @@ describe("hero Ghost Cursor effects", () => {
         width: 1000,
         height: 500,
       }),
-    ).toEqual([0, 0.365, 1.1]);
+    ).toEqual([0, 0.365, 0.8]);
     expect(
       resolveHeroPointerLightTarget({
         localX: 1000,
@@ -56,7 +150,7 @@ describe("hero Ghost Cursor effects", () => {
         width: 1000,
         height: 500,
       }),
-    ).toEqual([1.05, 1.085, 1.1]);
+    ).toEqual([1.05, 1.085, 0.8]);
   });
 
   test("damps pointer-light position and updates one stable light key", () => {
@@ -168,7 +262,7 @@ describe("hero Ghost Cursor effects", () => {
     expect(state).toMatchObject({
       x: 0,
       y: 0.365,
-      z: 1.1,
+      z: 0.8,
       intensity: 0.45,
     });
     expect(lights.point.mock.calls[0]?.[1]).toEqual(

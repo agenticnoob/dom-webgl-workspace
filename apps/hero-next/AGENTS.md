@@ -61,7 +61,9 @@ Known current limits relevant to the studio hero:
 - Mesh materials expose basic/standard color and PBR scalar properties, but
   no gradient, texture mask, stage material program, physical transmission,
   thickness, or index-of-refraction controls.
-- Stage-plane effects do not currently expose a managed material facade.
+- Scene-native `WebGLMesh` effects do not currently receive the declared
+  managed material facade in the real runtime. This applies to every managed
+  mesh geometry kind, not only stage planes.
 - Managed light declarations do not expose cast/receive shadow configuration.
 - `WebGLMesh` provides `plane`, `box`, `sphere`, `cylinder`, `cone`, and
   `tetrahedron` descriptors plus the controlled custom `BufferGeometry`
@@ -85,28 +87,65 @@ silhouettes. Keep this on the public runtime prop; do not raise tetrahedron
 The background effect applies responsive `1.06` world-scale overscan to cover the
 transparent canvas under the tilted camera, and the pointer blob uses the compact
 `0.24 + 0.14 / iScale` radius. Keep this treatment effect-owned; do not add a CSS
-background fallback or CSS transform. The same background target effect owns the
+background fallback or CSS transform. The shader receives explicit base/target
+background and foreground colors plus pixel-space radial origin/radius/feather
+uniforms. It draws the aspect-correct circle and owns no palette literals, gesture
+state, or transition phase logic. The same background target effect owns the
 scene-scoped `hero.pointer-light` through the managed lights facade; it uses a
 stable key, damped target-local pointer mapping, exit intensity decay, a static
 reduced-motion state, and managed removal on effect dispose. This is visually
 isolated only because the tetrahedron is the current scene's sole lit material,
-not because the runtime provides general per-target light isolation. The ambient
-fill remains commented out; the directional key and rim lights are active with
-positions `[1.2, 1.2, 2]` / `[1.8, -1.4, 2]` and intensities `4.8` / `2.2`.
-The active palette is neutral grayscale: the background shader uses opaque
-`vec3(0.72)` light gray, smoke uses `#3f3f3f`, the tetrahedron uses dark-silver `#5f5f5f`
-with `#0d0d0d` emissive, and the key/rim lights use `#f2f2f2` / `#b8b8b8`.
-The background shader mixes toward the dark smoke tint instead of additively
-brightening it. Do not restore purple or chromatic shader tints without an
-explicit visual-direction change. The active point light uses `#f0f0f0`, target intensity `10`,
-`distance: 1.8`, `decay: 3`, and camera-side `Z=1.1`; it remains omnidirectional,
-not a managed spotlight.
+not because the runtime provides general per-target light isolation.
+The ambient fill remains commented out; the directional key and rim lights are
+active with positions `[1.2, 1.2, 2]` / `[1.8, -1.4, 2]` and intensities `4.8` /
+`2.2`. The active point light remains `#f0f0f0`, target intensity `10`,
+`distance: 1.8`, `decay: 3`, and camera-side `Z=0.8`; it is omnidirectional, not a
+managed spotlight.
 
-The tetrahedron does not continuously self-rotate. Normal motion uses base
-rotation `[-0.6, 0.82, 0.08]`, a six-second `±1.2%` breathing scale, an
-eight-second `±0.018` Y float, and the existing damped pointer tilt. Reduced
-motion is static at `[-0.6, 0.85, 0.08]`. Current material values are emissive
-intensity `0.06`, opacity `0.92`, metalness `0.9`, and roughness `0.12`.
+The only non-light author colors are centralized in
+`src/heroTransitionConfig.ts`: `light=#B8B8B8` and `dark=#5F5F5F`. Initial roles
+are light background/dark foreground; inverted roles are dark background/light
+foreground. Ghost Cursor consumes the semantic foreground. The tetrahedron
+effect is authored to request the same semantic material color and emissive, but
+the current scene-native `WebGLMesh` runtime does not provide
+`ctx.object.material`, so those conditional writes are skipped in production.
+Key, rim, and pointer light colors are explicit lighting exceptions and must not
+be routed through the palette resolver.
+
+`WebGLScrollRuntime`, `heroSmoothScroll`, Lenis, GSAP, and ScrollTrigger remain in
+place for future scrolling. The obsolete transition `WebGLScrollTimeline`, pin,
+scrub, and `+=300%` range are removed. Internal `HeroScene` uses the public
+`useScrollEffectProgressStore()` hook to create one stable minimal writer and one
+stable mesh-effect declaration. React does not mirror per-frame transition state.
+
+The tetrahedron declares `pickable.hitTest: "mesh"` and `pointer.press: true`.
+Only a confirmed primary-pointer mesh hit starts or resumes an attempt, and the
+runtime pointer coordinates from that hit frame become the radial origin. The
+scene-object effect owns the only live transition state and publishes six stable
+progress signals: committed scheme, target scheme, coverage, origin X/Y, and
+phase. The background effect reads those signals independently; neither effect
+imports or calls the other. There is no theme store, event bus, or second state.
+
+The pure phases are `idle`, `expanding`, `retracting`, and `awaiting-release`.
+Expansion advances at `1 / 1000 ms`; early release retracts at a full-range rate
+of `1 / 300 ms`; a new real mesh press during retraction preserves the origin,
+target, and current radius. Commit occurs only when the resolved radial radius
+covers the farthest viewport corner. The app effect adapter uses the approved
+SSR-safe `window.innerWidth` / `window.innerHeight` viewport source because the
+public scene-object context does not expose layout. A committed hold must be
+released before another inverse attempt, so continuous holding cannot repeat
+the toggle.
+
+The tetrahedron does not continuously self-rotate. Idle motion uses base rotation
+`[-0.6, 0.82, 0.08]`, a six-second `±1.2%` breathing scale, an eight-second
+`±0.018` Y float, and damped pointer tilt. Ambient motion fades with active
+coverage; deterministic shake is present only during non-reduced forward
+expansion and stops on release, retraction, or commit. Reduced motion stays at
+`[-0.6, 0.85, 0.08]` with no shake or rapid extra transform while retaining hold
+timing, radial expansion/retraction, resume, release gate, and reversible scheme
+semantics. The declaration-owned material values are emissive intensity `0.06`,
+initial opacity `0.92`, metalness `0.9`, and roughness `0.12`; dynamic semantic
+material/emissive synchronization remains blocked on the public runtime facade.
 The opacity value is an alpha-transparency experiment, not physical light
 transmission. User visual QA reports that the strongly lit metallic surface
 looks white/milky rather than transparently refractive, so that treatment is
@@ -115,6 +154,8 @@ not accepted as the requested light-through-solid effect. Camera position is
 
 Current verified design and completed execution record:
 
+- `docs/superpowers/specs/2026-07-16-hero-next-hold-radial-transition-design.md`
+- `docs/superpowers/plans/2026-07-16-hero-next-hold-radial-transition.md`
 - `docs/superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md`
 - `docs/superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md`
 - `docs/archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md`

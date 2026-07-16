@@ -20,7 +20,9 @@ describe("hero assets and visual surface", () => {
   test("keeps hero CSS layout-only", () => {
     const css = readFileSync(resolve(appRoot, "app/globals.css"), "utf8");
 
-    expect(css).toMatch(/\.hero-runtime[\s\S]*height:\s*100svh/);
+    expect(css).toMatch(/\.hero-runtime\s*\{[^}]*height:\s*100svh/);
+    expect(css).toMatch(/\.hero-runtime\s*\{[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.hero-space[\s\S]*height:\s*100svh/);
     expect(css).toMatch(/\.hero-runtime canvas[\s\S]*position:\s*fixed/);
     expect(css).toMatch(/\.hero-ghost-surface[\s\S]*position:\s*fixed/);
     expect(css).toMatch(/\.hero-ghost-surface[\s\S]*pointer-events:\s*none/);

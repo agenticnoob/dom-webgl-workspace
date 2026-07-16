@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-15 source and published alpha.1 registry
+**Last reviewed against:** 2026-07-16 source and published alpha.1 registry
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -40,6 +40,53 @@ browser acceptance. Downstream consumer work is owned and reported separately.
 
 ## 2026-07-14 Next.js WebGLMesh Tetrahedron Hero
 
+**Implemented (2026-07-17 hold-driven radial transition):** `apps/hero-next`
+centralizes its only two non-light author colors (`light #B8B8B8`,
+`dark #5F5F5F`), initial/inverted semantic roles, hold timings, radial geometry,
+and six public progress keys in one stable app-owned config. A real primary
+pointer press must hit the public `WebGLMesh` (`hitTest: "mesh"`,
+`pointer.press: true`) before the pure effect-owned state machine can enter
+`expanding`. Expansion takes `1000 ms`; a full cancellation retracts in `300 ms`,
+with proportional retraction, same-origin resume, geometric far-corner commit,
+and an `awaiting-release` gate that prevents repeated toggles while held. The
+background/Ghost shader consumes those six progress signals. The tetrahedron
+effect is authored to request matching material/emissive changes, but the real
+scene-native `WebGLMesh` runtime currently supplies no `ctx.object.material`, so
+those conditional writes are skipped. The aspect-correct circle is rendered in
+WebGL; CSS remains layout and pointer routing only. No package code, mutable
+theme store, DOM event bus, React frame state, or third non-light author color
+was added.
+
+**Automated-verified (2026-07-17):** focused app tests cover all hold phases,
+timing, invalid input, geometric commit, proportional retract, resume, release
+gate, reversible toggles, desktop/mobile radial overscan, signal publication and
+decoding, real-mesh interaction declarations, shader semantics, an injected
+material-facade adapter, deterministic shake, reduced motion, unchanged lights,
+layout-only CSS, and the palette/source boundary. The focused hero suite passes
+`11 files / 45 tests`; the hero workspace typecheck and production build, public
+import boundary, and `git diff --check` also pass. Automated checks are not
+browser visual acceptance.
+
+**Browser-verified (desktop, 2026-07-17):** the real production package runtime
+at 1200×835 rendered one canvas with zero console errors or warnings. Pointer
+down outside the tetrahedron and secondary press on the mesh did nothing. Real
+primary mesh presses showed a circular contact-origin reveal; 25%, 50%, and
+approximately 90% early releases retracted, re-press during retraction resumed,
+an approximately one-second hold committed, continued holding did not toggle
+again, and release followed by a second hold returned to the initial scheme.
+The 390×844 production initial frame also rendered one canvas with a clean
+console, but complete mobile interaction and `prefers-reduced-motion` browser
+acceptance remain pending. Superseded scroll-cover evidence is not evidence for
+those remaining gates.
+
+**Open runtime gap:** the public facade type includes controlled material
+operations, but the actual scene-native `WebGLMesh` effect path does not wire a
+material facade into `ctx.object`. Hero effect tests inject a mock facade and
+therefore do not prove real runtime mutation. Production currently keeps the
+tetrahedron's declaration-owned initial material/emissive while the radial
+background toggles. A general package fix needs real runtime integration tests;
+it must not be replaced by app-local or raw Three.js access.
+
 **Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
 consumes only the public Viselora package entrypoints. It keeps the reserved
 default scene empty and places a public `WebGLMesh` tetrahedron in
@@ -49,8 +96,10 @@ the public Lenis/GSAP scroll stack. The ambient fill remains commented out;
 directional key and rim lights are registered with the current user-tuned
 positions and intensities. The previous `4.glb` and app-local Draco decoder assets were removed.
 The foreground Ghost Cursor layer was removed, and the tetrahedron radius was
-reduced from the initial `0.65` to `0.52`. The hero remains pure visual,
-responsive, and static under `prefers-reduced-motion`.
+reduced from the initial `0.65` to `0.52`. The hero remains pure visual and
+responsive. Under `prefers-reduced-motion`, shake and ambient geometry motion
+are removed while the one-second hold, radial reveal, cancellation/resume,
+release gate, and reversible semantic toggle remain intact.
 
 **Verified:** focused Vitest contracts cover the workspace shell, stable scene
 declarations, `WebGLMesh` geometry/material, managed motion/scale behavior,
@@ -62,28 +111,32 @@ removal and `radius: 0.52` adjustment were automated-test/typecheck/build
 verified. The latest material, camera, fixed-light, non-spinning motion, and
 pointer-light tuning is automated-verified in this closeout. The user has now
 visually checked the `opacity: 0.92` experiment and reports that it appears
-white/milky rather than transparent. The 2026-07-16 neutral grayscale palette
-change is focused-test/typecheck/build verified and production-browser verified
-at 1200×835 with one managed canvas, a full light-gray background, and no console
-errors or warnings; the stable visual capture used reduced motion and synchronized
-after two animation frames to avoid mid-frame WebGL screenshot artifacts.
-The subsequent dark-gray smoke and dark-silver tetrahedron pass was also verified
-against the production build with one managed canvas and no console errors or warnings.
+white/milky rather than transparent. The earlier neutral grayscale exploration
+was focused-test/typecheck/build verified and production-browser checked at
+1200×835 with one managed canvas and no console errors or warnings; its former
+intermediate smoke/emissive literals are superseded by the implemented two-token
+semantic palette described above.
 
 **Implemented:** the tetrahedron no longer has time-driven self-rotation. Its
 normal-motion base rotation is `[-0.6, 0.82, 0.08]`, with the existing damped
 pointer tilt added on X/Y. It uses a subtle six-second `±1.2%` breathing scale
-and eight-second `±0.018` Y float. Reduced motion remains static at
-`[-0.6, 0.85, 0.08]`. The hero now uses a neutral grayscale palette with no
-purple visual sources: the opaque background shader base is `vec3(0.72)`, its
-smoke is `#3f3f3f`, the dark-silver standard material is `#5f5f5f`, and its emissive is
-`#0d0d0d` at `0.06`. Opacity remains `0.92`, metalness `0.9`, and roughness `0.12`;
+and eight-second `±0.018` Y float. Reduced-motion geometry remains static at
+`[-0.6, 0.85, 0.08]`, while the hold state machine and radial semantic roles
+remain active. The hero now uses the centralized two-token semantic
+palette with no purple visual sources: initial background/foreground are
+`#B8B8B8` / `#5F5F5F`, and inverted roles swap those exact inputs. The shader
+receives base/target semantic roles plus the shared radial origin/radius/edge.
+The tetrahedron effect requests the target foreground during an active attempt
+and the committed foreground otherwise, but those material/emissive writes await
+the real runtime facade connection. Declaration-owned emissive intensity remains
+`0.06`. Initial opacity remains `0.92`,
+metalness `0.9`, and roughness `0.12`;
 the opacity is ordinary alpha blending, not physical transmission or refraction.
 Camera position is `[0, 0, 3.2]` with target `[0, 0.32, 0]`. The neutral
 directional key uses `#f2f2f2`, position `[1.2, 1.2, 2]`, and intensity `4.8`;
 the neutral rim uses `#b8b8b8`, position `[1.8, -1.4, 2]`, and intensity `2.2`.
-The smoke composites by mixing the light-gray base toward its dark-gray tint;
-it no longer uses the earlier additive path that made neutral smoke appear white.
+The smoke composites by mixing the resolved background toward the resolved
+foreground tint; it does not own fixed palette values.
 
 **Implemented:** runtime render quality is now a controlled public declaration.
 Existing consumers keep `antialias: false` and maximum DPR `1.5` by default;
@@ -115,7 +168,7 @@ full-screen target-local pointer into world coordinates near the tetrahedron,
 updates the stable `hero.pointer-light` key with damped position and intensity,
 fades intensity after pointer exit, keeps a static low-intensity light under
 reduced motion, and removes the light through the managed facade on effect
-dispose. Its current color is neutral `#f0f0f0`; the camera-side position uses `Z=1.1`,
+dispose. Its current color is neutral `#f0f0f0`; the camera-side position uses `Z=0.8`,
 active target intensity `10`, `distance: 1.8`, and `decay: 3` as an app-local
 tighter-range approximation. The light remains omnidirectional and scene-scoped
 rather than truly target-scoped. In the
@@ -180,7 +233,8 @@ GLB asset -> WebGLModel
   - `model/glb`
 - Managed `ctx.object` controls:
   - transform, visibility, opacity
-  - material facade
+  - material facade for DOM/media/model source capabilities; scene-native
+    `WebGLMesh` facade wiring remains an open runtime gap
   - runtime-owned lights
   - animation facade for GLB clips
   - surface, text, texture, video, model modules
