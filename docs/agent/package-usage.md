@@ -563,6 +563,21 @@ export function App() {
           position={[0, -120, -40]}
           material={{ kind: "basic", color: "#111827" }}
         />
+        <WebGLMesh
+          id="glass"
+          geometry={{ kind: "box", size: [160, 160, 16] }}
+          position={[220, 0, 20]}
+          material={{
+            kind: "physical",
+            color: "#dbeafe",
+            opacity: 1,
+            roughness: 0.08,
+            transmission: 0.9,
+            thickness: 1.2,
+            ior: 1.6,
+          }}
+          effects={[{ kind: "app.glass" }]}
+        />
         <WebGLLight id="ambient" kind="ambient" intensity={0.2} />
         <WebGLLight
           id="hero"
@@ -622,6 +637,21 @@ Rules:
   idempotent repeated cleanup.
 - Custom geometry does not grant scene, renderer, camera, `Object3D`, material,
   loader, render-target, lifecycle, scheduling, or disposal ownership.
+- Omitted material and `kind: "standard"` create `MeshStandardMaterial`;
+  `kind: "basic"` creates `MeshBasicMaterial`. `kind: "physical"` is an
+  explicit opt-in that creates `MeshPhysicalMaterial` and inherits the standard
+  color/emissive/opacity/metalness/roughness fields.
+- Physical defaults are `transmission: 0`, `thickness: 0`, and `ior: 1.5`.
+  Transmission is constrained to `[0,1]`, thickness must be finite and
+  non-negative, and IOR is constrained to `[1,2.333]`. Transmission does not
+  modify opacity; `transmission > 0` normally uses `opacity: 1`.
+- Scene-native mesh effects receive `ctx.object.material`. Its base controls
+  write the real runtime-owned material. `material.physical` exists only for a
+  real physical material, or for a material array where every entry is
+  physical; setters update every controlled entry consistently.
+- This facade does not expose, replace, or dispose raw materials. Scene-native
+  meshes do not gain a source-backed material layer/program host, so
+  `createLayer(...)` remains unavailable for them.
 - Physics colliders are separate explicit descriptors and are never inferred
   from the visual `geometry` kind.
 - Stage materials are solid-color `basic` or `standard` descriptors. Texture
@@ -1335,6 +1365,27 @@ const modelGlow = defineWebGLEffect({
       ],
     });
     ctx.object.rotation.y += ctx.delta / 1000;
+  },
+});
+```
+
+Scene-native mesh material effects use the same controlled surface vocabulary:
+
+```ts
+import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
+
+const glassState = defineWebGLSceneObjectEffect({
+  kind: "app.glass",
+  source: "mesh",
+  update(ctx) {
+    ctx.object.material?.color.set("#dbeafe");
+    ctx.object.material?.emissive.set("#0f172a", 0.1);
+    const physical = ctx.object.material?.physical;
+    if (physical) {
+      physical.transmission = 0.9;
+      physical.thickness = 1.2;
+      physical.ior = 1.6;
+    }
   },
 });
 ```

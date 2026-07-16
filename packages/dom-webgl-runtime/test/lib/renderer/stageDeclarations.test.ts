@@ -129,6 +129,82 @@ describe("managed mesh declaration normalization", () => {
     ).toEqual({ kind: "tetrahedron", radius: 1, detail: 0 });
   });
 
+  test("normalizes physical material defaults and explicit values", () => {
+    expect(
+      normalizeMeshDeclaration({
+        id: "glass.default",
+        sceneId: "world",
+        geometry: { kind: "box" },
+        material: { kind: "physical" },
+      }).material,
+    ).toEqual({
+      kind: "physical",
+      color: "#ffffff",
+      emissive: "#000000",
+      emissiveIntensity: 1,
+      opacity: 1,
+      metalness: 0,
+      roughness: 1,
+      transmission: 0,
+      thickness: 0,
+      ior: 1.5,
+    });
+
+    expect(
+      normalizeMeshDeclaration({
+        id: "glass.explicit",
+        sceneId: "world",
+        geometry: { kind: "sphere" },
+        material: {
+          kind: "physical",
+          color: "#ccddff",
+          emissive: "#101828",
+          emissiveIntensity: 0.4,
+          opacity: 0.95,
+          metalness: 0.1,
+          roughness: 0.2,
+          transmission: 0.85,
+          thickness: 1.25,
+          ior: 1.8,
+        },
+      }).material,
+    ).toEqual({
+      kind: "physical",
+      color: "#ccddff",
+      emissive: "#101828",
+      emissiveIntensity: 0.4,
+      opacity: 0.95,
+      metalness: 0.1,
+      roughness: 0.2,
+      transmission: 0.85,
+      thickness: 1.25,
+      ior: 1.8,
+    });
+  });
+
+  test.each([
+    ["transmission", Number.NaN, "between 0 and 1"],
+    ["transmission", Number.POSITIVE_INFINITY, "between 0 and 1"],
+    ["transmission", -0.01, "between 0 and 1"],
+    ["transmission", 1.01, "between 0 and 1"],
+    ["thickness", Number.NaN, "a finite non-negative number"],
+    ["thickness", Number.POSITIVE_INFINITY, "a finite non-negative number"],
+    ["thickness", -0.01, "a finite non-negative number"],
+    ["ior", Number.NaN, "between 1 and 2.333"],
+    ["ior", Number.POSITIVE_INFINITY, "between 1 and 2.333"],
+    ["ior", 0.999, "between 1 and 2.333"],
+    ["ior", 2.334, "between 1 and 2.333"],
+  ] as const)("rejects invalid physical material %s=%s", (key, value, message) => {
+    expect(() =>
+      normalizeMeshDeclaration({
+        id: `glass.${key}`,
+        sceneId: "world",
+        geometry: { kind: "box" },
+        material: { kind: "physical", [key]: value },
+      }),
+    ).toThrow(`WebGL mesh material ${key} must be ${message}.`);
+  });
+
   test("preserves explicit built-in values and custom factories", () => {
     const create = () => new BufferGeometry();
 

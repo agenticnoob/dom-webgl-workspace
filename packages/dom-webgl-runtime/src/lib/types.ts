@@ -546,17 +546,26 @@ export type WebGLMeshGeometryDeclaration =
       create: () => BufferGeometry;
     };
 
+type WebGLMeshStandardMaterialFields = {
+  isMaterial?: never;
+  color?: WebGLColorValue;
+  emissive?: WebGLColorValue;
+  emissiveIntensity?: number;
+  opacity?: number;
+  metalness?: number;
+  roughness?: number;
+};
+
 export type WebGLMeshMaterialDeclaration =
-  | {
+  | (WebGLMeshStandardMaterialFields & {
       kind?: "standard";
-      isMaterial?: never;
-      color?: WebGLColorValue;
-      emissive?: WebGLColorValue;
-      emissiveIntensity?: number;
-      opacity?: number;
-      metalness?: number;
-      roughness?: number;
-    }
+    })
+  | (WebGLMeshStandardMaterialFields & {
+      kind: "physical";
+      transmission?: number;
+      thickness?: number;
+      ior?: number;
+    })
   | {
       kind: "basic";
       isMaterial?: never;

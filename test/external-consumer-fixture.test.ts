@@ -47,7 +47,7 @@ describe("external consumer fixture", () => {
     });
   });
 
-  test("generates a real Chromium model and final-canvas capability gate", () => {
+  test("generates real Chromium model and physical-material final-canvas capability gates", () => {
     const root = createFixture();
     const packageJson = JSON.parse(read(root, "package.json"));
     const effects = read(root, "src/effects.ts");
@@ -63,11 +63,22 @@ describe("external consumer fixture", () => {
     expect(effects).toContain("model.sampling.vertices");
     expect(effects).toContain("model.points.create");
     expect(effects).toContain("ctx.pointer.normalizedX");
+    expect(effects).toContain("ctx.object.material?.physical");
+    expect(effects).toContain("physical.transmission");
+    expect(effects).toContain("physical.thickness");
+    expect(effects).toContain("physical.ior");
+    expect(app).toContain('id="fixture.physical"');
+    expect(app).toContain('id="fixture.physical.backdrop"');
+    expect(app).toContain('kind: "physical"');
     expect(browser).toContain("changedPixelCount");
+    expect(browser).toContain("changedPixelCountInRegion");
+    expect(browser).toContain("physicalPixelChange");
+    expect(browser).toContain("targetRegion");
     expect(browser).toContain("solidToPoints");
     expect(browser).toContain("pointsToSolid");
     expect(browser).toContain("pageerror");
     expect(browser).toContain("consoleErrors");
+    expect(browser).toContain("consoleWarnings");
     expect(browser).toContain("attached");
     expect(browser).toContain("toHaveCount(0)");
     expect(config).toContain('name: "chromium"');

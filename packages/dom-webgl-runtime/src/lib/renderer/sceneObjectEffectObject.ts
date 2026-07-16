@@ -46,6 +46,7 @@ export function createSceneObjectEffectObject(
     sourceKind: options.sourceKind,
     source: options.source,
     target: createSceneObjectEffectTarget(options.object),
+    capabilities: options.object.effectCapabilities,
   });
 }
 

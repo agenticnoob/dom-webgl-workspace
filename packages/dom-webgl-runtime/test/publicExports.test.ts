@@ -620,6 +620,20 @@ describe("public package exports", () => {
     const bufferGeometryImportPath = relativeBufferGeometryPath.startsWith(".")
       ? relativeBufferGeometryPath
       : `./${relativeBufferGeometryPath}`;
+    const meshPhysicalMaterialPath = resolve(
+      repoRoot,
+      "node_modules/@types/three/src/materials/MeshPhysicalMaterial.d.ts",
+    );
+    const relativeMeshPhysicalMaterialPath = relative(
+      dirname(fixturePath),
+      meshPhysicalMaterialPath,
+    )
+      .split(sep)
+      .join("/");
+    const meshPhysicalMaterialImportPath =
+      relativeMeshPhysicalMaterialPath.startsWith(".")
+        ? relativeMeshPhysicalMaterialPath
+        : `./${relativeMeshPhysicalMaterialPath}`;
 
     writeFileSync(
       fixturePath,
@@ -664,6 +678,7 @@ describe("public package exports", () => {
 				          WebGLEffectLightFollowMode,
 				          WebGLEffectLightsFacade,
 				          WebGLEffectMaterialFacade,
+				          WebGLEffectPhysicalMaterialFacade,
 				          WebGLEffectMaterialLayerHandle,
 				          WebGLEffectMaterialLayerHost,
 				          WebGLEffectMaterialLayerOptions,
@@ -785,6 +800,7 @@ describe("public package exports", () => {
 	          WebGLTuple3,
 		        } from "${importPath}";
         import type { BufferGeometry } from "${bufferGeometryImportPath}";
+        import type { MeshPhysicalMaterial } from "${meshPhysicalMaterialImportPath}";
         // @ts-expect-error Removed Stage declarations are not public exports.
         import type { ${REMOVED_PRIMITIVE_DECLARATION} } from "${importPath}";
         // @ts-expect-error Removed Stage declarations are not public exports.
@@ -1043,6 +1059,18 @@ describe("public package exports", () => {
           kind: "basic",
           color: 0xffffff,
           opacity: 0.5,
+        } satisfies WebGLMeshMaterialDeclaration;
+        const meshPhysicalMaterial = {
+          kind: "physical",
+          color: "#dbeafe",
+          emissive: "#111827",
+          emissiveIntensity: 0.2,
+          opacity: 1,
+          metalness: 0.1,
+          roughness: 0.2,
+          transmission: 0.82,
+          thickness: 1.25,
+          ior: 1.6,
         } satisfies WebGLMeshMaterialDeclaration;
         const meshPlaneGeometry = {
           kind: "plane",
@@ -1346,6 +1374,7 @@ describe("public package exports", () => {
         scopedPass satisfies WebGLRenderPassDeclaration;
         meshStandardMaterial satisfies WebGLMeshMaterialDeclaration;
         meshBasicMaterial satisfies WebGLMeshMaterialDeclaration;
+        meshPhysicalMaterial satisfies WebGLMeshMaterialDeclaration;
         meshPlaneGeometry satisfies WebGLMeshGeometryDeclaration;
         meshBoxGeometry satisfies WebGLMeshGeometryDeclaration;
         meshSphereGeometry satisfies WebGLMeshGeometryDeclaration;
@@ -1556,6 +1585,7 @@ describe("public package exports", () => {
         declare const rawThreeCamera: unknown;
         declare const rawThreeMesh: unknown;
         declare const rawThreeMaterial: unknown;
+        declare const rawThreePhysicalMaterial: MeshPhysicalMaterial;
         declare const rawThreeLight: unknown;
         // @ts-expect-error camera descriptors do not accept raw Three camera handles.
         ({ id: "raw.camera", sceneId: "world", camera: rawThreeCamera } satisfies WebGLCameraDeclaration);
@@ -1563,6 +1593,8 @@ describe("public package exports", () => {
         ({ id: "raw.mesh", sceneId: "world", geometry: { kind: "plane" }, mesh: rawThreeMesh } satisfies WebGLMeshDeclaration);
         // @ts-expect-error mesh material descriptors do not accept raw Three material handles.
         ({ id: "raw.material", sceneId: "world", geometry: { kind: "plane" }, material: rawThreeMaterial } satisfies WebGLMeshDeclaration);
+        // @ts-expect-error physical mesh material declarations do not accept raw MeshPhysicalMaterial handles.
+        ({ id: "raw.physical", sceneId: "world", geometry: { kind: "box" }, material: rawThreePhysicalMaterial } satisfies WebGLMeshDeclaration);
         // @ts-expect-error light descriptors do not accept raw Three light handles.
         ({ id: "raw.light", sceneId: "world", kind: "point", light: rawThreeLight } satisfies WebGLLightDeclaration);
         // @ts-expect-error placement does not accept raw Object3D handles.
@@ -1631,6 +1663,7 @@ describe("public package exports", () => {
         declare const publicCtx: WebGLEffectContext;
 	        publicCtx.object satisfies WebGLEffectObjectHandle;
 	        publicCtx.object.material satisfies WebGLEffectMaterialFacade | undefined;
+	        publicCtx.object.material?.physical satisfies WebGLEffectPhysicalMaterialFacade | undefined;
 	        publicCtx.object.lights satisfies WebGLEffectLightsFacade | undefined;
 	        publicCtx.object.animation satisfies WebGLEffectAnimationFacade | undefined;
 	        publicCtx.resources satisfies WebGLEffectResourceScope;

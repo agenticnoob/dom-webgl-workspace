@@ -10,11 +10,14 @@
 
 **Execution note (2026-07-17):** app implementation and automated gates pass;
 desktop production interaction is browser-verified, while complete mobile and
-reduced-motion browser acceptance remain pending. A later real-runtime audit
-found that scene-native `WebGLMesh` effects receive no `ctx.object.material`.
-Therefore this plan's injected-facade material/emissive tests prove adapter
-intent only; production semantic material mutation remains a separately tracked
-package capability gap.
+reduced-motion browser acceptance remain pending. The later package capability
+work now injects a controlled material facade into scene-native `WebGLMesh`;
+real runtime and production-browser evidence confirm that semantic material and
+emissive writes reach the runtime-owned material. This completed plan still
+performs one phase-wide tetrahedron material switch at attempt start; its radial
+shader is background/Ghost-only. The approved next direction is a separate
+screen-space tetrahedron diffusion design requiring a general managed-mesh
+mask/program capability. It is not implemented by this plan.
 
 ## Global Constraints
 

@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { BufferGeometry } from "three/src/core/BufferGeometry.js";
+import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
+import { Mesh } from "three/src/objects/Mesh.js";
 
 import { defineWebGLSceneObjectEffect } from "../../../src/lib/effects/effectAuthoring";
 import { createWebGLEffectRegistry } from "../../../src/lib/effects/effectRegistry";
@@ -147,6 +149,76 @@ describe("stage object registry", () => {
     expect(plane.dispose).toHaveBeenCalledTimes(1);
     expect(sphere.dispose).toHaveBeenCalledTimes(1);
     expect(disposeResource).toHaveBeenCalledTimes(1);
+  });
+
+  test("injects a managed material capability for real scene-native meshes", () => {
+    const objects: WebGLSceneObject[] = [];
+    const adapter = {
+      addObject(object: WebGLSceneObject) {
+        objects.push(object);
+      },
+      removeObject: vi.fn(),
+      render: vi.fn(),
+    } satisfies WebGLSceneAdapter;
+    const sawMaterial = vi.fn();
+    const registry = createStageObjectRegistry({
+      getSceneAdapter: () => adapter,
+      effectRegistry: createWebGLEffectRegistry([
+        defineWebGLSceneObjectEffect({
+          kind: "app.physicalMesh",
+          source: "mesh",
+          update(ctx) {
+            sawMaterial(ctx.object.material, ctx.object);
+            ctx.object.material?.color.set("#112233");
+            ctx.object.material?.emissive.set("#334455", 0.7);
+            if (ctx.object.material) {
+              ctx.object.material.opacity = 0.9;
+              ctx.object.material.metalness = 0.3;
+              ctx.object.material.roughness = 0.4;
+            }
+            if (ctx.object.material?.physical) {
+              ctx.object.material.physical.transmission = 0.75;
+              ctx.object.material.physical.thickness = 1.1;
+              ctx.object.material.physical.ior = 1.6;
+            }
+          },
+        }),
+      ]),
+    });
+
+    registry.registerMesh({
+      id: "glass",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      material: { kind: "physical" },
+      effects: [{ kind: "app.physicalMesh" }],
+    });
+    registry.updateEffects(createFrameInput());
+
+    expect(sawMaterial).toHaveBeenCalledTimes(1);
+    expect(objects[0]?.object3D).toBeInstanceOf(Mesh);
+    const mesh = objects[0]?.object3D;
+    if (!(mesh instanceof Mesh)) {
+      throw new Error("Expected a real Three Mesh.");
+    }
+    expect(mesh.material).toBeInstanceOf(MeshPhysicalMaterial);
+    if (!(mesh.material instanceof MeshPhysicalMaterial)) {
+      throw new Error("Expected a real MeshPhysicalMaterial.");
+    }
+    expect(mesh.material.color.getHexString()).toBe("112233");
+    expect(mesh.material.emissive.getHexString()).toBe("334455");
+    expect(mesh.material).toMatchObject({
+      emissiveIntensity: 0.7,
+      opacity: 0.9,
+      metalness: 0.3,
+      roughness: 0.4,
+      transmission: 0.75,
+      thickness: 1.1,
+      ior: 1.6,
+    });
+
+    registry.unregisterMesh("glass");
+    registry.unregisterMesh("glass");
   });
 
   test("validates scenes before invoking custom geometry and owns successful disposal", () => {

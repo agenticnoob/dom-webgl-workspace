@@ -2,15 +2,19 @@
 
 **Date:** 2026-07-16
 
-**Status:** Implemented with one documented package runtime gap
+**Status:** Implemented; material facade gap resolved; spatial mesh diffusion not implemented
 
 **Post-implementation note (2026-07-17):** the hold state machine, signal
-transport, radial shader, interaction, and motion behavior are implemented. The
-tetrahedron effect's semantic material/emissive writes are authored but do not
-run in production because the real scene-native `WebGLMesh` effect path does not
-currently expose `ctx.object.material`. Focused hero tests inject that facade;
-they are adapter coverage, not real runtime material evidence. The package gap
-is intentionally deferred to a separate general-capability task.
+transport, radial shader, interaction, and motion behavior are implemented. A
+later package change now injects the controlled `ctx.object.material` facade for
+scene-native `WebGLMesh`, and real-runtime plus production-browser evidence
+confirms that the semantic material/emissive writes reach the runtime-owned
+material. This design still changes the whole tetrahedron material immediately
+when an attempt becomes active; only the background and Ghost Cursor use the
+per-fragment radial mask. The approved follow-up direction is synchronized
+screen-space diffusion across the tetrahedron surface. It is outside this spec,
+not implemented, and requires a separately designed general managed-mesh
+mask/program capability rather than raw shader ownership.
 
 ## Goal
 

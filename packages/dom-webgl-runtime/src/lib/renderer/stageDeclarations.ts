@@ -34,6 +34,18 @@ export type NormalizedMeshMaterialDeclaration =
       roughness: number;
     }
   | {
+      kind: "physical";
+      color: WebGLColorValue;
+      emissive: WebGLColorValue;
+      emissiveIntensity: number;
+      opacity: number;
+      metalness: number;
+      roughness: number;
+      transmission: number;
+      thickness: number;
+      ior: number;
+    }
+  | {
       kind: "basic";
       color: WebGLColorValue;
       opacity: number;
@@ -344,15 +356,63 @@ function normalizeMeshMaterialDeclaration(
     };
   }
 
-  return {
-    kind: "basic",
-    color: declaration.color ?? "#ffffff",
-    opacity: normalizeNonNegativeNumber(
-      declaration.opacity,
-      1,
-      "mesh material opacity",
-    ),
-  };
+  switch (declaration.kind) {
+    case "basic":
+      return {
+        kind: "basic",
+        color: declaration.color ?? "#ffffff",
+        opacity: normalizeNonNegativeNumber(
+          declaration.opacity,
+          1,
+          "mesh material opacity",
+        ),
+      };
+    case "physical":
+      return {
+        kind: "physical",
+        color: declaration.color ?? "#ffffff",
+        emissive: declaration.emissive ?? "#000000",
+        emissiveIntensity: normalizeNonNegativeNumber(
+          declaration.emissiveIntensity,
+          1,
+          "mesh material emissiveIntensity",
+        ),
+        opacity: normalizeNonNegativeNumber(
+          declaration.opacity,
+          1,
+          "mesh material opacity",
+        ),
+        metalness: normalizeNonNegativeNumber(
+          declaration.metalness,
+          0,
+          "mesh material metalness",
+        ),
+        roughness: normalizeNonNegativeNumber(
+          declaration.roughness,
+          1,
+          "mesh material roughness",
+        ),
+        transmission: normalizeNumberInRange(
+          declaration.transmission,
+          0,
+          0,
+          1,
+          "mesh material transmission",
+        ),
+        thickness: normalizeNonNegativeNumber(
+          declaration.thickness,
+          0,
+          "mesh material thickness",
+        ),
+        ior: normalizeNumberInRange(
+          declaration.ior,
+          1.5,
+          1,
+          2.333,
+          "mesh material ior",
+        ),
+      };
+  }
 }
 
 function normalizePublicId(value: string, kind: string): string {
@@ -489,6 +549,26 @@ function normalizeNonNegativeNumber(
 
   if (!Number.isFinite(value) || value < 0) {
     throw new Error(`WebGL ${label} must be a finite non-negative number.`);
+  }
+
+  return value;
+}
+
+function normalizeNumberInRange(
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+  label: string,
+): number {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isFinite(value) || value < minimum || value > maximum) {
+    throw new Error(
+      `WebGL ${label} must be between ${minimum} and ${maximum}.`,
+    );
   }
 
   return value;

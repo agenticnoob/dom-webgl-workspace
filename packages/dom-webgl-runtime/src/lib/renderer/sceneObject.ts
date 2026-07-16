@@ -1,8 +1,11 @@
+import type { WebGLEffectObjectCapabilities } from "../effects/effectObjectCapabilities";
+
 import type { ProjectedDOMRect } from "./domProjection";
 
 export type WebGLSceneObject = {
   readonly key: string;
   readonly object3D?: unknown;
+  readonly effectCapabilities?: WebGLEffectObjectCapabilities;
   ordering?: WebGLSceneObjectOrdering;
   setVisible(visible: boolean): void;
   updateLayout(layout: ProjectedDOMRect): void;

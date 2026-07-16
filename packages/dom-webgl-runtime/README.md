@@ -63,6 +63,38 @@ export function App() {
 
 The public API is declaration-driven and runtime-owned. It intentionally does not expose raw Three.js renderer, scene, camera, material, loader, or React Three Fiber escape hatches.
 
+## Managed mesh materials
+
+`WebGLMesh` keeps `standard` as its default and also supports `basic` plus an
+explicit `physical` opt-in. Physical meshes create a real runtime-owned
+`MeshPhysicalMaterial`; they do not upgrade standard meshes globally.
+
+```tsx
+<WebGLMesh
+  id="glass"
+  geometry={{ kind: "box", size: [2, 2, 0.2] }}
+  material={{
+    kind: "physical",
+    color: "#dbeafe",
+    opacity: 1,
+    roughness: 0.08,
+    transmission: 0.9,
+    thickness: 1.2,
+    ior: 1.6,
+  }}
+  effects={[{ kind: "app.glass" }]}
+/>
+```
+
+Scene-object effects receive the controlled facade at
+`ctx.object.material`. `material.physical` exists only when every controlled
+material entry is a real physical material. Effects may update color,
+emissive, opacity, metalness, roughness, transmission, thickness, and IOR, but
+cannot access, replace, or dispose the raw Three material. A scene-native mesh
+does not gain material-layer/program authoring; `createLayer(...)` still
+requires a source-backed material layer host. `transmission > 0` normally works
+with `opacity: 1`; transmission does not implicitly alter opacity.
+
 ## License
 
 MIT

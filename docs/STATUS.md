@@ -1,6 +1,6 @@
 # Current Status
 
-**Last reviewed against:** 2026-07-16 source and published alpha.1 registry
+**Last reviewed against:** 2026-07-17 source and published alpha.1 registry
 
 This is the current-truth summary. Completed execution plans and older
 phase records are archived under [archive/](./archive/).
@@ -49,13 +49,13 @@ pointer press must hit the public `WebGLMesh` (`hitTest: "mesh"`,
 `expanding`. Expansion takes `1000 ms`; a full cancellation retracts in `300 ms`,
 with proportional retraction, same-origin resume, geometric far-corner commit,
 and an `awaiting-release` gate that prevents repeated toggles while held. The
-background/Ghost shader consumes those six progress signals. The tetrahedron
-effect is authored to request matching material/emissive changes, but the real
-scene-native `WebGLMesh` runtime currently supplies no `ctx.object.material`, so
-those conditional writes are skipped. The aspect-correct circle is rendered in
-WebGL; CSS remains layout and pointer routing only. No package code, mutable
-theme store, DOM event bus, React frame state, or third non-light author color
-was added.
+background/Ghost shader consumes those six progress signals. The scene-native
+`WebGLMesh` path now injects the controlled material facade, so the tetrahedron
+effect's matching material/emissive writes reach its real runtime-owned
+`MeshStandardMaterial`. The aspect-correct circle is rendered in WebGL; CSS
+remains layout and pointer routing only. No raw Three handle, mutable theme
+store, DOM event bus, React frame state, or third non-light author color was
+added.
 
 **Automated-verified (2026-07-17):** focused app tests cover all hold phases,
 timing, invalid input, geometric commit, proportional retract, resume, release
@@ -74,18 +74,38 @@ primary mesh presses showed a circular contact-origin reveal; 25%, 50%, and
 approximately 90% early releases retracted, re-press during retraction resumed,
 an approximately one-second hold committed, continued holding did not toggle
 again, and release followed by a second hold returned to the initial scheme.
+After the runtime facade fix, a focused repeat captured real production canvas
+states for `initial -> inverted -> initial`: the background sample was
+`184 -> 95 -> 184`, representative tetrahedron face samples became lighter in
+the inverted state and returned dark, one canvas remained mounted, and the
+browser console stayed at zero errors/warnings. This is hero regression evidence,
+not acceptance of a new physical-material treatment; the hero descriptor is
+still `standard`.
 The 390×844 production initial frame also rendered one canvas with a clean
 console, but complete mobile interaction and `prefers-reduced-motion` browser
 acceptance remain pending. Superseded scroll-cover evidence is not evidence for
 those remaining gates.
 
-**Open runtime gap:** the public facade type includes controlled material
-operations, but the actual scene-native `WebGLMesh` effect path does not wire a
-material facade into `ctx.object`. Hero effect tests inject a mock facade and
-therefore do not prove real runtime mutation. Production currently keeps the
-tetrahedron's declaration-owned initial material/emissive while the radial
-background toggles. A general package fix needs real runtime integration tests;
-it must not be replaced by app-local or raw Three.js access.
+**Runtime gap resolved (2026-07-17):** every managed scene-native `WebGLMesh`
+now carries an internal effect-capability bundle whose material entry is a
+controlled facade over the runtime-owned Three material. The facade is injected
+directly into the scene-object effect object; no fake source handle or raw
+`Mesh`/`Material` reference is exposed. The real `createPipelineRuntime` test
+uses the default managed mesh factory and real Three classes, proves descriptor
+initial values plus facade writes on `MeshPhysicalMaterial`, verifies raw
+object/material/renderer keys are absent, covers standard/basic regressions,
+and confirms geometry/material disposal remains exactly once.
+
+The descriptor surface now adds explicit `material.kind: "physical"` with
+`transmission` `[0,1]`, finite non-negative `thickness`, and `ior` `[1,2.333]`.
+Standard remains the default and still creates `MeshStandardMaterial`; basic
+still creates `MeshBasicMaterial`. Only real physical material sets expose
+`ctx.object.material.physical`, including the conservative all-physical array
+rule. Scene-native meshes still do not receive a material layer/program host.
+The installed-tarball Chromium gate changes all three physical values through
+the public scene-object facade and records `58,225` changed pixels in the
+declared target region, zero console/page errors, zero warnings, and canvas
+`1 -> 0 -> 1`.
 
 **Implemented:** `apps/hero-next` is a private Next.js App Router workspace that
 consumes only the public Viselora package entrypoints. It keeps the reserved
@@ -127,8 +147,8 @@ palette with no purple visual sources: initial background/foreground are
 `#B8B8B8` / `#5F5F5F`, and inverted roles swap those exact inputs. The shader
 receives base/target semantic roles plus the shared radial origin/radius/edge.
 The tetrahedron effect requests the target foreground during an active attempt
-and the committed foreground otherwise, but those material/emissive writes await
-the real runtime facade connection. Declaration-owned emissive intensity remains
+and the committed foreground otherwise; those material/emissive writes now
+reach the real runtime-owned standard material. Declaration-owned emissive intensity remains
 `0.06`. Initial opacity remains `0.92`,
 metalness `0.9`, and roughness `0.12`;
 the opacity is ordinary alpha blending, not physical transmission or refraction.
@@ -137,6 +157,20 @@ directional key uses `#f2f2f2`, position `[1.2, 1.2, 2]`, and intensity `4.8`;
 the neutral rim uses `#b8b8b8`, position `[1.8, -1.4, 2]`, and intensity `2.2`.
 The smoke composites by mixing the resolved background toward the resolved
 foreground tint; it does not own fixed palette values.
+
+**Open transition gap:** the background and Ghost Cursor currently consume the
+shared origin/radius signals through a per-fragment pixel-space radial mask.
+The tetrahedron does not: `resolveHeroTransitionVisual()` selects the target
+foreground for the whole material whenever the phase is not `idle`, so its
+color and emissive change as a hard semantic step at attempt start and remain
+on the target through retraction until cancellation. The approved follow-up
+direction is a screen-space, per-fragment tetrahedron diffusion synchronized to
+the same radial signals, including reverse retraction while preserving managed
+standard/physical lighting. It is not implemented or verified. The current
+managed mesh material facade exposes controlled scalar fields but no mask,
+material program, or layer host, so the next task must first design the
+smallest general public capability; CSS, raw Three ownership, private imports,
+duplicate meshes, and app-specific runtime branches remain out of bounds.
 
 **Implemented:** runtime render quality is now a controlled public declaration.
 Existing consumers keep `antialias: false` and maximum DPR `1.5` by default;
@@ -157,10 +191,11 @@ hero-next edge smoothness remains user-owned visual QA rather than an agent clai
 **Open visual gap:** user QA does not accept the current alpha experiment as
 light passing through the tetrahedron. With `metalness: 0.9`, `roughness: 0.12`,
 and strong scene lights, the 92%-opaque standard material preserves bright
-metallic highlights and reads as white/milky. Public `WebGLMesh` materials do
-not currently expose physical transmission, thickness, or IOR, so a true
-refractive treatment remains a package capability gap rather than an app-local
-parameter adjustment.
+metallic highlights and reads as white/milky. The package now supports an
+explicit physical descriptor, but `hero-next` intentionally remains on its
+existing standard descriptor; choosing physical values and accepting the
+refractive treatment remains separate hero visual QA, not part of this runtime
+capability change.
 
 **Implemented:** the existing background `WebGLTarget` effect owns a
 mouse-follow point light through `ctx.object.lights.point(...)`. It maps the
@@ -233,8 +268,8 @@ GLB asset -> WebGLModel
   - `model/glb`
 - Managed `ctx.object` controls:
   - transform, visibility, opacity
-  - material facade for DOM/media/model source capabilities; scene-native
-    `WebGLMesh` facade wiring remains an open runtime gap
+  - material facade for DOM/media/model source capabilities and scene-native
+    `WebGLMesh`; physical controls appear only for real physical materials
   - runtime-owned lights
   - animation facade for GLB clips
   - surface, text, texture, video, model modules
@@ -291,8 +326,9 @@ GLB asset -> WebGLModel
   - the advanced `custom` geometry descriptor accepts a stable factory that
     returns a fresh `BufferGeometry`; the consumer declares `three` directly,
     while runtime validation, ownership, and disposal remain managed
-  - supported stage materials are descriptor-only `standard` and `basic`
-    solid-color materials
+  - supported stage materials are descriptor-only `standard`, `basic`, and
+    explicit `physical`; standard remains the default and physical adds
+    transmission, thickness, and IOR without changing opacity implicitly
   - supported scene-owned lights are `ambient`, `directional`, and `point`
   - stage meshes, geometry, materials, groups, light targets, and lights are
     runtime-owned and disposed by unregister, scene unregister, or runtime

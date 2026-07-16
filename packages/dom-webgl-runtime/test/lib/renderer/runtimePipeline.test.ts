@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { AnimationClip } from "three/src/animation/AnimationClip.js";
+import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
+import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
+import { MeshStandardMaterial } from "three/src/materials/MeshStandardMaterial.js";
 import { Group } from "three/src/objects/Group.js";
+import { Mesh } from "three/src/objects/Mesh.js";
 
 import type { ScrollStateController } from "../../../src/lib/input/frameInput";
 import type { PointerController } from "../../../src/lib/input/pointerController";
 import type { ScrollControllerGateTarget } from "../../../src/lib/input/scrollController";
-import { defineWebGLEffect } from "../../../src/lib/effects/effectAuthoring";
+import {
+  defineWebGLEffect,
+  defineWebGLSceneObjectEffect,
+} from "../../../src/lib/effects/effectAuthoring";
 import type { Renderable } from "../../../src/lib/render/renderable";
 import type {
   WebGLSceneAdapter,
@@ -3913,6 +3920,208 @@ describe("runtime pipeline sync", () => {
     runtime.dispose();
   });
 
+  test("real runtime scene-object effects mutate the real physical mesh material through the controlled facade", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: sceneAdapter },
+    });
+    const initialMaterial: Array<Record<string, unknown>> = [];
+    const publicBoundary: Array<Record<string, boolean>> = [];
+    const physicalEffect = defineWebGLSceneObjectEffect({
+      kind: "test.physicalMesh",
+      source: "mesh",
+      update(ctx) {
+        const material = ctx.object.material;
+        if (!material?.physical) {
+          throw new Error("Expected a physical material facade.");
+        }
+        initialMaterial.push({
+          color: material.color.value,
+          emissive: material.emissive.value,
+          emissiveIntensity: material.emissive.intensity,
+          opacity: material.opacity,
+          metalness: material.metalness,
+          roughness: material.roughness,
+          transmission: material.physical.transmission,
+          thickness: material.physical.thickness,
+          ior: material.physical.ior,
+        });
+        publicBoundary.push({
+          object3D: "object3D" in ctx.object,
+          mesh: "mesh" in ctx.object,
+          renderer: "renderer" in ctx.object,
+          rawMaterial: "rawMaterial" in ctx.object,
+          facadeRawMaterial: "material" in material,
+        });
+
+        material.color.set("#123456");
+        material.emissive.set("#654321", 1.2);
+        material.opacity = 0.88;
+        material.metalness = 0.31;
+        material.roughness = 0.27;
+        material.physical.transmission = 0.73;
+        material.physical.thickness = 1.6;
+        material.physical.ior = 1.72;
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      effects: [physicalEffect],
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+
+    runtime.registerMesh({
+      id: "runtime.glass",
+      sceneId: "world",
+      geometry: { kind: "tetrahedron", radius: 1.2, detail: 0 },
+      material: {
+        kind: "physical",
+        color: "#dbeafe",
+        emissive: "#111827",
+        emissiveIntensity: 0.2,
+        opacity: 1,
+        metalness: 0.12,
+        roughness: 0.18,
+        transmission: 0.82,
+        thickness: 1.25,
+        ior: 1.6,
+      },
+      effects: [{ kind: "test.physicalMesh" }],
+    });
+    const object = readSceneObject(sceneAdapter, "runtime.glass");
+    expect(object.object3D).toBeInstanceOf(Mesh);
+    if (!(object.object3D instanceof Mesh)) {
+      throw new Error("Expected a real Three Mesh.");
+    }
+    expect(object.object3D.material).toBeInstanceOf(MeshPhysicalMaterial);
+    if (!(object.object3D.material instanceof MeshPhysicalMaterial)) {
+      throw new Error("Expected a real MeshPhysicalMaterial.");
+    }
+    const geometryDispose = vi.spyOn(object.object3D.geometry, "dispose");
+    const materialDispose = vi.spyOn(object.object3D.material, "dispose");
+
+    await runtime.sync();
+
+    expect(initialMaterial).toEqual([
+      {
+        color: "#dbeafe",
+        emissive: "#111827",
+        emissiveIntensity: 0.2,
+        opacity: 1,
+        metalness: 0.12,
+        roughness: 0.18,
+        transmission: 0.82,
+        thickness: 1.25,
+        ior: 1.6,
+      },
+    ]);
+    expect(publicBoundary).toEqual([
+      {
+        object3D: false,
+        mesh: false,
+        renderer: false,
+        rawMaterial: false,
+        facadeRawMaterial: false,
+      },
+    ]);
+    expect(object.object3D.material.color.getHexString()).toBe("123456");
+    expect(object.object3D.material.emissive.getHexString()).toBe("654321");
+    expect(object.object3D.material).toMatchObject({
+      isMeshPhysicalMaterial: true,
+      emissiveIntensity: 1.2,
+      opacity: 0.88,
+      metalness: 0.31,
+      roughness: 0.27,
+      transmission: 0.73,
+      thickness: 1.6,
+      ior: 1.72,
+    });
+
+    runtime.unregisterMesh("runtime.glass");
+    runtime.unregisterMesh("runtime.glass");
+    runtime.dispose();
+    expect(geometryDispose).toHaveBeenCalledTimes(1);
+    expect(materialDispose).toHaveBeenCalledTimes(1);
+  });
+
+  test("omitted standard and basic meshes keep their material classes without physical facade support", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: sceneAdapter },
+    });
+    const physicalSupport = new Map<
+      string,
+      { material: boolean; physical: boolean }
+    >();
+    const probe = defineWebGLSceneObjectEffect({
+      kind: "test.materialClassProbe",
+      source: "mesh",
+      update(ctx) {
+        physicalSupport.set(ctx.objectId, {
+          material: ctx.object.material !== undefined,
+          physical: ctx.object.material?.physical !== undefined,
+        });
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      effects: [probe],
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const effect = [{ kind: "test.materialClassProbe" }] as const;
+
+    runtime.registerMesh({
+      id: "material.omitted",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      effects: effect,
+    });
+    runtime.registerMesh({
+      id: "material.standard",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      material: { kind: "standard" },
+      effects: effect,
+    });
+    runtime.registerMesh({
+      id: "material.basic",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      material: { kind: "basic" },
+      effects: effect,
+    });
+
+    await runtime.sync();
+
+    expect(readMeshMaterial(sceneAdapter, "material.omitted")).toBeInstanceOf(
+      MeshStandardMaterial,
+    );
+    expect(readMeshMaterial(sceneAdapter, "material.standard")).toBeInstanceOf(
+      MeshStandardMaterial,
+    );
+    expect(readMeshMaterial(sceneAdapter, "material.basic")).toBeInstanceOf(
+      MeshBasicMaterial,
+    );
+    expect(physicalSupport).toEqual(
+      new Map([
+        ["material.omitted", { material: true, physical: false }],
+        ["material.standard", { material: true, physical: false }],
+        ["material.basic", { material: true, physical: false }],
+      ]),
+    );
+    runtime.dispose();
+  });
+
   test("runtime advances scene-native physics bodies and exposes debug summaries", async () => {
     let now = 0;
     const mainAdapter = createObjectRecordingSceneAdapter();
@@ -5585,6 +5794,17 @@ function readSceneObject(
   }
 
   return object;
+}
+
+function readMeshMaterial(
+  sceneAdapter: { objects: WebGLSceneObject[] },
+  key: string,
+): unknown {
+  const object3D = readSceneObject(sceneAdapter, key).object3D;
+  if (!(object3D instanceof Mesh)) {
+    throw new Error(`Expected scene object ${key} to be a Three Mesh.`);
+  }
+  return object3D.material;
 }
 
 function readSceneObjectLastLayout(

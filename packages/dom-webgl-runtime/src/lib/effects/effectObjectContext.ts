@@ -5,7 +5,10 @@ import type {
   WebGLSceneObjectEffectSourceKind,
 } from "./effectAuthoring";
 import type { WebGLEffectObjectHandle } from "./effectObject";
-import { createEffectObjectCapabilities } from "./effectObjectCapabilities";
+import {
+  createEffectObjectCapabilities,
+  type WebGLEffectObjectCapabilities,
+} from "./effectObjectCapabilities";
 import { createEffectObjectTransform } from "./effectObjectTransform";
 
 export type WebGLEffectObjectOptions = {
@@ -13,6 +16,7 @@ export type WebGLEffectObjectOptions = {
   source?: WebGLEffectSourceHandle;
   target?: WebGLEffectTargetHandle;
   lights?: WebGLEffectObjectHandle["lights"];
+  capabilities?: WebGLEffectObjectCapabilities;
 };
 
 export function createWebGLEffectObject(
@@ -40,5 +44,6 @@ export function createWebGLEffectObject(
     },
     lights: options.lights,
     ...capabilities,
+    ...options.capabilities,
   };
 }

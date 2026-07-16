@@ -103,7 +103,6 @@ describe("hero Ghost Cursor effects", () => {
       ...expanding,
       coverage: 0.25,
       phase: "retracting",
-      shakeActive: false,
     });
     expect(resolveHeroGhostProgramState(reader, viewport)).toMatchObject({
       baseBackgroundColor: "#B8B8B8",

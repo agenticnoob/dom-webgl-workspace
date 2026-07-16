@@ -67,6 +67,32 @@ const tetrahedron = { kind: "tetrahedron", radius: 1 } as const;
 </>;
 ```
 
+Material declarations keep `standard` as the omitted/default path. Use
+`kind: "physical"` only when real transmission is required:
+
+```tsx
+<WebGLMesh
+  id="glass"
+  scene="story.scene"
+  geometry={{ kind: "box", size: [2, 2, 0.2] }}
+  material={{
+    kind: "physical",
+    color: "#dbeafe",
+    opacity: 1,
+    roughness: 0.08,
+    transmission: 0.9,
+    thickness: 1.2,
+    ior: 1.6,
+  }}
+  effects={[{ kind: "app.glass" }]}
+/>
+```
+
+Physical defaults are transmission `0`, thickness `0`, and IOR `1.5`.
+Transmission is `[0,1]`, thickness is finite non-negative, and IOR is
+`[1,2.333]`. Transmission does not implicitly change opacity; it normally uses
+`opacity: 1`.
+
 Built-in geometry defaults:
 
 | Kind | Defaults |
@@ -136,6 +162,29 @@ kind from stable scene-object `effects`.
 import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
 const hover = defineWebGLSceneObjectEffect({ kind: "app.sceneHover", update(ctx) { ctx.object.opacity = ctx.objectPointer.isInside ? 1 : 0.7; } });
 ```
+
+For `WebGLMesh`, `ctx.object.material` is the controlled facade over the real
+runtime-owned material. Base color/emissive/opacity/metalness/roughness writes
+reach standard or physical materials. `material.physical` exists only when all
+controlled entries are real physical materials:
+
+```ts
+const glass = defineWebGLSceneObjectEffect({
+  kind: "app.glass",
+  source: "mesh",
+  update(ctx) {
+    const physical = ctx.object.material?.physical;
+    if (!physical) return;
+    physical.transmission = 0.9;
+    physical.thickness = 1.2;
+    physical.ior = 1.6;
+  },
+});
+```
+
+The facade never exposes raw `Material`/`Mesh` handles and does not transfer
+replacement or disposal ownership. A scene-native mesh has no source-backed
+material layer host, so this capability does not enable material programs.
 
 **Direct verification:** assert managed pick state, touch alternative, pixels
 and resource disposal.

@@ -29,9 +29,12 @@ describe("WebGLMesh", () => {
     const { root } = createTestRoot();
     const geometry = { kind: "tetrahedron" as const, radius: 2, detail: 1 };
     const material = {
-      kind: "standard" as const,
+      kind: "physical" as const,
       color: "#f5f1e8",
       roughness: 0.72,
+      transmission: 0.8,
+      thickness: 1.2,
+      ior: 1.6,
     };
     const effects = [{ kind: "app.mesh" }];
     const interaction = { pickable: true as const };

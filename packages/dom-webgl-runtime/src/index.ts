@@ -66,6 +66,7 @@ export type {
 export type {
   WebGLEffectMaterialFacade,
   WebGLEffectMaterialLayerOptions,
+  WebGLEffectPhysicalMaterialFacade,
 } from "./lib/effects/effectMaterial";
 export type {
   WebGLEffectAnimationBlendOptions,

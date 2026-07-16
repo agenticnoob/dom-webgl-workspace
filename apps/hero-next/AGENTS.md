@@ -58,19 +58,21 @@ DOM scanning, a second renderer, or an app-specific branch in runtime code.
 
 Known current limits relevant to the studio hero:
 
-- Mesh materials expose basic/standard color and PBR scalar properties, but
-  no gradient, texture mask, stage material program, physical transmission,
-  thickness, or index-of-refraction controls.
-- Scene-native `WebGLMesh` effects do not currently receive the declared
-  managed material facade in the real runtime. This applies to every managed
-  mesh geometry kind, not only stage planes.
+- Mesh materials expose basic/standard color and PBR scalar properties plus an
+  explicit physical descriptor with transmission, thickness, and IOR. They do
+  not expose gradients, texture masks, or stage material programs. The current
+  hero descriptor intentionally remains `standard`; do not opt it into
+  `physical` without a separate visual decision.
+- Scene-native `WebGLMesh` effects receive the controlled managed material
+  facade for every managed geometry kind. The facade does not expose raw Three
+  handles or grant material replacement/disposal or layer/program ownership.
 - Managed light declarations do not expose cast/receive shadow configuration.
 - `WebGLMesh` provides `plane`, `box`, `sphere`, `cylinder`, `cone`, and
   `tetrahedron` descriptors plus the controlled custom `BufferGeometry`
   factory; scene fog is not a public declaration.
 
 Use the capabilities that exist—managed scenes, cameras, `WebGLMesh` geometry,
-models, basic/standard materials, lights, transforms, timelines,
+models, basic/standard/physical materials, lights, transforms, timelines,
 postprocessing, and app-owned public effects—and report the boundary when they
 are insufficient.
 
@@ -106,11 +108,24 @@ The only non-light author colors are centralized in
 `src/heroTransitionConfig.ts`: `light=#B8B8B8` and `dark=#5F5F5F`. Initial roles
 are light background/dark foreground; inverted roles are dark background/light
 foreground. Ghost Cursor consumes the semantic foreground. The tetrahedron
-effect is authored to request the same semantic material color and emissive, but
-the current scene-native `WebGLMesh` runtime does not provide
-`ctx.object.material`, so those conditional writes are skipped in production.
+effect requests the same semantic material color and emissive. The scene-native
+`WebGLMesh` runtime now injects `ctx.object.material`, so those writes reach the
+real runtime-owned standard material in production.
 Key, rim, and pointer light colors are explicit lighting exceptions and must not
 be routed through the palette resolver.
+
+The current transition is asymmetric at the material boundary.
+The background and Ghost Cursor use the shared origin/radius signals in a
+per-fragment pixel-space radial mask, while `resolveHeroTransitionVisual()`
+selects the target tetrahedron foreground for the entire material whenever the
+phase is not `idle`. The tetrahedron therefore changes as one hard semantic
+step at attempt start and retains that target through retraction until
+cancellation. This is current implementation truth, not spatial mesh
+diffusion. The approved next design direction is to synchronize a
+screen-space, per-fragment tetrahedron transition with the existing radial
+signals. The current managed mesh material facade has no mask, material-program,
+or layer host, so that direction requires a separately designed general public
+capability. Do not imitate it with CSS, raw Three handles, or duplicate meshes.
 
 `WebGLScrollRuntime`, `heroSmoothScroll`, Lenis, GSAP, and ScrollTrigger remain in
 place for future scrolling. The obsolete transition `WebGLScrollTimeline`, pin,
@@ -145,11 +160,12 @@ expansion and stops on release, retraction, or commit. Reduced motion stays at
 timing, radial expansion/retraction, resume, release gate, and reversible scheme
 semantics. The declaration-owned material values are emissive intensity `0.06`,
 initial opacity `0.92`, metalness `0.9`, and roughness `0.12`; dynamic semantic
-material/emissive synchronization remains blocked on the public runtime facade.
+material/emissive synchronization now runs through the public runtime facade.
 The opacity value is an alpha-transparency experiment, not physical light
 transmission. User visual QA reports that the strongly lit metallic surface
 looks white/milky rather than transparently refractive, so that treatment is
-not accepted as the requested light-through-solid effect. Camera position is
+not accepted as the requested light-through-solid effect. The new package-level
+physical capability does not itself approve hero physical values. Camera position is
 `[0, 0, 3.2]` with target `[0, 0.32, 0]`.
 
 Current verified design and completed execution record:

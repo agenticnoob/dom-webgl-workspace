@@ -1,11 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
 import { BufferGeometry } from "three/src/core/BufferGeometry.js";
 import { Float32BufferAttribute } from "three/src/core/BufferAttribute.js";
+import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
+import { Mesh } from "three/src/objects/Mesh.js";
 
 import type {
   NormalizedLightDeclaration,
   NormalizedMeshDeclaration,
   NormalizedMeshGeometryDeclaration,
+  NormalizedMeshMaterialDeclaration,
 } from "../../../src/lib/renderer/stageDeclarations";
 
 describe("managed mesh object factory", () => {
@@ -135,6 +138,58 @@ describe("managed mesh object factory", () => {
     expect(geometry.boundingBox).not.toBeNull();
     expect(geometry.boundingSphere).not.toBeNull();
   });
+
+  test("creates and disposes a real physical Three material without mocked constructors", async () => {
+    uninstallThreeMocks();
+    vi.resetModules();
+    const { createManagedMeshObject } = await import(
+      "../../../src/lib/renderer/managedStageObjects"
+    );
+    const object = createManagedMeshObject(
+      createNormalizedMesh(
+        { kind: "tetrahedron", radius: 1.5, detail: 0 },
+        {
+          kind: "physical",
+          color: "#dbeafe",
+          emissive: "#111827",
+          emissiveIntensity: 0.25,
+          opacity: 1,
+          metalness: 0.15,
+          roughness: 0.22,
+          transmission: 0.8,
+          thickness: 1.4,
+          ior: 1.7,
+        },
+      ),
+    );
+
+    expect(object.object3D).toBeInstanceOf(Mesh);
+    if (!(object.object3D instanceof Mesh)) {
+      throw new Error("Expected a real Three Mesh.");
+    }
+    expect(object.object3D.material).toBeInstanceOf(MeshPhysicalMaterial);
+    if (!(object.object3D.material instanceof MeshPhysicalMaterial)) {
+      throw new Error("Expected a real MeshPhysicalMaterial.");
+    }
+    expect(object.object3D.material).toMatchObject({
+      isMeshPhysicalMaterial: true,
+      emissiveIntensity: 0.25,
+      opacity: 1,
+      metalness: 0.15,
+      roughness: 0.22,
+      transmission: 0.8,
+      thickness: 1.4,
+      ior: 1.7,
+    });
+    const geometryDispose = vi.spyOn(object.object3D.geometry, "dispose");
+    const materialDispose = vi.spyOn(object.object3D.material, "dispose");
+
+    object.dispose();
+    object.dispose();
+
+    expect(geometryDispose).toHaveBeenCalledTimes(1);
+    expect(materialDispose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("managed light object factory", () => {
@@ -204,6 +259,7 @@ type ThreeMocks = {
   TetrahedronGeometry: ReturnType<typeof vi.fn>;
   MeshBasicMaterial: ReturnType<typeof vi.fn>;
   MeshStandardMaterial: ReturnType<typeof vi.fn>;
+  MeshPhysicalMaterial: ReturnType<typeof vi.fn>;
   Mesh: ReturnType<typeof vi.fn>;
   Group: ReturnType<typeof vi.fn>;
   AmbientLight: ReturnType<typeof vi.fn>;
@@ -222,6 +278,7 @@ function installThreeMocks(overrides: Partial<ThreeMocks>): ThreeMocks {
     TetrahedronGeometry: vi.fn(() => createDisposable("tetrahedron-geometry")),
     MeshBasicMaterial: vi.fn(() => createDisposable("basic-material")),
     MeshStandardMaterial: vi.fn(() => createDisposable("standard-material")),
+    MeshPhysicalMaterial: vi.fn(() => createDisposable("physical-material")),
     Mesh: vi.fn(() => createObject3D("mesh")),
     Group: vi.fn(() => createObject3D("group")),
     AmbientLight: vi.fn(() => createObject3D("ambient-light")),
@@ -255,6 +312,9 @@ function installThreeMocks(overrides: Partial<ThreeMocks>): ThreeMocks {
   vi.doMock("three/src/materials/MeshStandardMaterial.js", () => ({
     MeshStandardMaterial: mocks.MeshStandardMaterial,
   }));
+  vi.doMock("three/src/materials/MeshPhysicalMaterial.js", () => ({
+    MeshPhysicalMaterial: mocks.MeshPhysicalMaterial,
+  }));
   vi.doMock("three/src/objects/Mesh.js", () => ({ Mesh: mocks.Mesh }));
   vi.doMock("three/src/objects/Group.js", () => ({ Group: mocks.Group }));
   vi.doMock("three/src/lights/AmbientLight.js", () => ({
@@ -271,6 +331,28 @@ function installThreeMocks(overrides: Partial<ThreeMocks>): ThreeMocks {
   }));
 
   return mocks;
+}
+
+function uninstallThreeMocks(): void {
+  for (const moduleId of [
+    "three/src/geometries/PlaneGeometry.js",
+    "three/src/geometries/BoxGeometry.js",
+    "three/src/geometries/SphereGeometry.js",
+    "three/src/geometries/CylinderGeometry.js",
+    "three/src/geometries/ConeGeometry.js",
+    "three/src/geometries/TetrahedronGeometry.js",
+    "three/src/materials/MeshBasicMaterial.js",
+    "three/src/materials/MeshStandardMaterial.js",
+    "three/src/materials/MeshPhysicalMaterial.js",
+    "three/src/objects/Mesh.js",
+    "three/src/objects/Group.js",
+    "three/src/lights/AmbientLight.js",
+    "three/src/lights/DirectionalLight.js",
+    "three/src/lights/PointLight.js",
+    "three/src/core/Object3D.js",
+  ]) {
+    vi.doUnmock(moduleId);
+  }
 }
 
 function createDisposable(kind: string): Disposable {
@@ -293,6 +375,15 @@ function createObject3D(kind: string): FakeObject3D {
 
 function createNormalizedMesh(
   geometry: NormalizedMeshGeometryDeclaration,
+  material: NormalizedMeshMaterialDeclaration = {
+    kind: "standard",
+    color: "#ffffff",
+    emissive: "#000000",
+    emissiveIntensity: 1,
+    opacity: 1,
+    metalness: 0,
+    roughness: 1,
+  },
 ): NormalizedMeshDeclaration {
   return {
     id: "mesh",
@@ -302,14 +393,6 @@ function createNormalizedMesh(
     rotation: [0, 0, 0],
     scale: 1,
     visible: true,
-    material: {
-      kind: "standard",
-      color: "#ffffff",
-      emissive: "#000000",
-      emissiveIntensity: 1,
-      opacity: 1,
-      metalness: 0,
-      roughness: 1,
-    },
+    material,
   };
 }

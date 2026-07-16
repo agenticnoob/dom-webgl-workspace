@@ -1,4 +1,4 @@
-import type { WebGLSceneObjectEffectUpdateContext } from "@viselora/dom-webgl";
+import type { WebGLSceneObjectEffectContext } from "@viselora/dom-webgl";
 import { describe, expect, test, vi } from "vitest";
 
 import {
@@ -51,14 +51,14 @@ function createTarget() {
 function createContext(
   target: ReturnType<typeof createTarget>,
   overrides: {
-    readonly pointer?: Partial<WebGLSceneObjectEffectUpdateContext["pointer"]>;
+    readonly pointer?: Partial<WebGLSceneObjectEffectContext["pointer"]>;
     readonly objectPointer?: Partial<
-      WebGLSceneObjectEffectUpdateContext["objectPointer"]
+      WebGLSceneObjectEffectContext["objectPointer"]
     >;
     readonly time?: number;
     readonly delta?: number;
   } = {},
-): WebGLSceneObjectEffectUpdateContext {
+): WebGLSceneObjectEffectContext {
   const pointer = {
     x: 840,
     y: 334,
@@ -78,7 +78,7 @@ function createContext(
     buttons: ["primary"],
     modifiers: { shift: false, alt: false, ctrl: false, meta: false },
     ...overrides.pointer,
-  } satisfies WebGLSceneObjectEffectUpdateContext["pointer"];
+  } satisfies WebGLSceneObjectEffectContext["pointer"];
   const objectPointer = {
     isHovered: true,
     isPressed: true,
@@ -91,7 +91,7 @@ function createContext(
     dragDeltaY: 0,
     hit: { point: [0, 0, 0], distance: 2 },
     ...overrides.objectPointer,
-  } satisfies WebGLSceneObjectEffectUpdateContext["objectPointer"];
+  } satisfies WebGLSceneObjectEffectContext["objectPointer"];
   const time = overrides.time ?? 16;
   const delta = overrides.delta ?? 16;
 
@@ -124,7 +124,7 @@ function createContext(
       },
       dispose() {},
     },
-  } satisfies WebGLSceneObjectEffectUpdateContext;
+  } satisfies WebGLSceneObjectEffectContext;
 }
 
 function transition(

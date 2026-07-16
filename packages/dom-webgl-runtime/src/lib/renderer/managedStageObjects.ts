@@ -8,6 +8,7 @@ import { AmbientLight } from "three/src/lights/AmbientLight.js";
 import { DirectionalLight } from "three/src/lights/DirectionalLight.js";
 import { PointLight } from "three/src/lights/PointLight.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
+import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
 import { MeshStandardMaterial } from "three/src/materials/MeshStandardMaterial.js";
 import { Object3D } from "three/src/core/Object3D.js";
 import { Group } from "three/src/objects/Group.js";
@@ -15,6 +16,7 @@ import { Mesh } from "three/src/objects/Mesh.js";
 import type { BufferGeometry } from "three/src/core/BufferGeometry.js";
 
 import type { WebGLColorValue, WebGLTuple3 } from "../types";
+import { createManagedMaterialFacade } from "../render/renderables/managedMaterialControls";
 
 import type {
   NormalizedLightDeclaration,
@@ -38,6 +40,9 @@ export function createManagedMeshObject(
   return {
     key: declaration.id,
     object3D: mesh,
+    effectCapabilities: {
+      material: createManagedMaterialFacade({ material: mesh.material }),
+    },
     setVisible(visible): void {
       mesh.visible = visible;
     },
@@ -162,7 +167,7 @@ export function createManagedLightObject(
 
 function createMaterial(
   declaration: NormalizedMeshMaterialDeclaration,
-): MeshBasicMaterial | MeshStandardMaterial {
+): MeshBasicMaterial | MeshStandardMaterial | MeshPhysicalMaterial {
   switch (declaration.kind) {
     case "basic":
       return new MeshBasicMaterial({
@@ -178,6 +183,19 @@ function createMaterial(
         opacity: declaration.opacity,
         metalness: declaration.metalness,
         roughness: declaration.roughness,
+        transparent: declaration.opacity < 1,
+      });
+    case "physical":
+      return new MeshPhysicalMaterial({
+        color: readColor(declaration.color),
+        emissive: readColor(declaration.emissive),
+        emissiveIntensity: declaration.emissiveIntensity,
+        opacity: declaration.opacity,
+        metalness: declaration.metalness,
+        roughness: declaration.roughness,
+        transmission: declaration.transmission,
+        thickness: declaration.thickness,
+        ior: declaration.ior,
         transparent: declaration.opacity < 1,
       });
   }

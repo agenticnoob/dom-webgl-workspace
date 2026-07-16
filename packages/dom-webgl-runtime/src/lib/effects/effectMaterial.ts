@@ -14,12 +14,19 @@ export type WebGLEffectMaterialLayerOptions = {
   mode?: "replace-source" | "overlay";
 };
 
+export type WebGLEffectPhysicalMaterialFacade = {
+  transmission: number;
+  thickness: number;
+  ior: number;
+};
+
 export type WebGLEffectMaterialFacade = {
   color: WebGLEffectColorLike;
   emissive: WebGLEffectEmissiveLike;
   opacity: number;
   metalness: number;
   roughness: number;
+  physical?: WebGLEffectPhysicalMaterialFacade;
   createLayer(
     options: WebGLEffectMaterialLayerOptions,
   ): WebGLEffectMaterialLayerHandle;

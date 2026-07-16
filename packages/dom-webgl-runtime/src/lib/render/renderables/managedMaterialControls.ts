@@ -2,6 +2,7 @@ import type { WebGLEffectColorValue } from "../../effects/effectColor";
 import type {
   WebGLEffectMaterialFacade,
   WebGLEffectMaterialLayerOptions,
+  WebGLEffectPhysicalMaterialFacade,
 } from "../../effects/effectMaterial";
 import type {
   WebGLEffectMaterialLayerHandle,
@@ -18,6 +19,9 @@ export function createManagedMaterialFacade(
   target: MaterialMutationTarget,
 ): WebGLEffectMaterialFacade {
   const activeLayers: WebGLEffectMaterialLayerHandle[] = [];
+  const physical = allMaterialsArePhysical(target.material)
+    ? createPhysicalMaterialFacade(target)
+    : undefined;
 
   return {
     color: createColorFacade(target, "color"),
@@ -51,6 +55,7 @@ export function createManagedMaterialFacade(
         clampNumber(value, 0, 1, 1),
       );
     },
+    ...(physical ? { physical } : {}),
     createLayer(options) {
       if (!target.layerHost) {
         throw new Error("This WebGL object does not expose a material layer host.");
@@ -67,6 +72,43 @@ export function createManagedMaterialFacade(
         layer.dispose();
       }
       target.restoreMaterial?.();
+    },
+  };
+}
+
+function createPhysicalMaterialFacade(
+  target: MaterialMutationTarget,
+): WebGLEffectPhysicalMaterialFacade {
+  return {
+    get transmission() {
+      return readNumberMaterialProperty(target.material, "transmission", 0);
+    },
+    set transmission(value) {
+      setMaterialProperty(
+        target.material,
+        "transmission",
+        clampNumber(value, 0, 1, 0),
+      );
+    },
+    get thickness() {
+      return readNumberMaterialProperty(target.material, "thickness", 0);
+    },
+    set thickness(value) {
+      setMaterialProperty(
+        target.material,
+        "thickness",
+        clampNonNegativeNumber(value, 0),
+      );
+    },
+    get ior() {
+      return readNumberMaterialProperty(target.material, "ior", 1.5);
+    },
+    set ior(value) {
+      setMaterialProperty(
+        target.material,
+        "ior",
+        clampNumber(value, 1, 2.333, 1.5),
+      );
     },
   };
 }
@@ -170,6 +212,20 @@ function readFirstMaterial(material: unknown): unknown {
   return Array.isArray(material) ? material[0] : material;
 }
 
+function allMaterialsArePhysical(material: unknown): boolean {
+  const entries = Array.isArray(material) ? material : [material];
+  return (
+    entries.length > 0 &&
+    entries.every(
+      (entry) =>
+        entry !== null &&
+        typeof entry === "object" &&
+        "isMeshPhysicalMaterial" in entry &&
+        entry.isMeshPhysicalMaterial === true,
+    )
+  );
+}
+
 function clampNumber(
   value: number,
   min: number,
@@ -180,4 +236,11 @@ function clampNumber(
     return fallback;
   }
   return Math.min(max, Math.max(min, value));
+}
+
+function clampNonNegativeNumber(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(0, value);
 }

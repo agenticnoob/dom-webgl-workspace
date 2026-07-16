@@ -115,6 +115,22 @@ export const fixtureSceneObjectEffect = defineWebGLSceneObjectEffect({
   },
 });
 
+export const fixturePhysicalMaterialEffect = defineWebGLSceneObjectEffect({
+  kind: "fixture.physicalMaterial",
+  source: "mesh",
+  schedule: "reactive",
+  update(ctx) {
+    const physical = ctx.object.material?.physical;
+    if (!physical) {
+      throw new Error("Expected fixture.physical to expose physical material controls.");
+    }
+    const transmissive = ctx.progress.get("fixture.physical") > 0.5;
+    physical.transmission = transmissive ? 0.96 : 0.02;
+    physical.thickness = transmissive ? 2.4 : 0.05;
+    physical.ior = transmissive ? 2.2 : 1.1;
+  },
+});
+
 export const fixtureModelEffect = defineWebGLSceneObjectEffect({
   kind: "fixture.modelCapability",
   source: "model/glb",
@@ -158,6 +174,7 @@ export const fixtureModelEffect = defineWebGLSceneObjectEffect({
 export const runtimeEffects = [
   fixtureEffect,
   fixtureSceneObjectEffect,
+  fixturePhysicalMaterialEffect,
   fixtureModelEffect,
 ] as const;
 `;
@@ -182,11 +199,13 @@ import { runtimeEffects } from "./effects";
 export const fixtureProgress = createScrollEffectProgressStore();
 fixtureProgress.set("fixture.progress", 0.2);
 fixtureProgress.set("fixture.visible", 1);
+fixtureProgress.set("fixture.physical", 0);
 
 const cameraPosition = [120, 132, 620] as const;
 const cameraTarget = [120, -78, -70] as const;
 const modelEffects = [{ kind: "fixture.modelCapability" }] as const;
 const meshEffects = [{ kind: "fixture.sceneObject" }] as const;
+const physicalEffects = [{ kind: "fixture.physicalMaterial" }] as const;
 const customGeometry = {
   kind: "custom",
   create: () => new BoxGeometry(1, 1, 1),
@@ -246,6 +265,30 @@ export function App({
           visible={false}
           material={{ kind: "basic", color: "#ffffff" }}
           effects={meshEffects}
+        />
+        <WebGLMesh
+          id="fixture.physical.backdrop"
+          geometry={{ kind: "box", size: [180, 180, 20] }}
+          position={[-170, 40, -80]}
+          material={{ kind: "basic", color: "#ff2d8d" }}
+        />
+        <WebGLMesh
+          id="fixture.physical"
+          geometry={{ kind: "box", size: [200, 200, 24] }}
+          position={[-170, 40, 20]}
+          material={{
+            kind: "physical",
+            color: "#60a5fa",
+            emissive: "#020617",
+            emissiveIntensity: 0.05,
+            opacity: 1,
+            metalness: 0,
+            roughness: 0.04,
+            transmission: 0.02,
+            thickness: 0.05,
+            ior: 1.1,
+          }}
+          effects={physicalEffects}
         />
         {includeModel ? (
           <>
@@ -315,6 +358,9 @@ function BrowserFixture() {
 (window as unknown as {
   __fixtureSetVisible(value: boolean): void;
 }).__fixtureSetVisible = (value) => fixtureProgress.set("fixture.visible", value ? 1 : 0);
+(window as unknown as {
+  __fixtureSetPhysical(value: boolean): void;
+}).__fixtureSetPhysical = (value) => fixtureProgress.set("fixture.physical", value ? 1 : 0);
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Missing #root");
@@ -355,9 +401,11 @@ import { PNG } from "pngjs";
 
 test("packed scene/model effects pass real Chromium final-canvas gates", async ({ page }) => {
   const consoleErrors: string[] = [];
+  const consoleWarnings: string[] = [];
   const pageErrors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
+    if (message.type() === "warning") consoleWarnings.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/");
@@ -376,6 +424,18 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
   );
   const model = debug.models.find((entry: { id: string }) => entry.id === "fixture.model");
   expect(model).not.toHaveProperty("error");
+
+  const targetRegion = { x: 0, y: 0, width: 360, height: 440 } as const;
+  await setPhysical(page, false);
+  const physicalOpaque = await canvas.screenshot({ path: evidencePath("physical-opaque.png") });
+  await setPhysical(page, true);
+  const physicalTransmissive = await canvas.screenshot({ path: evidencePath("physical-transmissive.png") });
+  const physicalPixelChange = changedPixelCountInRegion(
+    physicalOpaque,
+    physicalTransmissive,
+    targetRegion,
+  );
+  expect(physicalPixelChange).toBeGreaterThan(250);
 
   await setVisible(page, false);
   const empty = await canvas.screenshot({ path: evidencePath("empty.png") });
@@ -422,6 +482,7 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
   });
 
   expect(consoleErrors).toEqual([]);
+  expect(consoleWarnings).toEqual([]);
   expect(pageErrors).toEqual([]);
   const evidence = {
     packageVersion: "0.1.0-alpha.1",
@@ -431,12 +492,15 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
     domOverlayPixelsExcluded: true,
     measurements: {
       staticScene,
+      physicalPixelChange,
+      targetRegion,
       progressTransform,
       pointerTransform,
       solidToPoints,
       pointsToSolid,
     },
     consoleErrors,
+    consoleWarnings,
     pageErrors,
     canvasLifecycle: [1, 0, 1],
   };
@@ -471,6 +535,13 @@ async function setVisible(page: import("@playwright/test").Page, visible: boolea
   await page.waitForTimeout(240);
 }
 
+async function setPhysical(page: import("@playwright/test").Page, value: boolean): Promise<void> {
+  await page.evaluate((next) => {
+    (window as unknown as { __fixtureSetPhysical(value: boolean): void }).__fixtureSetPhysical(next);
+  }, value);
+  await page.waitForTimeout(240);
+}
+
 function changedPixelCount(first: Buffer, second: Buffer): number {
   const a = PNG.sync.read(first);
   const b = PNG.sync.read(second);
@@ -483,6 +554,31 @@ function changedPixelCount(first: Buffer, second: Buffer): number {
       Math.abs(a.data[index + 2] - b.data[index + 2]) +
       Math.abs(a.data[index + 3] - b.data[index + 3]);
     if (delta > 24) changed += 1;
+  }
+  return changed;
+}
+
+function changedPixelCountInRegion(
+  first: Buffer,
+  second: Buffer,
+  region: { x: number; y: number; width: number; height: number },
+): number {
+  const a = PNG.sync.read(first);
+  const b = PNG.sync.read(second);
+  expect([a.width, a.height]).toEqual([b.width, b.height]);
+  let changed = 0;
+  const maxX = Math.min(a.width, region.x + region.width);
+  const maxY = Math.min(a.height, region.y + region.height);
+  for (let y = Math.max(0, region.y); y < maxY; y += 1) {
+    for (let x = Math.max(0, region.x); x < maxX; x += 1) {
+      const index = (y * a.width + x) * 4;
+      const delta =
+        Math.abs(a.data[index] - b.data[index]) +
+        Math.abs(a.data[index + 1] - b.data[index + 1]) +
+        Math.abs(a.data[index + 2] - b.data[index + 2]) +
+        Math.abs(a.data[index + 3] - b.data[index + 3]);
+      if (delta > 24) changed += 1;
+    }
   }
   return changed;
 }
