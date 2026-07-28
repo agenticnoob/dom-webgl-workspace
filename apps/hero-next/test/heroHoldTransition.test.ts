@@ -111,9 +111,10 @@ describe("hero hold transition", () => {
         committedScheme: "initial",
         targetScheme: "initial",
       });
-      expect(resolveHeroTransitionVisual(cancelled).tetrahedronForeground).toBe(
-        "#5F5F5F",
-      );
+      expect(resolveHeroTransitionVisual(cancelled)).toEqual({
+        committed: { background: "#B8B8B8", foreground: "#5F5F5F" },
+        target: { background: "#B8B8B8", foreground: "#5F5F5F" },
+      });
     },
   );
 

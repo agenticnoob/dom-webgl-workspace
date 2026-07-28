@@ -113,10 +113,43 @@ The package may expose controlled facades whose naming and mutation style feel
 familiar to Three.js users. The facade must translate all mutations into
 runtime-owned operations.
 
+The managed lit-material shader facade follows that rule:
+
+```ts
+const tint = {
+  key: "app.tint",
+  uniforms: { tintColor: "#7dd3fc" },
+  compile(shader) {
+    shader.fragmentShader = `uniform vec3 tintColor;\n${shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      "#include <color_fragment>\ndiffuseColor.rgb *= tintColor;",
+    )}`;
+  },
+} satisfies WebGLEffectMaterialShaderDefinition;
+
+setup(ctx) {
+  ctx.object.material?.shader?.onBeforeCompile(tint);
+}
+
+update(ctx) {
+  ctx.object.material?.shader?.setUniforms("app.tint", {
+    tintColor: "#38bdf8",
+  });
+}
+```
+
+This is a controlled Three-like shader draft, not the actual Three shader or
+material. Definitions and source remain stable/module-level; registration
+belongs in `setup`, while uniform updates belong in `update` and do not
+recompile. Standard/Physical lighting continues after the injected chunk.
+The runtime reserves `domWebGLViewportSize` and `domWebGLPixelRatio`, owns
+program caching and cleanup, and exposes neither raw material replacement nor
+consumer disposal. Callback source changes use `remove(key)` followed by
+re-registration instead of public `needsUpdate`.
+
 ## Forward Object Shape
 
-The exact TypeScript shape should be designed and tested in the implementation
-plan, but the public hierarchy should stay centered on one object:
+The tested public hierarchy stays centered on one object:
 
 ```ts
 ctx.object
@@ -126,6 +159,7 @@ ctx.object.scale
 ctx.object.visible
 ctx.object.opacity
 ctx.object.material
+ctx.object.material.shader
 ctx.object.texture
 ctx.object.surface
 ctx.object.text

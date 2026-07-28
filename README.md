@@ -454,9 +454,12 @@ Current visual behavior:
   behavior remain available as optional advanced runtime behavior. They are
   historical Phase 2 output, not the recommended route for pinned effect
   sections.
-- Concrete text animation effects, shader authoring APIs, core-provided
-  particle systems, animation layers, and raw raycaster/intersection access
-  remain intentionally out of scope. Third-party scroll integration now uses a small
+- Concrete text animation effects, unrestricted shader/material ownership,
+  core-provided particle systems, animation layers, and raw
+  raycaster/intersection access remain intentionally out of scope. Managed
+  scene meshes may extend their runtime-owned Basic/Standard/Physical material
+  through the controlled `material.shader` facade described below. Third-party
+  scroll integration now uses a small
   public `WebGLScrollAdapter` protocol in core plus the optional
   `@viselora/scroll-adapters` package for Lenis, GSAP ticker, and
   ScrollTrigger glue. The optional scroll adapters package also exposes
@@ -539,6 +542,41 @@ internals.
 Material programs are Three-inspired shader declarations, not raw Three.js
 materials; public fields are `vertexShader`, `fragmentShader`, `uniforms`,
 `defines`, and `blend`.
+
+Managed scene meshes also expose a thin managed shader extension at
+`ctx.object.material?.shader`. Keep the definition object and shader source
+module-level and stable, register it once from `setup`, and update uniforms
+without recompiling from `update`:
+
+```ts
+const tint = {
+  key: "app.tint",
+  uniforms: { tintColor: "#7dd3fc" },
+  compile(shader) {
+    shader.fragmentShader = `uniform vec3 tintColor;\n${shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      "#include <color_fragment>\ndiffuseColor.rgb *= tintColor;",
+    )}`;
+  },
+} satisfies WebGLEffectMaterialShaderDefinition;
+
+setup(ctx) {
+  ctx.object.material?.shader?.onBeforeCompile(tint);
+}
+
+update(ctx) {
+  ctx.object.material?.shader?.setUniforms("app.tint", {
+    tintColor: "#38bdf8",
+  });
+}
+```
+
+The effect edits a controlled Three-like draft; the runtime owns the real
+Basic/Standard/Physical material, program caching, viewport/DPR uniforms, and
+cleanup. Uniform updates do not recompile. `domWebGLViewportSize` and
+`domWebGLPixelRatio` are reserved runtime uniforms. Changing callback source
+requires `remove(key)` followed by re-registration; there is no public
+`needsUpdate`, raw material replacement, or consumer-owned disposal.
 
 Capability matrix:
 

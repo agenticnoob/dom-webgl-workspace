@@ -16,6 +16,10 @@ import {
   publishHeroTransitionSignals,
   type HeroTransitionSignalWriter,
 } from "./heroTransitionSignals";
+import {
+  createHeroTetrahedronRadialUniforms,
+  heroTetrahedronRadialShader,
+} from "./heroTetrahedronShader";
 
 export type HeroEffectParams = {
   kind: "hero.tetrahedron.motion";
@@ -163,12 +167,16 @@ export function applyHeroFrame(
   target.visible = true;
   target.opacity = heroTransitionConfig.motion.initialOpacity;
   if (target.material) {
-    target.material.color.set(visual.tetrahedronForeground);
+    target.material.color.set(visual.committed.foreground);
     target.material.emissive.set(
-      visual.tetrahedronForeground,
+      visual.committed.foreground,
       heroTransitionConfig.motion.emissiveIntensity,
     );
     target.material.opacity = heroTransitionConfig.motion.initialOpacity;
+    target.material.shader?.setUniforms(
+      heroTetrahedronRadialShader.key,
+      createHeroTetrahedronRadialUniforms(transition, viewport),
+    );
   }
 }
 
@@ -211,7 +219,14 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
   kind: "hero.tetrahedron.motion",
   source: "mesh",
   schedule: "frame",
-  setup() {
+  setup(ctx) {
+    const shader = ctx.object.material?.shader;
+    if (!shader) {
+      throw new Error(
+        "Hero tetrahedron effect requires the managed material shader facade.",
+      );
+    }
+    shader.onBeforeCompile(heroTetrahedronRadialShader);
     return createHeroEffectState(prefersReducedMotion());
   },
   update(ctx, state, params) {

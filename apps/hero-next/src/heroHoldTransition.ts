@@ -35,7 +35,6 @@ type HeroResolvedScheme = {
 export type HeroTransitionVisualState = {
   readonly committed: HeroResolvedScheme;
   readonly target: HeroResolvedScheme;
-  readonly tetrahedronForeground: string;
 };
 
 export type HeroRadialGeometry = {
@@ -193,7 +192,7 @@ export function resolveHeroRadialGeometry(
 export function resolveHeroTransitionVisual(
   state: Pick<
     HeroHoldTransitionState,
-    "committedScheme" | "targetScheme" | "phase"
+    "committedScheme" | "targetScheme"
   >,
   config: HeroTransitionConfig = heroTransitionConfig,
 ): HeroTransitionVisualState {
@@ -203,8 +202,6 @@ export function resolveHeroTransitionVisual(
   return {
     committed,
     target,
-    tetrahedronForeground:
-      state.phase === "idle" ? committed.foreground : target.foreground,
   };
 }
 

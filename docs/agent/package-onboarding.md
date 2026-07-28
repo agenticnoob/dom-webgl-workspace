@@ -656,6 +656,41 @@ Current visual capability surface:
   materials. Public fields are `vertexShader`, `fragmentShader`, `uniforms`,
   `defines`, and `blend`; runtime-owned defaults decide transparency, depth,
   tone mapping, allocation, restoration, and disposal.
+- Lit managed meshes expose `ctx.object.material?.shader` for controlled
+  `onBeforeCompile(definition)`, `setUniforms(key, values)`, and `remove(key)`
+  operations. This does not expose the real Three material or shader object.
+
+Keep a shader definition module-level and stable, register it in `setup`, and
+only change declared uniforms in `update`:
+
+```ts
+const tint = {
+  key: "app.tint",
+  uniforms: { tintColor: "#7dd3fc" },
+  compile(shader) {
+    shader.fragmentShader = `uniform vec3 tintColor;\n${shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      "#include <color_fragment>\ndiffuseColor.rgb *= tintColor;",
+    )}`;
+  },
+} satisfies WebGLEffectMaterialShaderDefinition;
+
+setup(ctx) {
+  ctx.object.material?.shader?.onBeforeCompile(tint);
+}
+
+update(ctx) {
+  ctx.object.material?.shader?.setUniforms("app.tint", {
+    tintColor: "#38bdf8",
+  });
+}
+```
+
+The draft is controlled Three-like source while the runtime owns the actual
+material, cache key, viewport/DPR, textures, and cleanup. Uniform changes do
+not recompile. `domWebGLViewportSize` and `domWebGLPixelRatio` are reserved;
+changing compile callback source requires `remove(key)` and re-registration,
+not a public `needsUpdate` write.
 
 DOM text remains the source of content and accessibility. Text-layer methods
 change WebGL output only.

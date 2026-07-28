@@ -17,6 +17,7 @@ import type { BufferGeometry } from "three/src/core/BufferGeometry.js";
 
 import type { WebGLColorValue, WebGLTuple3 } from "../types";
 import { createManagedMaterialFacade } from "../render/renderables/managedMaterialControls";
+import { createManagedMaterialShaderHost } from "../render/renderables/managedMaterialShader";
 
 import type {
   NormalizedLightDeclaration,
@@ -32,7 +33,19 @@ export function createManagedMeshObject(
   const geometry = createMeshGeometry(declaration.id, declaration.geometry);
   const material = createMaterial(declaration.material);
   const mesh = new Mesh(geometry, material);
+  const shaderHost = createManagedMaterialShaderHost({
+    objectId: declaration.id,
+    materialKind: declaration.material.kind,
+    material,
+  });
+  const baseOnBeforeRender = mesh.onBeforeRender;
+  const baseOnBeforeRenderOwn = Object.hasOwn(mesh, "onBeforeRender");
   let disposed = false;
+
+  mesh.onBeforeRender = function (...args): void {
+    shaderHost.beforeRender(args[0]);
+    Reflect.apply(baseOnBeforeRender, this, args);
+  };
 
   applyTransform(mesh, declaration.position, declaration.rotation, declaration.scale);
   mesh.visible = declaration.visible;
@@ -41,7 +54,10 @@ export function createManagedMeshObject(
     key: declaration.id,
     object3D: mesh,
     effectCapabilities: {
-      material: createManagedMaterialFacade({ material: mesh.material }),
+      material: createManagedMaterialFacade({
+        material: mesh.material,
+        shader: shaderHost.facade,
+      }),
     },
     setVisible(visible): void {
       mesh.visible = visible;
@@ -55,6 +71,12 @@ export function createManagedMeshObject(
       }
 
       disposed = true;
+      if (baseOnBeforeRenderOwn) {
+        mesh.onBeforeRender = baseOnBeforeRender;
+      } else {
+        Reflect.deleteProperty(mesh, "onBeforeRender");
+      }
+      shaderHost.dispose();
       geometry.dispose();
       material.dispose();
     },

@@ -1,7 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 import { BufferGeometry } from "three/src/core/BufferGeometry.js";
 import { Float32BufferAttribute } from "three/src/core/BufferAttribute.js";
+import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
+import { MeshStandardMaterial } from "three/src/materials/MeshStandardMaterial.js";
 import { Mesh } from "three/src/objects/Mesh.js";
 
 import type {
@@ -190,6 +192,82 @@ describe("managed mesh object factory", () => {
     expect(geometryDispose).toHaveBeenCalledTimes(1);
     expect(materialDispose).toHaveBeenCalledTimes(1);
   });
+
+  test("wires a managed shader host into real Basic, Standard, and Physical meshes", async () => {
+    uninstallThreeMocks();
+    vi.resetModules();
+    const { createManagedMeshObject } = await import(
+      "../../../src/lib/renderer/managedStageObjects"
+    );
+    const declarations = [
+      createNormalizedMesh(
+        { kind: "box", size: [1, 1, 1] },
+        { kind: "basic", color: "#ffffff", opacity: 1 },
+      ),
+      createNormalizedMesh({ kind: "box", size: [1, 1, 1] }),
+      createNormalizedMesh(
+        { kind: "box", size: [1, 1, 1] },
+        {
+          kind: "physical",
+          color: "#ffffff",
+          emissive: "#000000",
+          emissiveIntensity: 0,
+          opacity: 1,
+          metalness: 0,
+          roughness: 1,
+          transmission: 0.5,
+          thickness: 1,
+          ior: 1.5,
+        },
+      ),
+    ] satisfies readonly NormalizedMeshDeclaration[];
+    const expectedMaterials = [
+      MeshBasicMaterial,
+      MeshStandardMaterial,
+      MeshPhysicalMaterial,
+    ] as const;
+
+    for (const [index, declaration] of declarations.entries()) {
+      const object = createManagedMeshObject({
+        ...declaration,
+        id: `mesh.${index}`,
+      });
+      expect(object.object3D).toBeInstanceOf(Mesh);
+      if (!(object.object3D instanceof Mesh)) {
+        throw new Error("Expected a real Three Mesh.");
+      }
+      const material = object.object3D.material;
+      const ExpectedMaterial = expectedMaterials[index];
+      if (!ExpectedMaterial) {
+        throw new Error("Expected a material constructor.");
+      }
+      expect(material).toBeInstanceOf(ExpectedMaterial);
+      const shader = object.effectCapabilities?.material?.shader;
+      expect(shader).toBeDefined();
+      if (!shader || Array.isArray(material)) {
+        throw new Error("Expected one managed material shader facade.");
+      }
+      shader.onBeforeCompile({
+        key: `test.${index}`,
+        compile(draft) {
+          draft.fragmentShader += "\nfloat managedMarker = 1.0;";
+        },
+      });
+      expect(object.object3D.material).toBe(material);
+      expect(Object.hasOwn(object.object3D, "onBeforeRender")).toBe(true);
+      const geometryDispose = vi.spyOn(object.object3D.geometry, "dispose");
+      const materialDispose = vi.spyOn(material, "dispose");
+      const managedCompile = material.onBeforeCompile;
+
+      object.dispose();
+      object.dispose();
+
+      expect(material.onBeforeCompile).not.toBe(managedCompile);
+      expect(Object.hasOwn(object.object3D, "onBeforeRender")).toBe(false);
+      expect(geometryDispose).toHaveBeenCalledTimes(1);
+      expect(materialDispose).toHaveBeenCalledTimes(1);
+    }
+  });
 });
 
 describe("managed light object factory", () => {
@@ -238,6 +316,8 @@ describe("managed light object factory", () => {
 type Disposable = {
   kind: string;
   dispose: ReturnType<typeof vi.fn>;
+  onBeforeCompile: ReturnType<typeof vi.fn>;
+  customProgramCacheKey: ReturnType<typeof vi.fn>;
 };
 
 type FakeObject3D = {
@@ -359,6 +439,8 @@ function createDisposable(kind: string): Disposable {
   return {
     kind,
     dispose: vi.fn(),
+    onBeforeCompile: vi.fn(),
+    customProgramCacheKey: vi.fn(() => kind),
   };
 }
 

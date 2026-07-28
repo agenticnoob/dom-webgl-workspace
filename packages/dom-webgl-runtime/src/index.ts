@@ -65,7 +65,11 @@ export type {
 } from "./lib/effects/effectLights";
 export type {
   WebGLEffectMaterialFacade,
+  WebGLEffectMaterialKind,
   WebGLEffectMaterialLayerOptions,
+  WebGLEffectMaterialShaderDefinition,
+  WebGLEffectMaterialShaderDraft,
+  WebGLEffectMaterialShaderFacade,
   WebGLEffectPhysicalMaterialFacade,
 } from "./lib/effects/effectMaterial";
 export type {

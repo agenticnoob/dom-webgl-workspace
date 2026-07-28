@@ -49,10 +49,11 @@ pointer press must hit the public `WebGLMesh` (`hitTest: "mesh"`,
 `expanding`. Expansion takes `1000 ms`; a full cancellation retracts in `300 ms`,
 with proportional retraction, same-origin resume, geometric far-corner commit,
 and an `awaiting-release` gate that prevents repeated toggles while held. The
-background/Ghost shader consumes those six progress signals. The scene-native
-`WebGLMesh` path now injects the controlled material facade, so the tetrahedron
-effect's matching material/emissive writes reach its real runtime-owned
-`MeshStandardMaterial`. The aspect-correct circle is rendered in WebGL; CSS
+background/Ghost shader and the tetrahedron Standard-material fragment extension
+consume the same radial state. The tetrahedron now mixes committed/target color
+and emissive per fragment before managed Standard lighting. The aspect-correct
+circle is rendered in WebGL with the same `1.5px` feather across all three
+visual layers and no v1 edge noise; CSS
 remains layout and pointer routing only. No raw Three handle, mutable theme
 store, DOM event bus, React frame state, or third non-light author color was
 added.
@@ -60,48 +61,56 @@ added.
 **Automated-verified (2026-07-17):** focused app tests cover all hold phases,
 timing, invalid input, geometric commit, proportional retract, resume, release
 gate, reversible toggles, desktop/mobile radial overscan, signal publication and
-decoding, real-mesh interaction declarations, shader semantics, an injected
-material-facade adapter, deterministic shake, reduced motion, unchanged lights,
-layout-only CSS, and the palette/source boundary. The focused hero suite passes
-`11 files / 45 tests`; the hero workspace typecheck and production build, public
-import boundary, and `git diff --check` also pass. Automated checks are not
+decoding, real-mesh interaction declarations, shared radial shader semantics,
+managed shader registration/uniform updates, deterministic shake, reduced motion,
+unchanged lights, layout-only CSS, and the palette/source boundary. The focused
+hero suite passes `12 files / 53 tests`. Package integration uses the real
+pipeline, default managed mesh factory, and real Three lit materials. Automated
+checks are not
 browser visual acceptance.
 
 **Browser-verified (desktop, 2026-07-17):** the real production package runtime
-at 1200×835 rendered one canvas with zero console errors or warnings. Pointer
-down outside the tetrahedron and secondary press on the mesh did nothing. Real
-primary mesh presses showed a circular contact-origin reveal; 25%, 50%, and
-approximately 90% early releases retracted, re-press during retraction resumed,
-an approximately one-second hold committed, continued holding did not toggle
-again, and release followed by a second hold returned to the initial scheme.
-After the runtime facade fix, a focused repeat captured real production canvas
-states for `initial -> inverted -> initial`: the background sample was
-`184 -> 95 -> 184`, representative tetrahedron face samples became lighter in
-the inverted state and returned dark, one canvas remained mounted, and the
-browser console stayed at zero errors/warnings. This is hero regression evidence,
-not acceptance of a new physical-material treatment; the hero descriptor is
-still `standard`.
-The 390×844 production initial frame also rendered one canvas with a clean
-console, but complete mobile interaction and `prefers-reduced-motion` browser
-acceptance remain pending. Superseded scroll-cover evidence is not evidence for
-those remaining gates.
+at 1200×835 completed initial, forward mixed intermediate, committed target,
+reverse mixed intermediate, committed initial-return, early-release shrink,
+re-press resume, and reduced-motion diffusion with one canvas in every state.
+The background sample was `184 -> 95 -> 184`. Forward mesh ROI contained
+`26,077` start-like and `30,738` target-like pixels; reverse contained `30,977`
+and `25,824`. Early-release origin-row radius-like decreased from `206.5px` to
+`95.0px`; re-press reached `382.5px` versus `102.5px` for a fresh intermediate,
+proving resume rather than restart. Under emulated reduced motion, the mesh
+still contained both endpoint classes while three tracked silhouette vertices
+moved `0px` across consecutive frames. Console errors, warnings, page errors,
+and WebGL shader errors were all zero. The hero descriptor remains `standard`;
+this is not acceptance of a Physical treatment. Prior pointer-invalid-input and
+release-gate browser evidence remains valid. The 390×844 production evidence
+still covers only the initial frame; complete mobile interaction remains outside
+this task.
 
-**Runtime gap resolved (2026-07-17):** every managed scene-native `WebGLMesh`
-now carries an internal effect-capability bundle whose material entry is a
-controlled facade over the runtime-owned Three material. The facade is injected
-directly into the scene-object effect object; no fake source handle or raw
-`Mesh`/`Material` reference is exposed. The real `createPipelineRuntime` test
-uses the default managed mesh factory and real Three classes, proves descriptor
-initial values plus facade writes on `MeshPhysicalMaterial`, verifies raw
-object/material/renderer keys are absent, covers standard/basic regressions,
-and confirms geometry/material disposal remains exactly once.
+**Managed lit-material shader extension implemented (2026-07-17):** every
+managed scene-native `WebGLMesh` exposes the optional controlled
+`ctx.object.material.shader` facade with `onBeforeCompile(definition)`,
+`setUniforms(key, values)`, and `remove(key)`. Definitions edit a controlled
+Three-like draft while the runtime owns the real material, compilation cache,
+viewport/DPR uniforms, texture uploads, and cleanup. Basic, Standard, and
+Physical class behavior remains intact; Standard/Physical lighting continues
+after injected chunks. Raw Three objects, renderer, material replacement,
+public `needsUpdate`, and consumer disposal remain unavailable.
+
+The real `createPipelineRuntime` integration test uses the default managed mesh
+factory and real Three classes, verifies Standard and Physical shader
+compilation/uniform updates, raw-boundary absence, and exactly-once geometry,
+material, and extension-resource disposal. The packed-tarball Chromium gate
+records `55,261` radial endpoint-changed pixels and a mixed middle frame with
+`7,267` start-like plus `47,994` target-like pixels, zero console/page errors
+or warnings, and canvas lifecycle `1 -> 0 -> 1`.
 
 The descriptor surface now adds explicit `material.kind: "physical"` with
 `transmission` `[0,1]`, finite non-negative `thickness`, and `ior` `[1,2.333]`.
 Standard remains the default and still creates `MeshStandardMaterial`; basic
 still creates `MeshBasicMaterial`. Only real physical material sets expose
 `ctx.object.material.physical`, including the conservative all-physical array
-rule. Scene-native meshes still do not receive a material layer/program host.
+rule. Scene-native meshes still do not receive a source-backed compositing
+layer; their shader facade extends the existing runtime-owned lit material.
 The installed-tarball Chromium gate changes all three physical values through
 the public scene-object facade and records `58,225` changed pixels in the
 declared target region, zero console/page errors, zero warnings, and canvas
@@ -146,9 +155,9 @@ remain active. The hero now uses the centralized two-token semantic
 palette with no purple visual sources: initial background/foreground are
 `#B8B8B8` / `#5F5F5F`, and inverted roles swap those exact inputs. The shader
 receives base/target semantic roles plus the shared radial origin/radius/edge.
-The tetrahedron effect requests the target foreground during an active attempt
-and the committed foreground otherwise; those material/emissive writes now
-reach the real runtime-owned standard material. Declaration-owned emissive intensity remains
+The tetrahedron base material stays on the committed foreground while its
+managed fragment extension mixes committed/target color and emissive from the
+shared origin/radius/coverage. Declaration-owned emissive intensity remains
 `0.06`. Initial opacity remains `0.92`,
 metalness `0.9`, and roughness `0.12`;
 the opacity is ordinary alpha blending, not physical transmission or refraction.
@@ -158,19 +167,15 @@ the neutral rim uses `#b8b8b8`, position `[1.8, -1.4, 2]`, and intensity `2.2`.
 The smoke composites by mixing the resolved background toward the resolved
 foreground tint; it does not own fixed palette values.
 
-**Open transition gap:** the background and Ghost Cursor currently consume the
-shared origin/radius signals through a per-fragment pixel-space radial mask.
-The tetrahedron does not: `resolveHeroTransitionVisual()` selects the target
-foreground for the whole material whenever the phase is not `idle`, so its
-color and emissive change as a hard semantic step at attempt start and remain
-on the target through retraction until cancellation. The approved follow-up
-direction is a screen-space, per-fragment tetrahedron diffusion synchronized to
-the same radial signals, including reverse retraction while preserving managed
-standard/physical lighting. It is not implemented or verified. The current
-managed mesh material facade exposes controlled scalar fields but no mask,
-material program, or layer host, so the next task must first design the
-smallest general public capability; CSS, raw Three ownership, private imports,
-duplicate meshes, and app-specific runtime branches remain out of bounds.
+**Tetrahedron transition gap resolved:** background, Ghost Cursor, and
+tetrahedron now consume the same screen-space origin/radius and `1.5px`
+feather. The Standard-material fragment extension performs per-pixel
+committed/target color plus emissive mixing and then preserves managed lighting.
+Early release retracts along the same path; re-press resume, far-corner commit,
+`awaiting-release`, bidirectional toggle, and reduced-motion color diffusion
+reuse the existing state machine. Hero remains Standard rather than Physical,
+and no CSS mask, raw Three ownership, private import, duplicate mesh, or
+app-specific runtime branch was added.
 
 **Implemented:** runtime render quality is now a controlled public declaration.
 Existing consumers keep `antialias: false` and maximum DPR `1.5` by default;

@@ -1,10 +1,29 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { MeshPhysicalMaterial } from "three/src/materials/MeshPhysicalMaterial.js";
 import { MeshStandardMaterial } from "three/src/materials/MeshStandardMaterial.js";
 
+import type { WebGLEffectMaterialShaderFacade } from "../../../../src/lib/effects/effectMaterial";
 import { createManagedMaterialFacade } from "../../../../src/lib/render/renderables/managedMaterialControls";
 
 describe("managed material controls", () => {
+  test("exposes only an injected controlled shader facade", () => {
+    const material = new MeshStandardMaterial();
+    const shader = {
+      onBeforeCompile: vi.fn(),
+      setUniforms: vi.fn(),
+      remove: vi.fn(),
+    } satisfies WebGLEffectMaterialShaderFacade;
+
+    const facade = createManagedMaterialFacade({ material, shader });
+
+    expect(facade.shader).toBe(shader);
+    if (!facade.shader) {
+      throw new Error("Expected a managed shader facade.");
+    }
+    expect("material" in facade.shader).toBe(false);
+    expect("dispose" in facade.shader).toBe(false);
+  });
+
   test("writes controlled base properties without exposing a layer host", () => {
     const material = new MeshStandardMaterial();
     const facade = createManagedMaterialFacade({ material });

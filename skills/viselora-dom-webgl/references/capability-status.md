@@ -40,7 +40,7 @@ presence alone does not upgrade a capability's evidence status.
 | scene-object-interaction | experimental | Managed picking, pointer/touch alternative, final-canvas pixels | Keep controls accessible in DOM. |
 | camera-gestures | experimental | Managed controller, mobile alternative, camera persistence after release | Avoid duplicate wheel/touch ownership. |
 | physics | experimental | Managed descriptors, direct drag/release inertia, fallback without physics | Do not claim solver behavior beyond collected evidence. |
-| advanced-effect-facades | experimental | Public facade only, effect resource disposal, final-canvas pixels | Do not use raw Three.js escape hatches. |
+| advanced-effect-facades | experimental | Public facade, effect resource disposal, managed lit-shader mixed pixels, final-canvas pixels | Managed `material.shader` has local packed-tarball Chromium evidence for mixed intermediate pixels and exactly-once cleanup; other advanced facades still require their own browser preflights. Do not use raw Three.js escape hatches. |
 | surface-pulse-visible-output | blocked | Retained effect-surface versus final-canvas pixel threshold reproduction | Use DOM/CSS or a verified media path in normal projects. |
 | dom-anchored-glb-visible-output | blocked | Retained ready/active GLB versus final-canvas pixel threshold reproduction | Keep fallback visible; do not add private camera/renderer workarounds. |
 

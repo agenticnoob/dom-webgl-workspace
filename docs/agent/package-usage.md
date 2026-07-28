@@ -650,8 +650,9 @@ Rules:
   real physical material, or for a material array where every entry is
   physical; setters update every controlled entry consistently.
 - This facade does not expose, replace, or dispose raw materials. Scene-native
-  meshes do not gain a source-backed material layer/program host, so
-  `createLayer(...)` remains unavailable for them.
+  meshes do not gain a source-backed compositing layer, so `createLayer(...)`
+  remains unavailable. Their optional `material.shader` facade is instead a
+  controlled extension of the runtime-owned Basic/Standard/Physical material.
 - Physics colliders are separate explicit descriptors and are never inferred
   from the visual `geometry` kind.
 - Stage materials are solid-color `basic` or `standard` descriptors. Texture
@@ -1390,6 +1391,47 @@ const glassState = defineWebGLSceneObjectEffect({
 });
 ```
 
+For a lit material shader extension, keep the definition object and its source
+module-level and stable. Register with managed `onBeforeCompile()` from
+`setup`; update declared uniforms from `update`:
+
+```ts
+import type { WebGLEffectMaterialShaderDefinition } from "@viselora/dom-webgl";
+
+const tint = {
+  key: "app.tint",
+  uniforms: { tintColor: "#7dd3fc" },
+  compile(shader) {
+    shader.fragmentShader = `uniform vec3 tintColor;\n${shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      "#include <color_fragment>\ndiffuseColor.rgb *= tintColor;",
+    )}`;
+  },
+} satisfies WebGLEffectMaterialShaderDefinition;
+
+const tintedMesh = defineWebGLSceneObjectEffect({
+  kind: "app.tintedMesh",
+  source: "mesh",
+  setup(ctx) {
+    ctx.object.material?.shader?.onBeforeCompile(tint);
+  },
+  update(ctx) {
+    ctx.object.material?.shader?.setUniforms("app.tint", {
+      tintColor: "#38bdf8",
+    });
+  },
+});
+```
+
+The callback edits a controlled Three-like shader draft. The runtime still owns
+the real material, compilation cache, renderer viewport/DPR, texture uploads,
+and cleanup. Standard and Physical lighting continues after the injected
+chunk; uniform changes do not recompile. `domWebGLViewportSize` and
+`domWebGLPixelRatio` are reserved runtime uniforms. A changed callback/source
+must use `remove(key)` and then register a new stable definition; consumers do
+not receive public `needsUpdate`, raw Three shader/material objects, material
+replacement, or disposal.
+
 Rules:
 
 - `kind` in the definition must exactly match target declaration `kind`.
@@ -1403,6 +1445,8 @@ Rules:
 - Clamp all untrusted numeric params.
 - Use `ctx.delta` for motion. Do not rely on frame count.
 - Create expensive resources in `setup`, not `update`.
+- Register stable material shader definitions in `setup`; use `setUniforms()`
+  in `update`. Do not create a new definition object per frame.
 - Runtime lights are keyed requests, not effect-owned raw lights. Reusing the
   same key updates the existing runtime-owned light, so dynamic intensity or
   position can be declared from `update`.

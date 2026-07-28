@@ -319,6 +319,41 @@ emissive smoke around the cursor. The example stops sending material uniforms
 after the trail decays to idle, so the effect remains interactive without
 keeping a settled target hot every frame.
 
+Scene-native lit meshes can extend their runtime-owned Basic, Standard, or
+Physical material through the controlled shader facade:
+
+```ts
+const tint = {
+  key: "app.tint",
+  uniforms: { tintColor: "#7dd3fc" },
+  compile(shader) {
+    shader.fragmentShader = `uniform vec3 tintColor;\n${shader.fragmentShader.replace(
+      "#include <color_fragment>",
+      "#include <color_fragment>\ndiffuseColor.rgb *= tintColor;",
+    )}`;
+  },
+} satisfies WebGLEffectMaterialShaderDefinition;
+
+setup(ctx) {
+  ctx.object.material?.shader?.onBeforeCompile(tint);
+}
+
+update(ctx) {
+  ctx.object.material?.shader?.setUniforms("app.tint", {
+    tintColor: "#38bdf8",
+  });
+}
+```
+
+Keep the definition and shader source module-level and stable. Register in
+`setup`; call `setUniforms()` from `update` without recompiling. The runtime
+owns the real material, caching, viewport/DPR, texture resources, and cleanup,
+and Standard/Physical lighting continues after the injected chunk.
+`domWebGLViewportSize` and `domWebGLPixelRatio` are reserved. To change
+callback source, call `remove(key)` and register a new stable definition;
+there is no raw Three material/shader, public `needsUpdate`, replacement, or
+consumer disposal.
+
 For managed-scene DOM surfaces such as `example.managedStage.card`, keep the
 target inside `WebGLScene` so it inherits the scene, and avoid writing
 `ctx.object.scale` from the effect unless the effect intentionally owns the

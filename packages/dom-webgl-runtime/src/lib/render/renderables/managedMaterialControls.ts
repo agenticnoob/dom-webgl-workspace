@@ -2,6 +2,7 @@ import type { WebGLEffectColorValue } from "../../effects/effectColor";
 import type {
   WebGLEffectMaterialFacade,
   WebGLEffectMaterialLayerOptions,
+  WebGLEffectMaterialShaderFacade,
   WebGLEffectPhysicalMaterialFacade,
 } from "../../effects/effectMaterial";
 import type {
@@ -12,6 +13,7 @@ import type {
 type MaterialMutationTarget = {
   readonly material: unknown;
   readonly layerHost?: WebGLEffectMaterialLayerHost;
+  readonly shader?: WebGLEffectMaterialShaderFacade;
   restoreMaterial?(): void;
 };
 
@@ -56,6 +58,7 @@ export function createManagedMaterialFacade(
       );
     },
     ...(physical ? { physical } : {}),
+    ...(target.shader ? { shader: target.shader } : {}),
     createLayer(options) {
       if (!target.layerHost) {
         throw new Error("This WebGL object does not expose a material layer host.");

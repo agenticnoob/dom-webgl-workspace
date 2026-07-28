@@ -184,7 +184,16 @@ const glass = defineWebGLSceneObjectEffect({
 
 The facade never exposes raw `Material`/`Mesh` handles and does not transfer
 replacement or disposal ownership. A scene-native mesh has no source-backed
-material layer host, so this capability does not enable material programs.
+material layer host, so this capability does not enable compositing material
+programs. Managed Basic/Standard/Physical meshes instead expose the optional
+`material.shader` facade: register one stable
+`onBeforeCompile(definition)` extension during effect setup, update its declared
+uniforms with `setUniforms(key, values)`, and remove it with `remove(key)`.
+The callback receives controlled shader source, uniform, and define values—not
+the raw Three shader, material, renderer, scene, camera, WebGL context, or
+`needsUpdate`. Runtime-owned viewport/DPR uniforms, program caching, texture
+resources, and exactly-once cleanup remain private. Standard and Physical
+extensions continue through their existing lighting path.
 
 **Direct verification:** assert managed pick state, touch alternative, pixels
 and resource disposal.

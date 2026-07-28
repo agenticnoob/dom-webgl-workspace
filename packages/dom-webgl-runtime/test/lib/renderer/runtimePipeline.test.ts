@@ -4049,6 +4049,149 @@ describe("runtime pipeline sync", () => {
     expect(materialDispose).toHaveBeenCalledTimes(1);
   });
 
+  test("real runtime compiles managed shader extensions on real Standard and Physical materials", async () => {
+    const mainAdapter = createObjectRecordingSceneAdapter();
+    const sceneAdapter = createObjectRecordingSceneAdapter();
+    const { registry } = createRenderLayerRegistryStub(mainAdapter, {
+      scenes: { world: sceneAdapter },
+    });
+    const publicBoundary: Array<Record<string, boolean>> = [];
+    const shaderEffect = defineWebGLSceneObjectEffect({
+      kind: "test.managedShader",
+      source: "mesh",
+      setup(ctx) {
+        const shader = ctx.object.material?.shader;
+        if (!shader) {
+          throw new Error("Expected managed material shader facade.");
+        }
+        publicBoundary.push({
+          object3D: "object3D" in ctx.object,
+          renderer: "renderer" in ctx.object,
+          rawMaterial: "rawMaterial" in ctx.object,
+          facadeMaterial: "material" in shader,
+          facadeDispose: "dispose" in shader,
+        });
+        shader.onBeforeCompile({
+          key: "test.radial",
+          uniforms: { radius: 0 },
+          compile(draft) {
+            draft.fragmentShader = `uniform float radius;\n${draft.fragmentShader.replace(
+              "#include <emissivemap_fragment>",
+              "#include <emissivemap_fragment>\nfloat runtimeMarker = radius;",
+            )}`;
+          },
+        });
+      },
+      update(ctx) {
+        ctx.object.material?.shader?.setUniforms("test.radial", { radius: 24 });
+      },
+    });
+    const runtime = await createPipelineRuntime({
+      effects: [shaderEffect],
+      rendererHostFactory(container) {
+        return createRendererHostStub(container, mainAdapter);
+      },
+      renderLayerRegistryFactory() {
+        return registry;
+      },
+    });
+    const effect = [{ kind: "test.managedShader" }] as const;
+
+    runtime.registerMesh({
+      id: "shader.standard",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      material: { kind: "standard" },
+      effects: effect,
+    });
+    runtime.registerMesh({
+      id: "shader.physical",
+      sceneId: "world",
+      geometry: { kind: "box" },
+      material: { kind: "physical" },
+      effects: effect,
+    });
+    const standardObject = readSceneObject(sceneAdapter, "shader.standard");
+    const physicalObject = readSceneObject(sceneAdapter, "shader.physical");
+    if (
+      !(standardObject.object3D instanceof Mesh) ||
+      !(physicalObject.object3D instanceof Mesh) ||
+      !(standardObject.object3D.material instanceof MeshStandardMaterial) ||
+      !(physicalObject.object3D.material instanceof MeshPhysicalMaterial)
+    ) {
+      throw new Error("Expected real managed lit mesh materials.");
+    }
+    const standardGeometryDispose = vi.spyOn(
+      standardObject.object3D.geometry,
+      "dispose",
+    );
+    const standardMaterialDispose = vi.spyOn(
+      standardObject.object3D.material,
+      "dispose",
+    );
+    const physicalGeometryDispose = vi.spyOn(
+      physicalObject.object3D.geometry,
+      "dispose",
+    );
+    const physicalMaterialDispose = vi.spyOn(
+      physicalObject.object3D.material,
+      "dispose",
+    );
+
+    await runtime.sync();
+
+    for (const material of [
+      standardObject.object3D.material,
+      physicalObject.object3D.material,
+    ]) {
+      const shader: {
+        vertexShader: string;
+        fragmentShader: string;
+        uniforms: Record<string, { value: unknown }>;
+        defines: Record<string, string | number | boolean>;
+      } = {
+        vertexShader: "#include <begin_vertex>",
+        fragmentShader:
+          "#include <emissivemap_fragment>\n#include <lights_fragment_begin>",
+        uniforms: {},
+        defines: {},
+      };
+      Reflect.apply(material.onBeforeCompile, material, [shader, {}]);
+
+      expect(shader.fragmentShader).toContain("float runtimeMarker = radius;");
+      expect(shader.uniforms.radius?.value).toBe(24);
+    }
+    expect(standardObject.object3D.material).toBeInstanceOf(MeshStandardMaterial);
+    expect(physicalObject.object3D.material).toBeInstanceOf(MeshPhysicalMaterial);
+    expect(publicBoundary).toEqual([
+      {
+        object3D: false,
+        renderer: false,
+        rawMaterial: false,
+        facadeMaterial: false,
+        facadeDispose: false,
+      },
+      {
+        object3D: false,
+        renderer: false,
+        rawMaterial: false,
+        facadeMaterial: false,
+        facadeDispose: false,
+      },
+    ]);
+
+    runtime.unregisterMesh("shader.standard");
+    runtime.unregisterMesh("shader.standard");
+    runtime.unregisterMesh("shader.physical");
+    runtime.unregisterMesh("shader.physical");
+    runtime.dispose();
+
+    expect(standardGeometryDispose).toHaveBeenCalledTimes(1);
+    expect(standardMaterialDispose).toHaveBeenCalledTimes(1);
+    expect(physicalGeometryDispose).toHaveBeenCalledTimes(1);
+    expect(physicalMaterialDispose).toHaveBeenCalledTimes(1);
+  });
+
   test("omitted standard and basic meshes keep their material classes without physical facade support", async () => {
     const mainAdapter = createObjectRecordingSceneAdapter();
     const sceneAdapter = createObjectRecordingSceneAdapter();

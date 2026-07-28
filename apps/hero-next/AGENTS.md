@@ -58,14 +58,18 @@ DOM scanning, a second renderer, or an app-specific branch in runtime code.
 
 Known current limits relevant to the studio hero:
 
-- Mesh materials expose basic/standard color and PBR scalar properties plus an
-  explicit physical descriptor with transmission, thickness, and IOR. They do
-  not expose gradients, texture masks, or stage material programs. The current
-  hero descriptor intentionally remains `standard`; do not opt it into
-  `physical` without a separate visual decision.
+- Mesh materials expose basic/standard color and PBR scalar properties, an
+  explicit physical descriptor with transmission, thickness, and IOR, and an
+  optional managed `material.shader` extension over runtime-owned
+  Basic/Standard/Physical materials. Shader definitions edit only controlled
+  source strings, uniforms, and defines; runtime owns compilation cache,
+  viewport/DPR uniforms, textures, and lifecycle. The current hero descriptor
+  intentionally remains `standard`; do not opt it into `physical` without a
+  separate visual decision.
 - Scene-native `WebGLMesh` effects receive the controlled managed material
   facade for every managed geometry kind. The facade does not expose raw Three
-  handles or grant material replacement/disposal or layer/program ownership.
+  handles or grant material replacement/disposal or source-backed
+  layer/program ownership.
 - Managed light declarations do not expose cast/receive shadow configuration.
 - `WebGLMesh` provides `plane`, `box`, `sphere`, `cylinder`, `cone`, and
   `tetrahedron` descriptors plus the controlled custom `BufferGeometry`
@@ -107,25 +111,22 @@ managed spotlight.
 The only non-light author colors are centralized in
 `src/heroTransitionConfig.ts`: `light=#B8B8B8` and `dark=#5F5F5F`. Initial roles
 are light background/dark foreground; inverted roles are dark background/light
-foreground. Ghost Cursor consumes the semantic foreground. The tetrahedron
-effect requests the same semantic material color and emissive. The scene-native
-`WebGLMesh` runtime now injects `ctx.object.material`, so those writes reach the
-real runtime-owned standard material in production.
-Key, rim, and pointer light colors are explicit lighting exceptions and must not
-be routed through the palette resolver.
+foreground. Ghost Cursor and the tetrahedron shader consume the same semantic
+foreground roles. The scene-native `WebGLMesh` runtime injects the controlled
+`ctx.object.material.shader` facade over the real runtime-owned Standard
+material in production. Key, rim, and pointer light colors are explicit
+lighting exceptions and must not be routed through the palette resolver.
 
-The current transition is asymmetric at the material boundary.
-The background and Ghost Cursor use the shared origin/radius signals in a
-per-fragment pixel-space radial mask, while `resolveHeroTransitionVisual()`
-selects the target tetrahedron foreground for the entire material whenever the
-phase is not `idle`. The tetrahedron therefore changes as one hard semantic
-step at attempt start and retains that target through retraction until
-cancellation. This is current implementation truth, not spatial mesh
-diffusion. The approved next design direction is to synchronize a
-screen-space, per-fragment tetrahedron transition with the existing radial
-signals. The current managed mesh material facade has no mask, material-program,
-or layer host, so that direction requires a separately designed general public
-capability. Do not imitate it with CSS, raw Three handles, or duplicate meshes.
+The background, Ghost Cursor, and tetrahedron share the same screen-space
+origin, radius, coverage, and `1.5px` feather. The app-owned
+`heroTetrahedronShader.ts` extension mixes committed/target color and emissive
+per fragment before the existing Standard lighting; v1 adds no edge noise.
+Early release retracts along the same path, re-press resumes from current
+coverage, and far-corner commit, `awaiting-release`, and bidirectional toggle
+remain owned by the existing state machine. Runtime code contains no Hero
+branch, and the app receives no raw Three handles, real shader callback,
+`needsUpdate`, material replacement, or disposal. Do not imitate this path with
+CSS, private imports, raw Three ownership, or duplicate meshes.
 
 `WebGLScrollRuntime`, `heroSmoothScroll`, Lenis, GSAP, and ScrollTrigger remain in
 place for future scrolling. The obsolete transition `WebGLScrollTimeline`, pin,
@@ -157,10 +158,11 @@ The tetrahedron does not continuously self-rotate. Idle motion uses base rotatio
 coverage; deterministic shake is present only during non-reduced forward
 expansion and stops on release, retraction, or commit. Reduced motion stays at
 `[-0.6, 0.85, 0.08]` with no shake or rapid extra transform while retaining hold
-timing, radial expansion/retraction, resume, release gate, and reversible scheme
-semantics. The declaration-owned material values are emissive intensity `0.06`,
-initial opacity `0.92`, metalness `0.9`, and roughness `0.12`; dynamic semantic
-material/emissive synchronization now runs through the public runtime facade.
+timing, radial color expansion/retraction, resume, release gate, and reversible
+scheme semantics. The declaration-owned material values are emissive intensity
+`0.06`, initial opacity `0.92`, metalness `0.9`, and roughness `0.12`; dynamic
+semantic color/emissive mixing now runs through the managed Standard-material
+shader extension.
 The opacity value is an alpha-transparency experiment, not physical light
 transmission. User visual QA reports that the strongly lit metallic surface
 looks white/milky rather than transparently refractive, so that treatment is
@@ -172,6 +174,8 @@ Current verified design and completed execution record:
 
 - `docs/superpowers/specs/2026-07-16-hero-next-hold-radial-transition-design.md`
 - `docs/superpowers/plans/2026-07-16-hero-next-hold-radial-transition.md`
+- `docs/superpowers/specs/2026-07-17-managed-lit-material-shader-extension-design.md`
+- `docs/superpowers/plans/2026-07-17-managed-lit-material-shader-extension.md`
 - `docs/superpowers/specs/2026-07-13-hero-next-ghost-cursor-depth-design.md`
 - `docs/superpowers/specs/2026-07-14-hero-next-webglmesh-tetrahedron-design.md`
 - `docs/archive/plans/superpowers/2026-07-13-hero-next-ghost-cursor-depth.md`

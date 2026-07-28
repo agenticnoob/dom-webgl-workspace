@@ -14,6 +14,7 @@ import {
 } from "../src/heroHoldTransition";
 import { heroTransitionConfig } from "../src/heroTransitionConfig";
 import type { HeroTransitionSignalWriter } from "../src/heroTransitionSignals";
+import { heroTetrahedronRadialShader } from "../src/heroTetrahedronShader";
 
 const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
@@ -42,6 +43,11 @@ function createTarget() {
       opacity: 0.92,
       metalness: 0.9,
       roughness: 0.12,
+      shader: {
+        onBeforeCompile: vi.fn(),
+        setUniforms: vi.fn(),
+        remove: vi.fn(),
+      },
       createLayer: vi.fn(() => layer),
       restore: vi.fn(),
     },
@@ -134,6 +140,40 @@ function transition(
 }
 
 describe("hero tetrahedron effect", () => {
+  test("registers the stable managed radial shader once during setup", () => {
+    const target = createTarget();
+    const descriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn(() => ({ matches: false })),
+    });
+
+    try {
+      const setup = heroTetrahedronEffect.setup;
+      if (!setup) {
+        throw new Error("Expected Hero effect setup.");
+      }
+      const state = setup(createContext(target), {
+        kind: "hero.tetrahedron.motion",
+        signals: { set: vi.fn() },
+      });
+
+      expect(state.transition.phase).toBe("idle");
+      expect(target.material.shader.onBeforeCompile).toHaveBeenCalledTimes(1);
+      expect(target.material.shader.onBeforeCompile).toHaveBeenCalledWith(
+        heroTetrahedronRadialShader,
+      );
+      expect("material" in target.material.shader).toBe(false);
+      expect("renderer" in target.material.shader).toBe(false);
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(window, "matchMedia", descriptor);
+      } else {
+        Reflect.deleteProperty(window, "matchMedia");
+      }
+    }
+  });
+
   test("starts only from a confirmed primary mesh hit and publishes signals", () => {
     const set = vi.fn();
     const signals = { set } satisfies HeroTransitionSignalWriter;
@@ -172,7 +212,7 @@ describe("hero tetrahedron effect", () => {
     }
   });
 
-  test("uses target foreground through expansion and retraction then restores on cancel", () => {
+  test("keeps the base material committed and drives shared radial shader uniforms", () => {
     const target = createTarget();
     const motion = createHeroMotionState(false);
     const idleInitial = createHeroHoldTransitionState("initial");
@@ -194,14 +234,32 @@ describe("hero tetrahedron effect", () => {
     expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
     applyHeroFrame(target, motion, 0, idleInverted, desktop, false);
     expect(target.material.color.set).toHaveBeenLastCalledWith("#B8B8B8");
+    target.material.color.set.mockClear();
+    target.material.emissive.set.mockClear();
+    target.material.shader.setUniforms.mockClear();
+
     applyHeroFrame(target, motion, 0, expanding, desktop, false);
-    expect(target.material.color.set).toHaveBeenLastCalledWith("#B8B8B8");
+    expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
     expect(target.material.emissive.set).toHaveBeenLastCalledWith(
-      "#B8B8B8",
+      "#5F5F5F",
       0.06,
     );
+    expect(target.material.shader.setUniforms).toHaveBeenLastCalledWith(
+      "hero.tetrahedron.radial",
+      expect.objectContaining({
+        heroCommittedColor: "#5F5F5F",
+        heroTargetColor: "#B8B8B8",
+        heroRadialOrigin: [0.5, 0.5],
+        heroRadialEdgePx: 1.5,
+      }),
+    );
+    const expandingRadius = target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
+      ?.heroRadialRadiusPx;
     applyHeroFrame(target, motion, 0, retracting, desktop, false);
-    expect(target.material.color.set).toHaveBeenLastCalledWith("#B8B8B8");
+    expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
+    const retractingRadius = target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
+      ?.heroRadialRadiusPx;
+    expect(retractingRadius).toBeLessThan(expandingRadius);
     applyHeroFrame(target, motion, 0, idleInitial, desktop, false);
     expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
   });
@@ -284,6 +342,15 @@ describe("hero tetrahedron effect", () => {
     );
     expect(reduced.position.set).toHaveBeenCalledWith(0, 0.365, 0);
     expect(reduced.rotation.set).toHaveBeenCalledWith(-0.6, 0.85, 0.08);
+    expect(reduced.material.shader.setUniforms).toHaveBeenLastCalledWith(
+      "hero.tetrahedron.radial",
+      expect.objectContaining({
+        heroCommittedColor: "#5F5F5F",
+        heroTargetColor: "#B8B8B8",
+        heroRadialRadiusPx: expect.any(Number),
+        heroRadialEdgePx: 1.5,
+      }),
+    );
   });
 
   test("preserves breathing, float, pointer tilt, responsive pose, opacity, and PBR", () => {

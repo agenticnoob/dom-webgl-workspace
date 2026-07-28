@@ -131,6 +131,65 @@ export const fixturePhysicalMaterialEffect = defineWebGLSceneObjectEffect({
   },
 });
 
+export const fixtureRadialMaterialEffect = defineWebGLSceneObjectEffect({
+  kind: "fixture.radialMaterial",
+  source: "mesh",
+  schedule: "reactive",
+  setup(ctx) {
+    const shader = ctx.object.material?.shader;
+    if (!shader) {
+      throw new Error("Expected fixture.radial to expose managed shader controls.");
+    }
+    shader.onBeforeCompile({
+      key: "fixture.radial",
+      uniforms: {
+        fixtureRadialOrigin: [0.5, 0.5],
+        fixtureRadialCoverage: 0,
+        fixtureRadialStartColor: "#0ea5e9",
+        fixtureRadialTargetColor: "#f97316",
+      },
+      compile(draft) {
+        const colorChunk = "#include <color_fragment>";
+        if (!draft.fragmentShader.includes(colorChunk)) {
+          throw new Error("Expected the Three color fragment chunk for fixture.radial.");
+        }
+        const uniforms = \`
+uniform vec2 fixtureRadialOrigin;
+uniform float fixtureRadialCoverage;
+uniform vec3 fixtureRadialStartColor;
+uniform vec3 fixtureRadialTargetColor;
+\`;
+        const radialMix = \`\${colorChunk}
+vec2 fixtureFragmentCssPx = gl_FragCoord.xy / domWebGLPixelRatio;
+vec2 fixtureOriginCssPx = fixtureRadialOrigin * domWebGLViewportSize;
+float fixtureMaxRadiusPx = length(domWebGLViewportSize);
+float fixtureRadiusPx = fixtureRadialCoverage * fixtureMaxRadiusPx;
+float fixtureRadialDistancePx = length(fixtureFragmentCssPx - fixtureOriginCssPx);
+float fixtureRadialMask = 1.0 - smoothstep(
+  fixtureRadiusPx - 1.5,
+  fixtureRadiusPx + 1.5,
+  fixtureRadialDistancePx
+);
+diffuseColor.rgb = mix(
+  fixtureRadialStartColor,
+  fixtureRadialTargetColor,
+  fixtureRadialMask
+);\`;
+        draft.fragmentShader = \`\${uniforms}\\n\${draft.fragmentShader.replace(
+          colorChunk,
+          radialMix,
+        )}\`;
+      },
+    });
+    return { shader };
+  },
+  update(ctx, state) {
+    state.shader.setUniforms("fixture.radial", {
+      fixtureRadialCoverage: ctx.progress.get("fixture.radial"),
+    });
+  },
+});
+
 export const fixtureModelEffect = defineWebGLSceneObjectEffect({
   kind: "fixture.modelCapability",
   source: "model/glb",
@@ -175,6 +234,7 @@ export const runtimeEffects = [
   fixtureEffect,
   fixtureSceneObjectEffect,
   fixturePhysicalMaterialEffect,
+  fixtureRadialMaterialEffect,
   fixtureModelEffect,
 ] as const;
 `;
@@ -200,12 +260,14 @@ export const fixtureProgress = createScrollEffectProgressStore();
 fixtureProgress.set("fixture.progress", 0.2);
 fixtureProgress.set("fixture.visible", 1);
 fixtureProgress.set("fixture.physical", 0);
+fixtureProgress.set("fixture.radial", 0);
 
 const cameraPosition = [120, 132, 620] as const;
 const cameraTarget = [120, -78, -70] as const;
 const modelEffects = [{ kind: "fixture.modelCapability" }] as const;
 const meshEffects = [{ kind: "fixture.sceneObject" }] as const;
 const physicalEffects = [{ kind: "fixture.physicalMaterial" }] as const;
+const radialEffects = [{ kind: "fixture.radialMaterial" }] as const;
 const customGeometry = {
   kind: "custom",
   create: () => new BoxGeometry(1, 1, 1),
@@ -290,6 +352,21 @@ export function App({
           }}
           effects={physicalEffects}
         />
+        <WebGLMesh
+          id="fixture.radial"
+          geometry={{ kind: "box", size: [220, 220, 52] }}
+          position={[310, 40, 0]}
+          material={{
+            kind: "standard",
+            color: "#0ea5e9",
+            emissive: "#020617",
+            emissiveIntensity: 0.04,
+            opacity: 1,
+            metalness: 0.08,
+            roughness: 0.42,
+          }}
+          effects={radialEffects}
+        />
         {includeModel ? (
           <>
             <WebGLModel
@@ -361,6 +438,9 @@ function BrowserFixture() {
 (window as unknown as {
   __fixtureSetPhysical(value: boolean): void;
 }).__fixtureSetPhysical = (value) => fixtureProgress.set("fixture.physical", value ? 1 : 0);
+(window as unknown as {
+  __fixtureSetRadial(coverage: number): void;
+}).__fixtureSetRadial = (coverage) => fixtureProgress.set("fixture.radial", coverage);
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Missing #root");
@@ -437,6 +517,22 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
   );
   expect(physicalPixelChange).toBeGreaterThan(250);
 
+  const radialRegion = { x: 480, y: 90, width: 460, height: 520 } as const;
+  await setRadial(page, 0);
+  const radialStart = await canvas.screenshot({ path: evidencePath("radial-start.png") });
+  await setRadial(page, 0.22);
+  const radialMiddle = await canvas.screenshot({ path: evidencePath("radial-middle.png") });
+  await setRadial(page, 1);
+  const radialTarget = await canvas.screenshot({ path: evidencePath("radial-target.png") });
+  const {
+    endpointChangedPixels: radialEndpointChangedPixels,
+    startLikePixels: radialStartLikePixels,
+    targetLikePixels: radialTargetLikePixels,
+  } = classifyRadialMix(radialStart, radialMiddle, radialTarget, radialRegion);
+  expect(radialEndpointChangedPixels).toBeGreaterThan(500);
+  expect(radialStartLikePixels).toBeGreaterThan(100);
+  expect(radialTargetLikePixels).toBeGreaterThan(100);
+
   await setVisible(page, false);
   const empty = await canvas.screenshot({ path: evidencePath("empty.png") });
   await setVisible(page, true);
@@ -494,6 +590,10 @@ test("packed scene/model effects pass real Chromium final-canvas gates", async (
       staticScene,
       physicalPixelChange,
       targetRegion,
+      radialRegion,
+      radialEndpointChangedPixels,
+      radialStartLikePixels,
+      radialTargetLikePixels,
       progressTransform,
       pointerTransform,
       solidToPoints,
@@ -542,6 +642,13 @@ async function setPhysical(page: import("@playwright/test").Page, value: boolean
   await page.waitForTimeout(240);
 }
 
+async function setRadial(page: import("@playwright/test").Page, coverage: number): Promise<void> {
+  await page.evaluate((next) => {
+    (window as unknown as { __fixtureSetRadial(coverage: number): void }).__fixtureSetRadial(next);
+  }, coverage);
+  await page.waitForTimeout(240);
+}
+
 function changedPixelCount(first: Buffer, second: Buffer): number {
   const a = PNG.sync.read(first);
   const b = PNG.sync.read(second);
@@ -581,6 +688,51 @@ function changedPixelCountInRegion(
     }
   }
   return changed;
+}
+
+function classifyRadialMix(
+  start: Buffer,
+  middle: Buffer,
+  target: Buffer,
+  region: { x: number; y: number; width: number; height: number },
+): {
+  endpointChangedPixels: number;
+  startLikePixels: number;
+  targetLikePixels: number;
+} {
+  const a = PNG.sync.read(start);
+  const b = PNG.sync.read(middle);
+  const c = PNG.sync.read(target);
+  expect([a.width, a.height]).toEqual([b.width, b.height]);
+  expect([a.width, a.height]).toEqual([c.width, c.height]);
+  let endpointChangedPixels = 0;
+  let startLikePixels = 0;
+  let targetLikePixels = 0;
+  const maxX = Math.min(a.width, region.x + region.width);
+  const maxY = Math.min(a.height, region.y + region.height);
+  for (let y = Math.max(0, region.y); y < maxY; y += 1) {
+    for (let x = Math.max(0, region.x); x < maxX; x += 1) {
+      const index = (y * a.width + x) * 4;
+      const endpointDelta = rgbManhattan(a.data, c.data, index);
+      if (endpointDelta <= 24) continue;
+      endpointChangedPixels += 1;
+      const startDelta = rgbManhattan(a.data, b.data, index);
+      const targetDelta = rgbManhattan(c.data, b.data, index);
+      if (startDelta <= targetDelta) startLikePixels += 1;
+      else targetLikePixels += 1;
+    }
+  }
+  return { endpointChangedPixels, startLikePixels, targetLikePixels };
+}
+
+function rgbManhattan(
+  first: Uint8Array,
+  second: Uint8Array,
+  index: number,
+): number {
+  return Math.abs(first[index] - second[index]) +
+    Math.abs(first[index + 1] - second[index + 1]) +
+    Math.abs(first[index + 2] - second[index + 2]);
 }
 `;
 

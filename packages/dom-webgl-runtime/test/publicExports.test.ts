@@ -676,9 +676,13 @@ describe("public package exports", () => {
 				          WebGLEffectImageSequenceLayerHandle,
 				          WebGLEffectBlendMode,
 				          WebGLEffectLightFollowMode,
-				          WebGLEffectLightsFacade,
-				          WebGLEffectMaterialFacade,
-				          WebGLEffectPhysicalMaterialFacade,
+		          WebGLEffectLightsFacade,
+		          WebGLEffectMaterialFacade,
+		          WebGLEffectMaterialKind,
+		          WebGLEffectMaterialShaderDefinition,
+		          WebGLEffectMaterialShaderDraft,
+		          WebGLEffectMaterialShaderFacade,
+		          WebGLEffectPhysicalMaterialFacade,
 				          WebGLEffectMaterialLayerHandle,
 				          WebGLEffectMaterialLayerHost,
 				          WebGLEffectMaterialLayerOptions,
@@ -1664,6 +1668,51 @@ describe("public package exports", () => {
 	        publicCtx.object satisfies WebGLEffectObjectHandle;
 	        publicCtx.object.material satisfies WebGLEffectMaterialFacade | undefined;
 	        publicCtx.object.material?.physical satisfies WebGLEffectPhysicalMaterialFacade | undefined;
+
+        declare const material: WebGLEffectMaterialFacade;
+
+        material.shader?.onBeforeCompile({
+          key: "app.radial",
+          uniforms: {
+            radialOrigin: [0.5, 0.5],
+            radialRadiusPx: 0,
+            targetColor: "#ffffff",
+          },
+          defines: { APP_RADIAL: true },
+          compile(draft) {
+            draft.materialKind satisfies WebGLEffectMaterialKind;
+            draft.vertexShader = draft.vertexShader.replace(
+              "#include <begin_vertex>",
+              "#include <begin_vertex>",
+            );
+            draft.fragmentShader = draft.fragmentShader.replace(
+              "#include <emissivemap_fragment>",
+              "#include <emissivemap_fragment>",
+            );
+            draft.uniforms.radialRadiusPx = 12;
+            draft.defines.APP_RADIAL = true;
+          },
+        } satisfies WebGLEffectMaterialShaderDefinition);
+
+        material.shader?.setUniforms("app.radial", {
+          radialOrigin: [0.25, 0.75],
+          radialRadiusPx: 320,
+        });
+        material.shader?.remove("app.radial");
+
+        declare const shaderFacade: WebGLEffectMaterialShaderFacade;
+        // @ts-expect-error runtime owns shader-extension disposal.
+        shaderFacade.dispose();
+        // @ts-expect-error raw Three Material is not exposed.
+        shaderFacade.material;
+        material.shader?.onBeforeCompile({
+          key: "app.invalid",
+          // @ts-expect-error renderer is not passed to the controlled callback.
+          compile(_draft, _renderer) {},
+        });
+
+	        declare const shaderDraft: WebGLEffectMaterialShaderDraft;
+	        shaderDraft.materialKind satisfies WebGLEffectMaterialKind;
 	        publicCtx.object.lights satisfies WebGLEffectLightsFacade | undefined;
 	        publicCtx.object.animation satisfies WebGLEffectAnimationFacade | undefined;
 	        publicCtx.resources satisfies WebGLEffectResourceScope;
