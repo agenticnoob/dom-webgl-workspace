@@ -6,6 +6,8 @@ coverage/
 .codegraph/
 .omo/
 .worktrees/
+/.playwright-cli/
+/output/
 
 *.log
 .DS_Store

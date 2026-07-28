@@ -1,23 +1,35 @@
 # Documentation Archive
 
-This directory contains completed implementation plans, historical execution
-state, and old reference notes.
+This directory preserves completed plans, superseded decisions, prior status
+snapshots, investigations, reports, and legacy reference material.
 
-Archived files are kept as evidence and context. They are not the current
-roadmap, current API contract, or active implementation plan.
-
-Use these rules when reading archived files:
-
-- Prefer [../STATUS.md](../STATUS.md) for current implementation truth.
-- Prefer [../roadmap/managed-render-system.md](../roadmap/managed-render-system.md) for future direction.
-- Prefer [../agent/package-usage.md](../agent/package-usage.md) for the public package contract.
-- Do not treat unchecked boxes, stale source declarations, or old phase names in
-  archived files as live backlog without re-validating current code.
+Archived documents are not current truth, active backlog, or authoritative
+public API documentation. Validate historical statements against current
+source, tests, package metadata, [../STATUS.md](../STATUS.md), and
+[../ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Layout
 
-- `plans/root/` - early root-level phase plans.
-- `plans/superpowers/` - completed implementation plans from prior work.
-- `specs/` - completed design specs.
-- `reference/` - stale or external reference material.
-- `status/` - previous long-form execution state snapshots.
+| Directory | Contents |
+| --- | --- |
+| `plans/early-runtime/` | Early runtime implementation plans |
+| `plans/implementation/` | Completed task-by-task implementation plans |
+| `plans/maintenance/` | Completed repository maintenance plans |
+| `specs/` | Completed or superseded design decisions |
+| `reports/` | Reviews, release reports, performance notes, and investigations |
+| `reference/` | Superseded architecture, package guides, tutorials, roadmaps, and consumer notes |
+| `status/` | Prior long-form execution/status snapshots |
+
+Archive paths are organized for evidence retention. Internal links in old files
+may describe their original active locations and may no longer resolve.
+
+## Archiving rules
+
+- Move a plan/spec/report here once its implementation or investigation ends.
+- Preserve historical content; do not rewrite it to match the current API.
+- Use date-prefixed lowercase kebab-case for new records.
+- Do not add archive files to active documentation indexes except through this
+  archive index.
+- Do not treat unchecked boxes or old phase labels as current work.
+- Current facts must be summarized in `docs/STATUS.md` or the owning app/package
+  document, then linked rather than copied.

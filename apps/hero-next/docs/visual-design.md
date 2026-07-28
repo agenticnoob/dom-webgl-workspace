@@ -158,9 +158,9 @@ release gate 与双向 toggle，但关闭 shake 和额外快速 transform。
   hero production 复测的背景采样为 `184 -> 95 -> 184`，代表性四面体面部采样在 inverted
   变亮后返回暗值，且全程单 canvas、console 0 errors / 0 warnings。
 
-## 范围
+## 维护边界
 
-- 不修改 `docs/archive/`；
+- 已完成的设计和实施记录归档到仓库 `docs/archive/`，不作为当前真值；
 - 不改变 key、rim、pointer-light 行为；
 - 不用 CSS 绘制圆形、颜色、mask、shake 或 animation；
 - 不移除 `WebGLScrollRuntime`、Lenis、GSAP 或 ScrollTrigger；

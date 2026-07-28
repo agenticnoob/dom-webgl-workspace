@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run typecheck && npm test -- --run",
+    "check:docs": "npm test -- --run test/documentation.test.ts",
     "check:imports": "node ./scripts/assert-example-public-imports.mjs",
     "release:version": "node ./scripts/set-release-version.mjs",
     "verify:versions": "node ./scripts/set-release-version.mjs --check",
