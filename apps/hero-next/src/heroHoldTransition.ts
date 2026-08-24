@@ -18,6 +18,7 @@ export type HeroHoldTransitionState = {
 };
 
 export type HeroHoldTransitionInput = {
+  readonly interactionEnabled: boolean;
   readonly meshPressed: boolean;
   readonly primaryPointerDown: boolean;
   readonly hitConfirmed: boolean;
@@ -79,8 +80,12 @@ export function stepHeroHoldTransition(
     0,
   );
   const validPress =
-    input.meshPressed && input.primaryPointerDown && input.hitConfirmed;
-  const continuingPress = input.meshPressed && input.primaryPointerDown;
+    input.interactionEnabled &&
+    input.meshPressed &&
+    input.primaryPointerDown &&
+    input.hitConfirmed;
+  const continuingPress =
+    input.interactionEnabled && input.meshPressed && input.primaryPointerDown;
 
   switch (safeState.phase) {
     case "idle": {

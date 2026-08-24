@@ -10,19 +10,25 @@ body {
 
 body {
   overflow-x: hidden;
+  background: #b8b8b8;
+}
+
+button,
+a {
+  font: inherit;
 }
 
 .hero-runtime {
   position: relative;
   isolation: isolate;
   width: 100%;
-  height: 100svh;
   min-height: 100svh;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero-runtime canvas {
   position: fixed;
+  z-index: 10;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -30,12 +36,24 @@ body {
 }
 
 .hero-space {
+  --hero-background: #b8b8b8;
+  --hero-foreground: #5f5f5f;
+  --hero-chapter-background: var(--hero-foreground);
+  --hero-chapter-foreground: var(--hero-background);
+
   position: relative;
   width: 100%;
-  height: 100svh;
   min-height: 100svh;
-  overflow: hidden;
+  overflow: visible;
+  background: transparent;
+  color: var(--hero-foreground);
+  font-family: Arial, Helvetica, sans-serif;
   pointer-events: none;
+}
+
+.hero-space[data-hero-theme="inverted"] {
+  --hero-background: #5f5f5f;
+  --hero-foreground: #b8b8b8;
 }
 
 .hero-ghost-surface {
@@ -44,4 +62,216 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+.hero-hub-runway,
+.hero-entry-runway {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+.hero-hub-runway {
+  min-height: 80svh;
+}
+
+.hero-entry-runway {
+  min-height: 520svh;
+}
+
+.hero-chapter {
+  position: relative;
+  z-index: 20;
+  width: 100%;
+  margin: 0;
+  background: var(--hero-chapter-background);
+  color: var(--hero-chapter-foreground);
+}
+
+.hero-space[data-dom-active="false"] .hero-chapter {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hero-space[data-dom-active="true"] .hero-chapter {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.hero-chapter__frame {
+  position: relative;
+  width: var(--hero-frame-width);
+  min-height: var(--hero-frame-height);
+  padding: var(--hero-frame-inset);
+  overflow: hidden;
+  background: var(--hero-chapter-background);
+  color: var(--hero-chapter-foreground);
+}
+
+.hero-chapter__header {
+  max-width: min(82rem, 88vw);
+}
+
+.hero-chapter__header p {
+  max-width: var(--hero-summary-max-width);
+  margin: 0;
+  font-size: var(--hero-small-font-size);
+  line-height: var(--hero-small-line-height);
+  letter-spacing: var(--hero-header-letter-spacing);
+  text-transform: uppercase;
+}
+
+.hero-chapter__header h1 {
+  max-width: 10ch;
+  margin: var(--hero-heading-margin-top) 0
+    var(--hero-heading-margin-bottom);
+  font-size: var(--hero-heading-font-size);
+  font-weight: 700;
+  line-height: var(--hero-heading-line-height);
+  letter-spacing: var(--hero-heading-letter-spacing);
+}
+
+.hero-chapter__header h1 span {
+  display: block;
+}
+
+.hero-chapter__frame-cards {
+  position: absolute;
+  top: var(--hero-cards-top);
+  right: var(--hero-frame-inset);
+  left: var(--hero-frame-inset);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hero-card-gap);
+}
+
+.hero-chapter__frame-cards > div {
+  min-height: var(--hero-card-height);
+  padding: var(--hero-card-padding);
+  border-left: var(--hero-card-border-width) solid currentColor;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.hero-chapter__frame-cards span {
+  display: block;
+  margin-bottom: var(--hero-card-label-gap);
+  font-size: var(--hero-small-font-size);
+  line-height: var(--hero-small-line-height);
+  letter-spacing: var(--hero-card-letter-spacing);
+  text-transform: uppercase;
+}
+
+.hero-chapter__body {
+  min-height: 180svh;
+  padding: 18svh max(24px, 7vw);
+  background: var(--hero-chapter-background);
+  color: var(--hero-chapter-foreground);
+}
+
+.hero-chapter__index {
+  margin: 0 0 8svh;
+  letter-spacing: 0.15em;
+}
+
+.hero-chapter__body > h2 {
+  max-width: 11ch;
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 8rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.hero-chapter__body > p {
+  max-width: 44rem;
+  margin: 8svh 0 14svh auto;
+  font-size: clamp(1.2rem, 2.25vw, 2.2rem);
+  line-height: 1.35;
+}
+
+.hero-chapter__notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 3rem);
+}
+
+.hero-chapter__note {
+  min-height: 42svh;
+  padding: clamp(1.2rem, 3vw, 3rem);
+  border: 1px solid currentColor;
+}
+
+.hero-chapter__note h3 {
+  margin: 10svh 0 2rem;
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 1;
+}
+
+.hero-chapter__link {
+  display: inline-block;
+  margin-top: 14svh;
+  padding: 1rem 0.25rem;
+  color: inherit;
+  text-underline-offset: 0.35em;
+}
+
+.hero-chapter__link:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 6px;
+}
+
+.hero-exit-runway {
+  position: relative;
+  min-height: 420svh;
+}
+
+.hero-exit-sticky {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+}
+
+.hero-hub-runway--final {
+  min-height: 80svh;
+}
+
+.hero-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 700px) {
+  .hero-entry-runway {
+    min-height: 460svh;
+  }
+
+  .hero-chapter__frame-cards,
+  .hero-chapter__notes {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-chapter__body {
+    min-height: 220svh;
+    padding-top: 14svh;
+  }
+
+  .hero-chapter__body > p {
+    margin-left: 0;
+  }
+
+  .hero-chapter__note {
+    min-height: 34svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

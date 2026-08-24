@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 const appRoot = resolve(process.cwd(), "apps/hero-next");
 
 describe("hero Next.js workspace shell", () => {
-  test("declares a private App Router workspace with a pure visual route", () => {
+  test("declares a private App Router workspace with one managed visual layer and semantic chapter DOM", () => {
     const requiredFiles = [
       "package.json",
       "next.config.ts",
@@ -34,6 +34,14 @@ describe("hero Next.js workspace shell", () => {
       resolve(appRoot, "src/HeroExperience.tsx"),
       "utf8",
     );
+    const narrativeSource = readFileSync(
+      resolve(appRoot, "src/HeroChapterNarrative.tsx"),
+      "utf8",
+    );
+    const cssSource = readFileSync(
+      resolve(appRoot, "app/globals.css"),
+      "utf8",
+    );
 
     expect(packageJson).toMatchObject({
       name: "@viselora/hero-next",
@@ -49,5 +57,14 @@ describe("hero Next.js workspace shell", () => {
     expect(pageSource).toContain("<HeroExperience />");
     expect(heroSource).toContain('className="hero-space"');
     expect(heroSource).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
+    expect(narrativeSource).toContain("<article");
+    expect(narrativeSource).toContain("<h1>");
+    expect(cssSource).toMatch(/\.hero-space\s*{[\s\S]*?background: transparent;/);
+    expect(cssSource).toMatch(
+      /\.hero-chapter\s*{[\s\S]*?background: var\(--hero-chapter-background\);/,
+    );
+    expect(cssSource).toMatch(
+      /\.hero-chapter\s*{[\s\S]*?color: var\(--hero-chapter-foreground\);/,
+    );
   });
 });

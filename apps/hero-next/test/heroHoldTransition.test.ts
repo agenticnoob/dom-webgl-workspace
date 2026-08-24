@@ -12,6 +12,7 @@ import {
 
 const viewport = { width: 1200, height: 835 } as const;
 const pressedInput = {
+  interactionEnabled: true,
   meshPressed: true,
   primaryPointerDown: true,
   hitConfirmed: true,
@@ -175,6 +176,23 @@ describe("hero hold transition", () => {
         stepHeroHoldTransition(idle, { ...pressedInput, ...overrides }),
       ).toEqual(idle);
     }
+  });
+
+  test("retracts an active attempt when the Hub-only interaction gate closes", () => {
+    const expanded = advance(createHeroHoldTransitionState(), 320);
+    const gated = stepHeroHoldTransition(expanded, {
+      ...pressedInput,
+      interactionEnabled: false,
+      deltaMs: 16,
+    });
+
+    expect(gated).toMatchObject({
+      phase: "retracting",
+      committedScheme: "initial",
+      targetScheme: "inverted",
+      shakeActive: false,
+    });
+    expect(gated.coverage).toBe(expanded.coverage);
   });
 
   test("sanitizes invalid delta and clamps oversized frames", () => {

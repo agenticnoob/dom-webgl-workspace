@@ -20,6 +20,7 @@ const baseOptions = {
   radialOrigin: [0.25, 0.75],
   radialRadiusPx: 420,
   radialEdgePx: 1.5,
+  sceneOpacity: 1,
   brightness: 0.9,
   trailPoints: [
     [600, 450],
@@ -80,9 +81,7 @@ describe("hero Ghost Cursor material programs", () => {
       MAX_TRAIL_LENGTH: 12,
     });
     expect(program.fragmentShader).toContain("#if HERO_FOREGROUND == 1");
-    expect(program.fragmentShader).toContain(
-      "vec4(radialForeground, outAlpha * iBrightness * 1.5)",
-    );
+    expect(program.fragmentShader).toContain("iBrightness * 1.5 * iSceneOpacity");
     expect(program.fragmentShader).not.toContain("colorAcc * 0.32");
   });
 
@@ -100,6 +99,7 @@ describe("hero Ghost Cursor material programs", () => {
       iRadialOrigin: [0.25, 0.75],
       iRadialRadiusPx: 420,
       iRadialEdgePx: 1.5,
+      iSceneOpacity: 1,
     });
     expect(uniforms.iPrevMouse).toEqual(
       expect.arrayContaining([

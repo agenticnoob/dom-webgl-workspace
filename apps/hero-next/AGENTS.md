@@ -19,14 +19,14 @@ Read [README.md](./README.md) and
 
 ## Visual boundary
 
-- CSS owns layout, sizing, stacking, overflow, pointer routing, and
-  accessibility only.
-- WebGL owns authored color, geometry, shader output, lighting, postprocess, and
-  motion.
-- Keep one runtime, one canvas, and one transition state machine.
+- CSS owns semantic DOM layout, accessible theme tokens, sizing, stacking,
+  overflow, and pointer routing.
+- WebGL owns the tetrahedron, face projection, triangular transition window,
+  shader output, lighting, postprocess, and motion.
+- Keep one runtime, one canvas, one scroll truth, and one committed theme truth.
 - Do not create raw Three.js renderer/scene/camera/material/loader ownership.
-- Do not add a second canvas, CSS mask/gradient visual, duplicate mesh, DOM
-  event bus, mutable theme store, or React frame state.
+- Do not add a second canvas, CSS mask/clip transition, duplicate mesh, DOM
+  event bus, second theme store, or React frame state.
 - Preserve the two semantic non-light color tokens unless the user explicitly
   approves a new visual direction.
 - Key, rim, and pointer-light colors are lighting inputs, not semantic palette
@@ -49,11 +49,17 @@ Read [README.md](./README.md) and
 | --- | --- |
 | Constants and semantic palette | `src/heroTransitionConfig.ts` |
 | Pure hold/radial state | `src/heroHoldTransition.ts` |
+| Pure reversible scroll phases | `src/heroChapterScroll.ts` |
+| Camera-space chapter geometry | `src/heroChapterGeometry.ts` |
+| Committed theme and persistence | `src/heroTheme.ts`, `src/heroExperienceState.ts` |
+| Shared chapter copy | `src/heroChapterContent.ts` |
+| Responsive atlas/DOM layout | `src/heroChapterLayout.ts`, `src/heroChapterLayoutReact.ts` |
+| Managed chapter texture atlas | `src/heroChapterAtlas.ts` |
 | Progress encoding | `src/heroTransitionSignals.ts` |
 | Mesh effect, material, motion | `src/heroEffect.ts` |
 | Managed material extension | `src/heroTetrahedronShader.ts` |
 | Background program/effect | `src/heroGhostCursorProgram.ts`, `src/heroGhostEffects.ts` |
-| Composition | `src/HeroExperience.tsx` |
+| React composition and semantic DOM | `src/HeroExperience.tsx`, `src/HeroChapterNarrative.tsx` |
 | Visual truth | `docs/visual-design.md` |
 
 Do not duplicate constants or live state across these modules.

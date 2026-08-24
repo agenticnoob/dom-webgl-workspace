@@ -1,6 +1,7 @@
 # Current Status
 
-**Last verified: 2026-07-28 against source, package metadata, and npm dist-tags.**
+**Last verified: hero-next current source 2026-08-25; registry release truth
+2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
 belongs to each app; completed plans and prior evidence belong in
@@ -82,16 +83,20 @@ See [apps/example/README.md](../apps/example/README.md).
 ### `apps/hero-next`
 
 The private Next.js consumer uses public managed scene, mesh, effect, shader,
-lighting, render-quality, and scroll APIs. Its current visual behavior is a
-two-tone, reversible hold-driven radial transition across the background and
-tetrahedron, with app-owned state and no package-specific Hero branch.
+lighting, render-quality, and scroll APIs. It currently implements one complete
+reversible chapter slice: tetrahedron Hub, face orientation/approach,
+screen-space content lock, triangular WebGL reveal, semantic DOM chapter,
+reverse exit, and return to the Hub. The hold-driven radial theme switch is
+Hub-only and persists one committed theme truth locally.
 
-Automated and desktop Chromium evidence exists for the implemented transition
-and managed lit-material shader path. The earlier 390×844 browser evidence
-covers the initial frame only; complete mobile interaction acceptance remains
-unverified. The standard-material alpha experiment was visually rejected as a
-white/milky treatment; physical-material parameters have not been selected or
-accepted for the Hero.
+Focused automation and production Chromium evidence cover the forward/reverse
+path, DOM handoff, theme gate and refresh persistence, desktop and 390×844
+mobile layouts, reduced-motion semantics, single-canvas ownership, and the
+managed lit-material shader path. Lock-frame UVs are derived from the same
+camera projection used by geometry, while the atlas and semantic DOM consume
+one responsive layout model. The chapter surface is temporary prototype
+content; four-chapter replication and final visual/content acceptance remain
+open. No package-specific Hero branch or raw Three ownership was added.
 
 See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).

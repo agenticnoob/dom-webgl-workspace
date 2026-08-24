@@ -9,10 +9,14 @@ import type { HeroTransitionSignalWriter } from "../src/heroTransitionSignals";
 type CapturedMeshEffect = {
   readonly kind: string;
   readonly signals?: HeroTransitionSignalWriter;
+  readonly theme?: { getSnapshot(): string };
 };
 
 const progressStore = {
-  source: { get: vi.fn(() => 0) },
+  source: {
+    get: vi.fn(() => 0),
+    subscribe: vi.fn(() => () => undefined),
+  },
   set: vi.fn(),
   reset: vi.fn(),
   clear: vi.fn(),
@@ -47,17 +51,25 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
     end,
     pin,
     scrub,
+    progressKey,
+    className,
+    as = "section",
   }: PropsWithChildren<{
     id: string;
+    as?: string;
+    className?: string;
+    progressKey?: string;
     start?: string;
     end?: string;
     pin?: boolean;
     scrub?: boolean;
   }>) =>
     createElement(
-      "section",
+      as,
       {
+        className,
         "data-timeline": id,
+        "data-progress-key": progressKey,
         "data-start": start,
         "data-end": end,
         "data-pin": pin,
@@ -188,6 +200,10 @@ beforeEach(() => {
   capturedEffects.length = 0;
   meshRenderCount = 0;
   vi.clearAllMocks();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: { getItem: vi.fn(() => null), setItem: vi.fn() },
+  });
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean })
     .IS_REACT_ACT_ENVIRONMENT = true;
 });
@@ -200,8 +216,13 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-runtime="hero-scroll"');
     expect(html).toContain('data-antialias="true"');
     expect(html).toContain('data-max-device-pixel-ratio="2"');
-    expect(html).not.toContain("data-timeline");
-    expect(html).not.toContain("+=300%");
+    expect(html.match(/data-timeline=/g)).toHaveLength(2);
+    expect(html).toContain('data-timeline="hero.chapter-1.entry.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-1.entry"');
+    expect(html).toContain('data-end="bottom top"');
+    expect(html).toContain('data-timeline="hero.chapter-1.exit.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-1.exit"');
+    expect(html).toContain('data-end="bottom bottom"');
     expect(html).not.toContain("data-pin");
     expect(html).toContain('data-scene="hero.tetrahedron.scene"');
     expect(html).toContain('data-position="0,0,3.2"');
@@ -238,8 +259,12 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-light-position="1.8,-1.4,2"');
     expect(html).not.toContain('data-light="hero.tetrahedron.fill"');
     expect(html.match(/data-light=/g)).toHaveLength(2);
+    expect(html).toContain('data-hero-theme="initial"');
+    expect(html).toContain('data-dom-active="false"');
+    expect(html).toContain('id="chapter-1"');
+    expect(html).toContain("A real DOM chapter");
+    expect(html).toContain("Continue to the chapter exit");
     expect(html).not.toContain("Boo!");
-    expect(html).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
   });
 
   test("keeps the injected writer and mesh effects stable without React frame state", () => {
@@ -252,8 +277,11 @@ describe("HeroExperience", () => {
     expect(capturedEffects).toHaveLength(2);
     expect(capturedEffects[1]).toBe(capturedEffects[0]);
     const capturedWriter = capturedEffects[0]?.[0]?.signals;
+    const capturedTheme = capturedEffects[0]?.[0]?.theme;
     expect(capturedWriter).toBeDefined();
+    expect(capturedTheme?.getSnapshot()).toBe("initial");
     expect(capturedEffects[1]?.[0]?.signals).toBe(capturedWriter);
+    expect(capturedEffects[1]?.[0]?.theme).toBe(capturedTheme);
 
     const rendersBeforeSignalWrite = meshRenderCount;
     capturedWriter?.set(heroTransitionConfig.signalKeys.coverage, 0.5);

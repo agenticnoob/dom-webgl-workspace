@@ -8,16 +8,50 @@ import {
   heroTetrahedronEffect,
   stepHeroMotionState,
 } from "../src/heroEffect";
+import { resolveHeroChapterGeometryFrame } from "../src/heroChapterGeometry";
+import { resolveHeroChapterScrollState } from "../src/heroChapterScroll";
 import {
   createHeroHoldTransitionState,
   type HeroHoldTransitionState,
 } from "../src/heroHoldTransition";
 import { heroTransitionConfig } from "../src/heroTransitionConfig";
 import type { HeroTransitionSignalWriter } from "../src/heroTransitionSignals";
-import { heroTetrahedronRadialShader } from "../src/heroTetrahedronShader";
+import { heroTetrahedronRadialShaderKey } from "../src/heroTetrahedronShader";
 
 const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
+
+function createThemeStore(scheme: "initial" | "inverted" = "initial") {
+  return {
+    getSnapshot: () => scheme,
+    getServerSnapshot: () => "initial" as const,
+    subscribe: () => () => undefined,
+    commit: vi.fn(),
+  };
+}
+
+function createCanvasContext() {
+  return {
+    textBaseline: "alphabetic",
+    fillStyle: "#000000",
+    font: "",
+    letterSpacing: "0px",
+    globalAlpha: 1,
+    save: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    fillRect: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn((value: string) => ({
+      width: value.length * 10,
+      actualBoundingBoxAscent: 8,
+      actualBoundingBoxDescent: 2,
+      fontBoundingBoxAscent: 8,
+      fontBoundingBoxDescent: 2,
+    })),
+    restore: vi.fn(),
+  };
+}
 
 function createTarget() {
   const layer = {
@@ -63,6 +97,7 @@ function createContext(
     >;
     readonly time?: number;
     readonly delta?: number;
+    readonly progress?: WebGLSceneObjectEffectContext["progress"];
   } = {},
 ): WebGLSceneObjectEffectContext {
   const pointer = {
@@ -112,7 +147,7 @@ function createContext(
     },
     pointer,
     objectPointer,
-    progress: { get: () => 0 },
+    progress: overrides.progress ?? { get: () => 0 },
     runtime: {
       progress: { get: () => 0 },
       postprocess: {
@@ -147,6 +182,9 @@ describe("hero tetrahedron effect", () => {
       configurable: true,
       value: vi.fn(() => ({ matches: false })),
     });
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(createCanvasContext() as never);
 
     try {
       const setup = heroTetrahedronEffect.setup;
@@ -156,16 +194,29 @@ describe("hero tetrahedron effect", () => {
       const state = setup(createContext(target), {
         kind: "hero.tetrahedron.motion",
         signals: { set: vi.fn() },
+        theme: createThemeStore(),
       });
 
       expect(state.transition.phase).toBe("idle");
       expect(target.material.shader.onBeforeCompile).toHaveBeenCalledTimes(1);
       expect(target.material.shader.onBeforeCompile).toHaveBeenCalledWith(
-        heroTetrahedronRadialShader,
+        expect.objectContaining({
+          key: heroTetrahedronRadialShaderKey,
+          uniforms: expect.objectContaining({
+            heroChapterAtlas: expect.objectContaining({ kind: "canvas-texture" }),
+          }),
+        }),
+      );
+      expect(target.material.shader.setUniforms).not.toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({
+          heroChapterAtlas: expect.objectContaining({ kind: "canvas-texture" }),
+        }),
       );
       expect("material" in target.material.shader).toBe(false);
       expect("renderer" in target.material.shader).toBe(false);
     } finally {
+      getContext.mockRestore();
       if (descriptor) {
         Object.defineProperty(window, "matchMedia", descriptor);
       } else {
@@ -183,6 +234,7 @@ describe("hero tetrahedron effect", () => {
     heroTetrahedronEffect.update(createContext(target), state, {
       kind: "hero.tetrahedron.motion",
       signals,
+      theme: createThemeStore(),
     });
 
     expect(state.transition).toMatchObject({
@@ -207,9 +259,45 @@ describe("hero tetrahedron effect", () => {
       heroTetrahedronEffect.update(context, idle, {
         kind: "hero.tetrahedron.motion",
         signals,
+        theme: createThemeStore(),
       });
       expect(idle.transition.phase).toBe("idle");
     }
+  });
+
+  test("gates theme commits to a complete Hub and persists exactly on commit", () => {
+    const target = createTarget();
+    const signals = { set: vi.fn() };
+    const theme = createThemeStore();
+    const params = {
+      kind: "hero.tetrahedron.motion" as const,
+      signals,
+      theme,
+    };
+    const domState = createHeroEffectState(false);
+    const domProgress = {
+      get: (key: string) =>
+        key === heroTransitionConfig.signalKeys.chapterEntry ? 1 : 0,
+    };
+
+    heroTetrahedronEffect.update(
+      createContext(target, { progress: domProgress }),
+      domState,
+      params,
+    );
+    expect(domState.transition.phase).toBe("idle");
+    expect(theme.commit).not.toHaveBeenCalled();
+
+    const hubState = createHeroEffectState(false);
+    for (let frame = 0; frame < 63; frame += 1) {
+      heroTetrahedronEffect.update(createContext(target), hubState, params);
+    }
+    expect(hubState.transition).toMatchObject({
+      phase: "awaiting-release",
+      committedScheme: "inverted",
+    });
+    expect(theme.commit).toHaveBeenCalledTimes(1);
+    expect(theme.commit).toHaveBeenCalledWith("inverted");
   });
 
   test("keeps the base material committed and drives shared radial shader uniforms", () => {
@@ -298,6 +386,75 @@ describe("hero tetrahedron effect", () => {
       3,
       expect.closeTo(heroTransitionConfig.motion.baseScale * 1.012, 6),
     );
+  });
+
+  test("composes rotation with approach, then holds alignment through curtain motion", () => {
+    const { orientEnd, lockEnd } = heroTransitionConfig.chapterScroll.entry;
+    const chapters = [0.1, orientEnd, 0.44, lockEnd, 0.8].map((entry) =>
+      resolveHeroChapterScrollState(entry, 0),
+    );
+    const frames = chapters.map((chapter) =>
+      resolveHeroChapterGeometryFrame(
+        desktop,
+        chapter,
+        heroTransitionConfig.motion.baseRotation,
+      ),
+    );
+    const targets = chapters.map(() => createTarget());
+
+    for (const [index, chapter] of chapters.entries()) {
+      applyHeroFrame(
+        targets[index]!,
+        createHeroMotionState(false),
+        0,
+        createHeroHoldTransitionState(),
+        desktop,
+        false,
+        chapter,
+      );
+    }
+
+    expect(chapters[0]).toMatchObject({
+      phase: "orient-approach",
+      screenLock: 0,
+    });
+    expect(chapters[0]!.orientation).toBeGreaterThan(0);
+    expect(chapters[0]!.approach).toBeGreaterThan(0);
+    expect(chapters[1]).toMatchObject({
+      phase: "face-approach",
+      orientation: 1,
+    });
+    expect(chapters[2]!.orientation).toBe(1);
+    expect(chapters[2]!.approach).toBeGreaterThan(chapters[1]!.approach);
+    expect(chapters[3]).toMatchObject({
+      approach: 1,
+      screenLock: 1,
+      triangleReveal: 0,
+    });
+    expect(chapters[4]!.triangleReveal).toBeGreaterThan(0);
+    expect(frames[0]!.position[2]).toBeGreaterThan(0);
+    expect(frames[0]!.rotation).not.toEqual(
+      heroTransitionConfig.motion.baseRotation,
+    );
+    expect(frames[1]!.rotation).toEqual(
+      heroTransitionConfig.chapterGeometry.targetRotation,
+    );
+    expect(frames[2]!.rotation).toEqual(frames[1]!.rotation);
+    expect(frames[1]!.position[2]).toBeLessThan(frames[2]!.position[2]);
+    expect(frames[2]!.position[2]).toBeLessThan(frames[3]!.position[2]);
+    expect(frames[3]!.position[2]).toBeLessThan(frames[4]!.position[2]);
+
+    for (const [index, target] of targets.entries()) {
+      expect(target.position.set).toHaveBeenCalledWith(
+        ...frames[index]!.position,
+      );
+      expect(target.rotation.set).toHaveBeenCalledWith(
+        ...frames[index]!.rotation,
+      );
+      expect(target.scale.setScalar).toHaveBeenCalledWith(
+        heroTransitionConfig.motion.baseScale,
+      );
+    }
   });
 
   test("composes deterministic hold shake only during non-reduced expansion", () => {

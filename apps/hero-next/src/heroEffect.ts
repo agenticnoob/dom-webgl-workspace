@@ -4,6 +4,18 @@ import {
 } from "@viselora/dom-webgl";
 
 import {
+  createHeroChapterAtlas,
+  heroChapterAtlasMatchesViewport,
+  type HeroChapterAtlas,
+} from "./heroChapterAtlas";
+import { readHeroChapterViewport } from "./heroChapterLayout";
+import {
+  readHeroChapterScrollState,
+  resolveHeroChapterScrollState,
+  type HeroChapterScrollState,
+} from "./heroChapterScroll";
+import { resolveHeroChapterGeometryFrame } from "./heroChapterGeometry";
+import {
   createHeroHoldTransitionState,
   resolveHeroShake,
   resolveHeroTransitionVisual,
@@ -17,13 +29,19 @@ import {
   type HeroTransitionSignalWriter,
 } from "./heroTransitionSignals";
 import {
+  createHeroTetrahedronRadialShader,
   createHeroTetrahedronRadialUniforms,
-  heroTetrahedronRadialShader,
+  heroTetrahedronRadialShaderKey,
 } from "./heroTetrahedronShader";
+import {
+  isHeroThemeInteractionEnabled,
+  type HeroThemeStore,
+} from "./heroTheme";
 
 export type HeroEffectParams = {
   kind: "hero.tetrahedron.motion";
   signals: HeroTransitionSignalWriter;
+  theme: HeroThemeStore;
 };
 
 export type HeroMotionState = {
@@ -49,12 +67,16 @@ export type HeroEffectState = {
   readonly reducedMotion: boolean;
   readonly motion: HeroMotionState;
   transition: HeroHoldTransitionState;
+  chapterAtlas: HeroChapterAtlas | undefined;
 };
 
 type HeroTarget = {
   position: { set(x: number, y: number, z: number): void };
   rotation: { set(x: number, y: number, z: number): void };
-  scale: { setScalar(value: number): void };
+  scale: {
+    set(x: number, y: number, z: number): void;
+    setScalar(value: number): void;
+  };
   visible: boolean;
   opacity: number;
   material?: WebGLEffectMaterialFacade;
@@ -73,11 +95,16 @@ export function createHeroMotionState(reducedMotion: boolean): HeroMotionState {
   };
 }
 
-export function createHeroEffectState(reducedMotion: boolean): HeroEffectState {
+export function createHeroEffectState(
+  reducedMotion: boolean,
+  committedScheme: HeroHoldTransitionState["committedScheme"] = "initial",
+  chapterAtlas?: HeroChapterAtlas,
+): HeroEffectState {
   return {
     reducedMotion,
     motion: createHeroMotionState(reducedMotion),
-    transition: createHeroHoldTransitionState(),
+    transition: createHeroHoldTransitionState(committedScheme),
+    chapterAtlas,
   };
 }
 
@@ -123,77 +150,71 @@ export function applyHeroFrame(
   transition: HeroHoldTransitionState,
   viewport: HeroViewport,
   reducedMotion: boolean,
+  chapter: HeroChapterScrollState = resolveHeroChapterScrollState(0, 0),
 ): void {
   const activeAttempt =
     transition.phase === "expanding" || transition.phase === "retracting";
-  const ambientWeight = reducedMotion
+  const ambientWeight = reducedMotion || !chapter.hubInteractive
     ? 0
     : activeAttempt
       ? 1 - smoothstep(transition.coverage)
       : 1;
   const shake = resolveHeroShake(time, transition, reducedMotion);
-  const baseScale =
-    viewport.width <= heroTransitionConfig.motion.mobileBreakpoint
-      ? heroTransitionConfig.motion.baseScale *
-        heroTransitionConfig.motion.mobileScaleFactor
-      : heroTransitionConfig.motion.baseScale;
-  const yOffset =
-    viewport.width <= heroTransitionConfig.motion.mobileBreakpoint
-      ? heroTransitionConfig.motion.mobileYOffset
-      : heroTransitionConfig.motion.desktopYOffset;
   const baseRotation = reducedMotion
     ? heroTransitionConfig.motion.reducedRotation
     : heroTransitionConfig.motion.baseRotation;
   const breathingPhase = (time / 6_000) * Math.PI * 2;
   const floatingPhase = (time / 8_000) * Math.PI * 2;
+  const frame = resolveHeroChapterGeometryFrame(
+    viewport,
+    chapter,
+    baseRotation,
+  );
 
   target.scale.setScalar(
-    baseScale * (1 + Math.sin(breathingPhase) * 0.012 * ambientWeight),
+    frame.scale * (1 + Math.sin(breathingPhase) * 0.012 * ambientWeight),
   );
   target.position.set(
-    shake.position[0],
-    yOffset +
+    frame.position[0] + shake.position[0],
+    frame.position[1] +
       Math.sin(floatingPhase) * 0.018 * ambientWeight +
       shake.position[1],
-    shake.position[2],
+    frame.position[2] + shake.position[2],
   );
   target.rotation.set(
-    baseRotation[0] + motion.tiltX * ambientWeight + shake.rotation[0],
-    baseRotation[1] + motion.tiltY * ambientWeight + shake.rotation[1],
-    baseRotation[2] + shake.rotation[2],
+    frame.rotation[0] + motion.tiltX * ambientWeight + shake.rotation[0],
+    frame.rotation[1] + motion.tiltY * ambientWeight + shake.rotation[1],
+    frame.rotation[2] + shake.rotation[2],
   );
 
   const visual = resolveHeroTransitionVisual(transition);
-  target.visible = true;
-  target.opacity = heroTransitionConfig.motion.initialOpacity;
+  const opacity = lerp(
+    heroTransitionConfig.motion.initialOpacity,
+    1,
+    chapter.screenLock,
+  );
+  target.visible = !chapter.domContentActive;
+  target.opacity = opacity;
   if (target.material) {
     target.material.color.set(visual.committed.foreground);
     target.material.emissive.set(
       visual.committed.foreground,
       heroTransitionConfig.motion.emissiveIntensity,
     );
-    target.material.opacity = heroTransitionConfig.motion.initialOpacity;
+    target.material.opacity = opacity;
     target.material.shader?.setUniforms(
-      heroTetrahedronRadialShader.key,
-      createHeroTetrahedronRadialUniforms(transition, viewport),
+      heroTetrahedronRadialShaderKey,
+      createHeroTetrahedronRadialUniforms(transition, viewport, chapter),
     );
   }
 }
 
-function readHeroViewport(): HeroViewport {
-  const fallback = { width: 1_440, height: 900 } as const;
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  return {
-    width: positive(window.innerWidth, fallback.width),
-    height: positive(window.innerHeight, fallback.height),
-  };
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function lerp(start: number, end: number, progress: number): number {
+  return start + (end - start) * clamp(progress, 0, 1);
 }
 
 function smoothstep(value: number): number {
@@ -219,15 +240,23 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
   kind: "hero.tetrahedron.motion",
   source: "mesh",
   schedule: "frame",
-  setup(ctx) {
+  setup(ctx, params) {
     const shader = ctx.object.material?.shader;
     if (!shader) {
       throw new Error(
         "Hero tetrahedron effect requires the managed material shader facade.",
       );
     }
-    shader.onBeforeCompile(heroTetrahedronRadialShader);
-    return createHeroEffectState(prefersReducedMotion());
+    const viewport = readHeroChapterViewport();
+    const chapterAtlas = createHeroChapterAtlas(viewport);
+    shader.onBeforeCompile(
+      createHeroTetrahedronRadialShader(chapterAtlas.canvas),
+    );
+    return createHeroEffectState(
+      prefersReducedMotion(),
+      params.theme.getSnapshot(),
+      chapterAtlas,
+    );
   },
   update(ctx, state, params) {
     stepHeroMotionState(state.motion, {
@@ -245,9 +274,24 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       x: clamp((ctx.pointer.normalizedX + 1) * 0.5, 0, 1),
       y: clamp((ctx.pointer.normalizedY + 1) * 0.5, 0, 1),
     };
-    const viewport = readHeroViewport();
+    const viewport = readHeroChapterViewport();
+    const chapter = readHeroChapterScrollState(ctx.progress);
+    if (
+      state.chapterAtlas &&
+      !heroChapterAtlasMatchesViewport(state.chapterAtlas, viewport)
+    ) {
+      state.chapterAtlas = createHeroChapterAtlas(viewport);
+      ctx.object.material?.shader?.setUniforms(heroTetrahedronRadialShaderKey, {
+        heroChapterAtlas: {
+          kind: "canvas-texture",
+          source: state.chapterAtlas.canvas,
+        },
+      });
+    }
 
+    const previousCommittedScheme = state.transition.committedScheme;
     state.transition = stepHeroHoldTransition(state.transition, {
+      interactionEnabled: isHeroThemeInteractionEnabled(chapter),
       meshPressed: ctx.objectPointer.isPressed,
       primaryPointerDown,
       hitConfirmed: ctx.objectPointer.hit !== undefined,
@@ -256,6 +300,9 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       deltaMs: ctx.delta,
       reducedMotion: state.reducedMotion,
     });
+    if (state.transition.committedScheme !== previousCommittedScheme) {
+      params.theme.commit(state.transition.committedScheme);
+    }
     publishHeroTransitionSignals(params.signals, state.transition);
     applyHeroFrame(
       ctx.object,
@@ -264,7 +311,12 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       state.transition,
       viewport,
       state.reducedMotion,
+      chapter,
     );
+  },
+  dispose(ctx, state) {
+    ctx.object.material?.shader?.remove(heroTetrahedronRadialShaderKey);
+    state.chapterAtlas = undefined;
   },
 });
 

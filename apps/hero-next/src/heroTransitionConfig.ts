@@ -19,6 +19,8 @@ export type HeroTransitionConfig = {
     readonly originX: string;
     readonly originY: string;
     readonly phase: string;
+    readonly chapterEntry: string;
+    readonly chapterExit: string;
   };
   readonly signalCodes: {
     readonly scheme: Readonly<Record<HeroSchemeName, number>>;
@@ -41,7 +43,29 @@ export type HeroTransitionConfig = {
     readonly frequenciesHz: readonly [number, number, number];
   };
   readonly geometry: { readonly radius: number };
-  readonly visual: { readonly ghostBrightness: number };
+  readonly chapterScroll: {
+    readonly entry: {
+      readonly orientEnd: number;
+      readonly lockEnd: number;
+    };
+    readonly exit: {
+      readonly contractEnd: number;
+      readonly retreatEnd: number;
+    };
+  };
+  readonly chapterGeometry: {
+    readonly targetRotation: readonly [number, number, number];
+    readonly cameraDistance: number;
+    readonly cameraFov: number;
+    readonly cameraTargetY: number;
+    readonly lockTriangleWidthFraction: number;
+    readonly lockTriangleMaxHeightFraction: number;
+    readonly revealOverscan: number;
+  };
+  readonly visual: {
+    readonly ghostBrightness: number;
+    readonly facePaletteStrength: number;
+  };
   readonly motion: {
     readonly baseScale: number;
     readonly mobileScaleFactor: number;
@@ -63,6 +87,8 @@ export const heroTransitionConfig = {
     originX: "hero.transition.hold.origin-x",
     originY: "hero.transition.hold.origin-y",
     phase: "hero.transition.hold.phase",
+    chapterEntry: "hero.chapter-1.entry",
+    chapterExit: "hero.chapter-1.exit",
   },
   signalCodes: {
     scheme: { initial: 0, inverted: 1 },
@@ -86,7 +112,20 @@ export const heroTransitionConfig = {
     frequenciesHz: [11, 13, 17],
   },
   geometry: { radius: 0.52 },
-  visual: { ghostBrightness: 0.72 },
+  chapterScroll: {
+    entry: { orientEnd: 0.26, lockEnd: 0.62 },
+    exit: { contractEnd: 0.38, retreatEnd: 0.74 },
+  },
+  chapterGeometry: {
+    targetRotation: [-0.5158110562, 0.7853981634, 1.5707963268],
+    cameraDistance: 3.2,
+    cameraFov: 38,
+    cameraTargetY: 0.32,
+    lockTriangleWidthFraction: 1,
+    lockTriangleMaxHeightFraction: 1,
+    revealOverscan: 1.035,
+  },
+  visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
   motion: {
     baseScale: 1.12,
     mobileScaleFactor: 0.6,

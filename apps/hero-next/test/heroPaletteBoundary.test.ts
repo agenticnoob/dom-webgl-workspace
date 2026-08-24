@@ -6,7 +6,7 @@ const sourceRoot = resolve(process.cwd(), "apps/hero-next/src");
 const appRoot = resolve(process.cwd(), "apps/hero-next/app");
 
 describe("hero palette and transition boundary", () => {
-  test("keeps the only non-light author colors in the transition config", () => {
+  test("keeps one semantic two-tone palette across WebGL and DOM tokens", () => {
     const files = [...readSourceFiles(sourceRoot), ...readSourceFiles(appRoot)];
     const colorsByFile = Object.fromEntries(
       files
@@ -20,11 +20,14 @@ describe("hero palette and transition boundary", () => {
     );
 
     expect(colorsByFile).toEqual({
-      "apps/hero-next/src/HeroExperience.tsx": [
-        "#D8D8D8",
-        "#F2F2F2",
+      "apps/hero-next/app/globals.css": [
+        "#B8B8B8",
+        "#B8B8B8",
+        "#5F5F5F",
+        "#5F5F5F",
         "#B8B8B8",
       ],
+      "apps/hero-next/src/HeroExperience.tsx": ["#F2F2F2", "#B8B8B8"],
       "apps/hero-next/src/heroGhostEffects.ts": ["#F0F0F0"],
       "apps/hero-next/src/heroTransitionConfig.ts": [
         "#B8B8B8",
@@ -35,7 +38,7 @@ describe("hero palette and transition boundary", () => {
     expect(sources).not.toMatch(/#3f3f3f|#0d0d0d|vec3\(0\.72\)/i);
   });
 
-  test("keeps one hold signal family without obsolete scroll-cover artifacts", () => {
+  test("keeps one scroll signal pair, one theme store, and no obsolete cover path", () => {
     const tetrahedronEffect = readFileSync(
       resolve(sourceRoot, "heroEffect.ts"),
       "utf8",
@@ -53,19 +56,21 @@ describe("hero palette and transition boundary", () => {
       .join("\n");
 
     expect(sources).not.toMatch(
-      /hero\.transition\.tetrahedron-cover|orientEnd|approachEnd|coverEnd|backgroundSwapPoint|foregroundResetPoint|exitPositionZ|coverPositionZ/,
+      /hero\.transition\.tetrahedron-cover|coverEnd|backgroundSwapPoint|foregroundResetPoint|exitPositionZ|coverPositionZ|\+=300%/,
     );
-    expect(sources).not.toMatch(
-      /WebGLScrollTimeline|transitionStart|transitionEnd|\+=300%/,
-    );
+    expect(sources).toContain('id="hero.chapter-1.entry.timeline"');
+    expect(sources).toContain('id="hero.chapter-1.exit.timeline"');
+    expect(sources).toContain('chapterEntry: "hero.chapter-1.entry"');
+    expect(sources).toContain('chapterExit: "hero.chapter-1.exit"');
     expect(sources).toContain("useScrollEffectProgressStore");
     expect(sources).toContain('hitTest: "mesh"');
     expect(sources).toContain("press: true");
     expect(tetrahedronEffect).toContain("publishHeroTransitionSignals");
     expect(backgroundEffect).toContain("readHeroTransitionSignals");
     expect(experience).toContain("signals: signalWriter");
+    expect(experience).toContain("theme: theme.store");
     expect(`${tetrahedronEffect}\n${backgroundEffect}`).not.toMatch(
-      /themeStore|eventBus|dispatchEvent|addEventListener\(["']hero/i,
+      /eventBus|dispatchEvent|addEventListener\(["']hero/i,
     );
   });
 });

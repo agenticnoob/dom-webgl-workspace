@@ -21,7 +21,12 @@ import {
 } from "@viselora/scroll-adapters/react";
 import React, { useMemo } from "react";
 
+import { HeroChapterNarrative } from "./HeroChapterNarrative";
 import { heroTetrahedronEffect } from "./heroEffect";
+import {
+  useHeroDomContentActive,
+  useHeroThemeState,
+} from "./heroExperienceState";
 import { heroGhostEffects } from "./heroGhostEffects";
 import { heroSmoothScroll } from "./heroScroll";
 import { heroTransitionConfig } from "./heroTransitionConfig";
@@ -80,10 +85,18 @@ const tetrahedronInteraction = {
   },
 } satisfies NonNullable<WebGLMeshProps["interaction"]>;
 
-const cameraPosition = [0, 0, 3.2] satisfies NonNullable<
+const cameraPosition = [
+  0,
+  0,
+  heroTransitionConfig.chapterGeometry.cameraDistance,
+] satisfies NonNullable<
   WebGLCameraProps["position"]
 >;
-const cameraTarget = [0, 0.32, 0] satisfies NonNullable<
+const cameraTarget = [
+  0,
+  heroTransitionConfig.chapterGeometry.cameraTargetY,
+  0,
+] satisfies NonNullable<
   WebGLCameraProps["target"]
 >;
 const keyLightPosition = [1.2, 1.2, 2] satisfies NonNullable<
@@ -115,16 +128,27 @@ function HeroScene() {
     () => ({ set: (key, value) => store.set(key, value) }),
     [store],
   );
+  const theme = useHeroThemeState();
+  const domContentActive = useHeroDomContentActive(store.source);
   const tetrahedronEffects = useMemo(
     () =>
       ([
-        { kind: "hero.tetrahedron.motion", signals: signalWriter },
+        {
+          kind: "hero.tetrahedron.motion",
+          signals: signalWriter,
+          theme: theme.store,
+        },
       ] satisfies NonNullable<WebGLMeshProps["effects"]>),
-    [signalWriter],
+    [signalWriter, theme.store],
   );
 
   return (
-    <main className="hero-space" aria-label="Tetrahedron visual study">
+    <main
+      className="hero-space"
+      aria-label="Tetrahedron chapter prototype"
+      data-hero-theme={theme.scheme}
+      data-dom-active={domContentActive ? "true" : "false"}
+    >
       <WebGLScene
         id="hero.tetrahedron.scene"
         projection="perspective-stage"
@@ -135,7 +159,7 @@ function HeroScene() {
           default
           type="perspective"
           mode="perspective-stage"
-          fov={38}
+          fov={heroTransitionConfig.chapterGeometry.cameraFov}
           near={0.1}
           far={50}
           position={cameraPosition}
@@ -154,12 +178,6 @@ function HeroScene() {
           effects={tetrahedronEffects}
           interaction={tetrahedronInteraction}
         />
-        {/* <WebGLLight
-          id="hero.tetrahedron.fill"
-          kind="ambient"
-          color="#d8d8d8"
-          intensity={0.22}
-        /> */}
         <WebGLLight
           id="hero.tetrahedron.key"
           kind="directional"
@@ -177,6 +195,7 @@ function HeroScene() {
           target={lightTarget}
         />
       </WebGLScene>
+      <HeroChapterNarrative />
     </main>
   );
 }

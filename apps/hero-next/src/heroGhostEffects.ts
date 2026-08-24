@@ -15,6 +15,7 @@ import {
   stepHeroGhostCursorState,
   type HeroGhostCursorState,
 } from "./heroGhostCursorState";
+import { readHeroChapterScrollState } from "./heroChapterScroll";
 import {
   resolveHeroRadialGeometry,
   resolveHeroTransitionVisual,
@@ -188,8 +189,10 @@ export function resolveHeroGhostProgramState(
   readonly radialOrigin: readonly [number, number];
   readonly radialRadiusPx: number;
   readonly radialEdgePx: number;
+  readonly sceneOpacity: number;
 } {
   const snapshot = readHeroTransitionSignals(reader);
+  const chapter = readHeroChapterScrollState(reader);
   const visual = resolveHeroTransitionVisual(snapshot);
   const radial = resolveHeroRadialGeometry(
     snapshot.coverage,
@@ -205,6 +208,7 @@ export function resolveHeroGhostProgramState(
     radialOrigin: [radial.origin.x, radial.origin.y],
     radialRadiusPx: radial.radiusPx,
     radialEdgePx: radial.edgeFeatherPx,
+    sceneOpacity: chapter.domContentActive ? 0 : 1,
   };
 }
 
@@ -312,14 +316,13 @@ function updateEffect(
     }),
   );
 
+  const programOptions = createProgramOptions(layer, ctx, state.motion);
   state.materialLayer.setUniforms(
-    createHeroGhostCursorUniforms(
-      layer,
-      createProgramOptions(layer, ctx, state.motion),
-    ),
+    createHeroGhostCursorUniforms(layer, programOptions),
   );
-  ctx.object.visible = true;
-  surface.setVisible?.(true);
+  const visible = programOptions.sceneOpacity > 0;
+  ctx.object.visible = visible;
+  surface.setVisible?.(visible);
   surface.setOpacity?.(1);
 }
 

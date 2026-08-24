@@ -38,6 +38,20 @@ describe("hero transition config", () => {
         rotationAmplitude: 0.018,
         frequenciesHz: [11, 13, 17],
       },
+      chapterScroll: {
+        entry: { orientEnd: 0.26, lockEnd: 0.62 },
+        exit: { contractEnd: 0.38, retreatEnd: 0.74 },
+      },
+      chapterGeometry: {
+        targetRotation: [-0.5158110562, 0.7853981634, 1.5707963268],
+        cameraDistance: 3.2,
+        cameraFov: 38,
+        cameraTargetY: 0.32,
+        lockTriangleWidthFraction: 1,
+        lockTriangleMaxHeightFraction: 1,
+        revealOverscan: 1.035,
+      },
+      visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
     });
     expect(new Set(Object.values(heroTransitionConfig.colors))).toEqual(
       new Set(["#B8B8B8", "#5F5F5F"]),

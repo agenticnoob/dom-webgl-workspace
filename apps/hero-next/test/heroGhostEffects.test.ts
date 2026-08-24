@@ -71,6 +71,7 @@ describe("hero Ghost Cursor effects", () => {
       radialOrigin: [0.5, 0.5],
       radialRadiusPx: 0,
       radialEdgePx: 1.5,
+      sceneOpacity: 1,
     });
 
     const expanding = {
@@ -91,6 +92,7 @@ describe("hero Ghost Cursor effects", () => {
       radialOrigin: [0.25, 0.75],
       radialRadiusPx: expect.any(Number),
       radialEdgePx: 1.5,
+      sceneOpacity: 1,
     });
     expect(expandingProgram.radialRadiusPx).toBeGreaterThan(0);
     expect(expanding).toMatchObject({
@@ -108,6 +110,7 @@ describe("hero Ghost Cursor effects", () => {
       baseBackgroundColor: "#B8B8B8",
       targetBackgroundColor: "#5F5F5F",
       targetForegroundColor: "#B8B8B8",
+      sceneOpacity: 1,
     });
 
     publishHeroTransitionSignals(writer, idle);
@@ -116,6 +119,7 @@ describe("hero Ghost Cursor effects", () => {
       targetBackgroundColor: "#B8B8B8",
       targetForegroundColor: "#5F5F5F",
       radialRadiusPx: 0,
+      sceneOpacity: 1,
     });
 
     publishHeroTransitionSignals(writer, {
@@ -130,7 +134,11 @@ describe("hero Ghost Cursor effects", () => {
       baseForegroundColor: "#B8B8B8",
       targetBackgroundColor: "#5F5F5F",
       targetForegroundColor: "#B8B8B8",
+      sceneOpacity: 1,
     });
+
+    values.set("hero.chapter-1.entry", 1);
+    expect(resolveHeroGhostProgramState(reader, viewport).sceneOpacity).toBe(0);
   });
 
   test("maps target-local pointer coordinates around the tetrahedron", () => {

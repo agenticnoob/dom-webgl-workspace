@@ -24,6 +24,7 @@ export type HeroGhostCursorProgramOptions = {
   readonly radialOrigin: readonly [number, number];
   readonly radialRadiusPx: number;
   readonly radialEdgePx: number;
+  readonly sceneOpacity: number;
   readonly brightness: number;
   readonly trailPoints: readonly (readonly [number, number])[];
 };
@@ -84,6 +85,7 @@ export function createHeroGhostCursorUniforms(
     ],
     iRadialRadiusPx: Math.max(0, finite(options.radialRadiusPx, 0)),
     iRadialEdgePx: Math.max(0, finite(options.radialEdgePx, 0)),
+    iSceneOpacity: normalized(options.sceneOpacity, 1),
     iBrightness: clampFinite(options.brightness, 0, 2, 0),
   };
 }
@@ -136,6 +138,7 @@ const heroGhostCursorFragmentShader = `
   uniform vec2 iRadialOrigin;
   uniform float iRadialRadiusPx;
   uniform float iRadialEdgePx;
+  uniform float iSceneOpacity;
   uniform float iBrightness;
   varying vec2 vUv;
 
@@ -221,13 +224,16 @@ const heroGhostCursorFragmentShader = `
     float outAlpha = clamp(alphaAcc * iOpacity, 0.0, 1.0);
 
     #if HERO_FOREGROUND == 1
-      gl_FragColor = vec4(radialForeground, outAlpha * iBrightness * 1.5);
+      gl_FragColor = vec4(
+        radialForeground,
+        outAlpha * iBrightness * 1.5 * iSceneOpacity
+      );
     #else
       vec3 fogTint = colorAcc / max(alphaAcc, 0.0001);
       float fogStrength = clamp(outAlpha * iBrightness, 0.0, 1.0);
       gl_FragColor = vec4(
         mix(radialBackground, fogTint, fogStrength),
-        1.0
+        iSceneOpacity
       );
     #endif
   }

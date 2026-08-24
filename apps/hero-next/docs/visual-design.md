@@ -1,168 +1,125 @@
 # Hero Next Visual Design
 
-**状态：** hold-driven radial transition、managed lit-material shader extension 与
-四面体逐像素扩散已实现，并通过 focused automated tests 与 production Chromium
-acceptance。背景、Ghost Cursor 与四面体共享同一 screen-space
-圆形边界、`1.5px` feather，v1 不加入 edge noise。
+**状态：** 章节 1 的完整可逆滚动纵向切片已实现。画面使用临时但可辨识的
+`FIELD NOTES` 章节内容；这证明空间链路和 ownership，不代表四章内容或最终视觉验收。
 
-## 目标
+## 当前链路
 
-`hero-next` 使用严格的中性双色体系。初始状态是浅色空间背景、深色四面体与
-Ghost Cursor；在真实四面体 mesh 上持续按压约一秒后，一个从命中点扩张的精确圆形
-区域把背景、Ghost Cursor 与四面体表面的语义角色一起反转为深色背景、浅色前景。
-下一次有效长按执行相反方向。
+一个纵向滚动坐标驱动以下连续阶段：
 
-画面只由 WebGL 几何、shader、材质、灯光和 effect motion 产生。CSS 仅负责布局、
-尺寸、stacking、overflow 和 pointer routing。
+1. 完整四面体 Hub，保留轻微 breathing、float 与 pointer tilt；
+2. 目标面从第一帧起一边旋转、一边靠近固定相机；旋转结束时，目标面的法线、up
+   方向与相机坐标系一致，面质心落在相机观察轴上；
+3. 对准后不再旋转，四面体沿相机观察轴稳定推进。三角边界与 face-space 内容始终属于
+   同一 mesh transform，不存在三角边界静止而内容独自放大的阶段；
+4. 目标面投影达到真实 DOM 的主尺度后，在同一几何帧切到 screen-space 内容坐标；随后
+   内容保持屏幕坐标不动，只有三角窗口继续沿相机坐标推进并像幕布一样越过视口四角；
+5. 三角覆盖视口后，真实语义 DOM 在同一排版锚点接管；
+6. 正常章节滚动；
+7. 章节尾部以相反次序收回，最终进入约 `80svh` 的完整 Hub 区间。
 
-## 核心色板
+向上滚动读取同一 entry/exit progress，并由纯函数 resolver 重建完全相反的阶段。
+Lenis 只平滑实际滚动位置；没有脱离滚动条的单向时间线。Reduced Motion 保留阶段、
+内容、主题和双向映射，只关闭 ambient、tilt 与 shake 等非必要运动。
 
-| Token | 色值 | 语义 |
-| --- | --- | --- |
-| `light` | `#B8B8B8` | 浅色角色 |
-| `dark` | `#5F5F5F` | 深色角色 |
+## 合成与 ownership
 
-这两个色值是唯一允许的非灯光作者输入色。
+- 页面只有一个 `WebGLScrollRuntime`、一个 runtime-owned canvas、一个四面体 mesh；
+- `heroChapterScroll.ts` 是 entry/exit progress 到视觉阶段的唯一纯映射；
+- `heroChapterGeometry.ts` 负责固定相机坐标、投影尺度与四面体 transform 的纯函数解析；
+- `heroChapterLayout.ts` 是 atlas 与真实 DOM 的唯一响应式布局模型；
+  `heroChapterLayoutReact.ts` 只在 viewport resize 时把模型发布为 DOM CSS variables，
+  不订阅逐帧滚动；
+- `heroEffect.ts` 只组合几何 frame、managed shader uniforms 与 Hub hold 状态；
+- `heroTetrahedronShader.ts` 用 flat face normal 识别面，在受控 Standard material shader
+  内完成 face UV、screen UV 和三角覆盖；
+- `heroChapterAtlas.ts` 生成 runtime-owned canvas texture，章节 1 与真实 DOM 共用
+  `heroChapterContent.ts` 的文案和 `heroChapterLayout.ts` 的 viewport、inset、字号、
+  line-box、card geometry。Atlas backing pixels 可以按上限缩放，但逻辑排版坐标始终保留
+  当前 viewport 尺寸；
+- `HeroChapterNarrative.tsx` 是语义、阅读、选择、focus 和交互真值；WebGL 只是装饰投影；
+- CSS 负责 DOM 排版、可访问主题 token、stacking 和 pointer routing，不使用
+  `clip-path`、mask 或第二个三角形实现核心转场。
 
-| Scheme | Background | Foreground |
-| --- | --- | --- |
-| `initial` | `light` | `dark` |
-| `inverted` | `dark` | `light` |
+当前公开 API 足以稳定表达本纵向切片：app 只使用 public managed scene/mesh/effect/
+shader/canvas-texture/scroll API，未引入 raw Three ownership、private import、第二 renderer
+或 package 修改。Atlas sampler 由 managed shader facade 创建、替换、上传并在 shader
+remove/runtime dispose 时释放。
 
-`foreground` 同步驱动 Ghost Cursor 与四面体 fragment shader 的 committed/target
-color 和 emissive。Hero 继续使用真实 runtime-owned `MeshStandardMaterial`；受控
-`ctx.object.material.shader` 只扩展其编译草稿，不替换材质或接管生命周期。key、rim、
-pointer light 是明确的照明例外，不通过语义色板 resolver。
+## 可逆 phase 真值
 
-## 长按圆形转场
+Entry stops：`orientEnd=0.26`、`lockEnd=0.62`。
 
-1. 只有 `hitTest: "mesh"` 命中的 primary pointer press 能开始。
-2. 命中帧的 runtime pointer 坐标成为本次 attempt 的归一化圆心。
-3. `coverage` 以 `1 / 1000 ms` 前进；四面体产生小幅 deterministic shake，三个
-   视觉层沿同一个 radial radius 逐像素混合 committed/target 语义色。
-4. 圆的完整半径由圆心到最远 viewport 角的像素距离、`1.02` overscan 和 `1.5px`
-   edge feather 决定。
-5. 只有圆覆盖最远角并达到 `coverage=1` 时才 commit；持续按住不会连续 toggle。
-6. 提前松开立即以全程 `300ms` 的恒定速度收回。50% coverage 最多 150ms 收完。
-7. 收回完成前再次真实命中四面体，会保留原圆心、target scheme 与当前半径并续接。
-8. commit 后必须 release，下一次有效长按才会执行反向 scheme。
+Exit stops：`contractEnd=0.38`、`retreatEnd=0.74`。
 
-shader 在 viewport 像素空间计算圆形距离，因此宽屏与高屏都保持精确圆形，不使用
-椭圆补偿、CSS mask 或宽范围 color crossfade。背景、Ghost Cursor 与四面体使用同一
-圆心、radius 和 `1.5px` feather；v1 没有 edge noise。
+`heroChapterScroll.ts` 输出：
 
-## 四面体空间扩散
+- `orientation`
+- `approach`
+- `screenLock`
+- `triangleReveal`
+- `domContentActive`
+- `hubInteractive`
 
-四面体保持 `kind: "standard"`，通过 package 的 managed lit-material shader
-extension 在 Three Standard fragment shader 内逐像素混合 committed/target color 与
-emissive，随后继续走原有 PBR lighting。runtime 管理 program cache、viewport、DPR 与
-cleanup；Hero 不接触 raw Three material/shader、renderer、scene、camera、WebGL
-context、`needsUpdate` 或 disposal。提前松手沿同一圆反向收回，re-press resume、
-far-corner commit、`awaiting-release` 和双向 toggle 均复用原状态机。
+输出只依赖归一化 entry/exit progress。`orientation` 与 `approach` 从 entry 第一帧同步
+增加；`orientation` 在 `orientEnd` 达到 1 后保持不变，`approach` 继续到 `lockEnd`。
+退出时先收幕布，再沿同一相机轴回退，最后一段同时回退与解除朝向。mesh 始终保持固定
+scale，透视尺寸变化只来自 scene-space position 靠近固定相机；幕布段沿 camera forward/up
+计算位置，使三角底边与上方两条斜边在交接帧全部越过视口。
 
-## 配置真值
+`screenLock` 不再承担中间的内容放大动画：它在真实 DOM 主尺度的 lock 几何帧完成坐标
+接管，幕布阶段保持为 1。`heroChapterGeometry.ts` 从相机 FOV、viewport aspect 和目标面
+投影解析 lock footprint 的 width/height fraction；shader 用同一组 fraction 缩放目标面
+UV。因此 lock 帧不只是中心点相等，而是目标面上每个 fragment 的 face-space atlas UV
+都与其 screen-space UV 数学同值。跨过离散 `screenLock` 边界时内容锚点不变，随后只有
+三角幕布继续运动。
 
-```ts
-const heroTransitionConfig = {
-  signalKeys: {
-    committedScheme: "hero.transition.hold.committed-scheme",
-    targetScheme: "hero.transition.hold.target-scheme",
-    coverage: "hero.transition.hold.coverage",
-    originX: "hero.transition.hold.origin-x",
-    originY: "hero.transition.hold.origin-y",
-    phase: "hero.transition.hold.phase",
-  },
-  timing: { expandMs: 1000, retractMs: 300, maxFrameDeltaMs: 64 },
-  radial: { overscan: 1.02, edgeFeatherPx: 1.5 },
-  shake: {
-    positionAmplitude: 0.008,
-    rotationAmplitude: 0.018,
-    frequenciesHz: [11, 13, 17],
-  },
-  colors: { light: "#B8B8B8", dark: "#5F5F5F" },
-  geometry: { radius: 0.52 },
-  motion: {
-    baseScale: 1.12,
-    mobileScaleFactor: 0.6,
-    mobileBreakpoint: 700,
-    desktopYOffset: 0.365,
-    mobileYOffset: 0.555,
-    baseRotation: [-0.6, 0.82, 0.08],
-    reducedRotation: [-0.6, 0.85, 0.08],
-    initialOpacity: 0.92,
-    emissiveIntensity: 0.06,
-  },
-} as const;
-```
+WebGL/DOM 交接也不使用 `+Npx` 校正：Canvas 与 CSS 消费同一个响应式布局对象；Canvas
+文本基线由实际 font bounding metrics 放入同一个 CSS line-box。移动端旧的标题 optical
+offset 和独立 card padding 公式已经删除。由于 Canvas 与 DOM 是不同栅格器，字形边缘的
+抗锯齿仍可有轻微差异，但元素比例与布局锚点不再切换真值。
+正向和反向不会保存“播放方向”，也不会启动独立 animation clock。完整 Hub 的 runway
+为 `80svh`；entry 为桌面 `520svh`、移动 `460svh`，exit 为 `420svh`。
 
-## 模块与状态边界
+## 主题真值
 
-- `heroTransitionConfig.ts`：静态色板、信号、时长、radial、shake 与 ambient 常量。
-- `heroHoldTransition.ts`：唯一纯状态机、语义 resolver、radial geometry 和 shake。
-- `heroTransitionSignals.ts`：六个 `[0,1]` progress-store 数值的 writer/reader 边界。
-- `HeroExperience.tsx`：保留 `WebGLScrollRuntime` 与 smooth-scroll stack；内部
-  `HeroScene` 通过 `useScrollEffectProgressStore()` 稳定注入 writer。
-- `heroEffect.ts`：拥有唯一 live state，读取真实 mesh press，发布信号、更新 managed
-  shader uniforms 并组合 motion。由于 public scene-object context 没有 layout，使用经确认的 SSR-safe
-  `window.innerWidth/innerHeight` viewport source。
-- `heroTetrahedronShader.ts`：稳定注册 Standard fragment extension，复用状态机的
-  committed/target、origin、coverage、radius 与 `1.5px` feather。
-- `heroGhostEffects.ts`：只读信号并解析 shader inputs，不拥有 gesture state。
-- `heroGhostCursorProgram.ts`：只构造显式 uniforms 与像素空间 radial shader。
+语义色仍只有：
 
-两个 effect 不互相引用；没有 React frame state、全局 theme store、DOM event bus、
-第二套 transition state、第二个 runtime 或第二张 canvas。
+| Token | 色值 |
+| --- | --- |
+| `light` | `#B8B8B8` |
+| `dark` | `#5F5F5F` |
 
-## Motion 与 Reduced Motion
+完整 Hub 上真实 mesh 长按约一秒，从命中点扩张共享 radial boundary；覆盖最远角后才
+commit。提前松开在 `300ms` 全程速度下收回，re-press 可续接，commit 后必须 release。
+离开完整 Hub 时 gate 立即关闭，进行中的 attempt 收回；章节内没有主题入口。
 
-Idle 保留六秒 `±1.2%` breathing、八秒 `±0.018` Y float 和 damped pointer tilt。
-active attempt 中 ambient 权重随 coverage 淡出；shake 只在非 reduced-motion 的
-forward expansion 中存在，release、retraction 和 commit 立即为零。
+`heroTheme.ts` 拥有唯一 committed scheme，通过版本化 key
+`viselora.hero.theme.v1` 写入 local storage。React 只订阅离散 committed theme 与
+DOM/WebGL ownership 切换，不保存逐帧滚动或 shader 状态。四面体、atlas 投影、背景和
+真实 DOM 都读取同一 committed scheme。Hub 与过渡页背景使用 committed scheme；章节
+统一对调其 background/foreground 角色，因此四面体 atlas、screen-space WebGL 投影与
+真实 DOM 章节始终使用同一反相章节配色。`screenLock` 只交接 face/screen UV，不切换
+色彩角色；三角覆盖视口后可直接交接同配色 DOM。WebGL 章节 palette 以 `0.92` 权重覆盖
+PBR lighting，保留少量立体明暗，并在 screen lock 完成时提升到 `1.0` 以匹配 DOM token。
 
-`prefers-reduced-motion: reduce` 下仍保留约一秒长按、圆形扩张/收回、续接、commit、
-release gate 与双向 toggle，但关闭 shake 和额外快速 transform。
+## 当前验证边界
 
-## WebGL 渲染解释
-
-色板约束作者输入色，不要求最终屏幕像素只有两个 RGB 值。PBR、灯光、法线、
-`opacity: 0.92`、抗锯齿、色彩空间和 radial feather 会产生计算出的中间像素。
-`opacity: 0.92` 仍是普通 alpha 实验，不是 physical transmission、thickness 或 IOR。
-包现在提供显式 `kind: "physical"` 能力，但本次没有把 hero descriptor 改为 physical，
-也没有替 hero 选择或验收折射参数。
-
-固定照明真值：key `#f2f2f2` / `4.8` / `[1.2,1.2,2]`，rim `#b8b8b8` /
-`2.2` / `[1.8,-1.4,2]`，pointer `#f0f0f0` / active `10` / reduced `0.45` /
-`distance 1.8` / `decay 3` / base position `[0,0.365,0.8]`。
-
-## 当前验证真值
-
-- **Implemented:** hold state machine、稳定信号注入、真实 mesh press、共享 pixel-space
-  radial geometry、ambient/shake composition、release gate，以及 Standard material 内
-  逐像素 committed/target color 与 emissive 混合。
-- **Automated-verified:** focused hero app suite 为 12 files / 53 tests 通过；package
-  integration 使用真实 pipeline/default mesh factory/Three lit materials，external
-  packed-tarball Chromium fixture 证明 managed shader 中间帧同时包含两端像素。
-- **Browser-verified:** production Chromium 在 1200×835 下完成 initial、正向 mixed
-  intermediate、committed target、反向 mixed intermediate、initial-return、提前松手
-  收回、re-press resume 和 reduced-motion diffusion。背景采样为 `184 -> 95 -> 184`；
-  正/反向 mesh ROI 均同时包含两端像素。提前松手的 origin-row radius-like 从
-  `206.5px` 收到 `95.0px`，re-press 后为 `382.5px`，高于 fresh 110ms press 的
-  `102.5px`。reduced-motion 连续帧保持颜色扩散且三处顶点位移均为 `0px`。所有状态
-  单 canvas，console/page/WebGL shader errors 与 warnings 为 0。390×844 的旧证据仍只
-  覆盖 initial frame；本任务未扩展为完整移动端交互验收。
-- **Runtime evidence:** package `runtimePipeline.test.ts` 使用真实
-  `createPipelineRuntime`、默认 managed mesh factory 与真实 Three material，证明 shader
-  extension 落到 runtime-owned lit material；packed-tarball Chromium radial fixture
-  记录 endpoint changed `55,261`、start-like `7,267`、target-like `47,994` 像素，
-  errors/warnings 为 0，canvas 生命周期为 `1 -> 0 -> 1`。
-  hero production 复测的背景采样为 `184 -> 95 -> 184`，代表性四面体面部采样在 inverted
-  变亮后返回暗值，且全程单 canvas、console 0 errors / 0 warnings。
+- **Automated:** hero-next 17 个 focused test files / 92 tests 覆盖 phase resolver
+  边界、同坐标双向映射、theme gate/persistence、hold state、lock projection/UV scale、
+  atlas/DOM 共享响应式 composition、managed shader sampler 声明/生命周期、React 单
+  runtime/mesh/timeline composition。
+- **Browser:** production Chromium 实际验证 desktop `1280×720` 与 mobile `390×844`
+  的单 canvas、正向/反向路径、screen lock、WebGL/DOM handoff、正常 DOM 滚动、退出
+  收回、Hub-only theme gate、刷新持久化，以及 console/page/shader errors 为 0。
+- **未声称:** 临时 atlas/DOM 内容不是最终视觉；没有复制到章节 2–4；未把自动化或
+  浏览器结构证据描述为主观最终设计 acceptance；Canvas/DOM 字形抗锯齿一致性不作为
+  像素级相等承诺。
 
 ## 维护边界
 
-- 已完成的设计和实施记录归档到仓库 `docs/archive/`，不作为当前真值；
-- 不改变 key、rim、pointer-light 行为；
-- 不用 CSS 绘制圆形、颜色、mask、shake 或 animation；
-- 不移除 `WebGLScrollRuntime`、Lenis、GSAP 或 ScrollTrigger；
-- 不把自动化结果描述为浏览器视觉验收。
-- 不把 package managed shader 能力描述成 Hero 专用分支或 raw Three escape hatch。
+- 不增加第二 renderer、canvas、四面体或滚动真值；
+- 不用 CSS clip/mask 替代 WebGL 三角转场；
+- 不把逐帧进度放入 React state；
+- 不把 app key、copy、asset 或布局规则放进 package；
+- 完成/废弃的设计记录留在 `docs/archive/`，不作为当前运行真值。
