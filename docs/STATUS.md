@@ -82,21 +82,25 @@ See [apps/example/README.md](../apps/example/README.md).
 
 ### `apps/hero-next`
 
-The private Next.js consumer uses public managed scene, mesh, effect, shader,
-lighting, render-quality, and scroll APIs. It currently implements one complete
-reversible chapter slice: tetrahedron Hub, face orientation/approach,
-screen-space content lock, triangular WebGL reveal, semantic DOM chapter,
-reverse exit, and return to the Hub. The hold-driven radial theme switch is
-Hub-only and persists one committed theme truth locally.
+The private Next.js consumer uses public managed scene, mesh, model, effect,
+shader, lighting, render-quality, and scroll APIs. It implements four reversible
+chapters across the tetrahedron's four faces, localized Chinese/English atlas
+and semantic content, unique transition-side information, project/public links,
+and a final contact Hub. It preserves the established single tetrahedron scene
+and foreground/background composition; no personal-model pass is mounted in the
+current baseline. The hold-driven radial theme switch remains Hub-only, while
+theme and locale each persist one committed truth locally.
 
-Focused automation and production Chromium evidence cover the forward/reverse
-path, DOM handoff, theme gate and refresh persistence, desktop and 390×844
-mobile layouts, reduced-motion semantics, single-canvas ownership, and the
-managed lit-material shader path. Lock-frame UVs are derived from the same
-camera projection used by geometry, while the atlas and semantic DOM consume
-one responsive layout model. The chapter surface is temporary prototype
-content; four-chapter replication and final visual/content acceptance remain
-open. No package-specific Hero branch or raw Three ownership was added.
+Focused automation currently covers 19 hero-next test files / 102 tests. Local
+Chromium verification at 1280×720 covered locale switching, localized face
+texture, initial and between-chapter complete tetrahedrons, first/second face
+transitions, chapter-one DOM activation, final-Hub links, and an empty
+error/warning console. A LAN-origin check additionally confirmed the development
+HMR WebSocket upgrade, initial tetrahedron, one WebGL canvas, and an empty
+error/warning console. Mobile visual acceptance was not repeated in the current
+pass. Content is a base version for later editorial direction; personal GLB
+integration remains pending. No package-specific Hero branch, raw Three
+ownership, second scene, second runtime, or second canvas was added.
 
 See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).

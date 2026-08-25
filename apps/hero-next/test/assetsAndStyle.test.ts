@@ -6,8 +6,9 @@ const workspaceRoot = process.cwd();
 const appRoot = resolve(workspaceRoot, "apps/hero-next");
 
 describe("hero assets and visual surface", () => {
-  test("does not ship legacy GLB or Draco assets", () => {
+  test("does not ship an unmounted profile GLB or legacy Draco assets", () => {
     for (const path of [
+      "models/noobli-base.glb",
       "models/4.glb",
       "draco/gltf/draco_decoder.js",
       "draco/gltf/draco_decoder.wasm",
@@ -36,15 +37,15 @@ describe("hero assets and visual surface", () => {
       /--hero-chapter-foreground:\s*var\(--hero-background\)/,
     );
     expect(css).toMatch(
-      /\.hero-chapter\s*\{[^}]*background:\s*var\(--hero-chapter-background\)/,
-    );
-    expect(css).toMatch(
       /\.hero-chapter\s*\{[^}]*color:\s*var\(--hero-chapter-foreground\)/,
     );
     expect(css).toMatch(/data-hero-theme="inverted"/);
     expect(css).toMatch(/data-dom-active="true"/);
     expect(css).toMatch(/\.hero-entry-runway\s*\{[^}]*min-height:\s*520svh/);
     expect(css).toMatch(/\.hero-exit-runway\s*\{[^}]*min-height:\s*420svh/);
+    expect(css).toMatch(/\.hero-transition-copy\s*\{[^}]*position:\s*sticky/);
+    expect(css).toMatch(/\.hero-chapter\s*\{[^}]*z-index:\s*20/);
+    expect(css).not.toMatch(/\.hero-profile/);
 
     for (const forbidden of [
       /\bclip-path\s*:/,

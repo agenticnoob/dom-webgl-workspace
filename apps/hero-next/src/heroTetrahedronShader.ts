@@ -13,7 +13,10 @@ import {
   resolveHeroChapterScrollState,
   type HeroChapterScrollState,
 } from "./heroChapterScroll";
-import { resolveHeroChapterLockProjection } from "./heroChapterGeometry";
+import {
+  resolveHeroChapterFace,
+  resolveHeroChapterLockProjection,
+} from "./heroChapterGeometry";
 import { heroTransitionConfig } from "./heroTransitionConfig";
 
 export const heroTetrahedronRadialShaderKey = "hero.tetrahedron.radial";
@@ -89,6 +92,9 @@ uniform float heroRadialEdgePx;
 uniform float heroGeometryRadius;
 uniform float heroScreenLock;
 uniform vec2 heroLockUvScale;
+uniform vec3 heroTargetFaceNormal;
+uniform vec3 heroTargetFaceRight;
+uniform vec3 heroTargetFaceUp;
 uniform sampler2D heroChapterAtlas;
 `;
   const radialMix = `${emissiveChunk}
@@ -101,8 +107,8 @@ float heroRadialMask = 1.0 - smoothstep(
   heroRadialDistancePx
 );
 vec3 heroFaceNormal = normalize(heroObjectNormal);
-vec3 heroTargetFaceNormal = normalize(vec3(-1.0, 1.0, 1.0));
-float heroTargetFace = step(0.999, dot(heroFaceNormal, heroTargetFaceNormal));
+vec3 heroNormalizedTargetFaceNormal = normalize(heroTargetFaceNormal);
+float heroTargetFace = step(0.999, dot(heroFaceNormal, heroNormalizedTargetFaceNormal));
 vec3 heroFaceCenter = heroFaceNormal * (heroGeometryRadius / 3.0);
 vec3 heroFaceUp = normalize(vec3(0.0, 1.0, 0.0) - heroFaceNormal * heroFaceNormal.y);
 vec3 heroFaceRight = normalize(cross(heroFaceUp, heroFaceNormal));
@@ -111,9 +117,9 @@ vec2 heroFaceUv = vec2(
   0.5 + dot(heroFaceLocal, heroFaceRight) / (1.632993162 * heroGeometryRadius),
   0.5 + dot(heroFaceLocal, heroFaceUp) / (1.414213562 * heroGeometryRadius)
 );
-vec3 heroTargetRight = normalize(vec3(0.0, -1.0, 1.0));
-vec3 heroTargetUp = normalize(vec3(2.0, 1.0, 1.0));
-vec3 heroTargetLocal = heroObjectPosition - heroTargetFaceNormal * (heroGeometryRadius / 3.0);
+vec3 heroTargetRight = normalize(heroTargetFaceRight);
+vec3 heroTargetUp = normalize(heroTargetFaceUp);
+vec3 heroTargetLocal = heroObjectPosition - heroNormalizedTargetFaceNormal * (heroGeometryRadius / 3.0);
 vec2 heroTargetUv = vec2(
   0.5 + heroLockUvScale.x * dot(heroTargetLocal, heroTargetRight) / (1.632993162 * heroGeometryRadius),
   0.5 + heroLockUvScale.y * dot(heroTargetLocal, heroTargetUp) / (1.414213562 * heroGeometryRadius)
@@ -187,6 +193,7 @@ export function createHeroTetrahedronRadialUniforms(
   );
   const emissiveIntensity = heroTransitionConfig.motion.emissiveIntensity;
   const lockProjection = resolveHeroChapterLockProjection(viewport);
+  const targetFace = resolveHeroChapterFace(chapter.chapterIndex);
 
   return {
     heroCommittedColor: visual.committed.foreground,
@@ -202,6 +209,9 @@ export function createHeroTetrahedronRadialUniforms(
     heroRadialEdgePx: radial.edgeFeatherPx,
     heroGeometryRadius: heroTransitionConfig.geometry.radius,
     heroScreenLock: chapter.screenLock,
+    heroTargetFaceNormal: targetFace.normal,
+    heroTargetFaceRight: targetFace.right,
+    heroTargetFaceUp: targetFace.up,
     heroLockUvScale: [
       lockProjection.widthFraction,
       lockProjection.heightFraction,

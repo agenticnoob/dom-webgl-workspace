@@ -246,6 +246,125 @@ a {
   border: 0;
 }
 
+.hero-locale {
+  position: fixed;
+  z-index: 30;
+  top: max(20px, 2vw);
+  right: max(20px, 2vw);
+  display: flex;
+  gap: 0.35rem;
+  color: var(--hero-foreground);
+  pointer-events: auto;
+}
+
+.hero-locale button {
+  min-width: 2.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hero-locale button[aria-pressed="true"] {
+  background: var(--hero-foreground);
+  color: var(--hero-background);
+}
+
+.hero-transition-copy {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(10rem, 18rem) minmax(10rem, 18rem);
+  justify-content: space-between;
+  align-items: center;
+  min-height: 100svh;
+  padding: max(24px, 5vw);
+  color: var(--hero-foreground);
+  font-size: clamp(0.72rem, 1vw, 0.92rem);
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+}
+
+.hero-transition-copy section:last-child {
+  text-align: right;
+}
+
+.hero-transition-copy p,
+.hero-transition-copy ul {
+  margin: 0;
+}
+
+.hero-transition-copy p + p,
+.hero-transition-copy p + ul {
+  margin-top: 1rem;
+}
+
+.hero-transition-copy ul {
+  padding: 0;
+  list-style: none;
+}
+
+.hero-chapter__note a {
+  display: inline-block;
+  margin-top: 1.5rem;
+  color: inherit;
+  text-underline-offset: 0.35em;
+}
+
+.hero-chapter__closing {
+  max-width: 22ch;
+  margin: 18svh 0 0 auto;
+  font-size: clamp(2rem, 5vw, 5rem);
+  line-height: 1.1;
+}
+
+.hero-hub-runway--final {
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hero-final-hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.7fr);
+  align-content: space-between;
+  min-height: 80svh;
+  padding: max(24px, 5vw);
+  color: var(--hero-foreground);
+}
+
+.hero-final-hub > p:first-child {
+  grid-column: 1 / -1;
+  margin: 0;
+  letter-spacing: 0.12em;
+}
+
+.hero-final-hub h2 {
+  max-width: 8ch;
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 8rem);
+  line-height: 0.95;
+}
+
+.hero-final-hub > p:nth-of-type(2) {
+  align-self: end;
+  max-width: 30rem;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  line-height: 1.45;
+}
+
+.hero-final-hub nav {
+  grid-column: 2;
+  display: flex;
+  gap: 1.5rem;
+  pointer-events: auto;
+}
+
+.hero-final-hub a {
+  color: inherit;
+  text-underline-offset: 0.35em;
+}
+
 @media (max-width: 700px) {
   .hero-entry-runway {
     min-height: 460svh;
@@ -267,6 +386,22 @@ a {
 
   .hero-chapter__note {
     min-height: 34svh;
+  }
+
+  .hero-transition-copy {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24vw;
+    padding: 1rem;
+    font-size: 0.62rem;
+  }
+
+  .hero-final-hub {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-final-hub > p:nth-of-type(2),
+  .hero-final-hub nav {
+    grid-column: 1;
   }
 }
 

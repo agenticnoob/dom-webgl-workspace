@@ -3,11 +3,18 @@
 `@viselora/hero-next` is a private Next.js App Router consumer used to validate
 the public Viselora packages in a production application shape.
 
-The current experience is a one-chapter vertical slice: a complete tetrahedron
-Hub enters one face, locks a projected chapter frame to screen space, expands a
-triangular WebGL window into real semantic DOM, scrolls the chapter, then
-reverses the composition back to the Hub. The same scroll coordinate resolves
-the same visual state in either direction.
+The current experience is a four-chapter personal narrative. Each chapter owns
+one tetrahedron face, unique transition-side information, a screen-locked
+triangular reveal, real semantic DOM content, and a reversible exit back to a
+complete Hub. The chapters cover self, AI/philosophy axioms, public builds, and
+products/public signals. A final Hub exposes confirmed GitHub and blog links.
+The same scroll coordinate resolves the same visual state in either direction.
+
+Chinese and English copy share one typed content model and one persisted locale
+store. The current implementation deliberately keeps the established single
+tetrahedron scene and foreground/background composition unchanged. A personal
+GLB remains a later content asset and is not mounted through an extra render
+pass in this baseline.
 
 A real mesh hold remains the site-wide two-tone theme switch. It is enabled
 only at a complete Hub, commits once after the radial transition covers the
@@ -20,6 +27,11 @@ From the repository root:
 ```bash
 npm run dev -w @viselora/hero-next
 ```
+
+The development allowlist currently includes `192.168.50.5`, so devices on the
+same LAN can load `http://192.168.50.5:3000/` and establish the Next.js HMR
+WebSocket. If the host address changes, update `allowedDevOrigins` in
+`next.config.ts` and restart the development server.
 
 Focused validation:
 
@@ -48,9 +60,9 @@ npm run build -w @viselora/hero-next
 | Page/runtime composition | `src/HeroExperience.tsx` |
 | Static visual/transition config | `src/heroTransitionConfig.ts` |
 | Hold state machine and radial geometry | `src/heroHoldTransition.ts` |
-| Reversible chapter phase resolver | `src/heroChapterScroll.ts` |
-| Camera-space chapter geometry | `src/heroChapterGeometry.ts` |
-| Theme truth and persistence | `src/heroTheme.ts`, `src/heroExperienceState.ts` |
+| Reversible four-chapter phase resolver | `src/heroChapterScroll.ts` |
+| Four-face camera-space geometry | `src/heroChapterGeometry.ts` |
+| Theme/locale persistence and React subscriptions | `src/heroTheme.ts`, `src/heroLocale.ts`, `src/heroExperienceState.ts` |
 | Shared chapter content | `src/heroChapterContent.ts` |
 | Shared responsive atlas/DOM layout | `src/heroChapterLayout.ts`, `src/heroChapterLayoutReact.ts` |
 | Managed chapter texture atlas | `src/heroChapterAtlas.ts` |
@@ -64,14 +76,18 @@ npm run build -w @viselora/hero-next
 
 ## Current evidence boundary
 
-Focused automation covers the scroll resolver, bidirectional mapping, theme
-gate/persistence, projected lock UVs, shared atlas/DOM layout, shader
-composition, and React runtime composition. Production Chromium evidence
-covers the forward and reverse chapter path, handoff, Hub-only theme gate,
-refresh persistence, single-canvas ownership, reduced motion, and desktop plus
-390×844 mobile layouts. Element anchors are continuous across both handoffs;
-Canvas and DOM glyph rasterization can still differ slightly. The visuals are
-a recognizable prototype surface, not final chapter art or content acceptance.
+Focused automation currently covers 19 hero-next test files / 102 tests,
+including four-chapter selection, bidirectional mapping, locale/theme
+persistence, four target faces, projected lock UVs, localized atlas/DOM layout,
+shader behavior, and one-runtime/one-scene/one-canvas ownership. Local Chromium
+verification at 1280×720 covered the initial and between-chapter complete
+tetrahedron, chapter-one and chapter-two face transitions, chapter-one DOM
+handoff, the final Hub, and an empty error/warning console. Responsive rules are
+automated, but mobile visual acceptance was not repeated in the current pass. A
+separate LAN-origin check confirmed the HMR WebSocket upgrade, one WebGL canvas,
+the initial tetrahedron, and an empty error/warning console. Canvas and DOM glyph
+rasterization can still differ slightly, and all content remains a base version
+intended for subsequent editorial adjustment.
 
 Repository-wide release and capability truth remains in
 [docs/STATUS.md](../../docs/STATUS.md).

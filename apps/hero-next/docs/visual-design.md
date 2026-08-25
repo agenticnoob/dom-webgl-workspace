@@ -1,125 +1,78 @@
 # Hero Next Visual Design
 
-**状态：** 章节 1 的完整可逆滚动纵向切片已实现。画面使用临时但可辨识的
-`FIELD NOTES` 章节内容；这证明空间链路和 ownership，不代表四章内容或最终视觉验收。
+**状态：** 四章内容基础版本已在既有四面体视觉体系上实现，文案与外部入口可继续替换。
+它已经形成完整、可逆的个人叙事链路，但不代表最终文案、个人 GLB 或移动端主观验收。
 
-## 当前链路
+## 叙事结构
 
-一个纵向滚动坐标驱动以下连续阶段：
+四面体的四个面分别承载一章：
 
-1. 完整四面体 Hub，保留轻微 breathing、float 与 pointer tilt；
-2. 目标面从第一帧起一边旋转、一边靠近固定相机；旋转结束时，目标面的法线、up
-   方向与相机坐标系一致，面质心落在相机观察轴上；
-3. 对准后不再旋转，四面体沿相机观察轴稳定推进。三角边界与 face-space 内容始终属于
-   同一 mesh transform，不存在三角边界静止而内容独自放大的阶段；
-4. 目标面投影达到真实 DOM 的主尺度后，在同一几何帧切到 screen-space 内容坐标；随后
-   内容保持屏幕坐标不动，只有三角窗口继续沿相机坐标推进并像幕布一样越过视口四角；
-5. 三角覆盖视口后，真实语义 DOM 在同一排版锚点接管；
-6. 正常章节滚动；
-7. 章节尾部以相反次序收回，最终进入约 `80svh` 的完整 Hub 区间。
+1. **我是谁**：抽象身份、工作方式与信念；个人 GLB 仍作为后续资产接入项；
+2. **我的思想**：关于 AI、哲学、AI Native 与 Agent First 的判断；
+3. **我做过什么**：Viselora、公开构建方向及已确认的 GitHub 入口；
+4. **我正在连接什么**：产品、博客和公开表达入口，未知的视频地址保留为明确占位。
 
-向上滚动读取同一 entry/exit progress，并由纯函数 resolver 重建完全相反的阶段。
-Lenis 只平滑实际滚动位置；没有脱离滚动条的单向时间线。Reduced Motion 保留阶段、
-内容、主题和双向映射，只关闭 ambient、tilt 与 shake 等非必要运动。
+第四章退出后回到最终 Hub，以“愿与同道者共研同进，或有所得，亦未可知。”收束，
+并展示已确认的 GitHub 与博客联系入口。中文和英文消费同一个 typed content model，
+语言选择通过版本化 locale store 持久化。
+
+## 空间链路
+
+每一章都使用同一套可逆阶段：
+
+1. 完整四面体 Hub；
+2. 对应目标面旋转至相机并沿观察轴靠近；
+3. 面内 atlas 内容与三角面共同放大；
+4. 内容在投影达到 DOM 主尺度时锁定到 screen-space，三角窗口继续覆盖视口；
+5. 同一排版锚点上的语义 DOM 接管并完成正常章节阅读；
+6. 退出时按相反次序收回，回到下一段 Hub 或最终 Hub。
+
+每章进入过渡都拥有不同的两侧短信息。它们位于三角形之外、DOM 内容之下；
+目标面扩大后会自然覆盖这些信息。向上滚动使用同一 entry/exit progress 反向解析，
+没有脱离浏览器滚动坐标的单向时间线。
 
 ## 合成与 ownership
 
-- 页面只有一个 `WebGLScrollRuntime`、一个 runtime-owned canvas、一个四面体 mesh；
-- `heroChapterScroll.ts` 是 entry/exit progress 到视觉阶段的唯一纯映射；
-- `heroChapterGeometry.ts` 负责固定相机坐标、投影尺度与四面体 transform 的纯函数解析；
-- `heroChapterLayout.ts` 是 atlas 与真实 DOM 的唯一响应式布局模型；
-  `heroChapterLayoutReact.ts` 只在 viewport resize 时把模型发布为 DOM CSS variables，
-  不订阅逐帧滚动；
-- `heroEffect.ts` 只组合几何 frame、managed shader uniforms 与 Hub hold 状态；
-- `heroTetrahedronShader.ts` 用 flat face normal 识别面，在受控 Standard material shader
-  内完成 face UV、screen UV 和三角覆盖；
-- `heroChapterAtlas.ts` 生成 runtime-owned canvas texture，章节 1 与真实 DOM 共用
-  `heroChapterContent.ts` 的文案和 `heroChapterLayout.ts` 的 viewport、inset、字号、
-  line-box、card geometry。Atlas backing pixels 可以按上限缩放，但逻辑排版坐标始终保留
-  当前 viewport 尺寸；
-- `HeroChapterNarrative.tsx` 是语义、阅读、选择、focus 和交互真值；WebGL 只是装饰投影；
-- CSS 负责 DOM 排版、可访问主题 token、stacking 和 pointer routing，不使用
-  `clip-path`、mask 或第二个三角形实现核心转场。
+- 页面只有一个 `WebGLScrollRuntime` 和一个 runtime-owned canvas；
+- 页面继续使用原有的一个四面体 managed scene/render pass；不增加人物 scene/pass；
+- `heroChapterScroll.ts` 是 entry/exit progress 到章节视觉阶段的唯一纯映射；
+- `heroChapterGeometry.ts` 根据 active face 解析相机空间姿态和投影；
+- `heroChapterLayout.ts` 是 atlas 与语义 DOM 的共享响应式布局模型；
+- `heroChapterAtlas.ts` 从当前 locale 的 typed content 生成四个面的 managed texture；
+- `HeroChapterNarrative.tsx` 拥有语义、阅读、链接、语言选择和 focus 真值；
+- CSS 保留既有背景、前景、章节反相、stacking 与 pointer routing，不用 `clip-path`
+  或第二个三角形冒充 WebGL 转场。
 
-当前公开 API 足以稳定表达本纵向切片：app 只使用 public managed scene/mesh/effect/
-shader/canvas-texture/scroll API，未引入 raw Three ownership、private import、第二 renderer
-或 package 修改。Atlas sampler 由 managed shader facade 创建、替换、上传并在 shader
-remove/runtime dispose 时释放。
+应用只消费 public package entrypoints，未引入 raw Three.js ownership、第二 scene、第二
+renderer、第二 canvas 或 Hero 专用 package 分支。
 
-## 可逆 phase 真值
+## 视觉与交互真值
 
-Entry stops：`orientEnd=0.26`、`lockEnd=0.62`。
+语义色仍只有 `light #B8B8B8` 与 `dark #5F5F5F`。章节读取 committed theme 的反相
+色彩角色，atlas、三角投影和 DOM 使用同一 palette。完整 Hub 上长按真实四面体约一秒
+触发 radial theme transition；离开 Hub 后 gate 关闭。主题和语言分别持久化，但逐帧滚动、
+shader 和章节激活进度不进入 React state。
 
-Exit stops：`contractEnd=0.38`、`retreatEnd=0.74`。
-
-`heroChapterScroll.ts` 输出：
-
-- `orientation`
-- `approach`
-- `screenLock`
-- `triangleReveal`
-- `domContentActive`
-- `hubInteractive`
-
-输出只依赖归一化 entry/exit progress。`orientation` 与 `approach` 从 entry 第一帧同步
-增加；`orientation` 在 `orientEnd` 达到 1 后保持不变，`approach` 继续到 `lockEnd`。
-退出时先收幕布，再沿同一相机轴回退，最后一段同时回退与解除朝向。mesh 始终保持固定
-scale，透视尺寸变化只来自 scene-space position 靠近固定相机；幕布段沿 camera forward/up
-计算位置，使三角底边与上方两条斜边在交接帧全部越过视口。
-
-`screenLock` 不再承担中间的内容放大动画：它在真实 DOM 主尺度的 lock 几何帧完成坐标
-接管，幕布阶段保持为 1。`heroChapterGeometry.ts` 从相机 FOV、viewport aspect 和目标面
-投影解析 lock footprint 的 width/height fraction；shader 用同一组 fraction 缩放目标面
-UV。因此 lock 帧不只是中心点相等，而是目标面上每个 fragment 的 face-space atlas UV
-都与其 screen-space UV 数学同值。跨过离散 `screenLock` 边界时内容锚点不变，随后只有
-三角幕布继续运动。
-
-WebGL/DOM 交接也不使用 `+Npx` 校正：Canvas 与 CSS 消费同一个响应式布局对象；Canvas
-文本基线由实际 font bounding metrics 放入同一个 CSS line-box。移动端旧的标题 optical
-offset 和独立 card padding 公式已经删除。由于 Canvas 与 DOM 是不同栅格器，字形边缘的
-抗锯齿仍可有轻微差异，但元素比例与布局锚点不再切换真值。
-正向和反向不会保存“播放方向”，也不会启动独立 animation clock。完整 Hub 的 runway
-为 `80svh`；entry 为桌面 `520svh`、移动 `460svh`，exit 为 `420svh`。
-
-## 主题真值
-
-语义色仍只有：
-
-| Token | 色值 |
-| --- | --- |
-| `light` | `#B8B8B8` |
-| `dark` | `#5F5F5F` |
-
-完整 Hub 上真实 mesh 长按约一秒，从命中点扩张共享 radial boundary；覆盖最远角后才
-commit。提前松开在 `300ms` 全程速度下收回，re-press 可续接，commit 后必须 release。
-离开完整 Hub 时 gate 立即关闭，进行中的 attempt 收回；章节内没有主题入口。
-
-`heroTheme.ts` 拥有唯一 committed scheme，通过版本化 key
-`viselora.hero.theme.v1` 写入 local storage。React 只订阅离散 committed theme 与
-DOM/WebGL ownership 切换，不保存逐帧滚动或 shader 状态。四面体、atlas 投影、背景和
-真实 DOM 都读取同一 committed scheme。Hub 与过渡页背景使用 committed scheme；章节
-统一对调其 background/foreground 角色，因此四面体 atlas、screen-space WebGL 投影与
-真实 DOM 章节始终使用同一反相章节配色。`screenLock` 只交接 face/screen UV，不切换
-色彩角色；三角覆盖视口后可直接交接同配色 DOM。WebGL 章节 palette 以 `0.92` 权重覆盖
-PBR lighting，保留少量立体明暗，并在 screen lock 完成时提升到 `1.0` 以匹配 DOM token。
+个人 GLB 不在本轮挂载，避免为了模型改变既有合成层。第四章只连接已确认地址；未确认的
+视频账号不会被虚构。
 
 ## 当前验证边界
 
-- **Automated:** hero-next 17 个 focused test files / 92 tests 覆盖 phase resolver
-  边界、同坐标双向映射、theme gate/persistence、hold state、lock projection/UV scale、
-  atlas/DOM 共享响应式 composition、managed shader sampler 声明/生命周期、React 单
-  runtime/mesh/timeline composition。
-- **Browser:** production Chromium 实际验证 desktop `1280×720` 与 mobile `390×844`
-  的单 canvas、正向/反向路径、screen lock、WebGL/DOM handoff、正常 DOM 滚动、退出
-  收回、Hub-only theme gate、刷新持久化，以及 console/page/shader errors 为 0。
-- **未声称:** 临时 atlas/DOM 内容不是最终视觉；没有复制到章节 2–4；未把自动化或
-  浏览器结构证据描述为主观最终设计 acceptance；Canvas/DOM 字形抗锯齿一致性不作为
-  像素级相等承诺。
+- **Automated：** hero-next 19 个 focused test files / 102 tests 覆盖四章选择、双向映射、
+  四个目标面、locale/theme 持久化、atlas/DOM 内容、shader 和单 runtime/scene/canvas
+  ownership；workspace typecheck 通过。
+- **Browser：** 本地 Chromium `1280×720` 验证首屏和章节间完整四面体、第一/第二章
+  三角面转场、第一章 DOM 接管、最终 Hub，console error/warning 为 0；另以 LAN origin
+  `http://192.168.50.5:3000/` 验证 HMR WebSocket 升级、首屏四面体、单 canvas 和空
+  error/warning console。
+- **未声称：** 本轮没有重复移动端浏览器主观验收；个人 GLB 和视频入口尚未接入；
+  Canvas 与 DOM 的字形抗锯齿不承诺像素级一致。
 
 ## 维护边界
 
-- 不增加第二 renderer、canvas、四面体或滚动真值；
-- 不用 CSS clip/mask 替代 WebGL 三角转场；
+- 不增加第二 runtime、renderer 或 canvas；
+- 不用 CSS mask/clip 替代 WebGL 三角转场；
 - 不把逐帧进度放入 React state；
-- 不把 app key、copy、asset 或布局规则放进 package；
-- 完成/废弃的设计记录留在 `docs/archive/`，不作为当前运行真值。
+- 不把 app key、文案、资产或布局规则下沉到 package；
+- 内容、链接与未来个人模型继续在 hero-next app 边界内替换；模型接入不得增加覆盖四面体
+  的额外 pass。

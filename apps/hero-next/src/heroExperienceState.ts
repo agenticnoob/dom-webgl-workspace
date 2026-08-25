@@ -2,6 +2,7 @@ import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import { readHeroChapterScrollState } from "./heroChapterScroll";
+import { createHeroLocaleStore, type HeroLocaleStore } from "./heroLocale";
 import { createHeroThemeStore, type HeroThemeStore } from "./heroTheme";
 
 export function useHeroThemeState(): {
@@ -15,6 +16,19 @@ export function useHeroThemeState(): {
     store.getServerSnapshot,
   );
   return { store, scheme };
+}
+
+export function useHeroLocaleState(): {
+  readonly store: HeroLocaleStore;
+  readonly locale: ReturnType<HeroLocaleStore["getSnapshot"]>;
+} {
+  const store = useMemo(createHeroLocaleStore, []);
+  const locale = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
+  return { store, locale };
 }
 
 export function useHeroDomContentActive(

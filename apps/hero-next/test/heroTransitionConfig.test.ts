@@ -12,6 +12,12 @@ describe("hero transition config", () => {
         originX: "hero.transition.hold.origin-x",
         originY: "hero.transition.hold.origin-y",
         phase: "hero.transition.hold.phase",
+        chapters: [
+          { entry: "hero.chapter-1.entry", exit: "hero.chapter-1.exit" },
+          { entry: "hero.chapter-2.entry", exit: "hero.chapter-2.exit" },
+          { entry: "hero.chapter-3.entry", exit: "hero.chapter-3.exit" },
+          { entry: "hero.chapter-4.entry", exit: "hero.chapter-4.exit" },
+        ],
       },
       signalCodes: {
         scheme: { initial: 0, inverted: 1 },
@@ -43,7 +49,14 @@ describe("hero transition config", () => {
         exit: { contractEnd: 0.38, retreatEnd: 0.74 },
       },
       chapterGeometry: {
-        targetRotation: [-0.5158110562, 0.7853981634, 1.5707963268],
+        faces: expect.arrayContaining([
+          expect.objectContaining({
+            normal: [-1, 1, 1],
+            up: [2, 1, 1],
+            right: [0, -1, 1],
+            targetRotation: [-0.5158110562, 0.7853981634, 1.5707963268],
+          }),
+        ]),
         cameraDistance: 3.2,
         cameraFov: 38,
         cameraTargetY: 0.32,
@@ -56,5 +69,6 @@ describe("hero transition config", () => {
     expect(new Set(Object.values(heroTransitionConfig.colors))).toEqual(
       new Set(["#B8B8B8", "#5F5F5F"]),
     );
+    expect(heroTransitionConfig.chapterGeometry.faces).toHaveLength(4);
   });
 });

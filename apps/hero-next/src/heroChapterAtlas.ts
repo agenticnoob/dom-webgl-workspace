@@ -1,7 +1,8 @@
 import type { HeroViewport } from "./heroHoldTransition";
 import {
-  heroChapterFaces,
-  heroChapterOneContent,
+  heroChapters,
+  type HeroChapterLocalizedContent,
+  type HeroLocale,
 } from "./heroChapterContent";
 import {
   resolveHeroChapterAtlasResolution,
@@ -15,10 +16,12 @@ export type HeroChapterAtlas = {
   readonly tileHeight: number;
   readonly layoutWidth: number;
   readonly layoutHeight: number;
+  readonly locale: HeroLocale;
 };
 
 export function createHeroChapterAtlas(
   viewport: HeroViewport,
+  locale: HeroLocale = "zh",
 ): HeroChapterAtlas {
   const layout = resolveHeroChapterLayout(viewport);
   const { tileWidth, tileHeight } =
@@ -32,7 +35,7 @@ export function createHeroChapterAtlas(
   }
 
   context.textBaseline = "alphabetic";
-  for (const [index, chapter] of heroChapterFaces.entries()) {
+  for (const [index, chapter] of heroChapters.entries()) {
     context.save();
     context.translate(
       (index % 2) * tileWidth,
@@ -46,8 +49,7 @@ export function createHeroChapterAtlas(
       context,
       layout,
       chapter.number,
-      chapter.label,
-      index === 0,
+      chapter.content[locale],
     );
     context.restore();
   }
@@ -58,12 +60,14 @@ export function createHeroChapterAtlas(
     tileHeight,
     layoutWidth: layout.viewport.width,
     layoutHeight: layout.viewport.height,
+    locale,
   };
 }
 
 export function heroChapterAtlasMatchesViewport(
   atlas: HeroChapterAtlas,
   viewport: HeroViewport,
+  locale: HeroLocale = "zh",
 ): boolean {
   const layout = resolveHeroChapterLayout(viewport);
   const resolution = resolveHeroChapterAtlasResolution(viewport);
@@ -71,7 +75,8 @@ export function heroChapterAtlasMatchesViewport(
     atlas.layoutWidth === layout.viewport.width &&
     atlas.layoutHeight === layout.viewport.height &&
     atlas.tileWidth === resolution.tileWidth &&
-    atlas.tileHeight === resolution.tileHeight
+    atlas.tileHeight === resolution.tileHeight &&
+    atlas.locale === locale
   );
 }
 
@@ -79,8 +84,7 @@ function drawTile(
   context: CanvasRenderingContext2D,
   layout: HeroChapterLayout,
   number: string,
-  label: string,
-  chapterOne: boolean,
+  content: HeroChapterLocalizedContent,
 ): void {
   const { width, height } = layout.viewport;
 
@@ -95,7 +99,7 @@ function drawTile(
   );
   fillTextInLineBox(
     context,
-    `PROTOTYPE / ${number}`,
+    content.frame.eyebrow,
     layout.inset,
     layout.inset,
     layout.smallLineHeight,
@@ -109,7 +113,7 @@ function drawTile(
   );
   const headingY =
     layout.inset + layout.smallLineHeight + layout.headingMarginTop;
-  const headingLines = label.split(/\s+/);
+  const headingLines = content.frame.titleLines;
   for (const [index, text] of headingLines.entries()) {
     fillTextInLineBox(
       context,
@@ -131,10 +135,11 @@ function drawTile(
     headingY +
     headingLines.length * layout.headingLineHeight +
     layout.headingMarginBottom;
-  const summary = chapterOne
-    ? heroChapterOneContent.summary.toUpperCase()
-    : `TEMPORARY FACE ${number}`;
-  const summaryLines = wrapWords(context, summary, layout.summaryMaxWidth);
+  const summaryLines = wrapText(
+    context,
+    content.frame.summary,
+    layout.summaryMaxWidth,
+  );
   for (const [index, text] of summaryLines.entries()) {
     fillTextInLineBox(
       context,
@@ -168,47 +173,38 @@ function drawTile(
       layout.cardHeight,
     );
   }
-  if (chapterOne) {
-    context.globalAlpha = 0.82;
-    setTextStyle(
+  context.globalAlpha = 0.82;
+  setTextStyle(
+    context,
+    600,
+    layout.smallFontSize,
+    layout.cardLetterSpacing,
+  );
+  for (const [index, signal] of content.frame.signals.entries()) {
+    const cardX =
+      layout.inset +
+      (layout.mobile ? 0 : index * (layout.cardWidth + layout.cardsGap)) +
+      layout.cardPadding;
+    const cardY =
+      layout.cardsTop +
+      (layout.mobile ? index * (layout.cardHeight + layout.cardsGap) : 0) +
+      layout.cardPadding;
+    fillTextInLineBox(
       context,
-      600,
+      `${number}.${index + 1} / ${signal.label}`,
+      cardX,
+      cardY,
+      layout.smallLineHeight,
       layout.smallFontSize,
-      layout.cardLetterSpacing,
     );
-    for (const [
-      index,
-      [cardNumber, cardLabel],
-    ] of heroChapterOneContent.cards.entries()) {
-      const cardX =
-        layout.inset +
-        (layout.mobile
-          ? 0
-          : index * (layout.cardWidth + layout.cardsGap)) +
-        layout.cardPadding;
-      const cardY =
-        layout.cardsTop +
-        (layout.mobile
-          ? index * (layout.cardHeight + layout.cardsGap)
-          : 0) +
-        layout.cardPadding;
-      fillTextInLineBox(
-        context,
-        cardNumber,
-        cardX,
-        cardY,
-        layout.smallLineHeight,
-        layout.smallFontSize,
-      );
-      fillTextInLineBox(
-        context,
-        cardLabel.toUpperCase(),
-        cardX,
-        cardY + layout.smallLineHeight + layout.cardLabelGap,
-        layout.smallLineHeight,
-        layout.smallFontSize,
-      );
-    }
+    fillTextInLineBox(
+      context,
+      signal.value,
+      cardX,
+      cardY + layout.smallLineHeight + layout.cardLabelGap,
+      layout.smallLineHeight,
+      layout.smallFontSize,
+    );
   }
 }
 
@@ -246,18 +242,22 @@ function fillTextInLineBox(
   context.fillText(value, x, baseline);
 }
 
-function wrapWords(
+function wrapText(
   context: CanvasRenderingContext2D,
   value: string,
   maxWidth: number,
 ): readonly string[] {
   const lines: string[] = [];
   let line = "";
-  for (const word of value.split(/\s+/)) {
-    const candidate = line ? `${line} ${word}` : word;
+  const hasWordBoundaries = /\s/.test(value);
+  const tokens = hasWordBoundaries ? value.split(/\s+/) : Array.from(value);
+  for (const token of tokens) {
+    const candidate = line
+      ? `${line}${hasWordBoundaries ? " " : ""}${token}`
+      : token;
     if (line && context.measureText(candidate).width > maxWidth) {
       lines.push(line);
-      line = word;
+      line = token;
     } else {
       line = candidate;
     }

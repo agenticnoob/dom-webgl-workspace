@@ -30,6 +30,15 @@ function createThemeStore(scheme: "initial" | "inverted" = "initial") {
   };
 }
 
+function createLocaleStore(locale: "zh" | "en" = "zh") {
+  return {
+    getSnapshot: () => locale,
+    getServerSnapshot: () => "zh" as const,
+    subscribe: () => () => undefined,
+    commit: vi.fn(),
+  };
+}
+
 function createCanvasContext() {
   return {
     textBaseline: "alphabetic",
@@ -195,6 +204,7 @@ describe("hero tetrahedron effect", () => {
         kind: "hero.tetrahedron.motion",
         signals: { set: vi.fn() },
         theme: createThemeStore(),
+        locale: createLocaleStore(),
       });
 
       expect(state.transition.phase).toBe("idle");
@@ -235,6 +245,7 @@ describe("hero tetrahedron effect", () => {
       kind: "hero.tetrahedron.motion",
       signals,
       theme: createThemeStore(),
+      locale: createLocaleStore(),
     });
 
     expect(state.transition).toMatchObject({
@@ -260,6 +271,7 @@ describe("hero tetrahedron effect", () => {
         kind: "hero.tetrahedron.motion",
         signals,
         theme: createThemeStore(),
+        locale: createLocaleStore(),
       });
       expect(idle.transition.phase).toBe("idle");
     }
@@ -273,11 +285,12 @@ describe("hero tetrahedron effect", () => {
       kind: "hero.tetrahedron.motion" as const,
       signals,
       theme,
+      locale: createLocaleStore(),
     };
     const domState = createHeroEffectState(false);
     const domProgress = {
       get: (key: string) =>
-        key === heroTransitionConfig.signalKeys.chapterEntry ? 1 : 0,
+        key === heroTransitionConfig.signalKeys.chapters[0].entry ? 1 : 0,
     };
 
     heroTetrahedronEffect.update(
@@ -437,7 +450,7 @@ describe("hero tetrahedron effect", () => {
       heroTransitionConfig.motion.baseRotation,
     );
     expect(frames[1]!.rotation).toEqual(
-      heroTransitionConfig.chapterGeometry.targetRotation,
+      heroTransitionConfig.chapterGeometry.faces[0].targetRotation,
     );
     expect(frames[2]!.rotation).toEqual(frames[1]!.rotation);
     expect(frames[1]!.position[2]).toBeLessThan(frames[2]!.position[2]);

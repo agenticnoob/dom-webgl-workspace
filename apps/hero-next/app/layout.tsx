@@ -4,8 +4,9 @@ import "lenis/dist/lenis.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tetrahedron",
-  description: "A Viselora tetrahedron study.",
+  title: "noobli — Agent-first builder",
+  description:
+    "一个关于自我、AI 公理、开放构建与公共联结的四章节个人站。",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

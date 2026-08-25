@@ -48,6 +48,9 @@ describe("hero tetrahedron radial shader", () => {
     expect(draft.fragmentShader).toContain(
       "heroLockUvScale.y * dot(heroTargetLocal, heroTargetUp)",
     );
+    expect(draft.fragmentShader).toContain("uniform vec3 heroTargetFaceNormal");
+    expect(draft.fragmentShader).toContain("uniform vec3 heroTargetFaceRight");
+    expect(draft.fragmentShader).toContain("uniform vec3 heroTargetFaceUp");
     expect(draft.fragmentShader).toContain("diffuseColor.rgb = heroChapterColor");
     expect(draft.fragmentShader).toContain(
       "totalEmissiveRadiance = mix(",
@@ -193,6 +196,9 @@ describe("hero tetrahedron radial shader", () => {
       heroRadialEdgePx: 1.5,
       heroGeometryRadius: 0.52,
       heroScreenLock: 0,
+      heroTargetFaceNormal: [-1, 1, 1],
+      heroTargetFaceRight: [0, -1, 1],
+      heroTargetFaceUp: [2, 1, 1],
       heroLockUvScale: [
         lockProjection.widthFraction,
         lockProjection.heightFraction,
@@ -222,6 +228,19 @@ describe("hero tetrahedron radial shader", () => {
       heroCommittedColor: "#B8B8B8",
       heroCommittedBackground: "#5F5F5F",
     });
+  });
+
+  test("selects a distinct target face for every chapter", () => {
+    const normals = heroTransitionConfig.chapterGeometry.faces.map(
+      (_face, chapterIndex) =>
+        createHeroTetrahedronRadialUniforms(
+          createHeroHoldTransitionState(),
+          viewport,
+          resolveHeroChapterScrollState(0.5, 0, chapterIndex),
+        ).heroTargetFaceNormal,
+    );
+
+    expect(new Set(normals.map((normal) => JSON.stringify(normal))).size).toBe(4);
   });
 });
 

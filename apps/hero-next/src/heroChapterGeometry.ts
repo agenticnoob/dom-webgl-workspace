@@ -24,7 +24,7 @@ export type HeroChapterLockProjection = {
 
 type ChapterTransformState = Pick<
   HeroChapterScrollState,
-  "orientation" | "approach" | "triangleReveal"
+  "chapterIndex" | "orientation" | "approach" | "triangleReveal"
 >;
 
 export function resolveHeroChapterGeometryFrame(
@@ -69,6 +69,7 @@ export function resolveHeroChapterGeometryFrame(
     lerp(hubPositionY, approachPosition[1], chapter.orientation),
     approachPosition[2],
   ];
+  const targetFace = resolveHeroChapterFace(chapter.chapterIndex);
 
   return {
     position: lerpVector(
@@ -78,11 +79,20 @@ export function resolveHeroChapterGeometryFrame(
     ),
     rotation: lerpVector(
       hubRotation,
-      heroTransitionConfig.chapterGeometry.targetRotation,
+      targetFace.targetRotation,
       chapter.orientation,
     ),
     scale,
   };
+}
+
+export function resolveHeroChapterFace(chapterIndex: number) {
+  const faces = heroTransitionConfig.chapterGeometry.faces;
+  const safeIndex = Math.max(
+    0,
+    Math.min(faces.length - 1, Math.trunc(chapterIndex)),
+  );
+  return faces[safeIndex]!;
 }
 
 export function resolveHeroChapterLockProjection(

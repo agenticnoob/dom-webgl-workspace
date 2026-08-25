@@ -10,6 +10,7 @@ type CapturedMeshEffect = {
   readonly kind: string;
   readonly signals?: HeroTransitionSignalWriter;
   readonly theme?: { getSnapshot(): string };
+  readonly locale?: { getSnapshot(): string };
 };
 
 const progressStore = {
@@ -192,6 +193,21 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-effect-fov": webgl.effects?.[0]?.fov,
       "data-effect-overscan": webgl.effects?.[0]?.overscan,
     }),
+  WebGLPassViewport: ({
+    children,
+    id,
+    as = "div",
+    className,
+  }: PropsWithChildren<{
+    id: string;
+    as?: "div" | "figure";
+    className?: string;
+  }>) =>
+    createElement(
+      as,
+      { className, "data-pass-viewport": id },
+      children,
+    ),
 }));
 
 import { HeroExperience } from "../src/HeroExperience";
@@ -209,20 +225,24 @@ beforeEach(() => {
 });
 
 describe("HeroExperience", () => {
-  test("declares one stable managed scene with real mesh press interaction", () => {
+  test("declares one runtime, one tetrahedron scene, and four copied chapter transitions", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
     expect(html.match(/data-scene=/g)).toHaveLength(1);
     expect(html).toContain('data-runtime="hero-scroll"');
     expect(html).toContain('data-antialias="true"');
     expect(html).toContain('data-max-device-pixel-ratio="2"');
-    expect(html.match(/data-timeline=/g)).toHaveLength(2);
+    expect(html.match(/data-timeline=/g)).toHaveLength(8);
     expect(html).toContain('data-timeline="hero.chapter-1.entry.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-1.entry"');
     expect(html).toContain('data-end="bottom top"');
     expect(html).toContain('data-timeline="hero.chapter-1.exit.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-1.exit"');
     expect(html).toContain('data-end="bottom bottom"');
+    expect(html).toContain('data-timeline="hero.chapter-4.entry.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-4.entry"');
+    expect(html).toContain('data-timeline="hero.chapter-4.exit.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-4.exit"');
     expect(html).not.toContain("data-pin");
     expect(html).toContain('data-scene="hero.tetrahedron.scene"');
     expect(html).toContain('data-position="0,0,3.2"');
@@ -260,10 +280,23 @@ describe("HeroExperience", () => {
     expect(html).not.toContain('data-light="hero.tetrahedron.fill"');
     expect(html.match(/data-light=/g)).toHaveLength(2);
     expect(html).toContain('data-hero-theme="initial"');
+    expect(html).toContain('data-hero-locale="zh"');
     expect(html).toContain('data-dom-active="false"');
+    expect(html).not.toContain("data-active-chapter");
     expect(html).toContain('id="chapter-1"');
-    expect(html).toContain("A real DOM chapter");
-    expect(html).toContain("Continue to the chapter exit");
+    expect(html).toContain('id="chapter-2"');
+    expect(html).toContain('id="chapter-3"');
+    expect(html).toContain('id="chapter-4"');
+    expect(html).toContain("为智能体重新思考软件");
+    expect(html).toContain("真正的颠覆，不只是更好的答案");
+    expect(html).toContain("Agent 一定要会用");
+    expect(html).toContain("愿与同道者共研同进，或有所得，亦未可知");
+    expect(html).not.toContain("hero.profile");
+    expect(html).not.toContain("data-model=");
+    expect(html).toContain('href="https://github.com/agenticnoob"');
+    expect(html).toContain('href="https://blog.zzzxc.com"');
+    expect(html).toContain('data-hero-locale-option="zh"');
+    expect(html).toContain('data-hero-locale-option="en"');
     expect(html).not.toContain("Boo!");
   });
 
@@ -278,10 +311,13 @@ describe("HeroExperience", () => {
     expect(capturedEffects[1]).toBe(capturedEffects[0]);
     const capturedWriter = capturedEffects[0]?.[0]?.signals;
     const capturedTheme = capturedEffects[0]?.[0]?.theme;
+    const capturedLocale = capturedEffects[0]?.[0]?.locale;
     expect(capturedWriter).toBeDefined();
     expect(capturedTheme?.getSnapshot()).toBe("initial");
+    expect(capturedLocale?.getSnapshot()).toBe("zh");
     expect(capturedEffects[1]?.[0]?.signals).toBe(capturedWriter);
     expect(capturedEffects[1]?.[0]?.theme).toBe(capturedTheme);
+    expect(capturedEffects[1]?.[0]?.locale).toBe(capturedLocale);
 
     const rendersBeforeSignalWrite = meshRenderCount;
     capturedWriter?.set(heroTransitionConfig.signalKeys.coverage, 0.5);
@@ -290,6 +326,29 @@ describe("HeroExperience", () => {
       heroTransitionConfig.signalKeys.coverage,
       0.5,
     );
+
+    act(() => root.unmount());
+  });
+
+  test("switches semantic content and persists locale without replacing effect declarations", () => {
+    const host = document.createElement("div");
+    const root = createRoot(host);
+
+    act(() => root.render(createElement(HeroExperience)));
+    const initialEffects = capturedEffects.at(-1);
+    const englishButton = host.querySelector<HTMLButtonElement>(
+      '[data-hero-locale-option="en"]',
+    );
+    expect(englishButton).not.toBeNull();
+
+    act(() => englishButton?.click());
+
+    expect(host.textContent).toContain("Rethinking software for agents");
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      "viselora.hero.locale.v1",
+      "en",
+    );
+    expect(capturedEffects.at(-1)).toBe(initialEffects);
 
     act(() => root.unmount());
   });

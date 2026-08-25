@@ -38,7 +38,7 @@ describe("hero palette and transition boundary", () => {
     expect(sources).not.toMatch(/#3f3f3f|#0d0d0d|vec3\(0\.72\)/i);
   });
 
-  test("keeps one scroll signal pair, one theme store, and no obsolete cover path", () => {
+  test("keeps four scroll signal pairs, one theme store, and no obsolete cover path", () => {
     const tetrahedronEffect = readFileSync(
       resolve(sourceRoot, "heroEffect.ts"),
       "utf8",
@@ -58,10 +58,11 @@ describe("hero palette and transition boundary", () => {
     expect(sources).not.toMatch(
       /hero\.transition\.tetrahedron-cover|coverEnd|backgroundSwapPoint|foregroundResetPoint|exitPositionZ|coverPositionZ|\+=300%/,
     );
-    expect(sources).toContain('id="hero.chapter-1.entry.timeline"');
-    expect(sources).toContain('id="hero.chapter-1.exit.timeline"');
-    expect(sources).toContain('chapterEntry: "hero.chapter-1.entry"');
-    expect(sources).toContain('chapterExit: "hero.chapter-1.exit"');
+    for (let chapter = 1; chapter <= 4; chapter += 1) {
+      expect(sources).toContain(`entry: "hero.chapter-${chapter}.entry"`);
+      expect(sources).toContain(`exit: "hero.chapter-${chapter}.exit"`);
+    }
+    expect(sources).toContain("heroTransitionConfig.signalKeys.chapters");
     expect(sources).toContain("useScrollEffectProgressStore");
     expect(sources).toContain('hitTest: "mesh"');
     expect(sources).toContain("press: true");
@@ -69,6 +70,7 @@ describe("hero palette and transition boundary", () => {
     expect(backgroundEffect).toContain("readHeroTransitionSignals");
     expect(experience).toContain("signals: signalWriter");
     expect(experience).toContain("theme: theme.store");
+    expect(experience).toContain("locale: locale.store");
     expect(`${tetrahedronEffect}\n${backgroundEffect}`).not.toMatch(
       /eventBus|dispatchEvent|addEventListener\(["']hero/i,
     );

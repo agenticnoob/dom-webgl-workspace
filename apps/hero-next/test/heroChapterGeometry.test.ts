@@ -13,16 +13,26 @@ type Vector3 = readonly [number, number, number];
 const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
 const hubRotation = heroTransitionConfig.motion.baseRotation;
-const targetFaceNormal = normalize([-1, 1, 1]);
-const targetFaceUp = normalize([2, 1, 1]);
-
-describe("chapter one camera-space geometry", () => {
-  test("aligns the selected face normal and face up with the camera frame", () => {
+const targetFaceNormal = normalize(
+  heroTransitionConfig.chapterGeometry.faces[0].normal,
+);
+describe("four-chapter camera-space geometry", () => {
+  test.each(heroTransitionConfig.chapterGeometry.faces.map((face, index) => [index, face] as const))(
+    "aligns chapter %s face normal and face up with the camera frame",
+    (chapterIndex, face) => {
     const camera = resolveHeroChapterCameraFrame();
-    const rotation = heroTransitionConfig.chapterGeometry.targetRotation;
+    const rotation = face.targetRotation;
 
-    expectVector(rotateXyz(targetFaceNormal, rotation), camera.facing);
-    expectVector(rotateXyz(targetFaceUp, rotation), camera.up);
+    expectVector(rotateXyz(normalize(face.normal), rotation), camera.facing);
+    expectVector(rotateXyz(normalize(face.up), rotation), camera.up);
+    expectVector(
+      resolveHeroChapterGeometryFrame(
+        desktop,
+        resolveHeroChapterScrollState(1, 0, chapterIndex),
+        hubRotation,
+      ).rotation,
+      rotation,
+    );
   });
 
   test("rotates and advances together before settling exactly on the optical axis", () => {

@@ -22,9 +22,11 @@ import {
 import React, { useMemo } from "react";
 
 import { HeroChapterNarrative } from "./HeroChapterNarrative";
+import { heroSiteContent } from "./heroChapterContent";
 import { heroTetrahedronEffect } from "./heroEffect";
 import {
   useHeroDomContentActive,
+  useHeroLocaleState,
   useHeroThemeState,
 } from "./heroExperienceState";
 import { heroGhostEffects } from "./heroGhostEffects";
@@ -129,6 +131,7 @@ function HeroScene() {
     [store],
   );
   const theme = useHeroThemeState();
+  const locale = useHeroLocaleState();
   const domContentActive = useHeroDomContentActive(store.source);
   const tetrahedronEffects = useMemo(
     () =>
@@ -137,16 +140,18 @@ function HeroScene() {
           kind: "hero.tetrahedron.motion",
           signals: signalWriter,
           theme: theme.store,
+          locale: locale.store,
         },
       ] satisfies NonNullable<WebGLMeshProps["effects"]>),
-    [signalWriter, theme.store],
+    [locale.store, signalWriter, theme.store],
   );
 
   return (
     <main
       className="hero-space"
-      aria-label="Tetrahedron chapter prototype"
+      aria-label={heroSiteContent[locale.locale].ariaLabel}
       data-hero-theme={theme.scheme}
+      data-hero-locale={locale.locale}
       data-dom-active={domContentActive ? "true" : "false"}
     >
       <WebGLScene
@@ -195,7 +200,10 @@ function HeroScene() {
           target={lightTarget}
         />
       </WebGLScene>
-      <HeroChapterNarrative />
+      <HeroChapterNarrative
+        locale={locale.locale}
+        onLocaleChange={locale.store.commit}
+      />
     </main>
   );
 }

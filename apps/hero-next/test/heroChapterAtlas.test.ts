@@ -6,6 +6,7 @@ import {
 } from "../src/heroChapterAtlas";
 
 const fillText = vi.fn();
+const originalGetContext = HTMLCanvasElement.prototype.getContext;
 const context = {
   fillStyle: "",
   font: "",
@@ -32,16 +33,22 @@ const context = {
 describe("hero chapter atlas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-      context as CanvasRenderingContext2D,
-    );
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+      configurable: true,
+      value: vi.fn(() => context),
+      writable: true,
+    });
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+      configurable: true,
+      value: originalGetContext,
+      writable: true,
+    });
   });
 
-  test("keeps the chapter-one projection at viewport scale with shared semantic copy", () => {
+  test("draws all four localized chapter faces at viewport scale", () => {
     const atlas = createHeroChapterAtlas({ width: 1280, height: 720 });
 
     expect(atlas).toMatchObject({
@@ -51,17 +58,19 @@ describe("hero chapter atlas", () => {
       layoutHeight: 720,
     });
     expect(atlas.canvas).toMatchObject({ width: 2560, height: 1440 });
-    expect(fillText).toHaveBeenCalledWith("PROTOTYPE / 01", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("FIELD", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("NOTES", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("01A", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("FACE SPACE", expect.any(Number), expect.any(Number));
-    expect(
-      fillText.mock.calls.some(([value]) =>
-        String(value).includes("TEMPORARY CHAPTER SURFACE"),
-      ),
-    ).toBe(true);
+    expect(atlas.locale).toBe("zh");
+    expect(fillText).toHaveBeenCalledWith("NOOBLI / 01", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("持续构建", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("AXIOMS / 02", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("VISELORA", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("SIGNALS / 04", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("WORDS / VIDEO", expect.any(Number), expect.any(Number));
     expect(heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 })).toBe(true);
+    expect(heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 }, "en")).toBe(false);
+
+    createHeroChapterAtlas({ width: 1280, height: 720 }, "en");
+    expect(fillText).toHaveBeenCalledWith("BUILDING", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith("CHANGE", expect.any(Number), expect.any(Number));
   });
 
   test("caps the owned atlas for mobile-safe texture allocation", () => {

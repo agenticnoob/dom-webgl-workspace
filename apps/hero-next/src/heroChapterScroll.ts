@@ -12,6 +12,7 @@ export type HeroChapterScrollPhase =
   | "hub-end";
 
 export type HeroChapterScrollState = {
+  readonly chapterIndex: number;
   readonly phase: HeroChapterScrollPhase;
   readonly phaseProgress: number;
   readonly entryProgress: number;
@@ -31,6 +32,7 @@ export type HeroChapterScrollSignalReader = {
 export function resolveHeroChapterScrollState(
   entryProgress: number,
   exitProgress: number,
+  chapterIndex = 0,
 ): HeroChapterScrollState {
   const entry = normalized(entryProgress);
   const exit = normalized(exitProgress);
@@ -41,13 +43,14 @@ export function resolveHeroChapterScrollState(
     1 - eased(segment(exit, exitStops.contractEnd, 1));
 
   if (exit >= 1) {
-    return createState("hub-end", 1, entry, exit, 0, 0, 0, 0, false, true);
+    return createState(chapterIndex, "hub-end", 1, entry, exit, 0, 0, 0, 0, false, true);
   }
 
   if (exit > 0) {
     if (exit < exitStops.contractEnd) {
       const progress = segment(exit, 0, exitStops.contractEnd);
       return createState(
+        chapterIndex,
         "triangle-contract",
         progress,
         entry,
@@ -65,6 +68,7 @@ export function resolveHeroChapterScrollState(
         exitStops.retreatEnd,
       );
       return createState(
+        chapterIndex,
         "face-retreat",
         progress,
         entry,
@@ -78,6 +82,7 @@ export function resolveHeroChapterScrollState(
 
     const progress = segment(exit, exitStops.retreatEnd, 1);
     return createState(
+      chapterIndex,
       "orient-retreat",
       progress,
       entry,
@@ -91,6 +96,7 @@ export function resolveHeroChapterScrollState(
 
   if (entry <= 0) {
     return createState(
+      chapterIndex,
       "hub-start",
       0,
       entry,
@@ -106,6 +112,7 @@ export function resolveHeroChapterScrollState(
   if (entry < entryStops.orientEnd) {
     const progress = segment(entry, 0, entryStops.orientEnd);
     return createState(
+      chapterIndex,
       "orient-approach",
       progress,
       entry,
@@ -123,6 +130,7 @@ export function resolveHeroChapterScrollState(
       entryStops.lockEnd,
     );
     return createState(
+      chapterIndex,
       "face-approach",
       progress,
       entry,
@@ -136,6 +144,7 @@ export function resolveHeroChapterScrollState(
   if (entry < 1) {
     const progress = segment(entry, entryStops.lockEnd, 1);
     return createState(
+      chapterIndex,
       "triangle-reveal",
       progress,
       entry,
@@ -148,6 +157,7 @@ export function resolveHeroChapterScrollState(
   }
 
   return createState(
+    chapterIndex,
     "dom-content",
     1,
     entry,
@@ -164,13 +174,22 @@ export function resolveHeroChapterScrollState(
 export function readHeroChapterScrollState(
   reader: HeroChapterScrollSignalReader,
 ): HeroChapterScrollState {
-  return resolveHeroChapterScrollState(
-    reader.get(heroTransitionConfig.signalKeys.chapterEntry),
-    reader.get(heroTransitionConfig.signalKeys.chapterExit),
-  );
+  let state = resolveHeroChapterScrollState(0, 0);
+
+  heroTransitionConfig.signalKeys.chapters.forEach((signals, chapterIndex) => {
+    const entry = reader.get(signals.entry);
+    const exit = reader.get(signals.exit);
+
+    if (entry > 0 || exit > 0) {
+      state = resolveHeroChapterScrollState(entry, exit, chapterIndex);
+    }
+  });
+
+  return state;
 }
 
 function createState(
+  chapterIndex: number,
   phase: HeroChapterScrollPhase,
   phaseProgress: number,
   entryProgress: number,
@@ -183,6 +202,7 @@ function createState(
   hubInteractive = false,
 ): HeroChapterScrollState {
   return {
+    chapterIndex,
     phase,
     phaseProgress: normalized(phaseProgress),
     entryProgress,

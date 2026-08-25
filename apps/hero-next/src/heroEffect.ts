@@ -37,11 +37,13 @@ import {
   isHeroThemeInteractionEnabled,
   type HeroThemeStore,
 } from "./heroTheme";
+import type { HeroLocaleStore } from "./heroLocale";
 
 export type HeroEffectParams = {
   kind: "hero.tetrahedron.motion";
   signals: HeroTransitionSignalWriter;
   theme: HeroThemeStore;
+  locale: HeroLocaleStore;
 };
 
 export type HeroMotionState = {
@@ -248,7 +250,10 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       );
     }
     const viewport = readHeroChapterViewport();
-    const chapterAtlas = createHeroChapterAtlas(viewport);
+    const chapterAtlas = createHeroChapterAtlas(
+      viewport,
+      params.locale.getSnapshot(),
+    );
     shader.onBeforeCompile(
       createHeroTetrahedronRadialShader(chapterAtlas.canvas),
     );
@@ -276,11 +281,12 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     };
     const viewport = readHeroChapterViewport();
     const chapter = readHeroChapterScrollState(ctx.progress);
+    const locale = params.locale.getSnapshot();
     if (
       state.chapterAtlas &&
-      !heroChapterAtlasMatchesViewport(state.chapterAtlas, viewport)
+      !heroChapterAtlasMatchesViewport(state.chapterAtlas, viewport, locale)
     ) {
-      state.chapterAtlas = createHeroChapterAtlas(viewport);
+      state.chapterAtlas = createHeroChapterAtlas(viewport, locale);
       ctx.object.material?.shader?.setUniforms(heroTetrahedronRadialShaderKey, {
         heroChapterAtlas: {
           kind: "canvas-texture",
