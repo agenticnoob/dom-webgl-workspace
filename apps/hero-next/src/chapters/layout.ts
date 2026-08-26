@@ -44,7 +44,9 @@ export function resolveHeroChapterLayout(
   const vh = height / 100;
   const mobile = width <= heroTransitionConfig.motion.mobileBreakpoint;
   const inset = Math.max(22, 5.5 * vmin);
-  const smallFontSize = clamp(1.2 * vw, 0.78 * rootFontSize, rootFontSize);
+  const smallFontSize = mobile
+    ? clamp(3.4 * vw, 0.875 * rootFontSize, rootFontSize)
+    : clamp(1.2 * vw, 0.78 * rootFontSize, rootFontSize);
   const cardsGap = Math.max(10, 1.8 * vw);
   const headingFontSize = mobile
     ? clamp(16 * vw, 3.2 * rootFontSize, 5.5 * rootFontSize)
@@ -63,17 +65,17 @@ export function resolveHeroChapterLayout(
     cardLetterSpacing: smallFontSize * 0.08,
     headingFontSize,
     headingLineHeight: headingFontSize * 0.9,
-    headingLetterSpacing: headingFontSize * -0.06,
+    headingLetterSpacing: headingFontSize * (mobile ? -0.035 : -0.06),
     headingMarginTop: (mobile ? 12 : 10) * vh,
     headingMarginBottom: 4 * vh,
     summaryMaxWidth: Math.min(42 * rootFontSize, width - inset * 2),
-    cardsTop: height * (mobile ? 0.58 : 0.61),
+    cardsTop: height * (mobile ? 0.54 : 0.61),
     cardsGap,
     cardWidth,
-    cardHeight: Math.max(56, height * (mobile ? 0.13 : 0.22)),
+    cardHeight: Math.max(mobile ? 92 : 56, height * (mobile ? 0.13 : 0.22)),
     cardPadding: clamp(2 * vw, rootFontSize, 2 * rootFontSize),
     cardBorderWidth: Math.max(2, 0.35 * vmin),
-    cardLabelGap: rootFontSize,
+    cardLabelGap: mobile ? 0.75 * rootFontSize : rootFontSize,
   };
 }
 

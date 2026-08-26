@@ -45,6 +45,21 @@ describe("hero assets and visual surface", () => {
     expect(css).toMatch(/\.hero-exit-runway\s*\{[^}]*min-height:\s*420svh/);
     expect(css).toMatch(/\.hero-transition-copy\s*\{[^}]*position:\s*sticky/);
     expect(css).toMatch(/\.hero-chapter\s*\{[^}]*z-index:\s*20/);
+    expect(css).toMatch(
+      /\.hero-locale\s*\{[^}]*background:\s*var\(--hero-background\)/,
+    );
+    expect(css).toMatch(
+      /\.hero-locale button\s*\{[^}]*min-height:\s*2\.75rem/,
+    );
+    expect(css).toMatch(
+      /\.hero-locale button\s*\{[^}]*touch-action:\s*manipulation/,
+    );
+    expect(css).toMatch(
+      /\.hero-locale button\s*\{[^}]*font-weight:\s*700/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width:\s*700px\)[\s\S]*\.hero-transition-copy\s*\{[^}]*font-size:\s*0\.75rem/,
+    );
     expect(css).not.toMatch(/\.hero-profile/);
 
     for (const forbidden of [

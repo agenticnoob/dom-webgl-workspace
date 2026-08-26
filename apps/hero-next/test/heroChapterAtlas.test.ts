@@ -92,13 +92,13 @@ describe("hero chapter atlas", () => {
     expect(atlas).toMatchObject({ tileWidth: 390, tileHeight: 844 });
     expect(context.fillRect).toHaveBeenCalledWith(
       22,
-      844 * 0.58,
+      844 * 0.54,
       346,
       844 * 0.13,
     );
     expect(context.fillRect).toHaveBeenCalledWith(
       22,
-      844 * 0.58 + 844 * 0.13 + 10,
+      844 * 0.54 + 844 * 0.13 + 10,
       346,
       844 * 0.13,
     );

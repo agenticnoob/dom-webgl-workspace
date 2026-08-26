@@ -1,7 +1,7 @@
 # Hero Next Visual Design
 
 **状态：** 四章内容基础版本已在既有四面体视觉体系上实现，文案与外部入口可继续替换。
-它已经形成完整、可逆的个人叙事链路，但不代表最终文案、个人 GLB 或移动端主观验收。
+它已经形成完整、可逆的个人叙事链路，但不代表最终文案、个人 GLB 或移动端真机多浏览器验收。
 
 ## 叙事结构
 
@@ -61,17 +61,23 @@ shader 和章节激活进度不进入 React state。
 个人 GLB 不在本轮挂载，避免为了模型改变既有合成层。第四章只连接已确认地址；未确认的
 视频账号不会被虚构。
 
+窄屏以 `700px` 为内容断点：Hub 四面体保留更强的首屏占比，Frame 小字最小为 `14px`，
+两张信号卡提前到视口 `54%` 并在 `320×568` 短屏内完整排下；转场两侧信息提升到
+`12px`。语言控件保留两色语义，增加稳定背景、安全区偏移、粗体和 `44×44px` 触控目标，
+避免三角揭示或章节反相时未选语言失去对比度。
+
 ## 当前验证边界
 
 - **Automated：** hero-next 20 个 focused test files / 102 tests 覆盖四章选择、双向映射、
   四个目标面、locale/theme 持久化、atlas/DOM 内容、shader 和单 runtime/scene/canvas
   ownership；workspace typecheck 通过。
-- **Browser：** 本地 Chromium `1280×720` 验证首屏和章节间完整四面体、第一/第二章
-  三角面转场、第一章 DOM 接管、最终 Hub，console error/warning 为 0；另以 LAN origin
-  `http://192.168.50.5:3000/` 验证 HMR WebSocket 升级、首屏四面体、单 canvas 和空
-  error/warning console。
-- **未声称：** 本轮没有重复移动端浏览器主观验收；个人 GLB 和视频入口尚未接入；
-  Canvas 与 DOM 的字形抗锯齿不承诺像素级一致。
+- **Browser：** 本地 Chromium `1280×720` 保持桌面首屏无回归；`375×812` 验证移动端
+  首屏、第一章转场侧文、完整三角揭示、语言切换和 DOM 接管；`320×568` 验证短屏首屏
+  与两张信号卡完整排布。上述路径均为单 canvas、无框架错误浮层且 console
+  error/warning 为 0。既有 LAN-origin HMR WebSocket 证据未在本轮重跑。
+- **未声称：** 本轮没有覆盖 iOS Safari、Android Chrome 真机、横屏、长按主题切换或
+  reduced-motion 的浏览器交互；个人 GLB 和视频入口尚未接入；Canvas 与 DOM 的字形
+  抗锯齿不承诺像素级一致。
 
 ## 维护边界
 

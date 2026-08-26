@@ -74,13 +74,9 @@ npm run build -w @viselora/hero-next
 Focused automation currently covers 20 hero-next test files / 102 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, four target faces, projected lock UVs, localized atlas/DOM layout,
-shader behavior, and one-runtime/one-scene/one-canvas ownership. Local Chromium
-verification at 1280×720 covered the initial and between-chapter complete
-tetrahedron, chapter-one and chapter-two face transitions, chapter-one DOM
-handoff, the final Hub, and an empty error/warning console. Responsive rules are
-automated, but mobile visual acceptance was not repeated in the current pass. A
-separate LAN-origin check confirmed the HMR WebSocket upgrade, one WebGL canvas,
-the initial tetrahedron, and an empty error/warning console. Canvas and DOM glyph
+shader behavior, and one-runtime/one-scene/one-canvas ownership. Current desktop,
+mobile, short-screen, interaction, and LAN-origin browser evidence is owned by
+[the visual direction](./docs/visual-design.md). Canvas and DOM glyph
 rasterization can still differ slightly, and all content remains a base version
 intended for subsequent editorial adjustment.
 

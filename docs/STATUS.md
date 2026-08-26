@@ -91,16 +91,12 @@ and foreground/background composition; no personal-model pass is mounted in the
 current baseline. The hold-driven radial theme switch remains Hub-only, while
 theme and locale each persist one committed truth locally.
 
-Focused automation currently covers 20 hero-next test files / 102 tests. Local
-Chromium verification at 1280×720 covered locale switching, localized face
-texture, initial and between-chapter complete tetrahedrons, first/second face
-transitions, chapter-one DOM activation, final-Hub links, and an empty
-error/warning console. A LAN-origin check additionally confirmed the development
-HMR WebSocket upgrade, initial tetrahedron, one WebGL canvas, and an empty
-error/warning console. Mobile visual acceptance was not repeated in the current
-pass. Content is a base version for later editorial direction; personal GLB
-integration remains pending. No package-specific Hero branch, raw Three
-ownership, second scene, second runtime, or second canvas was added.
+Focused automation currently covers 20 hero-next test files / 102 tests. Current
+desktop, mobile, short-screen, interaction, and LAN-origin browser evidence is
+owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
+Content is a base version for later editorial direction; personal GLB integration
+remains pending. No package-specific Hero branch, raw Three ownership, second
+scene, second runtime, or second canvas was added.
 
 See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).

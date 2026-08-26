@@ -122,7 +122,7 @@ export const heroTransitionConfig = {
   visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
   motion: {
     baseScale: 1.12,
-    mobileScaleFactor: 0.6,
+    mobileScaleFactor: 0.72,
     mobileBreakpoint: 700,
     desktopYOffset: 0.365,
     mobileYOffset: 0.555,

@@ -37,12 +37,25 @@ describe("hero chapter shared layout", () => {
 
     expect(layout.mobile).toBe(true);
     expect(layout.inset).toBe(22);
+    expect(layout.smallFontSize).toBe(14);
     expect(layout.headingMarginTop).toBeCloseTo(101.28, 12);
-    expect(layout.cardsTop).toBeCloseTo(489.52, 12);
+    expect(layout.headingLetterSpacing).toBeCloseTo(-2.184, 12);
+    expect(layout.cardsTop).toBeCloseTo(455.76, 12);
     expect(layout.cardWidth).toBe(346);
     expect(layout.cardHeight).toBeCloseTo(109.72, 12);
     expect(layout.cardPadding).toBe(16);
     expect(layout.cardBorderWidth).toBe(2);
+    expect(layout.cardLabelGap).toBe(12);
+    const compactLayout = resolveHeroChapterLayout({ width: 320, height: 568 });
+    const cardsBottom =
+      compactLayout.cardsTop +
+      compactLayout.cardHeight * 2 +
+      compactLayout.cardsGap;
+
+    expect(compactLayout.cardHeight).toBe(92);
+    expect(cardsBottom).toBeLessThanOrEqual(
+      compactLayout.viewport.height - compactLayout.inset,
+    );
   });
 
   test("caps only atlas backing pixels while retaining logical viewport coordinates", () => {

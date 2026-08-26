@@ -249,21 +249,25 @@ a {
 .hero-locale {
   position: fixed;
   z-index: 30;
-  top: max(20px, 2vw);
-  right: max(20px, 2vw);
+  top: max(20px, 2vw, env(safe-area-inset-top));
+  right: max(20px, 2vw, env(safe-area-inset-right));
   display: flex;
   gap: 0.35rem;
+  background: var(--hero-background);
   color: var(--hero-foreground);
   pointer-events: auto;
 }
 
 .hero-locale button {
   min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0.45rem 0.6rem;
   border: 1px solid currentColor;
   background: transparent;
   color: inherit;
   cursor: pointer;
+  font-weight: 700;
+  touch-action: manipulation;
 }
 
 .hero-locale button[aria-pressed="true"] {
@@ -390,9 +394,18 @@ a {
 
   .hero-transition-copy {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 24vw;
-    padding: 1rem;
-    font-size: 0.62rem;
+    gap: clamp(2rem, 14vw, 3.5rem);
+    padding: max(1rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .hero-chapter__body > h2 {
+    letter-spacing: -0.035em;
+    text-wrap: balance;
   }
 
   .hero-final-hub {
