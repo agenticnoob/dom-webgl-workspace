@@ -3,8 +3,8 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
-import type { HeroTransitionSignalWriter } from "../src/heroTransitionSignals";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
+import type { HeroTransitionSignalWriter } from "../src/transition/signals";
 
 type CapturedMeshEffect = {
   readonly kind: string;
@@ -80,7 +80,7 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
     ),
 }));
 
-vi.mock("../src/heroScroll", () => ({
+vi.mock("../src/experience/smoothScroll", () => ({
   heroSmoothScroll: false,
 }));
 
@@ -210,7 +210,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     ),
 }));
 
-import { HeroExperience } from "../src/HeroExperience";
+import { HeroExperience } from "../src/experience/HeroExperience";
 
 beforeEach(() => {
   capturedEffects.length = 0;

@@ -3,8 +3,8 @@ import { describe, expect, test } from "vitest";
 import {
   resolveHeroChapterAtlasResolution,
   resolveHeroChapterLayout,
-} from "../src/heroChapterLayout";
-import { createHeroChapterFrameStyle } from "../src/heroChapterLayoutReact";
+} from "../src/chapters/layout";
+import { createHeroChapterFrameStyle } from "../src/chapters/useChapterFrameStyle";
 
 describe("hero chapter shared layout", () => {
   test("derives desktop atlas and DOM anchors from one viewport model", () => {

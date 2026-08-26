@@ -57,26 +57,21 @@ npm run build -w @viselora/hero-next
 
 | Responsibility | Path |
 | --- | --- |
-| Page/runtime composition | `src/HeroExperience.tsx` |
-| Static visual/transition config | `src/heroTransitionConfig.ts` |
-| Hold state machine and radial geometry | `src/heroHoldTransition.ts` |
-| Reversible four-chapter phase resolver | `src/heroChapterScroll.ts` |
-| Four-face camera-space geometry | `src/heroChapterGeometry.ts` |
-| Theme/locale persistence and React subscriptions | `src/heroTheme.ts`, `src/heroLocale.ts`, `src/heroExperienceState.ts` |
-| Shared chapter content | `src/heroChapterContent.ts` |
-| Shared responsive atlas/DOM layout | `src/heroChapterLayout.ts`, `src/heroChapterLayoutReact.ts` |
-| Managed chapter texture atlas | `src/heroChapterAtlas.ts` |
-| Shared progress signals | `src/heroTransitionSignals.ts` |
-| Scene-object effect and motion | `src/heroEffect.ts` |
-| Tetrahedron shader extension | `src/heroTetrahedronShader.ts` |
-| Background effect/program | `src/heroGhostEffects.ts`, `src/heroGhostCursorProgram.ts` |
-| Semantic chapter composition | `src/HeroChapterNarrative.tsx` |
+| Page/runtime composition and subscriptions | `src/experience/` |
+| Chapter identity, signals, face, and atlas mapping | `src/chapters/definitions.ts` |
+| Chapter content, semantic composition, and locale control | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
+| Reversible scroll, geometry, layout, and atlas | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts` |
+| Theme and locale persistence | `src/preferences/` |
+| Hold state, palette/config, and progress encoding | `src/transition/` |
+| Tetrahedron effect and managed shader | `src/tetrahedron/` |
+| Background, cursor, and pointer-light effects | `src/ghost/` |
+| Shared viewport boundary | `src/shared/viewport.ts` |
 | App constraints | `AGENTS.md` |
 | Current visual direction | `docs/visual-design.md` |
 
 ## Current evidence boundary
 
-Focused automation currently covers 19 hero-next test files / 102 tests,
+Focused automation currently covers 20 hero-next test files / 102 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, four target faces, projected lock UVs, localized atlas/DOM layout,
 shader behavior, and one-runtime/one-scene/one-canvas ownership. Local Chromium

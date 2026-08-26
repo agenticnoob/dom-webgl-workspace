@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
 import {
   publishHeroTransitionSignals,
   readHeroTransitionSignals,
   type HeroTransitionSignalReader,
   type HeroTransitionSignalWriter,
-} from "../src/heroTransitionSignals";
+} from "../src/transition/signals";
 
 describe("hero transition signals", () => {
   test("publishes exactly six normalized signal values", () => {

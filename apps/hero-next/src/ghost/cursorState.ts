@@ -1,7 +1,4 @@
-import {
-  heroGhostTrailLengths,
-  type HeroGhostLayer,
-} from "./heroGhostCursorProgram";
+import { heroGhostTrailLengths, type HeroGhostLayer } from "./cursorProgram";
 
 export type HeroGhostCursorState = {
   readonly layer: HeroGhostLayer;

@@ -7,16 +7,17 @@ import {
   createHeroMotionState,
   heroTetrahedronEffect,
   stepHeroMotionState,
-} from "../src/heroEffect";
-import { resolveHeroChapterGeometryFrame } from "../src/heroChapterGeometry";
-import { resolveHeroChapterScrollState } from "../src/heroChapterScroll";
+} from "../src/tetrahedron/effect";
+import { resolveHeroChapterGeometryFrame } from "../src/chapters/geometry";
+import { resolveHeroChapterScrollState } from "../src/chapters/scrollState";
 import {
   createHeroHoldTransitionState,
   type HeroHoldTransitionState,
-} from "../src/heroHoldTransition";
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
-import type { HeroTransitionSignalWriter } from "../src/heroTransitionSignals";
-import { heroTetrahedronRadialShaderKey } from "../src/heroTetrahedronShader";
+} from "../src/transition/holdTransition";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
+import { getHeroChapterDefinition } from "../src/chapters/definitions";
+import type { HeroTransitionSignalWriter } from "../src/transition/signals";
+import { heroTetrahedronRadialShaderKey } from "../src/tetrahedron/shader";
 
 const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
@@ -290,7 +291,7 @@ describe("hero tetrahedron effect", () => {
     const domState = createHeroEffectState(false);
     const domProgress = {
       get: (key: string) =>
-        key === heroTransitionConfig.signalKeys.chapters[0].entry ? 1 : 0,
+        key === getHeroChapterDefinition("self").signals.entry ? 1 : 0,
     };
 
     heroTetrahedronEffect.update(
@@ -450,7 +451,7 @@ describe("hero tetrahedron effect", () => {
       heroTransitionConfig.motion.baseRotation,
     );
     expect(frames[1]!.rotation).toEqual(
-      heroTransitionConfig.chapterGeometry.faces[0].targetRotation,
+      getHeroChapterDefinition("self").face.targetRotation,
     );
     expect(frames[2]!.rotation).toEqual(frames[1]!.rotation);
     expect(frames[1]!.position[2]).toBeLessThan(frames[2]!.position[2]);

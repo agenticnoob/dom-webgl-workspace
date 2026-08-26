@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-08-25; registry release truth
+**Last verified: hero-next current source 2026-08-26; registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -91,7 +91,7 @@ and foreground/background composition; no personal-model pass is mounted in the
 current baseline. The hold-driven radial theme switch remains Hub-only, while
 theme and locale each persist one committed truth locally.
 
-Focused automation currently covers 19 hero-next test files / 102 tests. Local
+Focused automation currently covers 20 hero-next test files / 102 tests. Local
 Chromium verification at 1280×720 covered locale switching, localized face
 texture, initial and between-chapter complete tetrahedrons, first/second face
 transitions, chapter-one DOM activation, final-Hub links, and an empty

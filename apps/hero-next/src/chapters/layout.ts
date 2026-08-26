@@ -1,5 +1,5 @@
-import type { HeroViewport } from "./heroHoldTransition";
-import { heroTransitionConfig } from "./heroTransitionConfig";
+import type { HeroViewport } from "../shared/viewport";
+import { heroTransitionConfig } from "../transition/transitionConfig";
 
 const rootFontSize = 16;
 const atlasMaxTileWidth = 1_600;
@@ -32,18 +32,6 @@ export type HeroChapterAtlasResolution = {
   readonly tileWidth: number;
   readonly tileHeight: number;
 };
-
-export function readHeroChapterViewport(): HeroViewport {
-  const fallback = { width: 1_440, height: 900 } as const;
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  return {
-    width: positive(window.innerWidth, fallback.width),
-    height: positive(window.innerHeight, fallback.height),
-  };
-}
 
 export function resolveHeroChapterLayout(
   viewport: HeroViewport,

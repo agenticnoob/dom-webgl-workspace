@@ -27,9 +27,12 @@ describe("hero palette and transition boundary", () => {
         "#5F5F5F",
         "#B8B8B8",
       ],
-      "apps/hero-next/src/HeroExperience.tsx": ["#F2F2F2", "#B8B8B8"],
-      "apps/hero-next/src/heroGhostEffects.ts": ["#F0F0F0"],
-      "apps/hero-next/src/heroTransitionConfig.ts": [
+      "apps/hero-next/src/experience/HeroExperience.tsx": [
+        "#F2F2F2",
+        "#B8B8B8",
+      ],
+      "apps/hero-next/src/ghost/pointerLight.ts": ["#F0F0F0"],
+      "apps/hero-next/src/transition/transitionConfig.ts": [
         "#B8B8B8",
         "#5F5F5F",
       ],
@@ -40,15 +43,15 @@ describe("hero palette and transition boundary", () => {
 
   test("keeps four scroll signal pairs, one theme store, and no obsolete cover path", () => {
     const tetrahedronEffect = readFileSync(
-      resolve(sourceRoot, "heroEffect.ts"),
+      resolve(sourceRoot, "tetrahedron/effect.ts"),
       "utf8",
     );
     const backgroundEffect = readFileSync(
-      resolve(sourceRoot, "heroGhostEffects.ts"),
+      resolve(sourceRoot, "ghost/backgroundEffect.ts"),
       "utf8",
     );
     const experience = readFileSync(
-      resolve(sourceRoot, "HeroExperience.tsx"),
+      resolve(sourceRoot, "experience/HeroExperience.tsx"),
       "utf8",
     );
     const sources = readSourceFiles(sourceRoot)
@@ -62,7 +65,7 @@ describe("hero palette and transition boundary", () => {
       expect(sources).toContain(`entry: "hero.chapter-${chapter}.entry"`);
       expect(sources).toContain(`exit: "hero.chapter-${chapter}.exit"`);
     }
-    expect(sources).toContain("heroTransitionConfig.signalKeys.chapters");
+    expect(sources).toContain("heroChapterDefinitions");
     expect(sources).toContain("useScrollEffectProgressStore");
     expect(sources).toContain('hitTest: "mesh"');
     expect(sources).toContain("press: true");

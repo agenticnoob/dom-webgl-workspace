@@ -58,10 +58,10 @@ export function createHeroGhostCursorUniforms(
     .slice(0, heroGhostTrailLengths[layer])
     .map(
       ([x, y]) =>
-        [normalized(x / width, pointer[0]), normalized(1 - y / height, pointer[1])] satisfies [
-          number,
-          number,
-        ],
+        [
+          normalized(x / width, pointer[0]),
+          normalized(1 - y / height, pointer[1]),
+        ] satisfies [number, number],
     );
 
   while (trail.length < heroGhostTrailLengths[layer]) {
@@ -108,7 +108,9 @@ function clampFinite(
   max: number,
   fallback: number,
 ): number {
-  return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+  return Number.isFinite(value)
+    ? Math.max(min, Math.min(max, value))
+    : fallback;
 }
 
 function readColor(color: string): [number, number, number] {

@@ -1,11 +1,11 @@
 import { useMemo, useSyncExternalStore, type CSSProperties } from "react";
 
+import { resolveHeroChapterLayout, type HeroChapterLayout } from "./layout";
 import {
-  readHeroChapterViewport,
-  resolveHeroChapterLayout,
-  type HeroChapterLayout,
-} from "./heroChapterLayout";
-import type { HeroViewport } from "./heroHoldTransition";
+  heroDefaultViewport,
+  readHeroViewport,
+  type HeroViewport,
+} from "../shared/viewport";
 
 export type HeroChapterFrameStyle = CSSProperties & {
   readonly "--hero-frame-width": string;
@@ -29,8 +29,7 @@ export type HeroChapterFrameStyle = CSSProperties & {
   readonly "--hero-card-label-gap": string;
 };
 
-const serverViewport: HeroViewport = { width: 1_440, height: 900 };
-let viewportSnapshot: HeroViewport = serverViewport;
+let viewportSnapshot: HeroViewport = heroDefaultViewport;
 const viewportListeners = new Set<() => void>();
 let listening = false;
 
@@ -40,9 +39,10 @@ export function useHeroChapterFrameStyle(): HeroChapterFrameStyle {
     readViewportSnapshot,
     readServerViewportSnapshot,
   );
+  const { height, width } = viewport;
   const layout = useMemo(
-    () => resolveHeroChapterLayout(viewport),
-    [viewport.height, viewport.width],
+    () => resolveHeroChapterLayout({ height, width }),
+    [height, width],
   );
 
   return useMemo(() => createHeroChapterFrameStyle(layout), [layout]);
@@ -92,7 +92,7 @@ function subscribeToViewport(listener: () => void): () => void {
 }
 
 function readViewportSnapshot(): HeroViewport {
-  const next = readHeroChapterViewport();
+  const next = readHeroViewport();
   if (
     next.width !== viewportSnapshot.width ||
     next.height !== viewportSnapshot.height
@@ -103,11 +103,11 @@ function readViewportSnapshot(): HeroViewport {
 }
 
 function readServerViewportSnapshot(): HeroViewport {
-  return serverViewport;
+  return heroDefaultViewport;
 }
 
 function publishViewport(): void {
-  viewportSnapshot = readHeroChapterViewport();
+  viewportSnapshot = readHeroViewport();
   for (const listener of viewportListeners) {
     listener();
   }

@@ -21,20 +21,23 @@ import {
 } from "@viselora/scroll-adapters/react";
 import React, { useMemo } from "react";
 
-import { HeroChapterNarrative } from "./HeroChapterNarrative";
-import { heroSiteContent } from "./heroChapterContent";
-import { heroTetrahedronEffect } from "./heroEffect";
+import { HeroChapterNarrative } from "../chapters/HeroChapterNarrative";
+import { heroSiteContent } from "../chapters/content";
+import { heroTetrahedronEffect } from "../tetrahedron/effect";
 import {
   useHeroDomContentActive,
   useHeroLocaleState,
   useHeroThemeState,
-} from "./heroExperienceState";
-import { heroGhostEffects } from "./heroGhostEffects";
-import { heroSmoothScroll } from "./heroScroll";
-import { heroTransitionConfig } from "./heroTransitionConfig";
-import type { HeroTransitionSignalWriter } from "./heroTransitionSignals";
+} from "./useHeroExperienceState";
+import { heroGhostBackgroundEffect } from "../ghost/backgroundEffect";
+import { heroSmoothScroll } from "./smoothScroll";
+import { heroTransitionConfig } from "../transition/transitionConfig";
+import type { HeroTransitionSignalWriter } from "../transition/signals";
 
-const heroEffects = [heroTetrahedronEffect, ...heroGhostEffects] as const;
+const heroRuntimeEffects = [
+  heroTetrahedronEffect,
+  heroGhostBackgroundEffect,
+] as const;
 
 const heroRenderQuality = {
   antialias: true,
@@ -91,31 +94,25 @@ const cameraPosition = [
   0,
   0,
   heroTransitionConfig.chapterGeometry.cameraDistance,
-] satisfies NonNullable<
-  WebGLCameraProps["position"]
->;
+] satisfies NonNullable<WebGLCameraProps["position"]>;
 const cameraTarget = [
   0,
   heroTransitionConfig.chapterGeometry.cameraTargetY,
   0,
-] satisfies NonNullable<
-  WebGLCameraProps["target"]
->;
+] satisfies NonNullable<WebGLCameraProps["target"]>;
 const keyLightPosition = [1.2, 1.2, 2] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
 const rimLightPosition = [1.8, -1.4, 2] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
-const lightTarget = [0, 0, 0] satisfies NonNullable<
-  WebGLLightProps["target"]
->;
+const lightTarget = [0, 0, 0] satisfies NonNullable<WebGLLightProps["target"]>;
 
 export function HeroExperience() {
   return (
     <WebGLScrollRuntime
       className="hero-runtime"
-      effects={heroEffects}
+      effects={heroRuntimeEffects}
       renderQuality={heroRenderQuality}
       smooth={heroSmoothScroll}
     >
@@ -135,14 +132,14 @@ function HeroScene() {
   const domContentActive = useHeroDomContentActive(store.source);
   const tetrahedronEffects = useMemo(
     () =>
-      ([
+      [
         {
           kind: "hero.tetrahedron.motion",
           signals: signalWriter,
           theme: theme.store,
           locale: locale.store,
         },
-      ] satisfies NonNullable<WebGLMeshProps["effects"]>),
+      ] satisfies NonNullable<WebGLMeshProps["effects"]>,
     [locale.store, signalWriter, theme.store],
   );
 

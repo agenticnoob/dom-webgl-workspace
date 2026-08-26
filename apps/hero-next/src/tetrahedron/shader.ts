@@ -7,22 +7,27 @@ import {
   resolveHeroRadialGeometry,
   resolveHeroTransitionVisual,
   type HeroHoldTransitionState,
-  type HeroViewport,
-} from "./heroHoldTransition";
+} from "../transition/holdTransition";
+import type { HeroViewport } from "../shared/viewport";
 import {
   resolveHeroChapterScrollState,
   type HeroChapterScrollState,
-} from "./heroChapterScroll";
+} from "../chapters/scrollState";
 import {
   resolveHeroChapterFace,
   resolveHeroChapterLockProjection,
-} from "./heroChapterGeometry";
-import { heroTransitionConfig } from "./heroTransitionConfig";
+} from "../chapters/geometry";
+import {
+  getHeroChapterDefinition,
+  heroChapterOrder,
+} from "../chapters/definitions";
+import { heroTransitionConfig } from "../transition/transitionConfig";
 
 export const heroTetrahedronRadialShaderKey = "hero.tetrahedron.radial";
 const vertexChunk = "#include <begin_vertex>";
 const emissiveChunk = "#include <emissivemap_fragment>";
 const opaqueChunk = "#include <opaque_fragment>";
+const heroChapterFaceAtlasShader = createHeroChapterFaceAtlasShader();
 
 export function createHeroTetrahedronRadialShader(
   chapterAtlas: HTMLCanvasElement,
@@ -128,18 +133,7 @@ heroFaceUv = mix(heroFaceUv, heroTargetUv, heroTargetFace);
 vec2 heroScreenUv = heroFragmentCssPx / domWebGLViewportSize;
 heroFaceUv = mix(heroFaceUv, heroScreenUv, heroTargetFace * heroScreenLock);
 heroFaceUv = clamp(heroFaceUv, vec2(0.0), vec2(1.0));
-vec2 heroAtlasOffset = vec2(0.5, 0.0);
-float heroDot0 = dot(heroFaceNormal, normalize(vec3(-1.0, 1.0, 1.0)));
-float heroDot1 = dot(heroFaceNormal, normalize(vec3(1.0, 1.0, -1.0)));
-float heroDot2 = dot(heroFaceNormal, normalize(vec3(1.0, -1.0, 1.0)));
-float heroDot3 = dot(heroFaceNormal, normalize(vec3(-1.0, -1.0, -1.0)));
-if (heroDot0 >= heroDot1 && heroDot0 >= heroDot2 && heroDot0 >= heroDot3) {
-  heroAtlasOffset = vec2(0.0, 0.5);
-} else if (heroDot1 >= heroDot2 && heroDot1 >= heroDot3) {
-  heroAtlasOffset = vec2(0.5, 0.5);
-} else if (heroDot2 >= heroDot3) {
-  heroAtlasOffset = vec2(0.0, 0.0);
-}
+${heroChapterFaceAtlasShader}
 float heroChapterMask = texture2D(
   heroChapterAtlas,
   heroAtlasOffset + heroFaceUv * 0.5
@@ -171,13 +165,12 @@ totalEmissiveRadiance = mix(
     `${vertexChunk}\nheroObjectPosition = position;\nheroObjectNormal = normal;`,
   )}`;
 
-  draft.fragmentShader = `${uniforms}\n${draft.fragmentShader.replace(
-    emissiveChunk,
-    radialMix,
-  ).replace(
-    opaqueChunk,
-    `float heroFacePaletteMix = mix(\n  ${facePaletteStrength},\n  1.0,\n  heroTargetFace * heroScreenLock\n);\noutgoingLight = mix(\n  outgoingLight,\n  heroChapterColor,\n  heroFacePaletteMix\n);\n${opaqueChunk}`,
-  )}`;
+  draft.fragmentShader = `${uniforms}\n${draft.fragmentShader
+    .replace(emissiveChunk, radialMix)
+    .replace(
+      opaqueChunk,
+      `float heroFacePaletteMix = mix(\n  ${facePaletteStrength},\n  1.0,\n  heroTargetFace * heroScreenLock\n);\noutgoingLight = mix(\n  outgoingLight,\n  heroChapterColor,\n  heroFacePaletteMix\n);\n${opaqueChunk}`,
+    )}`;
 }
 
 export function createHeroTetrahedronRadialUniforms(
@@ -193,7 +186,7 @@ export function createHeroTetrahedronRadialUniforms(
   );
   const emissiveIntensity = heroTransitionConfig.motion.emissiveIntensity;
   const lockProjection = resolveHeroChapterLockProjection(viewport);
-  const targetFace = resolveHeroChapterFace(chapter.chapterIndex);
+  const targetFace = resolveHeroChapterFace(chapter.chapterId);
 
   return {
     heroCommittedColor: visual.committed.foreground,
@@ -217,4 +210,50 @@ export function createHeroTetrahedronRadialUniforms(
       lockProjection.heightFraction,
     ],
   };
+}
+
+function createHeroChapterFaceAtlasShader(): string {
+  const definitions = heroChapterOrder.map((chapterId) =>
+    getHeroChapterDefinition(chapterId),
+  );
+  const scoreDeclarations = definitions
+    .map(
+      (definition, index) =>
+        `float heroFaceScore${index} = dot(heroFaceNormal, normalize(${glslVector3(definition.face.normal)}));`,
+    )
+    .join("\n");
+  const lastDefinition = definitions.at(-1);
+  if (!lastDefinition) {
+    throw new TypeError(
+      "Hero tetrahedron shader requires chapter definitions.",
+    );
+  }
+  const branches = definitions
+    .slice(0, -1)
+    .map((definition, index) => {
+      const comparisons = definitions
+        .slice(index + 1)
+        .map(
+          (_, comparedIndex) =>
+            `heroFaceScore${index} >= heroFaceScore${index + comparedIndex + 1}`,
+        )
+        .join(" && ");
+      const prefix = index === 0 ? "if" : "else if";
+      return `${prefix} (${comparisons}) {\n  heroAtlasOffset = ${glslVector2(definition.atlas.uvOffset)};\n}`;
+    })
+    .join(" ");
+
+  return `${scoreDeclarations}\nvec2 heroAtlasOffset = ${glslVector2(lastDefinition.atlas.uvOffset)};\n${branches}`;
+}
+
+function glslVector2(value: readonly [number, number]): string {
+  return `vec2(${glslNumber(value[0])}, ${glslNumber(value[1])})`;
+}
+
+function glslVector3(value: readonly [number, number, number]): string {
+  return `vec3(${glslNumber(value[0])}, ${glslNumber(value[1])}, ${glslNumber(value[2])})`;
+}
+
+function glslNumber(value: number): string {
+  return Number.isInteger(value) ? `${value.toFixed(1)}` : String(value);
 }

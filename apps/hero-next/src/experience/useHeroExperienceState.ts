@@ -1,9 +1,15 @@
 import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
-import { readHeroChapterScrollState } from "./heroChapterScroll";
-import { createHeroLocaleStore, type HeroLocaleStore } from "./heroLocale";
-import { createHeroThemeStore, type HeroThemeStore } from "./heroTheme";
+import { readHeroChapterScrollState } from "../chapters/scrollState";
+import {
+  createHeroLocaleStore,
+  type HeroLocaleStore,
+} from "../preferences/locale";
+import {
+  createHeroThemeStore,
+  type HeroThemeStore,
+} from "../preferences/theme";
 
 export function useHeroThemeState(): {
   readonly store: HeroThemeStore;

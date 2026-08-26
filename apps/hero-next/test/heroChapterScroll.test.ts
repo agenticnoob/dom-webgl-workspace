@@ -3,8 +3,12 @@ import { describe, expect, test } from "vitest";
 import {
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
-} from "../src/heroChapterScroll";
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
+} from "../src/chapters/scrollState";
+import {
+  heroChapterDefinitions,
+  heroChapterOrder,
+} from "../src/chapters/definitions";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
 
 describe("hero chapter scroll resolver", () => {
   test.each([
@@ -134,7 +138,7 @@ describe("hero chapter scroll resolver", () => {
   test("reads one entry and exit signal pair and gates themes only at complete Hubs", () => {
     const values = new Map<string, number>();
     const reader = { get: (key: string) => values.get(key) ?? 0 };
-    const [chapterOne] = heroTransitionConfig.signalKeys.chapters;
+    const chapterOne = heroChapterDefinitions.self.signals;
 
     expect(readHeroChapterScrollState(reader).hubInteractive).toBe(true);
     values.set(chapterOne.entry, 0.01);
@@ -148,11 +152,12 @@ describe("hero chapter scroll resolver", () => {
   test("selects the latest active chapter while preserving complete intermediate Hubs", () => {
     const values = new Map<string, number>();
     const reader = { get: (key: string) => values.get(key) ?? 0 };
-    const [chapterOne, chapterTwo, , chapterFour] =
-      heroTransitionConfig.signalKeys.chapters;
+    const chapterOne = heroChapterDefinitions.self.signals;
+    const chapterTwo = heroChapterDefinitions.axioms.signals;
+    const chapterFour = heroChapterDefinitions.signals.signals;
 
     expect(readHeroChapterScrollState(reader)).toMatchObject({
-      chapterIndex: 0,
+      chapterId: heroChapterOrder[0],
       phase: "hub-start",
       hubInteractive: true,
     });
@@ -160,21 +165,21 @@ describe("hero chapter scroll resolver", () => {
     values.set(chapterOne.entry, 1);
     values.set(chapterOne.exit, 1);
     expect(readHeroChapterScrollState(reader)).toMatchObject({
-      chapterIndex: 0,
+      chapterId: "self",
       phase: "hub-end",
       hubInteractive: true,
     });
 
     values.set(chapterTwo.entry, 0.4);
     expect(readHeroChapterScrollState(reader)).toMatchObject({
-      chapterIndex: 1,
+      chapterId: "axioms",
       phase: "face-approach",
       hubInteractive: false,
     });
 
     values.set(chapterTwo.entry, 1);
     expect(readHeroChapterScrollState(reader)).toMatchObject({
-      chapterIndex: 1,
+      chapterId: "axioms",
       phase: "dom-content",
       domContentActive: true,
     });
@@ -182,7 +187,7 @@ describe("hero chapter scroll resolver", () => {
     values.set(chapterFour.entry, 1);
     values.set(chapterFour.exit, 1);
     expect(readHeroChapterScrollState(reader)).toMatchObject({
-      chapterIndex: 3,
+      chapterId: "signals",
       phase: "hub-end",
       hubInteractive: true,
     });

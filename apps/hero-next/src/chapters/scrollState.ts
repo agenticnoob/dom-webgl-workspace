@@ -1,4 +1,9 @@
-import { heroTransitionConfig } from "./heroTransitionConfig";
+import {
+  getHeroChapterDefinition,
+  heroChapterOrder,
+  type HeroChapterId,
+} from "./definitions";
+import { heroTransitionConfig } from "../transition/transitionConfig";
 
 export type HeroChapterScrollPhase =
   | "hub-start"
@@ -12,7 +17,7 @@ export type HeroChapterScrollPhase =
   | "hub-end";
 
 export type HeroChapterScrollState = {
-  readonly chapterIndex: number;
+  readonly chapterId: HeroChapterId;
   readonly phase: HeroChapterScrollPhase;
   readonly phaseProgress: number;
   readonly entryProgress: number;
@@ -32,25 +37,36 @@ export type HeroChapterScrollSignalReader = {
 export function resolveHeroChapterScrollState(
   entryProgress: number,
   exitProgress: number,
-  chapterIndex = 0,
+  chapterId: HeroChapterId = heroChapterOrder[0],
 ): HeroChapterScrollState {
   const entry = normalized(entryProgress);
   const exit = normalized(exitProgress);
   const { entry: entryStops, exit: exitStops } =
     heroTransitionConfig.chapterScroll;
   const entryApproach = eased(segment(entry, 0, entryStops.lockEnd));
-  const exitApproach =
-    1 - eased(segment(exit, exitStops.contractEnd, 1));
+  const exitApproach = 1 - eased(segment(exit, exitStops.contractEnd, 1));
 
   if (exit >= 1) {
-    return createState(chapterIndex, "hub-end", 1, entry, exit, 0, 0, 0, 0, false, true);
+    return createState(
+      chapterId,
+      "hub-end",
+      1,
+      entry,
+      exit,
+      0,
+      0,
+      0,
+      0,
+      false,
+      true,
+    );
   }
 
   if (exit > 0) {
     if (exit < exitStops.contractEnd) {
       const progress = segment(exit, 0, exitStops.contractEnd);
       return createState(
-        chapterIndex,
+        chapterId,
         "triangle-contract",
         progress,
         entry,
@@ -68,7 +84,7 @@ export function resolveHeroChapterScrollState(
         exitStops.retreatEnd,
       );
       return createState(
-        chapterIndex,
+        chapterId,
         "face-retreat",
         progress,
         entry,
@@ -82,7 +98,7 @@ export function resolveHeroChapterScrollState(
 
     const progress = segment(exit, exitStops.retreatEnd, 1);
     return createState(
-      chapterIndex,
+      chapterId,
       "orient-retreat",
       progress,
       entry,
@@ -96,7 +112,7 @@ export function resolveHeroChapterScrollState(
 
   if (entry <= 0) {
     return createState(
-      chapterIndex,
+      chapterId,
       "hub-start",
       0,
       entry,
@@ -112,7 +128,7 @@ export function resolveHeroChapterScrollState(
   if (entry < entryStops.orientEnd) {
     const progress = segment(entry, 0, entryStops.orientEnd);
     return createState(
-      chapterIndex,
+      chapterId,
       "orient-approach",
       progress,
       entry,
@@ -124,13 +140,9 @@ export function resolveHeroChapterScrollState(
     );
   }
   if (entry < entryStops.lockEnd) {
-    const progress = segment(
-      entry,
-      entryStops.orientEnd,
-      entryStops.lockEnd,
-    );
+    const progress = segment(entry, entryStops.orientEnd, entryStops.lockEnd);
     return createState(
-      chapterIndex,
+      chapterId,
       "face-approach",
       progress,
       entry,
@@ -144,7 +156,7 @@ export function resolveHeroChapterScrollState(
   if (entry < 1) {
     const progress = segment(entry, entryStops.lockEnd, 1);
     return createState(
-      chapterIndex,
+      chapterId,
       "triangle-reveal",
       progress,
       entry,
@@ -157,7 +169,7 @@ export function resolveHeroChapterScrollState(
   }
 
   return createState(
-    chapterIndex,
+    chapterId,
     "dom-content",
     1,
     entry,
@@ -176,20 +188,21 @@ export function readHeroChapterScrollState(
 ): HeroChapterScrollState {
   let state = resolveHeroChapterScrollState(0, 0);
 
-  heroTransitionConfig.signalKeys.chapters.forEach((signals, chapterIndex) => {
+  for (const chapterId of heroChapterOrder) {
+    const { signals } = getHeroChapterDefinition(chapterId);
     const entry = reader.get(signals.entry);
     const exit = reader.get(signals.exit);
 
     if (entry > 0 || exit > 0) {
-      state = resolveHeroChapterScrollState(entry, exit, chapterIndex);
+      state = resolveHeroChapterScrollState(entry, exit, chapterId);
     }
-  });
+  }
 
   return state;
 }
 
 function createState(
-  chapterIndex: number,
+  chapterId: HeroChapterId,
   phase: HeroChapterScrollPhase,
   phaseProgress: number,
   entryProgress: number,
@@ -202,7 +215,7 @@ function createState(
   hubInteractive = false,
 ): HeroChapterScrollState {
   return {
-    chapterIndex,
+    chapterId,
     phase,
     phaseProgress: normalized(phaseProgress),
     entryProgress,

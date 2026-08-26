@@ -35,11 +35,16 @@
 
 - 页面只有一个 `WebGLScrollRuntime` 和一个 runtime-owned canvas；
 - 页面继续使用原有的一个四面体 managed scene/render pass；不增加人物 scene/pass；
-- `heroChapterScroll.ts` 是 entry/exit progress 到章节视觉阶段的唯一纯映射；
-- `heroChapterGeometry.ts` 根据 active face 解析相机空间姿态和投影；
-- `heroChapterLayout.ts` 是 atlas 与语义 DOM 的共享响应式布局模型；
-- `heroChapterAtlas.ts` 从当前 locale 的 typed content 生成四个面的 managed texture；
-- `HeroChapterNarrative.tsx` 拥有语义、阅读、链接、语言选择和 focus 真值；
+- `src/chapters/definitions.ts` 是章节顺序、scroll signals、四面体 face 与 atlas slot
+  的唯一结构真值；
+- `src/chapters/scrollState.ts` 是 entry/exit progress 到章节视觉阶段的唯一纯映射；
+- `src/chapters/geometry.ts` 根据 active face 解析相机空间姿态和投影；
+- `src/chapters/layout.ts` 是 atlas 与语义 DOM 的共享响应式布局模型；
+- `src/chapters/atlas.ts` 从当前 locale 的 typed content 生成四个面的 managed texture；
+- `src/chapters/HeroChapterNarrative.tsx` 负责章节顺序与 Hub 组合，
+  `src/chapters/HeroChapter.tsx` 负责章节 timeline、阅读和链接语义；
+- `src/chapters/HeroLocaleControl.tsx` 负责语言交互，`src/preferences/locale.ts`
+  是 locale 类型、持久化和 committed state 的唯一真值；
 - CSS 保留既有背景、前景、章节反相、stacking 与 pointer routing，不用 `clip-path`
   或第二个三角形冒充 WebGL 转场。
 
@@ -58,7 +63,7 @@ shader 和章节激活进度不进入 React state。
 
 ## 当前验证边界
 
-- **Automated：** hero-next 19 个 focused test files / 102 tests 覆盖四章选择、双向映射、
+- **Automated：** hero-next 20 个 focused test files / 102 tests 覆盖四章选择、双向映射、
   四个目标面、locale/theme 持久化、atlas/DOM 内容、shader 和单 runtime/scene/canvas
   ownership；workspace typecheck 通过。
 - **Browser：** 本地 Chromium `1280×720` 验证首屏和章节间完整四面体、第一/第二章

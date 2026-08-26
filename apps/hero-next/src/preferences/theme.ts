@@ -1,5 +1,4 @@
-import type { HeroChapterScrollState } from "./heroChapterScroll";
-import type { HeroSchemeName } from "./heroTransitionConfig";
+import type { HeroSchemeName } from "../transition/transitionConfig";
 
 export const heroThemeStorageKey = "viselora.hero.theme.v1";
 
@@ -64,12 +63,6 @@ export function persistHeroTheme(
   } catch {
     return;
   }
-}
-
-export function isHeroThemeInteractionEnabled(
-  scroll: Pick<HeroChapterScrollState, "hubInteractive">,
-): boolean {
-  return scroll.hubInteractive;
 }
 
 function parseHeroTheme(value: string | null): HeroSchemeName {

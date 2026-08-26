@@ -3,10 +3,11 @@ import {
   type HeroSchemeName,
   type HeroTransitionConfig,
   type HeroTransitionPhase,
-} from "./heroTransitionConfig";
+} from "./transitionConfig";
+
+import type { HeroViewport } from "../shared/viewport";
 
 export type HeroNormalizedPoint = { readonly x: number; readonly y: number };
-export type HeroViewport = { readonly width: number; readonly height: number };
 
 export type HeroHoldTransitionState = {
   readonly committedScheme: HeroSchemeName;
@@ -195,10 +196,7 @@ export function resolveHeroRadialGeometry(
 }
 
 export function resolveHeroTransitionVisual(
-  state: Pick<
-    HeroHoldTransitionState,
-    "committedScheme" | "targetScheme"
-  >,
+  state: Pick<HeroHoldTransitionState, "committedScheme" | "targetScheme">,
   config: HeroTransitionConfig = heroTransitionConfig,
 ): HeroTransitionVisualState {
   const committed = resolveScheme(state.committedScheme, config);
@@ -221,9 +219,7 @@ export function resolveHeroShake(
   }
 
   const safeTime = Number.isFinite(timeMs) ? timeMs : 0;
-  const envelope = Math.sin(
-    Math.PI * normalizeCoverage(state.coverage),
-  );
+  const envelope = Math.sin(Math.PI * normalizeCoverage(state.coverage));
   const [xHz, yHz, zHz] = config.shake.frequenciesHz;
   const xPhase = safeTime * 0.001 * Math.PI * 2 * xHz;
   const yPhase = safeTime * 0.001 * Math.PI * 2 * yHz;
@@ -334,7 +330,9 @@ function clampFinite(
   max: number,
   fallback: number,
 ): number {
-  return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+  return Number.isFinite(value)
+    ? Math.max(min, Math.min(max, value))
+    : fallback;
 }
 
 function smoothstep(value: number): number {

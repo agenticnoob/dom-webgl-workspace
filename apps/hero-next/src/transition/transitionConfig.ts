@@ -19,10 +19,6 @@ export type HeroTransitionConfig = {
     readonly originX: string;
     readonly originY: string;
     readonly phase: string;
-    readonly chapters: readonly {
-      readonly entry: string;
-      readonly exit: string;
-    }[];
   };
   readonly signalCodes: {
     readonly scheme: Readonly<Record<HeroSchemeName, number>>;
@@ -56,12 +52,6 @@ export type HeroTransitionConfig = {
     };
   };
   readonly chapterGeometry: {
-    readonly faces: readonly {
-      readonly normal: readonly [number, number, number];
-      readonly up: readonly [number, number, number];
-      readonly right: readonly [number, number, number];
-      readonly targetRotation: readonly [number, number, number];
-    }[];
     readonly cameraDistance: number;
     readonly cameraFov: number;
     readonly cameraTargetY: number;
@@ -94,12 +84,6 @@ export const heroTransitionConfig = {
     originX: "hero.transition.hold.origin-x",
     originY: "hero.transition.hold.origin-y",
     phase: "hero.transition.hold.phase",
-    chapters: [
-      { entry: "hero.chapter-1.entry", exit: "hero.chapter-1.exit" },
-      { entry: "hero.chapter-2.entry", exit: "hero.chapter-2.exit" },
-      { entry: "hero.chapter-3.entry", exit: "hero.chapter-3.exit" },
-      { entry: "hero.chapter-4.entry", exit: "hero.chapter-4.exit" },
-    ],
   },
   signalCodes: {
     scheme: { initial: 0, inverted: 1 },
@@ -128,32 +112,6 @@ export const heroTransitionConfig = {
     exit: { contractEnd: 0.38, retreatEnd: 0.74 },
   },
   chapterGeometry: {
-    faces: [
-      {
-        normal: [-1, 1, 1],
-        up: [2, 1, 1],
-        right: [0, -1, 1],
-        targetRotation: [-0.5158110562, 0.7853981634, 1.5707963268],
-      },
-      {
-        normal: [1, 1, -1],
-        up: [1, 1, 2],
-        right: [-1, 1, 0],
-        targetRotation: [-2.086607383, 0, -2.3561944902],
-      },
-      {
-        normal: [1, -1, 1],
-        up: [1, 2, 1],
-        right: [1, 0, -1],
-        targetRotation: [-0.5158110562, -0.7853981634, 0],
-      },
-      {
-        normal: [-1, -1, -1],
-        up: [-1, 2, -1],
-        right: [-1, 0, 1],
-        targetRotation: [2.6257815974, 0.7853981634, -3.1415926536],
-      },
-    ],
     cameraDistance: 3.2,
     cameraFov: 38,
     cameraTargetY: 0.32,

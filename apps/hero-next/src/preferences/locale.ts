@@ -1,4 +1,6 @@
-import type { HeroLocale } from "./heroChapterContent";
+export const heroLocales = ["zh", "en"] as const;
+
+export type HeroLocale = (typeof heroLocales)[number];
 
 export const heroLocaleStorageKey = "viselora.hero.locale.v1";
 

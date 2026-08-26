@@ -47,22 +47,21 @@ Read [README.md](./README.md) and
 
 | Concern | Owner |
 | --- | --- |
-| Constants and semantic palette | `src/heroTransitionConfig.ts` |
-| Pure hold/radial state | `src/heroHoldTransition.ts` |
-| Pure reversible scroll phases | `src/heroChapterScroll.ts` |
-| Camera-space chapter geometry | `src/heroChapterGeometry.ts` |
-| Committed theme and persistence | `src/heroTheme.ts`, `src/heroExperienceState.ts` |
-| Shared chapter copy | `src/heroChapterContent.ts` |
-| Responsive atlas/DOM layout | `src/heroChapterLayout.ts`, `src/heroChapterLayoutReact.ts` |
-| Managed chapter texture atlas | `src/heroChapterAtlas.ts` |
-| Progress encoding | `src/heroTransitionSignals.ts` |
-| Mesh effect, material, motion | `src/heroEffect.ts` |
-| Managed material extension | `src/heroTetrahedronShader.ts` |
-| Background program/effect | `src/heroGhostCursorProgram.ts`, `src/heroGhostEffects.ts` |
-| React composition and semantic DOM | `src/HeroExperience.tsx`, `src/HeroChapterNarrative.tsx` |
+| Runtime composition and React subscriptions | `src/experience/` |
+| Chapter identity, order, signals, faces, and atlas slots | `src/chapters/definitions.ts` |
+| Pure reversible scroll phases and geometry | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts` |
+| Chapter content, semantic DOM, and locale control | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
+| Responsive atlas/DOM layout | `src/chapters/layout.ts`, `src/chapters/useChapterFrameStyle.ts`, `src/chapters/atlas.ts` |
+| Committed theme and locale persistence | `src/preferences/` |
+| Constants, hold/radial state, and progress encoding | `src/transition/` |
+| Mesh effect, material, motion, and shader | `src/tetrahedron/` |
+| Background, cursor, and pointer-light effect | `src/ghost/` |
+| Shared viewport type and browser read | `src/shared/viewport.ts` |
 | Visual truth | `docs/visual-design.md` |
 
-Do not duplicate constants or live state across these modules.
+Do not duplicate constants or live state across these modules. Chapter order,
+signal keys, tetrahedron face vectors, and atlas slots have one structural truth
+in `src/chapters/definitions.ts`.
 
 ## Verification
 

@@ -31,11 +31,15 @@ describe("hero Next.js workspace shell", () => {
     );
     const pageSource = readFileSync(resolve(appRoot, "app/page.tsx"), "utf8");
     const heroSource = readFileSync(
-      resolve(appRoot, "src/HeroExperience.tsx"),
+      resolve(appRoot, "src/experience/HeroExperience.tsx"),
       "utf8",
     );
     const narrativeSource = readFileSync(
-      resolve(appRoot, "src/HeroChapterNarrative.tsx"),
+      resolve(appRoot, "src/chapters/HeroChapterNarrative.tsx"),
+      "utf8",
+    );
+    const chapterSource = readFileSync(
+      resolve(appRoot, "src/chapters/HeroChapter.tsx"),
       "utf8",
     );
     const cssSource = readFileSync(
@@ -57,8 +61,9 @@ describe("hero Next.js workspace shell", () => {
     expect(pageSource).toContain("<HeroExperience />");
     expect(heroSource).toContain('className="hero-space"');
     expect(heroSource).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
-    expect(narrativeSource).toContain("<article");
-    expect(narrativeSource).toContain("<h1>");
+    expect(narrativeSource).toContain("<HeroChapter");
+    expect(chapterSource).toContain("<article");
+    expect(chapterSource).toContain("<h1>");
     expect(cssSource).toMatch(/\.hero-space\s*{[\s\S]*?background: transparent;/);
     expect(cssSource).toMatch(
       /\.hero-chapter\s*{[\s\S]*?background: var\(--hero-chapter-background\);/,

@@ -1,6 +1,7 @@
-import type { HeroChapterScrollState } from "./heroChapterScroll";
-import type { HeroViewport } from "./heroHoldTransition";
-import { heroTransitionConfig } from "./heroTransitionConfig";
+import type { HeroViewport } from "../shared/viewport";
+import { heroTransitionConfig } from "../transition/transitionConfig";
+import { getHeroChapterDefinition, type HeroChapterId } from "./definitions";
+import type { HeroChapterScrollState } from "./scrollState";
 
 type Vector3 = readonly [number, number, number];
 
@@ -24,7 +25,7 @@ export type HeroChapterLockProjection = {
 
 type ChapterTransformState = Pick<
   HeroChapterScrollState,
-  "chapterIndex" | "orientation" | "approach" | "triangleReveal"
+  "chapterId" | "orientation" | "approach" | "triangleReveal"
 >;
 
 export function resolveHeroChapterGeometryFrame(
@@ -35,7 +36,6 @@ export function resolveHeroChapterGeometryFrame(
   const scale = resolveHeroHubScale(viewport);
   const lockProjection = resolveHeroChapterLockProjection(viewport);
   const lockFrame = resolveProjectedFaceFrame(
-    viewport,
     scale,
     lockProjection.heightFraction,
     0,
@@ -45,7 +45,6 @@ export function resolveHeroChapterGeometryFrame(
     -heroTransitionConfig.chapterGeometry.revealOverscan +
     (2 * revealHeightFraction) / 3;
   const revealFrame = resolveProjectedFaceFrame(
-    viewport,
     scale,
     revealHeightFraction,
     revealCentroidNdcY,
@@ -69,7 +68,7 @@ export function resolveHeroChapterGeometryFrame(
     lerp(hubPositionY, approachPosition[1], chapter.orientation),
     approachPosition[2],
   ];
-  const targetFace = resolveHeroChapterFace(chapter.chapterIndex);
+  const targetFace = resolveHeroChapterFace(chapter.chapterId);
 
   return {
     position: lerpVector(
@@ -86,13 +85,8 @@ export function resolveHeroChapterGeometryFrame(
   };
 }
 
-export function resolveHeroChapterFace(chapterIndex: number) {
-  const faces = heroTransitionConfig.chapterGeometry.faces;
-  const safeIndex = Math.max(
-    0,
-    Math.min(faces.length - 1, Math.trunc(chapterIndex)),
-  );
-  return faces[safeIndex]!;
+export function resolveHeroChapterFace(chapterId: HeroChapterId) {
+  return getHeroChapterDefinition(chapterId).face;
 }
 
 export function resolveHeroChapterLockProjection(
@@ -130,7 +124,6 @@ export function resolveHeroChapterCameraFrame(): HeroChapterCameraFrame {
 }
 
 function resolveProjectedFaceFrame(
-  viewport: HeroViewport,
   scale: number,
   heightFraction: number,
   centroidNdcY: number,
@@ -142,8 +135,7 @@ function resolveProjectedFaceFrame(
   const faceHeight = Math.SQRT2 * radius * scale;
   const cameraToFaceDistance =
     faceHeight / (2 * positive(heightFraction, 1) * tangent);
-  const cameraToOriginDistance =
-    cameraToFaceDistance + (radius * scale) / 3;
+  const cameraToOriginDistance = cameraToFaceDistance + (radius * scale) / 3;
   const centroidOffset = centroidNdcY * cameraToFaceDistance * tangent;
 
   return {
@@ -165,8 +157,7 @@ function resolveRevealHeightFraction(viewport: HeroViewport): number {
   const aspect = positive(viewport.width, 1) / positive(viewport.height, 1);
   const geometry = heroTransitionConfig.chapterGeometry;
   return (
-    Math.max(1.5, 0.75 * (Math.sqrt(3) * aspect + 1)) *
-    geometry.revealOverscan
+    Math.max(1.5, 0.75 * (Math.sqrt(3) * aspect + 1)) * geometry.revealOverscan
   );
 }
 

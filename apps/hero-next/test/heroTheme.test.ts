@@ -1,13 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { resolveHeroChapterScrollState } from "../src/heroChapterScroll";
 import {
   createHeroThemeStore,
   heroThemeStorageKey,
-  isHeroThemeInteractionEnabled,
   readPersistedHeroTheme,
   type HeroThemeStorage,
-} from "../src/heroTheme";
+} from "../src/preferences/theme";
 
 function createStorage(initial?: string) {
   const values = new Map<string, string>();
@@ -46,20 +44,5 @@ describe("hero committed theme", () => {
       "initial",
     );
     expect(readPersistedHeroTheme(undefined)).toBe("initial");
-  });
-
-  test("enables the mesh theme gesture only at the two complete Hubs", () => {
-    expect(
-      isHeroThemeInteractionEnabled(resolveHeroChapterScrollState(0, 0)),
-    ).toBe(true);
-    expect(
-      isHeroThemeInteractionEnabled(resolveHeroChapterScrollState(0.2, 0)),
-    ).toBe(false);
-    expect(
-      isHeroThemeInteractionEnabled(resolveHeroChapterScrollState(1, 0)),
-    ).toBe(false);
-    expect(
-      isHeroThemeInteractionEnabled(resolveHeroChapterScrollState(1, 1)),
-    ).toBe(true);
   });
 });

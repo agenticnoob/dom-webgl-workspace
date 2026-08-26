@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   createHeroGhostCursorState,
   stepHeroGhostCursorState,
-} from "../src/heroGhostCursorState";
+} from "../src/ghost/cursorState";
 
 describe("hero Ghost Cursor state", () => {
   test("smooths active pointer input and prepends a background trail", () => {

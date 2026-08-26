@@ -5,15 +5,16 @@ import {
   createHeroHoldTransitionState,
   resolveHeroRadialGeometry,
   type HeroHoldTransitionState,
-} from "../src/heroHoldTransition";
-import { resolveHeroChapterScrollState } from "../src/heroChapterScroll";
-import { resolveHeroChapterLockProjection } from "../src/heroChapterGeometry";
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
+} from "../src/transition/holdTransition";
+import { resolveHeroChapterScrollState } from "../src/chapters/scrollState";
+import { resolveHeroChapterLockProjection } from "../src/chapters/geometry";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
+import { heroChapterOrder } from "../src/chapters/definitions";
 import {
   compileHeroTetrahedronRadialShader,
   createHeroTetrahedronRadialShader,
   createHeroTetrahedronRadialUniforms,
-} from "../src/heroTetrahedronShader";
+} from "../src/tetrahedron/shader";
 
 const viewport = { width: 1200, height: 835 } as const;
 
@@ -37,7 +38,7 @@ describe("hero tetrahedron radial shader", () => {
     );
     expect(draft.vertexShader).toContain("heroObjectPosition = position");
     expect(draft.vertexShader).toContain("heroObjectNormal = normal");
-    expect(draft.fragmentShader).toContain("float heroDot0 = dot(");
+    expect(draft.fragmentShader).toContain("float heroFaceScore0 = dot(");
     expect(draft.fragmentShader).toContain("heroAtlasOffset + heroFaceUv * 0.5");
     expect(draft.fragmentShader).toContain(
       "mix(heroFaceUv, heroScreenUv, heroTargetFace * heroScreenLock)",
@@ -231,12 +232,12 @@ describe("hero tetrahedron radial shader", () => {
   });
 
   test("selects a distinct target face for every chapter", () => {
-    const normals = heroTransitionConfig.chapterGeometry.faces.map(
-      (_face, chapterIndex) =>
+    const normals = heroChapterOrder.map(
+      (chapterId) =>
         createHeroTetrahedronRadialUniforms(
           createHeroHoldTransitionState(),
           viewport,
-          resolveHeroChapterScrollState(0.5, 0, chapterIndex),
+          resolveHeroChapterScrollState(0.5, 0, chapterId),
         ).heroTargetFaceNormal,
     );
 

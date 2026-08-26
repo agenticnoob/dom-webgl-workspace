@@ -1,14 +1,15 @@
-import type { HeroViewport } from "./heroHoldTransition";
+import type { HeroViewport } from "../shared/viewport";
 import {
-  heroChapters,
+  getHeroChapterContent,
   type HeroChapterLocalizedContent,
-  type HeroLocale,
-} from "./heroChapterContent";
+} from "./content";
+import { getHeroChapterDefinition, heroChapterOrder } from "./definitions";
+import type { HeroLocale } from "../preferences/locale";
 import {
   resolveHeroChapterAtlasResolution,
   resolveHeroChapterLayout,
   type HeroChapterLayout,
-} from "./heroChapterLayout";
+} from "./layout";
 
 export type HeroChapterAtlas = {
   readonly canvas: HTMLCanvasElement;
@@ -24,8 +25,7 @@ export function createHeroChapterAtlas(
   locale: HeroLocale = "zh",
 ): HeroChapterAtlas {
   const layout = resolveHeroChapterLayout(viewport);
-  const { tileWidth, tileHeight } =
-    resolveHeroChapterAtlasResolution(viewport);
+  const { tileWidth, tileHeight } = resolveHeroChapterAtlasResolution(viewport);
   const canvas = document.createElement("canvas");
   canvas.width = tileWidth * 2;
   canvas.height = tileHeight * 2;
@@ -35,11 +35,12 @@ export function createHeroChapterAtlas(
   }
 
   context.textBaseline = "alphabetic";
-  for (const [index, chapter] of heroChapters.entries()) {
+  for (const chapterId of heroChapterOrder) {
+    const definition = getHeroChapterDefinition(chapterId);
     context.save();
     context.translate(
-      (index % 2) * tileWidth,
-      Math.floor(index / 2) * tileHeight,
+      definition.atlas.column * tileWidth,
+      definition.atlas.row * tileHeight,
     );
     context.scale(
       tileWidth / layout.viewport.width,
@@ -48,8 +49,8 @@ export function createHeroChapterAtlas(
     drawTile(
       context,
       layout,
-      chapter.number,
-      chapter.content[locale],
+      definition.number,
+      getHeroChapterContent(chapterId, locale),
     );
     context.restore();
   }
@@ -91,12 +92,7 @@ function drawTile(
   context.fillStyle = "black";
   context.fillRect(0, 0, width, height);
   context.fillStyle = "white";
-  setTextStyle(
-    context,
-    600,
-    layout.smallFontSize,
-    layout.headerLetterSpacing,
-  );
+  setTextStyle(context, 600, layout.smallFontSize, layout.headerLetterSpacing);
   fillTextInLineBox(
     context,
     content.frame.eyebrow,
@@ -125,12 +121,7 @@ function drawTile(
     );
   }
 
-  setTextStyle(
-    context,
-    600,
-    layout.smallFontSize,
-    layout.headerLetterSpacing,
-  );
+  setTextStyle(context, 600, layout.smallFontSize, layout.headerLetterSpacing);
   const summaryY =
     headingY +
     headingLines.length * layout.headingLineHeight +
@@ -174,12 +165,7 @@ function drawTile(
     );
   }
   context.globalAlpha = 0.82;
-  setTextStyle(
-    context,
-    600,
-    layout.smallFontSize,
-    layout.cardLetterSpacing,
-  );
+  setTextStyle(context, 600, layout.smallFontSize, layout.cardLetterSpacing);
   for (const [index, signal] of content.frame.signals.entries()) {
     const cardX =
       layout.inset +
@@ -237,8 +223,7 @@ function fillTextInLineBox(
     metrics.actualBoundingBoxDescent,
     fontSize * 0.2,
   );
-  const baseline =
-    lineTop + (lineHeight - ascent - descent) / 2 + ascent;
+  const baseline = lineTop + (lineHeight - ascent - descent) / 2 + ascent;
   context.fillText(value, x, baseline);
 }
 

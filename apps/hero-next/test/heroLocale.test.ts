@@ -4,7 +4,7 @@ import {
   createHeroLocaleStore,
   heroLocaleStorageKey,
   readPersistedHeroLocale,
-} from "../src/heroLocale";
+} from "../src/preferences/locale";
 
 describe("hero locale", () => {
   test("defaults safely and accepts only supported persisted locales", () => {

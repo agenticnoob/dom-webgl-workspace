@@ -4,9 +4,13 @@ import {
   resolveHeroChapterCameraFrame,
   resolveHeroChapterGeometryFrame,
   resolveHeroChapterLockProjection,
-} from "../src/heroChapterGeometry";
-import { resolveHeroChapterScrollState } from "../src/heroChapterScroll";
-import { heroTransitionConfig } from "../src/heroTransitionConfig";
+} from "../src/chapters/geometry";
+import { resolveHeroChapterScrollState } from "../src/chapters/scrollState";
+import {
+  getHeroChapterDefinition,
+  heroChapterOrder,
+} from "../src/chapters/definitions";
+import { heroTransitionConfig } from "../src/transition/transitionConfig";
 
 type Vector3 = readonly [number, number, number];
 
@@ -14,12 +18,12 @@ const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
 const hubRotation = heroTransitionConfig.motion.baseRotation;
 const targetFaceNormal = normalize(
-  heroTransitionConfig.chapterGeometry.faces[0].normal,
+  getHeroChapterDefinition("self").face.normal,
 );
 describe("four-chapter camera-space geometry", () => {
-  test.each(heroTransitionConfig.chapterGeometry.faces.map((face, index) => [index, face] as const))(
+  test.each(heroChapterOrder.map((chapterId) => [chapterId, getHeroChapterDefinition(chapterId).face] as const))(
     "aligns chapter %s face normal and face up with the camera frame",
-    (chapterIndex, face) => {
+    (chapterId, face) => {
     const camera = resolveHeroChapterCameraFrame();
     const rotation = face.targetRotation;
 
@@ -28,7 +32,7 @@ describe("four-chapter camera-space geometry", () => {
     expectVector(
       resolveHeroChapterGeometryFrame(
         desktop,
-        resolveHeroChapterScrollState(1, 0, chapterIndex),
+        resolveHeroChapterScrollState(1, 0, chapterId),
         hubRotation,
       ).rotation,
       rotation,

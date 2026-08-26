@@ -8,7 +8,7 @@ import {
   stepHeroHoldTransition,
   type HeroHoldTransitionInput,
   type HeroHoldTransitionState,
-} from "../src/heroHoldTransition";
+} from "../src/transition/holdTransition";
 
 const viewport = { width: 1200, height: 835 } as const;
 const pressedInput = {

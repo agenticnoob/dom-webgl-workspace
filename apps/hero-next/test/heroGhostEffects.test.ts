@@ -2,22 +2,23 @@ import type { WebGLEffectLightsFacade } from "@viselora/dom-webgl";
 import { describe, expect, test, vi } from "vitest";
 
 import {
+  heroGhostBackgroundEffect,
+  resolveHeroGhostProgramState,
+  resolveHeroGhostOverscanScale,
+} from "../src/ghost/backgroundEffect";
+import {
   createHeroPointerLightState,
   disposeHeroPointerLight,
-  heroGhostBackgroundEffect,
-  heroGhostEffects,
   heroPointerLightKey,
-  resolveHeroGhostProgramState,
   resolveHeroPointerLightTarget,
-  resolveHeroGhostOverscanScale,
   updateHeroPointerLight,
-} from "../src/heroGhostEffects";
-import { createHeroHoldTransitionState } from "../src/heroHoldTransition";
+} from "../src/ghost/pointerLight";
+import { createHeroHoldTransitionState } from "../src/transition/holdTransition";
 import {
   publishHeroTransitionSignals,
   type HeroTransitionSignalReader,
   type HeroTransitionSignalWriter,
-} from "../src/heroTransitionSignals";
+} from "../src/transition/signals";
 
 describe("hero Ghost Cursor effects", () => {
   test("registers only the frame-scheduled background effect", () => {
@@ -27,7 +28,6 @@ describe("hero Ghost Cursor effects", () => {
       schedule: "frame",
       dispose: expect.any(Function),
     });
-    expect(heroGhostEffects).toEqual([heroGhostBackgroundEffect]);
   });
 
   test("resolves responsive world scale with six-percent overscan", () => {

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   createHeroChapterAtlas,
   heroChapterAtlasMatchesViewport,
-} from "../src/heroChapterAtlas";
+} from "../src/chapters/atlas";
 
 const fillText = vi.fn();
 const originalGetContext = HTMLCanvasElement.prototype.getContext;

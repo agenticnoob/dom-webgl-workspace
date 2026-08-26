@@ -1,9 +1,9 @@
-import type { HeroHoldTransitionState } from "./heroHoldTransition";
+import type { HeroHoldTransitionState } from "./holdTransition";
 import {
   heroTransitionConfig,
   type HeroSchemeName,
   type HeroTransitionPhase,
-} from "./heroTransitionConfig";
+} from "./transitionConfig";
 
 export type HeroTransitionSignalWriter = {
   set(key: string, value: number): void;

@@ -7,37 +7,33 @@ import {
   createHeroChapterAtlas,
   heroChapterAtlasMatchesViewport,
   type HeroChapterAtlas,
-} from "./heroChapterAtlas";
-import { readHeroChapterViewport } from "./heroChapterLayout";
+} from "../chapters/atlas";
+import { readHeroViewport, type HeroViewport } from "../shared/viewport";
 import {
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
   type HeroChapterScrollState,
-} from "./heroChapterScroll";
-import { resolveHeroChapterGeometryFrame } from "./heroChapterGeometry";
+} from "../chapters/scrollState";
+import { resolveHeroChapterGeometryFrame } from "../chapters/geometry";
 import {
   createHeroHoldTransitionState,
   resolveHeroShake,
   resolveHeroTransitionVisual,
   stepHeroHoldTransition,
   type HeroHoldTransitionState,
-  type HeroViewport,
-} from "./heroHoldTransition";
-import { heroTransitionConfig } from "./heroTransitionConfig";
+} from "../transition/holdTransition";
+import { heroTransitionConfig } from "../transition/transitionConfig";
 import {
   publishHeroTransitionSignals,
   type HeroTransitionSignalWriter,
-} from "./heroTransitionSignals";
+} from "../transition/signals";
 import {
   createHeroTetrahedronRadialShader,
   createHeroTetrahedronRadialUniforms,
   heroTetrahedronRadialShaderKey,
-} from "./heroTetrahedronShader";
-import {
-  isHeroThemeInteractionEnabled,
-  type HeroThemeStore,
-} from "./heroTheme";
-import type { HeroLocaleStore } from "./heroLocale";
+} from "./shader";
+import type { HeroThemeStore } from "../preferences/theme";
+import type { HeroLocaleStore } from "../preferences/locale";
 
 export type HeroEffectParams = {
   kind: "hero.tetrahedron.motion";
@@ -156,11 +152,12 @@ export function applyHeroFrame(
 ): void {
   const activeAttempt =
     transition.phase === "expanding" || transition.phase === "retracting";
-  const ambientWeight = reducedMotion || !chapter.hubInteractive
-    ? 0
-    : activeAttempt
-      ? 1 - smoothstep(transition.coverage)
-      : 1;
+  const ambientWeight =
+    reducedMotion || !chapter.hubInteractive
+      ? 0
+      : activeAttempt
+        ? 1 - smoothstep(transition.coverage)
+        : 1;
   const shake = resolveHeroShake(time, transition, reducedMotion);
   const baseRotation = reducedMotion
     ? heroTransitionConfig.motion.reducedRotation
@@ -224,10 +221,6 @@ function smoothstep(value: number): number {
   return safeValue * safeValue * (3 - 2 * safeValue);
 }
 
-function positive(value: number, fallback: number): number {
-  return Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -249,7 +242,7 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
         "Hero tetrahedron effect requires the managed material shader facade.",
       );
     }
-    const viewport = readHeroChapterViewport();
+    const viewport = readHeroViewport();
     const chapterAtlas = createHeroChapterAtlas(
       viewport,
       params.locale.getSnapshot(),
@@ -279,7 +272,7 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       x: clamp((ctx.pointer.normalizedX + 1) * 0.5, 0, 1),
       y: clamp((ctx.pointer.normalizedY + 1) * 0.5, 0, 1),
     };
-    const viewport = readHeroChapterViewport();
+    const viewport = readHeroViewport();
     const chapter = readHeroChapterScrollState(ctx.progress);
     const locale = params.locale.getSnapshot();
     if (
@@ -297,7 +290,7 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
 
     const previousCommittedScheme = state.transition.committedScheme;
     state.transition = stepHeroHoldTransition(state.transition, {
-      interactionEnabled: isHeroThemeInteractionEnabled(chapter),
+      interactionEnabled: chapter.hubInteractive,
       meshPressed: ctx.objectPointer.isPressed,
       primaryPointerDown,
       hitConfirmed: ctx.objectPointer.hit !== undefined,
@@ -325,5 +318,3 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     state.chapterAtlas = undefined;
   },
 });
-
-export const heroEffects = [heroTetrahedronEffect] as const;

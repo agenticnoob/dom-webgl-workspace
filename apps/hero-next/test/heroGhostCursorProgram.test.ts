@@ -4,7 +4,7 @@ import {
   createHeroGhostCursorMaterialProgram,
   createHeroGhostCursorUniforms,
   heroGhostTrailLengths,
-} from "../src/heroGhostCursorProgram";
+} from "../src/ghost/cursorProgram";
 
 const baseOptions = {
   width: 1200,
