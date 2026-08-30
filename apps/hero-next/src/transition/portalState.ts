@@ -39,9 +39,7 @@ export function resolveHeroPortalViewState(
     chapter.exitProgress > 0
       ? resolveContentAfterChapter(chapter.chapterId)
       : chapter.chapterId;
-  const terminalHandoffComplete =
-    nextContentId === heroPortalTerminalContentId && chapter.exitProgress >= 1;
-  const activeContentId = terminalHandoffComplete ? undefined : nextContentId;
+  const activeContentId = nextContentId;
   const sitePresence = 1 - chapter.introHandoff;
   const contentPresence = activeContentId ? 1 - sitePresence : 0;
 

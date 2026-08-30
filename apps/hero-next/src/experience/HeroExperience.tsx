@@ -30,7 +30,7 @@ import {
   useHeroThemeState,
 } from "./useHeroExperienceState";
 import { heroGhostBackgroundEffect } from "../ghost/backgroundEffect";
-import { heroSmoothScroll } from "./smoothScroll";
+import { heroSmoothScroll, refreshHeroScrollLayout } from "./smoothScroll";
 import { HeroPortalStage } from "../transition/HeroPortalStage";
 import { heroPortalMotionEffect } from "../transition/portalEffect";
 import { heroTransitionConfig } from "../transition/transitionConfig";
@@ -208,6 +208,7 @@ function HeroScene() {
       <HeroChapterNarrative
         locale={locale.locale}
         onLocaleChange={locale.store.commit}
+        onFrameLayoutChange={refreshHeroScrollLayout}
       />
     </main>
   );

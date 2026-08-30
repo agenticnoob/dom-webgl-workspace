@@ -12,3 +12,7 @@ export const heroSmoothScroll = {
   ScrollTrigger,
   disableLagSmoothing: true,
 } satisfies WebGLScrollSmoothOptions;
+
+export function refreshHeroScrollLayout(): void {
+  ScrollTrigger.refresh();
+}

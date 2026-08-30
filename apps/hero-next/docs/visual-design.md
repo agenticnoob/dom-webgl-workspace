@@ -31,15 +31,17 @@
 6. 同一排版锚点上的语义 DOM 接管并完成正常章节阅读；
 7. 章节 exit 一开始便在满屏三角遮挡下把两侧文案预切为下一章，再按相反次序收回，
    因而四面体缩回呼吸态时露出的已经是下一内容节点；末章的下一节点是最终联系方式，
-   不再重复第四章简介；末章 exit 完成后由可交互的最终 Hub DOM 接管，Portal 同步卸载，
-   不留下两套可见联系方式。
+   不再重复第四章简介；末章 exit 完成后继续由同一终章 Portal 保持唯一一套标题和简介，
+   最终 runway 只提供无障碍语义和可交互链接，不再从下方重播第二套终章内容。
 
 两侧文案由同一 hero scene 内、位于四面体之后的 DOM-text targets 显示。文案逐字形透明度
 与横向位移读取同一 progress store，四面体扩大时通过真实深度自然遮住它们；React 只在
 `site → site+content → contentId` 这些语义边界跨越时挂载或更换内容，不接收逐帧滚动状态。
 内容序列统一建模为网站介绍、四个章节和最终联系方式，Effect 只消费通用 `contentId`、
 side 和进度，不包含第四章或联系方式专用动画分支。DOM-text raster 继承元素的计算色，
-Portal 标题行盒为粗体字形保留垂直空间。
+以最多 `2×` DPR、sRGB 色彩空间和关闭 mipmap 的线性采样提升高分屏清晰度；Portal
+标题行盒为粗体字形保留垂直空间。响应式 Frame 样式提交后会刷新 ScrollTrigger，保证
+entry/exit 起点与变化后的真实文档布局重新对齐。
 向上滚动使用同一 entry/exit progress 反向解析，文案归属、弧线、姿态和遮挡均严格回放，
 没有脱离浏览器滚动坐标的单向时间线。
 
@@ -58,7 +60,7 @@ Portal 标题行盒为粗体字形保留垂直空间。
 - `src/chapters/geometry.ts` 根据 active face 解析相机空间姿态和投影；
 - `src/chapters/layout.ts` 是 atlas 与语义 DOM 的共享响应式布局模型；
 - `src/chapters/atlas.ts` 从当前 locale 的 typed content 生成四个面的 managed texture；
-- `src/chapters/HeroChapterNarrative.tsx` 负责章节顺序与 Hub 组合，
+- `src/chapters/HeroChapterNarrative.tsx` 负责章节顺序、最终联系方式语义和真实链接，
   `src/chapters/HeroChapter.tsx` 负责章节 timeline、阅读和链接语义；
 - `src/chapters/HeroLocaleControl.tsx` 负责语言交互，`src/preferences/locale.ts`
   是 locale 类型、持久化和 committed state 的唯一真值；
@@ -82,13 +84,14 @@ shader 和章节激活进度不进入 React state。
 
 窄屏以 `700px` 为内容断点：Hub 四面体保留更强的首屏占比，Frame 小字最小为 `14px`，
 两张信号卡提前到视口 `54%` 并在 `320×568` 短屏内完整排下；转场两侧信息提升到
-`12px`，交接中段使用更强的透明度衰减，避免窄栏中的两组长文案同时保持高可见度。
+`13px`，桌面端从 `14px` 起，并为 WebGL 文本行盒保留对称的上下安全区；交接中段使用
+更强的透明度衰减，避免窄栏中的两组长文案同时保持高可见度。
 语言控件保留两色语义，增加稳定背景、安全区偏移、粗体和 `44×44px` 触控目标，
 避免三角揭示或章节反相时未选语言失去对比度。
 
 ## 当前验证边界
 
-- **Automated：** hero-next 21 个 focused test files / 107 tests 覆盖首屏网站介绍、首章文案
+- **Automated：** hero-next 22 个 focused test files / 108 tests 覆盖首屏网站介绍、首章文案
   handoff 静止段、退出时下一内容预选、末章到联系方式、四章选择、双向映射、四个目标面、locale/theme
   持久化、atlas/DOM 内容、shader 和单 runtime/scene/canvas ownership；workspace typecheck
   通过。
@@ -96,8 +99,13 @@ shader 和章节激活进度不进入 React state。
   呼吸静止段、handoff 后弧线飞行、DOM 接管、第一章退出遮挡下预切 `02 / 公理`、缩回
   呼吸态后继续显示第二章简介，以及反向滚动恢复第一章；本轮同时在 `1280×720` 和
   `375×812` 验证 Portal 继承当前主题前景色、标题行盒无裁切、末章退出预切联系方式、
-  反向恢复第四章，以及 exit 完成后仅保留最终 Hub DOM。两种视口均保持单 canvas、
-  无框架错误浮层且 console error/warning 为 0。浏览器媒体模拟也确认 reduced-motion
+  反向恢复第四章，以及 exit 完成后同一终章 Portal 持续显示。两种视口均保持单 canvas、
+  无框架错误浮层且 console error/warning 为 0。`2026-08-30` 另在 `1280×720` 复验
+  真实视口布局提交后会刷新 ScrollTrigger：末章 exit 越过起点便预切 `OPEN LOOP / 同道`，
+  回程四面体两侧不再残留第四章简介；同时在 `1280×720` 与 `375×812` 确认放大后的
+  Portal 行盒无裁切、单 canvas 且 console error/warning 为 0。`2026-08-31` 再次确认
+  第四章退出、四面体回归和页面到底始终只有一套终章视觉内容，旧 `.hero-final-hub`
+  不再挂载，最终 GitHub 与博客链接可见可交互；浏览器媒体模拟也确认 reduced-motion
   路径保留最终联系方式语义。既有 LAN-origin HMR WebSocket 证据未在本轮重跑。
 - **未声称：** 本轮没有覆盖 `320×568`、iOS Safari、Android Chrome 真机、横屏或
   长按主题切换；个人 GLB 和视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺

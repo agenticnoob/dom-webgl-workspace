@@ -47,6 +47,11 @@ describe("hero assets and visual surface", () => {
     expect(css).toMatch(/\.hero-portal-stage\s*\{[^}]*position:\s*fixed/);
     expect(css).toMatch(/\.hero-portal-stage\s*\{[^}]*z-index:\s*11/);
     expect(css).toMatch(/\.hero-portal-copy\s*\{[^}]*grid-row:\s*1/);
+    expect(css).toMatch(/\.hero-portal-line\s*\{[^}]*padding-block:\s*0\.2em/);
+    expect(css).toMatch(
+      /\.hero-portal-stage--final\s*\{[^}]*grid-template-rows:/,
+    );
+    expect(css).not.toMatch(/\.hero-final-hub\s*\{/);
     expect(css).toMatch(/\.hero-chapter\s*\{[^}]*z-index:\s*20/);
     expect(css).toMatch(
       /\.hero-locale\s*\{[^}]*background:\s*var\(--hero-background\)/,
@@ -57,7 +62,7 @@ describe("hero assets and visual surface", () => {
     );
     expect(css).toMatch(/\.hero-locale button\s*\{[^}]*font-weight:\s*700/);
     expect(css).toMatch(
-      /@media \(max-width:\s*700px\)[\s\S]*\.hero-portal-copy\s*\{[^}]*font-size:\s*0\.75rem/,
+      /@media \(max-width:\s*700px\)[\s\S]*\.hero-portal-copy\s*\{[^}]*font-size:\s*0\.8125rem/,
     );
     expect(css).not.toMatch(/\.hero-profile/);
 

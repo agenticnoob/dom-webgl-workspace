@@ -73,9 +73,9 @@ describe("hero portal state", () => {
     });
     expect(finalExit.activeContentId).toBe("contact");
     expect(completedFinalExit).toEqual({
-      activeContentId: undefined,
+      activeContentId: "contact",
       sitePresence: 0,
-      contentPresence: 0,
+      contentPresence: 1,
     });
     expect(
       resolveHeroPortalMotion(coveredExit, {
@@ -114,7 +114,7 @@ describe("hero portal state", () => {
     expect(resolveHeroPortalRenderKey(reader)).toBe("contact");
 
     values.set(last.exit, 1);
-    expect(resolveHeroPortalRenderKey(reader)).toBe("none");
+    expect(resolveHeroPortalRenderKey(reader)).toBe("contact");
 
     values.set(last.exit, 0);
     expect(resolveHeroPortalRenderKey(reader)).toBe("signals");

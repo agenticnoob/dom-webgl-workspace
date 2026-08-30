@@ -1,3 +1,4 @@
+import { LinearFilter, SRGBColorSpace } from "three/src/constants.js";
 import { MeshBasicMaterial } from "three/src/materials/MeshBasicMaterial.js";
 import { Group } from "three/src/objects/Group.js";
 import { Mesh } from "three/src/objects/Mesh.js";
@@ -21,6 +22,7 @@ import {
   createTextCanvasRenderSignature,
   drawTextSnapshotToCanvas,
   readTextCanvasRenderState,
+  resolveTextCanvasDevicePixelRatio,
   type TextCanvasRenderState,
 } from "./textCanvasLayout";
 import {
@@ -34,11 +36,18 @@ import {
 import { acquireSharedPlaneGeometry } from "./sharedPlaneGeometry";
 
 export function createTextPlaneSceneRenderableController(
-  options: Omit<SceneRenderableControllerOptions, "object3D" | "disposeResources">,
+  options: Omit<
+    SceneRenderableControllerOptions,
+    "object3D" | "disposeResources"
+  >,
 ): SceneRenderableController {
   const canvas = options.element.ownerDocument.createElement("canvas");
   const context = readCanvasContext(canvas);
   const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearFilter;
   const textureUpload = createTextureUploadState({
     key: options.key,
     texture,
@@ -99,16 +108,12 @@ export function createTextPlaneSceneRenderableController(
       return;
     }
 
-    const state = readTextCanvasRenderState(
-      options.element,
-      textContent,
-      {
-        width: measurement.width,
-        height: measurement.height,
-        devicePixelRatio: measurement.devicePixelRatio ?? 1,
-        style: initialStyle,
-      },
-    );
+    const state = readTextCanvasRenderState(options.element, textContent, {
+      width: measurement.width,
+      height: measurement.height,
+      devicePixelRatio: measurement.devicePixelRatio ?? 1,
+      style: initialStyle,
+    });
     const renderCacheKey = createTextCanvasRenderSignature(textContent, state);
 
     if (!force && renderCacheKey === lastRenderCacheKey) {
@@ -232,7 +237,7 @@ function updateTextCanvas(
   state: TextCanvasRenderState,
   markCanvasRasterDirty: (state: TextCanvasRenderState) => void,
 ): void {
-  const dpr = Math.min(Math.max(1, state.devicePixelRatio), 1.5);
+  const dpr = resolveTextCanvasDevicePixelRatio(state.devicePixelRatio);
 
   canvas.width = Math.max(1, Math.ceil(state.width * dpr));
   canvas.height = Math.max(1, Math.ceil(state.height * dpr));

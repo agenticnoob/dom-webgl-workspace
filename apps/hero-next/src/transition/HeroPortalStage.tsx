@@ -60,9 +60,16 @@ export function HeroPortalStage({
       : renderKey === "site+content"
         ? heroChapterOrder[0]
         : renderKey;
+  const isFinal = activeContentId === heroPortalTerminalContentId;
+  const stageClassName = [
+    "hero-portal-stage",
+    isFinal ? "hero-portal-stage--final" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="hero-portal-stage" aria-hidden="true">
+    <div className={stageClassName} aria-hidden="true">
       {showSite ? (
         <HeroPortalContent
           key={`${styleKey}:site`}
@@ -88,8 +95,13 @@ function HeroPortalContent({
   readonly contentId: HeroPortalContentId;
   readonly locale: HeroLocale;
 }) {
-  const copy = resolvePortalCopy(contentId, locale);
   const declarations = readPortalDeclarations(contentId);
+
+  if (contentId === heroPortalTerminalContentId) {
+    return <HeroFinalPortalContent locale={locale} webgl={declarations} />;
+  }
+
+  const copy = resolvePortalCopy(contentId, locale);
 
   return (
     <>
@@ -107,6 +119,30 @@ function HeroPortalContent({
         secondary={copy.right.secondary}
         secondaryClassName={copy.right.secondaryClassName}
       />
+    </>
+  );
+}
+
+function HeroFinalPortalContent({
+  locale,
+  webgl,
+}: {
+  readonly locale: HeroLocale;
+  readonly webgl: HeroPortalPair;
+}) {
+  const final = heroSiteContent[locale].final;
+
+  return (
+    <>
+      <PortalText className="hero-portal-final__eyebrow" webgl={webgl.left[0]}>
+        {final.eyebrow}
+      </PortalText>
+      <PortalText className="hero-portal-final__title" webgl={webgl.left[1]}>
+        {final.title}
+      </PortalText>
+      <PortalText className="hero-portal-final__summary" webgl={webgl.right[0]}>
+        {final.summary}
+      </PortalText>
     </>
   );
 }

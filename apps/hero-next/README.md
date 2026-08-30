@@ -11,8 +11,10 @@ triangular reveal, real semantic DOM content, and a reversible exit that
 preselects the following portal content under full cover. The chapters cover
 self, AI/philosophy axioms, public builds, and products/public signals. The
 fourth exit preselects terminal contact copy instead of repeating chapter four,
-and the final Hub exposes confirmed GitHub and blog links. The same scroll
-coordinate resolves the same visual state in either direction.
+then retains that same terminal Portal as the final Hub title and summary. The
+final runway adds confirmed GitHub and blog links without replaying a duplicate
+visual block. The same scroll coordinate resolves the same visual state in
+either direction.
 
 Chinese and English copy share one typed content model and one persisted locale
 store. The current implementation deliberately keeps the established single
@@ -32,10 +34,11 @@ From the repository root:
 npm run dev -w @viselora/hero-next
 ```
 
-The development allowlist currently includes `192.168.50.5`, so devices on the
-same LAN can load `http://192.168.50.5:3000/` and establish the Next.js HMR
-WebSocket. If the host address changes, update `allowedDevOrigins` in
-`next.config.ts` and restart the development server.
+Use the Network URL printed by Next.js to open the app from another device. The
+development allowlist intentionally accepts any dotted hostname or IPv4 origin,
+so DHCP address changes do not require a configuration edit and the HMR
+WebSocket remains available. This applies only to `next dev`; use it only on a
+trusted network and never expose the development port to the public internet.
 
 Focused validation:
 
@@ -75,7 +78,7 @@ npm run build -w @viselora/hero-next
 
 ## Current evidence boundary
 
-Focused automation currently covers 21 hero-next test files / 107 tests,
+Focused automation currently covers 22 hero-next test files / 108 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, site-to-chapter copy handoff, next-content and terminal-contact
 preselection, four target faces, projected lock UVs, localized atlas/DOM layout,

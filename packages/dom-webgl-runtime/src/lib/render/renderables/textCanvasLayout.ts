@@ -32,6 +32,8 @@ export type TextCanvasRenderState = {
   style: DOMStyleSnapshot;
 };
 
+const maxTextCanvasDevicePixelRatio = 2;
+
 type TextBlockAlignment = "start" | "center" | "end";
 
 export function readTextCanvasRenderState(
@@ -51,12 +53,17 @@ export function readTextCanvasRenderState(
   return {
     width: Math.max(
       1,
-      Math.ceil(input?.width ?? domRect.width ?? element.clientWidth ?? fallbackWidth),
+      Math.ceil(
+        input?.width ?? domRect.width ?? element.clientWidth ?? fallbackWidth,
+      ),
     ),
     height: Math.max(
       1,
       Math.ceil(
-        input?.height ?? domRect.height ?? element.clientHeight ?? fallbackHeight,
+        input?.height ??
+          domRect.height ??
+          element.clientHeight ??
+          fallbackHeight,
       ),
     ),
     devicePixelRatio: input?.devicePixelRatio ?? 1,
@@ -81,7 +88,7 @@ export function drawTextSnapshotToCanvas(
   textContent: string,
   state: TextCanvasRenderState,
 ): void {
-  const dpr = Math.min(Math.max(1, state.devicePixelRatio), 1.5);
+  const dpr = resolveTextCanvasDevicePixelRatio(state.devicePixelRatio);
 
   canvas.width = Math.max(1, Math.ceil(state.width * dpr));
   canvas.height = Math.max(1, Math.ceil(state.height * dpr));
@@ -89,6 +96,12 @@ export function drawTextSnapshotToCanvas(
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.scale?.(dpr, dpr);
   drawTextToCanvas(context, textContent, state);
+}
+
+export function resolveTextCanvasDevicePixelRatio(
+  devicePixelRatio: number,
+): number {
+  return Math.min(Math.max(1, devicePixelRatio), maxTextCanvasDevicePixelRatio);
 }
 
 export function createTextCanvasRenderSignature(
@@ -226,7 +239,10 @@ function wrapCanvasText(
 
   const lines: string[] = [];
 
-  for (const paragraph of normalizeTextParagraphs(textContent, state.whiteSpace)) {
+  for (const paragraph of normalizeTextParagraphs(
+    textContent,
+    state.whiteSpace,
+  )) {
     const tokens = tokenizeTextForWrapping(paragraph);
     let line = "";
 
@@ -351,7 +367,8 @@ function measureTextLine(
 ): number {
   const characters = Array.from(line);
   const baseWidth = context.measureText(line).width;
-  const letterSpacing = Math.max(0, characters.length - 1) * state.letterSpacing;
+  const letterSpacing =
+    Math.max(0, characters.length - 1) * state.letterSpacing;
   const wordSpacing =
     characters.filter((character) => character === " ").length *
     state.wordSpacing;

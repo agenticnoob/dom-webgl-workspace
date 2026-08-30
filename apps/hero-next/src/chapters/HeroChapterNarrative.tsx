@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import {
   getHeroChapterContent,
@@ -18,12 +18,18 @@ import type { HeroLocale } from "../preferences/locale";
 export function HeroChapterNarrative({
   locale,
   onLocaleChange,
+  onFrameLayoutChange,
 }: {
   readonly locale: HeroLocale;
   readonly onLocaleChange: (locale: HeroLocale) => void;
+  readonly onFrameLayoutChange: () => void;
 }) {
   const frameStyle = useHeroChapterFrameStyle();
   const site = heroSiteContent[locale];
+
+  useEffect(() => {
+    onFrameLayoutChange();
+  }, [frameStyle, onFrameLayoutChange]);
 
   return (
     <>
@@ -57,24 +63,27 @@ export function HeroChapterNarrative({
         );
       })}
 
-      <section className="hero-hub-runway hero-hub-runway--final">
-        <div className="hero-final-hub">
+      <section
+        className="hero-hub-runway hero-hub-runway--final"
+        aria-labelledby="hero-final-title"
+      >
+        <div className="hero-sr-only">
           <p>{site.final.eyebrow}</p>
-          <h2>{site.final.title}</h2>
+          <h2 id="hero-final-title">{site.final.title}</h2>
           <p>{site.final.summary}</p>
-          <nav aria-label={site.final.linksLabel}>
-            <a
-              href={heroPublicLinks.githubProfile}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {site.final.github}
-            </a>
-            <a href={heroPublicLinks.blog} target="_blank" rel="noreferrer">
-              {site.final.blog}
-            </a>
-          </nav>
         </div>
+        <nav className="hero-final-links" aria-label={site.final.linksLabel}>
+          <a
+            href={heroPublicLinks.githubProfile}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {site.final.github}
+          </a>
+          <a href={heroPublicLinks.blog} target="_blank" rel="noreferrer">
+            {site.final.blog}
+          </a>
+        </nav>
       </section>
     </>
   );

@@ -29,6 +29,7 @@ const progressStore = {
 };
 const capturedEffects: (readonly CapturedMeshEffect[] | undefined)[] = [];
 let meshRenderCount = 0;
+const refreshHeroScrollLayout = vi.hoisted(() => vi.fn());
 
 vi.mock("@viselora/scroll-adapters/react", () => ({
   useScrollEffectProgressStore: () => progressStore,
@@ -87,6 +88,7 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
 
 vi.mock("../src/experience/smoothScroll", () => ({
   heroSmoothScroll: false,
+  refreshHeroScrollLayout,
 }));
 
 vi.mock("@viselora/dom-webgl/react", () => ({
@@ -317,6 +319,8 @@ describe("HeroExperience", () => {
     expect(html).toContain("真正的颠覆，不只是更好的答案");
     expect(html).toContain("Agent 一定要会用");
     expect(html).toContain("愿与同道者共研同进，或有所得，亦未可知");
+    expect(html).not.toContain('class="hero-final-hub"');
+    expect(html).toContain('class="hero-final-links"');
     expect(html).not.toContain("hero.profile");
     expect(html).not.toContain("data-model=");
     expect(html).toContain('href="https://github.com/agenticnoob"');
@@ -344,6 +348,7 @@ describe("HeroExperience", () => {
     expect(capturedEffects[1]?.[0]?.signals).toBe(capturedWriter);
     expect(capturedEffects[1]?.[0]?.theme).toBe(capturedTheme);
     expect(capturedEffects[1]?.[0]?.locale).toBe(capturedLocale);
+    expect(refreshHeroScrollLayout).toHaveBeenCalled();
 
     const rendersBeforeSignalWrite = meshRenderCount;
     capturedWriter?.set(heroTransitionConfig.signalKeys.coverage, 0.5);

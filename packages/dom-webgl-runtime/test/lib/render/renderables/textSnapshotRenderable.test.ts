@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { LinearFilter, SRGBColorSpace } from "three/src/constants.js";
 
 import { createTargetDescriptor } from "../../../../src/lib/dom/targetDescriptor";
 import type { WebGLSceneAdapter } from "../../../../src/lib/renderer/sceneObject";
@@ -20,7 +21,11 @@ describe("createTextSnapshotRenderable", () => {
   test("creates a content renderable and captures target text on update", async () => {
     const element = document.createElement("h1");
     element.textContent = "Hello WebGL text";
-    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.title" },
+      1,
+    );
     const sceneAdapter = createSceneAdapter();
 
     const renderable = createTextSnapshotRenderable(
@@ -84,7 +89,18 @@ describe("createTextSnapshotRenderable", () => {
     const root = sceneAdapter.objects[0]?.object3D as
       | {
           isGroup?: boolean;
-          children?: Array<{ isMesh?: boolean; geometry?: { type?: string } }>;
+          children?: Array<{
+            isMesh?: boolean;
+            geometry?: { type?: string };
+            material?: {
+              map?: {
+                colorSpace?: string;
+                generateMipmaps?: boolean;
+                magFilter?: number;
+                minFilter?: number;
+              };
+            };
+          }>;
         }
       | undefined;
     expect(root?.isGroup).toBe(true);
@@ -92,12 +108,22 @@ describe("createTextSnapshotRenderable", () => {
       isMesh: true,
       geometry: { type: "PlaneGeometry" },
     });
+    expect(root?.children?.[0]?.material?.map).toMatchObject({
+      colorSpace: SRGBColorSpace,
+      generateMipmaps: false,
+      magFilter: LinearFilter,
+      minFilter: LinearFilter,
+    });
   });
 
   test("redraws text content only after internal content invalidation", async () => {
     const element = document.createElement("h1");
     element.textContent = "Initial";
-    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.title" },
+      1,
+    );
     const renderable = createTextSnapshotRenderable(
       {
         descriptor,
@@ -126,7 +152,11 @@ describe("createTextSnapshotRenderable", () => {
   test("does not redraw text content during repeated frame updates", async () => {
     const element = document.createElement("h1");
     element.textContent = "Initial";
-    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.title" },
+      1,
+    );
     const renderable = createTextSnapshotRenderable(
       {
         descriptor,
@@ -147,7 +177,7 @@ describe("createTextSnapshotRenderable", () => {
     expect(renderable.textContent).toBe("Initial");
   });
 
-  test("sizes the text texture to the measured DOM box so it is not stretched", async () => {
+  test("rasterizes text at up to 2x DPR without stretching the DOM box", async () => {
     const element = document.createElement("h2");
     element.textContent = "Text snapshot target";
     Object.assign(element.style, {
@@ -158,7 +188,11 @@ describe("createTextSnapshotRenderable", () => {
       lineHeight: "44px",
       textAlign: "center",
     });
-    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.title" },
+      1,
+    );
     const sceneAdapter = createSceneAdapter();
     const fillText = vi.fn();
     const context = createCanvasContextStub({ fillText });
@@ -187,18 +221,18 @@ describe("createTextSnapshotRenderable", () => {
       },
       {
         sceneAdapter,
-        measureElement: () => createMeasurement(0, 0, 240, 132),
+        measureElement: () => createMeasurement(0, 0, 240, 132, 3),
       },
     );
 
     await renderable.update();
-    renderable.updateLayout?.(createMeasurement(0, 0, 240, 132));
+    renderable.updateLayout?.(createMeasurement(0, 0, 240, 132, 3));
 
     const textureCanvas = sceneAdapter.objects[0]?.textureSource as
-      | HTMLCanvasElement
-      | undefined;
-    expect(textureCanvas?.width).toBe(240);
-    expect(textureCanvas?.height).toBe(132);
+      HTMLCanvasElement | undefined;
+    expect(textureCanvas?.width).toBe(480);
+    expect(textureCanvas?.height).toBe(264);
+    expect(context.scale).toHaveBeenLastCalledWith(2, 2);
     expect(context.font).toContain("36px");
     expect(context.fillStyle).toBe("rgb(29, 33, 28)");
     expect(context.textAlign).toBe("center");
@@ -217,7 +251,11 @@ describe("createTextSnapshotRenderable", () => {
       lineHeight: "40px",
       padding: "20px",
     });
-    const descriptor = createTargetDescriptor(element, { key: "hero.title" }, 1);
+    const descriptor = createTargetDescriptor(
+      element,
+      { key: "hero.title" },
+      1,
+    );
     const sceneAdapter = createSceneAdapter();
     const fillText = vi.fn();
     const context = createCanvasContextStub({ fillText });
@@ -323,6 +361,7 @@ function createMeasurement(
   top: number,
   width: number,
   height: number,
+  devicePixelRatio = 1,
 ) {
   return {
     x: left,
@@ -334,8 +373,16 @@ function createMeasurement(
     bottom: top + height,
     left,
     viewport: { width: 800, height: 600 },
-    devicePixelRatio: 1,
-    layoutSignature: JSON.stringify([left, top, width, height, 800, 600, 1]),
+    devicePixelRatio,
+    layoutSignature: JSON.stringify([
+      left,
+      top,
+      width,
+      height,
+      800,
+      600,
+      devicePixelRatio,
+    ]),
   };
 }
 
