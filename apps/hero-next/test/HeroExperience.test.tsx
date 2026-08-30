@@ -1,4 +1,9 @@
-import { act, createElement, type PropsWithChildren } from "react";
+import {
+  act,
+  createElement,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -168,6 +173,8 @@ vi.mock("@viselora/dom-webgl/react", () => ({
   WebGLTarget: ({
     webgl,
     className,
+    children,
+    as = "div",
   }: {
     webgl: {
       key: string;
@@ -175,24 +182,34 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       renderRole?: string;
       effects?: readonly {
         kind: string;
+        contentId?: string;
+        side?: string;
         depth?: number;
         fov?: number;
         overscan?: number;
       }[];
     };
     className?: string;
+    children?: ReactNode;
+    as?: string;
   }) =>
-    createElement("div", {
-      className,
-      "data-target": webgl.key,
-      "data-placement": webgl.placement?.mode,
-      "data-depth": webgl.placement?.depth,
-      "data-render-role": webgl.renderRole,
-      "data-effect": webgl.effects?.[0]?.kind,
-      "data-effect-depth": webgl.effects?.[0]?.depth,
-      "data-effect-fov": webgl.effects?.[0]?.fov,
-      "data-effect-overscan": webgl.effects?.[0]?.overscan,
-    }),
+    createElement(
+      as,
+      {
+        className,
+        "data-target": webgl.key,
+        "data-placement": webgl.placement?.mode,
+        "data-depth": webgl.placement?.depth,
+        "data-render-role": webgl.renderRole,
+        "data-effect": webgl.effects?.[0]?.kind,
+        "data-effect-content": webgl.effects?.[0]?.contentId,
+        "data-effect-side": webgl.effects?.[0]?.side,
+        "data-effect-depth": webgl.effects?.[0]?.depth,
+        "data-effect-fov": webgl.effects?.[0]?.fov,
+        "data-effect-overscan": webgl.effects?.[0]?.overscan,
+      },
+      children,
+    ),
   WebGLPassViewport: ({
     children,
     id,
@@ -202,12 +219,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     id: string;
     as?: "div" | "figure";
     className?: string;
-  }>) =>
-    createElement(
-      as,
-      { className, "data-pass-viewport": id },
-      children,
-    ),
+  }>) => createElement(as, { className, "data-pass-viewport": id }, children),
 }));
 
 import { HeroExperience } from "../src/experience/HeroExperience";
@@ -220,12 +232,13 @@ beforeEach(() => {
     configurable: true,
     value: { getItem: vi.fn(() => null), setItem: vi.fn() },
   });
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean })
-    .IS_REACT_ACT_ENVIRONMENT = true;
+  (
+    globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 describe("HeroExperience", () => {
-  test("declares one runtime, one tetrahedron scene, and four copied chapter transitions", () => {
+  test("declares one scene with an initial site portal and four chapter timelines", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
     expect(html.match(/data-scene=/g)).toHaveLength(1);
@@ -233,6 +246,10 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-antialias="true"');
     expect(html).toContain('data-max-device-pixel-ratio="2"');
     expect(html.match(/data-timeline=/g)).toHaveLength(8);
+    expect(html.match(/class="hero-chapter-cycle"/g)).toHaveLength(4);
+    expect(html.match(/class="hero-portal-stage"/g)).toHaveLength(1);
+    expect(html.match(/class="hero-portal-copy /g)).toHaveLength(2);
+    expect(html).not.toContain("hero-transition-copy");
     expect(html).toContain('data-timeline="hero.chapter-1.entry.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-1.entry"');
     expect(html).toContain('data-end="bottom top"');
@@ -253,6 +270,15 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-effect-depth="5"');
     expect(html).toContain('data-effect-fov="38"');
     expect(html).toContain('data-effect-overscan="1.06"');
+    expect(html).toContain('data-target="hero.portal.site.left.primary"');
+    expect(html).toContain('data-target="hero.portal.site.left.secondary"');
+    expect(html).toContain('data-target="hero.portal.site.right.primary"');
+    expect(html).toContain('data-target="hero.portal.site.right.secondary"');
+    expect(html).toContain('data-effect="hero.portal.motion"');
+    expect(html).toContain('data-effect-content="site"');
+    expect(html).toContain('data-effect-side="left"');
+    expect(html).toContain('data-effect-side="right"');
+    expect(html).not.toContain('data-target="hero.portal.self.left.primary"');
     expect(html).toContain('data-mesh="hero.tetrahedron.mesh"');
     expect(html).toContain('data-geometry="tetrahedron"');
     expect(html).toContain('data-radius="0.52"');
@@ -267,8 +293,8 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-hit-test="mesh"');
     expect(html).toContain('data-press="true"');
     expect(html).not.toContain('data-target="hero.ghost.foreground"');
-    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(1);
-    expect(html.match(/data-render-role="model"/g)).toHaveLength(1);
+    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(5);
+    expect(html.match(/data-render-role="model"/g)).toHaveLength(5);
     expect(html).toContain('data-light="hero.tetrahedron.key"');
     expect(html).toContain('data-light="hero.tetrahedron.rim"');
     expect(html).toContain('data-light-color="#f2f2f2"');

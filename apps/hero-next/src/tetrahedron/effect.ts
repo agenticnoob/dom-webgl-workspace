@@ -168,6 +168,7 @@ export function applyHeroFrame(
     viewport,
     chapter,
     baseRotation,
+    reducedMotion,
   );
 
   target.scale.setScalar(

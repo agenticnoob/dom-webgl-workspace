@@ -53,7 +53,7 @@ Read [README.md](./README.md) and
 | Chapter content, semantic DOM, and locale control | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
 | Responsive atlas/DOM layout | `src/chapters/layout.ts`, `src/chapters/useChapterFrameStyle.ts`, `src/chapters/atlas.ts` |
 | Committed theme and locale persistence | `src/preferences/` |
-| Constants, hold/radial state, and progress encoding | `src/transition/` |
+| Transition constants, hold/radial/portal state, and progress encoding | `src/transition/` |
 | Mesh effect, material, motion, and shader | `src/tetrahedron/` |
 | Background, cursor, and pointer-light effect | `src/ghost/` |
 | Shared viewport type and browser read | `src/shared/viewport.ts` |

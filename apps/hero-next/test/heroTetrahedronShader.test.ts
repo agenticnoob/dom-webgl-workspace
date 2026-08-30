@@ -209,7 +209,9 @@ describe("hero tetrahedron radial shader", () => {
 
   test("publishes the deterministic screen-lock handoff without changing theme state", () => {
     const chapter = resolveHeroChapterScrollState(
-      heroTransitionConfig.chapterScroll.entry.lockEnd,
+      firstChapterFlightEntry(
+        heroTransitionConfig.chapterScroll.entry.lockEnd,
+      ),
       0,
     );
     const uniforms = createHeroTetrahedronRadialUniforms(
@@ -244,6 +246,11 @@ describe("hero tetrahedron radial shader", () => {
     expect(new Set(normals.map((normal) => JSON.stringify(normal))).size).toBe(4);
   });
 });
+
+function firstChapterFlightEntry(flightProgress: number): number {
+  const { introHandoffEnd } = heroTransitionConfig.chapterScroll.entry;
+  return introHandoffEnd + (1 - introHandoffEnd) * flightProgress;
+}
 
 function createDraft(
   materialKind: WebGLEffectMaterialShaderDraft["materialKind"],

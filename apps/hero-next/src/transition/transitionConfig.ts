@@ -1,10 +1,7 @@
 export type HeroColorToken = "light" | "dark";
 export type HeroSchemeName = "initial" | "inverted";
 export type HeroTransitionPhase =
-  | "idle"
-  | "expanding"
-  | "retracting"
-  | "awaiting-release";
+  "idle" | "expanding" | "retracting" | "awaiting-release";
 
 type HeroScheme = {
   readonly background: HeroColorToken;
@@ -43,6 +40,7 @@ export type HeroTransitionConfig = {
   readonly geometry: { readonly radius: number };
   readonly chapterScroll: {
     readonly entry: {
+      readonly introHandoffEnd: number;
       readonly orientEnd: number;
       readonly lockEnd: number;
     };
@@ -58,6 +56,10 @@ export type HeroTransitionConfig = {
     readonly lockTriangleWidthFraction: number;
     readonly lockTriangleMaxHeightFraction: number;
     readonly revealOverscan: number;
+    readonly approachArcX: number;
+    readonly approachArcY: number;
+    readonly approachPullback: number;
+    readonly approachBank: number;
   };
   readonly visual: {
     readonly ghostBrightness: number;
@@ -108,7 +110,7 @@ export const heroTransitionConfig = {
   },
   geometry: { radius: 0.52 },
   chapterScroll: {
-    entry: { orientEnd: 0.26, lockEnd: 0.62 },
+    entry: { introHandoffEnd: 0.18, orientEnd: 0.26, lockEnd: 0.62 },
     exit: { contractEnd: 0.38, retreatEnd: 0.74 },
   },
   chapterGeometry: {
@@ -118,6 +120,10 @@ export const heroTransitionConfig = {
     lockTriangleWidthFraction: 1,
     lockTriangleMaxHeightFraction: 1,
     revealOverscan: 1.035,
+    approachArcX: 0.34,
+    approachArcY: 0.16,
+    approachPullback: 0.18,
+    approachBank: 0.14,
   },
   visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
   motion: {

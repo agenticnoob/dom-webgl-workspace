@@ -4,7 +4,7 @@ import { createFallbackVisibilityController } from "../../../src/lib/dom/fallbac
 import { readDOMStyleSnapshot } from "../../../src/lib/dom/styleSnapshot";
 
 describe("readDOMStyleSnapshot", () => {
-  test("reads layout content and media placement styles only", () => {
+  test("reads text color, layout content, and media placement styles", () => {
     const element = document.createElement("div");
 
     Object.assign(element.style, {
@@ -47,6 +47,7 @@ describe("readDOMStyleSnapshot", () => {
     expect(snapshot.box).not.toHaveProperty("transform");
     expect(snapshot.box).not.toHaveProperty("transformOrigin");
     expect(snapshot.text).toMatchObject({
+      color: "rgb(20, 24, 28)",
       lineHeight: 30,
       paddingTop: 10,
       paddingRight: 14,
@@ -57,13 +58,13 @@ describe("readDOMStyleSnapshot", () => {
       whiteSpace: "pre-wrap",
       wordSpacing: 3,
     });
-    expect(snapshot.text).not.toHaveProperty("color");
     expect(snapshot.media).toEqual({
       objectFit: "cover",
       objectPosition: "25% 75%",
     });
     expect(snapshot.rasterSignature).not.toContain("rgb(240, 248, 255)");
     expect(snapshot.rasterSignature).not.toContain("rgba(0, 0, 0, 0.2)");
+    expect(snapshot.rasterSignature).toContain("rgb(20, 24, 28)");
   });
 
   test("reads author visibility after runtime fallback hiding", () => {

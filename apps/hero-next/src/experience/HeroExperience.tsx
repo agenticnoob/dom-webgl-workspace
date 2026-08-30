@@ -31,12 +31,15 @@ import {
 } from "./useHeroExperienceState";
 import { heroGhostBackgroundEffect } from "../ghost/backgroundEffect";
 import { heroSmoothScroll } from "./smoothScroll";
+import { HeroPortalStage } from "../transition/HeroPortalStage";
+import { heroPortalMotionEffect } from "../transition/portalEffect";
 import { heroTransitionConfig } from "../transition/transitionConfig";
 import type { HeroTransitionSignalWriter } from "../transition/signals";
 
 const heroRuntimeEffects = [
   heroTetrahedronEffect,
   heroGhostBackgroundEffect,
+  heroPortalMotionEffect,
 ] as const;
 
 const heroRenderQuality = {
@@ -172,6 +175,11 @@ function HeroScene() {
           className="hero-ghost-surface hero-ghost-surface--background"
           aria-hidden="true"
           webgl={ghostBackgroundDeclaration}
+        />
+        <HeroPortalStage
+          locale={locale.locale}
+          progress={store.source}
+          styleKey={theme.scheme}
         />
         <WebGLMesh
           id="hero.tetrahedron.mesh"

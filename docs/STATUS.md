@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-08-26; registry release truth
+**Last verified: hero-next current source 2026-08-30; registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -86,12 +86,13 @@ The private Next.js consumer uses public managed scene, mesh, model, effect,
 shader, lighting, render-quality, and scroll APIs. It implements four reversible
 chapters across the tetrahedron's four faces, localized Chinese/English atlas
 and semantic content, unique transition-side information, project/public links,
-and a final contact Hub. It preserves the established single tetrahedron scene
-and foreground/background composition; no personal-model pass is mounted in the
-current baseline. The hold-driven radial theme switch remains Hub-only, while
-theme and locale each persist one committed truth locally.
+and a final contact Hub preselected under the fourth chapter's covered exit. It
+preserves the established single tetrahedron scene and foreground/background
+composition; no personal-model pass is mounted in the current baseline. The
+hold-driven radial theme switch remains Hub-only, while theme and locale each
+persist one committed truth locally.
 
-Focused automation currently covers 20 hero-next test files / 102 tests. Current
+Focused automation currently covers 21 hero-next test files / 107 tests. Current
 desktop, mobile, short-screen, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 Content is a base version for later editorial direction; personal GLB integration

@@ -103,7 +103,7 @@ export function drawTextToCanvas(
   textContent: string,
   state: TextCanvasRenderState,
 ): void {
-  context.fillStyle = "#000000";
+  context.fillStyle = state.style.text.color;
   context.font = state.font;
   context.textAlign = state.textAlign;
   context.textBaseline = "top";

@@ -29,7 +29,7 @@ export function HeroChapter({
   const chapterCounter = `${definition.number} / ${String(heroChapterCount).padStart(2, "0")}`;
 
   return (
-    <>
+    <div className="hero-chapter-cycle">
       <WebGLScrollTimeline
         as="section"
         id={`hero.chapter-${definition.ordinal}.entry.timeline`}
@@ -39,9 +39,7 @@ export function HeroChapter({
         end="bottom top"
         scrub
         aria-hidden="true"
-      >
-        <HeroTransitionCopy content={content} />
-      </WebGLScrollTimeline>
+      />
 
       <article
         id={chapterId}
@@ -109,25 +107,6 @@ export function HeroChapter({
           </div>
         </WebGLScrollTimeline>
       </article>
-    </>
-  );
-}
-
-function HeroTransitionCopy({ content }: Pick<HeroChapterProps, "content">) {
-  return (
-    <div className="hero-transition-copy">
-      <section>
-        <p>{content.portal.left.label}</p>
-        <p>{content.portal.left.body}</p>
-      </section>
-      <section>
-        <p>{content.portal.right.label}</p>
-        <ul>
-          {content.portal.right.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

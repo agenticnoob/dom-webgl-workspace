@@ -15,6 +15,7 @@ export type DOMBoxStyleSnapshot = {
 };
 
 export type DOMTextStyleSnapshot = {
+  color: string;
   font: string;
   lineHeight: number;
   letterSpacing: number;
@@ -63,6 +64,7 @@ export function readDOMStyleSnapshot(element: HTMLElement): DOMStyleSnapshot {
     overflow: computedStyle?.overflow || "visible",
   };
   const text: DOMTextStyleSnapshot = {
+    color: computedStyle?.color || "#000000",
     font: readCanvasFont(computedStyle),
     lineHeight:
       readCSSPixelValue(computedStyle?.lineHeight) || Math.ceil(fontSize * 1.2),

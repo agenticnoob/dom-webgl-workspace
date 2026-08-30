@@ -68,6 +68,8 @@ The subtype is declared with `type`, for example:
 
 Default render roles are inferred from the source: DOM elements become
 surfaces, DOM text becomes content, media becomes media, and GLB becomes model.
+DOM text snapshots preserve the source element's computed typography and color
+so runtime rasterization follows the active semantic theme.
 
 ### Managed scenes
 

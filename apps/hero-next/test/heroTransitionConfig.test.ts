@@ -39,7 +39,7 @@ describe("hero transition config", () => {
         frequenciesHz: [11, 13, 17],
       },
       chapterScroll: {
-        entry: { orientEnd: 0.26, lockEnd: 0.62 },
+        entry: { introHandoffEnd: 0.18, orientEnd: 0.26, lockEnd: 0.62 },
         exit: { contractEnd: 0.38, retreatEnd: 0.74 },
       },
       chapterGeometry: {
@@ -49,6 +49,10 @@ describe("hero transition config", () => {
         lockTriangleWidthFraction: 1,
         lockTriangleMaxHeightFraction: 1,
         revealOverscan: 1.035,
+        approachArcX: 0.34,
+        approachArcY: 0.16,
+        approachPullback: 0.18,
+        approachBank: 0.14,
       },
       visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
     });

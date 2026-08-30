@@ -3,12 +3,16 @@
 `@viselora/hero-next` is a private Next.js App Router consumer used to validate
 the public Viselora packages in a production application shape.
 
-The current experience is a four-chapter personal narrative. Each chapter owns
-one tetrahedron face, unique transition-side information, a screen-locked
-triangular reveal, real semantic DOM content, and a reversible exit back to a
-complete Hub. The chapters cover self, AI/philosophy axioms, public builds, and
-products/public signals. A final Hub exposes confirmed GitHub and blog links.
-The same scroll coordinate resolves the same visual state in either direction.
+The current experience is a four-chapter personal narrative. The opening Hub
+first presents site-level context beside the breathing tetrahedron, then hands
+those two side columns to chapter one before spatial flight begins. Each chapter
+owns one tetrahedron face, unique transition-side information, a screen-locked
+triangular reveal, real semantic DOM content, and a reversible exit that
+preselects the following portal content under full cover. The chapters cover
+self, AI/philosophy axioms, public builds, and products/public signals. The
+fourth exit preselects terminal contact copy instead of repeating chapter four,
+and the final Hub exposes confirmed GitHub and blog links. The same scroll
+coordinate resolves the same visual state in either direction.
 
 Chinese and English copy share one typed content model and one persisted locale
 store. The current implementation deliberately keeps the established single
@@ -55,25 +59,26 @@ npm run build -w @viselora/hero-next
 
 ## Source map
 
-| Responsibility | Path |
-| --- | --- |
-| Page/runtime composition and subscriptions | `src/experience/` |
-| Chapter identity, signals, face, and atlas mapping | `src/chapters/definitions.ts` |
-| Chapter content, semantic composition, and locale control | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
-| Reversible scroll, geometry, layout, and atlas | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts` |
-| Theme and locale persistence | `src/preferences/` |
-| Hold state, palette/config, and progress encoding | `src/transition/` |
-| Tetrahedron effect and managed shader | `src/tetrahedron/` |
-| Background, cursor, and pointer-light effects | `src/ghost/` |
-| Shared viewport boundary | `src/shared/viewport.ts` |
-| App constraints | `AGENTS.md` |
-| Current visual direction | `docs/visual-design.md` |
+| Responsibility                                                  | Path                                                                                                                                     |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Page/runtime composition and subscriptions                      | `src/experience/`                                                                                                                        |
+| Chapter identity, signals, face, and atlas mapping              | `src/chapters/definitions.ts`                                                                                                            |
+| Chapter content, semantic composition, and locale control       | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
+| Reversible scroll, geometry, layout, and atlas                  | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts`                             |
+| Theme and locale persistence                                    | `src/preferences/`                                                                                                                       |
+| Hold/radial/portal state, palette/config, and progress encoding | `src/transition/`                                                                                                                        |
+| Tetrahedron effect and managed shader                           | `src/tetrahedron/`                                                                                                                       |
+| Background, cursor, and pointer-light effects                   | `src/ghost/`                                                                                                                             |
+| Shared viewport boundary                                        | `src/shared/viewport.ts`                                                                                                                 |
+| App constraints                                                 | `AGENTS.md`                                                                                                                              |
+| Current visual direction                                        | `docs/visual-design.md`                                                                                                                  |
 
 ## Current evidence boundary
 
-Focused automation currently covers 20 hero-next test files / 102 tests,
+Focused automation currently covers 21 hero-next test files / 107 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
-persistence, four target faces, projected lock UVs, localized atlas/DOM layout,
+persistence, site-to-chapter copy handoff, next-content and terminal-contact
+preselection, four target faces, projected lock UVs, localized atlas/DOM layout,
 shader behavior, and one-runtime/one-scene/one-canvas ownership. Current desktop,
 mobile, short-screen, interaction, and LAN-origin browser evidence is owned by
 [the visual direction](./docs/visual-design.md). Canvas and DOM glyph

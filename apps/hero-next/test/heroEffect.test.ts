@@ -214,7 +214,9 @@ describe("hero tetrahedron effect", () => {
         expect.objectContaining({
           key: heroTetrahedronRadialShaderKey,
           uniforms: expect.objectContaining({
-            heroChapterAtlas: expect.objectContaining({ kind: "canvas-texture" }),
+            heroChapterAtlas: expect.objectContaining({
+              kind: "canvas-texture",
+            }),
           }),
         }),
       );
@@ -355,12 +357,14 @@ describe("hero tetrahedron effect", () => {
         heroRadialEdgePx: 1.5,
       }),
     );
-    const expandingRadius = target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
-      ?.heroRadialRadiusPx;
+    const expandingRadius =
+      target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
+        ?.heroRadialRadiusPx;
     applyHeroFrame(target, motion, 0, retracting, desktop, false);
     expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
-    const retractingRadius = target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
-      ?.heroRadialRadiusPx;
+    const retractingRadius =
+      target.material.shader.setUniforms.mock.calls.at(-1)?.[1]
+        ?.heroRadialRadiusPx;
     expect(retractingRadius).toBeLessThan(expandingRadius);
     applyHeroFrame(target, motion, 0, idleInitial, desktop, false);
     expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
@@ -402,11 +406,15 @@ describe("hero tetrahedron effect", () => {
     );
   });
 
-  test("composes rotation with approach, then holds alignment through curtain motion", () => {
+  test("composes curved flight and rotation, then holds alignment through curtain motion", () => {
     const { orientEnd, lockEnd } = heroTransitionConfig.chapterScroll.entry;
-    const chapters = [0.1, orientEnd, 0.44, lockEnd, 0.8].map((entry) =>
-      resolveHeroChapterScrollState(entry, 0),
-    );
+    const chapters = [
+      firstChapterFlightEntry(0.1),
+      firstChapterFlightEntry(orientEnd),
+      firstChapterFlightEntry(0.44),
+      firstChapterFlightEntry(lockEnd),
+      firstChapterFlightEntry(0.8),
+    ].map((entry) => resolveHeroChapterScrollState(entry, 0));
     const frames = chapters.map((chapter) =>
       resolveHeroChapterGeometryFrame(
         desktop,
@@ -436,9 +444,11 @@ describe("hero tetrahedron effect", () => {
     expect(chapters[0]!.approach).toBeGreaterThan(0);
     expect(chapters[1]).toMatchObject({
       phase: "face-approach",
-      orientation: 1,
     });
-    expect(chapters[2]!.orientation).toBe(1);
+    expect(chapters[1]!.orientation).toBeGreaterThan(chapters[0]!.orientation);
+    expect(chapters[1]!.orientation).toBeLessThan(1);
+    expect(chapters[2]!.orientation).toBeGreaterThan(chapters[1]!.orientation);
+    expect(chapters[2]!.orientation).toBeLessThan(1);
     expect(chapters[2]!.approach).toBeGreaterThan(chapters[1]!.approach);
     expect(chapters[3]).toMatchObject({
       approach: 1,
@@ -446,14 +456,18 @@ describe("hero tetrahedron effect", () => {
       triangleReveal: 0,
     });
     expect(chapters[4]!.triangleReveal).toBeGreaterThan(0);
-    expect(frames[0]!.position[2]).toBeGreaterThan(0);
+    expect(frames[0]!.position[2]).toBeLessThan(0);
     expect(frames[0]!.rotation).not.toEqual(
       heroTransitionConfig.motion.baseRotation,
     );
-    expect(frames[1]!.rotation).toEqual(
+    expect(frames[1]!.rotation).not.toEqual(
       getHeroChapterDefinition("self").face.targetRotation,
     );
-    expect(frames[2]!.rotation).toEqual(frames[1]!.rotation);
+    expect(frames[2]!.rotation).not.toEqual(frames[1]!.rotation);
+    expect(frames[3]!.rotation).toEqual(
+      getHeroChapterDefinition("self").face.targetRotation,
+    );
+    expect(frames[4]!.rotation).toEqual(frames[3]!.rotation);
     expect(frames[1]!.position[2]).toBeLessThan(frames[2]!.position[2]);
     expect(frames[2]!.position[2]).toBeLessThan(frames[3]!.position[2]);
     expect(frames[3]!.position[2]).toBeLessThan(frames[4]!.position[2]);
@@ -498,8 +512,12 @@ describe("hero tetrahedron effect", () => {
       false,
     );
 
-    expect(first.position.set.mock.calls).toEqual(second.position.set.mock.calls);
-    expect(first.rotation.set.mock.calls).toEqual(second.rotation.set.mock.calls);
+    expect(first.position.set.mock.calls).toEqual(
+      second.position.set.mock.calls,
+    );
+    expect(first.rotation.set.mock.calls).toEqual(
+      second.rotation.set.mock.calls,
+    );
     expect(first.position.set.mock.calls[0]?.[0]).not.toBe(0);
 
     const reduced = createTarget();
@@ -609,3 +627,8 @@ describe("hero tetrahedron effect", () => {
     });
   });
 });
+
+function firstChapterFlightEntry(flightProgress: number): number {
+  const { introHandoffEnd } = heroTransitionConfig.chapterScroll.entry;
+  return introHandoffEnd + (1 - introHandoffEnd) * flightProgress;
+}

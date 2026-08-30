@@ -35,6 +35,7 @@ describe("text canvas layout", () => {
     expect(state).toMatchObject({
       width: 240,
       height: 132,
+      style: { text: { color: "rgb(29, 33, 28)" } },
       lineHeight: 44,
       paddingTop: 12,
       paddingRight: 18,
@@ -46,7 +47,6 @@ describe("text canvas layout", () => {
       wordSpacing: 4,
       devicePixelRatio: 2,
     });
-    expect(state.style.text).not.toHaveProperty("color");
     expect(state.style.box).not.toHaveProperty("backgroundColor");
     expect(state).not.toHaveProperty("color");
     expect(state.font).toContain("36px");
@@ -74,7 +74,7 @@ describe("text canvas layout", () => {
     });
 
     expect(context.font).toBe("700 36px Arial");
-    expect(context.fillStyle).toBe("#000000");
+    expect(context.fillStyle).toBe("canvastext");
     expect(context.textAlign).toBe("right");
     expect(context.fillText).toHaveBeenCalledWith("Title", 210, 70);
   });

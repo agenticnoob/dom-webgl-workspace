@@ -17,59 +17,77 @@ type Vector3 = readonly [number, number, number];
 const desktop = { width: 1200, height: 835 } as const;
 const mobile = { width: 390, height: 844 } as const;
 const hubRotation = heroTransitionConfig.motion.baseRotation;
-const targetFaceNormal = normalize(
-  getHeroChapterDefinition("self").face.normal,
-);
+const targetFace = getHeroChapterDefinition("self").face;
+const targetFaceNormal = normalize(targetFace.normal);
 describe("four-chapter camera-space geometry", () => {
-  test.each(heroChapterOrder.map((chapterId) => [chapterId, getHeroChapterDefinition(chapterId).face] as const))(
+  test.each(
+    heroChapterOrder.map(
+      (chapterId) =>
+        [chapterId, getHeroChapterDefinition(chapterId).face] as const,
+    ),
+  )(
     "aligns chapter %s face normal and face up with the camera frame",
     (chapterId, face) => {
-    const camera = resolveHeroChapterCameraFrame();
-    const rotation = face.targetRotation;
+      const camera = resolveHeroChapterCameraFrame();
+      const rotation = face.targetRotation;
 
-    expectVector(rotateXyz(normalize(face.normal), rotation), camera.facing);
-    expectVector(rotateXyz(normalize(face.up), rotation), camera.up);
-    expectVector(
-      resolveHeroChapterGeometryFrame(
-        desktop,
-        resolveHeroChapterScrollState(1, 0, chapterId),
-        hubRotation,
-      ).rotation,
-      rotation,
+      expectVector(rotateXyz(normalize(face.normal), rotation), camera.facing);
+      expectVector(rotateXyz(normalize(face.up), rotation), camera.up);
+      expectVector(
+        resolveHeroChapterGeometryFrame(
+          desktop,
+          resolveHeroChapterScrollState(1, 0, chapterId),
+          hubRotation,
+        ).rotation,
+        rotation,
+      );
+    },
+  );
+
+  test("flies on an off-axis arc while turning, then settles exactly on the optical axis", () => {
+    const { orientEnd, lockEnd } = heroTransitionConfig.chapterScroll.entry;
+    const earlyState = resolveHeroChapterScrollState(
+      firstChapterFlightEntry(orientEnd / 2),
+      0,
     );
-  });
-
-  test("rotates and advances together before settling exactly on the optical axis", () => {
-    const { orientEnd } = heroTransitionConfig.chapterScroll.entry;
-    const earlyState = resolveHeroChapterScrollState(orientEnd / 2, 0);
-    const alignedState = resolveHeroChapterScrollState(orientEnd, 0);
-    const laterState = resolveHeroChapterScrollState(orientEnd + 0.12, 0);
+    const midState = resolveHeroChapterScrollState(
+      firstChapterFlightEntry((orientEnd + lockEnd) / 2),
+      0,
+    );
+    const alignedState = resolveHeroChapterScrollState(
+      firstChapterFlightEntry(lockEnd),
+      0,
+    );
     const early = resolveHeroChapterGeometryFrame(
       desktop,
       earlyState,
       hubRotation,
     );
+    const mid = resolveHeroChapterGeometryFrame(desktop, midState, hubRotation);
     const aligned = resolveHeroChapterGeometryFrame(
       desktop,
       alignedState,
       hubRotation,
     );
-    const later = resolveHeroChapterGeometryFrame(
+    const reducedMid = resolveHeroChapterGeometryFrame(
       desktop,
-      laterState,
+      midState,
       hubRotation,
+      true,
     );
     const camera = resolveHeroChapterCameraFrame();
-    const objectToCamera = normalize(subtract(camera.position, aligned.position));
+    const objectToCamera = normalize(
+      subtract(camera.position, aligned.position),
+    );
 
     expect(early.position[2]).toBeGreaterThan(0);
     expect(early.rotation).not.toEqual(hubRotation);
-    expectVector(
-      rotateXyz(targetFaceNormal, aligned.rotation),
-      objectToCamera,
-    );
-    expectVector(aligned.rotation, later.rotation);
-    expect(later.position[2]).toBeGreaterThan(aligned.position[2]);
+    expect(mid.position[0]).not.toBeCloseTo(0, 9);
+    expect(reducedMid.position[0]).toBeCloseTo(0, 9);
+    expect(mid.rotation).not.toEqual(targetFace.targetRotation);
+    expectVector(rotateXyz(targetFaceNormal, aligned.rotation), objectToCamera);
+    expectVector(aligned.rotation, targetFace.targetRotation);
+    expect(aligned.position[0]).toBeCloseTo(0, 9);
   });
 
   test.each([
@@ -79,7 +97,9 @@ describe("four-chapter camera-space geometry", () => {
     "reaches real DOM scale before the %s curtain starts",
     (_name, viewport) => {
       const lockState = resolveHeroChapterScrollState(
-        heroTransitionConfig.chapterScroll.entry.lockEnd,
+        firstChapterFlightEntry(
+          heroTransitionConfig.chapterScroll.entry.lockEnd,
+        ),
         0,
       );
       const lock = resolveHeroChapterGeometryFrame(
@@ -97,10 +117,7 @@ describe("four-chapter camera-space geometry", () => {
         triangleReveal: 0,
       });
       expect(
-        Math.max(
-          heightFraction,
-          lockProjection.widthFraction,
-        ),
+        Math.max(heightFraction, lockProjection.widthFraction),
       ).toBeCloseTo(1, 9);
     },
   );
@@ -118,46 +135,57 @@ describe("four-chapter camera-space geometry", () => {
         projection.heightFraction / (aspect * (Math.sqrt(3) / 2)),
         12,
       );
-      expect(Math.max(projection.widthFraction, projection.heightFraction))
-        .toBeCloseTo(1, 12);
+      expect(
+        Math.max(projection.widthFraction, projection.heightFraction),
+      ).toBeCloseTo(1, 12);
     },
   );
 
   test.each([
     ["desktop", desktop],
     ["mobile", mobile],
-  ] as const)("covers the %s viewport only through curtain motion", (_name, viewport) => {
-    const lock = resolveHeroChapterGeometryFrame(
-      viewport,
-      resolveHeroChapterScrollState(
-        heroTransitionConfig.chapterScroll.entry.lockEnd,
-        0,
-      ),
-      hubRotation,
-    );
-    const revealed = resolveHeroChapterGeometryFrame(
-      viewport,
-      resolveHeroChapterScrollState(1, 0),
-      hubRotation,
-    );
-    const projection = projectedTriangle(viewport, revealed);
+  ] as const)(
+    "covers the %s viewport only through curtain motion",
+    (_name, viewport) => {
+      const lock = resolveHeroChapterGeometryFrame(
+        viewport,
+        resolveHeroChapterScrollState(
+          firstChapterFlightEntry(
+            heroTransitionConfig.chapterScroll.entry.lockEnd,
+          ),
+          0,
+        ),
+        hubRotation,
+      );
+      const revealed = resolveHeroChapterGeometryFrame(
+        viewport,
+        resolveHeroChapterScrollState(1, 0),
+        hubRotation,
+      );
+      const projection = projectedTriangle(viewport, revealed);
 
-    expect(revealed.rotation).toEqual(lock.rotation);
-    expect(revealed.scale).toBe(lock.scale);
-    expect(revealed.position[2]).toBeGreaterThan(lock.position[2]);
-    expect(projection.baseNdcY).toBeLessThanOrEqual(-1);
-    expect(projection.apexNdcY).toBeGreaterThanOrEqual(1);
-    expect(projection.halfWidthAtTop).toBeGreaterThanOrEqual(1);
-  });
+      expect(revealed.rotation).toEqual(lock.rotation);
+      expect(revealed.scale).toBe(lock.scale);
+      expect(revealed.position[2]).toBeGreaterThan(lock.position[2]);
+      expect(projection.baseNdcY).toBeLessThanOrEqual(-1);
+      expect(projection.apexNdcY).toBeGreaterThanOrEqual(1);
+      expect(projection.halfWidthAtTop).toBeGreaterThanOrEqual(1);
+    },
+  );
 
   test("returns the exact same geometry for the same scroll state", () => {
     const state = resolveHeroChapterScrollState(0.81, 0);
 
-    expect(resolveHeroChapterGeometryFrame(desktop, state, hubRotation)).toEqual(
+    expect(
       resolveHeroChapterGeometryFrame(desktop, state, hubRotation),
-    );
+    ).toEqual(resolveHeroChapterGeometryFrame(desktop, state, hubRotation));
   });
 });
+
+function firstChapterFlightEntry(flightProgress: number): number {
+  const { introHandoffEnd } = heroTransitionConfig.chapterScroll.entry;
+  return introHandoffEnd + (1 - introHandoffEnd) * flightProgress;
+}
 
 function projectedFaceHeightFraction(
   frame: ReturnType<typeof resolveHeroChapterGeometryFrame>,
@@ -196,8 +224,7 @@ function projectedTriangle(
   const baseNdcY = centroidNdcY - (2 * heightFraction) / 3;
   const apexNdcY = centroidNdcY + (4 * heightFraction) / 3;
   const halfWidthAtTop =
-    (apexNdcY - 1) /
-    (Math.sqrt(3) * (viewport.width / viewport.height));
+    (apexNdcY - 1) / (Math.sqrt(3) * (viewport.width / viewport.height));
 
   return { baseNdcY, apexNdcY, halfWidthAtTop };
 }

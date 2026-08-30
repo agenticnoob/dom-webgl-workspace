@@ -80,6 +80,10 @@ a {
   min-height: 520svh;
 }
 
+.hero-chapter-cycle {
+  position: relative;
+}
+
 .hero-chapter {
   position: relative;
   z-index: 20;
@@ -124,8 +128,7 @@ a {
 
 .hero-chapter__header h1 {
   max-width: 10ch;
-  margin: var(--hero-heading-margin-top) 0
-    var(--hero-heading-margin-bottom);
+  margin: var(--hero-heading-margin-top) 0 var(--hero-heading-margin-bottom);
   font-size: var(--hero-heading-font-size);
   font-weight: 700;
   line-height: var(--hero-heading-line-height);
@@ -275,38 +278,57 @@ a {
   color: var(--hero-background);
 }
 
-.hero-transition-copy {
-  position: sticky;
-  top: 0;
+.hero-portal-stage {
+  --hero-portal-travel: clamp(3rem, 16vw, 15rem);
+
+  position: fixed;
+  z-index: 11;
+  inset: 0;
   display: grid;
   grid-template-columns: minmax(10rem, 18rem) minmax(10rem, 18rem);
   justify-content: space-between;
   align-items: center;
-  min-height: 100svh;
   padding: max(24px, 5vw);
   color: var(--hero-foreground);
+  pointer-events: none;
+}
+
+.hero-portal-copy {
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
   font-size: clamp(0.72rem, 1vw, 0.92rem);
   line-height: 1.5;
   letter-spacing: 0.08em;
+  pointer-events: none;
 }
 
-.hero-transition-copy section:last-child {
+.hero-portal-copy--left {
+  grid-column: 1;
+}
+
+.hero-portal-copy--right {
+  grid-column: 2;
   text-align: right;
 }
 
-.hero-transition-copy p,
-.hero-transition-copy ul {
+.hero-portal-line {
+  width: calc(100% + var(--hero-portal-travel) + var(--hero-portal-travel));
   margin: 0;
+  padding-inline: var(--hero-portal-travel);
+  margin-inline: calc(-1 * var(--hero-portal-travel));
+  white-space: pre-line;
 }
 
-.hero-transition-copy p + p,
-.hero-transition-copy p + ul {
+.hero-portal-line + .hero-portal-line {
   margin-top: 1rem;
 }
 
-.hero-transition-copy ul {
-  padding: 0;
-  list-style: none;
+.hero-portal-copy__headline {
+  font-size: clamp(1.4rem, 2.4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
 }
 
 .hero-chapter__note a {
@@ -392,15 +414,22 @@ a {
     min-height: 34svh;
   }
 
-  .hero-transition-copy {
+  .hero-portal-stage {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: clamp(2rem, 14vw, 3.5rem);
     padding: max(1rem, env(safe-area-inset-top))
       max(1rem, env(safe-area-inset-right))
       max(1rem, env(safe-area-inset-bottom))
       max(1rem, env(safe-area-inset-left));
+  }
+
+  .hero-portal-copy {
     font-size: 0.75rem;
     letter-spacing: 0.05em;
+  }
+
+  .hero-portal-copy__headline {
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
   }
 
   .hero-chapter__body > h2 {

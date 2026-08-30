@@ -7,6 +7,7 @@ import { heroTransitionConfig } from "../transition/transitionConfig";
 
 export type HeroChapterScrollPhase =
   | "hub-start"
+  | "intro-handoff"
   | "orient-approach"
   | "face-approach"
   | "triangle-reveal"
@@ -22,6 +23,7 @@ export type HeroChapterScrollState = {
   readonly phaseProgress: number;
   readonly entryProgress: number;
   readonly exitProgress: number;
+  readonly introHandoff: number;
   readonly orientation: number;
   readonly approach: number;
   readonly screenLock: number;
@@ -43,8 +45,15 @@ export function resolveHeroChapterScrollState(
   const exit = normalized(exitProgress);
   const { entry: entryStops, exit: exitStops } =
     heroTransitionConfig.chapterScroll;
-  const entryApproach = eased(segment(entry, 0, entryStops.lockEnd));
-  const exitApproach = 1 - eased(segment(exit, exitStops.contractEnd, 1));
+  const isFirstChapter = chapterId === heroChapterOrder[0];
+  const flightStart = isFirstChapter ? entryStops.introHandoffEnd : 0;
+  const flight = snapToStops(segment(entry, flightStart, 1), [
+    entryStops.orientEnd,
+    entryStops.lockEnd,
+  ]);
+  const entryApproach = eased(segment(flight, 0, entryStops.lockEnd));
+  const entryOrientation = eased(segment(flight, 0, entryStops.lockEnd));
+  const exitFlight = 1 - eased(segment(exit, exitStops.contractEnd, 1));
 
   if (exit >= 1) {
     return createState(
@@ -89,8 +98,8 @@ export function resolveHeroChapterScrollState(
         progress,
         entry,
         exit,
-        1,
-        exitApproach,
+        exitFlight,
+        exitFlight,
         0,
         0,
       );
@@ -103,8 +112,8 @@ export function resolveHeroChapterScrollState(
       progress,
       entry,
       exit,
-      1 - eased(progress),
-      exitApproach,
+      exitFlight,
+      exitFlight,
       0,
       0,
     );
@@ -125,36 +134,52 @@ export function resolveHeroChapterScrollState(
       true,
     );
   }
-  if (entry < entryStops.orientEnd) {
-    const progress = segment(entry, 0, entryStops.orientEnd);
+  if (isFirstChapter && entry < entryStops.introHandoffEnd) {
+    const progress = segment(entry, 0, entryStops.introHandoffEnd);
+    return createState(
+      chapterId,
+      "intro-handoff",
+      progress,
+      entry,
+      exit,
+      0,
+      0,
+      0,
+      0,
+      false,
+      true,
+    );
+  }
+  if (flight < entryStops.orientEnd) {
+    const progress = segment(flight, 0, entryStops.orientEnd);
     return createState(
       chapterId,
       "orient-approach",
       progress,
       entry,
       exit,
-      eased(progress),
+      entryOrientation,
       entryApproach,
       0,
       0,
     );
   }
-  if (entry < entryStops.lockEnd) {
-    const progress = segment(entry, entryStops.orientEnd, entryStops.lockEnd);
+  if (flight < entryStops.lockEnd) {
+    const progress = segment(flight, entryStops.orientEnd, entryStops.lockEnd);
     return createState(
       chapterId,
       "face-approach",
       progress,
       entry,
       exit,
-      1,
+      entryOrientation,
       entryApproach,
       0,
       0,
     );
   }
-  if (entry < 1) {
-    const progress = segment(entry, entryStops.lockEnd, 1);
+  if (flight < 1) {
+    const progress = segment(flight, entryStops.lockEnd, 1);
     return createState(
       chapterId,
       "triangle-reveal",
@@ -220,6 +245,7 @@ function createState(
     phaseProgress: normalized(phaseProgress),
     entryProgress,
     exitProgress,
+    introHandoff: resolveIntroHandoff(chapterId, entryProgress),
     orientation: normalized(orientation),
     approach: normalized(approach),
     screenLock: normalized(screenLock),
@@ -229,8 +255,35 @@ function createState(
   };
 }
 
+function resolveIntroHandoff(
+  chapterId: HeroChapterId,
+  entryProgress: number,
+): number {
+  if (chapterId !== heroChapterOrder[0]) {
+    return 1;
+  }
+
+  return eased(
+    segment(
+      entryProgress,
+      0,
+      heroTransitionConfig.chapterScroll.entry.introHandoffEnd,
+    ),
+  );
+}
+
 function segment(value: number, start: number, end: number): number {
   return normalized((value - start) / Math.max(1e-9, end - start));
+}
+
+function snapToStops(value: number, stops: readonly number[]): number {
+  for (const stop of stops) {
+    if (Math.abs(value - stop) <= 1e-9) {
+      return stop;
+    }
+  }
+
+  return value;
 }
 
 function eased(value: number): number {

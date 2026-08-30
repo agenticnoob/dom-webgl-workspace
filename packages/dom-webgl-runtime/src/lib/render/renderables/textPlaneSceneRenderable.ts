@@ -222,7 +222,7 @@ function readTextLayerStyle(state: TextCanvasRenderState): WebGLTextLayerStyle {
     letterSpacing: state.letterSpacing,
     wordSpacing: state.wordSpacing,
     textAlign: state.textAlign,
-    color: "#000000",
+    color: state.style.text.color,
   };
 }
 
