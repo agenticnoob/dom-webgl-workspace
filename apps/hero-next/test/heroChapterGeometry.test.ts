@@ -44,7 +44,7 @@ describe("four-chapter camera-space geometry", () => {
     },
   );
 
-  test("flies on an off-axis arc while turning, then settles exactly on the optical axis", () => {
+  test("keeps turning through the final approach and settles on the target face at handoff", () => {
     const { orientEnd, lockEnd } = heroTransitionConfig.chapterScroll.entry;
     const earlyState = resolveHeroChapterScrollState(
       firstChapterFlightEntry(orientEnd / 2),
@@ -54,19 +54,25 @@ describe("four-chapter camera-space geometry", () => {
       firstChapterFlightEntry((orientEnd + lockEnd) / 2),
       0,
     );
-    const alignedState = resolveHeroChapterScrollState(
+    const lockState = resolveHeroChapterScrollState(
       firstChapterFlightEntry(lockEnd),
       0,
     );
+    const revealedState = resolveHeroChapterScrollState(1, 0);
     const early = resolveHeroChapterGeometryFrame(
       desktop,
       earlyState,
       hubRotation,
     );
     const mid = resolveHeroChapterGeometryFrame(desktop, midState, hubRotation);
-    const aligned = resolveHeroChapterGeometryFrame(
+    const lock = resolveHeroChapterGeometryFrame(
       desktop,
-      alignedState,
+      lockState,
+      hubRotation,
+    );
+    const revealed = resolveHeroChapterGeometryFrame(
+      desktop,
+      revealedState,
       hubRotation,
     );
     const reducedMid = resolveHeroChapterGeometryFrame(
@@ -76,25 +82,24 @@ describe("four-chapter camera-space geometry", () => {
       true,
     );
     const camera = resolveHeroChapterCameraFrame();
-    const objectToCamera = normalize(
-      subtract(camera.position, aligned.position),
-    );
 
     expect(early.position[2]).toBeGreaterThan(0);
     expect(early.rotation).not.toEqual(hubRotation);
     expect(mid.position[0]).not.toBeCloseTo(0, 9);
     expect(reducedMid.position[0]).toBeCloseTo(0, 9);
     expect(mid.rotation).not.toEqual(targetFace.targetRotation);
-    expectVector(rotateXyz(targetFaceNormal, aligned.rotation), objectToCamera);
-    expectVector(aligned.rotation, targetFace.targetRotation);
-    expect(aligned.position[0]).toBeCloseTo(0, 9);
+    expect(lock.rotation).not.toEqual(targetFace.targetRotation);
+    expect(revealedState.orientation).toBe(1);
+    expectVector(rotateXyz(targetFaceNormal, revealed.rotation), camera.facing);
+    expectVector(revealed.rotation, targetFace.targetRotation);
+    expect(lock.position[0]).toBeCloseTo(0, 9);
   });
 
   test.each([
     ["desktop", desktop],
     ["mobile", mobile],
   ] as const)(
-    "reaches real DOM scale before the %s curtain starts",
+    "reaches the %s DOM-scale depth before the final rotating reveal",
     (_name, viewport) => {
       const lockState = resolveHeroChapterScrollState(
         firstChapterFlightEntry(
@@ -113,7 +118,7 @@ describe("four-chapter camera-space geometry", () => {
       expect(heightFraction).toBeCloseTo(lockProjection.heightFraction, 9);
       expect(lockState).toMatchObject({
         approach: 1,
-        screenLock: 1,
+        screenLock: 0,
         triangleReveal: 0,
       });
       expect(
@@ -145,7 +150,7 @@ describe("four-chapter camera-space geometry", () => {
     ["desktop", desktop],
     ["mobile", mobile],
   ] as const)(
-    "covers the %s viewport only through curtain motion",
+    "covers and centers the %s viewport as the rotating reveal completes",
     (_name, viewport) => {
       const lock = resolveHeroChapterGeometryFrame(
         viewport,
@@ -164,7 +169,8 @@ describe("four-chapter camera-space geometry", () => {
       );
       const projection = projectedTriangle(viewport, revealed);
 
-      expect(revealed.rotation).toEqual(lock.rotation);
+      expect(lock.rotation).not.toEqual(targetFace.targetRotation);
+      expect(revealed.rotation).toEqual(targetFace.targetRotation);
       expect(revealed.scale).toBe(lock.scale);
       expect(revealed.position[2]).toBeGreaterThan(lock.position[2]);
       expect(projection.baseNdcY).toBeLessThanOrEqual(-1);

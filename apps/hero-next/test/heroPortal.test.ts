@@ -8,9 +8,13 @@ import {
   resolveHeroPortalViewState,
 } from "../src/transition/portalState";
 import { heroTransitionConfig } from "../src/transition/transitionConfig";
+import {
+  createHeroPortalParallaxState,
+  stepHeroPortalParallax,
+} from "../src/transition/portalEffect";
 
 describe("hero portal state", () => {
-  test("crossfades the site introduction and first chapter while the tetrahedron stays at Hub", () => {
+  test("turns the site introduction and first chapter through a reversible 3D handoff", () => {
     const handoffEnd = heroTransitionConfig.chapterScroll.entry.introHandoffEnd;
     const initial = resolveHeroPortalViewState(
       resolveHeroChapterScrollState(0, 0),
@@ -43,13 +47,21 @@ describe("hero portal state", () => {
         contentId: "site",
         side: "left",
       }),
-    ).toMatchObject({ opacity: 0.5, horizontalOffsetProgress: -0.5 });
+    ).toMatchObject({
+      opacity: 0.5,
+      horizontalOffsetProgress: -0.5,
+      rotationY: -0.21,
+    });
     expect(
       resolveHeroPortalMotion(midpoint, {
         contentId: "self",
         side: "right",
       }),
-    ).toMatchObject({ opacity: 0.5, horizontalOffsetProgress: -0.5 });
+    ).toMatchObject({
+      opacity: 0.5,
+      horizontalOffsetProgress: -0.5,
+      rotationY: -0.21,
+    });
   });
 
   test("preselects the next chapter as soon as the covered exit begins", () => {
@@ -82,7 +94,12 @@ describe("hero portal state", () => {
         contentId: "axioms",
         side: "left",
       }),
-    ).toEqual({ visible: true, opacity: 1, horizontalOffsetProgress: 0 });
+    ).toEqual({
+      visible: true,
+      opacity: 1,
+      horizontalOffsetProgress: 0,
+      rotationY: 0,
+    });
   });
 
   test("changes the React render key only at semantic handoff boundaries", () => {
@@ -118,5 +135,31 @@ describe("hero portal state", () => {
 
     values.set(last.exit, 0);
     expect(resolveHeroPortalRenderKey(reader)).toBe("signals");
+  });
+
+  test("damps transition copy toward the viewport pointer and resets for reduced motion", () => {
+    const state = createHeroPortalParallaxState();
+
+    stepHeroPortalParallax(state, {
+      delta: 160,
+      pointerInside: true,
+      pointerX: 0.6,
+      pointerY: -0.4,
+      reducedMotion: false,
+      visible: true,
+    });
+    expect(state.x).toBeGreaterThan(0);
+    expect(state.y).toBeLessThan(0);
+
+    stepHeroPortalParallax(state, {
+      delta: 2_000,
+      pointerInside: true,
+      pointerX: 0.6,
+      pointerY: -0.4,
+      reducedMotion: true,
+      visible: true,
+    });
+    expect(state.x).toBeCloseTo(0, 5);
+    expect(state.y).toBeCloseTo(0, 5);
   });
 });

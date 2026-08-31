@@ -1,7 +1,10 @@
 import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
 import React from "react";
 
-import type { HeroChapterLocalizedContent } from "./content";
+import type {
+  HeroChapterFrameContent,
+  HeroChapterLocalizedContent,
+} from "./content";
 import { heroChapterCount, type HeroChapterDefinition } from "./definitions";
 import type { HeroChapterFrameStyle } from "./useChapterFrameStyle";
 
@@ -15,7 +18,7 @@ type HeroChapterProps = {
 type HeroChapterFrameProps = {
   readonly className: string;
   readonly style: HeroChapterFrameStyle;
-  readonly content: HeroChapterLocalizedContent;
+  readonly content: HeroChapterFrameContent;
 };
 
 export function HeroChapter({
@@ -49,7 +52,7 @@ export function HeroChapter({
         <HeroChapterFrame
           className="hero-chapter__entry-frame"
           style={frameStyle}
-          content={content}
+          content={content.frame}
         />
 
         <section
@@ -102,7 +105,7 @@ export function HeroChapter({
             <HeroChapterFrame
               className="hero-chapter__exit-frame"
               style={frameStyle}
-              content={content}
+              content={content.exitFrame}
             />
           </div>
         </WebGLScrollTimeline>
@@ -119,16 +122,16 @@ function HeroChapterFrame({
   return (
     <section className={`hero-chapter__frame ${className}`} style={style}>
       <header className="hero-chapter__header">
-        <p>{content.frame.eyebrow}</p>
+        <p>{content.eyebrow}</p>
         <h1>
-          {content.frame.titleLines.map((line) => (
+          {content.titleLines.map((line) => (
             <span key={line}>{line}</span>
           ))}
         </h1>
-        <p>{content.frame.summary}</p>
+        <p>{content.summary}</p>
       </header>
       <div className="hero-chapter__frame-cards">
-        {content.frame.signals.map((signal) => (
+        {content.signals.map((signal) => (
           <div key={signal.label}>
             <span>{signal.label}</span>
             <strong>{signal.value}</strong>

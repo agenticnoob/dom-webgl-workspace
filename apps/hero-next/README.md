@@ -6,13 +6,15 @@ the public Viselora packages in a production application shape.
 The current experience is a four-chapter personal narrative. The opening Hub
 first presents site-level context beside the breathing tetrahedron, then hands
 those two side columns to chapter one before spatial flight begins. Each chapter
-owns one tetrahedron face, unique transition-side information, a screen-locked
-triangular reveal, real semantic DOM content, and a reversible exit that
-preselects the following portal content under full cover. The chapters cover
-self, AI/philosophy axioms, public builds, and products/public signals. The
-fourth exit preselects terminal contact copy instead of repeating chapter four,
-then retains that same terminal Portal as the final Hub title and summary. The
-final runway adds confirmed GitHub and blog links without replaying a duplicate
+owns one tetrahedron face, unique transition-side information, a progressively
+screen-locked triangular reveal whose rotation and centering finish at the DOM
+handoff, distinct entry/exit Frame content, real semantic DOM content, and a
+reversible exit that preselects the following portal content under full cover.
+The chapters cover self, AI/philosophy axioms, public builds, and
+products/public signals. The fourth exit preselects terminal contact copy
+instead of repeating chapter four, then retains that same terminal Portal as
+the final Hub title and summary. The final runway adds confirmed GitHub and
+blog links without replaying a duplicate
 visual block. The same scroll coordinate resolves the same visual state in
 either direction.
 
@@ -78,12 +80,13 @@ npm run build -w @viselora/hero-next
 
 ## Current evidence boundary
 
-Focused automation currently covers 22 hero-next test files / 108 tests,
+Focused automation currently covers 22 hero-next test files / 112 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, site-to-chapter copy handoff, next-content and terminal-contact
-preselection, four target faces, projected lock UVs, localized atlas/DOM layout,
-shader behavior, and one-runtime/one-scene/one-canvas ownership. Current desktop,
-mobile, short-screen, interaction, and LAN-origin browser evidence is owned by
+preselection, four target faces, progressive screen lock, projected lock UVs,
+localized atlas/DOM layout including the `320×568` card bound, shader behavior,
+and one-runtime/one-scene/one-canvas ownership. Current desktop, mobile,
+interaction, and LAN-origin browser evidence is owned by
 [the visual direction](./docs/visual-design.md). Canvas and DOM glyph
 rasterization can still differ slightly, and all content remains a base version
 intended for subsequent editorial adjustment.

@@ -78,7 +78,7 @@ describe("hero chapter scroll resolver", () => {
     expect(reverse).toEqual([...forward].reverse());
   });
 
-  test("locks content only at the approach boundary and holds it through curtain motion", () => {
+  test("locks content progressively while the final rotating approach reveals it", () => {
     const { entry, exit } = heroTransitionConfig.chapterScroll;
     const beforeLock = resolveHeroChapterScrollState(
       firstChapterFlightEntry(entry.lockEnd) - 0.001,
@@ -86,6 +86,10 @@ describe("hero chapter scroll resolver", () => {
     );
     const entryLock = resolveHeroChapterScrollState(
       firstChapterFlightEntry(entry.lockEnd),
+      0,
+    );
+    const revealMidpoint = resolveHeroChapterScrollState(
+      firstChapterFlightEntry((entry.lockEnd + 1) / 2),
       0,
     );
     const revealed = resolveHeroChapterScrollState(1, 0);
@@ -99,17 +103,25 @@ describe("hero chapter scroll resolver", () => {
     expect(beforeLock.approach).toBeLessThan(1);
     expect(entryLock).toMatchObject({
       approach: 1,
-      screenLock: 1,
+      screenLock: 0,
       triangleReveal: 0,
     });
+    expect(revealMidpoint.orientation).toBeGreaterThan(entryLock.orientation);
+    expect(revealMidpoint.orientation).toBeLessThan(1);
+    expect(revealMidpoint.screenLock).toBeGreaterThan(0);
+    expect(revealMidpoint.screenLock).toBeLessThan(1);
+    expect(revealMidpoint.screenLock).toBe(revealMidpoint.triangleReveal);
     expect(revealed).toMatchObject({
+      orientation: 1,
       screenLock: 1,
       triangleReveal: 1,
       domContentActive: true,
     });
-    expect(beforeUnlock).toMatchObject({
-      screenLock: 1,
-    });
+    expect(beforeUnlock.screenLock).toBeGreaterThan(0);
+    expect(beforeUnlock.screenLock).toBeLessThan(1);
+    expect(beforeUnlock.screenLock).toBe(beforeUnlock.triangleReveal);
+    expect(beforeUnlock.orientation).toBeGreaterThan(entryLock.orientation);
+    expect(beforeUnlock.orientation).toBeLessThan(1);
     expect(detached).toMatchObject({
       screenLock: 0,
     });
@@ -124,21 +136,19 @@ describe("hero chapter scroll resolver", () => {
       0,
       "axioms",
     );
-    const aligned = resolveHeroChapterScrollState(
-      entry.orientEnd,
-      0,
-      "axioms",
-    );
+    const aligned = resolveHeroChapterScrollState(entry.orientEnd, 0, "axioms");
     const approachMidpoint = resolveHeroChapterScrollState(
       (entry.orientEnd + entry.lockEnd) / 2,
       0,
       "axioms",
     );
-    const locked = resolveHeroChapterScrollState(
-      entry.lockEnd,
+    const locked = resolveHeroChapterScrollState(entry.lockEnd, 0, "axioms");
+    const revealMidpoint = resolveHeroChapterScrollState(
+      (entry.lockEnd + 1) / 2,
       0,
       "axioms",
     );
+    const revealed = resolveHeroChapterScrollState(1, 0, "axioms");
     const retreatMidpoint = resolveHeroChapterScrollState(
       1,
       (exit.contractEnd + exit.retreatEnd) / 2,
@@ -159,7 +169,17 @@ describe("hero chapter scroll resolver", () => {
     expect(approachMidpoint.orientation).toBeGreaterThan(aligned.orientation);
     expect(approachMidpoint.orientation).toBeLessThan(1);
     expect(approachMidpoint.screenLock).toBe(0);
-    expect(locked).toMatchObject({ approach: 1, screenLock: 1 });
+    expect(locked).toMatchObject({ approach: 1, screenLock: 0 });
+    expect(locked.orientation).toBeLessThan(1);
+    expect(revealMidpoint.orientation).toBeGreaterThan(locked.orientation);
+    expect(revealMidpoint.orientation).toBeLessThan(1);
+    expect(revealMidpoint.approach).toBe(1);
+    expect(revealMidpoint.screenLock).toBeGreaterThan(0);
+    expect(revealed).toMatchObject({
+      orientation: 1,
+      approach: 1,
+      screenLock: 1,
+    });
 
     expect(retreatMidpoint).toMatchObject({
       phase: "face-retreat",

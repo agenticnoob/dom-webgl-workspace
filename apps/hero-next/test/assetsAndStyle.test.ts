@@ -41,7 +41,8 @@ describe("hero assets and visual surface", () => {
     );
     expect(css).toMatch(/data-hero-theme="inverted"/);
     expect(css).toMatch(/data-dom-active="true"/);
-    expect(css).toMatch(/\.hero-entry-runway\s*\{[^}]*min-height:\s*520svh/);
+    expect(css).toMatch(/\.hero-entry-runway\s*\{[^}]*min-height:\s*600svh/);
+    expect(css).toMatch(/\.hero-hub-runway--opening\s*\{[^}]*min-height:\s*0/);
     expect(css).toMatch(/\.hero-exit-runway\s*\{[^}]*min-height:\s*420svh/);
     expect(css).toMatch(/\.hero-chapter-cycle\s*\{[^}]*position:\s*relative/);
     expect(css).toMatch(/\.hero-portal-stage\s*\{[^}]*position:\s*fixed/);
@@ -62,7 +63,7 @@ describe("hero assets and visual surface", () => {
     );
     expect(css).toMatch(/\.hero-locale button\s*\{[^}]*font-weight:\s*700/);
     expect(css).toMatch(
-      /@media \(max-width:\s*700px\)[\s\S]*\.hero-portal-copy\s*\{[^}]*font-size:\s*0\.8125rem/,
+      /@media \(max-width:\s*700px\)[\s\S]*\.hero-portal-copy\s*\{[^}]*font-size:\s*0\.9375rem/,
     );
     expect(css).not.toMatch(/\.hero-profile/);
 

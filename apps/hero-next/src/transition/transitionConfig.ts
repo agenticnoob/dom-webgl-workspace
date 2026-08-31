@@ -49,6 +49,12 @@ export type HeroTransitionConfig = {
       readonly retreatEnd: number;
     };
   };
+  readonly portal: {
+    readonly handoffYaw: number;
+    readonly pointerYaw: number;
+    readonly pointerPitch: number;
+    readonly pointerDampingMs: number;
+  };
   readonly chapterGeometry: {
     readonly cameraDistance: number;
     readonly cameraFov: number;
@@ -64,6 +70,10 @@ export type HeroTransitionConfig = {
   readonly visual: {
     readonly ghostBrightness: number;
     readonly facePaletteStrength: number;
+    readonly metalness: number;
+    readonly roughness: number;
+    readonly keyLightIntensity: number;
+    readonly rimLightIntensity: number;
   };
   readonly motion: {
     readonly baseScale: number;
@@ -75,6 +85,10 @@ export type HeroTransitionConfig = {
     readonly reducedRotation: readonly [number, number, number];
     readonly initialOpacity: number;
     readonly emissiveIntensity: number;
+    readonly breathingScaleAmplitude: number;
+    readonly floatingAmplitude: number;
+    readonly transitionAmbientFactor: number;
+    readonly transitionPointerFactor: number;
   };
 };
 
@@ -110,8 +124,14 @@ export const heroTransitionConfig = {
   },
   geometry: { radius: 0.52 },
   chapterScroll: {
-    entry: { introHandoffEnd: 0.18, orientEnd: 0.26, lockEnd: 0.62 },
+    entry: { introHandoffEnd: 0.28, orientEnd: 0.26, lockEnd: 0.62 },
     exit: { contractEnd: 0.38, retreatEnd: 0.74 },
+  },
+  portal: {
+    handoffYaw: 0.42,
+    pointerYaw: 0.065,
+    pointerPitch: 0.045,
+    pointerDampingMs: 140,
   },
   chapterGeometry: {
     cameraDistance: 3.2,
@@ -125,7 +145,14 @@ export const heroTransitionConfig = {
     approachPullback: 0.18,
     approachBank: 0.14,
   },
-  visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
+  visual: {
+    ghostBrightness: 0.72,
+    facePaletteStrength: 0.58,
+    metalness: 0.62,
+    roughness: 0.28,
+    keyLightIntensity: 5.4,
+    rimLightIntensity: 1.35,
+  },
   motion: {
     baseScale: 1.12,
     mobileScaleFactor: 0.72,
@@ -136,5 +163,9 @@ export const heroTransitionConfig = {
     reducedRotation: [-0.6, 0.85, 0.08],
     initialOpacity: 0.92,
     emissiveIntensity: 0.06,
+    breathingScaleAmplitude: 0.012,
+    floatingAmplitude: 0.018,
+    transitionAmbientFactor: 0.55,
+    transitionPointerFactor: 0.72,
   },
 } as const satisfies HeroTransitionConfig;

@@ -52,8 +52,11 @@ export function resolveHeroChapterScrollState(
     entryStops.lockEnd,
   ]);
   const entryApproach = eased(segment(flight, 0, entryStops.lockEnd));
-  const entryOrientation = eased(segment(flight, 0, entryStops.lockEnd));
-  const exitFlight = 1 - eased(segment(exit, exitStops.contractEnd, 1));
+  const entryOrientation = eased(flight);
+  const exitFlight =
+    entryStops.lockEnd * (1 - segment(exit, exitStops.contractEnd, 1));
+  const exitOrientation = eased(exitFlight);
+  const exitApproach = eased(segment(exitFlight, 0, entryStops.lockEnd));
 
   if (exit >= 1) {
     return createState(
@@ -74,16 +77,19 @@ export function resolveHeroChapterScrollState(
   if (exit > 0) {
     if (exit < exitStops.contractEnd) {
       const progress = segment(exit, 0, exitStops.contractEnd);
+      const reveal = 1 - eased(progress);
+      const curtainFlight =
+        entryStops.lockEnd + (1 - entryStops.lockEnd) * (1 - progress);
       return createState(
         chapterId,
         "triangle-contract",
         progress,
         entry,
         exit,
+        eased(curtainFlight),
         1,
-        1,
-        1,
-        1 - eased(progress),
+        reveal,
+        reveal,
       );
     }
     if (exit < exitStops.retreatEnd) {
@@ -98,8 +104,8 @@ export function resolveHeroChapterScrollState(
         progress,
         entry,
         exit,
-        exitFlight,
-        exitFlight,
+        exitOrientation,
+        exitApproach,
         0,
         0,
       );
@@ -112,8 +118,8 @@ export function resolveHeroChapterScrollState(
       progress,
       entry,
       exit,
-      exitFlight,
-      exitFlight,
+      exitOrientation,
+      exitApproach,
       0,
       0,
     );
@@ -180,16 +186,17 @@ export function resolveHeroChapterScrollState(
   }
   if (flight < 1) {
     const progress = segment(flight, entryStops.lockEnd, 1);
+    const reveal = eased(progress);
     return createState(
       chapterId,
       "triangle-reveal",
       progress,
       entry,
       exit,
+      entryOrientation,
       1,
-      1,
-      1,
-      eased(progress),
+      reveal,
+      reveal,
     );
   }
 

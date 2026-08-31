@@ -1,9 +1,10 @@
 import type { HeroViewport } from "../shared/viewport";
+import { getHeroChapterContent, type HeroChapterFrameContent } from "./content";
 import {
-  getHeroChapterContent,
-  type HeroChapterLocalizedContent,
-} from "./content";
-import { getHeroChapterDefinition, heroChapterOrder } from "./definitions";
+  getHeroChapterDefinition,
+  heroChapterOrder,
+  type HeroChapterId,
+} from "./definitions";
 import type { HeroLocale } from "../preferences/locale";
 import {
   resolveHeroChapterAtlasResolution,
@@ -18,11 +19,13 @@ export type HeroChapterAtlas = {
   readonly layoutWidth: number;
   readonly layoutHeight: number;
   readonly locale: HeroLocale;
+  readonly exitChapterId?: HeroChapterId;
 };
 
 export function createHeroChapterAtlas(
   viewport: HeroViewport,
   locale: HeroLocale = "zh",
+  exitChapterId?: HeroChapterId,
 ): HeroChapterAtlas {
   const layout = resolveHeroChapterLayout(viewport);
   const { tileWidth, tileHeight } = resolveHeroChapterAtlasResolution(viewport);
@@ -46,11 +49,12 @@ export function createHeroChapterAtlas(
       tileWidth / layout.viewport.width,
       tileHeight / layout.viewport.height,
     );
+    const content = getHeroChapterContent(chapterId, locale);
     drawTile(
       context,
       layout,
       definition.number,
-      getHeroChapterContent(chapterId, locale),
+      chapterId === exitChapterId ? content.exitFrame : content.frame,
     );
     context.restore();
   }
@@ -62,6 +66,7 @@ export function createHeroChapterAtlas(
     layoutWidth: layout.viewport.width,
     layoutHeight: layout.viewport.height,
     locale,
+    exitChapterId,
   };
 }
 
@@ -69,6 +74,7 @@ export function heroChapterAtlasMatchesViewport(
   atlas: HeroChapterAtlas,
   viewport: HeroViewport,
   locale: HeroLocale = "zh",
+  exitChapterId?: HeroChapterId,
 ): boolean {
   const layout = resolveHeroChapterLayout(viewport);
   const resolution = resolveHeroChapterAtlasResolution(viewport);
@@ -77,7 +83,8 @@ export function heroChapterAtlasMatchesViewport(
     atlas.layoutHeight === layout.viewport.height &&
     atlas.tileWidth === resolution.tileWidth &&
     atlas.tileHeight === resolution.tileHeight &&
-    atlas.locale === locale
+    atlas.locale === locale &&
+    atlas.exitChapterId === exitChapterId
   );
 }
 
@@ -85,7 +92,7 @@ function drawTile(
   context: CanvasRenderingContext2D,
   layout: HeroChapterLayout,
   number: string,
-  content: HeroChapterLocalizedContent,
+  content: HeroChapterFrameContent,
 ): void {
   const { width, height } = layout.viewport;
 
@@ -95,7 +102,7 @@ function drawTile(
   setTextStyle(context, 600, layout.smallFontSize, layout.headerLetterSpacing);
   fillTextInLineBox(
     context,
-    content.frame.eyebrow,
+    content.eyebrow,
     layout.inset,
     layout.inset,
     layout.smallLineHeight,
@@ -109,7 +116,7 @@ function drawTile(
   );
   const headingY =
     layout.inset + layout.smallLineHeight + layout.headingMarginTop;
-  const headingLines = content.frame.titleLines;
+  const headingLines = content.titleLines;
   for (const [index, text] of headingLines.entries()) {
     fillTextInLineBox(
       context,
@@ -128,7 +135,7 @@ function drawTile(
     layout.headingMarginBottom;
   const summaryLines = wrapText(
     context,
-    content.frame.summary,
+    content.summary,
     layout.summaryMaxWidth,
   );
   for (const [index, text] of summaryLines.entries()) {
@@ -166,7 +173,7 @@ function drawTile(
   }
   context.globalAlpha = 0.82;
   setTextStyle(context, 600, layout.smallFontSize, layout.cardLetterSpacing);
-  for (const [index, signal] of content.frame.signals.entries()) {
+  for (const [index, signal] of content.signals.entries()) {
     const cardX =
       layout.inset +
       (layout.mobile ? 0 : index * (layout.cardWidth + layout.cardsGap)) +

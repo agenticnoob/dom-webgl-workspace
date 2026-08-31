@@ -152,12 +152,23 @@ export function applyHeroFrame(
 ): void {
   const activeAttempt =
     transition.phase === "expanding" || transition.phase === "retracting";
-  const ambientWeight =
-    reducedMotion || !chapter.hubInteractive
+  const hubMotionWeight = activeAttempt
+    ? 1 - smoothstep(transition.coverage)
+    : 1;
+  const ambientWeight = reducedMotion
+    ? 0
+    : chapter.hubInteractive
+      ? hubMotionWeight
+      : chapter.domContentActive
+        ? 0
+        : heroTransitionConfig.motion.transitionAmbientFactor;
+  const interactionWeight =
+    reducedMotion || chapter.domContentActive
       ? 0
-      : activeAttempt
-        ? 1 - smoothstep(transition.coverage)
-        : 1;
+      : chapter.hubInteractive
+        ? hubMotionWeight
+        : heroTransitionConfig.motion.transitionPointerFactor *
+          (1 - chapter.screenLock);
   const shake = resolveHeroShake(time, transition, reducedMotion);
   const baseRotation = reducedMotion
     ? heroTransitionConfig.motion.reducedRotation
@@ -172,18 +183,24 @@ export function applyHeroFrame(
   );
 
   target.scale.setScalar(
-    frame.scale * (1 + Math.sin(breathingPhase) * 0.012 * ambientWeight),
+    frame.scale *
+      (1 +
+        Math.sin(breathingPhase) *
+          heroTransitionConfig.motion.breathingScaleAmplitude *
+          ambientWeight),
   );
   target.position.set(
     frame.position[0] + shake.position[0],
     frame.position[1] +
-      Math.sin(floatingPhase) * 0.018 * ambientWeight +
+      Math.sin(floatingPhase) *
+        heroTransitionConfig.motion.floatingAmplitude *
+        ambientWeight +
       shake.position[1],
     frame.position[2] + shake.position[2],
   );
   target.rotation.set(
-    frame.rotation[0] + motion.tiltX * ambientWeight + shake.rotation[0],
-    frame.rotation[1] + motion.tiltY * ambientWeight + shake.rotation[1],
+    frame.rotation[0] + motion.tiltX * interactionWeight + shake.rotation[0],
+    frame.rotation[1] + motion.tiltY * interactionWeight + shake.rotation[1],
     frame.rotation[2] + shake.rotation[2],
   );
 
@@ -276,11 +293,22 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     const viewport = readHeroViewport();
     const chapter = readHeroChapterScrollState(ctx.progress);
     const locale = params.locale.getSnapshot();
+    const exitChapterId =
+      chapter.exitProgress > 0 ? chapter.chapterId : undefined;
     if (
       state.chapterAtlas &&
-      !heroChapterAtlasMatchesViewport(state.chapterAtlas, viewport, locale)
+      !heroChapterAtlasMatchesViewport(
+        state.chapterAtlas,
+        viewport,
+        locale,
+        exitChapterId,
+      )
     ) {
-      state.chapterAtlas = createHeroChapterAtlas(viewport, locale);
+      state.chapterAtlas = createHeroChapterAtlas(
+        viewport,
+        locale,
+        exitChapterId,
+      );
       ctx.object.material?.shader?.setUniforms(heroTetrahedronRadialShaderKey, {
         heroChapterAtlas: {
           kind: "canvas-texture",

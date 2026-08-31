@@ -45,12 +45,12 @@ export function resolveHeroChapterLayout(
   const mobile = width <= heroTransitionConfig.motion.mobileBreakpoint;
   const inset = Math.max(22, 5.5 * vmin);
   const smallFontSize = mobile
-    ? clamp(3.4 * vw, 0.875 * rootFontSize, rootFontSize)
-    : clamp(1.2 * vw, 0.78 * rootFontSize, rootFontSize);
+    ? clamp(4 * vw, rootFontSize, 1.125 * rootFontSize)
+    : clamp(1.4 * vw, 0.875 * rootFontSize, 1.125 * rootFontSize);
   const cardsGap = Math.max(10, 1.8 * vw);
   const headingFontSize = mobile
-    ? clamp(16 * vw, 3.2 * rootFontSize, 5.5 * rootFontSize)
-    : clamp(10.5 * vmin, 3.2 * rootFontSize, 9 * rootFontSize);
+    ? clamp(17.5 * vw, 3.2 * rootFontSize, 5.5 * rootFontSize)
+    : clamp(11.5 * vmin, 3.2 * rootFontSize, 9 * rootFontSize);
   const cardWidth = mobile
     ? width - inset * 2
     : (width - inset * 2 - cardsGap) / 2;

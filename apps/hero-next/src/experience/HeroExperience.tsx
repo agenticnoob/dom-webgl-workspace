@@ -82,8 +82,8 @@ const tetrahedronMaterial = {
   emissive: heroTransitionConfig.colors.dark,
   emissiveIntensity: heroTransitionConfig.motion.emissiveIntensity,
   opacity: heroTransitionConfig.motion.initialOpacity,
-  metalness: 0.9,
-  roughness: 0.12,
+  metalness: heroTransitionConfig.visual.metalness,
+  roughness: heroTransitionConfig.visual.roughness,
 } satisfies NonNullable<WebGLMeshProps["material"]>;
 
 const tetrahedronInteraction = {
@@ -103,10 +103,10 @@ const cameraTarget = [
   heroTransitionConfig.chapterGeometry.cameraTargetY,
   0,
 ] satisfies NonNullable<WebGLCameraProps["target"]>;
-const keyLightPosition = [1.2, 1.2, 2] satisfies NonNullable<
+const keyLightPosition = [1.6, 2.2, 2.6] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
-const rimLightPosition = [1.8, -1.4, 2] satisfies NonNullable<
+const rimLightPosition = [-2.2, -1.2, 0.8] satisfies NonNullable<
   WebGLLightProps["position"]
 >;
 const lightTarget = [0, 0, 0] satisfies NonNullable<WebGLLightProps["target"]>;
@@ -192,7 +192,7 @@ function HeroScene() {
           id="hero.tetrahedron.key"
           kind="directional"
           color="#f2f2f2"
-          intensity={4.8}
+          intensity={heroTransitionConfig.visual.keyLightIntensity}
           position={keyLightPosition}
           target={lightTarget}
         />
@@ -200,7 +200,7 @@ function HeroScene() {
           id="hero.tetrahedron.rim"
           kind="directional"
           color="#b8b8b8"
-          intensity={2.2}
+          intensity={heroTransitionConfig.visual.rimLightIntensity}
           position={rimLightPosition}
           target={lightTarget}
         />

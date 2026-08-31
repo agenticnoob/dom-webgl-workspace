@@ -76,8 +76,12 @@ a {
   min-height: 80svh;
 }
 
+.hero-hub-runway--opening {
+  min-height: 0;
+}
+
 .hero-entry-runway {
-  min-height: 520svh;
+  min-height: 600svh;
 }
 
 .hero-chapter-cycle {
@@ -297,7 +301,7 @@ a {
   grid-row: 1;
   width: 100%;
   min-width: 0;
-  font-size: clamp(0.875rem, 1.15vw, 1.05rem);
+  font-size: clamp(1rem, 1.45vw, 1.3rem);
   line-height: 1.5;
   letter-spacing: 0.08em;
   pointer-events: none;
@@ -326,7 +330,7 @@ a {
 }
 
 .hero-portal-copy__headline {
-  font-size: clamp(1.6rem, 2.6vw, 2.9rem);
+  font-size: clamp(2rem, 3vw, 3.4rem);
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.035em;
@@ -418,7 +422,7 @@ a {
 
 @media (max-width: 700px) {
   .hero-entry-runway {
-    min-height: 460svh;
+    min-height: 540svh;
   }
 
   .hero-chapter__frame-cards,
@@ -449,12 +453,12 @@ a {
   }
 
   .hero-portal-copy {
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     letter-spacing: 0.05em;
   }
 
   .hero-portal-copy__headline {
-    font-size: clamp(1.2rem, 5.4vw, 1.75rem);
+    font-size: clamp(1.45rem, 6.2vw, 2rem);
   }
 
   .hero-portal-stage--final {

@@ -35,7 +35,10 @@ export function HeroChapterNarrative({
     <>
       <HeroLocaleControl locale={locale} onLocaleChange={onLocaleChange} />
 
-      <section className="hero-hub-runway" aria-label={site.intro.eyebrow}>
+      <section
+        className="hero-hub-runway hero-hub-runway--opening"
+        aria-label={site.intro.eyebrow}
+      >
         <p className="hero-sr-only">
           {site.intro.title} {site.intro.summary} {site.intro.hint}
         </p>

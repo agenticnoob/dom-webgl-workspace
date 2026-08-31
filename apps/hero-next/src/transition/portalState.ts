@@ -4,6 +4,7 @@ import {
   type HeroChapterScrollSignalReader,
   type HeroChapterScrollState,
 } from "../chapters/scrollState";
+import { heroTransitionConfig } from "./transitionConfig";
 
 export const heroPortalTerminalContentId = "contact" as const;
 
@@ -24,6 +25,7 @@ export type HeroPortalMotion = {
   readonly visible: boolean;
   readonly opacity: number;
   readonly horizontalOffsetProgress: number;
+  readonly rotationY: number;
 };
 
 export function readHeroPortalViewState(
@@ -81,12 +83,19 @@ export function resolveHeroPortalMotion(
       : 0;
   const sideDirection = target.side === "left" ? -1 : 1;
   const travelDirection = isSite ? sideDirection : -sideDirection;
+  const rotationY =
+    handoffTravel === 0
+      ? 0
+      : travelDirection *
+        handoffTravel *
+        heroTransitionConfig.portal.handoffYaw;
 
   return {
     visible: opacity > 0.001,
     opacity,
     horizontalOffsetProgress:
       handoffTravel === 0 ? 0 : travelDirection * handoffTravel,
+    rotationY,
   };
 }
 

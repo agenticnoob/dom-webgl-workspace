@@ -90,7 +90,9 @@ See [apps/example/README.md](../apps/example/README.md).
 The private Next.js consumer uses public managed scene, mesh, model, effect,
 shader, lighting, render-quality, and scroll APIs. It implements four reversible
 chapters across the tetrahedron's four faces, localized Chinese/English atlas
-and semantic content, unique transition-side information, project/public links,
+and semantic content, a progressively screen-locked reveal whose rotation and
+centering finish at the DOM handoff, distinct entry/exit Frame content, unique
+transition-side information, project/public links,
 and one terminal contact Portal preselected under the fourth chapter's covered
 exit and retained through the final Hub. The final DOM runway owns only semantic
 content and interactive public links, so the terminal title and summary are not
@@ -99,8 +101,8 @@ foreground/background composition; no personal-model pass is mounted in the
 current baseline. The hold-driven radial theme switch remains Hub-only, while
 theme and locale each persist one committed truth locally.
 
-Focused automation currently covers 22 hero-next test files / 108 tests. Current
-desktop, mobile, short-screen, interaction, and LAN-origin browser evidence is
+Focused automation currently covers 22 hero-next test files / 112 tests. Current
+desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 Content is a base version for later editorial direction; personal GLB integration
 remains pending. No package-specific Hero branch, raw Three ownership, second

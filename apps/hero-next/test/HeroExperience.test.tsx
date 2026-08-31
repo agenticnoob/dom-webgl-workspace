@@ -249,6 +249,7 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-max-device-pixel-ratio="2"');
     expect(html.match(/data-timeline=/g)).toHaveLength(8);
     expect(html.match(/class="hero-chapter-cycle"/g)).toHaveLength(4);
+    expect(html).toContain('class="hero-hub-runway hero-hub-runway--opening"');
     expect(html.match(/class="hero-portal-stage"/g)).toHaveLength(1);
     expect(html.match(/class="hero-portal-copy /g)).toHaveLength(2);
     expect(html).not.toContain("hero-transition-copy");
@@ -289,8 +290,8 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-emissive="#5F5F5F"');
     expect(html).toContain('data-emissive-intensity="0.06"');
     expect(html).toContain('data-opacity="0.92"');
-    expect(html).toContain('data-metalness="0.9"');
-    expect(html).toContain('data-roughness="0.12"');
+    expect(html).toContain('data-metalness="0.62"');
+    expect(html).toContain('data-roughness="0.28"');
     expect(html).toContain('data-mesh-effect="hero.tetrahedron.motion"');
     expect(html).toContain('data-hit-test="mesh"');
     expect(html).toContain('data-press="true"');
@@ -301,10 +302,10 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-light="hero.tetrahedron.rim"');
     expect(html).toContain('data-light-color="#f2f2f2"');
     expect(html).toContain('data-light-color="#b8b8b8"');
-    expect(html).toContain('data-light-intensity="4.8"');
-    expect(html).toContain('data-light-intensity="2.2"');
-    expect(html).toContain('data-light-position="1.2,1.2,2"');
-    expect(html).toContain('data-light-position="1.8,-1.4,2"');
+    expect(html).toContain('data-light-intensity="5.4"');
+    expect(html).toContain('data-light-intensity="1.35"');
+    expect(html).toContain('data-light-position="1.6,2.2,2.6"');
+    expect(html).toContain('data-light-position="-2.2,-1.2,0.8"');
     expect(html).not.toContain('data-light="hero.tetrahedron.fill"');
     expect(html.match(/data-light=/g)).toHaveLength(2);
     expect(html).toContain('data-hero-theme="initial"');
@@ -318,6 +319,10 @@ describe("HeroExperience", () => {
     expect(html).toContain("为智能体重新思考软件");
     expect(html).toContain("真正的颠覆，不只是更好的答案");
     expect(html).toContain("Agent 一定要会用");
+    expect(html).toContain("持续校正");
+    expect(html).toContain("保留怀疑");
+    expect(html).toContain("交给真实使用");
+    expect(html).toContain("保持连接");
     expect(html).toContain("愿与同道者共研同进，或有所得，亦未可知");
     expect(html).not.toContain('class="hero-final-hub"');
     expect(html).toContain('class="hero-final-links"');

@@ -6,17 +6,20 @@ export type HeroChapterLink = {
   readonly label: string;
 };
 
+export type HeroChapterFrameContent = {
+  readonly eyebrow: string;
+  readonly titleLines: readonly string[];
+  readonly summary: string;
+  readonly signals: readonly [
+    { readonly label: string; readonly value: string },
+    { readonly label: string; readonly value: string },
+  ];
+};
+
 export type HeroChapterLocalizedContent = {
   readonly faceLabel: string;
-  readonly frame: {
-    readonly eyebrow: string;
-    readonly titleLines: readonly string[];
-    readonly summary: string;
-    readonly signals: readonly [
-      { readonly label: string; readonly value: string },
-      { readonly label: string; readonly value: string },
-    ];
-  };
+  readonly frame: HeroChapterFrameContent;
+  readonly exitFrame: HeroChapterFrameContent;
   readonly portal: {
     readonly left: { readonly label: string; readonly body: string };
     readonly right: {
@@ -130,6 +133,15 @@ export const heroChapterContent = {
           { label: "原则", value: "AGENT-FIRST" },
         ],
       },
+      exitFrame: {
+        eyebrow: "SELF / TRACE",
+        titleLines: ["持续校正", "继续前行"],
+        summary: "身份不是静态结论，而是一次次构建、验证与修正留下的轨迹。",
+        signals: [
+          { label: "下一站", value: "AXIOMS" },
+          { label: "方法", value: "EVIDENCE-LED" },
+        ],
+      },
       portal: {
         left: {
           label: "01 / 自我",
@@ -174,6 +186,16 @@ export const heroChapterContent = {
         signals: [
           { label: "DIRECTION", value: "AI-NATIVE" },
           { label: "PRINCIPLE", value: "AGENT-FIRST" },
+        ],
+      },
+      exitFrame: {
+        eyebrow: "SELF / TRACE",
+        titleLines: ["KEEP REVISING", "KEEP MOVING"],
+        summary:
+          "Identity is not a fixed conclusion, but a trace left by building, testing, and revising.",
+        signals: [
+          { label: "NEXT", value: "AXIOMS" },
+          { label: "METHOD", value: "EVIDENCE-LED" },
         ],
       },
       portal: {
@@ -221,6 +243,15 @@ export const heroChapterContent = {
         signals: [
           { label: "变化", value: "PREMISES" },
           { label: "智能", value: "BEYOND LANGUAGE" },
+        ],
+      },
+      exitFrame: {
+        eyebrow: "AXIOMS / OPEN",
+        titleLines: ["保留怀疑", "让证据继续"],
+        summary: "命题只是暂时的支架；新的证据应当继续改变我们的前提。",
+        signals: [
+          { label: "下一站", value: "BUILDS" },
+          { label: "状态", value: "PROVISIONAL" },
         ],
       },
       portal: {
@@ -272,6 +303,16 @@ export const heroChapterContent = {
         signals: [
           { label: "CHANGE", value: "PREMISES" },
           { label: "INTELLIGENCE", value: "BEYOND LANGUAGE" },
+        ],
+      },
+      exitFrame: {
+        eyebrow: "AXIOMS / OPEN",
+        titleLines: ["KEEP DOUBTING", "FOLLOW EVIDENCE"],
+        summary:
+          "Propositions are temporary scaffolds; new evidence should keep changing the premises.",
+        signals: [
+          { label: "NEXT", value: "BUILDS" },
+          { label: "STATUS", value: "PROVISIONAL" },
         ],
       },
       portal: {
@@ -330,6 +371,15 @@ export const heroChapterContent = {
           { label: "证据", value: "PUBLIC GITHUB" },
         ],
       },
+      exitFrame: {
+        eyebrow: "BUILDS / HANDOFF",
+        titleLines: ["交给真实使用", "让边界显现"],
+        summary: "系统只有进入真实使用，才能暴露契约、能力与判断的边界。",
+        signals: [
+          { label: "下一站", value: "SIGNALS" },
+          { label: "证据", value: "RUNNING" },
+        ],
+      },
       portal: {
         left: {
           label: "03 / 构建",
@@ -382,6 +432,16 @@ export const heroChapterContent = {
         signals: [
           { label: "CURRENT", value: "VISELORA" },
           { label: "EVIDENCE", value: "PUBLIC GITHUB" },
+        ],
+      },
+      exitFrame: {
+        eyebrow: "BUILDS / HANDOFF",
+        titleLines: ["SHIP TO REAL USE", "REVEAL THE LIMITS"],
+        summary:
+          "Only real use reveals the limits of a system's contracts, capabilities, and judgment.",
+        signals: [
+          { label: "NEXT", value: "SIGNALS" },
+          { label: "EVIDENCE", value: "RUNNING" },
         ],
       },
       portal: {
@@ -440,6 +500,15 @@ export const heroChapterContent = {
           { label: "持续发布", value: "WORDS / VIDEO" },
         ],
       },
+      exitFrame: {
+        eyebrow: "SIGNALS / OPEN LOOP",
+        titleLines: ["保持连接", "继续试验"],
+        summary: "把未完成的思考留在开放回路里，让交流带来下一次变化。",
+        signals: [
+          { label: "下一站", value: "DIALOGUE" },
+          { label: "状态", value: "OPEN" },
+        ],
+      },
       portal: {
         left: {
           label: "04 / 联结",
@@ -495,6 +564,16 @@ export const heroChapterContent = {
         signals: [
           { label: "THOUGHT DIRECTION", value: "AXMORF" },
           { label: "PUBLISHING", value: "WORDS / VIDEO" },
+        ],
+      },
+      exitFrame: {
+        eyebrow: "SIGNALS / OPEN LOOP",
+        titleLines: ["STAY CONNECTED", "KEEP EXPERIMENTING"],
+        summary:
+          "Leave unfinished thought in an open loop, where exchange can produce the next change.",
+        signals: [
+          { label: "NEXT", value: "DIALOGUE" },
+          { label: "STATE", value: "OPEN" },
         ],
       },
       portal: {

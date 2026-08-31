@@ -13,10 +13,10 @@ describe("hero chapter shared layout", () => {
 
     expect(layout.mobile).toBe(false);
     expect(layout.inset).toBeCloseTo(39.6, 12);
-    expect(layout.smallFontSize).toBeCloseTo(15.36, 12);
-    expect(layout.smallLineHeight).toBeCloseTo(23.04, 12);
-    expect(layout.headingFontSize).toBeCloseTo(75.6, 12);
-    expect(layout.headingLineHeight).toBeCloseTo(68.04, 12);
+    expect(layout.smallFontSize).toBeCloseTo(17.92, 12);
+    expect(layout.smallLineHeight).toBeCloseTo(26.88, 12);
+    expect(layout.headingFontSize).toBeCloseTo(82.8, 12);
+    expect(layout.headingLineHeight).toBeCloseTo(74.52, 12);
     expect(layout.headingMarginTop).toBeCloseTo(72, 12);
     expect(layout.headingMarginBottom).toBeCloseTo(28.8, 12);
     expect(layout.cardsTop).toBeCloseTo(439.2, 12);
@@ -37,9 +37,9 @@ describe("hero chapter shared layout", () => {
 
     expect(layout.mobile).toBe(true);
     expect(layout.inset).toBe(22);
-    expect(layout.smallFontSize).toBe(14);
+    expect(layout.smallFontSize).toBe(16);
     expect(layout.headingMarginTop).toBeCloseTo(101.28, 12);
-    expect(layout.headingLetterSpacing).toBeCloseTo(-2.184, 12);
+    expect(layout.headingLetterSpacing).toBeCloseTo(-2.38875, 12);
     expect(layout.cardsTop).toBeCloseTo(455.76, 12);
     expect(layout.cardWidth).toBe(346);
     expect(layout.cardHeight).toBeCloseTo(109.72, 12);

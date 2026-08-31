@@ -59,18 +59,99 @@ describe("hero chapter atlas", () => {
     });
     expect(atlas.canvas).toMatchObject({ width: 2560, height: 1440 });
     expect(atlas.locale).toBe("zh");
-    expect(fillText).toHaveBeenCalledWith("NOOBLI / 01", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("持续构建", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("AXIOMS / 02", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("VISELORA", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("SIGNALS / 04", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("WORDS / VIDEO", expect.any(Number), expect.any(Number));
-    expect(heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 })).toBe(true);
-    expect(heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 }, "en")).toBe(false);
+    expect(fillText).toHaveBeenCalledWith(
+      "NOOBLI / 01",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "持续构建",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "AXIOMS / 02",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "VISELORA",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "SIGNALS / 04",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "WORDS / VIDEO",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(
+      heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 }),
+    ).toBe(true);
+    expect(
+      heroChapterAtlasMatchesViewport(
+        atlas,
+        { width: 1280, height: 720 },
+        "en",
+      ),
+    ).toBe(false);
+    expect(
+      heroChapterAtlasMatchesViewport(
+        atlas,
+        { width: 1280, height: 720 },
+        "zh",
+        "self",
+      ),
+    ).toBe(false);
 
     createHeroChapterAtlas({ width: 1280, height: 720 }, "en");
-    expect(fillText).toHaveBeenCalledWith("BUILDING", expect.any(Number), expect.any(Number));
-    expect(fillText).toHaveBeenCalledWith("CHANGE", expect.any(Number), expect.any(Number));
+    expect(fillText).toHaveBeenCalledWith(
+      "BUILDING",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "CHANGE",
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  test("switches only the active chapter face to its distinct exit frame", () => {
+    const atlas = createHeroChapterAtlas(
+      { width: 1280, height: 720 },
+      "zh",
+      "self",
+    );
+
+    expect(atlas.exitChapterId).toBe("self");
+    expect(fillText).toHaveBeenCalledWith(
+      "SELF / TRACE",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "持续校正",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "AXIOMS / 02",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(
+      heroChapterAtlasMatchesViewport(
+        atlas,
+        { width: 1280, height: 720 },
+        "zh",
+        "self",
+      ),
+    ).toBe(true);
   });
 
   test("caps the owned atlas for mobile-safe texture allocation", () => {
@@ -83,7 +164,9 @@ describe("hero chapter atlas", () => {
       layoutHeight: 1800,
     });
     expect(context.scale).toHaveBeenCalledWith(2 / 3, 2 / 3);
-    expect(heroChapterAtlasMatchesViewport(atlas, { width: 2400, height: 1800 })).toBe(true);
+    expect(
+      heroChapterAtlasMatchesViewport(atlas, { width: 2400, height: 1800 }),
+    ).toBe(true);
   });
 
   test("uses the same single-column mobile card composition as the semantic frame", () => {

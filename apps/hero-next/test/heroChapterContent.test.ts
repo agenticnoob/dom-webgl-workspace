@@ -28,6 +28,10 @@ describe("hero chapter content", () => {
         expect(content.frame.titleLines.length).toBeGreaterThan(0);
         expect(content.frame.summary.length).toBeGreaterThan(0);
         expect(content.frame.signals).toHaveLength(2);
+        expect(content.exitFrame.titleLines.length).toBeGreaterThan(0);
+        expect(content.exitFrame.summary.length).toBeGreaterThan(0);
+        expect(content.exitFrame.signals).toHaveLength(2);
+        expect(content.exitFrame).not.toEqual(content.frame);
         expect(content.portal.left.body.length).toBeGreaterThan(0);
         expect(content.portal.right.items.length).toBeGreaterThan(0);
         expect(content.body.sections.length).toBeGreaterThanOrEqual(3);

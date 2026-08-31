@@ -85,8 +85,8 @@ function createTarget() {
         set: vi.fn(),
       },
       opacity: 0.92,
-      metalness: 0.9,
-      roughness: 0.12,
+      metalness: 0.62,
+      roughness: 0.28,
       shader: {
         onBeforeCompile: vi.fn(),
         setUniforms: vi.fn(),
@@ -394,19 +394,31 @@ describe("hero tetrahedron effect", () => {
 
     expect(target.scale.setScalar).toHaveBeenNthCalledWith(
       1,
-      expect.closeTo(heroTransitionConfig.motion.baseScale * 1.012, 6),
+      expect.closeTo(
+        heroTransitionConfig.motion.baseScale *
+          (1 + heroTransitionConfig.motion.breathingScaleAmplitude),
+        6,
+      ),
     );
     expect(target.scale.setScalar).toHaveBeenNthCalledWith(
       2,
-      expect.closeTo(heroTransitionConfig.motion.baseScale * 1.006, 6),
+      expect.closeTo(
+        heroTransitionConfig.motion.baseScale *
+          (1 + heroTransitionConfig.motion.breathingScaleAmplitude * 0.5),
+        6,
+      ),
     );
     expect(target.scale.setScalar).toHaveBeenNthCalledWith(
       3,
-      expect.closeTo(heroTransitionConfig.motion.baseScale * 1.012, 6),
+      expect.closeTo(
+        heroTransitionConfig.motion.baseScale *
+          (1 + heroTransitionConfig.motion.breathingScaleAmplitude),
+        6,
+      ),
     );
   });
 
-  test("composes curved flight and rotation, then holds alignment through curtain motion", () => {
+  test("composes curved flight and keeps rotating through the centered reveal", () => {
     const { orientEnd, lockEnd } = heroTransitionConfig.chapterScroll.entry;
     const chapters = [
       firstChapterFlightEntry(0.1),
@@ -414,6 +426,7 @@ describe("hero tetrahedron effect", () => {
       firstChapterFlightEntry(0.44),
       firstChapterFlightEntry(lockEnd),
       firstChapterFlightEntry(0.8),
+      firstChapterFlightEntry(1),
     ].map((entry) => resolveHeroChapterScrollState(entry, 0));
     const frames = chapters.map((chapter) =>
       resolveHeroChapterGeometryFrame(
@@ -452,10 +465,21 @@ describe("hero tetrahedron effect", () => {
     expect(chapters[2]!.approach).toBeGreaterThan(chapters[1]!.approach);
     expect(chapters[3]).toMatchObject({
       approach: 1,
-      screenLock: 1,
+      screenLock: 0,
       triangleReveal: 0,
     });
+    expect(chapters[3]!.orientation).toBeLessThan(1);
     expect(chapters[4]!.triangleReveal).toBeGreaterThan(0);
+    expect(chapters[4]!.screenLock).toBe(chapters[4]!.triangleReveal);
+    expect(chapters[4]!.orientation).toBeGreaterThan(chapters[3]!.orientation);
+    expect(chapters[4]!.orientation).toBeLessThan(1);
+    expect(chapters[5]).toMatchObject({
+      orientation: 1,
+      approach: 1,
+      screenLock: 1,
+      triangleReveal: 1,
+      domContentActive: true,
+    });
     expect(frames[0]!.position[2]).toBeLessThan(0);
     expect(frames[0]!.rotation).not.toEqual(
       heroTransitionConfig.motion.baseRotation,
@@ -464,13 +488,17 @@ describe("hero tetrahedron effect", () => {
       getHeroChapterDefinition("self").face.targetRotation,
     );
     expect(frames[2]!.rotation).not.toEqual(frames[1]!.rotation);
-    expect(frames[3]!.rotation).toEqual(
+    expect(frames[3]!.rotation).not.toEqual(
       getHeroChapterDefinition("self").face.targetRotation,
     );
-    expect(frames[4]!.rotation).toEqual(frames[3]!.rotation);
+    expect(frames[4]!.rotation).not.toEqual(frames[3]!.rotation);
+    expect(frames[5]!.rotation).toEqual(
+      getHeroChapterDefinition("self").face.targetRotation,
+    );
     expect(frames[1]!.position[2]).toBeLessThan(frames[2]!.position[2]);
     expect(frames[2]!.position[2]).toBeLessThan(frames[3]!.position[2]);
     expect(frames[3]!.position[2]).toBeLessThan(frames[4]!.position[2]);
+    expect(frames[4]!.position[2]).toBeLessThan(frames[5]!.position[2]);
 
     for (const [index, target] of targets.entries()) {
       expect(target.position.set).toHaveBeenCalledWith(
@@ -481,6 +509,100 @@ describe("hero tetrahedron effect", () => {
       );
       expect(target.scale.setScalar).toHaveBeenCalledWith(
         heroTransitionConfig.motion.baseScale,
+      );
+    }
+  });
+
+  test("keeps a restrained breathing layer through entry and return flight", () => {
+    const idle = createHeroHoldTransitionState();
+    const entry = resolveHeroChapterScrollState(
+      firstChapterFlightEntry(0.44),
+      0,
+    );
+    const exit = resolveHeroChapterScrollState(
+      1,
+      (heroTransitionConfig.chapterScroll.exit.contractEnd +
+        heroTransitionConfig.chapterScroll.exit.retreatEnd) /
+        2,
+    );
+    const entryTarget = createTarget();
+    const exitTarget = createTarget();
+    const expectedScale =
+      heroTransitionConfig.motion.baseScale *
+      (1 +
+        heroTransitionConfig.motion.breathingScaleAmplitude *
+          heroTransitionConfig.motion.transitionAmbientFactor);
+
+    applyHeroFrame(
+      entryTarget,
+      createHeroMotionState(false),
+      1_500,
+      idle,
+      desktop,
+      false,
+      entry,
+    );
+    applyHeroFrame(
+      exitTarget,
+      createHeroMotionState(false),
+      1_500,
+      idle,
+      desktop,
+      false,
+      exit,
+    );
+
+    expect(entryTarget.scale.setScalar).toHaveBeenCalledWith(
+      expect.closeTo(expectedScale, 6),
+    );
+    expect(exitTarget.scale.setScalar).toHaveBeenCalledWith(
+      expect.closeTo(expectedScale, 6),
+    );
+  });
+
+  test("keeps damped pointer parallax through entry and return flight", () => {
+    const motion = createHeroMotionState(false);
+    motion.tiltX = 0.03;
+    motion.tiltY = -0.04;
+    const entry = resolveHeroChapterScrollState(
+      firstChapterFlightEntry(0.44),
+      0,
+    );
+    const exit = resolveHeroChapterScrollState(
+      1,
+      (heroTransitionConfig.chapterScroll.exit.contractEnd +
+        heroTransitionConfig.chapterScroll.exit.retreatEnd) /
+        2,
+    );
+    const locked = resolveHeroChapterScrollState(
+      firstChapterFlightEntry(0.8),
+      0,
+    );
+
+    for (const chapter of [entry, exit, locked]) {
+      const target = createTarget();
+      const frame = resolveHeroChapterGeometryFrame(
+        desktop,
+        chapter,
+        heroTransitionConfig.motion.baseRotation,
+      );
+      applyHeroFrame(
+        target,
+        motion,
+        0,
+        createHeroHoldTransitionState(),
+        desktop,
+        false,
+        chapter,
+      );
+
+      const pointerWeight =
+        heroTransitionConfig.motion.transitionPointerFactor *
+        (1 - chapter.screenLock);
+      expect(target.rotation.set).toHaveBeenCalledWith(
+        expect.closeTo(frame.rotation[0] + motion.tiltX * pointerWeight, 6),
+        expect.closeTo(frame.rotation[1] + motion.tiltY * pointerWeight, 6),
+        expect.closeTo(frame.rotation[2], 6),
       );
     }
   });
@@ -556,7 +678,9 @@ describe("hero tetrahedron effect", () => {
       1,
       0,
       expect.closeTo(
-        0.365 + Math.sin((1_500 / 8_000) * Math.PI * 2) * 0.018,
+        0.365 +
+          Math.sin((1_500 / 8_000) * Math.PI * 2) *
+            heroTransitionConfig.motion.floatingAmplitude,
         6,
       ),
       0,
@@ -576,8 +700,8 @@ describe("hero tetrahedron effect", () => {
     expect(desktopTarget.visible).toBe(true);
     expect(desktopTarget.opacity).toBe(0.92);
     expect(desktopTarget.material.opacity).toBe(0.92);
-    expect(desktopTarget.material.metalness).toBe(0.9);
-    expect(desktopTarget.material.roughness).toBe(0.12);
+    expect(desktopTarget.material.metalness).toBe(0.62);
+    expect(desktopTarget.material.roughness).toBe(0.28);
 
     const mobileTarget = createTarget();
     applyHeroFrame(

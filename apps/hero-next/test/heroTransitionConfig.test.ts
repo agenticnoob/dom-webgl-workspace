@@ -39,8 +39,14 @@ describe("hero transition config", () => {
         frequenciesHz: [11, 13, 17],
       },
       chapterScroll: {
-        entry: { introHandoffEnd: 0.18, orientEnd: 0.26, lockEnd: 0.62 },
+        entry: { introHandoffEnd: 0.28, orientEnd: 0.26, lockEnd: 0.62 },
         exit: { contractEnd: 0.38, retreatEnd: 0.74 },
+      },
+      portal: {
+        handoffYaw: 0.42,
+        pointerYaw: 0.065,
+        pointerPitch: 0.045,
+        pointerDampingMs: 140,
       },
       chapterGeometry: {
         cameraDistance: 3.2,
@@ -54,7 +60,20 @@ describe("hero transition config", () => {
         approachPullback: 0.18,
         approachBank: 0.14,
       },
-      visual: { ghostBrightness: 0.72, facePaletteStrength: 0.92 },
+      visual: {
+        ghostBrightness: 0.72,
+        facePaletteStrength: 0.58,
+        metalness: 0.62,
+        roughness: 0.28,
+        keyLightIntensity: 5.4,
+        rimLightIntensity: 1.35,
+      },
+      motion: expect.objectContaining({
+        breathingScaleAmplitude: 0.012,
+        floatingAmplitude: 0.018,
+        transitionAmbientFactor: 0.55,
+        transitionPointerFactor: 0.72,
+      }),
     });
     expect(new Set(Object.values(heroTransitionConfig.colors))).toEqual(
       new Set(["#B8B8B8", "#5F5F5F"]),
