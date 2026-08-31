@@ -46,6 +46,10 @@ describe("hero tetrahedron radial shader", () => {
       "mix(heroFaceUv, heroScreenUv, heroTargetFace * heroScreenLock)",
     );
     expect(draft.fragmentShader).toContain(
+      "mix(heroFaceUv, heroTargetUv, heroTargetFace * heroFaceLock)",
+    );
+    expect(draft.fragmentShader).toContain("uniform float heroFaceLock");
+    expect(draft.fragmentShader).toContain(
       "heroLockUvScale.x * dot(heroTargetLocal, heroTargetRight)",
     );
     expect(draft.fragmentShader).toContain(
@@ -78,10 +82,23 @@ describe("hero tetrahedron radial shader", () => {
     expect(draft.fragmentShader).not.toContain("heroCommittedDomChapter");
     expect(draft.fragmentShader).not.toContain("heroChapterScreenMix");
     expect(draft.fragmentShader).toContain(
-      "float heroFacePaletteMix = mix(\n  0.58,\n  1.0,\n  heroTargetFace * heroScreenLock",
+      "float heroScreenLockedFace = heroTargetFace * heroScreenLock",
+    );
+    expect(draft.fragmentShader).toContain(
+      "float heroFacePaletteMix = mix(\n  0.45,\n  1.0,\n  heroScreenLockedFace",
     );
     expect(draft.fragmentShader).toContain(
       "mix(\n  outgoingLight,\n  heroChapterColor,\n  heroFacePaletteMix",
+    );
+    expect(draft.fragmentShader).toContain("float heroFresnel = pow(");
+    expect(draft.fragmentShader).toContain(
+      "dot(normalize(normal), normalize(vViewPosition))",
+    );
+    expect(draft.fragmentShader).toContain(
+      "heroFresnel * 0.22 * (1.0 - heroScreenLockedFace)",
+    );
+    expect(draft.fragmentShader).toContain(
+      "outgoingLight += heroChapterColor * heroFresnelWeight",
     );
   });
 
@@ -189,12 +206,13 @@ describe("hero tetrahedron radial shader", () => {
         heroTargetEmissive: target,
         heroCommittedBackground: committedBackground,
         heroTargetBackground: targetBackground,
-        heroCommittedEmissiveIntensity: 0.06,
-        heroTargetEmissiveIntensity: 0.06,
+        heroCommittedEmissiveIntensity: 0.035,
+        heroTargetEmissiveIntensity: 0.035,
         heroRadialOrigin: [state.origin.x, state.origin.y],
         heroRadialRadiusPx: radial.radiusPx,
         heroRadialEdgePx: 1.5,
         heroGeometryRadius: 0.52,
+        heroFaceLock: 0,
         heroScreenLock: 0,
         heroTargetFaceNormal: [-1, 1, 1],
         heroTargetFaceRight: [0, -1, 1],
@@ -223,6 +241,7 @@ describe("hero tetrahedron radial shader", () => {
     expect(chapter.screenLock).toBeGreaterThan(0);
     expect(chapter.screenLock).toBeLessThan(1);
     expect(chapter.screenLock).toBe(chapter.triangleReveal);
+    expect(uniforms.heroFaceLock).toBe(chapter.approach);
     expect(uniforms.heroScreenLock).toBe(chapter.screenLock);
     expect(uniforms.heroLockUvScale).toEqual([
       resolveHeroChapterLockProjection(viewport).widthFraction,

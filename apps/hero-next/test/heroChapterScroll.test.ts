@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  readHeroChapterExitFrameIds,
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
 } from "../src/chapters/scrollState";
@@ -255,6 +256,25 @@ describe("hero chapter scroll resolver", () => {
       phase: "hub-end",
       hubInteractive: true,
     });
+  });
+
+  test("retains completed exit frames across later entries and removes them only when reversed", () => {
+    const values = new Map<string, number>();
+    const reader = { get: (key: string) => values.get(key) ?? 0 };
+    const chapterOne = heroChapterDefinitions.self.signals;
+    const chapterTwo = heroChapterDefinitions.axioms.signals;
+
+    values.set(chapterOne.exit, 1);
+    values.set(chapterTwo.entry, 0.25);
+    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self"]);
+
+    values.set(chapterTwo.exit, 0.01);
+    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self", "axioms"]);
+
+    values.set(chapterTwo.exit, 0);
+    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self"]);
+    values.set(chapterOne.exit, 0);
+    expect(readHeroChapterExitFrameIds(reader)).toEqual([]);
   });
 });
 

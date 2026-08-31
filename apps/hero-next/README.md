@@ -18,6 +18,15 @@ blog links without replaying a duplicate
 visual block. The same scroll coordinate resolves the same visual state in
 either direction.
 
+Completed exit Frames remain on their tetrahedron faces while later chapters
+begin, and face-space UV lock advances continuously with the approach instead
+of switching at chapter boundaries. The Hub keeps its no-spin breathing and
+floating motion with stronger damped pointer parallax. Its single managed
+material combines existing directional lighting with an app-owned Fresnel edge
+light and reduced flat/emissive fill for clearer depth; the edge light fades as
+the target face reaches full screen lock. No ground plane, shadow map, outline
+mesh, duplicate tetrahedron, or additional render pass is used.
+
 Chinese and English copy share one typed content model and one persisted locale
 store. The current implementation deliberately keeps the established single
 tetrahedron scene and foreground/background composition unchanged. A personal
@@ -80,10 +89,12 @@ npm run build -w @viselora/hero-next
 
 ## Current evidence boundary
 
-Focused automation currently covers 22 hero-next test files / 112 tests,
+Focused automation currently covers 22 hero-next test files / 115 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, site-to-chapter copy handoff, next-content and terminal-contact
-preselection, four target faces, progressive screen lock, projected lock UVs,
+preselection, four target faces, progressive screen lock, continuous
+approach-weighted lock UVs, persistent completed-exit atlas tiles, stronger
+damped pointer parallax, Fresnel depth lighting,
 localized atlas/DOM layout including the `320×568` card bound, shader behavior,
 and one-runtime/one-scene/one-canvas ownership. Current desktop, mobile,
 interaction, and LAN-origin browser evidence is owned by

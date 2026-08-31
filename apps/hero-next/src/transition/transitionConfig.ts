@@ -70,6 +70,8 @@ export type HeroTransitionConfig = {
   readonly visual: {
     readonly ghostBrightness: number;
     readonly facePaletteStrength: number;
+    readonly fresnelStrength: number;
+    readonly fresnelPower: number;
     readonly metalness: number;
     readonly roughness: number;
     readonly keyLightIntensity: number;
@@ -87,6 +89,9 @@ export type HeroTransitionConfig = {
     readonly emissiveIntensity: number;
     readonly breathingScaleAmplitude: number;
     readonly floatingAmplitude: number;
+    readonly pointerPitch: number;
+    readonly pointerYaw: number;
+    readonly pointerDampingMs: number;
     readonly transitionAmbientFactor: number;
     readonly transitionPointerFactor: number;
   };
@@ -147,7 +152,9 @@ export const heroTransitionConfig = {
   },
   visual: {
     ghostBrightness: 0.72,
-    facePaletteStrength: 0.58,
+    facePaletteStrength: 0.45,
+    fresnelStrength: 0.22,
+    fresnelPower: 3.2,
     metalness: 0.62,
     roughness: 0.28,
     keyLightIntensity: 5.4,
@@ -162,9 +169,12 @@ export const heroTransitionConfig = {
     baseRotation: [-0.6, 0.82, 0.08],
     reducedRotation: [-0.6, 0.85, 0.08],
     initialOpacity: 0.92,
-    emissiveIntensity: 0.06,
+    emissiveIntensity: 0.035,
     breathingScaleAmplitude: 0.012,
     floatingAmplitude: 0.018,
+    pointerPitch: 0.14,
+    pointerYaw: 0.18,
+    pointerDampingMs: 130,
     transitionAmbientFactor: 0.55,
     transitionPointerFactor: 0.72,
   },

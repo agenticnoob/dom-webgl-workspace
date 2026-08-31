@@ -81,7 +81,7 @@ function createTarget() {
       color: { value: "#5F5F5F", set: vi.fn() },
       emissive: {
         value: "#5F5F5F",
-        intensity: 0.06,
+        intensity: heroTransitionConfig.motion.emissiveIntensity,
         set: vi.fn(),
       },
       opacity: 0.92,
@@ -238,6 +238,75 @@ describe("hero tetrahedron effect", () => {
     }
   });
 
+  test("keeps completed exit textures stable when the next chapter entry begins", () => {
+    const target = createTarget();
+    const descriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn(() => ({ matches: false })),
+    });
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(createCanvasContext() as never);
+    const values = new Map<string, number>();
+    const progress = { get: (key: string) => values.get(key) ?? 0 };
+    const self = getHeroChapterDefinition("self").signals;
+    const axioms = getHeroChapterDefinition("axioms").signals;
+    const params = {
+      kind: "hero.tetrahedron.motion" as const,
+      signals: { set: vi.fn() },
+      theme: createThemeStore(),
+      locale: createLocaleStore(),
+    };
+
+    try {
+      const setup = heroTetrahedronEffect.setup;
+      if (!setup) {
+        throw new Error("Expected Hero effect setup.");
+      }
+      const state = setup(createContext(target), params);
+      const idlePointer = {
+        pointer: { isDown: false, buttons: [] },
+        objectPointer: { isPressed: false, hit: undefined },
+        progress,
+      };
+
+      values.set(self.entry, 1);
+      values.set(self.exit, 1);
+      heroTetrahedronEffect.update(
+        createContext(target, idlePointer),
+        state,
+        params,
+      );
+      expect(state.chapterAtlas?.exitChapterIds).toEqual(["self"]);
+
+      target.material.shader.setUniforms.mockClear();
+      values.set(axioms.entry, 0.01);
+      heroTetrahedronEffect.update(
+        createContext(target, idlePointer),
+        state,
+        params,
+      );
+
+      expect(state.chapterAtlas?.exitChapterIds).toEqual(["self"]);
+      expect(target.material.shader.setUniforms).not.toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({
+          heroChapterAtlas: expect.objectContaining({
+            kind: "canvas-texture",
+          }),
+        }),
+      );
+    } finally {
+      getContext.mockRestore();
+      if (descriptor) {
+        Object.defineProperty(window, "matchMedia", descriptor);
+      } else {
+        Reflect.deleteProperty(window, "matchMedia");
+      }
+    }
+  });
+
   test("starts only from a confirmed primary mesh hit and publishes signals", () => {
     const set = vi.fn();
     const signals = { set } satisfies HeroTransitionSignalWriter;
@@ -346,7 +415,7 @@ describe("hero tetrahedron effect", () => {
     expect(target.material.color.set).toHaveBeenLastCalledWith("#5F5F5F");
     expect(target.material.emissive.set).toHaveBeenLastCalledWith(
       "#5F5F5F",
-      0.06,
+      0.035,
     );
     expect(target.material.shader.setUniforms).toHaveBeenLastCalledWith(
       "hero.tetrahedron.radial",
@@ -729,8 +798,14 @@ describe("hero tetrahedron effect", () => {
       pointerX: 0.4,
       pointerY: -0.2,
     });
-    expect(state.targetTiltX).toBeCloseTo(0.016, 6);
-    expect(state.targetTiltY).toBeCloseTo(0.04, 6);
+    expect(state.targetTiltX).toBeCloseTo(
+      heroTransitionConfig.motion.pointerPitch * 0.2,
+      6,
+    );
+    expect(state.targetTiltY).toBeCloseTo(
+      heroTransitionConfig.motion.pointerYaw * 0.4,
+      6,
+    );
 
     stepHeroMotionState(state, {
       time: 160,

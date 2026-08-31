@@ -82,6 +82,8 @@ varying vec3 heroObjectPosition;
 varying vec3 heroObjectNormal;
 `;
   const facePaletteStrength = heroTransitionConfig.visual.facePaletteStrength;
+  const fresnelStrength = heroTransitionConfig.visual.fresnelStrength;
+  const fresnelPower = heroTransitionConfig.visual.fresnelPower;
   const uniforms = `${varyings}
 uniform vec3 heroCommittedColor;
 uniform vec3 heroTargetColor;
@@ -95,6 +97,7 @@ uniform vec2 heroRadialOrigin;
 uniform float heroRadialRadiusPx;
 uniform float heroRadialEdgePx;
 uniform float heroGeometryRadius;
+uniform float heroFaceLock;
 uniform float heroScreenLock;
 uniform vec2 heroLockUvScale;
 uniform vec3 heroTargetFaceNormal;
@@ -129,7 +132,7 @@ vec2 heroTargetUv = vec2(
   0.5 + heroLockUvScale.x * dot(heroTargetLocal, heroTargetRight) / (1.632993162 * heroGeometryRadius),
   0.5 + heroLockUvScale.y * dot(heroTargetLocal, heroTargetUp) / (1.414213562 * heroGeometryRadius)
 );
-heroFaceUv = mix(heroFaceUv, heroTargetUv, heroTargetFace);
+heroFaceUv = mix(heroFaceUv, heroTargetUv, heroTargetFace * heroFaceLock);
 vec2 heroScreenUv = heroFragmentCssPx / domWebGLViewportSize;
 heroFaceUv = mix(heroFaceUv, heroScreenUv, heroTargetFace * heroScreenLock);
 heroFaceUv = clamp(heroFaceUv, vec2(0.0), vec2(1.0));
@@ -159,6 +162,27 @@ totalEmissiveRadiance = mix(
   heroChapterColor * heroTargetEmissiveIntensity,
   heroRadialMask
 );`;
+  const depthLighting = `float heroScreenLockedFace = heroTargetFace * heroScreenLock;
+float heroFacePaletteMix = mix(
+  ${facePaletteStrength},
+  1.0,
+  heroScreenLockedFace
+);
+outgoingLight = mix(
+  outgoingLight,
+  heroChapterColor,
+  heroFacePaletteMix
+);
+float heroFresnel = pow(
+  1.0 - clamp(
+    dot(normalize(normal), normalize(vViewPosition)),
+    0.0,
+    1.0
+  ),
+  ${fresnelPower}
+);
+float heroFresnelWeight = heroFresnel * ${fresnelStrength} * (1.0 - heroScreenLockedFace);
+outgoingLight += heroChapterColor * heroFresnelWeight;`;
 
   draft.vertexShader = `${varyings}\n${draft.vertexShader.replace(
     vertexChunk,
@@ -167,10 +191,7 @@ totalEmissiveRadiance = mix(
 
   draft.fragmentShader = `${uniforms}\n${draft.fragmentShader
     .replace(emissiveChunk, radialMix)
-    .replace(
-      opaqueChunk,
-      `float heroFacePaletteMix = mix(\n  ${facePaletteStrength},\n  1.0,\n  heroTargetFace * heroScreenLock\n);\noutgoingLight = mix(\n  outgoingLight,\n  heroChapterColor,\n  heroFacePaletteMix\n);\n${opaqueChunk}`,
-    )}`;
+    .replace(opaqueChunk, `${depthLighting}\n${opaqueChunk}`)}`;
 }
 
 export function createHeroTetrahedronRadialUniforms(
@@ -201,6 +222,7 @@ export function createHeroTetrahedronRadialUniforms(
     heroRadialRadiusPx: radial.radiusPx,
     heroRadialEdgePx: radial.edgeFeatherPx,
     heroGeometryRadius: heroTransitionConfig.geometry.radius,
+    heroFaceLock: chapter.approach,
     heroScreenLock: chapter.screenLock,
     heroTargetFaceNormal: targetFace.normal,
     heroTargetFaceRight: targetFace.right,

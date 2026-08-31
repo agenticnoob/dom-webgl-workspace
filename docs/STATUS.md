@@ -92,16 +92,20 @@ shader, lighting, render-quality, and scroll APIs. It implements four reversible
 chapters across the tetrahedron's four faces, localized Chinese/English atlas
 and semantic content, a progressively screen-locked reveal whose rotation and
 centering finish at the DOM handoff, distinct entry/exit Frame content, unique
-transition-side information, project/public links,
+transition-side information, persistent completed-exit face tiles with
+continuous approach-weighted UV lock, project/public links,
 and one terminal contact Portal preselected under the fourth chapter's covered
 exit and retained through the final Hub. The final DOM runway owns only semantic
 content and interactive public links, so the terminal title and summary are not
 rendered twice. It preserves the established single tetrahedron scene and
-foreground/background composition; no personal-model pass is mounted in the
-current baseline. The hold-driven radial theme switch remains Hub-only, while
-theme and locale each persist one committed truth locally.
+foreground/background composition. Stronger damped pointer parallax and an
+app-owned Fresnel edge light increase depth without adding a ground plane,
+shadow map, outline mesh, duplicate tetrahedron, or render pass; the edge light
+fades at full screen lock. No personal-model pass is mounted in the current
+baseline. The hold-driven radial theme switch remains Hub-only, while theme and
+locale each persist one committed truth locally.
 
-Focused automation currently covers 22 hero-next test files / 112 tests. Current
+Focused automation currently covers 22 hero-next test files / 115 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 Content is a base version for later editorial direction; personal GLB integration

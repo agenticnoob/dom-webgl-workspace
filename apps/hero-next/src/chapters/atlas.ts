@@ -19,16 +19,18 @@ export type HeroChapterAtlas = {
   readonly layoutWidth: number;
   readonly layoutHeight: number;
   readonly locale: HeroLocale;
-  readonly exitChapterId?: HeroChapterId;
+  readonly exitChapterIds: readonly HeroChapterId[];
 };
 
 export function createHeroChapterAtlas(
   viewport: HeroViewport,
   locale: HeroLocale = "zh",
-  exitChapterId?: HeroChapterId,
+  exitChapterIds: readonly HeroChapterId[] = [],
 ): HeroChapterAtlas {
   const layout = resolveHeroChapterLayout(viewport);
   const { tileWidth, tileHeight } = resolveHeroChapterAtlasResolution(viewport);
+  const normalizedExitChapterIds = normalizeExitChapterIds(exitChapterIds);
+  const exitChapterIdSet = new Set(normalizedExitChapterIds);
   const canvas = document.createElement("canvas");
   canvas.width = tileWidth * 2;
   canvas.height = tileHeight * 2;
@@ -54,7 +56,7 @@ export function createHeroChapterAtlas(
       context,
       layout,
       definition.number,
-      chapterId === exitChapterId ? content.exitFrame : content.frame,
+      exitChapterIdSet.has(chapterId) ? content.exitFrame : content.frame,
     );
     context.restore();
   }
@@ -66,7 +68,7 @@ export function createHeroChapterAtlas(
     layoutWidth: layout.viewport.width,
     layoutHeight: layout.viewport.height,
     locale,
-    exitChapterId,
+    exitChapterIds: normalizedExitChapterIds,
   };
 }
 
@@ -74,17 +76,30 @@ export function heroChapterAtlasMatchesViewport(
   atlas: HeroChapterAtlas,
   viewport: HeroViewport,
   locale: HeroLocale = "zh",
-  exitChapterId?: HeroChapterId,
+  exitChapterIds: readonly HeroChapterId[] = [],
 ): boolean {
   const layout = resolveHeroChapterLayout(viewport);
   const resolution = resolveHeroChapterAtlasResolution(viewport);
+  const normalizedExitChapterIds = normalizeExitChapterIds(exitChapterIds);
   return (
     atlas.layoutWidth === layout.viewport.width &&
     atlas.layoutHeight === layout.viewport.height &&
     atlas.tileWidth === resolution.tileWidth &&
     atlas.tileHeight === resolution.tileHeight &&
     atlas.locale === locale &&
-    atlas.exitChapterId === exitChapterId
+    atlas.exitChapterIds.length === normalizedExitChapterIds.length &&
+    atlas.exitChapterIds.every(
+      (chapterId, index) => chapterId === normalizedExitChapterIds[index],
+    )
+  );
+}
+
+function normalizeExitChapterIds(
+  exitChapterIds: readonly HeroChapterId[],
+): readonly HeroChapterId[] {
+  const exitChapterIdSet = new Set(exitChapterIds);
+  return heroChapterOrder.filter((chapterId) =>
+    exitChapterIdSet.has(chapterId),
   );
 }
 

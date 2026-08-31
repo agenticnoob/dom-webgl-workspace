@@ -10,6 +10,7 @@ import {
 } from "../chapters/atlas";
 import { readHeroViewport, type HeroViewport } from "../shared/viewport";
 import {
+  readHeroChapterExitFrameIds,
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
   type HeroChapterScrollState,
@@ -127,14 +128,26 @@ export function stepHeroMotionState(
 
   if (moving) {
     state.lastSignificantMoveTime = input.time;
-    state.targetTiltX = clamp(-input.pointerY * 0.08, -0.08, 0.08);
-    state.targetTiltY = clamp(input.pointerX * 0.1, -0.1, 0.1);
+    state.targetTiltX = clamp(
+      -input.pointerY * heroTransitionConfig.motion.pointerPitch,
+      -heroTransitionConfig.motion.pointerPitch,
+      heroTransitionConfig.motion.pointerPitch,
+    );
+    state.targetTiltY = clamp(
+      input.pointerX * heroTransitionConfig.motion.pointerYaw,
+      -heroTransitionConfig.motion.pointerYaw,
+      heroTransitionConfig.motion.pointerYaw,
+    );
   } else if (input.time - state.lastSignificantMoveTime >= 120) {
     state.targetTiltX = 0;
     state.targetTiltY = 0;
   }
 
-  const damping = 1 - Math.exp(-Math.max(0, input.delta) / 160);
+  const damping =
+    1 -
+    Math.exp(
+      -Math.max(0, input.delta) / heroTransitionConfig.motion.pointerDampingMs,
+    );
   state.tiltX += (state.targetTiltX - state.tiltX) * damping;
   state.tiltY += (state.targetTiltY - state.tiltY) * damping;
   state.previousPointerX = input.pointerX;
@@ -293,21 +306,20 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     const viewport = readHeroViewport();
     const chapter = readHeroChapterScrollState(ctx.progress);
     const locale = params.locale.getSnapshot();
-    const exitChapterId =
-      chapter.exitProgress > 0 ? chapter.chapterId : undefined;
+    const exitChapterIds = readHeroChapterExitFrameIds(ctx.progress);
     if (
       state.chapterAtlas &&
       !heroChapterAtlasMatchesViewport(
         state.chapterAtlas,
         viewport,
         locale,
-        exitChapterId,
+        exitChapterIds,
       )
     ) {
       state.chapterAtlas = createHeroChapterAtlas(
         viewport,
         locale,
-        exitChapterId,
+        exitChapterIds,
       );
       ctx.object.material?.shader?.setUniforms(heroTetrahedronRadialShaderKey, {
         heroChapterAtlas: {

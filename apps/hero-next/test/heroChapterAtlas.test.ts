@@ -104,7 +104,7 @@ describe("hero chapter atlas", () => {
         atlas,
         { width: 1280, height: 720 },
         "zh",
-        "self",
+        ["self"],
       ),
     ).toBe(false);
 
@@ -122,13 +122,11 @@ describe("hero chapter atlas", () => {
   });
 
   test("switches only the active chapter face to its distinct exit frame", () => {
-    const atlas = createHeroChapterAtlas(
-      { width: 1280, height: 720 },
-      "zh",
+    const atlas = createHeroChapterAtlas({ width: 1280, height: 720 }, "zh", [
       "self",
-    );
+    ]);
 
-    expect(atlas.exitChapterId).toBe("self");
+    expect(atlas.exitChapterIds).toEqual(["self"]);
     expect(fillText).toHaveBeenCalledWith(
       "SELF / TRACE",
       expect.any(Number),
@@ -149,7 +147,39 @@ describe("hero chapter atlas", () => {
         atlas,
         { width: 1280, height: 720 },
         "zh",
-        "self",
+        ["self"],
+      ),
+    ).toBe(true);
+  });
+
+  test("retains completed exit frames when the following chapter starts", () => {
+    const atlas = createHeroChapterAtlas({ width: 1280, height: 720 }, "zh", [
+      "self",
+      "axioms",
+    ]);
+
+    expect(atlas.exitChapterIds).toEqual(["self", "axioms"]);
+    expect(fillText).toHaveBeenCalledWith(
+      "SELF / TRACE",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "AXIOMS / OPEN",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(fillText).toHaveBeenCalledWith(
+      "BUILDS / 03",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(
+      heroChapterAtlasMatchesViewport(
+        atlas,
+        { width: 1280, height: 720 },
+        "zh",
+        ["self", "axioms"],
       ),
     ).toBe(true);
   });

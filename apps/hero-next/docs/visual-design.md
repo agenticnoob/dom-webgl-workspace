@@ -40,9 +40,11 @@
    不再重复第四章简介；末章 exit 完成后继续由同一终章 Portal 保持唯一一套标题和简介，
    最终 runway 只提供无障碍语义和可交互链接，不再从下方重播第二套终章内容。
 
-atlas 仍保持四个面的一份结构真值，但缓存键额外包含当前退出章节；退出发生时只替换
-该章对应 tile，其余三个面继续使用进入 Frame。因为切换发生在满屏三角遮挡下，正向与
-反向滚动都能恢复正确内容，而不需要把进入/退出文案硬绑定为同一份。
+atlas 仍保持四个面的一份结构真值，但缓存键额外包含已经进入 exit 的章节集合；退出发生时
+只在满屏三角遮挡下把该章 tile 切换为退出 Frame，完成回程后继续保留，避免下一章 entry
+开始时把上一面硬切回进入 Frame。反向滚动到对应 exit progress 归零时四面体仍由 DOM
+满屏内容遮挡，此时才安全恢复该面的进入 Frame。目标面的 face-space 投影 UV 同时按
+approach 连续插值，在 Hub 边界归零，因此章节 ID 换面不会造成纹理坐标跳变。
 
 两侧文案由同一 hero scene 内、位于四面体之后的 DOM-text targets 显示。文案逐字形透明度
 与横向位移读取同一 progress store，四面体扩大时通过真实深度自然遮住它们；React 只在
@@ -60,8 +62,9 @@ entry/exit 起点与变化后的真实文档布局重新对齐。
 随揭示渐进完成，避免“先转完再沿 Z 轴放大”的独立尾段。启用
 `prefers-reduced-motion` 后保留目标面朝向、章节锁定和揭示语义，但降级为直接路径并
 移除额外侧倾。Hub 的 1.2% 缩放呼吸与轻微浮动在进程、回程中以 55% 强度继续叠加；
-pointer tilt 在靠近与退回的空间飞行中以 72% 强度继续叠加，并在 screen lock 满屏阶段
-归零，避免破坏三角窗口边界。两侧 Portal 文字同时读取统一 viewport pointer，在 managed
+pointer tilt 采用更大的俯仰/偏航幅度与更快阻尼，在靠近与退回的空间飞行中以 72% 强度
+继续叠加，并在 screen lock 满屏阶段归零，避免破坏三角窗口边界。两侧 Portal 文字同时
+读取统一 viewport pointer，在 managed
 3D plane 上以阻尼俯仰/偏航形成视差；reduced-motion 下两类视差均归零。
 
 ## 合成与 ownership
@@ -73,7 +76,7 @@ pointer tilt 在靠近与退回的空间飞行中以 72% 强度继续叠加，�
 - `src/chapters/scrollState.ts` 是 entry/exit progress 到章节视觉阶段的唯一纯映射；
 - `src/chapters/geometry.ts` 根据 active face 解析相机空间姿态和投影；
 - `src/chapters/layout.ts` 是 atlas 与语义 DOM 的共享响应式布局模型；
-- `src/chapters/atlas.ts` 从当前 locale 与退出章节状态生成四个面的 managed texture；
+- `src/chapters/atlas.ts` 从当前 locale 与已进入 exit 的章节集合生成四个面的 managed texture；
 - `src/chapters/HeroChapterNarrative.tsx` 负责章节顺序、最终联系方式语义和真实链接，
   `src/chapters/HeroChapter.tsx` 负责章节 timeline、阅读和链接语义；
 - `src/chapters/HeroLocaleControl.tsx` 负责语言交互，`src/preferences/locale.ts`
@@ -106,13 +109,15 @@ shader 和章节激活进度不进入 React state。
 四面体继续使用单个 managed StandardMaterial 和两盏 managed directional lights，不增加
 接地平面、shadow map 或重复 mesh。Hub 阶段从纯色回填中让出更多真实 PBR 光照，材质改为
 中等金属度与更高粗糙度，并把 rim 调到 key 的对向，因此四个平面产生更明确的明暗分区与
-模拟自阴影；screen lock 后仍回到完整章节色，保证 Atlas/DOM 接管时的色彩一致。
+模拟自阴影。同一 managed material shader 额外叠加基于视角法线的 Fresnel 边缘光，并降低
+纯色回填与 emissive 强度以释放更多 PBR 对比；边缘光随目标面 screen lock 渐进归零，锁定后
+仍回到完整章节色，保证 Atlas/DOM 接管时的色彩一致。
 
 ## 当前验证边界
 
-- **Automated：** hero-next 22 个 focused test files / 112 tests 覆盖首屏网站介绍、首章文案
+- **Automated：** hero-next 22 个 focused test files / 115 tests 覆盖首屏网站介绍、首章文案
   handoff 静止段、持续到完整揭示的旋转靠近、渐进 screen lock 与居中接管、独立
-  entry/exit Frame、退出 atlas 切换、飞行 pointer tilt、Portal 视差阻尼、
+  entry/exit Frame、跨章节稳定的退出 atlas、连续 face-lock UV、飞行 pointer tilt、Portal 视差阻尼、
   退出时下一内容预选、末章到联系方式、四章选择、双向映射、四个目标面、locale/theme 持久化、
   shader 和单 runtime/scene/canvas ownership；workspace typecheck 通过。
 - **Browser：** production Chromium `1280×720` 完整验证网站介绍首屏、首章 handoff
@@ -137,7 +142,13 @@ shader 和章节激活进度不进入 React state。
   同日最新一轮在开发态 Chromium 的 `1280×720` 与 `375×812` 验证首章最终揭示仍持续
   旋转靠近，目标面在完整章节出现时完成归正并由同尺寸 DOM Frame 接管；桌面反向滚动
   会恢复同一倾斜揭示姿态。两种视口均保持单 canvas、无框架错误浮层且 console
-  error/warning 为 0。
+  error/warning 为 0。同日针对章节交接纹理硬切修复，在开发态 Chromium 的
+  `1280×720` 与 `375×812` 复验第一章回程 Hub 到第二章 entry 起点：已完成章节的
+  exit Frame 保持不变，目标面 UV 随后只按 approach 连续变化；两种视口均保持单
+  canvas、无框架错误浮层且 console error/warning 为 0。同日本轮在开发态 Chromium
+  `1280×720` 又完成鼠标中心→右上→左下交互和首章 screen lock、DOM 接管回归：
+  更强的 pointer tilt、PBR 面明暗与 Fresnel 边缘光会随视角变化，边缘光在满屏锁定时退出；
+  全程保持单 canvas、无框架错误浮层且 console error/warning 为 0。
   既有 LAN-origin HMR WebSocket 证据未在本轮重跑。
 - **未声称：** 本轮没有覆盖 `320×568`、iOS Safari、Android Chrome 真机、横屏或
   长按主题切换；个人 GLB 和视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺

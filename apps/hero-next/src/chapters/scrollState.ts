@@ -233,6 +233,15 @@ export function readHeroChapterScrollState(
   return state;
 }
 
+export function readHeroChapterExitFrameIds(
+  reader: HeroChapterScrollSignalReader,
+): readonly HeroChapterId[] {
+  return heroChapterOrder.filter((chapterId) => {
+    const { signals } = getHeroChapterDefinition(chapterId);
+    return reader.get(signals.exit) > 0;
+  });
+}
+
 function createState(
   chapterId: HeroChapterId,
   phase: HeroChapterScrollPhase,
