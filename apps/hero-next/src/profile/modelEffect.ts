@@ -7,11 +7,12 @@ import {
   stepHeroMotionState,
   type HeroMotionState,
 } from "../tetrahedron/motion";
-import {
-  resolveHeroTransitionVisual,
-  type HeroHoldTransitionState,
-} from "../transition/holdTransition";
+import type { HeroHoldTransitionState } from "../transition/holdTransition";
 import { readHeroTransitionSignals } from "../transition/signals";
+import {
+  heroTransitionConfig,
+  type HeroSchemeName,
+} from "../transition/transitionConfig";
 import {
   resolveHeroProfileModelFrame,
   type HeroProfileModelFrame,
@@ -25,6 +26,18 @@ export type HeroProfileModelEffectParams = {
   readonly kind: "hero.profile.model";
   readonly spinProgressKey: string;
 };
+
+export const heroProfileMaterialRoughness = 0.72;
+
+export function resolveHeroProfileMaterialColor(
+  scheme: HeroSchemeName,
+): string {
+  switch (scheme) {
+    case "initial":
+    case "inverted":
+      return heroTransitionConfig.colors.light;
+  }
+}
 
 type HeroProfileModelEffectState = {
   readonly reducedMotion: boolean;
@@ -79,8 +92,9 @@ export const heroProfileModelEffect = defineWebGLSceneObjectEffect<
       time: ctx.time,
       transition,
     });
-    const profileMaterialColor =
-      resolveHeroTransitionVisual(transitionSignals).committed.background;
+    const profileMaterialColor = resolveHeroProfileMaterialColor(
+      transitionSignals.committedScheme,
+    );
 
     ctx.object.visible = frame.visible;
     ctx.object.position.set(...frame.position);
@@ -90,7 +104,7 @@ export const heroProfileModelEffect = defineWebGLSceneObjectEffect<
       mesh.material.color.set(profileMaterialColor);
       mesh.material.emissive.set(profileMaterialColor, 0);
       mesh.material.metalness = 0;
-      mesh.material.roughness = 1;
+      mesh.material.roughness = heroProfileMaterialRoughness;
     });
   },
   dispose(ctx) {

@@ -108,16 +108,22 @@ describe("hero assets and visual surface", () => {
       /\.hero-profile__speech-bubble\s*\{[^}]*position:\s*fixed/,
     );
     expect(css).toMatch(
-      /\.hero-profile__speech-balloon\s*\{[^}]*border:\s*2px solid currentColor/,
+      /\.hero-profile__speech-surface\s*\{[^}]*border:\s*2px solid currentColor/,
     );
     expect(css).toMatch(
       /\.hero-profile__speech-bubble\s*\{[^}]*color:\s*var\(--hero-foreground\)/,
     );
     expect(css).toMatch(
-      /\.hero-profile__speech-balloon\s*\{[^}]*border-radius:\s*var\(--hero-profile-speech-radius\)/,
+      /\.hero-profile__speech-surface\s*\{[^}]*border-radius:\s*var\(--hero-profile-speech-radius\)/,
     );
     expect(css).toMatch(
-      /\.hero-profile__speech-balloon\s*\{[^}]*background:\s*var\(--hero-background\)/,
+      /\.hero-profile__speech-surface\s*\{[^}]*background:\s*var\(--hero-background\)/,
+    );
+    expect(css).not.toMatch(
+      /\.hero-profile__speech-surface\s*\{[^}]*transform(?:-origin)?:/,
+    );
+    expect(css).not.toMatch(
+      /\.hero-profile__speech-tail\s*\{[^}]*transform(?:-origin)?:/,
     );
     expect(css).toMatch(
       /\.hero-profile__speech-tail-fill\s*\{[^}]*var\(--hero-background\)/,

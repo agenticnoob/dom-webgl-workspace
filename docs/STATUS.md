@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-09-04; DOM-text rendering and registry release truth
+**Last verified: hero-next current source 2026-09-05; DOM-text rendering and registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -115,13 +115,16 @@ spin. Profile copy stays in explicit left/right columns gathered around the
 center; each rendered line
 resolves an independent outward displacement against the combined responsive
 model and speech-bubble exclusions. A rounded-rectangle manga bubble with a
-background-color fill and foreground-color text stays above the model's head
-and crossfades front, side, and back copy from the same reversible one-turn body
-progress; pointer-light intensity is reduced inside chapters. The hold-driven
+background-color fill and foreground-color text stays fixed above the model's
+head while front, side, and back messages type in, hold, and delete one
+character at a time from the same reversible one-turn body progress.
+Pointer-light intensity is reduced inside chapters. The hold-driven
 radial theme switch remains Hub-only, while theme and locale each persist one
-committed truth locally.
+committed truth locally. The profile material keeps the same light-neutral base
+color across both schemes, so a committed theme change does not multiply the GLB
+albedo by the darker page background.
 
-Focused automation currently covers 25 hero-next test files / 148 tests. Current
+Focused automation currently covers 25 hero-next test files / 151 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 The bilingual profile is a literary base version grounded in stable biography

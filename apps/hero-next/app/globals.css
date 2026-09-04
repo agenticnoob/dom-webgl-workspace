@@ -377,9 +377,14 @@ a {
   position: absolute;
   top: 0;
   left: 0;
-  display: grid;
   width: 100%;
   height: calc(100% - var(--hero-profile-speech-tail-height));
+}
+
+.hero-profile__speech-surface {
+  position: absolute;
+  inset: 0;
+  display: grid;
   place-items: center;
   overflow: hidden;
   border: 2px solid currentColor;

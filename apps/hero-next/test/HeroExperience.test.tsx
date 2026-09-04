@@ -370,12 +370,13 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-profile-model-exclusion=""');
     expect(html).toContain('data-profile-speech-bubble=""');
     expect(html).toContain('data-profile-facing="front"');
+    expect(html).toContain('data-profile-speech-phase="holding"');
+    expect(html).toContain('data-profile-speech-surface=""');
+    expect(html).toContain('data-profile-speech-tail=""');
     expect(html).toContain('data-profile-speech-message="front"');
     expect(html).toContain('data-profile-speech-message="side"');
     expect(html).toContain('data-profile-speech-message="back"');
-    expect(html).toContain("这是我的正面");
-    expect(html).toContain("这是我的侧面");
-    expect(html).toContain("这是我的背面");
+    expect(html).toContain('data-profile-speech-character=""');
     expect(html).toContain('href="https://github.com/agenticnoob"');
     expect(html).toContain('href="https://blog.zzzxc.com"');
     expect(html).toContain('data-hero-locale-option="zh"');
@@ -384,6 +385,15 @@ describe("HeroExperience", () => {
 
     const host = document.createElement("div");
     host.innerHTML = html;
+    expect(
+      host.querySelector('[data-profile-speech-message="front"]')?.textContent,
+    ).toBe("这是我的正面");
+    expect(
+      host.querySelector('[data-profile-speech-message="side"]')?.textContent,
+    ).toBe("这是我的侧面");
+    expect(
+      host.querySelector('[data-profile-speech-message="back"]')?.textContent,
+    ).toBe("这是我的背面");
     const contentTimeline = host.querySelector(
       '[data-timeline="hero.chapter-1.content.timeline"]',
     );

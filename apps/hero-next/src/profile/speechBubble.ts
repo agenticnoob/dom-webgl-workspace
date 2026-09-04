@@ -8,11 +8,19 @@ export type HeroProfileSpeechBubbleCopy = Readonly<
 
 export type HeroProfileSpeechBubbleFrame = {
   readonly facing: HeroProfileFacing;
-  readonly weights: Readonly<Record<HeroProfileFacing, number>>;
+  readonly phase: "typing" | "holding" | "deleting" | "blank";
+  readonly characterProgress: Readonly<Record<HeroProfileFacing, number>>;
 };
 
-const fullTurn = Math.PI * 2;
-const zeroThreshold = 1e-12;
+const stageFacings = [
+  "front",
+  "side",
+  "back",
+  "side",
+  "front",
+] as const satisfies readonly HeroProfileFacing[];
+const transitionCount = stageFacings.length - 1;
+const holdStart = 0.68;
 
 const speechBubbleCopy = {
   zh: {
@@ -38,37 +46,49 @@ export function resolveHeroProfileSpeechBubbleFrame(
   reducedMotion: boolean,
 ): HeroProfileSpeechBubbleFrame {
   const safeProgress = reducedMotion ? 0 : clampProgress(progress);
-  const angle = safeProgress * fullTurn;
-  const cosine = snapZero(Math.cos(angle));
-  const sine = snapZero(Math.sin(angle));
-  const front = squarePositive(cosine);
-  const side = sine * sine;
-  const back = squarePositive(-cosine);
-  const total = front + side + back;
-  const weights = {
-    front: front / total,
-    side: side / total,
-    back: back / total,
-  } satisfies HeroProfileSpeechBubbleFrame["weights"];
+  const stageProgress = safeProgress * transitionCount;
+  const stageIndex = Math.min(transitionCount, Math.round(stageProgress));
+  const facing = stageFacings[stageIndex];
+  const signedDistanceFromStage = stageProgress - stageIndex;
+  const stageProximity = clampProgress(
+    1 - Math.abs(signedDistanceFromStage) * 2,
+  );
+  const activeCharacterProgress = roundFrameValue(
+    clampProgress(stageProximity / holdStart),
+  );
+  const characterProgress = {
+    front: facing === "front" ? activeCharacterProgress : 0,
+    side: facing === "side" ? activeCharacterProgress : 0,
+    back: facing === "back" ? activeCharacterProgress : 0,
+  } satisfies HeroProfileSpeechBubbleFrame["characterProgress"];
 
   return {
-    facing:
-      weights.side > Math.max(weights.front, weights.back)
-        ? "side"
-        : weights.back > weights.front
-          ? "back"
-          : "front",
-    weights,
+    facing,
+    phase:
+      activeCharacterProgress <= 0
+        ? "blank"
+        : activeCharacterProgress >= 1
+          ? "holding"
+          : signedDistanceFromStage < 0
+            ? "typing"
+            : "deleting",
+    characterProgress,
   };
 }
 
-function squarePositive(value: number): number {
-  const positive = Math.max(0, value);
-  return positive * positive;
+export function resolveHeroProfileVisibleCharacterCount(
+  characterCount: number,
+  progress: number,
+): number {
+  const safeCharacterCount = Math.max(0, Math.floor(characterCount));
+  return Math.min(
+    safeCharacterCount,
+    Math.floor(safeCharacterCount * clampProgress(progress) + 1e-9),
+  );
 }
 
-function snapZero(value: number): number {
-  return Math.abs(value) <= zeroThreshold ? 0 : value;
+function roundFrameValue(value: number): number {
+  return Number(value.toFixed(6));
 }
 
 function clampProgress(value: number): number {

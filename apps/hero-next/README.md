@@ -40,8 +40,10 @@ expands out of that face into the fixed body position, and returns to the face
 during exit. Its semantic profile copy remains split into explicit left and
 right columns gathered around the center. A rounded-rectangle manga speech
 bubble with a background-color fill and foreground-color text stays above the
-model's head; its front, side, and back messages crossfade from the same
-one-turn body progress, and reduced motion retains the front message. Each
+model's head without changing size or shape. Its front, side, and back messages
+type in one character at a time, hold briefly at the matching model angle, and
+delete one character at a time before the next stage, using the same reversible
+one-turn body progress. Reduced motion retains the complete front message. Each
 rendered line resolves its own displacement against the combined responsive
 GLB and speech-bubble exclusions, leaving the outer gutters available for the
 wrap instead of moving a whole section at once. All four chapter DOM cycles
@@ -50,9 +52,12 @@ transition signals. The exit starts when the body bottom reaches the viewport
 bottom. That same body progress maps the centered model deterministically to
 one clockwise turn. The tetrahedron approach and retreat keep the model's
 face-local pose still. The checked-in model is a Draco/WebP derivative under
-5 MB, while the original source asset remains outside the repository. Pointer
-lighting eases down while a chapter is active so it remains a restrained
-spatial cue rather than a dominant highlight.
+5 MB, while the original source asset remains outside the repository. Its
+app-owned material uses geometry normals and restrained PBR fill, with one
+stable light-neutral base tint across both themes so a theme commit cannot
+multiply the texture by the darker page background. Pointer lighting eases down
+while a chapter is active so it remains a restrained spatial cue rather than a
+dominant highlight.
 
 A real mesh hold remains the site-wide two-tone theme switch. It is enabled
 only at a complete Hub, commits once after the radial transition covers the
@@ -111,16 +116,17 @@ npm run build -w @viselora/hero-next
 
 ## Current evidence boundary
 
-Focused automation currently covers 25 hero-next test files / 148 tests,
+Focused automation currently covers 25 hero-next test files / 151 tests,
 including four-chapter selection, bidirectional mapping, locale/theme
 persistence, site-to-chapter copy handoff, next-content and terminal-contact
 preselection, four target faces, progressive screen lock, continuous
 approach-weighted lock UVs, prepacked body-derived lead/tail atlas tiles, stronger
 damped pointer parallax, Fresnel depth lighting, the optimized profile asset,
-its content-only one-turn scroll mapping, angle-linked speech-bubble copy,
-body-only chapter composition, per-rendered-line profile wrapping across both
-exclusions, localized atlas/DOM layout, shader behavior, and
-one-runtime/one-scene/one-canvas ownership. Current desktop, mobile,
+its content-only one-turn scroll mapping, the reversible fixed-bubble
+typewriter sequence, body-only chapter composition, per-rendered-line profile
+wrapping across both exclusions, localized atlas/DOM layout, shader behavior,
+theme-stable profile material color, and one-runtime/one-scene/one-canvas
+ownership. Current desktop, mobile,
 interaction, and LAN-origin browser evidence is owned by
 [the visual direction](./docs/visual-design.md). Canvas and DOM glyph
 rasterization can still differ slightly, and all content remains a base version

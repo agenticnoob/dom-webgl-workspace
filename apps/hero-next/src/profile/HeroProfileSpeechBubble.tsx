@@ -5,6 +5,7 @@ import type { HeroLocale } from "../preferences/locale";
 import {
   getHeroProfileSpeechBubbleCopy,
   resolveHeroProfileSpeechBubbleFrame,
+  resolveHeroProfileVisibleCharacterCount,
   type HeroProfileFacing,
 } from "./speechBubble";
 
@@ -35,11 +36,28 @@ export function HeroProfileSpeechBubble({
       return;
     }
 
-    const messages = new Map(
-      Array.from(
-        root.querySelectorAll<HTMLElement>("[data-profile-speech-message]"),
-      ).map((element) => [element.dataset.profileSpeechMessage, element]),
-    );
+    const messages = new Map<
+      HeroProfileFacing,
+      {
+        readonly element: HTMLElement;
+        readonly characters: readonly HTMLElement[];
+      }
+    >();
+    for (const facing of facings) {
+      const element = root.querySelector<HTMLElement>(
+        `[data-profile-speech-message="${facing}"]`,
+      );
+      if (element) {
+        messages.set(facing, {
+          element,
+          characters: Array.from(
+            element.querySelectorAll<HTMLElement>(
+              "[data-profile-speech-character]",
+            ),
+          ),
+        });
+      }
+    }
     const motionPreference = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     );
@@ -53,11 +71,26 @@ export function HeroProfileSpeechBubble({
         motionPreference?.matches ?? false,
       );
       root.dataset.profileFacing = frame.facing;
+      root.dataset.profileSpeechPhase = frame.phase;
       root.setAttribute("aria-label", copy[frame.facing]);
       for (const facing of facings) {
         const message = messages.get(facing);
         if (message) {
-          message.style.opacity = frame.weights[facing].toFixed(4);
+          const visibleCharacterCount =
+            resolveHeroProfileVisibleCharacterCount(
+              message.characters.length,
+              frame.characterProgress[facing],
+            );
+          message.element.dataset.profileVisibleCharacters = String(
+            visibleCharacterCount,
+          );
+          for (let index = 0; index < message.characters.length; index += 1) {
+            const character = message.characters[index];
+            const opacity = index < visibleCharacterCount ? "1" : "0";
+            if (character.style.opacity !== opacity) {
+              character.style.opacity = opacity;
+            }
+          }
         }
       }
     };
@@ -88,6 +121,7 @@ export function HeroProfileSpeechBubble({
       className="hero-profile__speech-bubble"
       data-profile-speech-bubble=""
       data-profile-facing="front"
+      data-profile-speech-phase="holding"
       role="note"
       aria-label={copy.front}
     >
@@ -97,19 +131,39 @@ export function HeroProfileSpeechBubble({
         }}
         className="hero-profile__speech-balloon"
       >
-        {facings.map((facing) => (
-          <span
-            key={facing}
-            className="hero-profile__speech-message"
-            data-profile-speech-message={facing}
-            style={{ opacity: facing === "front" ? 1 : 0 }}
-            aria-hidden="true"
-          >
-            {copy[facing]}
-          </span>
-        ))}
+        <div
+          className="hero-profile__speech-surface"
+          data-profile-speech-surface=""
+        >
+          {facings.map((facing) => (
+            <span
+              key={facing}
+              className="hero-profile__speech-message"
+              data-profile-speech-message={facing}
+              data-profile-visible-characters={
+                facing === "front" ? Array.from(copy[facing]).length : 0
+              }
+              aria-hidden="true"
+            >
+              {Array.from(copy[facing]).map((character, index) => (
+                <span
+                  key={index}
+                  className="hero-profile__speech-character"
+                  data-profile-speech-character=""
+                  style={{ opacity: facing === "front" ? 1 : 0 }}
+                >
+                  {character}
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
       </div>
-      <span className="hero-profile__speech-tail" aria-hidden="true">
+      <span
+        className="hero-profile__speech-tail"
+        data-profile-speech-tail=""
+        aria-hidden="true"
+      >
         <span className="hero-profile__speech-tail-fill" />
       </span>
     </div>

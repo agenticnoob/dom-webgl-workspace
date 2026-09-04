@@ -3,7 +3,11 @@ import { describe, expect, test } from "vitest";
 import type { HeroChapterId } from "../src/chapters/definitions";
 import { resolveHeroChapterCameraFrame } from "../src/chapters/geometry";
 import { resolveHeroChapterScrollState } from "../src/chapters/scrollState";
-import { resolveHeroProfileModelFrame } from "../src/profile/modelEffect";
+import {
+  heroProfileMaterialRoughness,
+  resolveHeroProfileMaterialColor,
+  resolveHeroProfileModelFrame,
+} from "../src/profile/modelEffect";
 import { resolveHeroTetrahedronTransformFrame } from "../src/tetrahedron/transform";
 import {
   heroProfileMaterialShader,
@@ -227,11 +231,12 @@ describe("hero profile model frame", () => {
     expect(mobile.scale[0]).toBeLessThan(desktop.scale[0]);
   });
 
-  test("keeps the profile texture readable under the shared scene lights", () => {
+  test("keeps PBR lighting while softly lifting the profile texture", () => {
     const draft = {
       materialKind: "standard" as const,
       vertexShader: "void main() {}",
-      fragmentShader: "void main() { #include <opaque_fragment> }",
+      fragmentShader:
+        "void main() { #include <normal_fragment_maps> #include <opaque_fragment> }",
       uniforms: {},
       defines: {},
     };
@@ -240,9 +245,18 @@ describe("hero profile model frame", () => {
 
     expect(heroProfileMaterialShader.key).toBe(heroProfileMaterialShaderKey);
     expect(draft.fragmentShader).toContain(
-      "outgoingLight = diffuseColor.rgb * 0.92;",
+      "outgoingLight = mix(outgoingLight, diffuseColor.rgb, 0.32);",
+    );
+    expect(draft.fragmentShader).not.toContain(
+      "#include <normal_fragment_maps>",
     );
     expect(draft.fragmentShader).toContain("#include <opaque_fragment>");
+    expect(heroProfileMaterialRoughness).toBe(0.72);
+  });
+
+  test("keeps the same light neutral material tint across both themes", () => {
+    expect(resolveHeroProfileMaterialColor("initial")).toBe("#B8B8B8");
+    expect(resolveHeroProfileMaterialColor("inverted")).toBe("#B8B8B8");
   });
 
   test("fails explicitly when the expected Three shader chunk is absent", () => {

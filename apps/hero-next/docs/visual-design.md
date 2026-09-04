@@ -38,9 +38,12 @@
 
 人物头顶保留一个浅底深字、前景色描边的圆角长方形漫画对话框；它与章节使用同一组语义
 色，因此主题切换和 Atlas/DOM 接管不会跳色。它不建立第二套时间线：直接读取上述 body progress，
-用连续权重在“这是我的正面”“这是我的侧面”“这是我的背面”之间交叉淡化；`0 / 1` 为正面，
-`0.25 / 0.75` 为侧面，`0.5` 为背面，反向滚动严格回放。React 不接收逐帧 state，DOM 只在
-requestAnimationFrame 内写入三个文本层的透明度；reduced-motion 固定正面。中英文各有同义文案。
+气泡与尾部的尺寸、位置和形状全程固定，只让“这是我的正面”“这是我的侧面”“这是我的背面”
+逐字变化。进入每个视角阶段时文字从左到右逐字补全，在主角度附近短暂停留；离开阶段时再按
+相反顺序逐字清空，边界清空后下一阶段才开始打字。`0 / 1` 为完整正面，`0.25 / 0.75` 为
+完整侧面，`0.5` 为完整背面，反向滚动严格回放同一字符状态。稳定占位继续供逐行环绕计算使用，
+正文不会因文字长度变化来回摆动。React 不接收逐帧 state，DOM 只在 requestAnimationFrame
+内按整数个字符更新透明度；reduced-motion 固定为完整正面。中英文各有同义文案。
 
 ## 空间链路
 
@@ -130,8 +133,13 @@ renderer、第二 canvas 或 Hero 专用 package 分支。
 shader 和章节激活进度不进入 React state。
 
 个人 GLB 由原始 `80,547,988` bytes、约 `1,499,852` triangles 的源资产生成独立交付副本；
-仓库内版本为 `1,845,364` bytes、`179,968` triangles，使用 Draco 几何压缩、MikkTSpace
-tangents 与 `1024px` WebP 纹理。源文件保持不变且不进入仓库。第四章只连接已确认地址；
+仓库内版本为 `1,824,732` bytes、`449,954` triangles，使用 Draco 几何压缩与 `1024px`
+WebP 纹理，在不增加传输体积的前提下保留更多轮廓细节。人物材质忽略资产中接近中性的
+normal map，以几何法线获得更干净的表面；最终颜色保留大部分 PBR 光照，并以 `32%` 底色
+柔化高光，粗糙度设为 `0.72`，避免全哑光的粉笔感和低粗糙度的硬塑料感。材质基色在两种
+主题下都固定使用 light token `#B8B8B8`，不再乘上 committed background；因此反色章节不会
+把贴图从浅灰突然压到 `#5F5F5F`，默认主题的既有曝光也保持不变。源文件保持不变且不进入
+仓库。第四章只连接已确认地址；
 未确认的视频账号不会被虚构。
 
 窄屏以 `700px` 为内容断点：第一章把中央模型保护椭圆收窄到约 `38vw`，同时让中部两列的
@@ -155,23 +163,21 @@ Hub 四面体保留更强的首屏占比；
 
 ## 当前验证边界
 
-- **Automated：** hero-next 25 个 focused test files / 148 tests 覆盖首屏网站介绍、首章文案
+- **Automated：** hero-next 25 个 focused test files / 151 tests 覆盖首屏网站介绍、首章文案
   handoff 静止段、持续到完整揭示的旋转靠近、渐进 screen lock 与居中接管、独立
   四章 body-only DOM、空 entry/exit runways、内容结束即回程、正文派生且预打包的 lead/tail atlas、
   连续 face-lock UV、飞行 pointer tilt、Portal 视差阻尼、
   退出时下一内容预选、末章到联系方式、四章选择、双向映射、四个目标面、locale/theme 持久化、
   profile GLB 大小与 decoder 资产、第一面浅浮雕贴附、连续面到正文变换、人物固定位置、
   响应式人物椭圆/对话框圆角矩形联合避让、圆角边界外的连续预让位、混合文字视觉行分组和环绕 DOM 标记、
-  正面/侧面/背面的连续对话框权重、反向确定性与 reduced-motion、
+  固定气泡内正面/侧面/背面文案的逐字出现—停留—逐字消失、反向确定性与 reduced-motion、
   内容进度到一周旋转的纯映射、进程/返程局部自转冻结、章节 pointer-light 衰减、reduced-motion、
-  shader 和单 runtime/scene/canvas ownership；全仓库 169 个 test files / 1152 tests、
-  workspace typecheck、import check 与 docs check 通过。`2026-09-04` production build
-  在 `/tmp` 隔离副本中通过，没有与正在运行的 dev server 争用工作区 `.next`。
+  shader、主题间稳定的人物材质基色和单 runtime/scene/canvas ownership；全仓库 169 个 test files / 1155 tests、
+  workspace typecheck、import check 与 docs check 通过。`2026-09-05` production build
+  在短暂停止 dev server 后于当前工作区通过，随后已恢复开发服务。
 - **Browser：** `2026-09-04` 在开发态 Chromium `1440×900` 与 `375×812` 精确跨越第一章
   Atlas → DOM 接管及 DOM → tail 回程坐标前后各 `2px`，章节计数、标题逐行断点、简介、
-  人物位置、尺寸与正面对话框连续；
-  在正文进度 `0 / 0.25 / 0.5 / 0.75 / 1` 及反向序列回读到正面/侧面/背面/侧面/正面，
-  三层文案权重在主角度分别为 `1 / 0 / 0`，中间角度连续交叉淡化。桌面与移动端正文 token
+  人物位置、尺寸与固定气泡轮廓连续；桌面与移动端正文 token
   以各 41 个正文进度点抽样，文字对气泡实际圆角矩形的碰撞数和视口裁切数均为 0；
   两种视口始终只有一个 canvas、无框架错误浮层且 console error/warning 为 0。另在
   `1280×720` 与 `375×812` 验证四章 DOM
@@ -180,13 +186,26 @@ Hub 四面体保留更强的首屏占比；
   四面体第一面切换为真实章节 closing，而不是章节开头。第二章回程同样显示正文最后卡片；切换中英文后
   locale 与 Atlas 同步更新，仍保持一个 canvas、无框架错误浮层且 page error 为 0。第一章仍是居中的明确
   左右两列；桌面当前模型高度内 9 条受影响行产生 9 个不同位移，移动端 29 条产生 29 个不同
-  位移，两种视口的人物保护椭圆碰撞数均为 0。既有 3D handoff、双向回放、最终联系方式、主题交互、reduced-motion
-  与 LAN-origin 证据未在本轮重跑。
+  位移，两种视口的人物保护椭圆碰撞数均为 0。LAN-origin 证据沿用既有验证，未在
+  `2026-09-05` 重跑。
   针对章节一尾部硬切的用户截图，另在 `1697×742`、`1822×730` 与 `375×812` 逐点回读 DOM 尾帧、exit 边界后首帧及
   `10%` 回程帧：Atlas 格间文字污染和多余句号均已消失，尾帧不再残留上一段正文；人物、closing 与正面对话框
   的位置和尺寸连续，移动端三角收束过程合理，始终只有一个 canvas，console error/warning 为 0。
+  `2026-09-05` 固定气泡打字机效果在开发态 Chromium `1440×900` 与 `375×812` 用真实滚轮验证：正面字符数按
+  `6 → 3 → 0` 递减，随后侧面按 `0 → 4 → 6` 递增，反向滚动从完整侧面回到 4 个字符；桌面气泡始终为
+  `259.1875×84px`、移动端始终为 `176×88px`，surface 与尾部 computed transform 均为 `none`。
+  英文阶段同步逐字显示（中间帧为 `This i`），reduced-motion 在背面进度仍固定完整正面，两个视口均保持
+  单 canvas、无页面错误或框架错误浮层。开发态 Chromium 仍报告既有
+  `glCopySubTextureCHROMIUM` WebGL warning；本次 DOM 气泡改动未处理该渲染器警告。
+  本轮人物表面优化在开发态 Chromium `1440×900` 与 `375×812` 复核第一章正面和侧面：更高细节的
+  Draco 派生资产保持既有屏幕位置与尺寸，几何法线与柔化后的 PBR 高光没有新增贴图接缝或硬塑料反光；
+  移动端真实滚轮从正面进入侧面后仍保持一个 canvas，本次会话的 console error/warning 为 0。
+  `2026-09-05` 从 Hub 真实长按切到 inverted theme 后，在 `1440×900`、用户截图同尺寸
+  `1080×1440` 与 `375×812` 复核第一章正面：人物不再随 committed background 变暗，肤色、黑发和
+  灰色衣服仍保留明暗层次且高光没有洗白；三个视口均保持一个 canvas、无错误浮层和 page error。
+  Chromium 在 resize 后仍会报告既有 `glCopySubTextureCHROMIUM` WebGL warning，本次材质修复未处理该警告。
 - **未声称：** 本轮没有覆盖 `320×568`、iOS Safari、Android Chrome 真机、横屏或
-  长按主题切换；视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺
+  反向切回 initial theme；视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺
   像素级一致。
 
 ## 维护边界
