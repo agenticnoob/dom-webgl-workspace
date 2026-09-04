@@ -10,15 +10,14 @@ import {
 } from "../chapters/atlas";
 import { readHeroViewport, type HeroViewport } from "../shared/viewport";
 import {
-  readHeroChapterExitFrameIds,
+  readHeroChapterTailAtlasIds,
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
   type HeroChapterScrollState,
 } from "../chapters/scrollState";
-import { resolveHeroChapterGeometryFrame } from "../chapters/geometry";
+import type { HeroChapterId } from "../chapters/definitions";
 import {
   createHeroHoldTransitionState,
-  resolveHeroShake,
   resolveHeroTransitionVisual,
   stepHeroHoldTransition,
   type HeroHoldTransitionState,
@@ -35,31 +34,25 @@ import {
 } from "./shader";
 import type { HeroThemeStore } from "../preferences/theme";
 import type { HeroLocaleStore } from "../preferences/locale";
+import {
+  createHeroMotionState,
+  stepHeroMotionState,
+  type HeroMotionState,
+} from "./motion";
+import { resolveHeroTetrahedronTransformFrame } from "./transform";
+
+export {
+  createHeroMotionState,
+  stepHeroMotionState,
+  type HeroMotionInput,
+  type HeroMotionState,
+} from "./motion";
 
 export type HeroEffectParams = {
   kind: "hero.tetrahedron.motion";
   signals: HeroTransitionSignalWriter;
   theme: HeroThemeStore;
   locale: HeroLocaleStore;
-};
-
-export type HeroMotionState = {
-  readonly reducedMotion: boolean;
-  previousPointerX: number;
-  previousPointerY: number;
-  lastSignificantMoveTime: number;
-  tiltX: number;
-  tiltY: number;
-  targetTiltX: number;
-  targetTiltY: number;
-};
-
-export type HeroMotionInput = {
-  readonly time: number;
-  readonly delta: number;
-  readonly pointerInside: boolean;
-  readonly pointerX: number;
-  readonly pointerY: number;
 };
 
 export type HeroEffectState = {
@@ -81,19 +74,6 @@ type HeroTarget = {
   material?: WebGLEffectMaterialFacade;
 };
 
-export function createHeroMotionState(reducedMotion: boolean): HeroMotionState {
-  return {
-    reducedMotion,
-    previousPointerX: 0,
-    previousPointerY: 0,
-    lastSignificantMoveTime: 0,
-    tiltX: 0,
-    tiltY: 0,
-    targetTiltX: 0,
-    targetTiltY: 0,
-  };
-}
-
 export function createHeroEffectState(
   reducedMotion: boolean,
   committedScheme: HeroHoldTransitionState["committedScheme"] = "initial",
@@ -107,53 +87,6 @@ export function createHeroEffectState(
   };
 }
 
-export function stepHeroMotionState(
-  state: HeroMotionState,
-  input: HeroMotionInput,
-): void {
-  if (state.reducedMotion) {
-    state.tiltX = 0;
-    state.tiltY = 0;
-    state.targetTiltX = 0;
-    state.targetTiltY = 0;
-    return;
-  }
-
-  const movement = Math.hypot(
-    input.pointerX - state.previousPointerX,
-    input.pointerY - state.previousPointerY,
-  );
-  const nearCenter = Math.hypot(input.pointerX, input.pointerY) <= 0.75;
-  const moving = input.pointerInside && nearCenter && movement >= 0.0025;
-
-  if (moving) {
-    state.lastSignificantMoveTime = input.time;
-    state.targetTiltX = clamp(
-      -input.pointerY * heroTransitionConfig.motion.pointerPitch,
-      -heroTransitionConfig.motion.pointerPitch,
-      heroTransitionConfig.motion.pointerPitch,
-    );
-    state.targetTiltY = clamp(
-      input.pointerX * heroTransitionConfig.motion.pointerYaw,
-      -heroTransitionConfig.motion.pointerYaw,
-      heroTransitionConfig.motion.pointerYaw,
-    );
-  } else if (input.time - state.lastSignificantMoveTime >= 120) {
-    state.targetTiltX = 0;
-    state.targetTiltY = 0;
-  }
-
-  const damping =
-    1 -
-    Math.exp(
-      -Math.max(0, input.delta) / heroTransitionConfig.motion.pointerDampingMs,
-    );
-  state.tiltX += (state.targetTiltX - state.tiltX) * damping;
-  state.tiltY += (state.targetTiltY - state.tiltY) * damping;
-  state.previousPointerX = input.pointerX;
-  state.previousPointerY = input.pointerY;
-}
-
 export function applyHeroFrame(
   target: HeroTarget,
   motion: HeroMotionState,
@@ -162,60 +95,20 @@ export function applyHeroFrame(
   viewport: HeroViewport,
   reducedMotion: boolean,
   chapter: HeroChapterScrollState = resolveHeroChapterScrollState(0, 0),
+  tailChapterIds: readonly HeroChapterId[] = [],
 ): void {
-  const activeAttempt =
-    transition.phase === "expanding" || transition.phase === "retracting";
-  const hubMotionWeight = activeAttempt
-    ? 1 - smoothstep(transition.coverage)
-    : 1;
-  const ambientWeight = reducedMotion
-    ? 0
-    : chapter.hubInteractive
-      ? hubMotionWeight
-      : chapter.domContentActive
-        ? 0
-        : heroTransitionConfig.motion.transitionAmbientFactor;
-  const interactionWeight =
-    reducedMotion || chapter.domContentActive
-      ? 0
-      : chapter.hubInteractive
-        ? hubMotionWeight
-        : heroTransitionConfig.motion.transitionPointerFactor *
-          (1 - chapter.screenLock);
-  const shake = resolveHeroShake(time, transition, reducedMotion);
-  const baseRotation = reducedMotion
-    ? heroTransitionConfig.motion.reducedRotation
-    : heroTransitionConfig.motion.baseRotation;
-  const breathingPhase = (time / 6_000) * Math.PI * 2;
-  const floatingPhase = (time / 8_000) * Math.PI * 2;
-  const frame = resolveHeroChapterGeometryFrame(
+  const frame = resolveHeroTetrahedronTransformFrame({
+    motion,
+    time,
+    transition,
     viewport,
-    chapter,
-    baseRotation,
     reducedMotion,
-  );
+    chapter,
+  });
 
-  target.scale.setScalar(
-    frame.scale *
-      (1 +
-        Math.sin(breathingPhase) *
-          heroTransitionConfig.motion.breathingScaleAmplitude *
-          ambientWeight),
-  );
-  target.position.set(
-    frame.position[0] + shake.position[0],
-    frame.position[1] +
-      Math.sin(floatingPhase) *
-        heroTransitionConfig.motion.floatingAmplitude *
-        ambientWeight +
-      shake.position[1],
-    frame.position[2] + shake.position[2],
-  );
-  target.rotation.set(
-    frame.rotation[0] + motion.tiltX * interactionWeight + shake.rotation[0],
-    frame.rotation[1] + motion.tiltY * interactionWeight + shake.rotation[1],
-    frame.rotation[2] + shake.rotation[2],
-  );
+  target.scale.setScalar(frame.scale);
+  target.position.set(...frame.position);
+  target.rotation.set(...frame.rotation);
 
   const visual = resolveHeroTransitionVisual(transition);
   const opacity = lerp(
@@ -234,7 +127,12 @@ export function applyHeroFrame(
     target.material.opacity = opacity;
     target.material.shader?.setUniforms(
       heroTetrahedronRadialShaderKey,
-      createHeroTetrahedronRadialUniforms(transition, viewport, chapter),
+      createHeroTetrahedronRadialUniforms(
+        transition,
+        viewport,
+        chapter,
+        tailChapterIds,
+      ),
     );
   }
 }
@@ -245,11 +143,6 @@ function clamp(value: number, min: number, max: number): number {
 
 function lerp(start: number, end: number, progress: number): number {
   return start + (end - start) * clamp(progress, 0, 1);
-}
-
-function smoothstep(value: number): number {
-  const safeValue = clamp(value, 0, 1);
-  return safeValue * safeValue * (3 - 2 * safeValue);
 }
 
 function prefersReducedMotion(): boolean {
@@ -306,21 +199,12 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
     const viewport = readHeroViewport();
     const chapter = readHeroChapterScrollState(ctx.progress);
     const locale = params.locale.getSnapshot();
-    const exitChapterIds = readHeroChapterExitFrameIds(ctx.progress);
+    const tailChapterIds = readHeroChapterTailAtlasIds(ctx.progress);
     if (
       state.chapterAtlas &&
-      !heroChapterAtlasMatchesViewport(
-        state.chapterAtlas,
-        viewport,
-        locale,
-        exitChapterIds,
-      )
+      !heroChapterAtlasMatchesViewport(state.chapterAtlas, viewport, locale)
     ) {
-      state.chapterAtlas = createHeroChapterAtlas(
-        viewport,
-        locale,
-        exitChapterIds,
-      );
+      state.chapterAtlas = createHeroChapterAtlas(viewport, locale);
       ctx.object.material?.shader?.setUniforms(heroTetrahedronRadialShaderKey, {
         heroChapterAtlas: {
           kind: "canvas-texture",
@@ -352,6 +236,7 @@ export const heroTetrahedronEffect = defineWebGLSceneObjectEffect<
       viewport,
       state.reducedMotion,
       chapter,
+      tailChapterIds,
     );
   },
   dispose(ctx, state) {

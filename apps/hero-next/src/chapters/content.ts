@@ -6,20 +6,20 @@ export type HeroChapterLink = {
   readonly label: string;
 };
 
-export type HeroChapterFrameContent = {
+export type HeroChapterBodyContent = {
   readonly eyebrow: string;
-  readonly titleLines: readonly string[];
-  readonly summary: string;
-  readonly signals: readonly [
-    { readonly label: string; readonly value: string },
-    { readonly label: string; readonly value: string },
-  ];
+  readonly title: string;
+  readonly intro: string;
+  readonly sections: readonly {
+    readonly label: string;
+    readonly title: string;
+    readonly body: string;
+    readonly link?: HeroChapterLink;
+  }[];
+  readonly closing?: string;
 };
 
 export type HeroChapterLocalizedContent = {
-  readonly faceLabel: string;
-  readonly frame: HeroChapterFrameContent;
-  readonly exitFrame: HeroChapterFrameContent;
   readonly portal: {
     readonly left: { readonly label: string; readonly body: string };
     readonly right: {
@@ -27,18 +27,7 @@ export type HeroChapterLocalizedContent = {
       readonly items: readonly string[];
     };
   };
-  readonly body: {
-    readonly eyebrow: string;
-    readonly title: string;
-    readonly intro: string;
-    readonly sections: readonly {
-      readonly label: string;
-      readonly title: string;
-      readonly body: string;
-      readonly link?: HeroChapterLink;
-    }[];
-    readonly closing?: string;
-  };
+  readonly body: HeroChapterBodyContent;
 };
 
 export const heroPublicLinks = {
@@ -66,7 +55,6 @@ export const heroSiteContent = {
       github: "GitHub",
       blog: "个人博客",
     },
-    continueLabel: "继续前往章节出口",
     profileModelLabel: "抽象个人形象",
   },
   en: {
@@ -90,7 +78,6 @@ export const heroSiteContent = {
       github: "GitHub",
       blog: "Personal blog",
     },
-    continueLabel: "Continue to the chapter exit",
     profileModelLabel: "Abstract personal figure",
   },
 } as const satisfies Readonly<
@@ -114,7 +101,6 @@ export const heroSiteContent = {
         readonly github: string;
         readonly blog: string;
       };
-      readonly continueLabel: string;
       readonly profileModelLabel: string;
     }
   >
@@ -123,137 +109,107 @@ export const heroSiteContent = {
 export const heroChapterContent = {
   self: {
     zh: {
-      faceLabel: "自我",
-      frame: {
-        eyebrow: "NOOBLI / 01",
-        titleLines: ["在变化中", "持续构建"],
-        summary: "我是 noobli，一名关注 AI、软件与认知边界的独立构建者。",
-        signals: [
-          { label: "方向", value: "AI-NATIVE" },
-          { label: "原则", value: "AGENT-FIRST" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "SELF / TRACE",
-        titleLines: ["持续校正", "继续前行"],
-        summary: "身份不是静态结论，而是一次次构建、验证与修正留下的轨迹。",
-        signals: [
-          { label: "下一站", value: "AXIOMS" },
-          { label: "方法", value: "EVIDENCE-LED" },
-        ],
-      },
       portal: {
         left: {
-          label: "01 / 自我",
-          body: "我是谁、我做什么，以及我为什么这样构建。",
+          label: "01 / 来路",
+          body: "一条没有被预先写好的线，穿过军营、校园、城市与代码。",
         },
         right: {
-          label: "身份坐标",
-          items: ["独立构建者", "AI-native", "Agent-first"],
+          label: "沿途坐标",
+          items: ["号声与晨光", "书页与像素", "智能与自由"],
         },
       },
       body: {
         eyebrow: "SELF / NOOBLI",
-        title: "我构建系统，也持续校正自己的判断。",
+        title: "我不是沿一条直线抵达这里。",
         intro:
-          "我把模糊的问题拆成可以验证的系统，用技术减少重复劳动、扩大选择，同时保留人的责任与最终控制。",
+          "徐力，也叫 noobli。1994 年生；先在军营听过清晨的号声，后来在书页与浏览器的微光里重写自己的方向。如今以独立构建者的身份，继续探问智能、软件与自由如何彼此照亮。",
         sections: [
           {
-            label: "工作",
-            title: "独立构建",
-            body: "围绕 AI Agent、自动化、内容系统和开放工具持续实验，让想法尽快进入可以运行和验证的状态。",
+            label: "2012—2014 / 晨光",
+            title: "先学会站立，再学习远行。",
+            body: "十八岁那年，时间被号声切成清晰的刻度。两年的军旅没有替我回答远方，却让我懂得：自由从来不是松弛，而是能够为自己的选择站稳。",
           },
           {
-            label: "方法",
-            title: "从真实问题出发",
-            body: "先确认事实与边界，再建立可观察、可审计、可回退的完整工作流。大胆实验，但不把未经验证的结果当作结论。",
+            label: "2014—2018 / 书页",
+            title: "把被规定的时间，重新交还给疑问。",
+            body: "离开军营之后，我回到校园。知识不再是一张通往确定答案的地图，更像一扇扇窗——让我看见，人生可以被重新命名，也可以重新开始。",
           },
           {
-            label: "理念",
-            title: "自由来自可设计的结构",
-            body: "技术的价值不仅是效率，也在于减少对固定工具、地点和既定路径的依赖，把时间交还给真正重要的问题。",
+            label: "2018—后来 / 像素",
+            title: "在浏览器的光里，造过一些可以运行的世界。",
+            body: "毕业后，我成为前端开发者，在杭州、温州与上海之间工作和生活。代码把抽象变成可触碰的界面，也让我第一次意识到：秩序并非只能接受，它也可以亲手设计。",
+          },
+          {
+            label: "转身 / 无固定席位",
+            title: "离开一张确定的工位，去寻找更完整的生活。",
+            body: "后来，我把职业从一个地点里取出，成为自由职业者。那不是逃离工作，而是重新安排工作、时间与生活的关系，让道路本身也成为答案的一部分。",
+          },
+          {
+            label: "此刻 / 未完成",
+            title: "让软件理解意图，也让自己继续改变。",
+            body: "现在，我把目光投向 AI、Agent 与认知边界：尝试让系统不只执行指令，也能承接意图；同时保留人的判断、责任，以及随时改变方向的权利。",
           },
         ],
+        closing: "不把身份写成终点，只把它当作下一次出发前，暂时落下的坐标。",
       },
     },
     en: {
-      faceLabel: "SELF",
-      frame: {
-        eyebrow: "NOOBLI / 01",
-        titleLines: ["BUILDING", "THROUGH CHANGE"],
-        summary:
-          "I am noobli, an independent builder working at the edges of AI, software, and cognition.",
-        signals: [
-          { label: "DIRECTION", value: "AI-NATIVE" },
-          { label: "PRINCIPLE", value: "AGENT-FIRST" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "SELF / TRACE",
-        titleLines: ["KEEP REVISING", "KEEP MOVING"],
-        summary:
-          "Identity is not a fixed conclusion, but a trace left by building, testing, and revising.",
-        signals: [
-          { label: "NEXT", value: "AXIOMS" },
-          { label: "METHOD", value: "EVIDENCE-LED" },
-        ],
-      },
       portal: {
         left: {
-          label: "01 / SELF",
-          body: "Who I am, what I build, and why I work this way.",
+          label: "01 / THE WAY HERE",
+          body: "An unwritten line through barracks, campus, cities, and code.",
         },
         right: {
           label: "COORDINATES",
-          items: ["Independent builder", "AI-native", "Agent-first"],
+          items: [
+            "Reveille and dawn",
+            "Pages and pixels",
+            "Intelligence and freedom",
+          ],
         },
       },
       body: {
         eyebrow: "SELF / NOOBLI",
-        title: "I build systems while continuously revising my own model.",
+        title: "I did not arrive here in a straight line.",
         intro:
-          "I turn ambiguous questions into systems that can be tested, using technology to reduce repetition and expand choice while preserving human responsibility and final control.",
+          "Xu Li, also known as noobli, born in 1994. I first heard the day begin with reveille, then rewrote my direction in the quiet glow of books and browsers. Now, as an independent builder, I keep asking how intelligence, software, and freedom might illuminate one another.",
         sections: [
           {
-            label: "WORK",
-            title: "Independent building",
-            body: "I experiment with AI agents, automation, content systems, and open tools so ideas can become runnable and verifiable quickly.",
+            label: "2012—2014 / DAWN",
+            title: "First, learn to stand. Then, learn to leave.",
+            body: "At eighteen, reveille divided time into exact measures. Two years in the military did not answer where to go, but taught me that freedom is not ease; it is the strength to stand behind a choice.",
           },
           {
-            label: "METHOD",
-            title: "Start from a real problem",
-            body: "Establish facts and boundaries first, then build observable, auditable, reversible workflows. Experiment boldly without promoting unverified output into truth.",
+            label: "2014—2018 / PAGES",
+            title: "Return prescribed time to the keeping of questions.",
+            body: "After the barracks, I returned to campus. Knowledge stopped resembling a map to certain answers and became a field of windows: life could be renamed, and begun again.",
           },
           {
-            label: "BELIEF",
-            title: "Freedom needs designed structure",
-            body: "Technology matters not only for efficiency, but for reducing dependence on fixed tools and paths, returning time to questions that truly matter.",
+            label: "2018—AFTER / PIXELS",
+            title:
+              "In the browser's light, I built small worlds that could run.",
+            body: "After graduation, I worked as a front-end developer across Hangzhou, Wenzhou, and Shanghai. Code turned abstraction into touchable surfaces and revealed that order need not only be accepted; it can be designed.",
+          },
+          {
+            label: "TURNING / NO FIXED SEAT",
+            title: "I left a certain desk in search of a more whole life.",
+            body: "Later, I lifted work out of a single place and became a freelancer. It was not an escape from work, but a new arrangement between work, time, and life—letting the road become part of the answer.",
+          },
+          {
+            label: "NOW / UNFINISHED",
+            title:
+              "Let software understand intent—and let the self keep changing.",
+            body: "Today I look toward AI, agents, and the edges of cognition: building systems that can carry intent, while preserving human judgment, responsibility, and the right to change direction.",
           },
         ],
+        closing:
+          "I do not write identity as an ending—only as a coordinate set down briefly before the next departure.",
       },
     },
   },
   axioms: {
     zh: {
-      faceLabel: "公理",
-      frame: {
-        eyebrow: "AXIOMS / 02",
-        titleLines: ["改变答案之前", "先改变前提"],
-        summary: "AI 的深层影响，可能是重新书写问题赖以成立的公理。",
-        signals: [
-          { label: "变化", value: "PREMISES" },
-          { label: "智能", value: "BEYOND LANGUAGE" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "AXIOMS / OPEN",
-        titleLines: ["保留怀疑", "让证据继续"],
-        summary: "命题只是暂时的支架；新的证据应当继续改变我们的前提。",
-        signals: [
-          { label: "下一站", value: "BUILDS" },
-          { label: "状态", value: "PROVISIONAL" },
-        ],
-      },
       portal: {
         left: {
           label: "02 / 公理",
@@ -294,27 +250,6 @@ export const heroChapterContent = {
       },
     },
     en: {
-      faceLabel: "AXIOMS",
-      frame: {
-        eyebrow: "AXIOMS / 02",
-        titleLines: ["CHANGE", "THE PREMISES"],
-        summary:
-          "AI may matter most when it rewrites the axioms that made our old questions possible.",
-        signals: [
-          { label: "CHANGE", value: "PREMISES" },
-          { label: "INTELLIGENCE", value: "BEYOND LANGUAGE" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "AXIOMS / OPEN",
-        titleLines: ["KEEP DOUBTING", "FOLLOW EVIDENCE"],
-        summary:
-          "Propositions are temporary scaffolds; new evidence should keep changing the premises.",
-        signals: [
-          { label: "NEXT", value: "BUILDS" },
-          { label: "STATUS", value: "PROVISIONAL" },
-        ],
-      },
       portal: {
         left: {
           label: "02 / AXIOMS",
@@ -361,25 +296,6 @@ export const heroChapterContent = {
   },
   builds: {
     zh: {
-      faceLabel: "构建",
-      frame: {
-        eyebrow: "BUILDS / 03",
-        titleLines: ["让智能体", "读懂并行动"],
-        summary: "不是给人的功能再套一层 AI，而是重新定义软件的第一使用者。",
-        signals: [
-          { label: "当前", value: "VISELORA" },
-          { label: "证据", value: "PUBLIC GITHUB" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "BUILDS / HANDOFF",
-        titleLines: ["交给真实使用", "让边界显现"],
-        summary: "系统只有进入真实使用，才能暴露契约、能力与判断的边界。",
-        signals: [
-          { label: "下一站", value: "SIGNALS" },
-          { label: "证据", value: "RUNNING" },
-        ],
-      },
       portal: {
         left: {
           label: "03 / 构建",
@@ -423,27 +339,6 @@ export const heroChapterContent = {
       },
     },
     en: {
-      faceLabel: "BUILDS",
-      frame: {
-        eyebrow: "BUILDS / 03",
-        titleLines: ["MAKE AGENTS", "UNDERSTAND AND ACT"],
-        summary:
-          "Not another AI layer on a human feature, but a new definition of software's first user.",
-        signals: [
-          { label: "CURRENT", value: "VISELORA" },
-          { label: "EVIDENCE", value: "PUBLIC GITHUB" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "BUILDS / HANDOFF",
-        titleLines: ["SHIP TO REAL USE", "REVEAL THE LIMITS"],
-        summary:
-          "Only real use reveals the limits of a system's contracts, capabilities, and judgment.",
-        signals: [
-          { label: "NEXT", value: "SIGNALS" },
-          { label: "EVIDENCE", value: "RUNNING" },
-        ],
-      },
       portal: {
         left: {
           label: "03 / BUILDS",
@@ -490,25 +385,6 @@ export const heroChapterContent = {
   },
   signals: {
     zh: {
-      faceLabel: "联结",
-      frame: {
-        eyebrow: "SIGNALS / 04",
-        titleLines: ["让信号", "抵达同道"],
-        summary: "产品、文章与视频，是思考向外部世界留下的不同接口。",
-        signals: [
-          { label: "思想方向", value: "AXMORF" },
-          { label: "持续发布", value: "WORDS / VIDEO" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "SIGNALS / OPEN LOOP",
-        titleLines: ["保持连接", "继续试验"],
-        summary: "把未完成的思考留在开放回路里，让交流带来下一次变化。",
-        signals: [
-          { label: "下一站", value: "DIALOGUE" },
-          { label: "状态", value: "OPEN" },
-        ],
-      },
       portal: {
         left: {
           label: "04 / 联结",
@@ -555,27 +431,6 @@ export const heroChapterContent = {
       },
     },
     en: {
-      faceLabel: "SIGNALS",
-      frame: {
-        eyebrow: "SIGNALS / 04",
-        titleLines: ["LET THE SIGNAL", "FIND ITS PEERS"],
-        summary:
-          "Products, essays, and videos are different interfaces between thought and the outside world.",
-        signals: [
-          { label: "THOUGHT DIRECTION", value: "AXMORF" },
-          { label: "PUBLISHING", value: "WORDS / VIDEO" },
-        ],
-      },
-      exitFrame: {
-        eyebrow: "SIGNALS / OPEN LOOP",
-        titleLines: ["STAY CONNECTED", "KEEP EXPERIMENTING"],
-        summary:
-          "Leave unfinished thought in an open loop, where exchange can produce the next change.",
-        signals: [
-          { label: "NEXT", value: "DIALOGUE" },
-          { label: "STATE", value: "OPEN" },
-        ],
-      },
       portal: {
         left: {
           label: "04 / SIGNALS",

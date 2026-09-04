@@ -40,7 +40,11 @@ describe("hero tetrahedron radial shader", () => {
     expect(draft.vertexShader).toContain("heroObjectNormal = normal");
     expect(draft.fragmentShader).toContain("float heroFaceScore0 = dot(");
     expect(draft.fragmentShader).toContain(
-      "heroAtlasOffset + heroFaceUv * 0.5",
+      "heroAtlasOffset + heroFaceUv * vec2(0.5, 0.25)",
+    );
+    expect(draft.fragmentShader).toContain("uniform vec4 heroTailFaces");
+    expect(draft.fragmentShader).toContain(
+      "heroAtlasOffset.y = heroAtlasOffset.y * 0.5 + 0.5 * (1.0 - heroTailFace)",
     );
     expect(draft.fragmentShader).toContain(
       "mix(heroFaceUv, heroScreenUv, heroTargetFace * heroScreenLock)",
@@ -217,6 +221,7 @@ describe("hero tetrahedron radial shader", () => {
         heroTargetFaceNormal: [-1, 1, 1],
         heroTargetFaceRight: [0, -1, 1],
         heroTargetFaceUp: [2, 1, 1],
+        heroTailFaces: [0, 0, 0, 0],
         heroLockUvScale: [
           lockProjection.widthFraction,
           lockProjection.heightFraction,

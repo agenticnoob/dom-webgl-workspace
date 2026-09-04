@@ -3,8 +3,10 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   heroGhostBackgroundEffect,
+  resolveHeroGhostCursorIntensityScale,
   resolveHeroGhostProgramState,
   resolveHeroGhostOverscanScale,
+  resolveHeroPointerLightIntensityScale,
 } from "../src/ghost/backgroundEffect";
 import {
   createHeroPointerLightState,
@@ -137,8 +139,25 @@ describe("hero Ghost Cursor effects", () => {
       sceneOpacity: 1,
     });
 
+    publishHeroTransitionSignals(writer, idle);
     values.set("hero.chapter-1.entry", 1);
-    expect(resolveHeroGhostProgramState(reader, viewport).sceneOpacity).toBe(0);
+    expect(resolveHeroGhostProgramState(reader, viewport)).toMatchObject({
+      baseBackgroundColor: "#5F5F5F",
+      baseForegroundColor: "#B8B8B8",
+      targetBackgroundColor: "#5F5F5F",
+      targetForegroundColor: "#B8B8B8",
+      sceneOpacity: 1,
+    });
+    expect(resolveHeroPointerLightIntensityScale(reader)).toBeCloseTo(0.04);
+    expect(resolveHeroGhostCursorIntensityScale(reader)).toBeCloseTo(0.1);
+
+    values.set("hero.chapter-1.exit", 0.5);
+    expect(resolveHeroPointerLightIntensityScale(reader)).toBeCloseTo(0.52);
+    expect(resolveHeroGhostCursorIntensityScale(reader)).toBeCloseTo(0.55);
+
+    values.set("hero.chapter-1.exit", 1);
+    expect(resolveHeroPointerLightIntensityScale(reader)).toBe(1);
+    expect(resolveHeroGhostCursorIntensityScale(reader)).toBe(1);
   });
 
   test("maps target-local pointer coordinates around the tetrahedron", () => {
@@ -216,6 +235,25 @@ describe("hero Ghost Cursor effects", () => {
     }
 
     expect(state.intensity).toBeCloseTo(10, 3);
+  });
+
+  test("caps the focused pointer light at a restrained chapter intensity", () => {
+    const { lights } = createLightsFacade();
+    const state = createHeroPointerLightState(false);
+
+    for (let frame = 0; frame < 20; frame += 1) {
+      updateHeroPointerLight(lights, state, {
+        active: true,
+        localX: 500,
+        localY: 250,
+        width: 1000,
+        height: 500,
+        delta: 64,
+        intensityScale: 0.04,
+      });
+    }
+
+    expect(state.intensity).toBeCloseTo(0.4, 3);
   });
 
   test("fades pointer-light intensity after the pointer leaves", () => {
@@ -311,7 +349,9 @@ function createLightsFacade() {
   };
   const lights = {
     ambient: vi.fn<WebGLEffectLightsFacade["ambient"]>(() => lightHandle),
-    directional: vi.fn<WebGLEffectLightsFacade["directional"]>(() => lightHandle),
+    directional: vi.fn<WebGLEffectLightsFacade["directional"]>(
+      () => lightHandle,
+    ),
     point: vi.fn<WebGLEffectLightsFacade["point"]>(() => lightHandle),
     remove: vi.fn<WebGLEffectLightsFacade["remove"]>(),
   } satisfies WebGLEffectLightsFacade;

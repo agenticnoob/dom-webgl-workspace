@@ -10,7 +10,10 @@ import React, {
 } from "react";
 
 import { getHeroChapterContent, heroSiteContent } from "../chapters/content";
-import { heroChapterOrder } from "../chapters/definitions";
+import {
+  heroChapterDefinitions,
+  heroChapterOrder,
+} from "../chapters/definitions";
 import type { HeroLocale } from "../preferences/locale";
 import type { HeroPortalMotionParams } from "./portalEffect";
 import {
@@ -228,6 +231,11 @@ function createPortalDeclaration(
     side,
     travelViewportFraction: portalTravelViewportFraction,
     maxTravelPx: portalMaxTravelPx,
+    ...(contentId === "self"
+      ? {
+          hideAfterProgressKey: heroChapterDefinitions.self.signals.entry,
+        }
+      : {}),
   } satisfies HeroPortalMotionParams;
 
   return {

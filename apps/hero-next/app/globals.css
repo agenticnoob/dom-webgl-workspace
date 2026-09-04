@@ -10,7 +10,7 @@ body {
 
 body {
   overflow-x: hidden;
-  background: #b8b8b8;
+  background: #5f5f5f;
 }
 
 button,
@@ -107,68 +107,6 @@ a {
   pointer-events: auto;
 }
 
-.hero-chapter__frame {
-  position: relative;
-  width: var(--hero-frame-width);
-  min-height: var(--hero-frame-height);
-  padding: var(--hero-frame-inset);
-  overflow: hidden;
-  background: var(--hero-chapter-background);
-  color: var(--hero-chapter-foreground);
-}
-
-.hero-chapter__header {
-  max-width: min(82rem, 88vw);
-}
-
-.hero-chapter__header p {
-  max-width: var(--hero-summary-max-width);
-  margin: 0;
-  font-size: var(--hero-small-font-size);
-  line-height: var(--hero-small-line-height);
-  letter-spacing: var(--hero-header-letter-spacing);
-  text-transform: uppercase;
-}
-
-.hero-chapter__header h1 {
-  max-width: 10ch;
-  margin: var(--hero-heading-margin-top) 0 var(--hero-heading-margin-bottom);
-  font-size: var(--hero-heading-font-size);
-  font-weight: 700;
-  line-height: var(--hero-heading-line-height);
-  letter-spacing: var(--hero-heading-letter-spacing);
-}
-
-.hero-chapter__header h1 span {
-  display: block;
-}
-
-.hero-chapter__frame-cards {
-  position: absolute;
-  top: var(--hero-cards-top);
-  right: var(--hero-frame-inset);
-  left: var(--hero-frame-inset);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hero-card-gap);
-}
-
-.hero-chapter__frame-cards > div {
-  min-height: var(--hero-card-height);
-  padding: var(--hero-card-padding);
-  border-left: var(--hero-card-border-width) solid currentColor;
-  background: color-mix(in srgb, currentColor 18%, transparent);
-}
-
-.hero-chapter__frame-cards span {
-  display: block;
-  margin-bottom: var(--hero-card-label-gap);
-  font-size: var(--hero-small-font-size);
-  line-height: var(--hero-small-line-height);
-  letter-spacing: var(--hero-card-letter-spacing);
-  text-transform: uppercase;
-}
-
 .hero-chapter__body {
   min-height: 180svh;
   padding: 18svh max(24px, 7vw);
@@ -178,6 +116,7 @@ a {
 
 .hero-chapter__index {
   margin: 0 0 8svh;
+  line-height: 1.2;
   letter-spacing: 0.15em;
 }
 
@@ -214,28 +153,9 @@ a {
   line-height: 1;
 }
 
-.hero-chapter__link {
-  display: inline-block;
-  margin-top: 14svh;
-  padding: 1rem 0.25rem;
-  color: inherit;
-  text-underline-offset: 0.35em;
-}
-
-.hero-chapter__link:focus-visible {
-  outline: 3px solid currentColor;
-  outline-offset: 6px;
-}
-
 .hero-exit-runway {
   position: relative;
   min-height: 420svh;
-}
-
-.hero-exit-sticky {
-  position: sticky;
-  top: 0;
-  min-height: 100svh;
 }
 
 .hero-hub-runway--final {
@@ -398,6 +318,246 @@ a {
   line-height: 1.1;
 }
 
+.hero-chapter--profile {
+  background: transparent;
+}
+
+.hero-profile {
+  --hero-profile-page-inset: max(24px, 6vw);
+  --hero-profile-column-width: clamp(16rem, 28vw, 25rem);
+  --hero-profile-column-gap: clamp(1rem, 2.5vw, 2rem);
+  --hero-profile-line-gap: 16px;
+  --hero-profile-edge-inset: 24px;
+  --hero-profile-model-exclusion-width: clamp(17rem, 26vw, 22rem);
+  --hero-profile-model-exclusion-height: clamp(28rem, 66svh, 36rem);
+  --hero-profile-speech-width: clamp(14rem, 18vw, 18rem);
+  --hero-profile-speech-height: clamp(4.5rem, 11.2svh, 5.25rem);
+  --hero-profile-speech-tail-height: 1rem;
+  --hero-profile-speech-radius: 1rem;
+  --hero-profile-speech-overlap: 24px;
+
+  width: 100vw;
+  min-height: 0;
+  padding: 14svh var(--hero-profile-page-inset) 18svh;
+  background: transparent;
+  color: var(--hero-chapter-foreground);
+}
+
+.hero-profile__flow {
+  position: relative;
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.hero-profile__model-exclusion {
+  position: fixed;
+  top: calc(50% - var(--hero-profile-model-exclusion-height) / 2);
+  left: calc(50vw - var(--hero-profile-model-exclusion-width) / 2);
+  width: var(--hero-profile-model-exclusion-width);
+  height: var(--hero-profile-model-exclusion-height);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hero-profile__speech-bubble {
+  position: fixed;
+  z-index: 2;
+  left: calc(50vw - var(--hero-profile-speech-width) / 2);
+  bottom: calc(
+    50% + var(--hero-profile-model-exclusion-height) / 2 -
+      var(--hero-profile-speech-overlap)
+  );
+  width: var(--hero-profile-speech-width);
+  height: var(--hero-profile-speech-height);
+  color: var(--hero-foreground);
+  pointer-events: none;
+}
+
+.hero-profile__speech-balloon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 100%;
+  height: calc(100% - var(--hero-profile-speech-tail-height));
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid currentColor;
+  border-radius: var(--hero-profile-speech-radius);
+  background: var(--hero-background);
+}
+
+.hero-profile__speech-message {
+  grid-area: 1 / 1;
+  padding: 0.25rem 1rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.hero-profile__speech-tail {
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - 0.7rem);
+  width: 0;
+  height: 0;
+  border-top: var(--hero-profile-speech-tail-height) solid currentColor;
+  border-right: 0.35rem solid transparent;
+  border-left: 0.7rem solid transparent;
+}
+
+.hero-profile__speech-tail-fill {
+  position: absolute;
+  top: calc(-1 * var(--hero-profile-speech-tail-height) - 3px);
+  left: -0.55rem;
+  width: 0;
+  height: 0;
+  border-top: calc(var(--hero-profile-speech-tail-height) - 4px) solid
+    var(--hero-background);
+  border-right: 0.25rem solid transparent;
+  border-left: 0.55rem solid transparent;
+}
+
+.hero-profile__lead,
+.hero-profile__story,
+.hero-profile__outro {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, var(--hero-profile-column-width)));
+  justify-content: center;
+  column-gap: var(--hero-profile-column-gap);
+}
+
+.hero-profile__lead {
+  grid-template-rows: auto auto;
+  min-height: 105svh;
+  align-content: start;
+  row-gap: 10svh;
+}
+
+.hero-profile__index {
+  grid-column: 1;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-align: right;
+}
+
+.hero-profile__lead h2 {
+  grid-column: 1;
+  width: 100%;
+  max-width: 7ch;
+  margin: 0;
+  justify-self: end;
+  font-size: clamp(2.75rem, 5.7vw, 6rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  text-align: right;
+  text-wrap: balance;
+}
+
+.hero-profile__lead > p:last-child {
+  grid-column: 2;
+  align-self: end;
+  width: 100%;
+  max-width: 24rem;
+  margin: 0;
+  font-size: clamp(1rem, 1.55vw, 1.35rem);
+  line-height: 1.65;
+}
+
+.hero-profile__wrapped-text {
+  display: inline;
+}
+
+.hero-profile__wrap-token {
+  position: relative;
+  display: inline-block;
+  inset-inline-start: var(--hero-profile-line-shift, 0px);
+}
+
+.hero-profile__story-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 28svh;
+}
+
+.hero-profile__story-column[data-profile-column="left"] {
+  text-align: right;
+}
+
+.hero-profile__story-column[data-profile-column="right"] {
+  margin-top: 18svh;
+  text-align: left;
+}
+
+.hero-profile__story-item {
+  width: 100%;
+  min-height: 48svh;
+}
+
+.hero-profile__story-rule {
+  display: block;
+  height: clamp(1rem, 2vw, 1.75rem);
+}
+
+.hero-profile__story-rule-line {
+  display: block;
+  width: 72%;
+  border-top: 1px solid currentColor;
+}
+
+.hero-profile__story-column[data-profile-column="left"]
+  .hero-profile__story-rule-line {
+  margin-left: auto;
+}
+
+.hero-profile__story-column[data-profile-column="right"]
+  .hero-profile__story-rule-line {
+  margin-right: auto;
+}
+
+.hero-profile__story-item > p:first-child {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.hero-profile__story-item h3 {
+  margin: 8svh 0 1.5rem;
+  font-size: clamp(1.75rem, 3.1vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.hero-profile__story-item > p:last-child {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  line-height: 1.75;
+}
+
+.hero-profile__outro {
+  min-height: 82svh;
+  margin-top: 0;
+  align-items: end;
+}
+
+.hero-profile__closing {
+  grid-column: 1;
+  width: 100%;
+  margin: 0;
+  font-size: clamp(1.75rem, 3.4vw, 3.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  text-align: right;
+}
+
 .hero-hub-runway--final {
   z-index: 20;
   display: grid;
@@ -425,7 +585,6 @@ a {
     min-height: 540svh;
   }
 
-  .hero-chapter__frame-cards,
   .hero-chapter__notes {
     grid-template-columns: 1fr;
   }
@@ -441,6 +600,84 @@ a {
 
   .hero-chapter__note {
     min-height: 34svh;
+  }
+
+  .hero-profile {
+    --hero-profile-page-inset: max(
+      1rem,
+      env(safe-area-inset-right),
+      env(safe-area-inset-left)
+    );
+    --hero-profile-column-width: clamp(5.5rem, 25vw, 9rem);
+    --hero-profile-column-gap: 0px;
+    --hero-profile-line-gap: 2px;
+    --hero-profile-edge-inset: 2px;
+    --hero-profile-model-exclusion-width: clamp(
+      9.5rem,
+      calc(38vw + 1rem),
+      13rem
+    );
+    --hero-profile-model-exclusion-height: clamp(23rem, 48svh, 29rem);
+    --hero-profile-speech-width: clamp(11rem, 46vw, 13rem);
+    --hero-profile-speech-height: clamp(4.75rem, 11svh, 5.5rem);
+    --hero-profile-speech-tail-height: 0.875rem;
+    --hero-profile-speech-radius: 0.875rem;
+    --hero-profile-speech-overlap: 28px;
+    min-height: 0;
+    padding: 12svh var(--hero-profile-page-inset) 16svh;
+  }
+
+  .hero-profile__lead {
+    min-height: 112svh;
+    row-gap: 9svh;
+  }
+
+  .hero-profile__speech-message {
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .hero-profile__lead h2 {
+    font-size: clamp(2rem, 9.5vw, 3rem);
+    letter-spacing: -0.04em;
+  }
+
+  .hero-profile__lead > p:last-child {
+    font-size: clamp(0.82rem, 3.5vw, 1rem);
+    line-height: 1.55;
+  }
+
+  .hero-profile__story {
+    column-gap: var(--hero-profile-column-gap);
+  }
+
+  .hero-profile__story-column {
+    gap: 24svh;
+  }
+
+  .hero-profile__story-item {
+    min-height: 58svh;
+  }
+
+  .hero-profile__story-item h3 {
+    margin-top: 5svh;
+    font-size: clamp(1.15rem, 5vw, 1.6rem);
+    line-height: 1.08;
+  }
+
+  .hero-profile__story-item > p:last-child {
+    font-size: clamp(0.78rem, 3.25vw, 0.92rem);
+    line-height: 1.65;
+  }
+
+  .hero-profile__outro {
+    min-height: 84svh;
+    margin-top: 0;
+  }
+
+  .hero-profile__closing {
+    font-size: clamp(1.25rem, 5.5vw, 1.8rem);
   }
 
   .hero-portal-stage {

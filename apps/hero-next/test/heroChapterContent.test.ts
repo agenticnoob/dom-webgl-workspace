@@ -24,14 +24,11 @@ describe("hero chapter content", () => {
     for (const chapterId of heroChapterOrder) {
       for (const locale of ["zh", "en"] as const) {
         const content = getHeroChapterContent(chapterId, locale);
-        expect(content.faceLabel.length).toBeGreaterThan(0);
-        expect(content.frame.titleLines.length).toBeGreaterThan(0);
-        expect(content.frame.summary.length).toBeGreaterThan(0);
-        expect(content.frame.signals).toHaveLength(2);
-        expect(content.exitFrame.titleLines.length).toBeGreaterThan(0);
-        expect(content.exitFrame.summary.length).toBeGreaterThan(0);
-        expect(content.exitFrame.signals).toHaveLength(2);
-        expect(content.exitFrame).not.toEqual(content.frame);
+        expect(content).not.toHaveProperty("frame");
+        expect(content).not.toHaveProperty("exitFrame");
+        expect(content.body.eyebrow.length).toBeGreaterThan(0);
+        expect(content.body.title.length).toBeGreaterThan(0);
+        expect(content.body.intro.length).toBeGreaterThan(0);
         expect(content.portal.left.body.length).toBeGreaterThan(0);
         expect(content.portal.right.items.length).toBeGreaterThan(0);
         expect(content.body.sections.length).toBeGreaterThanOrEqual(3);
@@ -49,5 +46,21 @@ describe("hero chapter content", () => {
     expect(heroPublicLinks.blog).toBe("https://blog.zzzxc.com");
     expect(Object.keys(heroPublicLinks)).not.toContain("email");
     expect(Object.keys(heroPublicLinks)).not.toContain("phone");
+  });
+
+  test("frames the profile as a literary path grounded in stable biography", () => {
+    const profile = getHeroChapterContent("self", "zh");
+
+    expect(profile.body.eyebrow).toContain("SELF");
+    expect(profile.body.intro).toContain("1994 年生");
+    expect(profile.body.sections).toHaveLength(5);
+    expect(profile.body.sections.map((section) => section.label)).toEqual([
+      "2012—2014 / 晨光",
+      "2014—2018 / 书页",
+      "2018—后来 / 像素",
+      "转身 / 无固定席位",
+      "此刻 / 未完成",
+    ]);
+    expect(profile.body.closing).toContain("暂时落下的坐标");
   });
 });

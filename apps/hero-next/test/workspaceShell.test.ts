@@ -16,7 +16,9 @@ describe("hero Next.js workspace shell", () => {
       "app/globals.css",
     ];
 
-    expect(requiredFiles.every((path) => existsSync(resolve(appRoot, path)))).toBe(true);
+    expect(
+      requiredFiles.every((path) => existsSync(resolve(appRoot, path))),
+    ).toBe(true);
 
     const packageJson = JSON.parse(
       readFileSync(resolve(appRoot, "package.json"), "utf8"),
@@ -42,10 +44,7 @@ describe("hero Next.js workspace shell", () => {
       resolve(appRoot, "src/chapters/HeroChapter.tsx"),
       "utf8",
     );
-    const cssSource = readFileSync(
-      resolve(appRoot, "app/globals.css"),
-      "utf8",
-    );
+    const cssSource = readFileSync(resolve(appRoot, "app/globals.css"), "utf8");
 
     expect(packageJson).toMatchObject({
       name: "@viselora/hero-next",
@@ -63,8 +62,11 @@ describe("hero Next.js workspace shell", () => {
     expect(heroSource).not.toMatch(/<h[1-6]|<p|<button|<nav|<a /);
     expect(narrativeSource).toContain("<HeroChapter");
     expect(chapterSource).toContain("<article");
-    expect(chapterSource).toContain("<h1>");
-    expect(cssSource).toMatch(/\.hero-space\s*{[\s\S]*?background: transparent;/);
+    expect(chapterSource).toContain("<h2");
+    expect(chapterSource).not.toContain("HeroChapterFrame");
+    expect(cssSource).toMatch(
+      /\.hero-space\s*{[\s\S]*?background: transparent;/,
+    );
     expect(cssSource).toMatch(
       /\.hero-chapter\s*{[\s\S]*?background: var\(--hero-chapter-background\);/,
     );

@@ -24,6 +24,8 @@ import React, { useMemo } from "react";
 import { HeroChapterNarrative } from "../chapters/HeroChapterNarrative";
 import { heroSiteContent } from "../chapters/content";
 import { heroTetrahedronEffect } from "../tetrahedron/effect";
+import { HeroProfileModel } from "../profile/HeroProfileModel";
+import { heroProfileModelEffect } from "../profile/modelEffect";
 import {
   useHeroDomContentActive,
   useHeroLocaleState,
@@ -40,6 +42,7 @@ const heroRuntimeEffects = [
   heroTetrahedronEffect,
   heroGhostBackgroundEffect,
   heroPortalMotionEffect,
+  heroProfileModelEffect,
 ] as const;
 
 const heroRenderQuality = {
@@ -181,6 +184,7 @@ function HeroScene() {
           progress={store.source}
           styleKey={theme.scheme}
         />
+        <HeroProfileModel />
         <WebGLMesh
           id="hero.tetrahedron.mesh"
           geometry={tetrahedronGeometry}
@@ -208,7 +212,7 @@ function HeroScene() {
       <HeroChapterNarrative
         locale={locale.locale}
         onLocaleChange={locale.store.commit}
-        onFrameLayoutChange={refreshHeroScrollLayout}
+        onLayoutChange={refreshHeroScrollLayout}
       />
     </main>
   );

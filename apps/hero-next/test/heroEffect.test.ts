@@ -47,11 +47,22 @@ function createCanvasContext() {
     font: "",
     letterSpacing: "0px",
     globalAlpha: 1,
+    strokeStyle: "#ffffff",
+    lineWidth: 1,
+    lineJoin: "miter",
+    beginPath: vi.fn(),
+    bezierCurveTo: vi.fn(),
+    clip: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
     save: vi.fn(),
     translate: vi.fn(),
     scale: vi.fn(),
     fillRect: vi.fn(),
     fillText: vi.fn(),
+    lineTo: vi.fn(),
+    moveTo: vi.fn(),
+    rect: vi.fn(),
     measureText: vi.fn((value: string) => ({
       width: value.length * 10,
       actualBoundingBoxAscent: 8,
@@ -60,6 +71,7 @@ function createCanvasContext() {
       fontBoundingBoxDescent: 2,
     })),
     restore: vi.fn(),
+    stroke: vi.fn(),
   };
 }
 
@@ -238,7 +250,7 @@ describe("hero tetrahedron effect", () => {
     }
   });
 
-  test("keeps completed exit textures stable when the next chapter entry begins", () => {
+  test("selects packed tail tiles without re-uploading the atlas", () => {
     const target = createTarget();
     const descriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");
     Object.defineProperty(window, "matchMedia", {
@@ -265,6 +277,7 @@ describe("hero tetrahedron effect", () => {
         throw new Error("Expected Hero effect setup.");
       }
       const state = setup(createContext(target), params);
+      const atlasCanvas = state.chapterAtlas?.canvas;
       const idlePointer = {
         pointer: { isDown: false, buttons: [] },
         objectPointer: { isPressed: false, hit: undefined },
@@ -278,7 +291,21 @@ describe("hero tetrahedron effect", () => {
         state,
         params,
       );
-      expect(state.chapterAtlas?.exitChapterIds).toEqual(["self"]);
+      expect(state.chapterAtlas?.canvas).toBe(atlasCanvas);
+      expect(target.material.shader.setUniforms).toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({
+          heroTailFaces: [1, 0, 0, 0],
+        }),
+      );
+      expect(target.material.shader.setUniforms).not.toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({
+          heroChapterAtlas: expect.objectContaining({
+            kind: "canvas-texture",
+          }),
+        }),
+      );
 
       target.material.shader.setUniforms.mockClear();
       values.set(axioms.entry, 0.01);
@@ -288,7 +315,11 @@ describe("hero tetrahedron effect", () => {
         params,
       );
 
-      expect(state.chapterAtlas?.exitChapterIds).toEqual(["self"]);
+      expect(state.chapterAtlas?.canvas).toBe(atlasCanvas);
+      expect(target.material.shader.setUniforms).toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({ heroTailFaces: [1, 0, 0, 0] }),
+      );
       expect(target.material.shader.setUniforms).not.toHaveBeenCalledWith(
         heroTetrahedronRadialShaderKey,
         expect.objectContaining({
@@ -296,6 +327,30 @@ describe("hero tetrahedron effect", () => {
             kind: "canvas-texture",
           }),
         }),
+      );
+
+      target.material.shader.setUniforms.mockClear();
+      values.set(axioms.exit, 0.001);
+      heroTetrahedronEffect.update(
+        createContext(target, idlePointer),
+        state,
+        params,
+      );
+      expect(target.material.shader.setUniforms).toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({ heroTailFaces: [1, 1, 0, 0] }),
+      );
+
+      target.material.shader.setUniforms.mockClear();
+      values.set(axioms.exit, 0);
+      heroTetrahedronEffect.update(
+        createContext(target, idlePointer),
+        state,
+        params,
+      );
+      expect(target.material.shader.setUniforms).toHaveBeenCalledWith(
+        heroTetrahedronRadialShaderKey,
+        expect.objectContaining({ heroTailFaces: [1, 0, 0, 0] }),
       );
     } finally {
       getContext.mockRestore();

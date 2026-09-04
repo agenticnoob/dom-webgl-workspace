@@ -10,26 +10,42 @@ import {
   heroChapterCount,
   heroChapterOrder,
 } from "./definitions";
-import { HeroChapter } from "./HeroChapter";
+import { HeroChapter, HeroChapterBody } from "./HeroChapter";
 import { HeroLocaleControl } from "./HeroLocaleControl";
-import { useHeroChapterFrameStyle } from "./useChapterFrameStyle";
 import type { HeroLocale } from "../preferences/locale";
+import { HeroProfileChapterBody } from "../profile/HeroProfileChapterBody";
 
 export function HeroChapterNarrative({
   locale,
   onLocaleChange,
-  onFrameLayoutChange,
+  onLayoutChange,
 }: {
   readonly locale: HeroLocale;
   readonly onLocaleChange: (locale: HeroLocale) => void;
-  readonly onFrameLayoutChange: () => void;
+  readonly onLayoutChange: () => void;
 }) {
-  const frameStyle = useHeroChapterFrameStyle();
   const site = heroSiteContent[locale];
 
   useEffect(() => {
-    onFrameLayoutChange();
-  }, [frameStyle, onFrameLayoutChange]);
+    let animationFrame = 0;
+    const scheduleRefresh = () => {
+      if (animationFrame === 0) {
+        animationFrame = window.requestAnimationFrame(() => {
+          animationFrame = 0;
+          onLayoutChange();
+        });
+      }
+    };
+
+    onLayoutChange();
+    window.addEventListener("resize", scheduleRefresh, { passive: true });
+    return () => {
+      window.removeEventListener("resize", scheduleRefresh);
+      if (animationFrame !== 0) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [onLayoutChange]);
 
   return (
     <>
@@ -53,9 +69,20 @@ export function HeroChapterNarrative({
             <HeroChapter
               definition={definition}
               content={content}
-              frameStyle={frameStyle}
-              continueLabel={site.continueLabel}
-            />
+              {...(chapterId === "self"
+                ? { className: "hero-chapter--profile" }
+                : {})}
+            >
+              {chapterId === "self" ? (
+                <HeroProfileChapterBody
+                  definition={definition}
+                  content={content}
+                  locale={locale}
+                />
+              ) : (
+                <HeroChapterBody definition={definition} content={content} />
+              )}
+            </HeroChapter>
 
             {definition.ordinal < heroChapterCount ? (
               <section className="hero-hub-runway" aria-hidden="true">

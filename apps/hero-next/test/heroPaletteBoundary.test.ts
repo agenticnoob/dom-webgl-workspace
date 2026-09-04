@@ -21,7 +21,7 @@ describe("hero palette and transition boundary", () => {
 
     expect(colorsByFile).toEqual({
       "apps/hero-next/app/globals.css": [
-        "#B8B8B8",
+        "#5F5F5F",
         "#B8B8B8",
         "#5F5F5F",
         "#5F5F5F",
@@ -41,7 +41,7 @@ describe("hero palette and transition boundary", () => {
     expect(sources).not.toMatch(/#3f3f3f|#0d0d0d|vec3\(0\.72\)/i);
   });
 
-  test("keeps four scroll signal pairs, one theme store, and no obsolete cover path", () => {
+  test("keeps four complete chapter signal sets, one theme store, and no obsolete cover path", () => {
     const tetrahedronEffect = readFileSync(
       resolve(sourceRoot, "tetrahedron/effect.ts"),
       "utf8",
@@ -62,7 +62,9 @@ describe("hero palette and transition boundary", () => {
       /hero\.transition\.tetrahedron-cover|coverEnd|backgroundSwapPoint|foregroundResetPoint|exitPositionZ|coverPositionZ|\+=300%/,
     );
     for (let chapter = 1; chapter <= 4; chapter += 1) {
+      expect(sources).toContain(`content: "hero.chapter-${chapter}.content"`);
       expect(sources).toContain(`entry: "hero.chapter-${chapter}.entry"`);
+      expect(sources).toContain(`body: "hero.chapter-${chapter}.body"`);
       expect(sources).toContain(`exit: "hero.chapter-${chapter}.exit"`);
     }
     expect(sources).toContain("heroChapterDefinitions");

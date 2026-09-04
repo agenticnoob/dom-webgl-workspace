@@ -6,33 +6,68 @@ import {
 } from "../src/chapters/atlas";
 
 const fillText = vi.fn();
+const fillRect = vi.fn<CanvasRenderingContext2D["fillRect"]>();
+const clip = vi.fn<() => void>();
+const rect = vi.fn<CanvasRenderingContext2D["rect"]>();
+const fillStyles: string[] = [];
+const strokeStyles: string[] = [];
 const originalGetContext = HTMLCanvasElement.prototype.getContext;
-const context = {
+const context: Partial<CanvasRenderingContext2D> & {
+  fillStyle: string;
+  font: string;
+  letterSpacing: string;
+  measureText(value: string): TextMetrics;
+} = {
   fillStyle: "",
   font: "",
   letterSpacing: "0px",
   globalAlpha: 1,
   textBaseline: "alphabetic",
-  fillRect: vi.fn(),
+  strokeStyle: "",
+  lineWidth: 1,
+  lineJoin: "miter",
+  beginPath: vi.fn(),
+  bezierCurveTo: vi.fn(),
+  clip,
+  closePath: vi.fn(),
+  fill: vi.fn(() => fillStyles.push(context.fillStyle)),
+  fillRect,
   fillText,
-  measureText(value: string) {
+  lineTo: vi.fn(),
+  moveTo: vi.fn(),
+  measureText(value: string): TextMetrics {
+    const fontSize = Number.parseFloat(
+      context.font.match(/([\d.]+)px/)?.[1] ?? "16",
+    );
+    const letterSpacing = Number.parseFloat(context.letterSpacing) || 0;
+    const glyphWidth = Array.from(value).reduce(
+      (width, glyph) =>
+        width +
+        (/\p{Script=Han}/u.test(glyph) ? fontSize * 0.95 : fontSize * 0.56),
+      0,
+    );
     return {
-      width: value.length * 10,
-      actualBoundingBoxAscent: 8,
-      actualBoundingBoxDescent: 2,
-      fontBoundingBoxAscent: 8,
-      fontBoundingBoxDescent: 2,
+      width:
+        glyphWidth + Math.max(0, Array.from(value).length - 1) * letterSpacing,
+      actualBoundingBoxAscent: fontSize * 0.8,
+      actualBoundingBoxDescent: fontSize * 0.2,
+      fontBoundingBoxAscent: fontSize * 0.8,
+      fontBoundingBoxDescent: fontSize * 0.2,
     } as TextMetrics;
   },
+  rect,
   restore: vi.fn(),
   save: vi.fn(),
   scale: vi.fn(),
+  stroke: vi.fn(() => strokeStyles.push(String(context.strokeStyle))),
   translate: vi.fn(),
-} satisfies Partial<CanvasRenderingContext2D>;
+};
 
 describe("hero chapter atlas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fillStyles.length = 0;
+    strokeStyles.length = 0;
     Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
       configurable: true,
       value: vi.fn(() => context),
@@ -48,47 +83,41 @@ describe("hero chapter atlas", () => {
     });
   });
 
-  test("draws all four localized chapter faces at viewport scale", () => {
+  test("draws all four localized faces from their body content", () => {
     const atlas = createHeroChapterAtlas({ width: 1280, height: 720 });
 
     expect(atlas).toMatchObject({
-      tileWidth: 1280,
-      tileHeight: 720,
+      tileWidth: 1024,
+      tileHeight: 576,
       layoutWidth: 1280,
       layoutHeight: 720,
     });
-    expect(atlas.canvas).toMatchObject({ width: 2560, height: 1440 });
+    expect(atlas.canvas).toMatchObject({ width: 2048, height: 2304 });
     expect(atlas.locale).toBe("zh");
+    const renderedText = fillText.mock.calls
+      .map(([text]) => text)
+      .join("")
+      .replace(/\s/g, "");
     expect(fillText).toHaveBeenCalledWith(
-      "NOOBLI / 01",
+      "01 / 04",
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(renderedText).toContain("我不是沿一条直线抵达这里。");
+    expect(renderedText).toContain("这是我的正面");
+    expect(fillText).toHaveBeenCalledWith(
+      "直线抵达",
       expect.any(Number),
       expect.any(Number),
     );
     expect(fillText).toHaveBeenCalledWith(
-      "持续构建",
+      "这里。",
       expect.any(Number),
       expect.any(Number),
     );
-    expect(fillText).toHaveBeenCalledWith(
-      "AXIOMS / 02",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "VISELORA",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "SIGNALS / 04",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "WORDS / VIDEO",
-      expect.any(Number),
-      expect.any(Number),
-    );
+    expect(renderedText).toContain("真正的颠覆，不只是更好的答案。");
+    expect(renderedText).toContain("把未完成的思考，放进真实交流。");
+    expect(renderedText).not.toContain("SELF/NOOBLI");
     expect(
       heroChapterAtlasMatchesViewport(atlas, { width: 1280, height: 720 }),
     ).toBe(true);
@@ -99,121 +128,75 @@ describe("hero chapter atlas", () => {
         "en",
       ),
     ).toBe(false);
-    expect(
-      heroChapterAtlasMatchesViewport(
-        atlas,
-        { width: 1280, height: 720 },
-        "zh",
-        ["self"],
-      ),
-    ).toBe(false);
-
+    fillText.mockClear();
     createHeroChapterAtlas({ width: 1280, height: 720 }, "en");
-    expect(fillText).toHaveBeenCalledWith(
-      "BUILDING",
-      expect.any(Number),
-      expect.any(Number),
+    const renderedEnglish = fillText.mock.calls
+      .map(([text]) => text)
+      .join("")
+      .replace(/\s/g, "");
+    expect(renderedEnglish).toContain("Ididnotarrivehereinastraightline.");
+  });
+
+  test("clips and packs body-derived entry and tail tiles without bleed", () => {
+    createHeroChapterAtlas({ width: 1280, height: 720 });
+
+    const backgroundDraws = fillRect.mock.calls.filter(
+      ([x, y, width, height]) =>
+        x === 0 && y === 0 && width === 1280 && height === 720,
     );
-    expect(fillText).toHaveBeenCalledWith(
-      "CHANGE",
+    expect(backgroundDraws).toHaveLength(8);
+    expect(context.stroke).toHaveBeenCalled();
+    expect(fillStyles).toContain("white");
+    expect(strokeStyles).toContain("black");
+    expect(context.translate).toHaveBeenCalledWith(0, 1152);
+    expect(rect).toHaveBeenCalledTimes(8);
+    expect(clip).toHaveBeenCalledTimes(8);
+    expect(fillText).not.toHaveBeenCalledWith(
+      "SELF / TRACE",
       expect.any(Number),
       expect.any(Number),
     );
   });
 
-  test("switches only the active chapter face to its distinct exit frame", () => {
-    const atlas = createHeroChapterAtlas({ width: 1280, height: 720 }, "zh", [
-      "self",
-    ]);
+  test("derives the returning face from the chapter's real tail content", () => {
+    const atlas = createHeroChapterAtlas({ width: 1280, height: 720 });
+    const renderedText = fillText.mock.calls
+      .map(([text]) => text)
+      .join("")
+      .replace(/\s/g, "");
 
-    expect(atlas.exitChapterIds).toEqual(["self"]);
-    expect(fillText).toHaveBeenCalledWith(
-      "SELF / TRACE",
-      expect.any(Number),
-      expect.any(Number),
+    expect(atlas.canvas.height).toBe(atlas.tileHeight * 4);
+    expect(renderedText).toContain(
+      "不把身份写成终点，只把它当作下一次出发前，暂时落下的坐标。",
     );
-    expect(fillText).toHaveBeenCalledWith(
-      "持续校正",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "AXIOMS / 02",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(
-      heroChapterAtlasMatchesViewport(
-        atlas,
-        { width: 1280, height: 720 },
-        "zh",
-        ["self"],
-      ),
-    ).toBe(true);
-  });
-
-  test("retains completed exit frames when the following chapter starts", () => {
-    const atlas = createHeroChapterAtlas({ width: 1280, height: 720 }, "zh", [
-      "self",
-      "axioms",
-    ]);
-
-    expect(atlas.exitChapterIds).toEqual(["self", "axioms"]);
-    expect(fillText).toHaveBeenCalledWith(
-      "SELF / TRACE",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "AXIOMS / OPEN",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(fillText).toHaveBeenCalledWith(
-      "BUILDS / 03",
-      expect.any(Number),
-      expect.any(Number),
-    );
-    expect(
-      heroChapterAtlasMatchesViewport(
-        atlas,
-        { width: 1280, height: 720 },
-        "zh",
-        ["self", "axioms"],
-      ),
-    ).toBe(true);
+    expect(renderedText).toContain("自动化不能消解责任");
+    expect(renderedText).toContain("愿与同道者共研同进，或有所得，亦未可知。");
   });
 
   test("caps the owned atlas for mobile-safe texture allocation", () => {
     const atlas = createHeroChapterAtlas({ width: 2400, height: 1800 });
 
     expect(atlas).toMatchObject({
-      tileWidth: 1600,
-      tileHeight: 1200,
+      tileWidth: 1024,
+      tileHeight: 768,
       layoutWidth: 2400,
       layoutHeight: 1800,
     });
-    expect(context.scale).toHaveBeenCalledWith(2 / 3, 2 / 3);
+    expect(context.scale).toHaveBeenCalledWith(1024 / 2400, 1024 / 2400);
     expect(
       heroChapterAtlasMatchesViewport(atlas, { width: 2400, height: 1800 }),
     ).toBe(true);
   });
 
-  test("uses the same single-column mobile card composition as the semantic frame", () => {
+  test("wraps the same body title and intro for the mobile face", () => {
     const atlas = createHeroChapterAtlas({ width: 390, height: 844 });
 
     expect(atlas).toMatchObject({ tileWidth: 390, tileHeight: 844 });
-    expect(context.fillRect).toHaveBeenCalledWith(
-      22,
-      844 * 0.54,
-      346,
-      844 * 0.13,
-    );
-    expect(context.fillRect).toHaveBeenCalledWith(
-      22,
-      844 * 0.54 + 844 * 0.13 + 10,
-      346,
-      844 * 0.13,
+    expect(atlas.canvas).toMatchObject({ width: 780, height: 3376 });
+    expect(fillText).toHaveBeenCalledWith(
+      "01 / 04",
+      expect.any(Number),
+      expect.any(Number),
     );
   });
 });

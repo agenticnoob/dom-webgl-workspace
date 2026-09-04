@@ -4,7 +4,9 @@ type HeroChapterDefinitionShape = {
   readonly ordinal: number;
   readonly number: string;
   readonly signals: {
+    readonly content: string;
     readonly entry: string;
+    readonly body: string;
     readonly exit: string;
   };
   readonly face: {
@@ -25,7 +27,9 @@ export const heroChapterDefinitions = {
     ordinal: 1,
     number: "01",
     signals: {
+      content: "hero.chapter-1.content",
       entry: "hero.chapter-1.entry",
+      body: "hero.chapter-1.body",
       exit: "hero.chapter-1.exit",
     },
     face: {
@@ -40,7 +44,9 @@ export const heroChapterDefinitions = {
     ordinal: 2,
     number: "02",
     signals: {
+      content: "hero.chapter-2.content",
       entry: "hero.chapter-2.entry",
+      body: "hero.chapter-2.body",
       exit: "hero.chapter-2.exit",
     },
     face: {
@@ -55,7 +61,9 @@ export const heroChapterDefinitions = {
     ordinal: 3,
     number: "03",
     signals: {
+      content: "hero.chapter-3.content",
       entry: "hero.chapter-3.entry",
+      body: "hero.chapter-3.body",
       exit: "hero.chapter-3.exit",
     },
     face: {
@@ -70,7 +78,9 @@ export const heroChapterDefinitions = {
     ordinal: 4,
     number: "04",
     signals: {
+      content: "hero.chapter-4.content",
       entry: "hero.chapter-4.entry",
+      body: "hero.chapter-4.body",
       exit: "hero.chapter-4.exit",
     },
     face: {
@@ -100,4 +110,10 @@ export function getHeroChapterDefinition(
   chapterId: HeroChapterId,
 ): HeroChapterDefinition {
   return heroChapterDefinitions[chapterId];
+}
+
+export function formatHeroChapterCounter(
+  definition: Pick<HeroChapterDefinition, "number">,
+): string {
+  return `${definition.number} / ${String(heroChapterCount).padStart(2, "0")}`;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  readHeroChapterExitFrameIds,
+  readHeroChapterTailAtlasIds,
   readHeroChapterScrollState,
   resolveHeroChapterScrollState,
 } from "../src/chapters/scrollState";
@@ -258,23 +258,26 @@ describe("hero chapter scroll resolver", () => {
     });
   });
 
-  test("retains completed exit frames across later entries and removes them only when reversed", () => {
+  test("keeps each completed chapter on its tail texture until reverse scrolling re-enters it", () => {
     const values = new Map<string, number>();
     const reader = { get: (key: string) => values.get(key) ?? 0 };
     const chapterOne = heroChapterDefinitions.self.signals;
     const chapterTwo = heroChapterDefinitions.axioms.signals;
 
-    values.set(chapterOne.exit, 1);
-    values.set(chapterTwo.entry, 0.25);
-    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self"]);
+    values.set(chapterOne.exit, 0.001);
+    expect(readHeroChapterTailAtlasIds(reader)).toEqual(["self"]);
 
-    values.set(chapterTwo.exit, 0.01);
-    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self", "axioms"]);
+    values.set(chapterOne.exit, 1);
+    values.set(chapterTwo.entry, 0.5);
+    expect(readHeroChapterTailAtlasIds(reader)).toEqual(["self"]);
+
+    values.set(chapterTwo.exit, 0.001);
+    expect(readHeroChapterTailAtlasIds(reader)).toEqual(["self", "axioms"]);
 
     values.set(chapterTwo.exit, 0);
-    expect(readHeroChapterExitFrameIds(reader)).toEqual(["self"]);
+    expect(readHeroChapterTailAtlasIds(reader)).toEqual(["self"]);
     values.set(chapterOne.exit, 0);
-    expect(readHeroChapterExitFrameIds(reader)).toEqual([]);
+    expect(readHeroChapterTailAtlasIds(reader)).toEqual([]);
   });
 });
 

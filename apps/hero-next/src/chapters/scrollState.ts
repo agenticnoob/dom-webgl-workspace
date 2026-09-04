@@ -233,7 +233,7 @@ export function readHeroChapterScrollState(
   return state;
 }
 
-export function readHeroChapterExitFrameIds(
+export function readHeroChapterTailAtlasIds(
   reader: HeroChapterScrollSignalReader,
 ): readonly HeroChapterId[] {
   return heroChapterOrder.filter((chapterId) => {

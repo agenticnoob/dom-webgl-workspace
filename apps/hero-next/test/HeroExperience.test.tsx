@@ -149,6 +149,28 @@ vi.mock("@viselora/dom-webgl/react", () => ({
       "data-press": interaction?.pickable?.pointer?.press,
     });
   },
+  WebGLModel: ({
+    id,
+    src,
+    loader,
+    effects,
+  }: {
+    id: string;
+    src: string;
+    loader?: { draco?: { decoderPath?: string; preload?: boolean } };
+    effects?: readonly {
+      kind: string;
+      spinProgressKey?: string;
+    }[];
+  }) =>
+    createElement("div", {
+      "data-model": id,
+      "data-model-src": src,
+      "data-model-decoder": loader?.draco?.decoderPath,
+      "data-model-preload-decoder": loader?.draco?.preload,
+      "data-model-effect": effects?.[0]?.kind,
+      "data-model-spin-progress": effects?.[0]?.spinProgressKey,
+    }),
   WebGLLight: ({
     id,
     kind,
@@ -240,33 +262,49 @@ beforeEach(() => {
 });
 
 describe("HeroExperience", () => {
-  test("declares one scene with an initial site portal and four chapter timelines", () => {
+  test("declares one scene with the profile model and chapter timelines", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
     expect(html.match(/data-scene=/g)).toHaveLength(1);
     expect(html).toContain('data-runtime="hero-scroll"');
     expect(html).toContain('data-antialias="true"');
     expect(html).toContain('data-max-device-pixel-ratio="2"');
-    expect(html.match(/data-timeline=/g)).toHaveLength(8);
+    expect(html.match(/data-timeline=/g)).toHaveLength(16);
     expect(html.match(/class="hero-chapter-cycle"/g)).toHaveLength(4);
     expect(html).toContain('class="hero-hub-runway hero-hub-runway--opening"');
     expect(html.match(/class="hero-portal-stage"/g)).toHaveLength(1);
     expect(html.match(/class="hero-portal-copy /g)).toHaveLength(2);
     expect(html).not.toContain("hero-transition-copy");
+    expect(html).toContain('data-timeline="hero.chapter-1.content.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-1.content"');
+    expect(html).toContain('data-start="top top"');
+    expect(html).toContain('data-end="bottom top"');
     expect(html).toContain('data-timeline="hero.chapter-1.entry.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-1.entry"');
     expect(html).toContain('data-end="bottom top"');
     expect(html).toContain('data-timeline="hero.chapter-1.exit.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-1.exit"');
     expect(html).toContain('data-end="bottom bottom"');
+    expect(html).toContain('data-start="top bottom"');
+    expect(html).toContain('data-timeline="chapter-1-body-timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-1.body"');
+    expect(html).toContain('data-start="top top"');
     expect(html).toContain('data-timeline="hero.chapter-4.entry.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-4.entry"');
     expect(html).toContain('data-timeline="hero.chapter-4.exit.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-4.exit"');
+    expect(html).toContain('data-timeline="hero.chapter-4.content.timeline"');
+    expect(html).toContain('data-progress-key="hero.chapter-4.content"');
     expect(html).not.toContain("data-pin");
     expect(html).toContain('data-scene="hero.tetrahedron.scene"');
     expect(html).toContain('data-position="0,0,3.2"');
     expect(html).toContain('data-target-position="0,0.32,0"');
+    expect(html.match(/data-model="hero.profile.model"/g)).toHaveLength(1);
+    expect(html).toContain('data-model-src="/models/noobli-profile.glb"');
+    expect(html).toContain('data-model-decoder="/draco/gltf/"');
+    expect(html).toContain('data-model-preload-decoder="true"');
+    expect(html).toContain('data-model-effect="hero.profile.model"');
+    expect(html).toContain('data-model-spin-progress="hero.chapter-1.body"');
     expect(html).toContain('data-target="hero.ghost.background"');
     expect(html).toContain('data-effect="hero.ghost.background"');
     expect(html).toContain('data-depth="5"');
@@ -319,20 +357,62 @@ describe("HeroExperience", () => {
     expect(html).toContain("为智能体重新思考软件");
     expect(html).toContain("真正的颠覆，不只是更好的答案");
     expect(html).toContain("Agent 一定要会用");
-    expect(html).toContain("持续校正");
-    expect(html).toContain("保留怀疑");
-    expect(html).toContain("交给真实使用");
-    expect(html).toContain("保持连接");
     expect(html).toContain("愿与同道者共研同进，或有所得，亦未可知");
+    expect(html).not.toContain('class="hero-chapter__frame');
+    expect(html).not.toContain("继续前往章节出口");
     expect(html).not.toContain('class="hero-final-hub"');
     expect(html).toContain('class="hero-final-links"');
-    expect(html).not.toContain("hero.profile");
-    expect(html).not.toContain("data-model=");
+    expect(html).toContain('class="hero-chapter hero-chapter--profile"');
+    expect(html).toContain('class="hero-chapter__body hero-profile"');
+    expect(html.match(/data-profile-wrap-text=""/g)).toHaveLength(24);
+    expect(html.match(/data-profile-wrap-side="left"/g)).toHaveLength(15);
+    expect(html.match(/data-profile-wrap-side="right"/g)).toHaveLength(9);
+    expect(html).toContain('data-profile-model-exclusion=""');
+    expect(html).toContain('data-profile-speech-bubble=""');
+    expect(html).toContain('data-profile-facing="front"');
+    expect(html).toContain('data-profile-speech-message="front"');
+    expect(html).toContain('data-profile-speech-message="side"');
+    expect(html).toContain('data-profile-speech-message="back"');
+    expect(html).toContain("这是我的正面");
+    expect(html).toContain("这是我的侧面");
+    expect(html).toContain("这是我的背面");
     expect(html).toContain('href="https://github.com/agenticnoob"');
     expect(html).toContain('href="https://blog.zzzxc.com"');
     expect(html).toContain('data-hero-locale-option="zh"');
     expect(html).toContain('data-hero-locale-option="en"');
     expect(html).not.toContain("Boo!");
+
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    const contentTimeline = host.querySelector(
+      '[data-timeline="hero.chapter-1.content.timeline"]',
+    );
+    expect(
+      contentTimeline?.querySelector(".hero-chapter__entry-frame"),
+    ).toBeNull();
+    expect(
+      contentTimeline?.querySelector(
+        '[data-timeline="chapter-1-body-timeline"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      contentTimeline?.querySelector(
+        '[data-timeline="hero.chapter-1.exit.timeline"]',
+      ),
+    ).toBeNull();
+    expect(
+      host.querySelectorAll(
+        ".hero-chapter__content-cycle > .hero-chapter__body",
+      ),
+    ).toHaveLength(4);
+    expect(host.querySelectorAll(".hero-chapter__entry-frame")).toHaveLength(0);
+    expect(host.querySelectorAll(".hero-chapter__exit-frame")).toHaveLength(0);
+    expect(host.querySelectorAll(".hero-exit-sticky")).toHaveLength(0);
+    for (const exitTimeline of host.querySelectorAll(
+      '[data-timeline$=".exit.timeline"]',
+    )) {
+      expect(exitTimeline.childElementCount).toBe(0);
+    }
   });
 
   test("keeps the injected writer and mesh effects stable without React frame state", () => {

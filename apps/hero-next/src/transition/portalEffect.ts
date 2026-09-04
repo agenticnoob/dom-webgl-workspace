@@ -14,6 +14,7 @@ export type HeroPortalMotionParams = {
   readonly side: HeroPortalSide;
   readonly travelViewportFraction: number;
   readonly maxTravelPx: number;
+  readonly hideAfterProgressKey?: string;
 };
 
 type HeroPortalEffectState = {
@@ -91,10 +92,12 @@ export const heroPortalMotionEffect = defineWebGLEffect<
           ctx.layout.viewport.width * params.travelViewportFraction,
         );
     const offsetX = motion.horizontalOffsetProgress * travelPx;
-    const opacity = resolvePortalOpacity(
-      motion.opacity,
-      ctx.layout.viewport.width,
-    );
+    const hiddenByProgress =
+      params.hideAfterProgressKey !== undefined &&
+      ctx.progress.get(params.hideAfterProgressKey) >= 1 - 0.0001;
+    const opacity = hiddenByProgress
+      ? 0
+      : resolvePortalOpacity(motion.opacity, ctx.layout.viewport.width);
     stepHeroPortalParallax(state.parallax, {
       delta: ctx.delta,
       pointerInside: ctx.pointer.isInside,
@@ -104,7 +107,7 @@ export const heroPortalMotionEffect = defineWebGLEffect<
       visible: motion.visible && opacity > 0.001,
     });
 
-    ctx.object.visible = motion.visible && opacity > 0.001;
+    ctx.object.visible = !hiddenByProgress && motion.visible && opacity > 0.001;
     ctx.object.rotation.set(
       -state.parallax.y * heroTransitionConfig.portal.pointerPitch,
       (state.reducedMotion ? 0 : motion.rotationY) +

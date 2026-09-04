@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next and DOM-text rendering current source 2026-08-31; registry release truth
+**Last verified: hero-next current source 2026-09-04; DOM-text rendering and registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -91,9 +91,12 @@ The private Next.js consumer uses public managed scene, mesh, model, effect,
 shader, lighting, render-quality, and scroll APIs. It implements four reversible
 chapters across the tetrahedron's four faces, localized Chinese/English atlas
 and semantic content, a progressively screen-locked reveal whose rotation and
-centering finish at the DOM handoff, distinct entry/exit Frame content, unique
-transition-side information, persistent completed-exit face tiles with
-continuous approach-weighted UV lock, project/public links,
+centering finish at the DOM handoff, body-only chapter DOM with signal-only
+entry/exit runways, unique transition-side information, one body-derived face
+atlas per chapter with separately packed lead and real-content tail tiles,
+shared responsive Atlas/DOM lead geometry that prevents full-screen handoff
+reflow, continuous
+approach-weighted UV lock, project/public links,
 and one terminal contact Portal preselected under the fourth chapter's covered
 exit and retained through the final Hub. The final DOM runway owns only semantic
 content and interactive public links, so the terminal title and summary are not
@@ -101,16 +104,29 @@ rendered twice. It preserves the established single tetrahedron scene and
 foreground/background composition. Stronger damped pointer parallax and an
 app-owned Fresnel edge light increase depth without adding a ground plane,
 shadow map, outline mesh, duplicate tetrahedron, or render pass; the edge light
-fades at full screen lock. No personal-model pass is mounted in the current
-baseline. The hold-driven radial theme switch remains Hub-only, while theme and
-locale each persist one committed truth locally.
+fades at full screen lock. Chapter one mounts an optimized scene-native personal
+GLB inside that same scene and pass. It begins as a shallow relief on the first
+tetrahedron face, expands continuously into a fixed center position, returns to
+the face on exit, and remains part of that face whenever the tetrahedron is
+visible. The body progress starts after the DOM handoff and reaches its endpoint
+exactly where the exit return begins, mapping the centered model to exactly one
+clockwise turn while the tetrahedron approach and retreat add no model-local
+spin. Profile copy stays in explicit left/right columns gathered around the
+center; each rendered line
+resolves an independent outward displacement against the combined responsive
+model and speech-bubble exclusions. A rounded-rectangle manga bubble with a
+background-color fill and foreground-color text stays above the model's head
+and crossfades front, side, and back copy from the same reversible one-turn body
+progress; pointer-light intensity is reduced inside chapters. The hold-driven
+radial theme switch remains Hub-only, while theme and locale each persist one
+committed truth locally.
 
-Focused automation currently covers 22 hero-next test files / 115 tests. Current
+Focused automation currently covers 25 hero-next test files / 148 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
-Content is a base version for later editorial direction; personal GLB integration
-remains pending. No package-specific Hero branch, raw Three ownership, second
-scene, second runtime, or second canvas was added.
+The bilingual profile is a literary base version grounded in stable biography
+and remains open to editorial refinement. No package-specific Hero branch, raw
+Three ownership, second scene, second runtime, or second canvas was added.
 
 See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).

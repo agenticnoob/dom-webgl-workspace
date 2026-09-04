@@ -18,6 +18,7 @@ type HeroPointerLightTargetInput = {
 type HeroPointerLightInput = HeroPointerLightTargetInput & {
   readonly active: boolean;
   readonly delta: number;
+  readonly intensityScale?: number;
 };
 
 export const heroPointerLightKey = "hero.pointer-light";
@@ -63,11 +64,13 @@ export function updateHeroPointerLight(
   state: HeroPointerLightState,
   input: HeroPointerLightInput,
 ): void {
+  const intensityScale = clamp(input.intensityScale ?? 1, 0, 1);
+
   if (state.reducedMotion) {
     state.x = heroPointerLightPosition[0];
     state.y = heroPointerLightPosition[1];
     state.z = heroPointerLightPosition[2];
-    state.intensity = heroPointerLightReducedMotionIntensity;
+    state.intensity = heroPointerLightReducedMotionIntensity * intensityScale;
   } else {
     const delta = clamp(input.delta, 0, 64);
 
@@ -79,7 +82,9 @@ export function updateHeroPointerLight(
       state.z += (targetZ - state.z) * positionDamping;
     }
 
-    const targetIntensity = input.active ? heroPointerLightIntensity : 0;
+    const targetIntensity = input.active
+      ? heroPointerLightIntensity * intensityScale
+      : 0;
     const intensityDamping = 1 - Math.exp(-delta / (input.active ? 120 : 180));
     state.intensity += (targetIntensity - state.intensity) * intensityDamping;
     if (state.intensity < 0.0001) {
