@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { getAxiomsContent } from "../src/axioms/content";
+import { axiomsReaderConfig } from "../src/axioms/config";
 
 import {
   createHeroChapterAtlas,
@@ -27,6 +29,7 @@ const context: Partial<CanvasRenderingContext2D> & {
   lineWidth: 1,
   lineJoin: "miter",
   beginPath: vi.fn(),
+  arc: vi.fn(),
   bezierCurveTo: vi.fn(),
   clip,
   closePath: vi.fn(),
@@ -57,6 +60,7 @@ const context: Partial<CanvasRenderingContext2D> & {
   },
   rect,
   restore: vi.fn(),
+  rotate: vi.fn(),
   save: vi.fn(),
   scale: vi.fn(),
   stroke: vi.fn(() => strokeStyles.push(String(context.strokeStyle))),
@@ -149,8 +153,22 @@ describe("hero chapter atlas", () => {
     expect(fillStyles).toContain("white");
     expect(strokeStyles).toContain("black");
     expect(context.translate).toHaveBeenCalledWith(0, 1152);
-    expect(rect).toHaveBeenCalledTimes(8);
-    expect(clip).toHaveBeenCalledTimes(8);
+    // Each endpoint clips its fan viewport, visible fan titles and article sheets.
+    const articleCount = getAxiomsContent("zh").body.sections.length;
+    const visibleFanCount = Math.min(
+      articleCount,
+      Math.floor(
+        axiomsReaderConfig.fan.maxAngle / axiomsReaderConfig.fan.angleStep,
+      ) + 1,
+    );
+    const clipCount = 8 + 2 * (1 + visibleFanCount) + 1 + articleCount;
+    expect(rect).toHaveBeenCalledTimes(clipCount);
+    expect(clip).toHaveBeenCalledTimes(clipCount + 1 + articleCount);
+    expect(
+      rect.mock.calls.filter(
+        ([, , width, height]) => width === 1024 && height === 576,
+      ),
+    ).toHaveLength(8);
     expect(fillText).not.toHaveBeenCalledWith(
       "SELF / TRACE",
       expect.any(Number),
@@ -169,7 +187,9 @@ describe("hero chapter atlas", () => {
     expect(renderedText).toContain(
       "不把身份写成终点，只把它当作下一次出发前，暂时落下的坐标。",
     );
-    expect(renderedText).toContain("自动化不能消解责任");
+    const lastArticle = getAxiomsContent("zh").body.sections.at(-1);
+    expect(lastArticle).toBeDefined();
+    expect(renderedText).toContain(lastArticle?.title.replace(/\s/g, ""));
     expect(renderedText).toContain("愿与同道者共研同进，或有所得，亦未可知。");
   });
 

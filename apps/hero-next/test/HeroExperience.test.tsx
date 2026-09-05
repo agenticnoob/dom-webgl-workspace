@@ -20,7 +20,7 @@ type CapturedMeshEffect = {
 
 const progressStore = {
   source: {
-    get: vi.fn(() => 0),
+    get: vi.fn<(key: string) => number>(() => 0),
     subscribe: vi.fn(() => () => undefined),
   },
   set: vi.fn(),
@@ -262,6 +262,26 @@ beforeEach(() => {
 });
 
 describe("HeroExperience", () => {
+  test("keeps the fixed profile bubble out of the axioms reader", () => {
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    progressStore.source.get.mockImplementation((key) =>
+      key === "hero.chapter-2.entry" ? 1 : 0,
+    );
+    try {
+      act(() => root.render(createElement(HeroExperience)));
+      expect(
+        host.querySelector<HTMLElement>("[data-profile-speech-bubble]")?.style
+          .visibility,
+      ).toBe("hidden");
+      expect(
+        host.querySelector(".hero-axioms__semantic")?.textContent,
+      ).toContain("AI-native 必然走向 Agent-first");
+    } finally {
+      act(() => root.unmount());
+      progressStore.source.get.mockImplementation(() => 0);
+    }
+  });
   test("declares one scene with the profile model and chapter timelines", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
@@ -334,8 +354,11 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-hit-test="mesh"');
     expect(html).toContain('data-press="true"');
     expect(html).not.toContain('data-target="hero.ghost.foreground"');
-    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(5);
-    expect(html.match(/data-render-role="model"/g)).toHaveLength(5);
+    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(6);
+    expect(html.match(/data-render-role="model"/g)).toHaveLength(6);
+    expect(html).toContain('data-target="hero.axioms.reader"');
+    expect(html).toContain('data-effect="hero.axioms.reader"');
+    expect(html).toContain('data-progress-key="hero.chapter-2.body"');
     expect(html).toContain('data-light="hero.tetrahedron.key"');
     expect(html).toContain('data-light="hero.tetrahedron.rim"');
     expect(html).toContain('data-light-color="#f2f2f2"');
@@ -466,6 +489,8 @@ describe("HeroExperience", () => {
       '[data-hero-locale-option="en"]',
     );
     expect(englishButton).not.toBeNull();
+    const refreshesBeforeLocaleChange =
+      refreshHeroScrollLayout.mock.calls.length;
 
     act(() => englishButton?.click());
 
@@ -475,6 +500,9 @@ describe("HeroExperience", () => {
       "en",
     );
     expect(capturedEffects.at(-1)).toBe(initialEffects);
+    expect(refreshHeroScrollLayout.mock.calls.length).toBeGreaterThan(
+      refreshesBeforeLocaleChange,
+    );
 
     act(() => root.unmount());
   });

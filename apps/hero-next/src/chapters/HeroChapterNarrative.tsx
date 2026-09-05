@@ -14,6 +14,8 @@ import { HeroChapter, HeroChapterBody } from "./HeroChapter";
 import { HeroLocaleControl } from "./HeroLocaleControl";
 import type { HeroLocale } from "../preferences/locale";
 import { HeroProfileChapterBody } from "../profile/HeroProfileChapterBody";
+import { HeroAxiomsChapterBody } from "../axioms/HeroAxiomsReader";
+import { getAxiomsContent } from "../axioms/content";
 
 export function HeroChapterNarrative({
   locale,
@@ -45,7 +47,7 @@ export function HeroChapterNarrative({
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [onLayoutChange]);
+  }, [locale, onLayoutChange]);
 
   return (
     <>
@@ -71,13 +73,20 @@ export function HeroChapterNarrative({
               content={content}
               {...(chapterId === "self"
                 ? { className: "hero-chapter--profile" }
-                : {})}
+                : chapterId === "axioms"
+                  ? { className: "hero-chapter--axioms" }
+                  : {})}
             >
               {chapterId === "self" ? (
                 <HeroProfileChapterBody
                   definition={definition}
                   content={content}
                   locale={locale}
+                />
+              ) : chapterId === "axioms" ? (
+                <HeroAxiomsChapterBody
+                  definition={definition}
+                  content={getAxiomsContent(locale)}
                 />
               ) : (
                 <HeroChapterBody definition={definition} content={content} />

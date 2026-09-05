@@ -37,12 +37,15 @@ import { HeroPortalStage } from "../transition/HeroPortalStage";
 import { heroPortalMotionEffect } from "../transition/portalEffect";
 import { heroTransitionConfig } from "../transition/transitionConfig";
 import type { HeroTransitionSignalWriter } from "../transition/signals";
+import { HeroAxiomsStage } from "../axioms/HeroAxiomsReader";
+import { heroAxiomsReaderEffect } from "../axioms/effect";
 
 const heroRuntimeEffects = [
   heroTetrahedronEffect,
   heroGhostBackgroundEffect,
   heroPortalMotionEffect,
   heroProfileModelEffect,
+  heroAxiomsReaderEffect,
 ] as const;
 
 const heroRenderQuality = {
@@ -185,6 +188,7 @@ function HeroScene() {
           styleKey={theme.scheme}
         />
         <HeroProfileModel />
+        <HeroAxiomsStage locale={locale.store} />
         <WebGLMesh
           id="hero.tetrahedron.mesh"
           geometry={tetrahedronGeometry}

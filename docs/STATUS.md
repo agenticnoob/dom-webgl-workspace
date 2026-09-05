@@ -124,7 +124,16 @@ committed truth locally. The profile material keeps the same light-neutral base
 color across both schemes, so a committed theme change does not multiply the GLB
 albedo by the darker page background.
 
-Focused automation currently covers 25 hero-next test files / 151 tests. Current
+Chapter two now uses a scroll-driven circular title index and differently sized
+article sheets, composed by an app-owned managed surface in the existing scene
+and pass. Postage-edged sheets arrive along a reversible arc from the right and
+stack above full-sized earlier sheets. Scrolling drives arrivals continuously,
+with reading segments only for text overflow. The reader and face atlas share
+endpoint typesetting and edge geometry. Article identity and bilingual copy live
+in one ordered registry; scroll length, texture grid and shader capacity derive
+from its content rather than a fixed article count. Full article semantics remain in DOM.
+
+Focused automation currently covers 28 hero-next test files / 176 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 The bilingual profile is a literary base version grounded in stable biography

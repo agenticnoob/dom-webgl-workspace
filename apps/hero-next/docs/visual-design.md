@@ -47,6 +47,58 @@
 
 ## 空间链路
 
+### 第二章：扇面目录与文章纸卡
+
+第二章使用同一 `hero.chapter-2.body` 进度驱动阅读器。左侧矩形标题沿圆弧进入和离开
+阅读视窗，中部标题放大并反相选中；右侧每篇文章是一张不同宽高的完整纸卡。首张直接落位，
+后续纸卡从视窗右侧沿二次贝塞尔弧线进入，途中轻微侧倾，落位时回正并盖在旧卡上。
+旧卡保持原有尺寸与位置，宽高差露出底层卡片，不再折叠为纸边。四边采用邮票式半圆齿孔，
+缺口真正透出底层纸卡；`stamp.ts` 统一齿孔间距、半径和四边几何，实时 shader 与首尾 atlas 共用。
+滚动进度直接驱动目录和入栈，不再切成固定停顿和短促的缓动切换；停止滚动即可停下阅读。
+无溢出的最后一篇落位后直接进入章节回程，不额外占用一整段无交互滚动。
+反向滚动让顶层卡沿原路径退回右侧，由同一纯函数还原，未加入鼠标驱动或点击选择。
+
+`src/axioms/layout.ts` 负责响应式几何，`frame.ts` 负责可逆进度，`artwork.ts` 组合排版，
+`typography.ts` 负责文字测量与换行，`canvas.ts` 负责首尾帧绘制。
+中文、英文共用内容模型，标题完整换行；引言的实际高度决定下方阅读区域起点。窄屏文章超出
+纸卡时，仅按实际溢出高度分配阅读距离，同一滚动进度先移动卡内文本，完整读到末行，
+再进入下一篇；正文完整容纳时不保留无反馈的阅读停顿。
+reduced-motion 保留全部命题、阅读和首尾堆叠构图，目录选择与新卡落位直接切换，移除连续圆弧和侧倾。
+
+`HeroAxiomsReader.tsx` 保留完整标题与文章 DOM 语义，并声明一个加入原 scene/pass 的
+managed `WebGLTarget`。`effect.ts` / `program.ts` 通过 public material-layer facade
+绘制扇面、纸卡和文字，使用既有双色；纹理只在 viewport / locale 改变时生成，滚动只更新
+几何与阅读偏移 uniform。`texture.ts` 从实际 tile 数量计算网格，`program.ts` 从实际文章
+数量生成 shader 数组与循环，不再固定四篇或九格。没有额外 renderer、scene、pass、显示 canvas、鼠标事件或 React
+逐帧状态。第二章 lead/tail atlas 与阅读器共用排版和首尾帧，分别显示首张纸卡与最后一篇在顶层的完整卡堆。
+图集打包时预先计算每格的精确起点，Canvas 绘制与 shader 采样共用 `tileOrigins`；
+不在 GPU 中通过浮点取模和向下取整重新推导行列，避免行首格被采样到空白位置。
+第一章的固定气泡现只在第一章正文可见，避免进入阅读器后仍悬在上方。
+切换语言会在语义 DOM 更新后刷新所有章节的滚动触发位置，避免前章英文排版高度变化导致
+第二章提前退场。阅读 surface 使用 `100vw` 与 atlas 的视口宽度保持一致，包括系统滚动条可见时。
+
+#### 扩展文章
+
+- 在 `src/axioms/content.ts` 的 `heroAxiomsArticles` 数组中新增、删除或调整记录顺序；
+  每条记录包含唯一且稳定的 `id` 和 `translations.zh / translations.en`，
+  每种语言填写 `label / title / body`。两种语言从同一列表派生，不分别维护文章数量与顺序。
+- 可选 `paper: { width: 0.92, height: 0.8 }` 指定相对可用纸卡区域的宽高比例，
+  取值为 `(0, 1]`；省略时按 `config.ts` 中的尺寸组合轮换。内容更新不需要修改 shader 或 CSS。
+- `config.ts` 集中每篇滚动距离、圆弧间距、入场弧线/侧倾、邮票齿孔和纹理预算等视觉参数。
+  正文高度为一屏加每篇 `0.9` 屏的滚动距离；当前四篇为 `460svh`，实际滚动段为 `3.6` 屏。
+  `frame.ts` 依据排版得到的溢出高度分配阅读段，其余进度连续驱动入栈，无额外时间动画或二次缓动。
+  远端标题只显示圆弧的正面半圆；已到达纸卡保持固定落位，未来纸卡不绘制，文章增多不会绕回目录或无限堆出视窗。
+- React 由内容 props 派生正文高度，以文章 ID 作为 key；换序与语言切换保留文章节点。
+  `reader.ts` 是章节数据与通用排版之间的适配层，首尾 atlas 和实时效果共用这一入口。
+  不增加冗余派生 state、逐帧 React 更新或文章专用事件监听。
+
+已覆盖空列表、单篇、4、7、12 篇的纯逻辑与纹理布局。12 篇的浏览器证据来自此前模块化阶段，
+本次邮票边与连续入栈的浏览器验证使用交付的四篇内容，不视为当前 12 篇像素验收。
+当前采用一次打包的文字纹理与按篇数生成的 uniform 数组，不声称无限列表：
+若增长为大规模文章库，应另行引入分页或按需纹理窗口，避免纹理清晰度与 GPU uniform 预算下降。
+
+### 共用进出场
+
 每一章都使用同一套可逆阶段：
 
 1. 首屏完整四面体保持 Hub 呼吸，左右显示整个网站的定位与浏览提示；首个 entry timeline
@@ -110,6 +162,8 @@ pointer tilt 采用更大的俯仰/偏航幅度与更快阻尼，在靠近与退
 - `src/chapters/geometry.ts` 根据 active face 解析相机空间姿态和投影；
 - `src/chapters/layout.ts` 是 atlas 的响应式布局模型；
 - `src/chapters/atlas.ts` 从当前 locale 的四章正文生成四个面的 managed texture；
+- `src/axioms/` 独立拥有第二章文章数据、排版、阅读进度与纸卡效果；实时阅读器和章节 atlas
+  通过 `reader.ts` 共用内容适配，通过 `stamp.ts` 共用邮票边几何；
 - `src/chapters/HeroChapterNarrative.tsx` 负责章节顺序、最终联系方式语义和真实链接，
   `src/chapters/HeroChapter.tsx` 负责章节 timeline、阅读和链接语义；
 - `src/profile/HeroProfileChapterBody.tsx` 负责第一章居中的左右叙事结构，
@@ -163,7 +217,11 @@ Hub 四面体保留更强的首屏占比；
 
 ## 当前验证边界
 
-- **Automated：** hero-next 25 个 focused test files / 151 tests 覆盖首屏网站介绍、首章文案
+- **Automated：** hero-next 28 个 focused test files / 176 tests 覆盖第二章数据扩展、稳定文章 ID、
+  动态滚动长度、纹理网格、空列表/单篇/多篇边界、命题选择、无固定停顿的连续映射、
+  按实际溢出分配阅读段、四边齿孔几何与共享 shader 参数、
+  弧线入场与累积堆叠、旧卡几何不变、反向回放、窄屏中英文完整排版、卡内溢出阅读、reduced-motion 和首章气泡
+  显示范围，以及首屏网站介绍、首章文案
   handoff 静止段、持续到完整揭示的旋转靠近、渐进 screen lock 与居中接管、独立
   四章 body-only DOM、空 entry/exit runways、内容结束即回程、正文派生且预打包的 lead/tail atlas、
   连续 face-lock UV、飞行 pointer tilt、Portal 视差阻尼、
@@ -172,9 +230,10 @@ Hub 四面体保留更强的首屏占比；
   响应式人物椭圆/对话框圆角矩形联合避让、圆角边界外的连续预让位、混合文字视觉行分组和环绕 DOM 标记、
   固定气泡内正面/侧面/背面文案的逐字出现—停留—逐字消失、反向确定性与 reduced-motion、
   内容进度到一周旋转的纯映射、进程/返程局部自转冻结、章节 pointer-light 衰减、reduced-motion、
-  shader、主题间稳定的人物材质基色和单 runtime/scene/canvas ownership；全仓库 169 个 test files / 1155 tests、
-  workspace typecheck、import check 与 docs check 通过。`2026-09-05` production build
-  在短暂停止 dev server 后于当前工作区通过，随后已恢复开发服务。
+  shader、主题间稳定的人物材质基色和单 runtime/scene/canvas ownership。第二章本轮的 focused tests、
+  app typecheck、production build、import check 与 docs check 均通过。文档与提交收尾另重跑全仓库
+  172 个 test files / 1180 tests、root typecheck 与 workspace build，全部通过；example build
+  仍提示既有的大 chunk 警告，未在第二章任务中调整。当前预览使用 production server。
 - **Browser：** `2026-09-04` 在开发态 Chromium `1440×900` 与 `375×812` 精确跨越第一章
   Atlas → DOM 接管及 DOM → tail 回程坐标前后各 `2px`，章节计数、标题逐行断点、简介、
   人物位置、尺寸与固定气泡轮廓连续；桌面与移动端正文 token
@@ -204,7 +263,28 @@ Hub 四面体保留更强的首屏占比；
   `1080×1440` 与 `375×812` 复核第一章正面：人物不再随 committed background 变暗，肤色、黑发和
   灰色衣服仍保留明暗层次且高光没有洗白；三个视口均保持一个 canvas、无错误浮层和 page error。
   Chromium 在 resize 后仍会报告既有 `glCopySubTextureCHROMIUM` WebGL warning，本次材质修复未处理该警告。
-- **未声称：** 本轮没有覆盖 `320×568`、iOS Safari、Android Chrome 真机、横屏或
+- **第二章 Browser：** `2026-09-05` production Chromium 在 `1440×900` 中文、`375×812` 中文与
+  `320×568` 英文验证四张完整命题纸卡、四边邮票齿孔、右侧弧线入栈的早/中/晚帧、旧卡尺寸保留、
+  圆弧标题选择、真实滚轮双向驱动与 reduced-motion。
+  三种尺寸在 entry/exit 边界前后各 `2px` 的接管状态正确；同一正文进度的正向/反向截图
+  均逐像素一致。真实滚轮小幅输入 `40px` 后三种视口均有可见画面变化，反向 `-40px` 回到
+  原滚动坐标；英文窄屏保留按实际溢出驱动的卡内阅读，最后一篇完整读到末行。
+  均保持一个 canvas、四篇完整语义文章、无横向溢出，第一章固定气泡不残留。
+  语言切换后重新计算章节布局，英文末卡保持到正文终点；阅读层使用视口宽度，与转场 atlas 几何对齐。
+  本轮 page error 与 console error 为 0；resize 后仍有既有 `glCopySubTextureCHROMIUM` warning，
+  未在本轮处理。Atlas 与实时阅读层的文字栅格化仍有细微抗锯齿差异，不声称交接截图逐像素一致。
+  模块化重构另以临时 12 篇数据在开发态 `1440×900` 中文和 `320×568` 英文验证
+  第一篇、第六篇、第十二篇及反向返回：均为 12 篇语义文章、单 canvas、无横向溢出和页面/console error；
+  测试内容验证后已移除。提交收尾使用 React Doctor `--scope changed --base HEAD --include-untracked`
+  扫描 25 个文件，得分 `57/100`，无第二章诊断；唯一报告是第一章气泡 `effect-needs-cleanup`。
+  对照当前源码和 HEAD，effect 均在 cleanup 中调用 `unsubscribe()`、移除媒体查询监听并取消待执行
+  动画帧，因此判定为静态分析误报，未添加规则屏蔽；不声称 React Doctor 命令通过。
+  用户随后报告第二篇正文与第三个目录标题空白；此前的 DOM/进度验证未发现这个实际像素缺陷，
+  因而不能视为所有文字均已显示的证据。本次在 `1690×764` 生产态复现并修正图集行首采样：
+  两块内部文字区域修复前均为 0 个文字亮像素，修复后分别为 19,361 与 3,914 个，截图回读确认
+  第二篇标题/正文及第三个目录标题恢复。0、1、4、7、12 篇的自动化现检查共享采样起点，
+  并禁止 shader 重新以浮点运算计算 tile 行列。
+- **未声称：** 第一章未重验 `320×568`；本轮没有覆盖 iOS Safari、Android Chrome 真机、横屏或
   反向切回 initial theme；视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺
   像素级一致。
 

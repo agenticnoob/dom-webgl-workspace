@@ -2,6 +2,7 @@ import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
 import React, { useLayoutEffect, useRef, type RefObject } from "react";
 
 import type { HeroLocale } from "../preferences/locale";
+import { readHeroChapterScrollState } from "../chapters/scrollState";
 import {
   getHeroProfileSpeechBubbleCopy,
   resolveHeroProfileSpeechBubbleFrame,
@@ -66,6 +67,11 @@ export function HeroProfileSpeechBubble({
 
     const update = () => {
       animationFrame = 0;
+      const chapter = readHeroChapterScrollState(store.source);
+      root.style.visibility =
+        chapter.chapterId === "self" && chapter.domContentActive
+          ? ""
+          : "hidden";
       const frame = resolveHeroProfileSpeechBubbleFrame(
         store.source.get(progressKey),
         motionPreference?.matches ?? false,
@@ -76,11 +82,10 @@ export function HeroProfileSpeechBubble({
       for (const facing of facings) {
         const message = messages.get(facing);
         if (message) {
-          const visibleCharacterCount =
-            resolveHeroProfileVisibleCharacterCount(
-              message.characters.length,
-              frame.characterProgress[facing],
-            );
+          const visibleCharacterCount = resolveHeroProfileVisibleCharacterCount(
+            message.characters.length,
+            frame.characterProgress[facing],
+          );
           message.element.dataset.profileVisibleCharacters = String(
             visibleCharacterCount,
           );

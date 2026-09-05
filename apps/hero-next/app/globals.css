@@ -120,6 +120,46 @@ a {
   letter-spacing: 0.15em;
 }
 
+.hero-axioms-surface {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100svh;
+  pointer-events: none;
+}
+
+.hero-chapter--axioms {
+  background: transparent;
+}
+
+.hero-chapter__body.hero-axioms {
+  min-height: var(--axioms-scroll-height, 100svh);
+  padding: 0;
+  background: transparent;
+}
+
+.hero-axioms__semantic {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+@media print {
+  .hero-chapter__body.hero-axioms {
+    min-height: 0;
+  }
+
+  .hero-axioms__semantic {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    white-space: normal;
+  }
+}
+
 .hero-chapter__body > h2 {
   max-width: 11ch;
   margin: 0;

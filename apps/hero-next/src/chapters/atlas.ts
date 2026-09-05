@@ -1,4 +1,7 @@
 import type { HeroViewport } from "../shared/viewport";
+import { createHeroAxiomsArtwork } from "../axioms/reader";
+import { drawAxiomsFrame } from "../axioms/canvas";
+import { resolveAxiomsFrame } from "../axioms/frame";
 import { getHeroProfileSpeechBubbleCopy } from "../profile/speechBubble";
 import { resolveHeroProfileLineShiftForExclusions } from "../profile/wrap";
 import { getHeroChapterContent, type HeroChapterBodyContent } from "./content";
@@ -46,6 +49,10 @@ export function createHeroChapterAtlas(
     const definition = getHeroChapterDefinition(chapterId);
     const layout = resolveHeroChapterLayout(viewport, chapterId);
     const content = getHeroChapterContent(chapterId, locale);
+    const axioms =
+      chapterId === "axioms"
+        ? createHeroAxiomsArtwork(context, layout.viewport, locale)
+        : undefined;
     const speechBubbleText =
       layout.kind === "profile"
         ? getHeroProfileSpeechBubbleCopy(locale).front
@@ -58,13 +65,19 @@ export function createHeroChapterAtlas(
       tileWidth,
       tileHeight,
       () =>
-        drawTile(
-          context,
-          layout,
-          formatHeroChapterCounter(definition),
-          content.body,
-          speechBubbleText,
-        ),
+        axioms
+          ? drawAxiomsFrame(
+              context,
+              axioms,
+              resolveAxiomsFrame(0, axioms.layout),
+            )
+          : drawTile(
+              context,
+              layout,
+              formatHeroChapterCounter(definition),
+              content.body,
+              speechBubbleText,
+            ),
     );
     drawAtlasTile(
       context,
@@ -73,7 +86,14 @@ export function createHeroChapterAtlas(
       definition.atlas.row + 2,
       tileWidth,
       tileHeight,
-      () => drawTailTile(context, layout, content.body, speechBubbleText),
+      () =>
+        axioms
+          ? drawAxiomsFrame(
+              context,
+              axioms,
+              resolveAxiomsFrame(1, axioms.layout),
+            )
+          : drawTailTile(context, layout, content.body, speechBubbleText),
     );
   }
 

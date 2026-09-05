@@ -52,6 +52,7 @@ Read [README.md](./README.md) and
 | Pure reversible scroll phases and geometry                            | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`                                                                                |
 | Chapter content, semantic DOM, and locale control                     | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
 | Chapter-one profile body, model declaration, and scroll effect        | `src/profile/`                                                                                                                           |
+| Chapter-two article registry, reader geometry, postage edges, and managed effect | `src/axioms/`; behavior and extension instructions live in `docs/visual-design.md` |
 | Responsive atlas and profile DOM layout                               | `src/chapters/layout.ts`, `src/chapters/atlas.ts`, `src/profile/`                                                                        |
 | Committed theme and locale persistence                                | `src/preferences/`                                                                                                                       |
 | Transition constants, hold/radial/portal state, and progress encoding | `src/transition/`                                                                                                                        |
