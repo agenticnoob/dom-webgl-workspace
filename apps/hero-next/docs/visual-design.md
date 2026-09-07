@@ -9,7 +9,7 @@
 
 1. **我是谁**：以军旅、校园、城市、代码与独立构建为来路，用文学化叙事呈现仍在形成中的自我；
 2. **我的思想**：关于 AI、哲学、AI Native 与 Agent First 的判断；
-3. **我做过什么**：Viselora、公开构建方向及已确认的 GitHub 入口；
+3. **我做过什么**：依次介绍 AXMORF Studio、Viselora DOM WebGL、SyringeMeter、vibe-journal-pipeline，提供中英文项目简介与各自的 GitHub 入口；
 4. **我正在连接什么**：产品、博客和公开表达入口，未知的视频地址保留为明确占位。
 
 第四章退出后回到最终 Hub，以“愿与同道者共研同进，或有所得，亦未可知。”收束，
@@ -97,6 +97,26 @@ managed `WebGLTarget`。`effect.ts` / `program.ts` 通过 public material-layer 
 当前采用一次打包的文字纹理与按篇数生成的 uniform 数组，不声称无限列表：
 若增长为大规模文章库，应另行引入分页或按需纹理窗口，避免纹理清晰度与 GPU uniform 预算下降。
 
+### 第三章：四面项目空间
+
+宽度大于 `900px` 且主指针支持 hover/fine 的桌面端，将四个项目按内容顺序放在围合空间的四面墙上。
+鼠标在中央移动产生轻微视角与位置视差；进入左右边缘时转向相邻墙面，回到中央后重新允许下一次转向。
+停留边缘不会连续翻面。底部项目按钮与左右按钮支持键盘选择，当前墙面落稳后提供对应仓库的真实 DOM 链接。
+控件 hover 或键盘焦点锁住鼠标视差，避免阅读或点击时目标继续移动。
+
+空间通过既有 scene/pass 中的一个 managed surface 绘制，使用同一 runtime 的标准化 pointer 输入。
+`src/projects/room.ts` 管理纯导航计算与低频语义状态，`effect.ts` 保留逐帧姿态，`program.ts` 投影视线与四面墙、
+地面和顶面的交点；项目中英文内容仍来自 `src/chapters/content.ts`。文字以 `2×` 分辨率预排为一张
+`4096×2880` 纹理，旋转只更新 uniform。正文与 DOM 语义保持完整，不增加原生 Three 对象或第二个显示 canvas。
+
+桌面 body 使用 `280svh`；首尾各 `12%` 的 body progress 收束到第一面正前方，正文中段允许自由探索。
+所选墙面在退出后保留，反向返回正文中段时恢复；滚动只控制收束权重，不能单独决定探索中的墙面与视差。
+首尾 face atlas 都由同一墙面文字纹理和投影参数生成，侧墙按实际源条带裁切绘制，避免越界纹理复制。
+reduced-motion 下取消鼠标视差和插值转向，通过项目按钮直接选择。
+
+移动端、窄屏和无精细鼠标的设备保持普通项目正文与链接；不启用空间交互，不创建项目空间文字纹理。
+媒体条件变化会刷新 atlas 和正文滚动布局。WebGL surface 尚未就绪时保留普通 DOM 内容作为 fallback。
+
 ### 共用进出场
 
 每一章都使用同一套可逆阶段：
@@ -121,19 +141,22 @@ managed `WebGLTarget`。`effect.ts` / `program.ts` 通过 public material-layer 
    不再重复第四章简介；末章 exit 完成后继续由同一终章 Portal 保持唯一一套标题和简介，
    最终 runway 只提供无障碍语义和可交互链接，不再从下方重播第二套终章内容。
 
-atlas 仍保持四个面的一份结构真值，每章预先打包 lead 与 tail 两个 tile：lead 读取章节计数、
-title 与 intro，tail 直接读取正文最后卡片与 closing。Atlas 与语义 DOM 共用同一套响应式
+atlas 仍保持四个面的一份结构真值，每章预先打包 lead 与 tail 两个 tile。普通 DOM 正文的 lead
+读取章节计数、title 与 intro，tail 读取最后卡片与 closing；第二章分别读取阅读器首尾帧，
+第三章桌面模式的两个端点都读取第一面正前方构图，移动端保留普通正文首尾。Atlas 与语义 DOM 共用同一套响应式
 几何；第一章还共用居中双列、均衡标题、人物保护椭圆和圆角长方形正面对话框，因此三角面完整
 覆盖后不会突然出现气泡或切换成另一套排版。每个 tile 在自己的像素边界内独立裁剪，长文案即使
 超出当前格也不会污染相邻章节或 lead/tail 格；第一章尾段的高度恰好补齐正文底部视口，最后一段
 会在回程边界前自然离场，closing、人物与对话框则在 DOM/Atlas 两侧保持同一视口中心。
-exit 只切换 shader 内的 tile 选择，不因滚动重建或重新上传纹理；缓存只随 viewport
-或 locale 变化。目标面的 face-space 投影 UV 仍按 approach 连续插值，在 Hub 边界归零，
+exit 只切换 shader 内的 tile 选择，不因滚动重建或重新上传纹理；缓存随 viewport、locale
+或项目空间媒体条件变化而失效。目标面的 face-space 投影 UV 仍按 approach 连续插值，在 Hub 边界归零，
 因此章节 ID 换面不会造成纹理坐标跳变。
 
 两侧文案由同一 hero scene 内、位于四面体之后的 DOM-text targets 显示。文案逐字形透明度
 与横向位移读取同一 progress store，四面体扩大时通过真实深度自然遮住它们；React 只在
-`site → site+content → contentId` 这些语义边界跨越时挂载或更换内容，不接收逐帧滚动状态。
+`site → site+content → contentId` 这些语义边界，以及 locale、viewport 或样式标识变化时
+挂载或更换内容，不接收逐帧滚动状态。locale 与 viewport 变化会重挂载文字 target，
+让 runtime 为变化后的文字尺寸创建新的受管纹理。
 内容序列统一建模为网站介绍、四个章节和最终联系方式，Effect 只消费通用 `contentId`、
 side 和进度，不包含第四章或联系方式专用动画分支。DOM-text raster 继承元素的计算色，
 以最多 `2×` DPR、sRGB 色彩空间和关闭 mipmap 的线性采样提升高分屏清晰度；Portal
@@ -217,7 +240,8 @@ Hub 四面体保留更强的首屏占比；
 
 ## 当前验证边界
 
-- **Automated：** hero-next 28 个 focused test files / 176 tests 覆盖第二章数据扩展、稳定文章 ID、
+- **第三章自动化：** 覆盖边缘转向与重新触发、最短角度路径、首尾收束、reduced-motion、语义状态去重、键盘与 hover 锁定、DOM fallback、四个项目链接及双语纹理排版和源区域边界。
+- **Automated：** hero-next 31 个 focused test files / 184 tests 覆盖第二章数据扩展、稳定文章 ID、
   动态滚动长度、纹理网格、空列表/单篇/多篇边界、命题选择、无固定停顿的连续映射、
   按实际溢出分配阅读段、四边齿孔几何与共享 shader 参数、
   弧线入场与累积堆叠、旧卡几何不变、反向回放、窄屏中英文完整排版、卡内溢出阅读、reduced-motion 和首章气泡
@@ -230,10 +254,9 @@ Hub 四面体保留更强的首屏占比；
   响应式人物椭圆/对话框圆角矩形联合避让、圆角边界外的连续预让位、混合文字视觉行分组和环绕 DOM 标记、
   固定气泡内正面/侧面/背面文案的逐字出现—停留—逐字消失、反向确定性与 reduced-motion、
   内容进度到一周旋转的纯映射、进程/返程局部自转冻结、章节 pointer-light 衰减、reduced-motion、
-  shader、主题间稳定的人物材质基色和单 runtime/scene/canvas ownership。第二章本轮的 focused tests、
-  app typecheck、production build、import check 与 docs check 均通过。文档与提交收尾另重跑全仓库
-  172 个 test files / 1180 tests、root typecheck 与 workspace build，全部通过；example build
-  仍提示既有的大 chunk 警告，未在第二章任务中调整。当前预览使用 production server。
+  shader、主题间稳定的人物材质基色和单 runtime/scene/canvas ownership。全仓库收尾验证由
+  [当前状态](../../../docs/STATUS.md#verification-truth) 统一记录；下方浏览器证据按日期保留，
+  不将历史尺寸或交互验证视为本轮重跑。
 - **Browser：** `2026-09-04` 在开发态 Chromium `1440×900` 与 `375×812` 精确跨越第一章
   Atlas → DOM 接管及 DOM → tail 回程坐标前后各 `2px`，章节计数、标题逐行断点、简介、
   人物位置、尺寸与固定气泡轮廓连续；桌面与移动端正文 token
@@ -284,6 +307,19 @@ Hub 四面体保留更强的首屏占比；
   两块内部文字区域修复前均为 0 个文字亮像素，修复后分别为 19,361 与 3,914 个，截图回读确认
   第二篇标题/正文及第三个目录标题恢复。0、1、4、7、12 篇的自动化现检查共享采样起点，
   并禁止 shader 重新以浮点运算计算 tile 行列。
+- **第三章 Browser：** `2026-09-06` production Chromium 在 `1440×900` 验证鼠标边缘依次转过四面、
+  正面项目与真实 GitHub 链接一致、中英文切换；`390×844` 触屏模拟保留普通单列四项目正文和可聚焦链接，
+  不启用项目空间或鼠标控件，无横向溢出。另验证 reduced-motion 下鼠标不转面、键盘 Enter 选择项目、
+  退出后反向滚回保留选择，以及 `1440×900 → 390×844 → 1440×900` 的展示模式切换。
+  以上会话始终只有一个 canvas，page error 与 console error/warning 均为 0。
+  本轮定位语言切换时的 WebGL texture 尺寸警告来自 Portal DOM 文字尺寸变化；Portal 现在按 locale 和
+  viewport 重挂载文字 target，使 runtime 为新尺寸创建受管纹理，未修改 package。
+  app 31 个 test files / 184 tests、typecheck、production build、import/docs check 均通过；
+  React Doctor 按 HEAD 与未跟踪文件扫描本轮 15 个文件，100/100，无诊断。移动端结果来自浏览器模拟，未做真机验证。
+- **提交前复核：** `2026-09-08` 重建后在 production Chromium `1440×900` 再次验证四面鼠标导航、
+  每面 GitHub 链接、中英文切换；`390×844` 触屏模拟验证普通单列四项目、可聚焦链接、无空间控件与无横向溢出。
+  两个独立浏览器上下文的 page error 与 console error/warning 均为 0；移动端保留一个 canvas。
+  本轮未重跑 reduced-motion、键盘和窗口缩放路径，其最近证据仍为 `2026-09-06`。
 - **未声称：** 第一章未重验 `320×568`；本轮没有覆盖 iOS Safari、Android Chrome 真机、横屏或
   反向切回 initial theme；视频入口尚未接入；Canvas 与 DOM 的字形抗锯齿不承诺
   像素级一致。

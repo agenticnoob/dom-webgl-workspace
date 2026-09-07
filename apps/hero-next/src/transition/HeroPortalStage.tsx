@@ -56,6 +56,12 @@ export function HeroPortalStage({
   readonly styleKey: string;
 }) {
   const renderKey = useHeroPortalRenderKey(progress);
+  const viewportKey = useSyncExternalStore(
+    subscribePortalViewport,
+    readPortalViewportKey,
+    () => "server",
+  );
+  const textKey = `${styleKey}:${locale}:${viewportKey}`;
   const showSite = renderKey === "site" || renderKey === "site+content";
   const activeContentId: HeroPortalNarrativeContentId | undefined =
     renderKey === "site" || renderKey === "none"
@@ -75,14 +81,14 @@ export function HeroPortalStage({
     <div className={stageClassName} aria-hidden="true">
       {showSite ? (
         <HeroPortalContent
-          key={`${styleKey}:site`}
+          key={`${textKey}:site`}
           contentId="site"
           locale={locale}
         />
       ) : null}
       {activeContentId ? (
         <HeroPortalContent
-          key={`${styleKey}:${activeContentId}`}
+          key={`${textKey}:${activeContentId}`}
           contentId={activeContentId}
           locale={locale}
         />
@@ -317,4 +323,25 @@ function readPortalDeclarations(
   }
 
   return declarations;
+}
+
+// DOM text canvases need new managed textures when their measured size changes.
+function readPortalViewportKey(): string {
+  return `${window.innerWidth}:${window.innerHeight}`;
+}
+
+function subscribePortalViewport(listener: () => void): () => void {
+  let frame = 0;
+  const update = () => {
+    if (frame) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = 0;
+      listener();
+    });
+  };
+  window.addEventListener("resize", update);
+  return () => {
+    window.removeEventListener("resize", update);
+    window.cancelAnimationFrame(frame);
+  };
 }

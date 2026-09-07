@@ -1,4 +1,9 @@
 import type { HeroViewport } from "../shared/viewport";
+import {
+  createProjectRoomTexture,
+  drawProjectRoomEndpoint,
+} from "../projects/artwork";
+import { projectRoomEnabled } from "../projects/room";
 import { createHeroAxiomsArtwork } from "../axioms/reader";
 import { drawAxiomsFrame } from "../axioms/canvas";
 import { resolveAxiomsFrame } from "../axioms/frame";
@@ -25,6 +30,7 @@ export type HeroChapterAtlas = {
   readonly layoutWidth: number;
   readonly layoutHeight: number;
   readonly locale: HeroLocale;
+  readonly projectRoom: boolean;
 };
 
 export function createHeroChapterAtlas(
@@ -45,6 +51,7 @@ export function createHeroChapterAtlas(
   }
 
   context.textBaseline = "alphabetic";
+  const projectRoom = projectRoomEnabled();
   for (const chapterId of heroChapterOrder) {
     const definition = getHeroChapterDefinition(chapterId);
     const layout = resolveHeroChapterLayout(viewport, chapterId);
@@ -52,6 +59,10 @@ export function createHeroChapterAtlas(
     const axioms =
       chapterId === "axioms"
         ? createHeroAxiomsArtwork(context, layout.viewport, locale)
+        : undefined;
+    const roomTexture =
+      chapterId === "builds" && projectRoom
+        ? createProjectRoomTexture(content.body)
         : undefined;
     const speechBubbleText =
       layout.kind === "profile"
@@ -65,19 +76,21 @@ export function createHeroChapterAtlas(
       tileWidth,
       tileHeight,
       () =>
-        axioms
-          ? drawAxiomsFrame(
-              context,
-              axioms,
-              resolveAxiomsFrame(0, axioms.layout),
-            )
-          : drawTile(
-              context,
-              layout,
-              formatHeroChapterCounter(definition),
-              content.body,
-              speechBubbleText,
-            ),
+        roomTexture
+          ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
+          : axioms
+            ? drawAxiomsFrame(
+                context,
+                axioms,
+                resolveAxiomsFrame(0, axioms.layout),
+              )
+            : drawTile(
+                context,
+                layout,
+                formatHeroChapterCounter(definition),
+                content.body,
+                speechBubbleText,
+              ),
     );
     drawAtlasTile(
       context,
@@ -87,13 +100,15 @@ export function createHeroChapterAtlas(
       tileWidth,
       tileHeight,
       () =>
-        axioms
-          ? drawAxiomsFrame(
-              context,
-              axioms,
-              resolveAxiomsFrame(1, axioms.layout),
-            )
-          : drawTailTile(context, layout, content.body, speechBubbleText),
+        roomTexture
+          ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
+          : axioms
+            ? drawAxiomsFrame(
+                context,
+                axioms,
+                resolveAxiomsFrame(1, axioms.layout),
+              )
+            : drawTailTile(context, layout, content.body, speechBubbleText),
     );
   }
 
@@ -104,6 +119,7 @@ export function createHeroChapterAtlas(
     layoutWidth: normalizedViewport.width,
     layoutHeight: normalizedViewport.height,
     locale,
+    projectRoom,
   };
 }
 
@@ -119,7 +135,8 @@ export function heroChapterAtlasMatchesViewport(
     atlas.layoutHeight === layout.viewport.height &&
     atlas.tileWidth === resolution.tileWidth &&
     atlas.tileHeight === resolution.tileHeight &&
-    atlas.locale === locale
+    atlas.locale === locale &&
+    atlas.projectRoom === projectRoomEnabled()
   );
 }
 

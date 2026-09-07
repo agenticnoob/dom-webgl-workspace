@@ -108,6 +108,7 @@ npm run test -- --run
 npm run typecheck
 npm run build
 npm run check:imports
+npm run check:docs
 git diff --check
 ```
 

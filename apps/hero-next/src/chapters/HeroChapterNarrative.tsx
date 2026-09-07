@@ -16,15 +16,19 @@ import type { HeroLocale } from "../preferences/locale";
 import { HeroProfileChapterBody } from "../profile/HeroProfileChapterBody";
 import { HeroAxiomsChapterBody } from "../axioms/HeroAxiomsReader";
 import { getAxiomsContent } from "../axioms/content";
+import { HeroProjectsChapterBody } from "../projects/HeroProjectRoom";
+import type { ProjectRoomStore } from "../projects/room";
 
 export function HeroChapterNarrative({
   locale,
   onLocaleChange,
   onLayoutChange,
+  projectRoom,
 }: {
   readonly locale: HeroLocale;
   readonly onLocaleChange: (locale: HeroLocale) => void;
   readonly onLayoutChange: () => void;
+  readonly projectRoom: ProjectRoomStore;
 }) {
   const site = heroSiteContent[locale];
 
@@ -75,7 +79,9 @@ export function HeroChapterNarrative({
                 ? { className: "hero-chapter--profile" }
                 : chapterId === "axioms"
                   ? { className: "hero-chapter--axioms" }
-                  : {})}
+                  : chapterId === "builds"
+                    ? { className: "hero-chapter--projects" }
+                    : {})}
             >
               {chapterId === "self" ? (
                 <HeroProfileChapterBody
@@ -87,6 +93,14 @@ export function HeroChapterNarrative({
                 <HeroAxiomsChapterBody
                   definition={definition}
                   content={getAxiomsContent(locale)}
+                />
+              ) : chapterId === "builds" ? (
+                <HeroProjectsChapterBody
+                  definition={definition}
+                  content={content}
+                  locale={locale}
+                  room={projectRoom}
+                  onLayoutChange={onLayoutChange}
                 />
               ) : (
                 <HeroChapterBody definition={definition} content={content} />

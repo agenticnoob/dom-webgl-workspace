@@ -34,6 +34,9 @@ export type HeroChapterLocalizedContent = {
 export const heroPublicLinks = {
   githubProfile: "https://github.com/agenticnoob",
   currentProject: "https://github.com/agenticnoob/dom-webgl-workspace",
+  axmorfStudio: "https://github.com/AXMORF/axmorf-studio",
+  syringeMeter: "https://github.com/agenticnoob/syringe-meter",
+  vibeJournalPipeline: "https://github.com/agenticnoob/vibe-journal-pipeline",
   blog: "https://blog.zzzxc.com",
 } as const;
 
@@ -215,40 +218,53 @@ export const heroChapterContent = {
       portal: {
         left: {
           label: "03 / 构建",
-          body: "思想需要进入真实系统，才能暴露自己的边界。",
+          body: "从视频与网页，到测量与记录，把想法做成可以运行的东西。",
         },
         right: {
-          label: "构建原则",
-          items: ["可发现", "可操作", "可验证"],
+          label: "项目方向",
+          items: ["视频创作", "网页视觉", "视觉测量", "开发日志"],
         },
       },
       body: {
-        eyebrow: "BUILDS / EVIDENCE",
-        title: "Agent 一定要会用，人能否直接使用可以成为次要问题。",
+        eyebrow: "BUILDS / SELECTED PROJECTS",
+        title: "把想法，做成可以运行的东西。",
         intro:
-          "我希望未来的构建从 Agent 的理解与执行成本出发：能力必须容易发现，契约必须稳定，结果必须可以回读和验证。",
+          "这四个项目，是我在不同问题上的动手尝试：让 Agent 制作视频，让网页拥有空间，从画面读取测量结果，再把日常开发沉淀成记录。",
         sections: [
           {
-            label: "当前项目",
-            title: "Viselora",
-            body: "一个开放、可复用的 DOM-first WebGL runtime。它用受控声明、稳定边界、测试与使用技能，把复杂视觉能力变成 Agent 能理解和组合的公共契约。",
+            label: "视频创作",
+            title: "AXMORF Studio",
+            body: "一个基于 Remotion 的 Agent-first 本地视频生产工作区。让 coding Agent 从创作需求出发，组织场景、旁白与封面，经过校验和渲染，交付视频、两张封面与发布清单。项目和素材保留在用户自己的工作区中。",
             link: {
-              href: heroPublicLinks.currentProject,
-              label: "在 GitHub 查看当前项目",
+              href: heroPublicLinks.axmorfStudio,
+              label: "在 GitHub 查看 AXMORF Studio",
             },
           },
           {
-            label: "Agent-first",
-            title: "降低机器的心智负担",
-            body: "为 Agent 提供明确入口、最小权限、结构化状态、可观察执行和可复制验证，而不是要求它在隐式约定中反复猜测。",
+            label: "网页视觉",
+            title: "Viselora DOM WebGL",
+            body: "一个开放、可复用的 DOM-first WebGL 运行时。由 DOM 保留布局与交互语义，运行时统一管理渲染、资源、滚动与指针响应，把网页元素连接到三维视觉。你正在浏览的这个站点，也是它的一个实际应用。",
+            link: {
+              href: heroPublicLinks.currentProject,
+              label: "在 GitHub 查看 Viselora",
+            },
           },
           {
-            label: "开放实践",
-            title: "用真实仓库承担证据",
-            body: "源码、文档、测试、运行状态和失败边界共同组成项目证据。展示不是终点，能够被继续理解、修改和验证才是。",
+            label: "视觉测量",
+            title: "SyringeMeter",
+            body: "一个用于受控场景的本地针筒视觉测量原型。结合目标检测、颜色标记与活塞边缘，从摄像头画面计算容量，在桌面界面展示稳定读数和实时曲线，并支持 CSV 记录。当前面向纯黑背景下的单支带标记针筒。",
             link: {
-              href: heroPublicLinks.githubProfile,
-              label: "查看 GitHub 上的更多构建",
+              href: heroPublicLinks.syringeMeter,
+              label: "在 GitHub 查看 SyringeMeter",
+            },
+          },
+          {
+            label: "开发日志",
+            title: "vibe-journal-pipeline",
+            body: "一条用 Python 标准库搭建的开发日志流水线。汇集 Hermes、Codex 与可选 OpenCode 会话，借助语言模型按日整理工作内容，生成结构化日志、技能清单与时间线，让分散的开发过程留下可回顾的记录。",
+            link: {
+              href: heroPublicLinks.vibeJournalPipeline,
+              label: "在 GitHub 查看 vibe-journal-pipeline",
             },
           },
         ],
@@ -258,41 +274,58 @@ export const heroChapterContent = {
       portal: {
         left: {
           label: "03 / BUILDS",
-          body: "Ideas reveal their limits only when they enter real systems.",
+          body: "From video and the web to measurement and journals, turning ideas into working software.",
         },
         right: {
-          label: "BUILD PRINCIPLES",
-          items: ["Discoverable", "Operable", "Verifiable"],
+          label: "PROJECT AREAS",
+          items: [
+            "Video creation",
+            "Web visuals",
+            "Visual measurement",
+            "Dev journals",
+          ],
         },
       },
       body: {
-        eyebrow: "BUILDS / EVIDENCE",
-        title:
-          "Agents must be able to use it. Direct human use can become secondary.",
+        eyebrow: "BUILDS / SELECTED PROJECTS",
+        title: "Turning ideas into working software.",
         intro:
-          "I want future systems to begin with the agent's cost of understanding and execution: capabilities must be discoverable, contracts stable, and outcomes readable and verifiable.",
+          "Four projects, four practical questions: how agents can produce videos, how web pages can gain depth, how images can become measurements, and how daily development can leave a useful record.",
         sections: [
           {
-            label: "CURRENT PROJECT",
-            title: "Viselora",
-            body: "An open, reusable DOM-first WebGL runtime. Controlled declarations, stable boundaries, tests, and usage skills turn complex visual capabilities into contracts agents can understand and compose.",
+            label: "VIDEO CREATION",
+            title: "AXMORF Studio",
+            body: "An agent-first local video production workspace built on Remotion. A coding agent takes a creative brief through scenes, narration and covers to validation and rendering, delivering a video, two covers and a publishing manifest. Projects and media stay in the user's own workspace.",
             link: {
-              href: heroPublicLinks.currentProject,
-              label: "View the current project on GitHub",
+              href: heroPublicLinks.axmorfStudio,
+              label: "View AXMORF Studio on GitHub",
             },
           },
           {
-            label: "AGENT-FIRST",
-            title: "Lower machine cognitive load",
-            body: "Give agents explicit entry points, minimal permissions, structured state, observable execution, and reproducible verification instead of making them guess hidden conventions.",
+            label: "WEB VISUALS",
+            title: "Viselora DOM WebGL",
+            body: "An open, reusable DOM-first WebGL runtime. The DOM keeps layout and interaction semantics, while the runtime manages rendering, resources, scroll and pointer input to connect page elements with 3D visuals. The site you are browsing is one of its applications.",
+            link: {
+              href: heroPublicLinks.currentProject,
+              label: "View Viselora on GitHub",
+            },
           },
           {
-            label: "OPEN PRACTICE",
-            title: "Let the repository carry the evidence",
-            body: "Source, documentation, tests, runtime state, and failure boundaries form the evidence. A build matters when others can understand, modify, and verify it.",
+            label: "VISUAL MEASUREMENT",
+            title: "SyringeMeter",
+            body: "A local vision-based syringe measurement prototype for controlled conditions. Object detection, color markers and the plunger edge turn camera images into volume readings, with stabilized values, live charts and CSV recording in a desktop interface. Its current scope is one marked syringe against a pure black background.",
             link: {
-              href: heroPublicLinks.githubProfile,
-              label: "Explore more builds on GitHub",
+              href: heroPublicLinks.syringeMeter,
+              label: "View SyringeMeter on GitHub",
+            },
+          },
+          {
+            label: "DEV JOURNALS",
+            title: "vibe-journal-pipeline",
+            body: "A development journaling pipeline built with the Python standard library. It brings together Hermes, Codex and optional OpenCode sessions, uses a language model to summarize each day's work, and produces structured journals, a skills inventory and a timeline for later reflection.",
+            link: {
+              href: heroPublicLinks.vibeJournalPipeline,
+              label: "View vibe-journal-pipeline on GitHub",
             },
           },
         ],

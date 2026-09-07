@@ -354,9 +354,11 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-hit-test="mesh"');
     expect(html).toContain('data-press="true"');
     expect(html).not.toContain('data-target="hero.ghost.foreground"');
-    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(6);
-    expect(html.match(/data-render-role="model"/g)).toHaveLength(6);
+    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(7);
+    expect(html.match(/data-render-role="model"/g)).toHaveLength(7);
     expect(html).toContain('data-target="hero.axioms.reader"');
+    expect(html).toContain('data-target="hero.projects.room"');
+    expect(html).toContain('data-effect="hero.projects.room"');
     expect(html).toContain('data-effect="hero.axioms.reader"');
     expect(html).toContain('data-progress-key="hero.chapter-2.body"');
     expect(html).toContain('data-light="hero.tetrahedron.key"');
@@ -379,7 +381,7 @@ describe("HeroExperience", () => {
     expect(html).toContain('id="chapter-4"');
     expect(html).toContain("为智能体重新思考软件");
     expect(html).toContain("真正的颠覆，不只是更好的答案");
-    expect(html).toContain("Agent 一定要会用");
+    expect(html).toContain("把想法，做成可以运行的东西。");
     expect(html).toContain("愿与同道者共研同进，或有所得，亦未可知");
     expect(html).not.toContain('class="hero-chapter__frame');
     expect(html).not.toContain("继续前往章节出口");
@@ -485,6 +487,9 @@ describe("HeroExperience", () => {
 
     act(() => root.render(createElement(HeroExperience)));
     const initialEffects = capturedEffects.at(-1);
+    const initialPortalText = host.querySelector(
+      '[data-target="hero.portal.site.right.primary"]',
+    );
     const englishButton = host.querySelector<HTMLButtonElement>(
       '[data-hero-locale-option="en"]',
     );
@@ -495,6 +500,9 @@ describe("HeroExperience", () => {
     act(() => englishButton?.click());
 
     expect(host.textContent).toContain("Rethinking software for agents");
+    expect(
+      host.querySelector('[data-target="hero.portal.site.right.primary"]'),
+    ).not.toBe(initialPortalText);
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       "viselora.hero.locale.v1",
       "en",

@@ -39,6 +39,9 @@ import { heroTransitionConfig } from "../transition/transitionConfig";
 import type { HeroTransitionSignalWriter } from "../transition/signals";
 import { HeroAxiomsStage } from "../axioms/HeroAxiomsReader";
 import { heroAxiomsReaderEffect } from "../axioms/effect";
+import { HeroProjectRoomStage } from "../projects/HeroProjectRoom";
+import { heroProjectRoomEffect } from "../projects/effect";
+import { createProjectRoomStore } from "../projects/room";
 
 const heroRuntimeEffects = [
   heroTetrahedronEffect,
@@ -46,6 +49,7 @@ const heroRuntimeEffects = [
   heroPortalMotionEffect,
   heroProfileModelEffect,
   heroAxiomsReaderEffect,
+  heroProjectRoomEffect,
 ] as const;
 
 const heroRenderQuality = {
@@ -132,6 +136,7 @@ export function HeroExperience() {
 
 function HeroScene() {
   const store = useScrollEffectProgressStore();
+  const projectRoom = useMemo(createProjectRoomStore, []);
   const signalWriter = useMemo<HeroTransitionSignalWriter>(
     () => ({ set: (key, value) => store.set(key, value) }),
     [store],
@@ -189,6 +194,7 @@ function HeroScene() {
         />
         <HeroProfileModel />
         <HeroAxiomsStage locale={locale.store} />
+        <HeroProjectRoomStage locale={locale.store} room={projectRoom} />
         <WebGLMesh
           id="hero.tetrahedron.mesh"
           geometry={tetrahedronGeometry}
@@ -217,6 +223,7 @@ function HeroScene() {
         locale={locale.locale}
         onLocaleChange={locale.store.commit}
         onLayoutChange={refreshHeroScrollLayout}
+        projectRoom={projectRoom}
       />
     </main>
   );

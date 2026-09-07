@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-09-05; DOM-text rendering and registry release truth
+**Last verified: hero-next current source 2026-09-08; DOM-text rendering and registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -93,7 +93,8 @@ chapters across the tetrahedron's four faces, localized Chinese/English atlas
 and semantic content, a progressively screen-locked reveal whose rotation and
 centering finish at the DOM handoff, body-only chapter DOM with signal-only
 entry/exit runways, unique transition-side information, one body-derived face
-atlas per chapter with separately packed lead and real-content tail tiles,
+atlas per chapter with separately packed entry and exit tiles derived from
+chapter-specific endpoint compositions,
 shared responsive Atlas/DOM lead geometry that prevents full-screen handoff
 reflow, continuous
 approach-weighted UV lock, project/public links,
@@ -133,7 +134,16 @@ endpoint typesetting and edge geometry. Article identity and bilingual copy live
 in one ordered registry; scroll length, texture grid and shader capacity derive
 from its content rather than a fixed article count. Full article semantics remain in DOM.
 
-Focused automation currently covers 28 hero-next test files / 176 tests. Current
+Chapter three now presents the four projects as a mouse-driven room on wide,
+fine-pointer screens, with edge-triggered wall turns, restrained parallax,
+keyboard project selection, and a stable source link. Mobile/touch layouts retain
+the normal project list. It shares the existing scene/pass and pointer input;
+the room and face atlas share endpoint geometry and project text layout. Both
+desktop endpoints face the first wall, while returning to the interactive body
+restores the selected project. Portal text targets remount when locale or
+viewport changes so their managed textures match the new text dimensions.
+
+Focused automation currently covers 31 hero-next test files / 184 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 The bilingual profile is a literary base version grounded in stable biography
@@ -144,6 +154,12 @@ See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).
 
 ## Verification truth
+
+On 2026-09-08, the chapter-three closeout passed all 175 test files / 1188
+tests, root TypeScript checking, workspace builds, import boundaries, and
+documentation checks. React Doctor reported 100/100 for the changed app files.
+The example build retains its existing bundle-size warning; no release or
+publication gates were required for this app-only change.
 
 Repository automation covers:
 

@@ -17,19 +17,26 @@ one managed surface in the existing scene. Scroll continuously drives their
 right-side arc arrivals; only overflowing text adds a reading segment before
 the next sheet. Article data, sizing and motion configuration stay in `src/axioms/`;
 see [the reader design and extension guide](./docs/visual-design.md#第二章扇面目录与文章纸卡).
+Chapter three places the four projects on the walls of a mouse-driven room on
+wide screens with a fine pointer. Edge gestures turn to adjacent walls; project
+buttons and a stable source link preserve keyboard access. Mobile and touch
+layouts retain the normal project list. See [project room behavior](./docs/visual-design.md#第三章四面项目空间).
 The fourth exit preselects terminal contact copy
 instead of repeating chapter four, then retains that same terminal Portal as
 the final Hub title and summary. The final runway adds confirmed GitHub and
 blog links without replaying a duplicate
-visual block. The same scroll coordinate resolves the same visual state in
-either direction.
+visual block. Scroll-driven transitions are reversible. The desktop project
+room also retains its selected wall and responds to pointer input independently
+of scroll; both transition endpoints settle on the first wall.
 
 Each tetrahedron face keeps paired atlas tiles derived from that chapter body's
-real content: the lead uses its counter, title, and introduction, while the
-return uses its closing content and final cards. Atlas drawing and the semantic
-body share the same responsive geometry, including the profile columns,
+real content. Ordinary DOM chapters use their opening copy and final content;
+chapter two uses the first and last reader frames. The desktop project room
+uses the same first-wall composition at both endpoints, while its mobile
+layout uses the ordinary DOM opening and final project card. Atlas drawing
+and the semantic body share the same responsive geometry, including the profile columns,
 balanced heading, model exclusion, and profile speech bubble. Both tiles are
-packed up front, so exit switches to the real tail without rebuilding or
+packed up front, so exit switches to the prepared endpoint without rebuilding or
 uploading a texture on scroll, while face-space UV lock advances continuously
 with the approach. The Hub keeps its no-spin breathing and floating motion with
 stronger damped pointer parallax. Its single managed
@@ -83,7 +90,44 @@ so DHCP address changes do not require a configuration edit and the HMR
 WebSocket remains available. This applies only to `next dev`; use it only on a
 trusted network and never expose the development port to the public internet.
 
-Focused validation:
+For a local production preview, build first and then keep the server running:
+
+```bash
+npm run build -w @viselora/hero-next
+npm run start -w @viselora/hero-next -- --hostname 127.0.0.1 --port 3002
+```
+
+### Development troubleshooting
+
+Keep the development terminal or tool session alive. If the site stops
+responding, check the actual listener before starting another server:
+
+```bash
+lsof -nP -iTCP:3000 -sTCP:LISTEN
+```
+
+Stop only the identified stale app process, then restart it. To keep logs
+independent of a tool session's output pipe, redirect them to a local file:
+
+```bash
+npm run dev -w @viselora/hero-next -- --hostname 127.0.0.1 --port 3000 > /tmp/viselora-hero-next-dev.log 2>&1
+```
+
+This command runs in the foreground; redirection does not supervise the process
+or keep it alive after its execution environment terminates. `write EPIPE`
+means a pipe or socket's receiving end has closed. Inspect its stack and output
+destination before assigning a cause; the error alone does not identify which
+connection failed. Check the new server response and logs after restarting.
+
+If a hydration error shows an injected attribute such as `trancy-version` on
+`<html>`, disable that browser extension for the local site and reload, or
+compare with a browser profile without extensions. See the
+[Next.js hydration guidance](https://nextjs.org/docs/messages/react-hydration-error).
+Do not suppress all hydration warnings to hide an extension-specific mismatch.
+
+### Validation
+
+Focused checks:
 
 ```bash
 npm test -- --run apps/hero-next/test
@@ -112,6 +156,7 @@ npm run build -w @viselora/hero-next
 | Chapter content, semantic composition, and locale control       | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
 | Chapter-one profile body, model declaration, and scroll effect  | `src/profile/`                                                                                                                           |
 | Chapter-two circular index, article sheets, typesetting, and managed reader effect | `src/axioms/` |
+| Chapter-three project room, pointer navigation, and semantic controls | `src/projects/` |
 | Reversible scroll, geometry, layout, and atlas                  | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts`                             |
 | Theme and locale persistence                                    | `src/preferences/`                                                                                                                       |
 | Hold/radial/portal state, palette/config, and progress encoding | `src/transition/`                                                                                                                        |
