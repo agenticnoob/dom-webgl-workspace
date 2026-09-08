@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-09-08; DOM-text rendering and registry release truth
+**Last verified: hero-next current source 2026-09-09; DOM-text rendering and registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -143,7 +143,14 @@ desktop endpoints face the first wall, while returning to the interactive body
 restores the selected project. Portal text targets remount when locale or
 viewport changes so their managed textures match the new text dimensions.
 
-Focused automation currently covers 31 hero-next test files / 184 tests. Current
+Chapter four presents Douyin, Xiaohongshu, Bilibili, Blog and GitHub as five
+large single-line entries with inverted hover highlighting and pointer-following
+previews. Each row and its preview share one direct link, including on touch;
+there is no click-to-pin state. The three video-channel destinations remain
+unavailable until supplied. Both atlas endpoints share the unselected directory
+layout, and preview content remains provisional.
+
+Focused automation currently covers 32 hero-next test files / 189 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 The bilingual profile is a literary base version grounded in stable biography
@@ -155,7 +162,7 @@ See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 
 ## Verification truth
 
-On 2026-09-08, the chapter-three closeout passed all 175 test files / 1188
+On 2026-09-09, the chapter-four closeout passed all 176 test files / 1193
 tests, root TypeScript checking, workspace builds, import boundaries, and
 documentation checks. React Doctor reported 100/100 for the changed app files.
 The example build retains its existing bundle-size warning; no release or

@@ -1,3 +1,4 @@
+import { drawSignalsEndpoint } from "../signals/artwork";
 import type { HeroViewport } from "../shared/viewport";
 import {
   createProjectRoomTexture,
@@ -76,21 +77,23 @@ export function createHeroChapterAtlas(
       tileWidth,
       tileHeight,
       () =>
-        roomTexture
-          ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
-          : axioms
-            ? drawAxiomsFrame(
-                context,
-                axioms,
-                resolveAxiomsFrame(0, axioms.layout),
-              )
-            : drawTile(
-                context,
-                layout,
-                formatHeroChapterCounter(definition),
-                content.body,
-                speechBubbleText,
-              ),
+        chapterId === "signals"
+          ? drawSignalsEndpoint(context, layout.viewport, content.body, locale)
+          : roomTexture
+            ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
+            : axioms
+              ? drawAxiomsFrame(
+                  context,
+                  axioms,
+                  resolveAxiomsFrame(0, axioms.layout),
+                )
+              : drawTile(
+                  context,
+                  layout,
+                  formatHeroChapterCounter(definition),
+                  content.body,
+                  speechBubbleText,
+                ),
     );
     drawAtlasTile(
       context,
@@ -100,15 +103,17 @@ export function createHeroChapterAtlas(
       tileWidth,
       tileHeight,
       () =>
-        roomTexture
-          ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
-          : axioms
-            ? drawAxiomsFrame(
-                context,
-                axioms,
-                resolveAxiomsFrame(1, axioms.layout),
-              )
-            : drawTailTile(context, layout, content.body, speechBubbleText),
+        chapterId === "signals"
+          ? drawSignalsEndpoint(context, layout.viewport, content.body, locale)
+          : roomTexture
+            ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
+            : axioms
+              ? drawAxiomsFrame(
+                  context,
+                  axioms,
+                  resolveAxiomsFrame(1, axioms.layout),
+                )
+              : drawTailTile(context, layout, content.body, speechBubbleText),
     );
   }
 

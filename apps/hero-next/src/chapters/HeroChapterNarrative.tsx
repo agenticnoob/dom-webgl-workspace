@@ -10,13 +10,14 @@ import {
   heroChapterCount,
   heroChapterOrder,
 } from "./definitions";
-import { HeroChapter, HeroChapterBody } from "./HeroChapter";
+import { HeroChapter } from "./HeroChapter";
 import { HeroLocaleControl } from "./HeroLocaleControl";
 import type { HeroLocale } from "../preferences/locale";
 import { HeroProfileChapterBody } from "../profile/HeroProfileChapterBody";
 import { HeroAxiomsChapterBody } from "../axioms/HeroAxiomsReader";
 import { getAxiomsContent } from "../axioms/content";
 import { HeroProjectsChapterBody } from "../projects/HeroProjectRoom";
+import { HeroSignalsChapterBody } from "../signals/HeroSignalsChapterBody";
 import type { ProjectRoomStore } from "../projects/room";
 
 export function HeroChapterNarrative({
@@ -103,7 +104,12 @@ export function HeroChapterNarrative({
                   onLayoutChange={onLayoutChange}
                 />
               ) : (
-                <HeroChapterBody definition={definition} content={content} />
+                <HeroSignalsChapterBody
+                  key={locale}
+                  definition={definition}
+                  content={content}
+                  locale={locale}
+                />
               )}
             </HeroChapter>
 

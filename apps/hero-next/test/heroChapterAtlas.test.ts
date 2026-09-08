@@ -1,3 +1,5 @@
+import { drawSignalsEndpoint } from "../src/signals/artwork";
+import { getHeroChapterContent } from "../src/chapters/content";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { getAxiomsContent } from "../src/axioms/content";
 import { axiomsReaderConfig } from "../src/axioms/config";
@@ -139,6 +141,43 @@ describe("hero chapter atlas", () => {
       .join("")
       .replace(/\s/g, "");
     expect(renderedEnglish).toContain("Ididnotarrivehereinastraightline.");
+  });
+
+  test("encodes the fourth face with black background and white foreground", () => {
+    const backgrounds: string[] = [];
+    fillRect.mockImplementationOnce(() => {
+      backgrounds.push(context.fillStyle);
+    });
+    const canvasContext = document.createElement("canvas").getContext("2d");
+    if (!canvasContext) throw new Error("Missing test canvas context");
+    drawSignalsEndpoint(
+      canvasContext,
+      { width: 1440, height: 900 },
+      getHeroChapterContent("signals", "zh").body,
+      "zh",
+    );
+    expect(backgrounds).toEqual(["black"]);
+    expect(context.fillStyle).toBe("white");
+    expect(context.textBaseline).toBe("alphabetic");
+  });
+
+  test("uses the fourth chapter directory at both handoff endpoints", () => {
+    createHeroChapterAtlas({ width: 1440, height: 900 });
+    for (const [title, y] of [
+      ["抖音", 243],
+      ["小红书", 351],
+      ["哔哩哔哩", 459],
+      ["博客", 567],
+      ["GitHub", 675],
+    ] as const) {
+      const rows = fillText.mock.calls.filter(
+        ([text, x, top]) =>
+          text === title &&
+          x === 1440 * 0.07 &&
+          Math.abs(top - (y + 81 * 0.3)) < 0.001,
+      );
+      expect(rows).toHaveLength(2);
+    }
   });
 
   test("clips and packs body-derived entry and tail tiles without bleed", () => {

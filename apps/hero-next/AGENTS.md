@@ -54,6 +54,7 @@ Read [README.md](./README.md) and
 | Chapter-one profile body, model declaration, and scroll effect        | `src/profile/`                                                                                                                           |
 | Chapter-two article registry, reader geometry, postage edges, and managed effect | `src/axioms/`; behavior and extension instructions live in `docs/visual-design.md` |
 | Chapter-three room navigation, artwork, shader, and semantic controls | `src/projects/`; project copy remains in `src/chapters/content.ts` |
+| Chapter-four public directory, pointer previews, and endpoint artwork | `src/signals/`; channel copy and destinations remain in `src/chapters/content.ts` |
 | Responsive atlas and profile DOM layout                               | `src/chapters/layout.ts`, `src/chapters/atlas.ts`, `src/profile/`                                                                        |
 | Committed theme and locale persistence                                | `src/preferences/`                                                                                                                       |
 | Transition constants, hold/radial/portal state, and progress encoding | `src/transition/`                                                                                                                        |

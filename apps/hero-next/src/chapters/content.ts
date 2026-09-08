@@ -337,43 +337,44 @@ export const heroChapterContent = {
       portal: {
         left: {
           label: "04 / 联结",
-          body: "构建之外，也让仍在形成的思想被看见、被质疑。",
+          body: "构建之外，在文字、影像和代码中继续交流。",
         },
         right: {
           label: "公共信号",
-          items: ["产品", "文章", "视频"],
+          items: ["抖音", "小红书", "哔哩哔哩", "博客", "GitHub"],
         },
       },
       body: {
-        eyebrow: "SIGNALS / OPEN LOOP",
+        eyebrow: "SIGNALS / ELSEWHERE",
         title: "把未完成的思考，放进真实交流。",
-        intro:
-          "我正在建立一套关于 AI cognition、Agent 与未来软件形态的公共表达。它不是已经定型的答案，而是邀请更多证据和不同经验进入。",
+        intro: "在影像里分享，在文字里沉淀，在代码里实践。",
         sections: [
           {
-            label: "思想方向",
-            title: "AXMORF",
-            body: "Change until the axioms morph. 变化持续发生，直到定义世界的公理本身也被改变。这是一个仍在发展的 AI cognition 与思想媒体方向。",
+            label: "DOUYIN / 抖音",
+            title: "抖音",
+            body: "关于 AI、Agent 与未来软件的短视频。账号介绍和预览内容稍后补充。",
           },
           {
-            label: "文字",
-            title: "个人博客",
-            body: "记录长期思考、实践轨迹与尚未结束的问题，让短暂信号沉淀成可以继续追索的文本。",
-            link: { href: heroPublicLinks.blog, label: "前往个人博客" },
+            label: "XIAOHONGSHU / 小红书",
+            title: "小红书",
+            body: "用图文与影像分享思考和实践。账号介绍和预览内容稍后补充。",
           },
           {
-            label: "影像",
-            title: "AI 视频与公共表达",
-            body: "把模型、Agent、产业、安全和未来软件拆解成深入浅出的短视频。正式频道链接将在确认后加入。",
+            label: "BILIBILI / 哔哩哔哩",
+            title: "哔哩哔哩",
+            body: "用视频记录探索与构建的过程。账号介绍和预览内容稍后补充。",
           },
           {
-            label: "代码",
-            title: "公开构建",
-            body: "在 GitHub 上查看可运行的实验、工具与开放项目。",
-            link: {
-              href: heroPublicLinks.githubProfile,
-              label: "前往 GitHub",
-            },
+            label: "文字 / WRITING",
+            title: "博客",
+            body: "记录长期思考、实践轨迹与尚未结束的问题。",
+            link: { href: heroPublicLinks.blog, label: "阅读博客" },
+          },
+          {
+            label: "代码 / OPEN SOURCE",
+            title: "GitHub",
+            body: "可运行的实验、工具与开放项目。每一次提交，都是想法落地的痕迹。",
+            link: { href: heroPublicLinks.githubProfile, label: "查看 GitHub" },
           },
         ],
         closing: "愿与同道者共研同进，或有所得，亦未可知。",
@@ -383,50 +384,50 @@ export const heroChapterContent = {
       portal: {
         left: {
           label: "04 / SIGNALS",
-          body: "Beyond building, let developing ideas be seen and challenged.",
+          body: "Beyond building, keep the conversation going in words, video and code.",
         },
         right: {
           label: "PUBLIC SIGNALS",
-          items: ["Products", "Writing", "Video"],
+          items: ["Douyin", "Xiaohongshu", "Bilibili", "Blog", "GitHub"],
         },
       },
       body: {
-        eyebrow: "SIGNALS / OPEN LOOP",
+        eyebrow: "SIGNALS / ELSEWHERE",
         title: "Put unfinished thought into real exchange.",
-        intro:
-          "I am developing a public body of work around AI cognition, agents, and the future form of software. It is not a finished answer, but an invitation for more evidence and different experience.",
+        intro: "Share through video. Reflect in writing. Put ideas into code.",
         sections: [
           {
-            label: "THOUGHT DIRECTION",
-            title: "AXMORF",
-            body: "Change until the axioms morph. A developing direction for AI cognition and public thought, following change until the premises themselves begin to move.",
+            label: "DOUYIN",
+            title: "Douyin",
+            body: "Short videos about AI, agents and the future of software. Profile details and previews will follow.",
+          },
+          {
+            label: "XIAOHONGSHU",
+            title: "Xiaohongshu",
+            body: "Ideas and practice shared through words and images. Profile details and previews will follow.",
+          },
+          {
+            label: "BILIBILI",
+            title: "Bilibili",
+            body: "Exploration and building, documented on video. Profile details and previews will follow.",
           },
           {
             label: "WRITING",
-            title: "Personal blog",
-            body: "Long-form notes on practice, changing beliefs, and questions that remain open.",
-            link: {
-              href: heroPublicLinks.blog,
-              label: "Visit the personal blog",
-            },
+            title: "Blog",
+            body: "Long-form notes on practice, changing beliefs and questions that remain open.",
+            link: { href: heroPublicLinks.blog, label: "Read the blog" },
           },
           {
-            label: "VIDEO",
-            title: "AI video and public explanation",
-            body: "Clear, compact videos about models, agents, industry, safety, and the future of software. A confirmed channel link will be added later.",
-          },
-          {
-            label: "CODE",
-            title: "Open builds",
-            body: "Runnable experiments, tools, and open projects live on GitHub.",
+            label: "OPEN SOURCE",
+            title: "GitHub",
+            body: "Runnable experiments, tools and open projects. Ideas made tangible, one commit at a time.",
             link: {
               href: heroPublicLinks.githubProfile,
-              label: "Visit GitHub",
+              label: "Explore GitHub",
             },
           },
         ],
-        closing:
-          "May kindred minds inquire and move forward together. What may come of it remains to be seen.",
+        closing: "May kindred minds inquire and move forward together.",
       },
     },
   },
