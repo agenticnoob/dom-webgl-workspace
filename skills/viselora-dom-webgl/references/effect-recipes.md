@@ -1,6 +1,6 @@
 # Optional Effect Recipes
 
-Compatible package version: 0.1.0-alpha.1
+Compatible package version: 0.1.0-alpha.2
 
 These five recipes are optional examples, not the skill's capability boundary.
 Read [capability-status.md](capability-status.md) before copying one. Never put

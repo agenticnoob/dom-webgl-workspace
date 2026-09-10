@@ -1,7 +1,7 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-09-10; DOM-text rendering and registry release truth
-2026-07-28.**
+**Last verified: registry release truth 2026-09-11; hero-next current source
+2026-09-10; DOM-text rendering 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
 belongs to each app; completed plans and prior evidence belong in
@@ -23,21 +23,25 @@ The runtime remains DOM-first and managed:
 
 ## Release truth
 
-The repository package versions are:
+The repository and published package versions are:
 
-- `@viselora/dom-webgl@0.1.0-alpha.1`
-- `@viselora/scroll-adapters@0.1.0-alpha.1`
+- `@viselora/dom-webgl@0.1.0-alpha.2`
+- `@viselora/scroll-adapters@0.1.0-alpha.2`
 
 The adapters depend exactly on the matching core version. npm registry readback
-on 2026-07-28 confirmed that both `alpha` dist-tags resolve to
-`0.1.0-alpha.1`; both default `latest` tags still resolve to
-`0.1.0-alpha.0`. Consumers should install `@alpha` or pin alpha.1 explicitly.
+on 2026-09-11 confirmed that both `alpha` dist-tags resolve to
+`0.1.0-alpha.2`; both default `latest` tags still resolve to
+`0.1.0-alpha.0`. Consumers should install `@alpha` or pin alpha.2 explicitly.
 
-Alpha.1 fixes the alpha.0 cross-entrypoint scene-object effect registry defect:
-effects defined from the root entrypoint can attach through the React
-entrypoint. The published alpha.1 release previously passed the installed-
-tarball Chromium gate. Independent consumer implementation and acceptance
-remain downstream responsibilities.
+Alpha.2 publishes the current managed runtime surface, including the mesh,
+render-quality, and material-shader APIs used by Hero Next. Both registry
+tarballs have the same integrity hashes as the reviewed and tested artifacts.
+Their package source matches the workspace implementation; the release changed
+only version metadata and its corresponding documentation and test contracts.
+
+Alpha.2 retains the alpha.1 cross-entrypoint scene-object effect registry fix.
+Independent consumer implementation and acceptance remain downstream
+responsibilities.
 
 ## Implemented runtime surface
 
@@ -162,17 +166,20 @@ See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 
 ## Verification truth
 
+The alpha.2 release artifacts passed root typechecking, all 176 test files /
+1195 tests, workspace builds, import/docs/version/tarball checks, installed-
+tarball external consumer SSR/type/build/Chromium checks, and skill/template
+checks in an isolated copy of the current workspace before publication. Registry
+integrity was verified on 2026-09-11. The independent Hero Next checkout now
+pins both npm packages and owns its local validation and migration status.
+
 On 2026-09-10, the chapter-four responsive directory update passed all 32
 hero-next test files / 191 tests, app TypeScript checking and production build,
 import boundaries, documentation checks, and diff whitespace checks. React Doctor
 reported 100/100 for this change. Current browser evidence and external-site
 limitations are recorded in the app's visual direction.
 
-On 2026-09-09, the chapter-four closeout passed all 176 test files / 1193
-tests, root TypeScript checking, workspace builds, import boundaries, and
-documentation checks. React Doctor reported 100/100 for the changed app files.
-The example build retains its existing bundle-size warning; no release or
-publication gates were required for this app-only change.
+The example build retains its existing bundle-size warning.
 
 Repository automation covers:
 

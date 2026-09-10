@@ -1,6 +1,6 @@
 # Capability Status
 
-Compatible package version: 0.1.0-alpha.1
+Compatible package version: 0.1.0-alpha.2
 
 This matrix is authoritative for recommendations made by this skill. API
 presence alone does not upgrade a capability's evidence status.

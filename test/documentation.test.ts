@@ -85,7 +85,7 @@ describe("repository documentation governance", () => {
     expect(docsIndex).toContain("## Document responsibilities");
     expect(docsIndex).toContain("Archived documents are not current truth");
     expect(status).toContain("**Last verified:");
-    expect(status).toContain("0.1.0-alpha.1");
+    expect(status).toContain("0.1.0-alpha.2");
     expect(architecture).toContain("DOM element");
     expect(architecture).toContain("runtime-owned");
 
@@ -111,7 +111,7 @@ describe("repository documentation governance", () => {
     );
     const status = read("docs/STATUS.md");
 
-    expect(corePackage.version).toBe("0.1.0-alpha.1");
+    expect(corePackage.version).toBe("0.1.0-alpha.2");
     expect(adapterPackage.version).toBe(corePackage.version);
     expect(
       adapterPackage.dependencies?.["@viselora/dom-webgl"],

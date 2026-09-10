@@ -1,6 +1,6 @@
 # Narrative Design
 
-Compatible package version: 0.1.0-alpha.1
+Compatible package version: 0.1.0-alpha.2
 
 ## Contents
 

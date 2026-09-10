@@ -1,6 +1,6 @@
 # Public API Navigation
 
-Compatible package version: 0.1.0-alpha.1
+Compatible package version: 0.1.0-alpha.2
 
 Use only four published entrypoints:
 

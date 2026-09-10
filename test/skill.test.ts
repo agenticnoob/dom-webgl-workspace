@@ -78,7 +78,7 @@ describe("viselora-dom-webgl skill", () => {
     const skill = read("SKILL.md");
     const references = requiredFiles.filter((file) => file.startsWith("references/"));
 
-    expect(skill.match(/Compatible package version: 0\.1\.0-alpha\.1/g)).toHaveLength(1);
+    expect(skill.match(/Compatible package version: 0\.1\.0-alpha\.2/g)).toHaveLength(1);
     expect(skill).not.toContain("## Export inventory");
     expect(skill.split("\n").length).toBeLessThanOrEqual(123);
     for (const reference of references) {
@@ -207,7 +207,7 @@ describe("viselora-dom-webgl skill", () => {
     ]) {
       const content = read(path);
       expect(content, path).toContain("## Contents");
-      expect(content, path).toContain("Compatible package version: 0.1.0-alpha.1");
+      expect(content, path).toContain("Compatible package version: 0.1.0-alpha.2");
       expect(content, path).toContain("Public entrypoint");
       expect(content, path).toContain("When to use");
       expect(content, path).toContain("Declaration/props shape");
@@ -612,7 +612,7 @@ export function selectCapabilities(
 ): void {
   writeJson(root, "viselora.capabilities.json", {
     schemaVersion: 1,
-    compatiblePackageVersion: "0.1.0-alpha.1",
+    compatiblePackageVersion: "0.1.0-alpha.2",
     mode,
     assetManifest: "./asset-manifest.json",
     capabilities: entries,
@@ -734,7 +734,7 @@ function append(root: string, path: string, content: string): void {
 function writeBrowserEvidence(root: string, capabilityId: string): void {
   mkdirSync(resolve(root, "docs/evidence"), { recursive: true });
   writeJson(root, `docs/evidence/${capabilityId}.json`, {
-    packageVersion: "0.1.0-alpha.1",
+    packageVersion: "0.1.0-alpha.2",
     capabilityId,
     passed: true,
     consoleErrors: [],
