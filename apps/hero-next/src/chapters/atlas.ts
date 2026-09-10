@@ -1,3 +1,5 @@
+import { getSignalImageRevision } from "../signals/images";
+import { signalsHoverEnabled } from "../signals/layout";
 import { drawSignalsEndpoint } from "../signals/artwork";
 import type { HeroViewport } from "../shared/viewport";
 import {
@@ -32,6 +34,8 @@ export type HeroChapterAtlas = {
   readonly layoutHeight: number;
   readonly locale: HeroLocale;
   readonly projectRoom: boolean;
+  readonly signalsHover: boolean;
+  readonly signalImagesRevision: number;
 };
 
 export function createHeroChapterAtlas(
@@ -53,6 +57,7 @@ export function createHeroChapterAtlas(
 
   context.textBaseline = "alphabetic";
   const projectRoom = projectRoomEnabled();
+  const signalsHover = signalsHoverEnabled();
   for (const chapterId of heroChapterOrder) {
     const definition = getHeroChapterDefinition(chapterId);
     const layout = resolveHeroChapterLayout(viewport, chapterId);
@@ -78,7 +83,14 @@ export function createHeroChapterAtlas(
       tileHeight,
       () =>
         chapterId === "signals"
-          ? drawSignalsEndpoint(context, layout.viewport, content.body, locale)
+          ? drawSignalsEndpoint(
+              context,
+              layout.viewport,
+              content.body,
+              locale,
+              "entry",
+              signalsHover,
+            )
           : roomTexture
             ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
             : axioms
@@ -104,7 +116,14 @@ export function createHeroChapterAtlas(
       tileHeight,
       () =>
         chapterId === "signals"
-          ? drawSignalsEndpoint(context, layout.viewport, content.body, locale)
+          ? drawSignalsEndpoint(
+              context,
+              layout.viewport,
+              content.body,
+              locale,
+              "exit",
+              signalsHover,
+            )
           : roomTexture
             ? drawProjectRoomEndpoint(context, layout.viewport, roomTexture)
             : axioms
@@ -125,6 +144,8 @@ export function createHeroChapterAtlas(
     layoutHeight: normalizedViewport.height,
     locale,
     projectRoom,
+    signalsHover,
+    signalImagesRevision: getSignalImageRevision(),
   };
 }
 
@@ -141,7 +162,10 @@ export function heroChapterAtlasMatchesViewport(
     atlas.tileWidth === resolution.tileWidth &&
     atlas.tileHeight === resolution.tileHeight &&
     atlas.locale === locale &&
-    atlas.projectRoom === projectRoomEnabled()
+    atlas.projectRoom === projectRoomEnabled() &&
+    atlas.signalsHover === signalsHoverEnabled() &&
+    (atlas.signalsHover ||
+      atlas.signalImagesRevision === getSignalImageRevision())
   );
 }
 

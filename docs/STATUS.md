@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: hero-next current source 2026-09-09; DOM-text rendering and registry release truth
+**Last verified: hero-next current source 2026-09-10; DOM-text rendering and registry release truth
 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
@@ -143,14 +143,14 @@ desktop endpoints face the first wall, while returning to the interactive body
 restores the selected project. Portal text targets remount when locale or
 viewport changes so their managed textures match the new text dimensions.
 
-Chapter four presents Douyin, Xiaohongshu, Bilibili, Blog and GitHub as five
-large single-line entries with inverted hover highlighting and pointer-following
-previews. Each row and its preview share one direct link, including on touch;
-there is no click-to-pin state. The three video-channel destinations remain
-unavailable until supplied. Both atlas endpoints share the unselected directory
-layout, and preview content remains provisional.
+Chapter four uses centered, enlarged desktop rows combining platform names and
+account details, with continuous pointer-following previews. Narrow and touch
+screens display full QR images and text in a directly clickable content list,
+without hover effects. Desktop endpoints share the directory composition;
+mobile endpoints use the list's opening and ending, reusing loaded semantic
+images in the atlas. The three video destinations use the supplied AXMORF profiles.
 
-Focused automation currently covers 32 hero-next test files / 189 tests. Current
+Focused automation currently covers 32 hero-next test files / 191 tests. Current
 desktop, mobile, interaction, and LAN-origin browser evidence is
 owned by the app's [visual direction](../apps/hero-next/docs/visual-design.md).
 The bilingual profile is a literary base version grounded in stable biography
@@ -161,6 +161,12 @@ See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).
 
 ## Verification truth
+
+On 2026-09-10, the chapter-four responsive directory update passed all 32
+hero-next test files / 191 tests, app TypeScript checking and production build,
+import boundaries, documentation checks, and diff whitespace checks. React Doctor
+reported 100/100 for this change. Current browser evidence and external-site
+limitations are recorded in the app's visual direction.
 
 On 2026-09-09, the chapter-four closeout passed all 176 test files / 1193
 tests, root TypeScript checking, workspace builds, import boundaries, and

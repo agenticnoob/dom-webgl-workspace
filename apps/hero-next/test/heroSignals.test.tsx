@@ -10,6 +10,7 @@ import { HeroSignalsChapterBody } from "../src/signals/HeroSignalsChapterBody";
 import {
   resolveSignalPreviewPosition,
   resolveSignalsLayout,
+  signalsHoverQuery,
 } from "../src/signals/layout";
 import {
   getHeroChapterContent,
@@ -43,7 +44,13 @@ function pointer(
 }
 
 describe("chapter four public directory", () => {
-  beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));
+  beforeEach(() => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({ matches: query === signalsHoverQuery })),
+    );
+  });
   afterEach(() => vi.unstubAllGlobals());
 
   test("keeps five rows and their previews within narrow and desktop viewports", () => {
@@ -60,7 +67,7 @@ describe("chapter four public directory", () => {
         { width: 1280, height: 720 },
         { width: 340, height: 300 },
       ),
-    ).toEqual({ x: 906, y: 404 });
+    ).toEqual({ x: 924, y: 404 });
     expect(
       resolveSignalPreviewPosition(
         { x: 10, y: 10 },
@@ -68,6 +75,17 @@ describe("chapter four public directory", () => {
         { width: 288, height: 448 },
       ),
     ).toEqual({ x: 16, y: 16 });
+    const beforeEdge = resolveSignalPreviewPosition(
+      { x: 898, y: 400 },
+      { width: 1280, height: 720 },
+      { width: 340, height: 300 },
+    );
+    const afterEdge = resolveSignalPreviewPosition(
+      { x: 902, y: 400 },
+      { width: 1280, height: 720 },
+      { width: 340, height: 300 },
+    );
+    expect(afterEdge.x - beforeEdge.x).toBe(2);
     for (const viewport of [
       { width: 320, height: 568 },
       { width: 390, height: 844 },
@@ -84,7 +102,7 @@ describe("chapter four public directory", () => {
     }
   });
 
-  test("shares a direct link between each row and its hover preview without pinning", async () => {
+  test("follows the entire row and preserves one preview across channel changes", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
@@ -108,18 +126,21 @@ describe("chapter four public directory", () => {
         "GitHub",
       ]);
       expect(Array.from(rows, (r) => r.getAttribute("href"))).toEqual([
-        null,
-        null,
-        null,
+        heroPublicLinks.douyin,
+        heroPublicLinks.xiaohongshu,
+        heroPublicLinks.bilibili,
         heroPublicLinks.blog,
         heroPublicLinks.githubProfile,
       ]);
-      for (const row of Array.from(rows).slice(0, 3))
-        expect(row.getAttribute("aria-disabled")).toBe("true");
+      for (const row of rows) {
+        expect(row.hasAttribute("aria-disabled")).toBe(false);
+        expect(row.target).toBe("_blank");
+      }
       await act(() => pointer(rows[3], "pointerover"));
       const preview = host.querySelector<HTMLElement>(".hero-signals__preview");
       expect(preview).not.toBeNull();
-      expect(preview?.closest("a")).toBe(rows[3]);
+      expect(preview?.closest("a")).toBeNull();
+      expect(preview?.dataset.following).toBeUndefined();
       await act(() =>
         pointer(
           rows[3].querySelector(".hero-signals__label")!,
@@ -128,12 +149,25 @@ describe("chapter four public directory", () => {
           280,
         ),
       );
-      expect(preview?.style.left).toBe("264px");
-      expect(preview?.style.top).toBe("280px");
-      await act(() => pointer(rows[3], "pointerout", 300, 280, preview));
+      expect(preview?.style.transform).toBe("translate3d(264px, 280px, 0)");
+      expect(preview?.dataset.following).toBe("true");
+      // Empty row space and the arrow must keep driving the same preview.
+      await act(() => pointer(rows[3], "pointermove", 320, 290));
+      expect(preview?.style.transform).toBe("translate3d(344px, 290px, 0)");
+      await act(() =>
+        pointer(
+          rows[3].querySelector(".hero-signals__arrow")!,
+          "pointermove",
+          420,
+          300,
+        ),
+      );
+      expect(preview?.style.transform).toBe("translate3d(444px, 300px, 0)");
+      await act(() => pointer(rows[3], "pointerout", 420, 400, rows[4]));
       expect(host.querySelector(".hero-signals__preview")).toBe(preview);
-      await act(() => pointer(preview!, "pointermove", 320, 290));
-      expect(preview?.style.left).toBe("264px");
+      expect(preview?.textContent).toContain("GitHub");
+      expect(rows[4].dataset.selected).toBe("true");
+      expect(rows[3].dataset.selected).toBe("false");
       let navigationAllowed = false;
       // Observe the default link action, then stop jsdom from navigating externally.
       const observeClick = (event: MouseEvent) => {
@@ -141,16 +175,16 @@ describe("chapter four public directory", () => {
         event.preventDefault();
       };
       document.addEventListener("click", observeClick, { once: true });
-      await act(() => preview?.click());
+      await act(() => rows[4].click());
       expect(navigationAllowed).toBe(true);
       expect(host.querySelector(".hero-signals__preview")).toBeNull();
       expect(
         host.querySelector("button, [data-pinned], [aria-expanded]"),
       ).toBeNull();
       await act(() => rows[4].focus());
-      expect(host.querySelector(".hero-signals__preview")?.closest("a")).toBe(
-        rows[4],
-      );
+      expect(
+        host.querySelector(".hero-signals__preview")?.textContent,
+      ).toContain("GitHub");
       await act(() =>
         rows[4].dispatchEvent(
           new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
@@ -160,8 +194,46 @@ describe("chapter four public directory", () => {
       await act(() => pointer(rows[0], "pointerover"));
       expect(
         host.querySelector(".hero-signals__preview")?.textContent,
-      ).toContain("链接待补充");
+      ).toContain("Cognition_hub");
+      const firstPreview = host.querySelector(".hero-signals__preview");
+      const hitTest = vi.fn((): Element | null =>
+        rows[0].querySelector(".hero-signals__title"),
+      );
+      const originalHitTest = Object.getOwnPropertyDescriptor(
+        document,
+        "elementFromPoint",
+      );
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: hitTest,
+      });
+      try {
+        // Chapter entry can emit another scroll event after the first reveal.
+        await act(() => window.dispatchEvent(new Event("scroll")));
+        expect(host.querySelector(".hero-signals__preview")).toBe(firstPreview);
+        expect(hitTest).toHaveBeenCalledWith(100, 100);
+        await act(() => pointer(rows[0], "pointermove", 220, 260));
+        expect(firstPreview).toHaveProperty(
+          "style.transform",
+          "translate3d(244px, 260px, 0)",
+        );
+        hitTest.mockReturnValue(document.body);
+        await act(() => window.dispatchEvent(new Event("scroll")));
+        expect(host.querySelector(".hero-signals__preview")).toBeNull();
+      } finally {
+        if (originalHitTest) {
+          Object.defineProperty(document, "elementFromPoint", originalHitTest);
+        } else {
+          Reflect.deleteProperty(document, "elementFromPoint");
+        }
+      }
+      await act(() => rows[4].blur());
+      await act(() => rows[4].focus());
+      expect(host.querySelector(".hero-signals__preview")).not.toBeNull();
       await act(() => window.dispatchEvent(new Event("scroll")));
+      expect(host.querySelector(".hero-signals__preview")).toBeNull();
+      await act(() => pointer(rows[0], "pointerover"));
+      await act(() => pointer(rows[0], "pointerout", 0, 0, document.body));
       expect(host.querySelector(".hero-signals__preview")).toBeNull();
     } finally {
       await act(() => root.unmount());
@@ -169,7 +241,7 @@ describe("chapter four public directory", () => {
     }
   });
 
-  test("keeps pending channel clicks inert and English destinations aligned", async () => {
+  test("keeps English destinations and original QR previews aligned", async () => {
     const host = document.createElement("div");
     const root = createRoot(host);
     try {
@@ -196,12 +268,72 @@ describe("chapter four public directory", () => {
         cancelable: true,
       });
       await act(() => rows[0].dispatchEvent(click));
-      expect(click.defaultPrevented).toBe(true);
+      expect(click.defaultPrevented).toBe(false);
       expect(host.querySelector(".hero-signals__preview")).toBeNull();
+      const channels = ["douyin", "xiaohongshu", "bilibili"] as const;
+      for (const [index, channel] of channels.entries()) {
+        expect(rows[index].getAttribute("href")).toBe(heroPublicLinks[channel]);
+        await act(() => pointer(rows[index], "pointerover"));
+        const image = host.querySelector(".hero-signals__preview img");
+        expect(image?.getAttribute("src")).toBe(`/channels/${channel}.jpg`);
+        expect(image?.getAttribute("alt")).toContain("AXMORF");
+        expect(image?.getAttribute("alt")).toContain("Scan with");
+        expect(image?.closest("a")).toBeNull();
+        expect(image?.hasAttribute("srcset")).toBe(false);
+        await act(() => window.dispatchEvent(new Event("resize")));
+        expect(host.querySelector(".hero-signals__preview")).toBeNull();
+      }
       expect(rows[3].getAttribute("href")).toBe(heroPublicLinks.blog);
       expect(rows[4].getAttribute("href")).toBe(heroPublicLinks.githubProfile);
     } finally {
       await act(() => root.unmount());
+    }
+  });
+  test("shows complete linked content and never opens previews without a hover pointer", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({ matches: false })),
+    );
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      await act(() =>
+        root.render(
+          createElement(HeroSignalsChapterBody, {
+            definition: heroChapterDefinitions.signals,
+            content: getHeroChapterContent("signals", "zh"),
+            locale: "zh",
+          }),
+        ),
+      );
+      const rows =
+        host.querySelectorAll<HTMLAnchorElement>(".hero-signals__row");
+      expect(host.querySelectorAll(".hero-signals__inline-image")).toHaveLength(
+        3,
+      );
+      expect(host.querySelectorAll(".hero-signals__inline-copy")).toHaveLength(
+        2,
+      );
+      expect(rows[0].textContent).toContain("AXMORF");
+      expect(rows[0].textContent).toContain("@Cognition_hub");
+      expect(rows[2].textContent).toContain("UID 269573670");
+      expect(rows[0].querySelector("img")?.closest("a")).toBe(rows[0]);
+      await act(() => pointer(rows[0], "pointerover"));
+      await act(() => pointer(rows[0], "pointermove", 200, 300));
+      await act(() => rows[0].focus());
+      expect(host.querySelector(".hero-signals__preview")).toBeNull();
+      expect(rows[0].dataset.selected).toBe("false");
+      const click = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+      });
+      await act(() => rows[0].dispatchEvent(click));
+      expect(click.defaultPrevented).toBe(false);
+      expect(rows[0].href).toBe(heroPublicLinks.douyin);
+    } finally {
+      await act(() => root.unmount());
+      host.remove();
     }
   });
 });

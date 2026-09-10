@@ -21,10 +21,10 @@ Chapter three places the four projects on the walls of a mouse-driven room on
 wide screens with a fine pointer. Edge gestures turn to adjacent walls; project
 buttons and a stable source link preserve keyboard access. Mobile and touch
 layouts retain the normal project list. See [project room behavior](./docs/visual-design.md#第三章四面项目空间).
-Chapter four presents Douyin, Xiaohongshu, Bilibili, Blog and GitHub as five
-large single-line entries with pointer-following previews. Each entry and its
-preview share one direct link; missing channel destinations remain unavailable
-until supplied. Both endpoints share the same directory composition.
+Chapter four uses centered, enlarged desktop rows with platform names and account
+information. Fine-pointer desktop previews follow the whole row; clicking opens
+the profile. Narrow and touch screens show all account details, QR images and
+text directly in a scrollable list. Atlas endpoints follow each layout.
 See [public channel behavior](./docs/visual-design.md#第四章公共入口与跟随预览).
 The fourth exit preselects terminal contact copy
 instead of repeating chapter four, then retains that same terminal Portal as

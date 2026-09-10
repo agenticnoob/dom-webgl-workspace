@@ -16,6 +16,13 @@ export type HeroChapterBodyContent = {
     readonly title: string;
     readonly body: string;
     readonly link?: HeroChapterLink;
+    readonly directory?: { readonly name: string; readonly detail: string };
+    readonly image?: {
+      readonly src: string;
+      readonly width: number;
+      readonly height: number;
+      readonly alt: string;
+    };
   }[];
   readonly closing?: string;
 };
@@ -32,6 +39,11 @@ export type HeroChapterLocalizedContent = {
 };
 
 export const heroPublicLinks = {
+  douyin:
+    "https://www.douyin.com/user/MS4wLjABAAAATcqt2Tq3UxNiJz8Qg5eEHhOkdpfNuEP1KuthHYn-oIycjaF24_KxkL9pY8bgbW3Z",
+  xiaohongshu:
+    "https://www.xiaohongshu.com/user/profile/651c334600000000240144aa",
+  bilibili: "https://space.bilibili.com/269573670",
   githubProfile: "https://github.com/agenticnoob",
   currentProject: "https://github.com/agenticnoob/dom-webgl-workspace",
   axmorfStudio: "https://github.com/AXMORF/axmorf-studio",
@@ -352,27 +364,56 @@ export const heroChapterContent = {
           {
             label: "DOUYIN / 抖音",
             title: "抖音",
-            body: "关于 AI、Agent 与未来软件的短视频。账号介绍和预览内容稍后补充。",
+            directory: { name: "AXMORF", detail: "@Cognition_hub" },
+            body: "AXMORF · 抖音号：Cognition_hub",
+            link: { href: heroPublicLinks.douyin, label: "前往抖音主页" },
+            image: {
+              src: "/channels/douyin.jpg",
+              width: 1219,
+              height: 1820,
+              alt: "AXMORF 的抖音账号二维码，使用抖音扫码",
+            },
           },
           {
             label: "XIAOHONGSHU / 小红书",
             title: "小红书",
-            body: "用图文与影像分享思考和实践。账号介绍和预览内容稍后补充。",
+            directory: { name: "AXMORF", detail: "@Cognition_hub" },
+            body: "AXMORF · 小红书号：Cognition_hub",
+            link: {
+              href: heroPublicLinks.xiaohongshu,
+              label: "前往小红书主页",
+            },
+            image: {
+              src: "/channels/xiaohongshu.jpg",
+              width: 987,
+              height: 1347,
+              alt: "AXMORF 的小红书账号二维码，使用小红书扫码",
+            },
           },
           {
             label: "BILIBILI / 哔哩哔哩",
             title: "哔哩哔哩",
-            body: "用视频记录探索与构建的过程。账号介绍和预览内容稍后补充。",
+            directory: { name: "AXMORF", detail: "UID 269573670" },
+            body: "AXMORF · UID：269573670",
+            link: { href: heroPublicLinks.bilibili, label: "前往哔哩哔哩主页" },
+            image: {
+              src: "/channels/bilibili.jpg",
+              width: 1027,
+              height: 1459,
+              alt: "AXMORF 的哔哩哔哩账号二维码，使用哔哩哔哩扫码",
+            },
           },
           {
             label: "文字 / WRITING",
             title: "博客",
+            directory: { name: "长期思考", detail: "blog.zzzxc.com" },
             body: "记录长期思考、实践轨迹与尚未结束的问题。",
             link: { href: heroPublicLinks.blog, label: "阅读博客" },
           },
           {
             label: "代码 / OPEN SOURCE",
             title: "GitHub",
+            directory: { name: "开源实践", detail: "@agenticnoob" },
             body: "可运行的实验、工具与开放项目。每一次提交，都是想法落地的痕迹。",
             link: { href: heroPublicLinks.githubProfile, label: "查看 GitHub" },
           },
@@ -399,27 +440,62 @@ export const heroChapterContent = {
           {
             label: "DOUYIN",
             title: "Douyin",
-            body: "Short videos about AI, agents and the future of software. Profile details and previews will follow.",
+            directory: { name: "AXMORF", detail: "@Cognition_hub" },
+            body: "AXMORF · Douyin ID: Cognition_hub",
+            link: {
+              href: heroPublicLinks.douyin,
+              label: "Visit Douyin profile",
+            },
+            image: {
+              src: "/channels/douyin.jpg",
+              width: 1219,
+              height: 1820,
+              alt: "AXMORF Douyin profile QR code. Scan with Douyin.",
+            },
           },
           {
             label: "XIAOHONGSHU",
             title: "Xiaohongshu",
-            body: "Ideas and practice shared through words and images. Profile details and previews will follow.",
+            directory: { name: "AXMORF", detail: "@Cognition_hub" },
+            body: "AXMORF · Xiaohongshu ID: Cognition_hub",
+            link: {
+              href: heroPublicLinks.xiaohongshu,
+              label: "Visit Xiaohongshu profile",
+            },
+            image: {
+              src: "/channels/xiaohongshu.jpg",
+              width: 987,
+              height: 1347,
+              alt: "AXMORF Xiaohongshu profile QR code. Scan with Xiaohongshu.",
+            },
           },
           {
             label: "BILIBILI",
             title: "Bilibili",
-            body: "Exploration and building, documented on video. Profile details and previews will follow.",
+            directory: { name: "AXMORF", detail: "UID 269573670" },
+            body: "AXMORF · UID: 269573670",
+            link: {
+              href: heroPublicLinks.bilibili,
+              label: "Visit Bilibili profile",
+            },
+            image: {
+              src: "/channels/bilibili.jpg",
+              width: 1027,
+              height: 1459,
+              alt: "AXMORF Bilibili profile QR code. Scan with Bilibili.",
+            },
           },
           {
             label: "WRITING",
             title: "Blog",
+            directory: { name: "Notes", detail: "blog.zzzxc.com" },
             body: "Long-form notes on practice, changing beliefs and questions that remain open.",
             link: { href: heroPublicLinks.blog, label: "Read the blog" },
           },
           {
             label: "OPEN SOURCE",
             title: "GitHub",
+            directory: { name: "Open source", detail: "@agenticnoob" },
             body: "Runnable experiments, tools and open projects. Ideas made tangible, one commit at a time.",
             link: {
               href: heroPublicLinks.githubProfile,

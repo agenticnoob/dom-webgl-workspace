@@ -1,3 +1,6 @@
+import { resolveSignalsMobileLayout } from "../src/signals/layout";
+import * as signalLayout from "../src/signals/layout";
+import { setSignalImage, removeSignalImage } from "../src/signals/images";
 import { drawSignalsEndpoint } from "../src/signals/artwork";
 import { getHeroChapterContent } from "../src/chapters/content";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -38,6 +41,7 @@ const context: Partial<CanvasRenderingContext2D> & {
   fill: vi.fn(() => fillStyles.push(context.fillStyle)),
   fillRect,
   fillText,
+  drawImage: vi.fn(),
   lineTo: vi.fn(),
   moveTo: vi.fn(),
   measureText(value: string): TextMetrics {
@@ -72,6 +76,7 @@ const context: Partial<CanvasRenderingContext2D> & {
 describe("hero chapter atlas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(signalLayout, "signalsHoverEnabled").mockReturnValue(true);
     fillStyles.length = 0;
     strokeStyles.length = 0;
     Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
@@ -82,6 +87,7 @@ describe("hero chapter atlas", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
       configurable: true,
       value: originalGetContext,
@@ -164,17 +170,18 @@ describe("hero chapter atlas", () => {
   test("uses the fourth chapter directory at both handoff endpoints", () => {
     createHeroChapterAtlas({ width: 1440, height: 900 });
     for (const [title, y] of [
-      ["抖音", 243],
-      ["小红书", 351],
-      ["哔哩哔哩", 459],
-      ["博客", 567],
-      ["GitHub", 675],
+      ["抖音 · AXMORF", 243],
+      ["小红书 · AXMORF", 351],
+      ["哔哩哔哩 · AXMORF", 459],
+      ["博客 · 长期思考", 567],
+      ["GitHub · 开源实践", 675],
     ] as const) {
       const rows = fillText.mock.calls.filter(
         ([text, x, top]) =>
           text === title &&
-          x === 1440 * 0.07 &&
-          Math.abs(top - (y + 81 * 0.3)) < 0.001,
+          x > 1440 * 0.07 &&
+          x < 1440 / 2 &&
+          Math.abs(top - (y + 99 * 0.3)) < 0.001,
       );
       expect(rows).toHaveLength(2);
     }
@@ -257,5 +264,40 @@ describe("hero chapter atlas", () => {
       expect.any(Number),
       expect.any(Number),
     );
+  });
+  test("packs mobile entry and exit from the full content layout and loaded DOM images", () => {
+    vi.spyOn(signalLayout, "signalsHoverEnabled").mockReturnValue(false);
+    const viewport = { width: 390, height: 844 };
+    const content = getHeroChapterContent("signals", "zh").body;
+    const layout = resolveSignalsMobileLayout(viewport, content);
+    const src = content.sections[0].image!.src;
+    const image = document.createElement("img");
+    Object.defineProperty(image, "naturalWidth", { value: 1219 });
+    Object.defineProperty(image, "complete", { value: true });
+    const before = createHeroChapterAtlas(viewport);
+    setSignalImage(src, image);
+    expect(heroChapterAtlasMatchesViewport(before, viewport)).toBe(false);
+    try {
+      const atlas = createHeroChapterAtlas(viewport);
+      expect(heroChapterAtlasMatchesViewport(atlas, viewport)).toBe(true);
+      expect(context.translate).toHaveBeenCalledWith(
+        0,
+        viewport.height - layout.height,
+      );
+      expect(context.drawImage).toHaveBeenCalledWith(
+        image,
+        (viewport.width - layout.imageWidth) / 2,
+        layout.rows[0].contentTop,
+        layout.imageWidth,
+        layout.rows[0].contentHeight,
+      );
+      expect(layout.height).toBeGreaterThan(viewport.height * 2);
+      expect(layout.rows[4].top + layout.rows[4].height).toBe(layout.footerTop);
+      expect(
+        fillText.mock.calls.some(([text]) => text === "点击内容，前往主页 ↗"),
+      ).toBe(true);
+    } finally {
+      removeSignalImage(src, image);
+    }
   });
 });

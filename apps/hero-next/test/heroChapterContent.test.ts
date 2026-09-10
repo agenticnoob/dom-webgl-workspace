@@ -44,6 +44,26 @@ describe("hero chapter content", () => {
       "https://github.com/agenticnoob/dom-webgl-workspace",
     );
     expect(heroPublicLinks.blog).toBe("https://blog.zzzxc.com");
+    expect(heroPublicLinks.douyin).toBe(
+      "https://www.douyin.com/user/MS4wLjABAAAATcqt2Tq3UxNiJz8Qg5eEHhOkdpfNuEP1KuthHYn-oIycjaF24_KxkL9pY8bgbW3Z",
+    );
+    expect(heroPublicLinks.xiaohongshu).toBe(
+      "https://www.xiaohongshu.com/user/profile/651c334600000000240144aa",
+    );
+    expect(heroPublicLinks.bilibili).toBe(
+      "https://space.bilibili.com/269573670",
+    );
+    for (const locale of ["zh", "en"] as const) {
+      const sections = getHeroChapterContent("signals", locale).body.sections;
+      expect(sections.slice(0, 3).map((section) => section.link?.href)).toEqual(
+        [
+          heroPublicLinks.douyin,
+          heroPublicLinks.xiaohongshu,
+          heroPublicLinks.bilibili,
+        ],
+      );
+      expect(sections.slice(0, 3).every((section) => section.image)).toBe(true);
+    }
     expect(Object.keys(heroPublicLinks)).not.toContain("email");
     expect(Object.keys(heroPublicLinks)).not.toContain("phone");
   });
