@@ -310,7 +310,7 @@ describe("effect authoring example app", () => {
       Array.from(host.querySelectorAll(".recipe-example"), (row) => row.id),
     ).toEqual(recipeCatalog.map((recipe) => recipe.id));
     expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(30);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(31);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
@@ -769,7 +769,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       firstDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(29);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(30);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
     expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
 
@@ -778,7 +778,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       expandedDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(30);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(31);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
     const finalTargetProps = targetProps

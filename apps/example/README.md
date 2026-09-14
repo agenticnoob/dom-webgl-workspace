@@ -7,7 +7,7 @@ It demonstrates DOM targets, text/media/model sources, custom effects, managed
 scenes and pass viewports, timelines, scene-native meshes/models, interaction,
 postprocess, model animation, and the bounded physics descriptor surface.
 
-Open `/` to scroll through the basic effects and all eight Hero Next specimens
+Open `/` to scroll through the basic effects and all nine Hero Next specimens
 on the same page. Each specimen is rendered directly as a full-width effect row.
 The [recipe catalog and agent integration guide](./src/recipes/README.md) explain
 which component to select, its typed inputs, complete usage, fallback, and source

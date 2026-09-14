@@ -4,6 +4,7 @@ import PaperReaderDemo from "./recipe-demos/PaperReaderDemo";
 import ProjectRoomDemo from "./recipe-demos/ProjectRoomDemo";
 import ModelStoryDemo from "./recipe-demos/ModelStoryDemo";
 import PointerPreviewDemo from "./recipe-demos/PointerPreviewDemo";
+import PerspectiveTimelineDemo from "./recipe-demos/PerspectiveTimelineDemo";
 import {
   SculptureDemo,
   RadialThemeDemo,
@@ -14,6 +15,7 @@ import { paperReaderEffects } from "./recipes/paper-reader";
 import { projectRoomEffects } from "./recipes/project-room";
 import { modelStoryEffects } from "./recipes/model-story";
 import { spatialEffects } from "./recipes/spatial";
+import { perspectiveTimelineEffects } from "./recipes/perspective-timeline";
 import { recipeCatalog, type RecipeId } from "./recipes/catalog";
 import "./recipe-examples.css";
 
@@ -23,6 +25,7 @@ export const recipeEffects = [
   ...projectRoomEffects,
   ...modelStoryEffects,
   ...spatialEffects,
+  ...perspectiveTimelineEffects,
 ];
 
 const demos = {
@@ -34,6 +37,7 @@ const demos = {
   "face-portal": FacePortalDemo,
   "relief-portal": ReliefPortalDemo,
   "pointer-preview": PointerPreviewDemo,
+  "perspective-timeline": PerspectiveTimelineDemo,
 } satisfies Record<RecipeId, ComponentType>;
 
 export function RecipeExamples() {

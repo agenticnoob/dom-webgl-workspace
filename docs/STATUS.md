@@ -1,7 +1,7 @@
 # Current Status
 
-**Last verified: example automation 2026-09-14 / browser 2026-09-13; registry
-2026-09-11; hero-next current source 2026-09-10; DOM-text rendering 2026-07-28.**
+**Last verified: example automation/browser 2026-09-14; registry 2026-09-11;
+hero-next current source 2026-09-10; DOM-text rendering 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
 belongs to each app; completed plans and prior evidence belong in
@@ -85,8 +85,8 @@ only package entrypoints and exercises DOM targets, media, models, effects,
 managed scenes, timelines, interaction, postprocess, and physics. It is an
 example consumer, not a place for runtime-specific branches.
 
-Eight demos on the same `/` page extract Hero Next's paper reader, project room, pointer
-preview, model story and spatial sculpture/portals into five reusable source modules.
+Nine same-page demos extract Hero Next's paper reader, project room, pointer preview,
+model story, spatial portals and final perspective timeline into six reusable modules.
 They use public alpha.2 APIs, typed neutral data and one host runtime/canvas;
 they are app components, not new package exports. See [app usage](../apps/example/README.md)
 and the [recipe catalog](../apps/example/src/recipes/README.md).

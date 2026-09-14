@@ -103,11 +103,14 @@ All spacing derives from a base of 4px.
 
 ### Inline recipes
 
-- All eight recipes follow the basic effects on `/` as full-width rows.
+- All nine recipes follow the basic effects on `/` as full-width rows.
 - Every row is mounted and displayed directly; no selection page or nested runtime.
 - The existing effect-description control exposes the component and source path.
 - Its 60px header reserves space above each recipe's own content and controls.
 - Sticky portal controls are clipped to their own section when the next row enters.
+- The perspective timeline uses a clipped sticky viewport with a WebGL background;
+  its DOM stays transparent in motion mode and becomes a full reading list on
+  narrow, short, coarse-pointer and reduced-motion displays.
 - Recipe-owned palettes and typography are independent of the demo shell so
   copied components retain their intended composition. Spatial and paper/room
   atlas text uses Arial/sans-serif; model prose uses the existing serif stack.

@@ -5,7 +5,7 @@ import { expect, test } from "vitest";
 import { RecipeExamples, recipeEffects } from "../../src/RecipeExamples";
 import { recipeCatalog } from "../../src/recipes/catalog";
 
-test("renders all eight live specimens together under one runtime without route selection", () => {
+test("renders all nine live specimens together under one runtime without route selection", () => {
   const html = renderToStaticMarkup(
     createElement(WebGLScrollRuntime, {
       effects: recipeEffects,
@@ -18,7 +18,7 @@ test("renders all eight live specimens together under one runtime without route 
   expect(Array.from(rows, (row) => row.id)).toEqual(
     recipeCatalog.map((recipe) => recipe.id),
   );
-  expect(rows).toHaveLength(8);
+  expect(rows).toHaveLength(9);
   for (const row of rows) expect(row.children).toHaveLength(2);
   expect(template.content.querySelectorAll('a[href*="?recipe"]')).toHaveLength(
     0,
@@ -35,10 +35,11 @@ test("renders all eight live specimens together under one runtime without route 
   expect(html).toContain("Four viewpoints");
   expect(html).toContain("Around a single figure");
   expect(html).toContain("Elsewhere, in detail");
+  expect(html).toContain("A record in motion");
 });
 
 test("registers each reusable effect once for the shared page runtime", () => {
-  expect(recipeEffects).toHaveLength(6);
+  expect(recipeEffects).toHaveLength(8);
   expect(new Set(recipeEffects.map((effect) => effect.kind)).size).toBe(
     recipeEffects.length,
   );

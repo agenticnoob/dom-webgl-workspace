@@ -1,8 +1,8 @@
 # Reusable visual recipes
 
-Eight live demonstrations extract the visual behavior of Hero Next into five
+Nine live demonstrations extract the visual behavior of Hero Next into six
 source-distributed React modules. Open `/` in the example app and scroll through
-the basic effects and all eight recipes on the same page. `/#<id>` links to a row;
+the basic effects and all nine recipes on the same page. `/#<id>` links to a row;
 every row is rendered directly without a selection page.
 
 These are **app-level components built on the public alpha.2 APIs**. They are not
@@ -10,22 +10,23 @@ new exports from `@viselora/dom-webgl`, and do not import Hero Next, Next.js,
 private content, or package internals. Copy a whole module directory to reuse it.
 The compositions in [../recipe-demos/](../recipe-demos/) provide complete demo data
 and component props. They mount inside the existing page runtime, without wrappers.
-[../RecipeExamples.tsx](../RecipeExamples.tsx) assembles all eight rows and exports
+[../RecipeExamples.tsx](../RecipeExamples.tsx) assembles all nine rows and exports
 one stable effect list, registered alongside the basic effects in `App.tsx`;
 [the catalog](./catalog.ts) provides a data-only index for agents and tooling.
 
 ## Choose a component
 
-| Demo ID           | Component / module                            | Input and behavior                                                                                          | Read first                                          |
-| ----------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `paper-reader`    | `PaperReader` / `paper-reader`                | Ordered articles → circular index, perforated paper, reversible arrivals and overflow reading               | [Contract and example](./paper-reader/README.md)    |
-| `project-room`    | `ProjectRoom` / `project-room`                | Four projects → four perspective walls, edge turns, damped parallax and keyboard selection                  | [Contract and example](./project-room/README.md)    |
-| `sculpture`       | `InteractiveSculpture` / `spatial`            | Copy, palette and motion → breathing, floating, pointer parallax, Fresnel edge light and pointer light      | [Contract and example](./spatial/README.md)         |
-| `radial-theme`    | `InteractiveSculpture` / `spatial`            | Add `holdMs` → actual mesh hit, radial coverage, early release reversal and one committed scheme            | [Contract and example](./spatial/README.md)         |
-| `model-story`     | `ModelStory` / `model-story`                  | GLB, bounding box, paragraphs and messages → one scroll turn, reversible typing and per-line text avoidance | [Contract and example](./model-story/README.md)     |
-| `face-portal`     | `FacePortal` / `spatial`                      | Four chapters → face atlas, approach, screen lock, semantic DOM handoff and return                          | [Contract and example](./spatial/README.md)         |
-| `relief-portal`   | `FacePortal` / `spatial`                      | Add GLB and framing → shallow face relief, expansion into the body and return to the same face              | [Contract and example](./spatial/README.md)         |
-| `pointer-preview` | `PointerPreviewDirectory` / `pointer-preview` | Links and image URLs → pointer-following previews, keyboard access and full touch list; no WebGL required   | [Contract and example](./pointer-preview/README.md) |
+| Demo ID                | Component / module                             | Input and behavior                                                                                          | Read first                                               |
+| ---------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `paper-reader`         | `PaperReader` / `paper-reader`                 | Ordered articles → circular index, perforated paper, reversible arrivals and overflow reading               | [Contract and example](./paper-reader/README.md)         |
+| `project-room`         | `ProjectRoom` / `project-room`                 | Four projects → four perspective walls, edge turns, damped parallax and keyboard selection                  | [Contract and example](./project-room/README.md)         |
+| `sculpture`            | `InteractiveSculpture` / `spatial`             | Copy, palette and motion → breathing, floating, pointer parallax, Fresnel edge light and pointer light      | [Contract and example](./spatial/README.md)              |
+| `radial-theme`         | `InteractiveSculpture` / `spatial`             | Add `holdMs` → actual mesh hit, radial coverage, early release reversal and one committed scheme            | [Contract and example](./spatial/README.md)              |
+| `model-story`          | `ModelStory` / `model-story`                   | GLB, bounding box, paragraphs and messages → one scroll turn, reversible typing and per-line text avoidance | [Contract and example](./model-story/README.md)          |
+| `face-portal`          | `FacePortal` / `spatial`                       | Four chapters → face atlas, approach, screen lock, semantic DOM handoff and return                          | [Contract and example](./spatial/README.md)              |
+| `relief-portal`        | `FacePortal` / `spatial`                       | Add GLB and framing → shallow face relief, expansion into the body and return to the same face              | [Contract and example](./spatial/README.md)              |
+| `pointer-preview`      | `PointerPreviewDirectory` / `pointer-preview`  | Links and image URLs → pointer-following previews, keyboard access and full touch list; no WebGL required   | [Contract and example](./pointer-preview/README.md)      |
+| `perspective-timeline` | `PerspectiveTimeline` / `perspective-timeline` | Ordered records → paired perspective text, scroll-speed flight, bounded target window and static reading    | [Contract and example](./perspective-timeline/README.md) |
 
 ## Agent integration procedure
 
@@ -54,12 +55,14 @@ import { paperReaderEffects } from "./recipes/paper-reader";
 import { projectRoomEffects } from "./recipes/project-room";
 import { modelStoryEffects } from "./recipes/model-story";
 import { spatialEffects } from "./recipes/spatial";
+import { perspectiveTimelineEffects } from "./recipes/perspective-timeline";
 
 const effects = [
   ...paperReaderEffects,
   ...projectRoomEffects,
   ...modelStoryEffects,
   ...spatialEffects,
+  ...perspectiveTimelineEffects,
 ];
 
 export function VisualPage({ children }: { children: React.ReactNode }) {

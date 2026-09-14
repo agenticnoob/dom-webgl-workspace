@@ -1,0 +1,140 @@
+.perspective-timeline {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: #c8c8c8;
+  color: #303640;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.perspective-timeline[data-spatial="true"] {
+  min-height: var(--timeline-distance);
+  /* A DOM background here would cover the shared canvas. */
+  background: transparent;
+}
+.perspective-timeline__stage {
+  position: relative;
+}
+.perspective-timeline[data-spatial="true"] .perspective-timeline__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+.perspective-timeline__header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 4vw;
+}
+.perspective-timeline__header h2 {
+  font-size: clamp(24px, 2.5vw, 36px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  margin: 0 0 8px;
+}
+.perspective-timeline__header p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 48ch;
+}
+.perspective-timeline__header button {
+  flex-shrink: 0;
+  min-height: 44px;
+  max-width: 45%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.perspective-timeline__header button:focus-visible {
+  outline: 3px solid #303640;
+  outline-offset: 4px;
+}
+.perspective-timeline__viewport,
+.perspective-timeline__sources,
+.perspective-timeline__lane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.perspective-timeline__source-column {
+  position: absolute;
+  left: calc(50% - var(--timeline-width) / 2);
+  top: 50%;
+  width: var(--timeline-width);
+}
+.perspective-timeline__sources p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--timeline-font);
+  line-height: 1.5;
+}
+.perspective-timeline__sources .perspective-timeline__label {
+  font-size: var(--timeline-label);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  margin-bottom: 20px;
+}
+.perspective-timeline__transcript {
+  padding: 12px 4vw 64px;
+  max-width: 760px;
+  margin: auto;
+}
+.perspective-timeline__transcript article {
+  padding: 32px 0;
+  border-top: 1px solid #8e9399;
+}
+.perspective-timeline__transcript h3 {
+  font-size: 26px;
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.perspective-timeline__transcript p {
+  font-size: 18px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 12px 0;
+}
+.perspective-timeline__metadata {
+  font-weight: 700;
+}
+.perspective-timeline[data-spatial="true"] .perspective-timeline__transcript {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media print {
+  .perspective-timeline[data-spatial="true"] {
+    min-height: 0;
+  }
+  .perspective-timeline[data-spatial="true"] .perspective-timeline__stage {
+    position: static;
+    height: auto;
+  }
+  .perspective-timeline__viewport,
+  .perspective-timeline__header button {
+    display: none;
+  }
+  .perspective-timeline[data-spatial="true"] .perspective-timeline__transcript {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: auto;
+    padding: 12px 4vw;
+    overflow: visible;
+    clip-path: none;
+  }
+}

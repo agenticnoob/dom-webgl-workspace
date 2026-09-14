@@ -72,6 +72,15 @@ export const recipeCatalog = [
     rendering: "DOM",
     description: "整行悬停、边缘限位、键盘访问与触屏常显内容。",
   },
+  {
+    id: "perspective-timeline",
+    title: "透视时间线与滚动飞行",
+    component: "PerspectiveTimeline",
+    module: "perspective-timeline",
+    effects: "perspectiveTimelineEffects",
+    rendering: "WebGL + DOM",
+    description: "成对文字沿透视路径经过，滚动驱动四面体推进、自旋与边缘提亮。",
+  },
 ] as const;
 
 export type RecipeId = (typeof recipeCatalog)[number]["id"];
