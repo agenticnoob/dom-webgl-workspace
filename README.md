@@ -14,8 +14,8 @@ Current project and release truth lives in [docs/STATUS.md](./docs/STATUS.md).
 
 ## Install
 
-The current prerelease is `0.1.0-alpha.1`. Install the explicit alpha tag or pin
-the exact version:
+Install the explicit alpha tag or pin the exact version listed in
+[release truth](./docs/STATUS.md#release-truth):
 
 ```bash
 npm install @viselora/dom-webgl@alpha
@@ -175,6 +175,7 @@ The complete verification sequence is documented in
 - [Core package README](./packages/dom-webgl-runtime/README.md)
 - [Scroll adapters README](./packages/dom-webgl-scroll-adapters/README.md)
 - [Example app](./apps/example/README.md)
+- [Reusable visual components and agent integration](./apps/example/src/recipes/README.md)
 - [Hero app](./apps/hero-next/README.md)
 - [Archived records](./docs/archive/README.md)
 

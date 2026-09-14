@@ -21,6 +21,7 @@ Package and application details stay with their owners:
 - [core package](../packages/dom-webgl-runtime/README.md)
 - [scroll adapters](../packages/dom-webgl-scroll-adapters/README.md)
 - [example app](../apps/example/README.md)
+- [reusable visual components](../apps/example/src/recipes/README.md)
 - [hero app](../apps/hero-next/README.md)
 - [consumer development skill](../skills/viselora-dom-webgl/SKILL.md)
 

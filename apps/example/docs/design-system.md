@@ -34,6 +34,13 @@ expands on click when the user wants details.
 | Border/default | --color-border-default | rgba(23, 33, 36, 0.32) | rgba(244, 239, 226, 0.28) | Panel borders |
 | Border/subtle | --color-border-subtle | rgba(23, 33, 36, 0.18) | rgba(244, 239, 226, 0.16) | Row separators |
 | Border/overlay | --color-border-overlay | rgba(255, 255, 255, 0.12) | rgba(255, 255, 255, 0.12) | Expanded description divider |
+| Recipe/room | Caller-configurable palette | #111816 | #111816 | Room fallback |
+| Recipe/room-border | Local room borders | #78857b / #abb2a9 | Same | Wall controls and list dividers |
+| Recipe/model | --model-story-paper / ink | #f3f1e9 / #292b28 | Same | Model bubble and copy |
+| Recipe/directory | Local directory palette | #eceee3 / #243229 | Same | Pointer preview list |
+| Recipe/directory-border | Local directory border | #b6bfb1 | Same | Link rows |
+| Recipe/preview | Local preview palette | #23372e / #f3f2e8 | Same | Image preview surface and caption |
+| Recipe/light | Managed material/light | #ffffff | Same | Neutral material and scene lights |
 
 ### Rules
 
@@ -93,6 +100,17 @@ All spacing derives from a base of 4px.
 - Each example effect occupies one full-width row.
 
 ## 5. Components
+
+### Inline recipes
+
+- All eight recipes follow the basic effects on `/` as full-width rows.
+- Every row is mounted and displayed directly; no selection page or nested runtime.
+- The existing effect-description control exposes the component and source path.
+- Its 60px header reserves space above each recipe's own content and controls.
+- Sticky portal controls are clipped to their own section when the next row enters.
+- Recipe-owned palettes and typography are independent of the demo shell so
+  copied components retain their intended composition. Spatial and paper/room
+  atlas text uses Arial/sans-serif; model prose uses the existing serif stack.
 
 ### Effect Row
 

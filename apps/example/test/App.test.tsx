@@ -17,6 +17,12 @@ const lightProps: LightMockProps[] = [];
 const modelProps: ModelMockProps[] = [];
 const passViewportProps: PassViewportMockProps[] = [];
 const roots: Root[] = [];
+const scrollProgressStore = {
+  source: { get: () => 0 },
+  set: vi.fn(),
+  reset: vi.fn(),
+  clear: vi.fn(),
+};
 
 vi.mock("gsap", () => ({
   default: {
@@ -177,14 +183,7 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
     scrollTimelineProps.push({ as, children, className, id, ...props });
     return createElement(as, { className, "data-timeline-id": id }, children);
   },
-  useScrollEffectProgressStore: () => ({
-    source: {
-      get: () => 0,
-    },
-    set: vi.fn(),
-    reset: vi.fn(),
-    clear: vi.fn(),
-  }),
+  useScrollEffectProgressStore: () => scrollProgressStore,
 }));
 
 vi.mock("@viselora/dom-webgl/react", () => ({
@@ -280,6 +279,8 @@ describe("effect authoring example app", () => {
   test("registers a stable React runtime effect array and the vertical effect catalog", async () => {
     const { default: App } = await import("../src/App");
     const { exampleEffects } = await import("../src/exampleEffects");
+    const { recipeEffects } = await import("../src/RecipeExamples");
+    const { recipeCatalog } = await import("../src/recipes/catalog");
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
@@ -293,7 +294,9 @@ describe("effect authoring example app", () => {
     });
 
     expect(scrollRuntimeProps.length).toBeGreaterThanOrEqual(1);
-    expect(scrollRuntimeProps.every(({ effects }) => effects === exampleEffects)).toBe(true);
+    const combinedEffects = scrollRuntimeProps[0]?.effects;
+    expect(combinedEffects).toEqual([...exampleEffects, ...recipeEffects]);
+    expect(scrollRuntimeProps.every(({ effects }) => effects === combinedEffects)).toBe(true);
     expect(scrollRuntimeProps.at(-1)?.smooth).toMatchObject({
       gsap: expect.any(Object),
       ScrollTrigger: expect.any(Function),
@@ -302,9 +305,12 @@ describe("effect authoring example app", () => {
     });
     expect(scrollRuntimeProps.at(-1)?.scrollAdapter).toBeUndefined();
     expect(scrollRuntimeProps.at(-1)?.onDebugStateChange).toBeTypeOf("function");
-    expect(host.querySelector('[data-testid="example-scroll-runtime"]')).not.toBeNull();
+    expect(host.querySelectorAll('[data-testid="example-scroll-runtime"]')).toHaveLength(1);
+    expect(
+      Array.from(host.querySelectorAll(".recipe-example"), (row) => row.id),
+    ).toEqual(recipeCatalog.map((recipe) => recipe.id));
     expect(host.querySelectorAll(".example-row-copy")).toHaveLength(0);
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(30);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
     expect(host.querySelector(".example-text-pressure")).toBeInstanceOf(HTMLElement);
     expect(host.querySelector(".example-text-scramble")).toBeInstanceOf(HTMLElement);
@@ -505,7 +511,9 @@ describe("effect authoring example app", () => {
       }),
     );
     expect(cameraProps.find(({ id }) => id === "example.physics.camera")).not.toHaveProperty("controller");
-    expect(stagePlaneProps.map(({ id }) => id)).toEqual([
+    expect(
+      stagePlaneProps.filter(({ id }) => id.startsWith("example.")).map(({ id }) => id),
+    ).toEqual([
       "example.stage.floor",
       "example.stage.backdrop",
       "example.managedStage.floor",
@@ -513,7 +521,9 @@ describe("effect authoring example app", () => {
       "example.interaction.floor",
       "example.physics.floor",
     ]);
-    expect(stageBoxProps.map(({ id }) => id)).toEqual([
+    expect(
+      stageBoxProps.filter(({ id }) => id.startsWith("example.")).map(({ id }) => id),
+    ).toEqual([
       "example.stage.plinth",
       "example.stage.bloomRail",
       "example.stage.tetrahedron",
@@ -526,7 +536,9 @@ describe("effect authoring example app", () => {
       "example.physics.rightWall",
       "example.physics.inertia",
     ]);
-    expect(lightProps.map(({ id }) => id)).toEqual([
+    expect(
+      lightProps.filter(({ id }) => id.startsWith("example.")).map(({ id }) => id),
+    ).toEqual([
       "example.stage.ambient",
       "example.stage.key",
       "example.stage.rim",
@@ -539,7 +551,7 @@ describe("effect authoring example app", () => {
       "example.physics.ambient",
       "example.physics.key",
     ]);
-    expect(modelProps).toEqual([
+    expect(modelProps.filter(({ id }) => id.startsWith("example."))).toEqual([
       expect.objectContaining({
         id: "example.managedModel.human",
         src: "/models/human_male_base.glb",
@@ -757,7 +769,7 @@ describe("effect authoring example app", () => {
     await act(async () => {
       firstDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(21);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(29);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(1);
     expect(host.querySelector(".example-effect-panel")?.textContent).toContain("表面填充");
 
@@ -766,10 +778,12 @@ describe("effect authoring example app", () => {
     await act(async () => {
       expandedDescriptionToggle?.click();
     });
-    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(22);
+    expect(host.querySelectorAll(".example-effect-pill")).toHaveLength(30);
     expect(host.querySelectorAll(".example-effect-panel")).toHaveLength(0);
 
-    const finalTargetProps = targetProps.slice(-27);
+    const finalTargetProps = targetProps
+      .filter(({ webgl }) => webgl.key.startsWith("example."))
+      .slice(-27);
 
     expect(finalTargetProps.map(({ webgl }) => webgl.key)).toEqual([
       "example.surface.fill",
@@ -1055,12 +1069,17 @@ describe("effect authoring example app", () => {
     const firstManagedStageTarget = finalTargetProps[5];
     const firstPinnedTarget = finalTargetProps[26];
     const secondSequenceCardTarget = targetProps
+      .filter(({ webgl }) => webgl.key.startsWith("example."))
       .slice(-27)
       .find(({ webgl }) => webgl.key === "example.image-sequence.card");
     const secondManagedStageTarget = targetProps
+      .filter(({ webgl }) => webgl.key.startsWith("example."))
       .slice(-27)
       .find(({ webgl }) => webgl.key === "example.managedStage.card");
-    const secondPinnedTarget = targetProps.at(-1);
+    const secondPinnedTarget = targetProps
+      .filter(({ webgl }) => webgl.key === "example.pinned.reveal")
+      .at(-1);
+    expect(scrollRuntimeProps.every(({ effects }) => effects === combinedEffects)).toBe(true);
     expect(secondSequenceCardTarget?.webgl.effects).toBe(firstSequenceCardEffects);
     expect(secondManagedStageTarget?.webgl.effects).toBe(firstManagedStageTarget?.webgl.effects);
     expect(secondPinnedTarget?.webgl.key).toBe("example.pinned.reveal");

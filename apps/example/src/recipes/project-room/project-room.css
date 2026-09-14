@@ -1,0 +1,124 @@
+.recipe-room {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid #78857b;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.recipe-room__surface {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.recipe-room__fallback {
+  position: relative;
+  padding: clamp(24px, 4vw, 64px);
+  background: var(--recipe-room-background, #111816);
+}
+.recipe-room__fallback h2 {
+  margin: 0 0 28px;
+  font-size: clamp(28px, 4vw, 52px);
+}
+.recipe-room__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recipe-room__list h3 {
+  margin: 12px 0;
+  font-size: 26px;
+}
+.recipe-room__list p {
+  line-height: 1.65;
+}
+.recipe-room__list a {
+  color: inherit;
+  text-underline-offset: 5px;
+}
+.recipe-room__controls {
+  position: relative;
+  min-height: clamp(520px, 70vh, 740px);
+  pointer-events: none;
+}
+.recipe-room__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 24px 32px;
+}
+.recipe-room__header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.recipe-room__header p {
+  margin: 0;
+  max-width: 340px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.recipe-room__footer {
+  position: absolute;
+  inset: auto 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: auto;
+}
+.recipe-room__footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.recipe-room__footer button {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+.recipe-room__footer button[aria-pressed="true"] {
+  border-color: currentColor;
+}
+.recipe-room__footer a {
+  color: inherit;
+  white-space: nowrap;
+  font-size: 12px;
+  text-underline-offset: 5px;
+}
+.recipe-room__visit[aria-disabled="true"] {
+  opacity: 0.45;
+}
+.recipe-room :is(button, a):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+.recipe-room [hidden] {
+  display: none;
+}
+.recipe-room__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 680px), (hover: none), (pointer: coarse) {
+  .recipe-room__list {
+    grid-template-columns: 1fr;
+  }
+  .recipe-room__list li + li {
+    border-top: 1px solid #abb2a9;
+    padding-top: 24px;
+  }
+}

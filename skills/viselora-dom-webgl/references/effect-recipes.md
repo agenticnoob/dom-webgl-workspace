@@ -2,9 +2,23 @@
 
 Compatible package version: 0.1.0-alpha.2
 
-These five recipes are optional examples, not the skill's capability boundary.
+The five templates below are optional examples, not the skill's capability boundary.
 Read [capability-status.md](capability-status.md) before copying one. Never put
 blocked or experimental recipes into a normal default project.
+
+## Advanced app components
+
+For Hero Next's extracted paper reader, four-wall project room, model narrative,
+pointer preview, sculpture, radial theme and face/relief portals, start at the
+[example recipe catalog](../../../apps/example/src/recipes/README.md).
+It maps eight live demos to five copyable modules with typed inputs, complete
+usage examples, lifecycle and fallback contracts. These consume the public
+alpha.2 APIs and are source-distributed app components, not package exports.
+All eight render directly on the example app's `/` page alongside the basic
+effects; `/#<demo-id>` is an optional anchor, not a separate route.
+Keep the module's scoped camera/pass, reuse one host runtime, and verify final
+canvas output in the destination app. Their evidence does not change the
+historical capability statuses of the five templates below.
 
 ## Surface pulse
 

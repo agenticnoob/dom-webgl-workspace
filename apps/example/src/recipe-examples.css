@@ -1,0 +1,9 @@
+.recipe-example-description {
+  position: relative;
+  height: 60px;
+  z-index: 2;
+}
+
+.recipe-example-description code {
+  overflow-wrap: anywhere;
+}

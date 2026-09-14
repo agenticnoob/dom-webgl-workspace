@@ -1,7 +1,7 @@
 # Current Status
 
-**Last verified: registry release truth 2026-09-11; hero-next current source
-2026-09-10; DOM-text rendering 2026-07-28.**
+**Last verified: example automation 2026-09-14 / browser 2026-09-13; registry
+2026-09-11; hero-next current source 2026-09-10; DOM-text rendering 2026-07-28.**
 
 This is the only repository-wide current-state document. Detailed app behavior
 belongs to each app; completed plans and prior evidence belong in
@@ -23,10 +23,8 @@ The runtime remains DOM-first and managed:
 
 ## Release truth
 
-The repository and published package versions are:
-
-- `@viselora/dom-webgl@0.1.0-alpha.2`
-- `@viselora/scroll-adapters@0.1.0-alpha.2`
+The repository and published versions are `@viselora/dom-webgl@0.1.0-alpha.2`
+and `@viselora/scroll-adapters@0.1.0-alpha.2`.
 
 The adapters depend exactly on the matching core version. npm registry readback
 on 2026-09-11 confirmed that both `alpha` dist-tags resolve to
@@ -87,7 +85,11 @@ only package entrypoints and exercises DOM targets, media, models, effects,
 managed scenes, timelines, interaction, postprocess, and physics. It is an
 example consumer, not a place for runtime-specific branches.
 
-See [apps/example/README.md](../apps/example/README.md).
+Eight demos on the same `/` page extract Hero Next's paper reader, project room, pointer
+preview, model story and spatial sculpture/portals into five reusable source modules.
+They use public alpha.2 APIs, typed neutral data and one host runtime/canvas;
+they are app components, not new package exports. See [app usage](../apps/example/README.md)
+and the [recipe catalog](../apps/example/src/recipes/README.md).
 
 ### `apps/hero-next`
 
@@ -100,8 +102,7 @@ entry/exit runways, unique transition-side information, one body-derived face
 atlas per chapter with separately packed entry and exit tiles derived from
 chapter-specific endpoint compositions,
 shared responsive Atlas/DOM lead geometry that prevents full-screen handoff
-reflow, continuous
-approach-weighted UV lock, project/public links,
+reflow, continuous approach-weighted UV lock, project/public links,
 and one terminal contact Portal preselected under the fourth chapter's covered
 exit and retained through the final Hub. The final DOM runway owns only semantic
 content and interactive public links, so the terminal title and summary are not
@@ -165,6 +166,9 @@ See [apps/hero-next/README.md](../apps/hero-next/README.md) and its
 [visual direction](../apps/hero-next/docs/visual-design.md).
 
 ## Verification truth
+
+Example component automation, same-page browser evidence and limitations are
+owned by the [app verification record](../apps/example/docs/verification.md).
 
 The alpha.2 release artifacts passed root typechecking, all 176 test files /
 1195 tests, workspace builds, import/docs/version/tarball checks, installed-

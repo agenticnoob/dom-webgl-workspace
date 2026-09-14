@@ -194,3 +194,4 @@ Ready/active state alone does not prove correct final pixels.
 - [Architecture](../ARCHITECTURE.md)
 - [Capability status](../../skills/viselora-dom-webgl/references/capability-status.md)
 - [Example app](../../apps/example/README.md)
+- [Copy and compose visual components](../../apps/example/src/recipes/README.md)

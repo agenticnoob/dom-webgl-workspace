@@ -20,6 +20,10 @@ import { ManagedTimelineExample } from "./ManagedTimelineExample";
 import { ManagedMeshExample } from "./ManagedMeshExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
+import { RecipeExamples, recipeEffects } from "./RecipeExamples";
+
+const runtimeEffects = [...exampleEffects, ...recipeEffects];
+const renderQuality = { antialias: true, maxDevicePixelRatio: 2 } as const;
 
 const videoScrubProgressKey = "example.video.scrub";
 const sequenceCardEffects = [
@@ -69,7 +73,8 @@ export default function App() {
   return (
     <WebGLScrollRuntime
       className="example-runtime"
-      effects={exampleEffects}
+      effects={runtimeEffects}
+      renderQuality={renderQuality}
       smooth={exampleSmoothScrollOptions}
       onDebugStateChange={onDebugStateChange}
     >
@@ -504,6 +509,7 @@ export default function App() {
           </section>
 
           <PinnedScrollExample />
+          <RecipeExamples />
         </div>
       </main>
       <WebGLDebugPanel state={debugState} />

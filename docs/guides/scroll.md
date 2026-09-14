@@ -138,6 +138,7 @@ touch, and escape behavior.
 
 ## Further reference
 
+- [Same-page reader, model and portal examples](../../apps/example/src/recipes/README.md)
 - [Scroll and interaction API](../../skills/viselora-dom-webgl/references/api-scroll-interaction.md)
 - [Capability status](../../skills/viselora-dom-webgl/references/capability-status.md)
 - [Example app](../../apps/example/README.md)

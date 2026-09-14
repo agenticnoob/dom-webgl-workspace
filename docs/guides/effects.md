@@ -155,7 +155,7 @@ object-local glow; a bloom request can affect the whole pass.
 
 ## Resource and disposal rules
 
-- Create managed effect resources in `create` or lazily in `update`.
+- Create managed effect resources in `setup` or lazily in `update`.
 - Store only controlled handles in effect state.
 - Release controlled handles in `dispose`.
 - Assume `dispose` may be called more than once; managed removal is idempotent.
@@ -179,6 +179,7 @@ Avoid snapshot tests and avoid mocking the effect module itself.
 
 ## Further reference
 
+- [Reusable components and complete demo compositions](../../apps/example/src/recipes/README.md)
 - [Managed effect API](../../skills/viselora-dom-webgl/references/api-effects-rendering.md)
 - [Scene/model API](../../skills/viselora-dom-webgl/references/api-scenes-models.md)
 - [Lifecycle/debug API](../../skills/viselora-dom-webgl/references/api-lifecycle-debug.md)

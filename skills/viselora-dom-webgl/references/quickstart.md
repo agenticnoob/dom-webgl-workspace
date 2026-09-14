@@ -7,7 +7,7 @@ Compatible package version: 0.1.0-alpha.2
 Pin the public prerelease packages exactly:
 
 ```bash
-npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.1 @viselora/scroll-adapters@0.1.0-alpha.1
+npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.2 @viselora/scroll-adapters@0.1.0-alpha.2
 npm install react react-dom gsap
 npm install --save-dev typescript vite @types/react@^19.2.0 @types/react-dom@^19.2.0
 ```
@@ -28,6 +28,10 @@ Copy and complete, in order:
 Then copy `templates/react-vite/` or adapt an existing React/Vite site. Keep one
 runtime/canvas, one scroll source, one pointer source, module-scope effects, and
 stable mounted target declarations.
+
+For existing visual components, start with the
+[recipe catalog and integration procedure](../../../apps/example/src/recipes/README.md).
+Register their effect definitions on the page's existing runtime.
 
 ## Verify
 
