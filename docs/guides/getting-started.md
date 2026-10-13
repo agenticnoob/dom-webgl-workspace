@@ -13,6 +13,10 @@ integration. Keep both Viselora packages on the same version. TypeScript
 consumers should also install `@types/react@19`, `@types/react-dom@19` and
 `@types/three@0.184` as development dependencies.
 
+If a configured registry mirror has not synchronized the release, add
+`--registry=https://registry.npmjs.org` to the install command. This affects that
+command only. Pin the exact version from release truth for reproducible installs.
+
 ## One host and native scene
 
 `WebGLRuntime` mounts the page's Canvas. Put R3F components in `scene` and

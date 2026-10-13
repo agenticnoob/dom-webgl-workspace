@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-14 (React/R3F migration and release preparation).**
+**Last verified: 2026-10-14 (React/R3F alpha publication).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -25,14 +25,22 @@ are retired. No legacy compatibility backend is maintained.
 
 ## Release truth
 
-The source version is `@viselora/dom-webgl@0.2.0-alpha.0` and
-`@viselora/scroll-adapters@0.2.0-alpha.0`. This breaking React/R3F revision is
-prepared for publication through the `alpha` channel; registry confirmation is
-pending. The current registry `alpha` is still `0.1.0-alpha.2`, which implements
-the previous API. Use matching local tarballs until publication completes.
-The release workflow publishes both packages together in dependency order and
-checks their integrity, exports, dependency versions and distribution tags.
-Production application deployment is separate from npm publication.
+`@viselora/dom-webgl@0.2.0-alpha.0` and
+`@viselora/scroll-adapters@0.2.0-alpha.0` are **published** on the official npm
+registry. Both `alpha` tags resolve to this breaking React/R3F revision. The
+separate `latest` tags remain at `0.1.0-alpha.0`, which implements the previous
+API; install `@alpha` or pin the exact 0.2 version.
+
+Release source is [7b9c361](https://github.com/agenticnoob/dom-webgl-workspace/commit/7b9c361361d5bbfd07dcf4c124030e76204c00b3),
+committed and pushed to `main` and `codex/hero-next`.
+The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/38448043343)
+completed successfully and verified registry integrity, exports, the exact
+core dependency and both distribution tags. Both packages include GitHub Actions
+provenance; registry integrity matches the locally verified tarballs.
+
+Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
+successful publish; a mirror's 404 is not evidence that the official release is
+missing. Production application deployment is separate from npm publication.
 
 ## Workspace applications
 
@@ -60,6 +68,8 @@ The installed-tarball consumer passed SSR imports, semantic rendering, typecheck
 unit tests, production build and Chromium checks for actual GLB drawing, native
 physical materials, rendered pixels, reversible progress, context-loss fallback,
 and runtime unmount/remount. Its captured page/console error list was empty.
+A fresh installation of both published packages from the official registry also
+passed all four ESM entrypoint imports, shared progress and semantic SSR checks.
 
 Runtime regressions cover StrictMode, React Activity hide/show and final cleanup,
 pause/resume without rewinding the native clock, readiness/error reporting while

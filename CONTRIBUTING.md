@@ -117,7 +117,8 @@ substantially slower than normal development checks.
 ## Publish an alpha release
 
 Core and scroll adapters use one `<major>.<minor>.<patch>-alpha.<number>`
-version. Choose an unused version after checking both packages with `npm view`.
+version. Choose an unused version after checking both packages with
+`npm view --registry=https://registry.npmjs.org`; mirrors may lag behind releases.
 
 1. Run `npm run release:version -- <version>` to align the manifests, lockfile,
    app consumers and skill compatibility declaration. Update the skill template,
@@ -142,7 +143,9 @@ version. Choose an unused version after checking both packages with `npm view`.
    It uses the configured CI publishing identity; local npm login is unnecessary.
 7. Confirm the run's source commit and successful conclusion, then read back
    both packages with `npm view <package>@<version> --json` and
-   `npm view <package> dist-tags --json`. Update `docs/STATUS.md` with the verified
+   `npm view <package> dist-tags --json`, adding
+   `--registry=https://registry.npmjs.org --prefer-online` to each readback.
+   Update `docs/STATUS.md` with the verified
    release and commit/push that documentation follow-up.
 
 The publisher can resume a partial release only when an existing version's
