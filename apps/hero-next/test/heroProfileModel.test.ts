@@ -9,10 +9,7 @@ import {
   resolveHeroProfileModelFrame,
 } from "../src/profile/modelEffect";
 import { resolveHeroTetrahedronTransformFrame } from "../src/tetrahedron/transform";
-import {
-  heroProfileMaterialShader,
-  heroProfileMaterialShaderKey,
-} from "../src/profile/materialShader";
+import { compileHeroProfileMaterialShader } from "../src/profile/materialShader";
 
 const desktopViewport = { width: 1_280, height: 720 } as const;
 
@@ -241,9 +238,8 @@ describe("hero profile model frame", () => {
       defines: {},
     };
 
-    heroProfileMaterialShader.compile(draft);
+    compileHeroProfileMaterialShader(draft);
 
-    expect(heroProfileMaterialShader.key).toBe(heroProfileMaterialShaderKey);
     expect(draft.fragmentShader).toContain(
       "outgoingLight = mix(outgoingLight, diffuseColor.rgb, 0.32);",
     );
@@ -261,12 +257,8 @@ describe("hero profile model frame", () => {
 
   test("fails explicitly when the expected Three shader chunk is absent", () => {
     expect(() =>
-      heroProfileMaterialShader.compile({
-        materialKind: "standard",
-        vertexShader: "void main() {}",
+      compileHeroProfileMaterialShader({
         fragmentShader: "void main() {}",
-        uniforms: {},
-        defines: {},
       }),
     ).toThrow(/opaque fragment chunk/);
   });

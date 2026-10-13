@@ -1,8 +1,7 @@
 import React, { act, createElement, useLayoutEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { WebGLRuntime } from "@viselora/dom-webgl";
-import { WebGLRuntimeProvider } from "@viselora/dom-webgl/react";
+
 import {
   WebGLScrollRuntime,
   useScrollEffectProgressStore,
@@ -78,7 +77,7 @@ function createHost() {
   document.body.append(host);
   const root = createRoot(host);
   mountedRoots.add(root);
-  return { host, root, runtime: createRuntimeStub(host) };
+  return { host, root };
 }
 
 function mockGeometry() {
@@ -115,7 +114,7 @@ function StageFixture({ id }: { readonly id: string }) {
 
 describe("spatial recipe lifecycle", () => {
   test("measures pointer offsets in viewport coordinates after the host scrolls", async () => {
-    const { host, root, runtime } = createHost();
+    const { host, root } = createHost();
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
       function (this: HTMLElement) {
         return this === host
@@ -140,11 +139,7 @@ describe("spatial recipe lifecycle", () => {
         createElement(
           WebGLScrollRuntime,
           null,
-          createElement(
-            WebGLRuntimeProvider,
-            { runtime },
-            createElement(PointerFixture),
-          ),
+          createElement(React.Fragment, null, createElement(PointerFixture)),
         ),
       ),
     );
@@ -158,7 +153,7 @@ describe("spatial recipe lifecycle", () => {
     mockGeometry();
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-    const { host, root, runtime } = createHost();
+    const { host, root } = createHost();
     const scrollTargets: HTMLElement[] = [];
     const scrollOptions: (boolean | ScrollIntoViewOptions | undefined)[] = [];
     const previousScrollIntoView = Object.getOwnPropertyDescriptor(
@@ -182,8 +177,8 @@ describe("spatial recipe lifecycle", () => {
               WebGLScrollRuntime,
               null,
               createElement(
-                WebGLRuntimeProvider,
-                { runtime },
+                React.Fragment,
+                null,
                 createElement(FacePortal, { id: "reading", chapters }),
               ),
             ),
@@ -222,7 +217,7 @@ describe("spatial recipe lifecycle", () => {
 
   test("unmount clears only its twelve signals and rejects a previously queued measurement", async () => {
     mockGeometry();
-    const { root, runtime } = createHost();
+    const { root } = createHost();
     const callbacks = new Map<number, FrameRequestCallback>();
     let requestId = 0;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
@@ -248,8 +243,8 @@ describe("spatial recipe lifecycle", () => {
           WebGLScrollRuntime,
           null,
           createElement(
-            WebGLRuntimeProvider,
-            { runtime },
+            React.Fragment,
+            null,
             createElement(CaptureStore),
             first
               ? createElement(StageFixture, { key: "first", id: "first" })
@@ -297,7 +292,7 @@ describe("spatial recipe lifecycle", () => {
     mockGeometry();
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-    const { host, root, runtime } = createHost();
+    const { host, root } = createHost();
     const committed = vi.fn<(label: string, scheme: 0 | 1) => void>();
     function Parent({ label }: { readonly label: string }) {
       const [settings, setSettings] = useState<{ scheme: 0 | 1 }>({
@@ -324,17 +319,13 @@ describe("spatial recipe lifecycle", () => {
         createElement(
           WebGLScrollRuntime,
           null,
-          createElement(
-            WebGLRuntimeProvider,
-            { runtime },
-            createElement(Parent, { label }),
-          ),
+          createElement(React.Fragment, null, createElement(Parent, { label })),
         ),
       );
     }
     await act(() => render("first"));
     expect(committed).toHaveBeenCalledExactlyOnceWith("first", 0);
-    expect(runtime.registerMesh).toHaveBeenCalledTimes(2);
+    expect(host.querySelectorAll(".spatial-pass")).toHaveLength(1);
     await act(() => render("latest"));
     expect(committed).toHaveBeenCalledTimes(1);
     const button = host.querySelector<HTMLButtonElement>("button");
@@ -349,7 +340,7 @@ describe("spatial recipe lifecycle", () => {
         .querySelector("[data-parent-scheme]")
         ?.getAttribute("data-parent-scheme"),
     ).toBe("1");
-    expect(runtime.registerMesh).toHaveBeenCalledTimes(2);
+    expect(host.querySelectorAll(".spatial-pass")).toHaveLength(1);
   });
 
   test("the last DOM child always matches the exit atlas, including chapters with links or no explicit exit", () => {
@@ -408,30 +399,3 @@ describe("spatial recipe lifecycle", () => {
     expect(style.color).toBe("rgb(22, 36, 35)");
   });
 });
-
-function createRuntimeStub(container: HTMLElement) {
-  return {
-    container,
-    registerScene: vi.fn(),
-    unregisterScene: vi.fn(),
-    registerCamera: vi.fn(),
-    unregisterCamera: vi.fn(),
-    registerRenderPass: vi.fn(),
-    unregisterRenderPass: vi.fn(),
-    registerPassViewport: vi.fn(),
-    unregisterPassViewport: vi.fn(),
-    registerMesh: vi.fn(),
-    unregisterMesh: vi.fn(),
-    registerLight: vi.fn(),
-    unregisterLight: vi.fn(),
-    registerModel: vi.fn(),
-    unregisterModel: vi.fn(),
-    registerTarget: vi.fn(),
-    unregisterTarget: vi.fn(),
-    sync() {},
-    getDebugState() {
-      throw new Error("Debug state is outside this lifecycle test.");
-    },
-    dispose() {},
-  } satisfies WebGLRuntime;
-}

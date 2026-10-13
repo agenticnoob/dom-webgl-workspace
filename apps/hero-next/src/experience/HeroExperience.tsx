@@ -1,162 +1,158 @@
 "use client";
 
-import type {
-  WebGLDeclaration,
-  WebGLRenderQualityDeclaration,
-} from "@viselora/dom-webgl";
-import {
-  WebGLCamera,
-  WebGLLight,
-  WebGLMesh,
-  WebGLScene,
-  WebGLTarget,
-  type WebGLCameraProps,
-  type WebGLLightProps,
-  type WebGLMeshProps,
-  type WebGLSceneRenderOptions,
-} from "@viselora/dom-webgl/react";
+import type { CanvasProps } from "@react-three/fiber";
+import { useWebGLRuntime } from "@viselora/dom-webgl/react";
 import {
   WebGLScrollRuntime,
   useScrollEffectProgressStore,
 } from "@viselora/scroll-adapters/react";
-import React, { useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 import { HeroChapterNarrative } from "../chapters/HeroChapterNarrative";
 import { heroSiteContent } from "../chapters/content";
-import { heroTetrahedronEffect } from "../tetrahedron/effect";
+import { HeroTetrahedron } from "../tetrahedron/HeroTetrahedron";
 import { HeroProfileModel } from "../profile/HeroProfileModel";
-import { heroProfileModelEffect } from "../profile/modelEffect";
 import {
   useHeroDomContentActive,
   useHeroLocaleState,
   useHeroThemeState,
 } from "./useHeroExperienceState";
-import { heroGhostBackgroundEffect } from "../ghost/backgroundEffect";
+import { HeroGhostBackground } from "../ghost/HeroGhostBackground";
 import { heroSmoothScroll, refreshHeroScrollLayout } from "./smoothScroll";
 import { HeroPortalStage } from "../transition/HeroPortalStage";
-import { heroPortalMotionEffect } from "../transition/portalEffect";
+import { HeroPortalScene } from "../transition/HeroPortalScene";
 import { heroTransitionConfig } from "../transition/transitionConfig";
-import type { HeroTransitionSignalWriter } from "../transition/signals";
-import { HeroAxiomsStage } from "../axioms/HeroAxiomsReader";
-import { heroAxiomsReaderEffect } from "../axioms/effect";
-import { HeroProjectRoomStage } from "../projects/HeroProjectRoom";
-import { heroProjectRoomEffect } from "../projects/effect";
-import { createProjectRoomStore } from "../projects/room";
+import { HeroAxiomsScene } from "../axioms/HeroAxiomsScene";
+import { HeroProjectRoomScene } from "../projects/HeroProjectRoomScene";
+import {
+  createProjectRoomStore,
+  type ProjectRoomStore,
+} from "../projects/room";
 
-const heroRuntimeEffects = [
-  heroTetrahedronEffect,
-  heroGhostBackgroundEffect,
-  heroPortalMotionEffect,
-  heroProfileModelEffect,
-  heroAxiomsReaderEffect,
-  heroProjectRoomEffect,
-] as const;
-
-const heroRenderQuality = {
-  antialias: true,
-  maxDevicePixelRatio: 2,
-} satisfies WebGLRenderQualityDeclaration;
-
-const renderOptions = {
-  id: "hero.tetrahedron.pass",
-  camera: "hero.tetrahedron.camera",
-  order: 0,
-  clear: true,
-  clearDepth: true,
-} satisfies WebGLSceneRenderOptions;
-
-const ghostBackgroundDeclaration = {
-  key: "hero.ghost.background",
-  placement: { mode: "screen-depth", depth: 5, size: "dom" },
-  source: { kind: "dom", type: "element" },
-  renderRole: "model",
-  lifecycle: { hideWhenReady: true, hideMode: "self" },
-  effects: [
-    {
-      kind: "hero.ghost.background",
-      depth: 5,
-      fov: 38,
-      overscan: 1.06,
-    },
-  ],
-} satisfies WebGLDeclaration;
-
-const tetrahedronGeometry = {
-  kind: "tetrahedron",
-  radius: heroTransitionConfig.geometry.radius,
-} satisfies WebGLMeshProps["geometry"];
-
-const tetrahedronMaterial = {
-  kind: "standard",
-  color: heroTransitionConfig.colors.dark,
-  emissive: heroTransitionConfig.colors.dark,
-  emissiveIntensity: heroTransitionConfig.motion.emissiveIntensity,
-  opacity: heroTransitionConfig.motion.initialOpacity,
-  metalness: heroTransitionConfig.visual.metalness,
-  roughness: heroTransitionConfig.visual.roughness,
-} satisfies NonNullable<WebGLMeshProps["material"]>;
-
-const tetrahedronInteraction = {
-  pickable: {
-    hitTest: "mesh",
-    pointer: { press: true },
+export const heroCanvasOptions = {
+  gl: { antialias: true, alpha: true },
+  orthographic: false,
+  dpr: [1, 2],
+  camera: {
+    fov: heroTransitionConfig.chapterGeometry.cameraFov,
+    near: 0.1,
+    far: 50,
+    position: [0, 0, heroTransitionConfig.chapterGeometry.cameraDistance],
   },
-} satisfies NonNullable<WebGLMeshProps["interaction"]>;
+  onCreated: ({ camera }) => {
+    camera.lookAt(0, heroTransitionConfig.chapterGeometry.cameraTargetY, 0);
+    camera.updateMatrixWorld();
+  },
+} satisfies Omit<CanvasProps, "children">;
 
-const cameraPosition = [
-  0,
-  0,
-  heroTransitionConfig.chapterGeometry.cameraDistance,
-] satisfies NonNullable<WebGLCameraProps["position"]>;
-const cameraTarget = [
-  0,
-  heroTransitionConfig.chapterGeometry.cameraTargetY,
-  0,
-] satisfies NonNullable<WebGLCameraProps["target"]>;
-const keyLightPosition = [1.6, 2.2, 2.6] satisfies NonNullable<
-  WebGLLightProps["position"]
->;
-const rimLightPosition = [-2.2, -1.2, 0.8] satisfies NonNullable<
-  WebGLLightProps["position"]
->;
-const lightTarget = [0, 0, 0] satisfies NonNullable<WebGLLightProps["target"]>;
+type HeroState = {
+  readonly theme: ReturnType<typeof useHeroThemeState>;
+  readonly locale: ReturnType<typeof useHeroLocaleState>;
+  readonly projectRoom: ProjectRoomStore;
+};
 
 export function HeroExperience() {
+  const theme = useHeroThemeState();
+  const locale = useHeroLocaleState();
+  const projectRoom = useMemo(createProjectRoomStore, []);
   return (
     <WebGLScrollRuntime
       className="hero-runtime"
-      effects={heroRuntimeEffects}
-      renderQuality={heroRenderQuality}
       smooth={heroSmoothScroll}
+      canvas={heroCanvasOptions}
+      scene={
+        <HeroCanvasScene
+          theme={theme}
+          locale={locale}
+          projectRoom={projectRoom}
+        />
+      }
     >
-      <HeroScene />
+      <HeroSemanticScene
+        theme={theme}
+        locale={locale}
+        projectRoom={projectRoom}
+      />
     </WebGLScrollRuntime>
   );
 }
 
-function HeroScene() {
-  const store = useScrollEffectProgressStore();
-  const projectRoom = useMemo(createProjectRoomStore, []);
-  const signalWriter = useMemo<HeroTransitionSignalWriter>(
-    () => ({ set: (key, value) => store.set(key, value) }),
-    [store],
+function HeroCanvasScene({ theme, locale, projectRoom }: HeroState) {
+  const pointerActive = useRef(false);
+  useEffect(() => {
+    const enter = () => {
+      pointerActive.current = true;
+    };
+    const leave = () => {
+      pointerActive.current = false;
+    };
+    window.addEventListener("pointermove", enter, { passive: true });
+    document.documentElement.addEventListener("pointerleave", leave);
+    window.addEventListener("blur", leave);
+    return () => {
+      window.removeEventListener("pointermove", enter);
+      document.documentElement.removeEventListener("pointerleave", leave);
+      window.removeEventListener("blur", leave);
+    };
+  }, []);
+  return (
+    <group name="hero.tetrahedron.scene">
+      <HeroTetrahedron
+        theme={theme.store}
+        locale={locale.store}
+        pointerActive={pointerActive}
+      />
+      <HeroGhostBackground pointerActive={pointerActive} />
+      <HeroPortalScene
+        textKey={`${theme.scheme}:${locale.locale}`}
+        pointerActive={pointerActive}
+      />
+      <HeroProfileModel pointerActive={pointerActive} />
+      <HeroAxiomsScene locale={locale.store} />
+      <HeroProjectRoomScene
+        locale={locale.store}
+        room={projectRoom}
+        pointerActive={pointerActive}
+      />
+      <ambientLight name="hero.scene.ambient" intensity={0.45} />
+      <directionalLight
+        name="hero.scene.fill"
+        intensity={1}
+        position={[1, 1.5, 2]}
+      />
+      <directionalLight
+        name="hero.tetrahedron.key"
+        color="#f2f2f2"
+        intensity={heroTransitionConfig.visual.keyLightIntensity}
+        position={[1.6, 2.2, 2.6]}
+      />
+      <directionalLight
+        name="hero.tetrahedron.rim"
+        color="#b8b8b8"
+        intensity={heroTransitionConfig.visual.rimLightIntensity}
+        position={[-2.2, -1.2, 0.8]}
+      />
+    </group>
   );
-  const theme = useHeroThemeState();
-  const locale = useHeroLocaleState();
-  const domContentActive = useHeroDomContentActive(store.source);
-  const tetrahedronEffects = useMemo(
-    () =>
-      [
-        {
-          kind: "hero.tetrahedron.motion",
-          signals: signalWriter,
-          theme: theme.store,
-          locale: locale.store,
-        },
-      ] satisfies NonNullable<WebGLMeshProps["effects"]>,
-    [locale.store, signalWriter, theme.store],
-  );
+}
 
+function HeroSemanticScene({ theme, locale, projectRoom }: HeroState) {
+  const runtime = useWebGLRuntime();
+  const readReady = useCallback(() => runtime.getDebugState().ready, [runtime]);
+  const ready = useSyncExternalStore(runtime.subscribe, readReady, () => false);
+  const store = useScrollEffectProgressStore();
+  const domContentActive = useHeroDomContentActive(store.source);
+  useEffect(() => {
+    if (!ready)
+      projectRoom.publishFrame({ ready: false, active: false, settled: true });
+    refreshHeroScrollLayout();
+  }, [ready, projectRoom]);
   return (
     <main
       className="hero-space"
@@ -164,61 +160,13 @@ function HeroScene() {
       data-hero-theme={theme.scheme}
       data-hero-locale={locale.locale}
       data-dom-active={domContentActive ? "true" : "false"}
+      data-webgl-ready={ready ? "true" : "false"}
     >
-      <WebGLScene
-        id="hero.tetrahedron.scene"
-        projection="perspective-stage"
-        render={renderOptions}
-      >
-        <WebGLCamera
-          id="hero.tetrahedron.camera"
-          default
-          type="perspective"
-          mode="perspective-stage"
-          fov={heroTransitionConfig.chapterGeometry.cameraFov}
-          near={0.1}
-          far={50}
-          position={cameraPosition}
-          target={cameraTarget}
-        />
-        <WebGLTarget
-          as="div"
-          className="hero-ghost-surface hero-ghost-surface--background"
-          aria-hidden="true"
-          webgl={ghostBackgroundDeclaration}
-        />
-        <HeroPortalStage
-          locale={locale.locale}
-          progress={store.source}
-          styleKey={theme.scheme}
-        />
-        <HeroProfileModel />
-        <HeroAxiomsStage locale={locale.store} />
-        <HeroProjectRoomStage locale={locale.store} room={projectRoom} />
-        <WebGLMesh
-          id="hero.tetrahedron.mesh"
-          geometry={tetrahedronGeometry}
-          material={tetrahedronMaterial}
-          effects={tetrahedronEffects}
-          interaction={tetrahedronInteraction}
-        />
-        <WebGLLight
-          id="hero.tetrahedron.key"
-          kind="directional"
-          color="#f2f2f2"
-          intensity={heroTransitionConfig.visual.keyLightIntensity}
-          position={keyLightPosition}
-          target={lightTarget}
-        />
-        <WebGLLight
-          id="hero.tetrahedron.rim"
-          kind="directional"
-          color="#b8b8b8"
-          intensity={heroTransitionConfig.visual.rimLightIntensity}
-          position={rimLightPosition}
-          target={lightTarget}
-        />
-      </WebGLScene>
+      <HeroPortalStage
+        locale={locale.locale}
+        progress={store.source}
+        styleKey={theme.scheme}
+      />
       <HeroChapterNarrative
         locale={locale.locale}
         onLocaleChange={locale.store.commit}

@@ -12,7 +12,7 @@ Read [README.md](./README.md) and
 - Do not import package source paths or runtime internals.
 - Do not modify `packages/` to tune this app unless the user explicitly
   authorizes a reusable public capability change.
-- Report a missing capability with the desired public declaration/facade,
+- Report a missing DOM/runtime management capability with the desired public API,
   ownership, lifecycle, and verification contract before changing packages.
 - Never add a Hero key, asset, branch, shader, layout, or copy rule to runtime
   source.
@@ -24,7 +24,9 @@ Read [README.md](./README.md) and
 - WebGL owns the tetrahedron, face projection, triangular transition window,
   shader output, lighting, postprocess, and motion.
 - Keep one runtime, one canvas, one scroll truth, and one committed theme truth.
-- Do not create raw Three.js renderer/scene/camera/material/loader ownership.
+- R3F owns the canvas, renderer and frame loop. App components use native Three.js
+  geometry, materials, lights, loaders and object refs inside the shared scene.
+- Dispose app-created textures/materials; do not dispose shared useGLTF cache assets.
 - Do not add a second canvas, CSS mask/clip transition, duplicate mesh, DOM
   event bus, second theme store, or React frame state.
 - Preserve the two semantic non-light color tokens unless the user explicitly
@@ -34,9 +36,9 @@ Read [README.md](./README.md) and
 
 ## Declaration stability
 
-- Keep runtime effects, scene declarations, smooth-scroll options, signal keys,
-  and shader definitions referentially stable.
-- High-frequency transition state stays in the scene-object effect and progress
+- Keep Canvas options, smooth-scroll options, signal keys, shader programs and
+  app stores stable. Use `useFrame` to mutate native object refs.
+- High-frequency transition state stays in native object refs and the progress
   store, not React props/state.
 - A real primary-pointer mesh hit is the interaction source; do not replace it
   with a page-level DOM press shortcut.
@@ -45,23 +47,23 @@ Read [README.md](./README.md) and
 
 ## Source ownership
 
-| Concern                                                               | Owner                                                                                                                                    |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime composition and React subscriptions                           | `src/experience/`                                                                                                                        |
-| Chapter identity, order, signals, faces, and atlas slots              | `src/chapters/definitions.ts`                                                                                                            |
-| Pure reversible scroll phases and geometry                            | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`                                                                                |
-| Chapter content, semantic DOM, and locale control                     | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
-| Chapter-one profile body, model declaration, and scroll effect        | `src/profile/`                                                                                                                           |
-| Chapter-two article registry, reader geometry, postage edges, and managed effect | `src/axioms/`; behavior and extension instructions live in `docs/visual-design.md` |
-| Chapter-three room navigation, artwork, shader, and semantic controls | `src/projects/`; project copy remains in `src/chapters/content.ts` |
-| Chapter-four public directory, pointer previews, and endpoint artwork | `src/signals/`; channel copy and destinations remain in `src/chapters/content.ts` |
-| Responsive atlas and profile DOM layout                               | `src/chapters/layout.ts`, `src/chapters/atlas.ts`, `src/profile/`                                                                        |
-| Committed theme and locale persistence                                | `src/preferences/`                                                                                                                       |
-| Transition constants, hold/radial/portal state, and progress encoding | `src/transition/`                                                                                                                        |
-| Mesh effect, material, motion, and shader                             | `src/tetrahedron/`                                                                                                                       |
-| Background, cursor, and pointer-light effect                          | `src/ghost/`                                                                                                                             |
-| Shared viewport type and browser read                                 | `src/shared/viewport.ts`                                                                                                                 |
-| Visual truth                                                          | `docs/visual-design.md`                                                                                                                  |
+| Concern                                                                         | Owner                                                                                                                                    |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime composition and React subscriptions                                     | `src/experience/`                                                                                                                        |
+| Chapter identity, order, signals, faces, and atlas slots                        | `src/chapters/definitions.ts`                                                                                                            |
+| Pure reversible scroll phases and geometry                                      | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`                                                                                |
+| Chapter content, semantic DOM, and locale control                               | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
+| Chapter-one profile body, model component, and scroll effect                    | `src/profile/`                                                                                                                           |
+| Chapter-two article registry, reader geometry, postage edges, and R3F component | `src/axioms/`; behavior and extension instructions live in `docs/visual-design.md`                                                       |
+| Chapter-three room navigation, artwork, shader, and semantic controls           | `src/projects/`; project copy remains in `src/chapters/content.ts`                                                                       |
+| Chapter-four public directory, pointer previews, and endpoint artwork           | `src/signals/`; channel copy and destinations remain in `src/chapters/content.ts`                                                        |
+| Responsive atlas and profile DOM layout                                         | `src/chapters/layout.ts`, `src/chapters/atlas.ts`, `src/profile/`                                                                        |
+| Committed theme and locale persistence                                          | `src/preferences/`                                                                                                                       |
+| Transition constants, hold/radial/portal state, and progress encoding           | `src/transition/`                                                                                                                        |
+| Native mesh component, material, motion, and shader                             | `src/tetrahedron/`                                                                                                                       |
+| Background, cursor, and native pointer light                                    | `src/ghost/`                                                                                                                             |
+| Shared viewport type and browser read                                           | `src/shared/viewport.ts`                                                                                                                 |
+| Visual truth                                                                    | `docs/visual-design.md`                                                                                                                  |
 
 Do not duplicate constants or live state across these modules. Chapter order,
 signal keys, tetrahedron face vectors, and atlas slots have one structural truth

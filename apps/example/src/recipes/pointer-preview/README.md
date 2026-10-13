@@ -60,7 +60,7 @@ reserve space and preserve aspect ratio.
 | `intro`, `footer`      | Optional plain-text context above/below the rows.                                                            |
 | `className`            | Additional layout class. The component fills its parent width.                                               |
 
-Unlike managed WebGL declarations, these are normal React props: replace the
+These are normal React props: replace the
 items array to update content without remounting. Preserve IDs for the same
 entries; change IDs when replacing their identity. No item data is persisted.
 

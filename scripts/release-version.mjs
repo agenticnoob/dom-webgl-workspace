@@ -7,6 +7,7 @@ const releaseFiles = {
   runtime: "packages/dom-webgl-runtime/package.json",
   adapters: "packages/dom-webgl-scroll-adapters/package.json",
   app: "apps/example/package.json",
+  hero: "apps/hero-next/package.json",
   skill: "skills/viselora-dom-webgl/SKILL.md",
   lockfile: "package-lock.json",
 };
@@ -84,6 +85,7 @@ function prepareNextDocuments(documents, version) {
   const runtime = parseJson(documents.runtime, releaseFiles.runtime);
   const adapters = parseJson(documents.adapters, releaseFiles.adapters);
   const app = parseJson(documents.app, releaseFiles.app);
+  const hero = parseJson(documents.hero, releaseFiles.hero);
   const lockfile = parseJson(documents.lockfile, releaseFiles.lockfile);
 
   runtime.version = version;
@@ -94,6 +96,9 @@ function prepareNextDocuments(documents, version) {
   const appDependencies = requireObject(app, "dependencies", releaseFiles.app);
   appDependencies["@viselora/dom-webgl"] = version;
   appDependencies["@viselora/scroll-adapters"] = version;
+  const heroDependencies = requireObject(hero, "dependencies", releaseFiles.hero);
+  heroDependencies["@viselora/dom-webgl"] = version;
+  heroDependencies["@viselora/scroll-adapters"] = version;
 
   const packages = requireObject(lockfile, "packages", releaseFiles.lockfile);
   const lockRuntime = requireObject(
@@ -107,6 +112,7 @@ function prepareNextDocuments(documents, version) {
     releaseFiles.lockfile,
   );
   const lockApp = requireObject(packages, "apps/example", releaseFiles.lockfile);
+  const lockHero = requireObject(packages, "apps/hero-next", releaseFiles.lockfile);
   lockRuntime.version = version;
   lockAdapters.version = version;
   requireObject(lockAdapters, "dependencies", releaseFiles.lockfile)[
@@ -119,6 +125,13 @@ function prepareNextDocuments(documents, version) {
   );
   lockAppDependencies["@viselora/dom-webgl"] = version;
   lockAppDependencies["@viselora/scroll-adapters"] = version;
+  const lockHeroDependencies = requireObject(
+    lockHero,
+    "dependencies",
+    releaseFiles.lockfile,
+  );
+  lockHeroDependencies["@viselora/dom-webgl"] = version;
+  lockHeroDependencies["@viselora/scroll-adapters"] = version;
 
   const compatibleVersionPattern = /(Compatible package version:\s*)(\S+)/;
   if (!compatibleVersionPattern.test(documents.skill)) {
@@ -131,6 +144,7 @@ function prepareNextDocuments(documents, version) {
     runtime: formatJson(runtime),
     adapters: formatJson(adapters),
     app: formatJson(app),
+    hero: formatJson(hero),
     skill: documents.skill.replace(compatibleVersionPattern, `$1${version}`),
     lockfile: formatJson(lockfile),
   };
@@ -140,6 +154,7 @@ function readState(documents) {
   const runtime = parseJson(documents.runtime, releaseFiles.runtime);
   const adapters = parseJson(documents.adapters, releaseFiles.adapters);
   const app = parseJson(documents.app, releaseFiles.app);
+  const hero = parseJson(documents.hero, releaseFiles.hero);
   const lockfile = parseJson(documents.lockfile, releaseFiles.lockfile);
   const skill = documents.skill.match(/Compatible package version:\s*(\S+)/)?.[1];
   if (!skill) {
@@ -159,6 +174,7 @@ function readState(documents) {
     releaseFiles.lockfile,
   );
   const lockApp = requireObject(packages, "apps/example", releaseFiles.lockfile);
+  const lockHero = requireObject(packages, "apps/hero-next", releaseFiles.lockfile);
   return {
     runtime: runtime.version,
     adapters: adapters.version,
@@ -169,6 +185,12 @@ function readState(documents) {
       "@viselora/dom-webgl"
     ],
     appAdapters: requireObject(app, "dependencies", releaseFiles.app)[
+      "@viselora/scroll-adapters"
+    ],
+    heroRuntime: requireObject(hero, "dependencies", releaseFiles.hero)[
+      "@viselora/dom-webgl"
+    ],
+    heroAdapters: requireObject(hero, "dependencies", releaseFiles.hero)[
       "@viselora/scroll-adapters"
     ],
     skill,
@@ -186,6 +208,16 @@ function readState(documents) {
     )["@viselora/dom-webgl"],
     lockAppAdapters: requireObject(
       lockApp,
+      "dependencies",
+      releaseFiles.lockfile,
+    )["@viselora/scroll-adapters"],
+    lockHeroRuntime: requireObject(
+      lockHero,
+      "dependencies",
+      releaseFiles.lockfile,
+    )["@viselora/dom-webgl"],
+    lockHeroAdapters: requireObject(
+      lockHero,
       "dependencies",
       releaseFiles.lockfile,
     )["@viselora/scroll-adapters"],

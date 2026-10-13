@@ -1,81 +1,54 @@
-import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useRef } from "react";
 
-import { clampNumber } from "./effectMath";
-
-type SceneObjectHoverPulseParams = {
-  kind: "example.sceneObjectHoverPulse";
-  baseOpacity?: number;
-  hoverOpacity?: number;
-  clickOpacity?: number;
-};
-
-type PhysicsKinematicSweepParams = {
-  kind: "example.physicsKinematicSweep";
-  baseX?: number;
-  amplitude?: number;
-  y?: number;
-  z?: number;
-  speed?: number;
-};
-
-type ClickPulseState = {
-  clickUntil: number;
-};
-
-const clickPulseDurationMs = 260;
-
-export const exampleSceneObjectHoverPulseEffect =
-  defineWebGLSceneObjectEffect<SceneObjectHoverPulseParams, ClickPulseState>({
-    kind: "example.sceneObjectHoverPulse",
-    source: ["mesh", "model/glb"],
-    setup() {
-      return { clickUntil: 0 };
-    },
-    update(ctx, state, params) {
-      const baseOpacity = clampNumber(params.baseOpacity, 0, 1, 0.72);
-      const hoverOpacity = clampNumber(params.hoverOpacity, 0, 1, 0.9);
-      const clickOpacity = clampNumber(params.clickOpacity, 0, 1, 1);
-      const clickPulse = readClickPulse(ctx.objectPointer.wasClicked, ctx.time, state);
-
-      ctx.object.opacity =
-        clickPulse > 0
-          ? clickOpacity
-          : ctx.objectPointer.isHovered
-            ? hoverOpacity
-            : baseOpacity;
-    },
-  });
-
-export const examplePhysicsKinematicSweepEffect =
-  defineWebGLSceneObjectEffect<PhysicsKinematicSweepParams>({
-    kind: "example.physicsKinematicSweep",
-    source: "model/glb",
-    schedule: "frame",
-    update(ctx, _state, params) {
-      const baseX = params.baseX ?? 252;
-      const amplitude = clampNumber(params.amplitude, 0, 220, 68);
-      const speed = clampNumber(params.speed, 0, 8, 0.0012);
-      const y = params.y ?? -132;
-      const z = params.z ?? -70;
-      const x = baseX + Math.sin(ctx.time * speed) * amplitude;
-
-      ctx.object.position.set(x, y, z);
-    },
-  });
-
-function readClickPulse(
-  wasClicked: boolean,
+export function readHoverOpacity(
   time: number,
-  state: ClickPulseState,
+  hovered: boolean,
+  clickUntil: number,
+  base = 0.72,
+  hover = 0.9,
 ): number {
-  if (wasClicked) {
-    state.clickUntil = time + clickPulseDurationMs;
-  }
+  return time < clickUntil ? 1 : hovered ? hover : base;
+}
 
-  return clampNumber(
-    (state.clickUntil - time) / clickPulseDurationMs,
-    0,
-    1,
-    0,
+export function readKinematicSweep(timeSeconds: number): {
+  x: number;
+  y: number;
+  z: number;
+} {
+  return { x: 2.52 + Math.sin(timeSeconds * 2.4) * 0.96, y: -1.32, z: -0.7 };
+}
+
+/** Native mesh events and frame mutation keep hover independent of React renders. */
+export function useHoverPulse(
+  apply: (opacity: number) => void,
+  base: number,
+  hover: number,
+) {
+  const clock = useThree((state) => state.clock);
+  const state = useRef({ hovered: false, clickUntil: 0 });
+  useFrame(() =>
+    apply(
+      readHoverOpacity(
+        clock.elapsedTime,
+        state.current.hovered,
+        state.current.clickUntil,
+        base,
+        hover,
+      ),
+    ),
   );
+  return {
+    onPointerOver(event: ThreeEvent<PointerEvent>) {
+      event.stopPropagation();
+      state.current.hovered = true;
+    },
+    onPointerOut() {
+      state.current.hovered = false;
+    },
+    onClick(event: ThreeEvent<MouseEvent>) {
+      event.stopPropagation();
+      state.current.clickUntil = clock.elapsedTime + 0.26;
+    },
+  };
 }

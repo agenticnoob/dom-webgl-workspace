@@ -1,7 +1,5 @@
-import type {
-  WebGLEffectMaterialProgram,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import { ShaderMaterial, type Texture } from "three";
+import { shaderUniforms, surfaceVertexShader } from "./nativeMaterials";
 
 type GhostCursorOptions = {
   readonly color: string;
@@ -34,7 +32,13 @@ export type GhostSurfaceContext = {
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
   beginPath(): void;
-  arc(x: number, y: number, radius: number, startAngle: number, endAngle: number): void;
+  arc(
+    x: number,
+    y: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number,
+  ): void;
   clearRect(x: number, y: number, width: number, height: number): void;
   createRadialGradient(
     x0: number,
@@ -67,7 +71,14 @@ export function drawGhostCursorSurface(
   const maxTrail = Math.max(6, Math.min(64, options.trailLength));
   const baseRadius = calculateGhostCursorBaseRadius(width, height);
   for (let index = maxTrail; index >= 0; index -= 1) {
-    const sample = createSmokeSample(index, maxTrail, baseRadius, width, height, options.time);
+    const sample = createSmokeSample(
+      index,
+      maxTrail,
+      baseRadius,
+      width,
+      height,
+      options.time,
+    );
     const alpha =
       options.opacity *
       sample.weight *
@@ -99,18 +110,23 @@ export function drawGhostCursorSurface(
 
 export function createGhostCursorMaterialProgram(
   options: GhostCursorShaderOptions,
-): WebGLEffectMaterialProgram {
-  return {
+  source: Texture,
+): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader: surfaceVertexShader,
+    toneMapped: false,
     defines: { MAX_TRAIL_LENGTH: ghostCursorTrailLength },
     fragmentShader: ghostCursorFragmentShader,
-    uniforms: createGhostCursorUniforms(options),
-    blend: "screen",
-  };
+    uniforms: shaderUniforms({
+      ...createGhostCursorUniforms(options),
+      uSource: source,
+    }),
+  });
 }
 
 export function createGhostCursorUniforms(
   options: GhostCursorShaderOptions,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, unknown> {
   const resolution: [number, number] = [
     Math.max(1, options.width),
     Math.max(1, options.height),
@@ -119,7 +135,11 @@ export function createGhostCursorUniforms(
     Math.max(0, Math.min(options.width, options.pointerX)),
     Math.max(0, Math.min(options.height, options.height - options.pointerY)),
   ];
-  const normalizedPointer = normalizePoint(pointer, options.width, options.height);
+  const normalizedPointer = normalizePoint(
+    pointer,
+    options.width,
+    options.height,
+  );
   const color = readColorVector(options.color);
   const trailPoints = normalizeTrailPoints(
     options.trailPoints,
@@ -129,7 +149,6 @@ export function createGhostCursorUniforms(
   );
 
   return {
-    uSource: { kind: "source-texture" },
     iTime: options.time * 0.001,
     iResolution: [resolution[0], resolution[1], 1],
     iMouse: normalizedPointer,
@@ -151,13 +170,19 @@ export function createGhostCursorUniforms(
   };
 }
 
-export function calculateGhostCursorScale(width: number, height: number): number {
+export function calculateGhostCursorScale(
+  width: number,
+  height: number,
+): number {
   const current = Math.min(Math.max(1, width), Math.max(1, height));
 
   return Math.max(0.5, Math.min(2, current / 600));
 }
 
-export function calculateGhostCursorBaseRadius(width: number, height: number): number {
+export function calculateGhostCursorBaseRadius(
+  width: number,
+  height: number,
+): number {
   return Math.max(18, Math.min(width, height) * 0.13);
 }
 
@@ -279,7 +304,8 @@ function createSmokeSample(
   const orbit = baseRadius * (0.9 + age * 3.4 + pulse * 1.2);
   const centerX = width * (0.51 + Math.sin(time * 0.00018) * 0.04);
   const centerY = height * (0.43 + Math.cos(time * 0.00021) * 0.05);
-  const verticalBias = Math.sin(time * 0.0008 + age * Math.PI) * baseRadius * 0.42;
+  const verticalBias =
+    Math.sin(time * 0.0008 + age * Math.PI) * baseRadius * 0.42;
 
   return {
     drift,
@@ -303,10 +329,11 @@ function colorWithAlpha(color: string, alpha: number): string {
 
 function noise2(x: number, y: number, time: number): number {
   return (
-    Math.sin(x * 0.021 + time * 0.0017) * 0.5 +
-    Math.cos(y * 0.028 - time * 0.0013) * 0.5 +
-    1
-  ) / 2;
+    (Math.sin(x * 0.021 + time * 0.0017) * 0.5 +
+      Math.cos(y * 0.028 - time * 0.0013) * 0.5 +
+      1) /
+    2
+  );
 }
 
 function readColorVector(color: string): [number, number, number] {
@@ -339,9 +366,11 @@ function normalizeTrailPoints(
   fallback: readonly [number, number],
 ): readonly [number, number][] {
   const points = trailPoints ?? [];
-  const normalized = points.slice(0, ghostCursorTrailLength).map((point) =>
-    normalizePoint([point[0], height - point[1]], width, height),
-  );
+  const normalized = points
+    .slice(0, ghostCursorTrailLength)
+    .map((point) =>
+      normalizePoint([point[0], height - point[1]], width, height),
+    );
 
   while (normalized.length < ghostCursorTrailLength) {
     normalized.push([fallback[0], fallback[1]]);

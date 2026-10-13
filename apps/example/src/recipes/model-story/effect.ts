@@ -1,7 +1,3 @@
-import { defineWebGLSceneObjectEffect } from "@viselora/dom-webgl";
-
-import { resolveModelStoryFrame } from "./frame";
-
 export type ModelStoryFraming = {
   /** Center of the untransformed GLB, including its scene-node transforms. */
   readonly center: readonly [number, number, number];
@@ -14,49 +10,6 @@ export type ModelStoryVisualState = {
   reducedMotion: boolean;
   readonly setModelReady: (ready: boolean) => void;
 };
-
-type ModelStoryEffectParams = {
-  readonly kind: "recipe.model-story.turn";
-  readonly progressKey: string;
-  readonly framing: ModelStoryFraming;
-  readonly visual: ModelStoryVisualState;
-};
-
-const modelStoryTurnEffect = defineWebGLSceneObjectEffect<
-  ModelStoryEffectParams,
-  { disposed: boolean }
->({
-  kind: "recipe.model-story.turn",
-  source: "model/glb",
-  schedule: "reactive",
-  setup(_ctx, params) {
-    params.visual.setModelReady(true);
-    return { disposed: false };
-  },
-  update(ctx, state, params) {
-    if (state.disposed) return;
-    const { rotationY } = resolveModelStoryFrame(
-      ctx.progress.get(params.progressKey),
-      params.visual.reducedMotion,
-    );
-    const { position, scale } = resolveModelStoryTransform(
-      rotationY,
-      params.framing,
-      params.visual.aspect,
-    );
-    ctx.object.rotation.set(0, rotationY, 0);
-    ctx.object.scale.setScalar(scale);
-    ctx.object.position.set(...position);
-  },
-  dispose(_ctx, state, params) {
-    if (state.disposed) return;
-    state.disposed = true;
-    params.visual.setModelReady(false);
-  },
-});
-
-/** Merge into the existing runtime's effects once, outside React render. */
-export const modelStoryEffects = [modelStoryTurnEffect];
 
 export function resolveModelStoryTransform(
   rotationY: number,
@@ -83,11 +36,7 @@ export function resolveModelStoryTransform(
   };
 }
 
-export function createModelStoryEffectDeclaration(
-  progressKey: string,
-  framing: ModelStoryFraming,
-  visual: ModelStoryVisualState,
-): readonly ModelStoryEffectParams[] {
+export function validateModelStoryFraming(framing: ModelStoryFraming): void {
   if (
     !framing.size.every((value) => Number.isFinite(value) && value > 0) ||
     !framing.center.every(Number.isFinite)
@@ -96,5 +45,4 @@ export function createModelStoryEffectDeclaration(
       "ModelStory framing needs a finite center and three positive dimensions.",
     );
   }
-  return [{ kind: "recipe.model-story.turn", progressKey, framing, visual }];
 }

@@ -38,8 +38,7 @@ describe("hero assets and visual surface", () => {
     expect(css).toMatch(/body\s*\{[^}]*background:\s*#5f5f5f/);
     expect(css).toMatch(/\.hero-space\s*\{[\s\S]*background:\s*transparent/);
     expect(css).toMatch(/\.hero-runtime canvas[\s\S]*position:\s*fixed/);
-    expect(css).toMatch(/\.hero-ghost-surface[\s\S]*position:\s*fixed/);
-    expect(css).toMatch(/\.hero-ghost-surface[\s\S]*pointer-events:\s*none/);
+    expect(css).not.toContain(".hero-ghost-surface");
 
     expect(css).toMatch(/--hero-background:\s*#b8b8b8/);
     expect(css).toMatch(/--hero-foreground:\s*#5f5f5f/);

@@ -1,23 +1,21 @@
 import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
-import {
-  WebGLCamera,
-  WebGLLight,
-  WebGLModel,
-  WebGLPassViewport,
-  WebGLScene,
-  type WebGLCameraProps,
-  type WebGLModelProps,
-  type WebGLSceneRenderOptions,
-} from "@viselora/dom-webgl/react";
+import { PerspectiveCamera, View } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { Suspense, useEffect } from "react";
+import { ErrorBoundary } from "react-error-boundary";
+import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
+import { useClonedModel } from "../../useClonedModel";
+import { useRuntimeReady } from "../../useRuntimeReady";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
 
 import { createModelStoryController } from "./controller";
 import {
-  createModelStoryEffectDeclaration,
+  validateModelStoryFraming,
+  resolveModelStoryTransform,
   type ModelStoryFraming,
   type ModelStoryVisualState,
 } from "./effect";
-import type { ModelStoryMessages } from "./frame";
+import { resolveModelStoryFrame, type ModelStoryMessages } from "./frame";
 import { splitStoryText, type StoryWrapSide } from "./wrap";
 import "./model-story.css";
 
@@ -31,9 +29,9 @@ export type ModelStorySection = {
 export type ModelStoryModel = {
   readonly src: string;
   readonly description: string;
-  readonly loader?: WebGLModelProps["loader"];
+  readonly dracoPath?: string;
   readonly framing?: ModelStoryFraming;
-  /** Optional public image used until the managed model is ready or if loading fails. */
+  /** Optional public image used until the GLB is ready or if loading fails. */
   readonly poster?: string;
 };
 
@@ -47,8 +45,7 @@ export type ModelStoryProps = {
   readonly className?: string;
 };
 
-const cameraPosition = [0, 0, 4.5] satisfies WebGLCameraProps["position"];
-const cameraTarget = [0, 0, 0] satisfies WebGLCameraProps["target"];
+const cameraPosition: [number, number, number] = [0, 0, 4.5];
 const lightPosition: [number, number, number] = [3, 4, 5];
 const defaultFraming = {
   center: [0, 0, 0],
@@ -56,7 +53,7 @@ const defaultFraming = {
 } satisfies ModelStoryFraming;
 const facings = ["front", "side", "back"] as const;
 
-/** Mount inside WebGLScrollRuntime with modelStoryEffects. This component creates no runtime. */
+/** Mount inside a shared WebGLScrollRuntime whose scene contains View.Port. */
 export function ModelStory({
   id,
   title,
@@ -70,6 +67,8 @@ export function ModelStory({
   const modelBoxRef = useRef<HTMLDivElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const store = useScrollEffectProgressStore();
+  const runtimeReady = useRuntimeReady();
+  const [modelReady, setModelReady] = useState(false);
   const [declaration] = useState(() => {
     if (!id.trim())
       throw new Error("ModelStory needs a nonempty, runtime-unique id.");
@@ -77,25 +76,11 @@ export function ModelStory({
     const visual: ModelStoryVisualState = {
       aspect: 1,
       reducedMotion: false,
-      setModelReady(ready) {
-        rootRef.current?.setAttribute("data-model-ready", String(ready));
-      },
+      setModelReady,
     };
-    return {
-      progressKey,
-      visual,
-      effects: createModelStoryEffectDeclaration(
-        progressKey,
-        model.framing ?? defaultFraming,
-        visual,
-      ),
-      render: {
-        id: `${id}.pass`,
-        camera: `${id}.camera`,
-        clearDepth: true,
-        viewport: { mode: "dom-rect", scissor: true },
-      } satisfies WebGLSceneRenderOptions,
-    };
+    const framing = model.framing ?? defaultFraming;
+    validateModelStoryFraming(framing);
+    return { progressKey, visual, framing };
   });
 
   useLayoutEffect(() => {
@@ -120,6 +105,7 @@ export function ModelStory({
     <section
       ref={rootRef}
       className={`model-story${className ? ` ${className}` : ""}`}
+      data-model-ready={modelReady && runtimeReady}
       aria-labelledby={`${id}.title`}
     >
       <header className="model-story__intro">
@@ -152,43 +138,31 @@ export function ModelStory({
               )}
               <span>{model.description}</span>
             </div>
-            <WebGLPassViewport
-              id={`${id}.viewport`}
-              className="model-story__viewport"
-            >
-              <WebGLScene
-                id={`${id}.scene`}
-                projection="perspective-stage"
-                render={declaration.render}
+            <View id={`${id}.viewport`} className="model-story__viewport">
+              <PerspectiveCamera
+                makeDefault
+                fov={35}
+                position={cameraPosition}
+              />
+              <ErrorBoundary
+                fallback={null}
+                onError={() => declaration.visual.setModelReady(false)}
               >
-                <WebGLCamera
-                  id={`${id}.camera`}
-                  default
-                  type="perspective"
-                  mode="perspective-stage"
-                  fov={35}
-                  position={cameraPosition}
-                  target={cameraTarget}
-                />
-                <WebGLModel
-                  id={`${id}.model`}
-                  src={model.src}
-                  loader={model.loader}
-                  effects={declaration.effects}
-                />
-                <WebGLLight
-                  id={`${id}.ambient`}
-                  kind="ambient"
-                  intensity={1.2}
-                />
-                <WebGLLight
-                  id={`${id}.key`}
-                  kind="directional"
-                  intensity={2.4}
-                  position={lightPosition}
-                />
-              </WebGLScene>
-            </WebGLPassViewport>
+                <Suspense fallback={null}>
+                  <StoryModel
+                    model={model}
+                    progress={store.source}
+                    progressKey={declaration.progressKey}
+                    visual={declaration.visual}
+                    framing={declaration.framing}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+              <ambientLight intensity={1.2} />
+              <directionalLight intensity={2.4} position={lightPosition} />
+              <ambientLight intensity={0.45} />
+              <directionalLight intensity={1} position={[1, 1.5, 2]} />
+            </View>
           </div>
         </div>
       </div>
@@ -252,4 +226,39 @@ function StoryText({
       </span>
     </>
   );
+}
+
+function StoryModel({
+  model,
+  progress,
+  progressKey,
+  visual,
+  framing,
+}: {
+  readonly model: ModelStoryModel;
+  readonly progress: WebGLProgressSignalSource;
+  readonly progressKey: string;
+  readonly visual: ModelStoryVisualState;
+  readonly framing: ModelStoryFraming;
+}) {
+  const { scene } = useClonedModel(model.src, model.dracoPath);
+  useEffect(() => {
+    visual.setModelReady(true);
+    return () => visual.setModelReady(false);
+  }, [visual]);
+  useFrame(() => {
+    const { rotationY } = resolveModelStoryFrame(
+      progress.get(progressKey),
+      visual.reducedMotion,
+    );
+    const transform = resolveModelStoryTransform(
+      rotationY,
+      framing,
+      visual.aspect,
+    );
+    scene.rotation.set(0, rotationY, 0);
+    scene.scale.setScalar(transform.scale);
+    scene.position.set(...transform.position);
+  });
+  return <primitive object={scene} dispose={null} />;
 }

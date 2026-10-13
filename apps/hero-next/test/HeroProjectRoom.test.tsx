@@ -11,6 +11,29 @@ import { createProjectRoomStore } from "../src/projects/room";
 import { getHeroChapterContent } from "../src/chapters/content";
 import { heroChapterDefinitions } from "../src/chapters/definitions";
 
+const runtimeAvailability = vi.hoisted(() => {
+  let ready = true;
+  const listeners = new Set<() => void>();
+  return {
+    runtime: {
+      getDebugState: () => ({ ready }),
+      subscribe: (listener: () => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    setReady: (next: boolean) => {
+      ready = next;
+      for (const listener of listeners) listener();
+    },
+    listeners,
+  };
+});
+
+vi.mock("@viselora/dom-webgl/react", () => ({
+  useWebGLRuntime: () => runtimeAvailability.runtime,
+}));
+
 vi.mock("@viselora/scroll-adapters/react", () => ({
   WebGLScrollTimeline: ({
     children,
@@ -25,7 +48,10 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
 }));
 
 describe("project room semantic interface", () => {
-  beforeEach(() => vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true));
+  beforeEach(() => {
+    runtimeAvailability.setReady(true);
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  });
   afterEach(() => vi.unstubAllGlobals());
   test("keeps all four normal project links until the desktop renderer is ready", async () => {
     const host = document.createElement("div");
@@ -88,5 +114,54 @@ describe("project room semantic interface", () => {
     } finally {
       await act(() => root.unmount());
     }
+  });
+
+  test("restores project links when the Canvas becomes unavailable without unmounting the ready room", async () => {
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    const room = createProjectRoomStore();
+    const onLayoutChange = vi.fn();
+    room.publishFrame({ ready: true, active: true, settled: true });
+    try {
+      await act(() =>
+        root.render(
+          createElement(HeroProjectsChapterBody, {
+            definition: heroChapterDefinitions.builds,
+            content: getHeroChapterContent("builds", "zh"),
+            locale: "zh",
+            room,
+            onLayoutChange,
+          }),
+        ),
+      );
+      const section = host.querySelector(".hero-projects");
+      const controls = host.querySelector<HTMLElement>(
+        ".hero-projects__controls",
+      );
+      const links = Array.from(
+        host.querySelectorAll<HTMLAnchorElement>(".hero-projects__content a"),
+      );
+      expect(section?.getAttribute("data-room-ready")).toBe("true");
+      expect(controls?.hidden).toBe(false);
+      expect(links.every((link) => link.tabIndex === -1)).toBe(true);
+
+      await act(() => runtimeAvailability.setReady(false));
+
+      expect(room.getSnapshot().ready).toBe(true);
+      expect(section?.getAttribute("data-room-ready")).toBe("false");
+      expect(controls?.hidden).toBe(true);
+      expect(links.every((link) => link.tabIndex === 0)).toBe(true);
+
+      await act(() => runtimeAvailability.setReady(true));
+
+      expect(host.querySelector(".hero-projects")).toBe(section);
+      expect(section?.getAttribute("data-room-ready")).toBe("true");
+      expect(controls?.hidden).toBe(false);
+      expect(links.every((link) => link.tabIndex === -1)).toBe(true);
+      expect(onLayoutChange).toHaveBeenCalledTimes(3);
+    } finally {
+      await act(() => root.unmount());
+    }
+    expect(runtimeAvailability.listeners.size).toBe(0);
   });
 });

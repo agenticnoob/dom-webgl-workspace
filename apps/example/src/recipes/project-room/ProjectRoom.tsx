@@ -1,13 +1,7 @@
-import React, { useState, type CSSProperties } from "react";
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
-import {
-  WebGLPassViewport,
-  WebGLCamera,
-  WebGLScene,
-  WebGLTarget,
-  type WebGLSceneRenderOptions,
-} from "@viselora/dom-webgl/react";
-import type { ProjectRoomEffectParams } from "./effect";
+import React, { useState, useEffect, useRef, type CSSProperties } from "react";
+import { OrthographicCamera, View } from "@react-three/drei";
+import { ProjectRoomSurface } from "./ProjectRoomSurface";
+import { useRuntimeReady } from "../../useRuntimeReady";
 import { ProjectRoomControls } from "./ProjectRoomControls";
 import { defaultProjectRoomPalette, projectRoomColors } from "./program";
 import { createProjectRoomStore, validateProjectRoomItems } from "./room";
@@ -22,26 +16,27 @@ const defaultLabels: ProjectRoomLabels = {
   visit: "Visit project",
 };
 
-export function createProjectRoomDeclaration(
-  id: string,
-  params: Omit<ProjectRoomEffectParams, "kind">,
-): WebGLDeclaration {
-  return {
-    key: `${id}.surface`,
-    source: { kind: "dom", type: "element" },
-    lifecycle: { hideWhenReady: true, hideMode: "self" },
-    pointer: { hover: true },
-    effects: [
-      {
-        kind: "recipe.project-room",
-        ...params,
-      } satisfies ProjectRoomEffectParams,
-    ],
-  } satisfies WebGLDeclaration;
-}
-
 /** Immutable content/palette declarations: change the React key to replace them. */
 export function ProjectRoom(props: ProjectRoomProps) {
+  const runtimeReady = useRuntimeReady();
+  const view = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({ width: 1, height: 1 });
+  useEffect(() => {
+    const element = view.current;
+    if (!element) return;
+    const update = () => {
+      const rect = element.getBoundingClientRect();
+      setViewport((current) =>
+        current.width === rect.width && current.height === rect.height
+          ? current
+          : { width: rect.width, height: rect.height },
+      );
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    update();
+    return () => observer.disconnect();
+  }, []);
   const [mount] = useState(() => {
     const id = props.id.trim();
     if (!id) throw new Error("ProjectRoom requires a non-empty unique ID.");
@@ -60,54 +55,42 @@ export function ProjectRoom(props: ProjectRoomProps) {
         color: palette.foreground,
         "--recipe-room-background": palette.background,
       } satisfies CSSProperties & { "--recipe-room-background": string },
-      declaration: createProjectRoomDeclaration(id, {
-        items: props.items,
-        palette,
-        room,
-      }),
-      render: {
-        id: `${id}.pass`,
-        camera: `${id}.camera`,
-        order: 0,
-        clearDepth: true,
-        viewport: { mode: "dom-rect", scissor: true },
-      } satisfies WebGLSceneRenderOptions,
     };
   });
   return (
-    <WebGLPassViewport
+    <section
       id={`${mount.id}.viewport`}
-      as="section"
       className={["recipe-room", props.className].filter(Boolean).join(" ")}
       aria-label={mount.title}
       style={mount.style}
     >
-      <WebGLScene
-        id={`${mount.id}.scene`}
-        projection="screen"
-        render={mount.render}
-      >
-        <WebGLCamera
-          id={`${mount.id}.camera`}
-          default
-          type="orthographic"
-          mode="screen"
+      <View ref={view} className="recipe-room__surface">
+        <OrthographicCamera
+          makeDefault
+          manual
+          position={[0, 0, 1]}
+          left={-1}
+          right={1}
+          top={1}
+          bottom={-1}
+          near={0.01}
+          far={10}
         />
-        <WebGLTarget
-          as="div"
-          className="recipe-room__surface"
-          aria-hidden="true"
-          style={{ backgroundColor: mount.palette.background }}
-          webgl={mount.declaration}
+        <ProjectRoomSurface
+          items={mount.items}
+          palette={mount.palette}
+          room={mount.room}
+          viewport={viewport}
         />
-      </WebGLScene>
+      </View>
       <ProjectRoomControls
         id={mount.id}
         items={mount.items}
         title={mount.title}
         labels={mount.labels}
         room={mount.room}
+        available={runtimeReady}
       />
-    </WebGLPassViewport>
+    </section>
   );
 }

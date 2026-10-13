@@ -1,14 +1,12 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WebGLRuntimeProvider } from "@viselora/dom-webgl/react";
-import type { WebGLRuntime } from "@viselora/dom-webgl";
+
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   ModelStory,
-  modelStoryEffects,
   type ModelStoryProps,
 } from "../../src/recipes/model-story";
 
@@ -56,11 +54,7 @@ afterEach(() => {
 describe("ModelStory React semantics", () => {
   test("renders semantic content, full caption transcript, and fallback without WebGL or browser effects", () => {
     const markup = renderToStaticMarkup(
-      createElement(
-        WebGLScrollRuntime,
-        { effects: modelStoryEffects },
-        createElement(ModelStory, props),
-      ),
+      createElement(WebGLScrollRuntime, null, createElement(ModelStory, props)),
     );
     const host = document.createElement("div");
     host.innerHTML = markup;
@@ -83,95 +77,37 @@ describe("ModelStory React semantics", () => {
       host.querySelector(".model-story__stage")?.getAttribute("aria-hidden"),
     ).toBe("true");
     expect(host.querySelector("[aria-live]")).toBeNull();
-    expect(host.querySelector("canvas")).toBeNull();
+    expect(host.querySelectorAll("canvas")).toHaveLength(1);
   });
 
-  test("keeps managed declarations stable on parent rerenders and unregisters every scoped resource", async () => {
+  test("keeps semantic content stable across rerenders and releases its scroll controller", async () => {
     Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(17);
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const cancel = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => {});
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
-    const runtime = createRuntimeStub(host);
-    function render() {
+    const render = () =>
       root.render(
         createElement(
           WebGLScrollRuntime,
-          { effects: modelStoryEffects },
-          createElement(
-            WebGLRuntimeProvider,
-            { runtime },
-            createElement(ModelStory, props),
-          ),
+          null,
+          createElement(ModelStory, props),
         ),
       );
-    }
-    try {
-      await act(render);
-      const firstModel = runtime.registerModel.mock.calls[0]?.[0];
-      expect(firstModel).toMatchObject({
-        id: "test.figure.model",
-        sceneId: "test.figure.scene",
-        src: "/models/figure.glb",
-      });
-      expect(runtime.registerScene).toHaveBeenCalledTimes(1);
-      expect(runtime.registerModel).toHaveBeenCalledTimes(1);
-      await act(render);
-      expect(runtime.registerModel).toHaveBeenCalledTimes(1);
-      expect(runtime.registerScene).toHaveBeenCalledTimes(1);
-      expect(
-        host.querySelector(".model-story")?.getAttribute("data-model-ready"),
-      ).toBeNull();
-      expect(
-        host.querySelector(".model-story__fallback")?.textContent,
-      ).toContain("A carved figure");
-    } finally {
-      await act(() => root.unmount());
-    }
-    expect(runtime.unregisterModel).toHaveBeenCalledExactlyOnceWith(
-      "test.figure.model",
+    await act(render);
+    const section = host.querySelector(".model-story");
+    await act(render);
+    expect(host.querySelector(".model-story")).toBe(section);
+    expect(host.querySelectorAll(".model-story__viewport")).toHaveLength(1);
+    expect(host.querySelector(".model-story__fallback")?.textContent).toContain(
+      "A carved figure",
     );
-    expect(runtime.unregisterScene).toHaveBeenCalledExactlyOnceWith(
-      "test.figure.scene",
-    );
-    expect(runtime.unregisterRenderPass).toHaveBeenCalledExactlyOnceWith(
-      "test.figure.pass",
-    );
-    expect(runtime.unregisterPassViewport).toHaveBeenCalledExactlyOnceWith(
-      "test.figure.viewport",
-    );
-    expect(runtime.unregisterCamera).toHaveBeenCalledExactlyOnceWith(
-      "test.figure.camera",
-    );
-    expect(runtime.unregisterLight).toHaveBeenCalledWith("test.figure.key");
-    expect(runtime.unregisterLight).toHaveBeenCalledWith("test.figure.ambient");
+    await act(() => window.dispatchEvent(new Event("scroll")));
+    await act(() => root.unmount());
+    expect(host.childElementCount).toBe(0);
+    expect(cancel).toHaveBeenCalled();
   });
 });
-
-function createRuntimeStub(container: HTMLElement) {
-  return {
-    container,
-    registerScene: vi.fn(),
-    unregisterScene: vi.fn(),
-    registerCamera: vi.fn(),
-    unregisterCamera: vi.fn(),
-    registerRenderPass: vi.fn(),
-    unregisterRenderPass: vi.fn(),
-    registerPassViewport: vi.fn(),
-    unregisterPassViewport: vi.fn(),
-    registerMesh: vi.fn(),
-    unregisterMesh: vi.fn(),
-    registerLight: vi.fn(),
-    unregisterLight: vi.fn(),
-    registerModel: vi.fn(),
-    unregisterModel: vi.fn(),
-    registerTarget: vi.fn(),
-    unregisterTarget: vi.fn(),
-    sync() {},
-    getDebugState() {
-      throw new Error("Debug state is outside this registration test.");
-    },
-    dispose() {},
-  } satisfies WebGLRuntime;
-}

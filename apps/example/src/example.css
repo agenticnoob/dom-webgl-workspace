@@ -60,7 +60,11 @@ body {
 
 .example-kicker {
   margin: 0 0 var(--space-4);
-  font: 700 12px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font:
+    700 12px/1.2 ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -105,7 +109,11 @@ body {
   background: var(--color-overlay-bg);
   backdrop-filter: blur(6px);
   cursor: pointer;
-  font: 700 11px/1.5 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font:
+    700 11px/1.5 ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -142,7 +150,11 @@ body {
   background: transparent;
   color: var(--color-overlay-muted);
   cursor: pointer;
-  font: 700 12px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font:
+    700 12px/1.2 ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -578,8 +590,7 @@ body {
   border: 1px solid rgba(23, 33, 36, 0.12);
   border-radius: 10px;
   background: #f2c656;
-  box-shadow:
-    0 32px 90px rgba(4, 12, 10, 0.44);
+  box-shadow: 0 32px 90px rgba(4, 12, 10, 0.44);
   color: #172124;
   text-shadow: none;
 }
@@ -636,7 +647,12 @@ body {
   margin-left: clamp(24px, 7vw, 104px);
   padding: var(--space-14) 0;
   background:
-    linear-gradient(90deg, rgba(244, 241, 228, 0.96), rgba(244, 241, 228, 0.72) 68%, rgba(244, 241, 228, 0)),
+    linear-gradient(
+      90deg,
+      rgba(244, 241, 228, 0.96),
+      rgba(244, 241, 228, 0.72) 68%,
+      rgba(244, 241, 228, 0)
+    ),
     transparent;
   box-shadow: 28px 0 80px rgba(244, 241, 228, 0.44);
   user-select: none;
@@ -789,5 +805,35 @@ body {
     left: 0;
     min-height: 66dvh;
   }
+}
 
+.example-dom-visual {
+  position: relative;
+  min-width: 0;
+}
+.example-dom-view {
+  position: absolute;
+  inset: 0;
+}
+.example-dom-visual > :first-child > strong {
+  position: relative;
+  z-index: 2;
+}
+.example-runtime-debug {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 100;
+  max-width: min(440px, 90vw);
+  max-height: 50vh;
+  overflow: auto;
+  color: #f4f4f5;
+  background: #172124e8;
+  padding: 10px 14px;
+  font:
+    12px ui-monospace,
+    monospace;
+}
+.example-runtime-debug summary {
+  cursor: pointer;
 }

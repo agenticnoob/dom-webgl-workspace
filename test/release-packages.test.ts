@@ -1,9 +1,4 @@
-import {
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
@@ -26,8 +21,7 @@ type PackageManifest = {
 
 const packageBuildScript =
   "tsup src/index.ts src/react.ts --format esm --dts --sourcemap --clean --splitting false --out-dir dist";
-const packagePostbuildScript =
-  "node ../../scripts/finalize-package-dts.mjs";
+const packagePostbuildScript = "node ../../scripts/finalize-package-dts.mjs";
 
 const expectedDistFiles = [
   "index.d.ts",
@@ -50,7 +44,7 @@ describe("release package contracts", () => {
   test("publishes the runtime package with exact alpha metadata", () => {
     expect(runtimePackage).toMatchObject({
       name: "@viselora/dom-webgl",
-      version: "0.1.0-alpha.2",
+      version: "0.2.0-alpha.0",
       type: "module",
       files: ["dist", "README.md", "LICENSE"],
       main: "./dist/index.js",
@@ -65,8 +59,7 @@ describe("release package contracts", () => {
       bugs: {
         url: "https://github.com/agenticnoob/dom-webgl-workspace/issues",
       },
-      homepage:
-        "https://github.com/agenticnoob/dom-webgl-workspace#readme",
+      homepage: "https://github.com/agenticnoob/dom-webgl-workspace#readme",
       keywords: ["viselora", "webgl", "three.js", "dom", "react"],
       exports: {
         ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
@@ -82,21 +75,25 @@ describe("release package contracts", () => {
       },
     });
     expect(runtimePackage.dependencies).toEqual({
+      "react-error-boundary": "^6.1.6",
+    });
+    expect(runtimePackage.devDependencies).toEqual({
       "@types/three": "^0.184.1",
+    });
+    expect(runtimePackage.peerDependencies).toEqual({
+      "@react-three/fiber": "^9.8.1",
+      react: ">=19.0.0 <19.4.0",
+      "react-dom": ">=19.0.0 <19.4.0",
       three: "^0.184.0",
     });
-    expect(runtimePackage).not.toHaveProperty("devDependencies");
-    expect(runtimePackage.peerDependencies).toEqual({ react: ">=18.0.0" });
-    expect(runtimePackage.peerDependenciesMeta).toEqual({
-      react: { optional: true },
-    });
+    expect(runtimePackage).not.toHaveProperty("peerDependenciesMeta");
     expect(runtimePackage).not.toHaveProperty("private");
   });
 
   test("publishes the adapters package in core-version lockstep", () => {
     expect(adaptersPackage).toMatchObject({
       name: "@viselora/scroll-adapters",
-      version: "0.1.0-alpha.2",
+      version: "0.2.0-alpha.0",
       type: "module",
       files: ["dist", "README.md", "LICENSE"],
       main: "./dist/index.js",
@@ -111,8 +108,7 @@ describe("release package contracts", () => {
       bugs: {
         url: "https://github.com/agenticnoob/dom-webgl-workspace/issues",
       },
-      homepage:
-        "https://github.com/agenticnoob/dom-webgl-workspace#readme",
+      homepage: "https://github.com/agenticnoob/dom-webgl-workspace#readme",
       keywords: ["viselora", "webgl", "scroll", "lenis", "gsap"],
       exports: {
         ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
@@ -128,17 +124,16 @@ describe("release package contracts", () => {
       },
     });
     expect(adaptersPackage.dependencies).toEqual({
-      "@viselora/dom-webgl": "0.1.0-alpha.2",
+      "@viselora/dom-webgl": "0.2.0-alpha.0",
     });
     expect(adaptersPackage.peerDependencies).toEqual({
       gsap: ">=3.12.0",
       lenis: ">=1.0.0",
-      react: ">=18.0.0",
+      react: ">=19.0.0 <19.4.0",
     });
     expect(adaptersPackage.peerDependenciesMeta).toEqual({
       gsap: { optional: true },
       lenis: { optional: true },
-      react: { optional: true },
     });
     expect(adaptersPackage).not.toHaveProperty("private");
   });
@@ -197,12 +192,8 @@ describe("release package contracts", () => {
       "utf8",
     );
     const sourceEntrypoints = {
-      "@viselora/dom-webgl": [
-        "packages/dom-webgl-runtime/src/index.ts",
-      ],
-      "@viselora/dom-webgl/react": [
-        "packages/dom-webgl-runtime/src/react.ts",
-      ],
+      "@viselora/dom-webgl": ["packages/dom-webgl-runtime/src/index.ts"],
+      "@viselora/dom-webgl/react": ["packages/dom-webgl-runtime/src/react.ts"],
       "@viselora/scroll-adapters": [
         "packages/dom-webgl-scroll-adapters/src/index.ts",
       ],

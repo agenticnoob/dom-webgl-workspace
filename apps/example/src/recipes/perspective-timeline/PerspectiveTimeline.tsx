@@ -5,8 +5,8 @@ import React, {
   useState,
   type CSSProperties,
 } from "react";
-import { WebGLPassViewport } from "@viselora/dom-webgl/react";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
+import { useRuntimeReady } from "../../useRuntimeReady";
 import { createTimelineController } from "./controller";
 import { TimelineScene } from "./TimelineScene";
 import {
@@ -33,7 +33,7 @@ export type PerspectiveTimelineProps = {
   readonly className?: string;
 };
 
-/** A single-page recipe; register perspectiveTimelineEffects on the existing host. */
+/** A single-page recipe rendered through the existing host's View.Port. */
 export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
   const [content] = useState(() => {
     if (!props.id.trim())
@@ -54,9 +54,12 @@ export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
   const root = useRef<HTMLElement>(null);
   const view = useRef<HTMLDivElement>(null);
   const store = useScrollEffectProgressStore();
+  const runtimeReady = useRuntimeReady();
   const layout = useTimelineLayout(root);
   const [read, setRead] = useState(false);
+  const [ready, setReady] = useState(false);
   const spatial = !layout.reading && !read && entries.length > 0;
+  const enhanced = spatial && ready && runtimeReady;
   const progressKey = `${id}.travel`;
   const [stage] = useState<TimelineStageState>(() => ({
     visible: false,
@@ -79,7 +82,7 @@ export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
       store,
     });
     return () => controller.dispose();
-  }, [spatial, stage, progressKey, store, panels]);
+  }, [spatial, enhanced, stage, progressKey, store, panels]);
   function toggleReading() {
     setRead((value) => !value);
     root.current?.scrollIntoView({ behavior: "instant", block: "start" });
@@ -88,7 +91,7 @@ export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
     <section
       ref={root}
       className={`perspective-timeline${className ? ` ${className}` : ""}`}
-      data-spatial={spatial}
+      data-spatial={enhanced}
       aria-labelledby={`${id}.title`}
       style={
         { "--timeline-distance": `${(1 + distance) * 100}svh` } as CSSProperties
@@ -107,10 +110,7 @@ export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
           )}
         </header>
         {spatial && (
-          <WebGLPassViewport
-            id={`${id}.viewport`}
-            className="perspective-timeline__viewport"
-          >
+          <div id={`${id}.viewport`} className="perspective-timeline__viewport">
             <TimelineScene
               key={`${layout.width}:${layout.height}`}
               id={id}
@@ -119,8 +119,9 @@ export function PerspectiveTimeline(props: PerspectiveTimelineProps) {
               panels={panels}
               viewport={layout}
               progress={store.source}
+              onReady={setReady}
             />
-          </WebGLPassViewport>
+          </div>
         )}
       </div>
       <div className="perspective-timeline__transcript">

@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   act,
   createElement,
   type PropsWithChildren,
-  type ReactNode,
+  type ReactElement,
 } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -11,13 +13,12 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { heroTransitionConfig } from "../src/transition/transitionConfig";
 import type { HeroTransitionSignalWriter } from "../src/transition/signals";
 
-type CapturedMeshEffect = {
-  readonly kind: string;
-  readonly signals?: HeroTransitionSignalWriter;
-  readonly theme?: { getSnapshot(): string };
-  readonly locale?: { getSnapshot(): string };
-};
-
+type CapturedScene = ReactElement<{
+  theme: { store: { getSnapshot(): string } };
+  locale: { store: { getSnapshot(): string } };
+  projectRoom: unknown;
+}>;
+const scenes: CapturedScene[] = [];
 const progressStore = {
   source: {
     get: vi.fn<(key: string) => number>(() => 0),
@@ -27,30 +28,47 @@ const progressStore = {
   reset: vi.fn(),
   clear: vi.fn(),
 };
-const capturedEffects: (readonly CapturedMeshEffect[] | undefined)[] = [];
-let meshRenderCount = 0;
 const refreshHeroScrollLayout = vi.hoisted(() => vi.fn());
+const runtimeAvailability = vi.hoisted(() => {
+  let ready = false;
+  const listeners = new Set<() => void>();
+  return {
+    runtime: {
+      getDebugState: () => ({ ready }),
+      subscribe: (listener: () => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    setReady: (next: boolean) => {
+      ready = next;
+      for (const listener of listeners) listener();
+    },
+    listeners,
+  };
+});
 
 vi.mock("@viselora/scroll-adapters/react", () => ({
   useScrollEffectProgressStore: () => progressStore,
   WebGLScrollRuntime: ({
     children,
-    renderQuality,
+    scene,
+    canvas,
   }: PropsWithChildren<{
-    renderQuality?: {
-      antialias?: boolean;
-      maxDevicePixelRatio?: number;
-    };
-  }>) =>
-    createElement(
+    scene: CapturedScene;
+    canvas: { gl: { antialias: boolean }; dpr: readonly number[] };
+  }>) => {
+    scenes.push(scene);
+    return createElement(
       "div",
       {
         "data-runtime": "hero-scroll",
-        "data-antialias": renderQuality?.antialias,
-        "data-max-device-pixel-ratio": renderQuality?.maxDevicePixelRatio,
+        "data-antialias": canvas.gl.antialias,
+        "data-max-device-pixel-ratio": canvas.dpr[1],
       },
       children,
-    ),
+    );
+  },
   WebGLScrollTimeline: ({
     children,
     id,
@@ -92,165 +110,19 @@ vi.mock("../src/experience/smoothScroll", () => ({
 }));
 
 vi.mock("@viselora/dom-webgl/react", () => ({
-  WebGLScene: ({ id, children }: PropsWithChildren<{ id: string }>) =>
-    createElement("div", { "data-scene": id }, children),
-  WebGLCamera: ({
-    id,
-    position,
-    target,
-  }: {
-    id: string;
-    position?: readonly number[];
-    target?: readonly number[];
-  }) =>
-    createElement("div", {
-      "data-camera": id,
-      "data-position": position?.join(","),
-      "data-target-position": target?.join(","),
-    }),
-  WebGLMesh: ({
-    id,
-    geometry,
-    material,
-    effects,
-    interaction,
-  }: {
-    id: string;
-    geometry: { kind: string; radius?: number };
-    material?: {
-      kind?: string;
-      color?: string;
-      emissive?: string;
-      emissiveIntensity?: number;
-      opacity?: number;
-      metalness?: number;
-      roughness?: number;
-    };
-    effects?: readonly CapturedMeshEffect[];
-    interaction?: {
-      pickable?: { hitTest?: string; pointer?: { press?: boolean } };
-    };
-  }) => {
-    meshRenderCount += 1;
-    capturedEffects.push(effects);
-    return createElement("div", {
-      "data-mesh": id,
-      "data-geometry": geometry.kind,
-      "data-radius": geometry.radius,
-      "data-material": material?.kind,
-      "data-color": material?.color,
-      "data-emissive": material?.emissive,
-      "data-emissive-intensity": material?.emissiveIntensity,
-      "data-opacity": material?.opacity,
-      "data-metalness": material?.metalness,
-      "data-roughness": material?.roughness,
-      "data-mesh-effect": effects?.[0]?.kind,
-      "data-hit-test": interaction?.pickable?.hitTest,
-      "data-press": interaction?.pickable?.pointer?.press,
-    });
-  },
-  WebGLModel: ({
-    id,
-    src,
-    loader,
-    effects,
-  }: {
-    id: string;
-    src: string;
-    loader?: { draco?: { decoderPath?: string; preload?: boolean } };
-    effects?: readonly {
-      kind: string;
-      spinProgressKey?: string;
-    }[];
-  }) =>
-    createElement("div", {
-      "data-model": id,
-      "data-model-src": src,
-      "data-model-decoder": loader?.draco?.decoderPath,
-      "data-model-preload-decoder": loader?.draco?.preload,
-      "data-model-effect": effects?.[0]?.kind,
-      "data-model-spin-progress": effects?.[0]?.spinProgressKey,
-    }),
-  WebGLLight: ({
-    id,
-    kind,
-    color,
-    intensity,
-    position,
-    target,
-  }: {
-    id: string;
-    kind: string;
-    color?: string;
-    intensity?: number;
-    position?: readonly number[];
-    target?: readonly number[];
-  }) =>
-    createElement("div", {
-      "data-light": id,
-      "data-light-kind": kind,
-      "data-light-color": color,
-      "data-light-intensity": intensity,
-      "data-light-position": position?.join(","),
-      "data-light-target": target?.join(","),
-    }),
-  WebGLTarget: ({
-    webgl,
-    className,
-    children,
-    as = "div",
-  }: {
-    webgl: {
-      key: string;
-      placement?: { mode?: string; depth?: number };
-      renderRole?: string;
-      effects?: readonly {
-        kind: string;
-        contentId?: string;
-        side?: string;
-        depth?: number;
-        fov?: number;
-        overscan?: number;
-      }[];
-    };
-    className?: string;
-    children?: ReactNode;
-    as?: string;
-  }) =>
-    createElement(
-      as,
-      {
-        className,
-        "data-target": webgl.key,
-        "data-placement": webgl.placement?.mode,
-        "data-depth": webgl.placement?.depth,
-        "data-render-role": webgl.renderRole,
-        "data-effect": webgl.effects?.[0]?.kind,
-        "data-effect-content": webgl.effects?.[0]?.contentId,
-        "data-effect-side": webgl.effects?.[0]?.side,
-        "data-effect-depth": webgl.effects?.[0]?.depth,
-        "data-effect-fov": webgl.effects?.[0]?.fov,
-        "data-effect-overscan": webgl.effects?.[0]?.overscan,
-      },
-      children,
-    ),
-  WebGLPassViewport: ({
-    children,
-    id,
-    as = "div",
-    className,
-  }: PropsWithChildren<{
-    id: string;
-    as?: "div" | "figure";
-    className?: string;
-  }>) => createElement(as, { className, "data-pass-viewport": id }, children),
+  useWebGLRuntime: () => runtimeAvailability.runtime,
+  WebGLTarget: ({ id, children }: { id: string; children: ReactElement }) =>
+    createElement("div", { "data-target": id }, children),
 }));
 
-import { HeroExperience } from "../src/experience/HeroExperience";
+import {
+  HeroExperience,
+  heroCanvasOptions,
+} from "../src/experience/HeroExperience";
 
 beforeEach(() => {
-  capturedEffects.length = 0;
-  meshRenderCount = 0;
+  runtimeAvailability.setReady(false);
+  scenes.length = 0;
   vi.clearAllMocks();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -262,6 +134,64 @@ beforeEach(() => {
 });
 
 describe("HeroExperience", () => {
+  test("restores readable chapters when the Canvas becomes unavailable during a transition", () => {
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    const styles = document.createElement("style");
+    styles.textContent = readFileSync(
+      resolve(process.cwd(), "apps/hero-next/app/globals.css"),
+      "utf8",
+    );
+    document.head.append(styles);
+    document.body.append(host);
+    runtimeAvailability.setReady(true);
+    try {
+      act(() => root.render(createElement(HeroExperience)));
+      const main = host.querySelector("main");
+      const chapters = Array.from(host.querySelectorAll(".hero-chapter"));
+      expect(chapters).toHaveLength(4);
+      expect(main?.getAttribute("data-dom-active")).toBe("false");
+      expect(main?.getAttribute("data-webgl-ready")).toBe("true");
+      expect(
+        chapters.every(
+          (chapter) => getComputedStyle(chapter).visibility === "hidden",
+        ),
+      ).toBe(true);
+
+      act(() => runtimeAvailability.setReady(false));
+
+      expect(main?.getAttribute("data-webgl-ready")).toBe("false");
+      for (const chapter of chapters) {
+        expect(getComputedStyle(chapter).visibility).toBe("visible");
+        expect(getComputedStyle(chapter).pointerEvents).toBe("auto");
+        expect(getComputedStyle(chapter).background).toBe(
+          "var(--hero-chapter-background)",
+        );
+      }
+      const articles = host.querySelector(".hero-axioms__semantic");
+      expect(articles).not.toBeNull();
+      expect(getComputedStyle(articles!).position).toBe("static");
+      expect(articles?.textContent).toContain("AI-native 必然走向 Agent-first");
+
+      act(() => runtimeAvailability.setReady(true));
+
+      expect(host.querySelector("main")).toBe(main);
+      expect(main?.getAttribute("data-webgl-ready")).toBe("true");
+      expect(
+        chapters.every(
+          (chapter) => getComputedStyle(chapter).visibility === "hidden",
+        ),
+      ).toBe(true);
+      expect(getComputedStyle(articles!).position).toBe("absolute");
+      expect(scenes).toHaveLength(1);
+    } finally {
+      act(() => root.unmount());
+      host.remove();
+      styles.remove();
+    }
+    expect(runtimeAvailability.listeners.size).toBe(0);
+  });
+
   test("keeps the fixed profile bubble out of the axioms reader", () => {
     const host = document.createElement("div");
     const root = createRoot(host);
@@ -282,10 +212,15 @@ describe("HeroExperience", () => {
       progressStore.source.get.mockImplementation(() => 0);
     }
   });
-  test("declares one scene with the profile model and chapter timelines", () => {
+  test("retains the chapter timelines, semantic content and one R3F scene slot", () => {
     const html = renderToStaticMarkup(createElement(HeroExperience));
 
-    expect(html.match(/data-scene=/g)).toHaveLength(1);
+    expect(scenes).toHaveLength(1);
+    expect(heroCanvasOptions.camera).toMatchObject({
+      position: [0, 0, 3.2],
+      fov: 38,
+    });
+    expect(heroCanvasOptions.orthographic).toBe(false);
     expect(html).toContain('data-runtime="hero-scroll"');
     expect(html).toContain('data-antialias="true"');
     expect(html).toContain('data-max-device-pixel-ratio="2"');
@@ -316,61 +251,10 @@ describe("HeroExperience", () => {
     expect(html).toContain('data-timeline="hero.chapter-4.content.timeline"');
     expect(html).toContain('data-progress-key="hero.chapter-4.content"');
     expect(html).not.toContain("data-pin");
-    expect(html).toContain('data-scene="hero.tetrahedron.scene"');
-    expect(html).toContain('data-position="0,0,3.2"');
-    expect(html).toContain('data-target-position="0,0.32,0"');
-    expect(html.match(/data-model="hero.profile.model"/g)).toHaveLength(1);
-    expect(html).toContain('data-model-src="/models/noobli-profile.glb"');
-    expect(html).toContain('data-model-decoder="/draco/gltf/"');
-    expect(html).toContain('data-model-preload-decoder="true"');
-    expect(html).toContain('data-model-effect="hero.profile.model"');
-    expect(html).toContain('data-model-spin-progress="hero.chapter-1.body"');
-    expect(html).toContain('data-target="hero.ghost.background"');
-    expect(html).toContain('data-effect="hero.ghost.background"');
-    expect(html).toContain('data-depth="5"');
-    expect(html).toContain('data-effect-depth="5"');
-    expect(html).toContain('data-effect-fov="38"');
-    expect(html).toContain('data-effect-overscan="1.06"');
     expect(html).toContain('data-target="hero.portal.site.left.primary"');
     expect(html).toContain('data-target="hero.portal.site.left.secondary"');
     expect(html).toContain('data-target="hero.portal.site.right.primary"');
     expect(html).toContain('data-target="hero.portal.site.right.secondary"');
-    expect(html).toContain('data-effect="hero.portal.motion"');
-    expect(html).toContain('data-effect-content="site"');
-    expect(html).toContain('data-effect-side="left"');
-    expect(html).toContain('data-effect-side="right"');
-    expect(html).not.toContain('data-target="hero.portal.self.left.primary"');
-    expect(html).toContain('data-mesh="hero.tetrahedron.mesh"');
-    expect(html).toContain('data-geometry="tetrahedron"');
-    expect(html).toContain('data-radius="0.52"');
-    expect(html).toContain('data-material="standard"');
-    expect(html).toContain('data-color="#5F5F5F"');
-    expect(html).toContain('data-emissive="#5F5F5F"');
-    expect(html).toContain('data-emissive-intensity="0.035"');
-    expect(html).toContain('data-opacity="0.92"');
-    expect(html).toContain('data-metalness="0.62"');
-    expect(html).toContain('data-roughness="0.28"');
-    expect(html).toContain('data-mesh-effect="hero.tetrahedron.motion"');
-    expect(html).toContain('data-hit-test="mesh"');
-    expect(html).toContain('data-press="true"');
-    expect(html).not.toContain('data-target="hero.ghost.foreground"');
-    expect(html.match(/data-placement="screen-depth"/g)).toHaveLength(7);
-    expect(html.match(/data-render-role="model"/g)).toHaveLength(7);
-    expect(html).toContain('data-target="hero.axioms.reader"');
-    expect(html).toContain('data-target="hero.projects.room"');
-    expect(html).toContain('data-effect="hero.projects.room"');
-    expect(html).toContain('data-effect="hero.axioms.reader"');
-    expect(html).toContain('data-progress-key="hero.chapter-2.body"');
-    expect(html).toContain('data-light="hero.tetrahedron.key"');
-    expect(html).toContain('data-light="hero.tetrahedron.rim"');
-    expect(html).toContain('data-light-color="#f2f2f2"');
-    expect(html).toContain('data-light-color="#b8b8b8"');
-    expect(html).toContain('data-light-intensity="5.4"');
-    expect(html).toContain('data-light-intensity="1.35"');
-    expect(html).toContain('data-light-position="1.6,2.2,2.6"');
-    expect(html).toContain('data-light-position="-2.2,-1.2,0.8"');
-    expect(html).not.toContain('data-light="hero.tetrahedron.fill"');
-    expect(html.match(/data-light=/g)).toHaveLength(2);
     expect(html).toContain('data-hero-theme="initial"');
     expect(html).toContain('data-hero-locale="zh"');
     expect(html).toContain('data-dom-active="false"');
@@ -450,43 +334,30 @@ describe("HeroExperience", () => {
     }
   });
 
-  test("keeps the injected writer and mesh effects stable without React frame state", () => {
+  test("keeps shared theme, locale and project stores stable without frame state", () => {
     const host = document.createElement("div");
     const root = createRoot(host);
-
     act(() => root.render(createElement(HeroExperience)));
     act(() => root.render(createElement(HeroExperience)));
-
-    expect(capturedEffects).toHaveLength(2);
-    expect(capturedEffects[1]).toBe(capturedEffects[0]);
-    const capturedWriter = capturedEffects[0]?.[0]?.signals;
-    const capturedTheme = capturedEffects[0]?.[0]?.theme;
-    const capturedLocale = capturedEffects[0]?.[0]?.locale;
-    expect(capturedWriter).toBeDefined();
-    expect(capturedTheme?.getSnapshot()).toBe("initial");
-    expect(capturedLocale?.getSnapshot()).toBe("zh");
-    expect(capturedEffects[1]?.[0]?.signals).toBe(capturedWriter);
-    expect(capturedEffects[1]?.[0]?.theme).toBe(capturedTheme);
-    expect(capturedEffects[1]?.[0]?.locale).toBe(capturedLocale);
+    expect(scenes).toHaveLength(2);
+    expect(scenes[1].props.theme.store).toBe(scenes[0].props.theme.store);
+    expect(scenes[1].props.locale.store).toBe(scenes[0].props.locale.store);
+    expect(scenes[1].props.projectRoom).toBe(scenes[0].props.projectRoom);
+    expect(scenes[0].props.theme.store.getSnapshot()).toBe("initial");
+    expect(scenes[0].props.locale.store.getSnapshot()).toBe("zh");
     expect(refreshHeroScrollLayout).toHaveBeenCalled();
-
-    const rendersBeforeSignalWrite = meshRenderCount;
-    capturedWriter?.set(heroTransitionConfig.signalKeys.coverage, 0.5);
-    expect(meshRenderCount).toBe(rendersBeforeSignalWrite);
-    expect(progressStore.set).toHaveBeenCalledWith(
-      heroTransitionConfig.signalKeys.coverage,
-      0.5,
-    );
-
+    const renderCount = scenes.length;
+    progressStore.set(heroTransitionConfig.signalKeys.coverage, 0.5);
+    expect(scenes).toHaveLength(renderCount);
     act(() => root.unmount());
   });
 
-  test("switches semantic content and persists locale without replacing effect declarations", () => {
+  test("switches semantic content and persists locale while preserving the shared locale store", () => {
     const host = document.createElement("div");
     const root = createRoot(host);
 
     act(() => root.render(createElement(HeroExperience)));
-    const initialEffects = capturedEffects.at(-1);
+    const initialLocaleStore = scenes.at(-1)?.props.locale.store;
     const initialPortalText = host.querySelector(
       '[data-target="hero.portal.site.right.primary"]',
     );
@@ -507,7 +378,7 @@ describe("HeroExperience", () => {
       "viselora.hero.locale.v1",
       "en",
     );
-    expect(capturedEffects.at(-1)).toBe(initialEffects);
+    expect(scenes.at(-1)?.props.locale.store).toBe(initialLocaleStore);
     expect(refreshHeroScrollLayout.mock.calls.length).toBeGreaterThan(
       refreshesBeforeLocaleChange,
     );

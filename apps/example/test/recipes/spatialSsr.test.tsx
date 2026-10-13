@@ -6,7 +6,6 @@ import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import {
   FacePortal,
   InteractiveSculpture,
-  spatialEffects,
   type FourFaces,
   type PortalChapter,
 } from "../../src/recipes/spatial";
@@ -24,7 +23,7 @@ const chapters = [
 
 it("renders every chapter and its native link before any browser or GPU exists", () => {
   const html = renderToString(
-    <WebGLScrollRuntime effects={spatialEffects}>
+    <WebGLScrollRuntime>
       <FacePortal id="ssr.portal" chapters={chapters} />
     </WebGLScrollRuntime>,
   );
@@ -32,12 +31,12 @@ it("renders every chapter and its native link before any browser or GPU exists",
     expect(html).toContain(chapter.entry.description);
   expect(html).toContain('href="/more"');
   expect(html).toContain('data-ready="false"');
-  expect(html).not.toContain("<canvas");
+  expect(html.match(/<canvas/g)).toHaveLength(1);
 });
 
 it("keeps sculpture copy and a native button available without WebGL", () => {
   const html = renderToString(
-    <WebGLScrollRuntime effects={spatialEffects}>
+    <WebGLScrollRuntime>
       <InteractiveSculpture
         id="ssr.sculpture"
         title="Explore this form"
@@ -47,20 +46,20 @@ it("keeps sculpture copy and a native button available without WebGL", () => {
   );
   expect(html).toContain("Explore this form");
   expect(html).toContain('type="button"');
-  expect(html).not.toContain("<canvas");
+  expect(html.match(/<canvas/g)).toHaveLength(1);
 });
 
 it("rejects invalid configuration before registering any managed objects", () => {
   expect(() =>
     renderToString(
-      <WebGLScrollRuntime effects={spatialEffects}>
+      <WebGLScrollRuntime>
         <InteractiveSculpture id="bad" title="Bad" holdMs={0} />
       </WebGLScrollRuntime>,
     ),
   ).toThrow("holdMs");
   expect(() =>
     renderToString(
-      <WebGLScrollRuntime effects={spatialEffects}>
+      <WebGLScrollRuntime>
         <FacePortal
           id="bad"
           chapters={[chapters[0], chapters[0], chapters[2], chapters[3]]}

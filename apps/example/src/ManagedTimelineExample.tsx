@@ -1,186 +1,218 @@
-import * as React from "react";
+import { PerspectiveCamera, View } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import {
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera as ThreePerspectiveCamera,
+  Quaternion,
+  Vector3,
+} from "three";
+import { WebGLTarget, useWebGLRuntime } from "@viselora/dom-webgl/react";
+import {
+  useScrollEffectProgressStore,
   WebGLScrollTimeline,
-  type WebGLScrollTimelineProps,
 } from "@viselora/scroll-adapters/react";
+import { canvasTexture } from "./nativeMaterials";
 import {
-  WebGLLight,
-  WebGLCamera,
-  WebGLMesh,
-  WebGLPassViewport,
-  WebGLScene,
-  WebGLTarget,
-  type WebGLCameraProps,
-  type WebGLLightProps,
-  type WebGLMeshProps,
-  type WebGLSceneRenderOptions,
-  type WebGLTargetProps,
-} from "@viselora/dom-webgl/react";
+  drawTimelineCard,
+  readTimelineCardFrame,
+  smoothstep,
+} from "./managedTimelineCardEffect";
 
-const managedTimelineId = "example.managedTimeline";
-const timelineStart = "top top" satisfies NonNullable<
-  WebGLScrollTimelineProps["start"]
->;
-const timelineEnd = "+=240%" satisfies NonNullable<
-  WebGLScrollTimelineProps["end"]
->;
+export const managedTimelineId = "example.managedTimeline";
+const cardId = "example.managedStage.card";
 
-const timelineSceneRender = {
-  camera: "example.managedStage.camera",
-  order: -8,
-  clearDepth: true,
-  viewport: { mode: "dom-rect", scissor: true },
-} satisfies WebGLSceneRenderOptions;
+export function applyTimelineCamera(
+  camera: ThreePerspectiveCamera,
+  progress: number,
+): void {
+  const t = smoothstep(0.12, 0.88, progress);
+  camera.position.set(0, 136 - 40 * t, 560 - 40 * t);
+  camera.lookAt(0, -88 + 124 * t, -40 + 40 * t);
+  camera.fov = 42 - 8 * t;
+  camera.updateProjectionMatrix();
+}
 
-const cameraPosition = [0, 136, 560] satisfies NonNullable<
-  WebGLCameraProps["position"]
->;
-const cameraTarget = [0, -88, -40] satisfies NonNullable<
-  WebGLCameraProps["target"]
->;
-const cameraController = {
-  timeline: {
-    id: managedTimelineId,
-    range: { from: 0.12, to: 0.88 },
-  },
-  to: {
-    position: [0, 96, 520],
-    target: [0, 36, 0],
-    fov: 34,
-  },
-  easing: "smoothstep",
-} satisfies NonNullable<WebGLCameraProps["controller"]>;
+function TimelineCamera() {
+  const camera = useRef<ThreePerspectiveCamera>(null);
+  const progress = useScrollEffectProgressStore();
+  useFrame(() => {
+    if (camera.current)
+      applyTimelineCamera(
+        camera.current,
+        progress.source.get(managedTimelineId),
+      );
+  }, -1);
+  return (
+    <PerspectiveCamera
+      ref={camera}
+      makeDefault
+      position={[0, 136, 560]}
+      fov={42}
+      near={0.1}
+      far={5000}
+    />
+  );
+}
 
-const floorPosition = [0, -178, 0] satisfies NonNullable<
-  WebGLMeshProps["position"]
->;
-const floorMaterial = {
-  kind: "standard",
-  color: "#16241f",
-  roughness: 0.82,
-} satisfies NonNullable<WebGLMeshProps["material"]>;
-const floorMeshProps = {
-  id: "example.managedStage.floor",
-  geometry: { kind: "plane", role: "floor", size: [920, 520] },
-  position: floorPosition,
-  material: floorMaterial,
-} satisfies WebGLMeshProps;
-
-const backdropPosition = [0, 18, -290] satisfies NonNullable<
-  WebGLMeshProps["position"]
->;
-const backdropMaterial = {
-  kind: "standard",
-  color: "#1f3a32",
-  roughness: 0.7,
-} satisfies NonNullable<WebGLMeshProps["material"]>;
-const backdropMeshProps = {
-  id: "example.managedStage.backdrop",
-  geometry: { kind: "plane", role: "backdrop", size: [920, 430] },
-  position: backdropPosition,
-  material: backdropMaterial,
-} satisfies WebGLMeshProps;
-
-const plinthGeometry = {
-  kind: "box",
-  size: [220, 96, 180],
-} satisfies WebGLMeshProps["geometry"];
-const plinthPosition = [0, -130, -56] satisfies NonNullable<
-  WebGLMeshProps["position"]
->;
-const plinthMaterial = {
-  kind: "standard",
-  color: "#566b61",
-  roughness: 0.56,
-} satisfies NonNullable<WebGLMeshProps["material"]>;
-
-const keyLightPosition = [-180, 160, 220] satisfies NonNullable<
-  WebGLLightProps["position"]
->;
-
-const managedStageCardWebgl = {
-  key: "example.managedStage.card",
-  source: { kind: "dom", type: "element" },
-  placement: { mode: "screen-depth", depth: 120, size: "dom" },
-  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-  effects: [
-    {
-      kind: "example.managedTimelineCard",
-      progressKey: managedTimelineId,
+function TimelineCard({
+  viewport,
+}: {
+  readonly viewport: RefObject<HTMLDivElement | null>;
+}) {
+  const runtime = useWebGLRuntime();
+  const progress = useScrollEffectProgressStore();
+  const mesh = useRef<Mesh>(null);
+  const state = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    const texture = canvasTexture(canvas);
+    const material = new MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    return {
+      canvas,
+      texture,
+      material,
+      forward: new Vector3(),
+      offset: new Vector3(),
+      rotation: new Quaternion(),
+      lastProgress: -1,
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      runtime.setTargetReady(cardId, false);
+      state.texture.dispose();
+      state.material.dispose();
     },
-  ],
-} satisfies WebGLTargetProps<"article">["webgl"];
+    [runtime, state],
+  );
+  useFrame(({ camera }) => {
+    const target = runtime.getTarget(cardId);
+    const view = viewport.current?.getBoundingClientRect();
+    if (
+      !target ||
+      !view ||
+      !mesh.current ||
+      !(camera instanceof ThreePerspectiveCamera)
+    )
+      return;
+    const p = progress.source.get(managedTimelineId);
+    const frame = readTimelineCardFrame(p);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.ceil(target.rect.width));
+    const height = Math.max(1, Math.ceil(target.rect.height));
+    const pixelWidth = Math.ceil(width * dpr);
+    const pixelHeight = Math.ceil(height * dpr);
+    if (
+      state.lastProgress !== p ||
+      state.canvas.width !== pixelWidth ||
+      state.canvas.height !== pixelHeight
+    ) {
+      state.canvas.width = pixelWidth;
+      state.canvas.height = pixelHeight;
+      const context = state.canvas.getContext("2d");
+      if (!context) return;
+      context.scale(dpr, dpr);
+      drawTimelineCard(context, width, height, p, frame.presence);
+      state.texture.needsUpdate = true;
+      state.lastProgress = p;
+    }
+    const unitsPerPixel =
+      (2 * Math.tan((camera.fov * Math.PI) / 360) * 120) /
+      Math.max(1, view.height);
+    camera.getWorldDirection(state.forward);
+    mesh.current.position
+      .copy(camera.position)
+      .addScaledVector(state.forward, 120);
+    state.offset
+      .set(
+        target.rect.left + target.rect.width / 2 - view.left - view.width / 2,
+        view.top + view.height / 2 - target.rect.top - target.rect.height / 2,
+        0,
+      )
+      .multiplyScalar(unitsPerPixel)
+      .applyQuaternion(camera.quaternion);
+    mesh.current.position.add(state.offset);
+    state.rotation.setFromAxisAngle(
+      state.forward.set(0, 1, 0),
+      frame.rotationY,
+    );
+    mesh.current.quaternion.copy(camera.quaternion).multiply(state.rotation);
+    mesh.current.scale.set(
+      target.rect.width * unitsPerPixel,
+      target.rect.height * unitsPerPixel,
+      1,
+    );
+    mesh.current.visible = target.visible && frame.visible;
+    state.material.opacity = frame.opacity;
+    runtime.setTargetReady(cardId, true, target);
+  });
+  return (
+    <mesh ref={mesh} name={cardId} renderOrder={10} material={state.material}>
+      <planeGeometry args={[1, 1]} />
+    </mesh>
+  );
+}
 
 export function ManagedTimelineExample() {
+  const viewport = useRef<HTMLDivElement>(null);
   return (
     <WebGLScrollTimeline
       id={managedTimelineId}
       className="example-row example-managed-stage-timeline"
-      start={timelineStart}
-      end={timelineEnd}
+      start="top top"
+      end="+=240%"
       pin
       scrub
     >
       <div className="example-managed-stage-copy">
-        <p className="example-kicker">pinned managed scene</p>
+        <p className="example-kicker">pinned R3F scene</p>
         <h2>滚动固定的声明式 3D 舞台</h2>
         <p>
-          同一个 timeline 驱动 camera 和右侧卡片效果；scene、floor、backdrop、box、light
-          直接展示，并通过 section rect 裁剪在 pinned viewport 内。
+          同一个 timeline 驱动原生 camera 和右侧卡片效果；Drei View 把舞台裁剪在
+          pinned viewport 内。
         </p>
       </div>
-
-      <WebGLPassViewport
-        id="example.managedStage.viewport"
-        as="div"
-        className="example-managed-stage-viewport"
-      >
-        <WebGLScene
-          id="example.managedStage.scene"
-          projection="perspective-stage"
-          render={timelineSceneRender}
+      <View ref={viewport} className="example-managed-stage-viewport">
+        <TimelineCamera />
+        <mesh
+          name="example.managedStage.floor"
+          position={[0, -178, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
         >
-          <WebGLCamera
-            id="example.managedStage.camera"
-            default
-            type="perspective"
-            mode="perspective-stage"
-            position={cameraPosition}
-            target={cameraTarget}
-            fov={42}
-            controller={cameraController}
-          />
-          <WebGLMesh {...floorMeshProps} />
-          <WebGLMesh {...backdropMeshProps} />
-          <WebGLMesh
-            id="example.managedStage.plinth"
-            geometry={plinthGeometry}
-            position={plinthPosition}
-            material={plinthMaterial}
-          />
-          <WebGLLight
-            id="example.managedStage.ambient"
-            kind="ambient"
-            intensity={0.24}
-          />
-          <WebGLLight
-            id="example.managedStage.key"
-            kind="point"
-            color="#f6c453"
-            intensity={1.85}
-            position={keyLightPosition}
-          />
-          <WebGLTarget
-            as="article"
-            className="example-managed-stage-card"
-            webgl={managedStageCardWebgl}
-          >
-            <span>WebGLTarget</span>
-            <strong>Timeline driven card</strong>
-            <em>same progress signal</em>
-          </WebGLTarget>
-        </WebGLScene>
-      </WebGLPassViewport>
+          <planeGeometry args={[920, 520]} />
+          <meshStandardMaterial color="#16241f" roughness={0.82} />
+        </mesh>
+        <mesh name="example.managedStage.backdrop" position={[0, 18, -290]}>
+          <planeGeometry args={[920, 430]} />
+          <meshStandardMaterial color="#1f3a32" roughness={0.7} />
+        </mesh>
+        <mesh name="example.managedStage.plinth" position={[0, -130, -56]}>
+          <boxGeometry args={[220, 96, 180]} />
+          <meshStandardMaterial color="#566b61" roughness={0.56} />
+        </mesh>
+        <ambientLight intensity={0.69} />
+        <directionalLight intensity={1} position={[1, 1.5, 2]} />
+        <pointLight
+          color="#f6c453"
+          intensity={1.85}
+          position={[-180, 160, 220]}
+        />
+        <TimelineCard viewport={viewport} />
+      </View>
+      <WebGLTarget id={cardId} hideWhenReady>
+        <article className="example-managed-stage-card">
+          <span>WebGLTarget</span>
+          <strong>Timeline driven card</strong>
+          <em>same progress signal</em>
+        </article>
+      </WebGLTarget>
     </WebGLScrollTimeline>
   );
 }

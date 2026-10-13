@@ -1,18 +1,11 @@
-import * as React from "react";
-import { WebGLTarget } from "@viselora/dom-webgl/react";
+import React from "react";
 import { ScrollEffectSection } from "@viselora/scroll-adapters/react";
-
 import { EffectDescription } from "./EffectDescription";
+import { ExampleVisual } from "./ExampleVisual";
+import { TextVisual } from "./BasicVisuals";
 
 export const pinnedRevealProgressKey = "example.pinned.reveal";
-
-const pinnedRevealEffects = [
-  {
-    kind: "example.pinnedReveal",
-    color: "#172124",
-    progressKey: pinnedRevealProgressKey,
-  },
-] as const;
+const options = { color: "#172124", progressKey: pinnedRevealProgressKey };
 
 export function PinnedScrollExample() {
   return (
@@ -24,21 +17,21 @@ export function PinnedScrollExample() {
       pin
       scrub
     >
-      <EffectDescription source="dom/text" title="固定滚动显现">
-        页面继续真实滚动，但这个区域的滚动进度会直接控制 WebGL 文字显现。
+      <EffectDescription source="DOM → CanvasTexture" title="固定滚动显现">
+        页面继续真实滚动，命名进度信号控制原生纹理中的文字显现。
       </EffectDescription>
-      <WebGLTarget
-        as="p"
-        className="example-text example-pinned-text"
-        webgl={{
-          key: pinnedRevealProgressKey,
-          source: { kind: "dom", type: "text" },
-          lifecycle: { hideWhenReady: true, hideMode: "self" },
-          effects: pinnedRevealEffects,
-        }}
+      <ExampleVisual
+        id={pinnedRevealProgressKey}
+        visual={
+          <TextVisual
+            id={pinnedRevealProgressKey}
+            mode="pinned"
+            options={options}
+          />
+        }
       >
-        滚动控制文字
-      </WebGLTarget>
+        <p className="example-text example-pinned-text">滚动控制文字</p>
+      </ExampleVisual>
     </ScrollEffectSection>
   );
 }

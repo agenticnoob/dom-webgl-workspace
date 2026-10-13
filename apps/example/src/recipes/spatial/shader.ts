@@ -1,7 +1,4 @@
-import type {
-  WebGLEffectMaterialShaderDefinition,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import type { MeshStandardMaterial } from "three";
 import { faceDefinitions } from "./config";
 import { resolvePortalLockProjection } from "./geometry";
 import { radialRadius } from "./frame";
@@ -14,28 +11,9 @@ const emissiveChunk = "#include <emissivemap_fragment>";
 const opaqueChunk = "#include <opaque_fragment>";
 const spatialChapterFaceAtlasShader = createFaceAtlasShader();
 
-export function createSpatialShader(
-  atlas: HTMLCanvasElement,
-  uniforms: Record<string, WebGLEffectUniformValue>,
-): WebGLEffectMaterialShaderDefinition {
-  return {
-    key: spatialShaderKey,
-    uniforms: {
-      ...uniforms,
-      spatialChapterAtlas: { kind: "canvas-texture", source: atlas },
-    },
-    compile: compileSpatialShader,
-  };
-}
-
 export function compileSpatialShader(
-  draft: Parameters<WebGLEffectMaterialShaderDefinition["compile"]>[0],
+  draft: Parameters<MeshStandardMaterial["onBeforeCompile"]>[0],
 ): void {
-  if (draft.materialKind === "basic") {
-    throw new Error(
-      "Spatial recipe radial shader requires a Standard or Physical managed material.",
-    );
-  }
   if (!draft.fragmentShader.includes(emissiveChunk)) {
     throw new Error(
       "Spatial recipe radial shader could not find the Three emissivemap fragment chunk.",
@@ -59,6 +37,7 @@ varying vec3 spatialObjectNormal;
   const facePaletteStrength = 0.3;
   const fresnelPower = 3.2;
   const uniforms = `${varyings}
+uniform float domWebGLPixelRatio;
 uniform vec4 spatialViewport;
 uniform float spatialRimStrength;
 uniform vec3 spatialCommittedColor;
@@ -175,7 +154,7 @@ export function spatialUniforms(
   stage: SpatialStage,
   palette: SpatialPalette,
   rimStrength: number,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, unknown> {
   const { viewport, hold, frame } = stage;
   const foreground =
     hold.scheme === 0 ? palette.foreground : palette.background;

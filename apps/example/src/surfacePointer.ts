@@ -1,14 +1,10 @@
-import type { WebGLEffectUpdateContext } from "@viselora/dom-webgl";
-
 type TargetLocalPointerInput = {
-  readonly layout: Pick<
-    WebGLEffectUpdateContext["layout"],
-    "height" | "width"
-  >;
-  readonly pointer: Pick<
-    WebGLEffectUpdateContext["targetPointer"],
-    "isInside" | "localX" | "localY"
-  >;
+  readonly layout: { readonly width: number; readonly height: number };
+  readonly pointer: {
+    readonly isInside: boolean;
+    readonly localX: number;
+    readonly localY: number;
+  };
 };
 
 export type TargetLocalPointer = {

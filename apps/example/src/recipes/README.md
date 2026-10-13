@@ -1,20 +1,10 @@
 # Reusable visual recipes
 
-Nine live demonstrations extract the visual behavior of Hero Next into six
-source-distributed React modules. Open `/` in the example app and scroll through
-the basic effects and all nine recipes on the same page. `/#<id>` links to a row;
-every row is rendered directly without a selection page.
-
-These are **app-level components built on the public alpha.2 APIs**. They are not
-new exports from `@viselora/dom-webgl`, and do not import Hero Next, Next.js,
-private content, or package internals. Copy a whole module directory to reuse it.
-The compositions in [../recipe-demos/](../recipe-demos/) provide complete demo data
-and component props. They mount inside the existing page runtime, without wrappers.
-[../RecipeExamples.tsx](../RecipeExamples.tsx) assembles all nine rows and exports
-one stable effect list, registered alongside the basic effects in `App.tsx`;
-[the catalog](./catalog.ts) provides a data-only index for agents and tooling.
-
-## Choose a component
+Nine demonstrations extract Hero Next's visual behavior into six React modules.
+Open `/` and scroll through all recipes on the same page; `/#<id>` links to a row.
+Recipes use React Three Fiber, Drei and Three.js directly. Viselora manages the
+shared Canvas host, DOM fallback, progress and page lifecycle. These modules are
+app source, not exports from `@viselora/dom-webgl`.
 
 | Demo ID                | Component / module                             | Input and behavior                                                                                          | Read first                                               |
 | ---------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -28,62 +18,74 @@ one stable effect list, registered alongside the basic effects in `App.tsx`;
 | `pointer-preview`      | `PointerPreviewDirectory` / `pointer-preview`  | Links and image URLs → pointer-following previews, keyboard access and full touch list; no WebGL required   | [Contract and example](./pointer-preview/README.md)      |
 | `perspective-timeline` | `PerspectiveTimeline` / `perspective-timeline` | Ordered records → paired perspective text, scroll-speed flight, bounded target window and static reading    | [Contract and example](./perspective-timeline/README.md) |
 
-## Agent integration procedure
+## Shared host
 
-1. Select by behavior in the table. Read that module's README and `index.ts`.
-2. Copy the **whole module**, including CSS and its pure geometry/text helpers.
-   Change the typed data first; the shader usually needs no edits.
-3. Use React with `@viselora/dom-webgl@0.1.0-alpha.2` and
-   `@viselora/scroll-adapters@0.1.0-alpha.2`. Reuse an existing
-   `WebGLScrollRuntime`; register each required effect array exactly once.
-4. Give simultaneous instances unique IDs. Keep effect arrays and mounted source,
-   material and effect declarations stable. Read each module's update contract;
-   use a new component key when replacing a declaration.
-5. Host your own public assets. Provide actual GLB bounds and a semantic
-   description/poster where supported. For Draco, declare
-   `loader.draco.decoderPath`; never supply loader callbacks.
-6. Verify real canvas output, forward/reverse scrolling, keyboard, narrow/touch
-   layout, reduced motion, fallback and unmount. A ready flag alone does not prove
-   that a scoped pass has rendered. Keep its matching camera and viewport.
-
-For multiple WebGL recipes, combine their definitions at module scope:
+Install React, Three.js, `@react-three/fiber`, `@react-three/drei`,
+`react-error-boundary`, `@viselora/dom-webgl` and `@viselora/scroll-adapters`.
+Use the versions in this app's package.json. Next.js callers use a client component.
+Each GPU recipe creates a Drei `View`; all Views render through one `View.Port`.
+The page clears the shared canvas before the Views render:
 
 ```tsx
-import React from "react";
+import type { ReactNode } from "react";
+import { View } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-import { paperReaderEffects } from "./recipes/paper-reader";
-import { projectRoomEffects } from "./recipes/project-room";
-import { modelStoryEffects } from "./recipes/model-story";
-import { spatialEffects } from "./recipes/spatial";
-import { perspectiveTimelineEffects } from "./recipes/perspective-timeline";
 
-const effects = [
-  ...paperReaderEffects,
-  ...projectRoomEffects,
-  ...modelStoryEffects,
-  ...spatialEffects,
-  ...perspectiveTimelineEffects,
-];
+function ViewScene() {
+  useFrame(({ gl, size }) => {
+    gl.setScissorTest(false);
+    gl.setViewport(0, 0, size.width, size.height);
+    gl.setClearColor(0x000000, 0);
+    gl.clear();
+  }, 0);
+  return <View.Port />;
+}
 
-export function VisualPage({ children }: { children: React.ReactNode }) {
-  return <WebGLScrollRuntime effects={effects}>{children}</WebGLScrollRuntime>;
+export function VisualPage({ children }: { children: ReactNode }) {
+  return (
+    <WebGLScrollRuntime scene={<ViewScene />} canvas={{ dpr: [1, 2] }}>
+      {children}
+    </WebGLScrollRuntime>
+  );
 }
 ```
 
-Import only the modules the page uses. Do not nest a runtime inside a recipe.
-The runtime owns the single renderer, canvas, render loop, loaders and GPU
-resources; recipes own their DOM, data, geometry calculations and visual intent.
-The scroll recipes currently measure native document scrolling. A transformed
-smooth-scroll or nested scroll container requires an explicit adapter.
+The examples below each use this `VisualPage`. When a page already has the host,
+mount the recipe inside it. Do not nest hosts or register an effect catalog.
+The Canvas host is behind semantic DOM; enhanced viewport backgrounds must be
+transparent. Drei performs per-View scissoring and event routing.
 
-Hero's bilingual copy, local-storage preferences, personal links, private model,
-and whole-site chapter orchestration are intentionally caller-owned data and
-composition. These modules demonstrate the extracted effects with neutral
-content and existing public example assets.
+## Copy and adapt
 
-## Verify changes
+1. Read the selected module's README and `index.ts`, then copy its whole directory.
+2. Preserve its relative source layout. GPU recipes also use
+   [nativeMaterials.ts](../nativeMaterials.ts) and
+   [useRuntimeReady.ts](../useRuntimeReady.ts); GLB recipes use
+   [useClonedModel.ts](../useClonedModel.ts). Copy those helpers to the same level
+   as your `recipes` directory, or adjust their local imports.
+3. Keep IDs unique. Change typed content first; remount components whose README
+   specifies a mounted content contract when replacing that content.
+4. Host public assets yourself. Provide real GLB bounds and semantic fallback.
+   The GLB recipes accept `dracoPath`, passed directly to Drei `useGLTF`.
+5. Check forward/reverse scrolling, actual canvas pixels, keyboard, narrow/touch
+   layout, reduced motion, load failures and unmount.
 
-From the workspace root:
+R3F owns object reconciliation and frame scheduling. Three.js owns scene objects
+and GPU resources. Components dispose textures and materials they allocate;
+`useGLTF`/`useTexture` cache resources stay shared. Instance graph clones use
+`dispose={null}` and clone materials before customization. Runtime does not
+reimplement loaders, geometry, materials, mixers, physics or postprocessing.
+
+Recipes combine scene readiness with `useRuntimeReady()` before replacing their
+DOM fallback. Context loss restores readable content while the native scene and
+its resources stay mounted for recovery.
+
+The recipes measure native document scroll. Transformed smooth scrollers or
+nested containers require an explicit integration. Hero's personal content,
+preferences and whole-site chapter orchestration remain caller-owned.
+
+## Verification
 
 ```bash
 npm test -- --run apps/example/test/recipes
@@ -92,9 +94,8 @@ npm run build -w @viselora/example
 npm run check:imports
 ```
 
-Pure frame/geometry tests protect reversibility and handoffs; component tests
-cover semantics, registrations and lifecycle. Browser review is also required
-for shader output, clipping, legibility and DOM/atlas alignment.
-
-Latest automation, browser coverage and limitations are owned by the
+Pure tests protect reversible geometry and handoffs. DOM tests cover semantic
+fallback, preference changes and listener cleanup. R3F test-renderer tests drive
+real Three.js scene objects and validate allocated texture/material disposal.
+GPU output still needs browser review. Current evidence is recorded in the
 [app verification record](../../docs/verification.md).

@@ -3,7 +3,6 @@ export {
   type InteractiveSculptureProps,
 } from "./InteractiveSculpture";
 export { FacePortal, type FacePortalProps } from "./FacePortal";
-export { spatialEffects } from "./effects";
 export type {
   FourFaces,
   PortalChapter,

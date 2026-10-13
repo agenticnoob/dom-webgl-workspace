@@ -1,23 +1,22 @@
 # Spatial sculpture and face portals
 
-Copy this entire directory. Import `InteractiveSculpture`, `FacePortal`,
-`spatialEffects` and their data types from `index.ts`. The components register a
-scoped scene, perspective camera and DOM-sized pass inside an **existing**
-`WebGLScrollRuntime`; they do not create another runtime or canvas.
+Copy this directory and the shared helpers described in the [catalog](../README.md).
+`InteractiveSculpture` and `FacePortal` use native R3F meshes, lights and materials
+inside a Drei View. The catalog's `VisualPage` provides one Canvas for every recipe.
 
 ## Minimal sculpture
 
 ```tsx
 import React from "react";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-import { InteractiveSculpture, spatialEffects } from "./recipes/spatial";
+import { VisualPage } from "./VisualPage"; // Shared host from the recipe catalog
+import { InteractiveSculpture } from "./recipes/spatial";
 
 const palette = { background: "#e9e4d6", foreground: "#172124" };
 const motion = { breathing: 0.012, floating: 0.025, parallax: 0.12 };
 
 export function Sculpture() {
   return (
-    <WebGLScrollRuntime effects={spatialEffects}>
+    <VisualPage>
       <InteractiveSculpture
         id="studio.sculpture"
         title="Explore a different viewpoint"
@@ -26,7 +25,7 @@ export function Sculpture() {
         motion={motion}
         holdMs={1000}
       />
-    </WebGLScrollRuntime>
+    </VisualPage>
   );
 }
 ```
@@ -48,10 +47,9 @@ and the animated circle; a completed hold or button click changes the scheme.
 
 ```tsx
 import React from "react";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+import { VisualPage } from "./VisualPage"; // Shared host from the recipe catalog
 import {
   FacePortal,
-  spatialEffects,
   type FourFaces,
   type PortalChapter,
 } from "./recipes/spatial";
@@ -93,9 +91,9 @@ const chapters = [
 
 export function Chapters() {
   return (
-    <WebGLScrollRuntime effects={spatialEffects}>
+    <VisualPage>
       <FacePortal id="studio.chapters" chapters={chapters} />
-    </WebGLScrollRuntime>
+    </VisualPage>
   );
 }
 ```
@@ -130,32 +128,33 @@ Pass `model={model}` to `FacePortal`. `center` is the exported GLB-root-space
 bounding-box center (including its internal transforms); `size` is its largest
 bounding-box dimension. Both default to a centered unit object. `face` is
 `0 | 1 | 2 | 3`. `bodyScale` changes its expanded size. Draco uses the public
-`loader.draco.decoderPath` declaration. Use your own public asset. Loading or
+`dracoPath` option passed to Drei useGLTF. Use your own public asset. Loading or
 model failure does not remove chapter text. The relief shares the same scene,
-camera and pass as the tetrahedron; projection compensation preserves its
+camera and View as the tetrahedron; projection compensation preserves its
 screen position as it leaves the shallow face plane.
 
 ## Declaration and accessibility contract
 
 - IDs must be nonempty and unique in the host runtime.
-- Keep `chapters`, `palette`, `motion`, `model` and effect arrays stable. When
+- Keep `chapters`, `palette`, `motion` and `model` stable. When
   replacing content, framing, palette or effect parameters, remount the component
-  with a new `key`. The runtime's mounted declarations are immutable.
+  with a new `key`. These components capture their configuration for one mount.
 - `palette` is a pair of contrasting CSS colors; opaque hex colors are simplest.
 - No window/document access occurs during module import or server rendering.
   Semantic headings, paragraphs, links and controls remain available without GPU
-  enhancement. Text atlas creation happens only in the runtime effect.
+  enhancement. Text atlas creation happens after the R3F scene mounts.
 - The atlas is bounded to 4096px per dimension; narrow or large screens trade
   text resolution for a bounded texture. It uses Arial/sans-serif plain text.
 - Reduced motion removes idle motion. The explicit portal scroll remains
   reversible; the complete-text button provides immediate reading without it.
 - Use document scroll and avoid an ancestor that clips sticky positioning.
-  Keep the recipe's matching camera/pass and a transparent enhanced DOM layer.
+  Keep the recipe's camera and Drei View and a transparent enhanced DOM layer.
   Pointer offsets use viewport CSS pixels, matching the runtime's fixed canvas;
   a scrolling host container must not be subtracted from those coordinates.
-- Do not add a Three renderer, loader, animation loop, ground plane or shadow
-  renderer. The runtime owns GPU disposal; effects remove their managed shader
-  and light handles, and the component clears its observers and progress keys.
+- The native components dispose their atlas and customized materials. R3F
+  reconciles geometry and lights; useGLTF retains shared loader-cache assets.
+  The component clears its observers and progress keys. Use the existing Canvas
+  and R3F frame loop when extending the scene.
 
 ## Source map for agents
 
@@ -168,7 +167,7 @@ screen position as it leaves the shallow face plane.
 | Matching endpoint typography and texture packing       | `atlas.ts`                                                              |
 | UV-to-screen lock, theme circle and edge light         | `shader.ts`, `effects.ts`                                               |
 | Model face/body transform and off-center normalization | `relief.ts`                                                             |
-| Public scene/camera/pass/mesh/model declarations       | `SpatialScene.tsx`                                                      |
+| Native View, camera, mesh, model and light composition | `SpatialScene.tsx`                                                      |
 
 Run `npm test -- --run apps/example/test/recipes/spatial` after changing geometry
 or lifecycle, then review desktop/mobile forward and reverse handoffs in the

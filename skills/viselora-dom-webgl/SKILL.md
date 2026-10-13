@@ -1,79 +1,58 @@
 ---
 name: viselora-dom-webgl
-description: Use when building a new DOM-first scroll narrative, enhancing an existing React site with public Viselora APIs, selecting capabilities or interactions, planning local assets, debugging lifecycle or rendering failures, or verifying a Viselora consumer.
+description: Build or migrate a React or Next.js DOM-first visual experience using Viselora for DOM/progress/fallback coordination and React Three Fiber with native Three.js objects for rendering.
 ---
 
-# Viselora Development
+# Viselora React/R3F Development
 
-Compatible package version: 0.1.0-alpha.2
+Compatible package version: 0.2.0-alpha.0
+
+This skill targets the breaking React/R3F 0.2 alpha API. Install matching package
+versions from the `alpha` channel or use reviewed local tarballs. The 0.1.x
+packages implement a different API. Check the repository
+[release status](../../docs/STATUS.md#release-truth) for registry confirmation.
 
 ## Workflow
 
-```text
-DOM-backed visual -> WebGLTarget
-Procedural 3D geometry -> WebGLMesh
-GLB asset -> WebGLModel
-```
-
-1. Establish audience, core message, outcome, tone, length, interaction density,
-   available assets, accessibility, mobile, performance and reduced-motion
-   constraints. Follow [narrative-design.md](references/narrative-design.md).
-2. When direction is ambiguous, offer 2–3 materially different directions,
-   recommend one, and pause only if the choice materially changes scope.
-3. Define 4–8 story beats with semantic DOM/fallback, entrance/active/exit,
-   scroll owner/range, at most one primary interaction, mobile/reduced motion,
-   assets, capability/status and direct evidence. Copy
-   [story-plan.md](templates/story-plan.md).
-4. Inventory first; freeze production assets locally with provenance, license,
-   metadata and fallback. Follow [asset-pipeline.md](references/asset-pipeline.md)
-   and copy [asset-manifest.json](templates/asset-manifest.json).
-5. Map each dynamic beat to the narrowest public API. Read
-   [public-api.md](references/public-api.md) and
-   [capability-status.md](references/capability-status.md). Use experimental
-   paths only with acknowledgement; use blocked paths only for retained defect
-   reproduction.
-   Use one visual choice tree: DOM-backed visual -> `WebGLTarget`; procedural
-   3D geometry -> `WebGLMesh`; GLB asset -> `WebGLModel`.
-6. Before implementation, run an **experimental public-boundary preflight** for
-   every experimental or blocked slice in a minimal public-npm browser spike.
-   Record direct measurements, package version, clean console/page errors and
-   capability id. Continue only after the preflight passes; do not derive bulk
-   assets or delete the old implementation first.
-7. Implement with one page-level runtime/canvas, one scroll source, one pointer
-   source, module-scope effect definitions/array, stable mounted declarations,
-   semantic DOM and visible loading/error fallback. Follow
-   [architecture-rules.md](references/architecture-rules.md).
-8. Run the selected-capability verifier, strict typecheck and production build,
-   then collect real-browser pixels/behavior and complete desktop/mobile/
-   reduced-motion narrative review. Follow
-   [verification.md](references/verification.md).
+1. Read the consumer's actual scene, DOM and assets before changing ownership.
+   Preserve its visual behavior, semantics and existing authorization scope.
+2. Keep one `WebGLRuntime`/`WebGLScrollRuntime` host. Put ordinary R3F components
+   in `scene`, semantic HTML in `children`, and use public Viselora entrypoints.
+3. Use `WebGLTarget` and `useDOMTarget` for measured DOM anchors. Use native
+   Three.js refs, materials, loaders and R3F hooks for visual behavior.
+4. Keep fallback paint until the replacement visual is ready. Scope async
+   readiness to the captured target. Choose resource retention explicitly.
+5. Verify focused behavior, types and builds, then compare actual browser
+   pixels, forward/reverse scroll, resize, input and remount behavior.
 
 ## Load only what the task needs
 
 | Need | Reference |
 | --- | --- |
-| Install and start | [quickstart.md](references/quickstart.md) |
-| Effects, targets, materials, textures, text, postprocess | [api-effects-rendering.md](references/api-effects-rendering.md) |
-| Scenes, cameras, passes, stages, models | [api-scenes-models.md](references/api-scenes-models.md) |
-| Scroll, progress, pointer, gestures, physics | [api-scroll-interaction.md](references/api-scroll-interaction.md) |
-| Loading, fallback, debug selectors, disposal, SSR | [api-lifecycle-debug.md](references/api-lifecycle-debug.md) |
-| Optional examples | [effect-recipes.md](references/effect-recipes.md) |
-| Diagnose failures | [troubleshooting.md](references/troubleshooting.md) |
+| Start a consumer or use the runnable template | [quickstart.md](references/quickstart.md) |
+| API navigation | [public-api.md](references/public-api.md) |
+| Native effects and DOM text | [api-effects-rendering.md](references/api-effects-rendering.md) |
+| Native scene and model ownership | [api-scenes-models.md](references/api-scenes-models.md) |
+| Scroll progress and interaction | [api-scroll-interaction.md](references/api-scroll-interaction.md) |
+| Fallback, SSR and cleanup | [api-lifecycle-debug.md](references/api-lifecycle-debug.md) |
+| Ownership constraints | [architecture-rules.md](references/architecture-rules.md) |
+| Optional narrative planning | [narrative-design.md](references/narrative-design.md) |
+| Asset provenance | [asset-pipeline.md](references/asset-pipeline.md) |
+| Native visual recipes | [effect-recipes.md](references/effect-recipes.md) |
+| Failures | [troubleshooting.md](references/troubleshooting.md) |
+| Verification scope | [verification.md](references/verification.md) |
+| Automated capability evidence | [capability-status.md](references/capability-status.md) |
 | Exhaustive exports | [api-surface.generated.md](references/api-surface.generated.md) |
-| Maintainer value mapping | [api-coverage.json](references/api-coverage.json) |
+| Maintainer coverage map | [api-coverage.json](references/api-coverage.json) |
 
-## Hard boundaries
+## Boundaries
 
-- Use only the four Viselora entrypoints above. A direct `three` dependency is
-  allowed solely for a `WebGLMesh` custom geometry factory that returns a fresh
-  `BufferGeometry`; it grants no raw scene/render ownership.
-- Do not add R3F, `<Canvas>`, raw `WebGLRenderer`, a second renderer/runtime/
-  canvas, a consumer render loop, private/source imports, or duplicate scroll/
-  pointer listeners.
-- Do not mutate mounted target declarations or construct runtime effect arrays
-  during render.
-- Do not hide semantic fallback while loading or after error.
-- Do not hotlink production assets. Do not claim browser verification from the
-  static verifier, skill tests, typecheck or build alone.
-- Route ready/active-but-blank output to public-boundary reproduction; never
-  introduce raw Three.js ownership as a workaround.
+- React 19, R3F 9 and Three.js 0.184 are the supported stack.
+- Native Three.js ownership and R3F JSX/hooks are the normal visual API.
+- Do not add a second Canvas/WebGLRenderer or custom renderer RAF loop.
+- Do not import private Viselora source or rebuild a scene/material/effect facade.
+- Read live rect/progress in `useFrame`; R3F delta is in seconds.
+- `hideWhenReady` defaults to false. Paint hiding uses opacity on registered
+  leaves; a target containing another target remains visible.
+- Shared cached assets and external primitives require deliberate disposal.
+- Static checks do not establish browser visual correctness or publication.

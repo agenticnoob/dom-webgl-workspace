@@ -1,4 +1,4 @@
-import type { WebGLEffectMaterialShaderDraft } from "@viselora/dom-webgl";
+import { MeshStandardMaterial, ShaderLib } from "three";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -12,7 +12,7 @@ import { heroTransitionConfig } from "../src/transition/transitionConfig";
 import { heroChapterOrder } from "../src/chapters/definitions";
 import {
   compileHeroTetrahedronRadialShader,
-  createHeroTetrahedronRadialShader,
+  createHeroTetrahedronMaterial,
   createHeroTetrahedronRadialUniforms,
 } from "../src/tetrahedron/shader";
 
@@ -20,7 +20,7 @@ const viewport = { width: 1200, height: 835 } as const;
 
 describe("hero tetrahedron radial shader", () => {
   test("identifies flat faces and mixes face-space into locked screen-space before lighting", () => {
-    const draft = createDraft("standard");
+    const draft = createDraft();
 
     compileHeroTetrahedronRadialShader(draft);
 
@@ -73,7 +73,7 @@ describe("hero tetrahedron radial shader", () => {
   });
 
   test("keeps one inverse chapter palette across face and screen coordinates", () => {
-    const draft = createDraft("standard");
+    const draft = createDraft();
 
     compileHeroTetrahedronRadialShader(draft);
 
@@ -106,27 +106,26 @@ describe("hero tetrahedron radial shader", () => {
     );
   });
 
-  test("supports Physical lit shaders but rejects Basic and missing chunks", () => {
+  test("supports native Physical shader chunks and rejects missing chunks", () => {
     expect(() =>
-      compileHeroTetrahedronRadialShader(createDraft("physical")),
+      compileHeroTetrahedronRadialShader({ ...ShaderLib.physical }),
     ).not.toThrow();
-    expect(() =>
-      compileHeroTetrahedronRadialShader(createDraft("basic")),
-    ).toThrow("requires a Standard or Physical managed material");
-    const missing = createDraft("standard");
+    const missing = createDraft();
     missing.fragmentShader = "#include <lights_fragment_begin>";
     expect(() => compileHeroTetrahedronRadialShader(missing)).toThrow(
       "could not find the Three emissivemap fragment chunk",
     );
   });
 
-  test("declares the runtime-owned chapter atlas before setup can update it", () => {
+  test("uses a native Standard material and CanvasTexture for the packed chapter atlas", () => {
     const canvas = document.createElement("canvas");
-    const shader = createHeroTetrahedronRadialShader(canvas);
+    const shader = createHeroTetrahedronMaterial(canvas);
 
-    expect(shader.uniforms).toMatchObject({
-      heroChapterAtlas: { kind: "canvas-texture", source: canvas },
-    });
+    expect(shader.material).toBeInstanceOf(MeshStandardMaterial);
+    expect(shader.uniforms.heroChapterAtlas.value).toBe(shader.texture);
+    expect(shader.texture.image).toBe(canvas);
+    shader.texture.dispose();
+    shader.material.dispose();
   });
 
   test.each([
@@ -279,17 +278,12 @@ function firstChapterFlightEntry(flightProgress: number): number {
   return introHandoffEnd + (1 - introHandoffEnd) * flightProgress;
 }
 
-function createDraft(
-  materialKind: WebGLEffectMaterialShaderDraft["materialKind"],
-): WebGLEffectMaterialShaderDraft {
+function createDraft() {
   return {
-    materialKind,
     vertexShader: "#include <begin_vertex>",
     fragmentShader:
       "#include <emissivemap_fragment>\n#include <lights_fragment_begin>\nvec3 outgoingLight = vec3(0.0);\n#include <opaque_fragment>",
-    uniforms: {},
-    defines: {},
-  } satisfies WebGLEffectMaterialShaderDraft;
+  };
 }
 
 function transition(

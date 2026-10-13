@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 describe("example resource scheduler", () => {
-  test("loads resources in DOM order and limits image sequence concurrency", async () => {
+  test("shares sequence decoding, caps concurrency and delegates other media to native loaders", async () => {
     vi.resetModules();
     const events: string[] = [];
     let activeSequenceLoads = 0;
@@ -25,62 +25,34 @@ describe("example resource scheduler", () => {
       }
     }
 
-    class TestVideo {
-      preload = "";
-      src = "";
-      private listeners = new Map<string, () => void>();
-
-      addEventListener(type: string, listener: () => void): void {
-        this.listeners.set(type, listener);
-      }
-
-      load(): void {
-        events.push(this.src);
-        this.listeners.get("loadedmetadata")?.();
-      }
-    }
-
     vi.stubGlobal("Image", TestImage);
-    const originalCreateElement = document.createElement.bind(document);
-    vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
-      if (tagName === "video") {
-        return new TestVideo() as unknown as HTMLVideoElement;
-      }
-      return originalCreateElement(tagName);
-    });
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((src: string) => {
-        events.push(src);
-        return Promise.resolve({ ok: true });
-      }),
-    );
+    const createElement = vi.spyOn(document, "createElement");
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
 
     try {
-      const { loadExampleResources } = await import("../src/exampleResourceScheduler");
-      const resources = await loadExampleResources();
+      const { loadExampleResources } =
+        await import("../src/exampleResourceScheduler");
+      const load = loadExampleResources();
+      expect(loadExampleResources()).toBe(load);
+      const resources = await load;
 
-      expect(events.slice(0, 4)).toEqual([
-        "/example/image.png",
-        "/example/bg.png",
-        "/example/video.mp4",
-        "/example/bg-sequence/frame_0001.webp",
-      ]);
-      expect(events.indexOf("/models/hero.glb")).toBeGreaterThan(
-        events.indexOf("/example/bg-sequence/frame_0001.webp"),
-      );
-      expect(events.indexOf("/models/hero.glb")).toBeLessThan(
-        events.indexOf("/example/bg-sequence/frame_0454.webp"),
-      );
-      expect(events.indexOf("/models/4.glb")).toBeGreaterThan(
-        events.indexOf("/example/bg-sequence/frame_0001.webp"),
-      );
-      expect(events.indexOf("/models/4.glb")).toBeLessThan(
-        events.indexOf("/example/bg-sequence/frame_0454.webp"),
-      );
+      expect(events[0]).toBe("/example/bg-sequence/frame_0001.webp");
+      expect(events).toHaveLength(454);
+      expect(new Set(events).size).toBe(454);
+      expect(
+        events.every((src) => src.startsWith("/example/bg-sequence/")),
+      ).toBe(true);
       expect(maxSequenceLoads).toBeLessThanOrEqual(6);
       expect(resources.imageSequenceFrames).toHaveLength(454);
-      expect(resources.modelReady).toBe(true);
+      expect(resources.imageSequenceFrames[0].src).toBe(
+        "/example/bg-sequence/frame_0001.webp",
+      );
+      expect(resources.imageSequenceFrames[453].src).toBe(
+        "/example/bg-sequence/frame_0454.webp",
+      );
+      expect(fetch).not.toHaveBeenCalled();
+      expect(createElement).not.toHaveBeenCalledWith("video");
     } finally {
       vi.unstubAllGlobals();
       vi.restoreAllMocks();

@@ -1,197 +1,122 @@
-# Getting Started
+# Getting started
 
-This guide shows the shortest React path from semantic DOM to a managed WebGL
-target. For the complete export inventory, use the
-[generated API surface](../../skills/viselora-dom-webgl/references/api-surface.generated.md).
-
-## Install
+This guide describes the React/R3F 0.2 alpha API. See
+[release truth](../STATUS.md#release-truth) for the current registry version.
+Use React 19, React DOM 19, R3F 9 and Three.js 0.184.
 
 ```bash
-npm install @viselora/dom-webgl@alpha
+npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
 ```
 
-React 18 or newer is required for the React entrypoint.
+Install `@viselora/scroll-adapters@alpha` only when using the optional scroll
+integration. Keep both Viselora packages on the same version. TypeScript
+consumers should also install `@types/react@19`, `@types/react-dom@19` and
+`@types/three@0.184` as development dependencies.
 
-## Create one runtime
+## One host and native scene
 
-Keep effect definitions and the runtime effect list at module scope:
+`WebGLRuntime` mounts the page's Canvas. Put R3F components in `scene` and
+semantic DOM in `children`. `canvas` forwards ordinary R3F Canvas configuration.
+Use `useFrame` for high-frequency transforms and `useThree` for renderer state.
+
+## Bind a DOM element
+
+`WebGLTarget` binds one ref-capable child by id. The live target rect uses CSS
+viewport pixels. An orthographic camera with zoom 1 maps one scene unit to one
+CSS pixel; convert from top-left DOM coordinates to the scene's center origin.
 
 <!-- compile-tsx:getting-started-runtime -->
 
 ```tsx
-import { defineWebGLEffect } from "@viselora/dom-webgl";
-import {
-  WebGLRuntime,
-  WebGLTarget,
-} from "@viselora/dom-webgl/react";
+"use client";
 
-type FadeParams = {
-  kind: "app.fade";
-  opacity?: number;
-};
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import type { Mesh } from "three";
+import { WebGLRuntime, WebGLTarget, useDOMTarget } from "@viselora/dom-webgl/react";
 
-const fadeEffect = defineWebGLEffect<FadeParams>({
-  kind: "app.fade",
-  update(ctx, _state, params) {
-    ctx.object.opacity = params.opacity ?? 1;
-  },
-});
-
-const runtimeEffects = [fadeEffect];
-
-export function Page() {
+function Highlight() {
+  const target = useDOMTarget("heading");
+  const mesh = useRef<Mesh>(null);
+  useFrame(({ size }) => {
+    if (!target || !mesh.current) return;
+    const rect = target.rect;
+    mesh.current.visible = target.visible;
+    mesh.current.position.set(
+      rect.left + rect.width / 2 - size.width / 2,
+      size.height / 2 - rect.top - rect.height / 2,
+      0,
+    );
+    mesh.current.scale.set(rect.width, rect.height, 1);
+  });
   return (
-    <WebGLRuntime effects={runtimeEffects}>
-      <WebGLTarget
-        webgl={{
-          key: "hero.title",
-          source: { kind: "dom", type: "text" },
-          effects: [{ kind: "app.fade", opacity: 0.85 }],
-        }}
-      >
-        <h1>Semantic fallback and managed WebGL</h1>
-      </WebGLTarget>
+    <mesh ref={mesh} visible={false}>
+      <planeGeometry />
+      <meshBasicMaterial color="#7ac5b8" transparent opacity={0.25} />
+    </mesh>
+  );
+}
+
+export function App() {
+  return (
+    <WebGLRuntime canvas={{ orthographic: true, camera: { position: [0, 0, 500] } }} scene={<Highlight />}>
+      <WebGLTarget id="heading"><h1>Semantic DOM remains readable</h1></WebGLTarget>
     </WebGLRuntime>
   );
 }
 ```
 
-The DOM remains real content. The runtime measures it, creates a matching
-renderable, hides the fallback only when ready, and restores it on error,
-offscreen release, unmount, or runtime disposal.
-
-## Choose the visual path
-
-| Need | Public path |
-| --- | --- |
-| DOM layout, text, media, fallback, or target pointer | `WebGLTarget` |
-| Procedural scene-native geometry | `WebGLMesh` |
-| Scene-native GLB with managed animation/morph state | `WebGLModel` |
-
-Use managed scenes only when the default DOM-aligned path is insufficient:
-
-```tsx
-import {
-  WebGLCamera,
-  WebGLMesh,
-  WebGLRuntime,
-  WebGLScene,
-} from "@viselora/dom-webgl/react";
-
-<WebGLRuntime effects={runtimeEffects}>
-  <WebGLScene
-    id="hero.scene"
-    projection="perspective-stage"
-    render={{ camera: "hero.camera" }}
-  >
-    <WebGLCamera
-      id="hero.camera"
-      default
-      type="perspective"
-      position={[0, 0, 3]}
-    />
-    <WebGLMesh
-      id="hero.mesh"
-      geometry={{ kind: "box", size: [1, 1, 1] }}
-      material={{ kind: "standard", color: "#dbeafe" }}
-    />
-  </WebGLScene>
-</WebGLRuntime>;
-```
-
-Managed scenes do not expose raw Three.js handles and do not replace the normal
-`WebGLTarget` path.
-
-## Declare sources
-
-DOM text:
-
-```ts
-source: { kind: "dom", type: "text" }
-```
-
-Image:
-
-```ts
-source: {
-  kind: "media",
-  type: "image",
-  src: "/images/hero.webp",
-}
-```
-
-Video:
-
-```ts
-source: {
-  kind: "media",
-  type: "video",
-  src: "/video/hero.mp4",
-}
-```
-
-GLB following a DOM rect:
-
-```ts
-source: {
-  kind: "model",
-  type: "glb",
-  src: "/models/hero.glb",
-  loader: {
-    draco: { decoderPath: "/draco/" },
-  },
-}
-```
-
-Apps must host decoder files at the declared public path. Do not pass loader
-callbacks or import internal loaders.
-
-## Keep declarations stable
-
-After a `WebGLTarget` mounts, keep its `webgl` declaration stable. Do not mutate
-source, effects, scroll, pointer, or lifecycle behavior through render-time
-object recreation. Use module-level constants, memoized declarations, or a new
-React key when the semantic declaration must change.
-
-Do not mirror frame-by-frame values into React state. Progress and visual state
-belong in runtime stores and effects.
+The target identity is reactive; its rect/visibility/revision update in place.
+Read them in a frame callback. Runtime measurement runs before ordinary scene
+frame callbacks. Perspective scenes can use native Three.js camera projection
+and R3F viewport helpers for their own placement.
 
 ## Fallback and offscreen policy
 
-Defaults:
+`hideWhenReady` defaults to false. Set it only for a visual that replaces the
+DOM paint. Use `useWebGLRuntime().setTargetReady(id, true, target)` after visual
+readiness, and false when a visual fails or unloads. Pass the target captured by
+the load so a stale asynchronous result cannot affect a later same-id target.
 
-- `hideWhenReady: true`
-- `hideMode: "self"`
-- offscreen policy `restore-dom`
+`offscreen="restore-dom"` restores fallback outside the viewport;
+`offscreen="park"` keeps ready fallback hidden. Use `target.visible` to pause
+updates and choose normal React unmounting or retained Three.js resources.
+Unavailable WebGL and final unmount restore runtime-owned opacity. A target containing another registered target
+is kept visible; opt into hiding only on leaves that replace DOM paint. Opacity
+keeps the semantic content available to assistive technology.
 
-Use `hideWhenReady: false` when DOM and WebGL should remain visible together.
-Use `hideMode: "subtree"` only when the target and its descendants are one
-fallback unit.
+## Next.js
 
-Use `park` only when retaining WebGL resources offscreen is worth the memory
-cost. Loading and error states always keep fallback visible.
+Place the runtime/scene composition in a Client Component with `"use client"`.
+The package imports are SSR-safe and semantic children render without a WebGL
+context. Keep browser-only loader work inside mounted components or explicit
+DOM utility calls. Do not create textures or query `document` at module scope.
 
-## Debugging
+## Loading and effects
 
-Use `onDebugStateChange` or the React debug surface to inspect target counts,
-renderable/resource states, active scroll mode, scene progress, managed scene
-objects, interaction, animation, physics, and performance budgets.
+Use Three.js loaders, R3F `useLoader`, or Drei helpers such as `useGLTF` and
+`useAnimations`. Use local Suspense/error boundaries as appropriate, keeping
+semantic DOM available until the replacement visual is ready.
 
-Separate these claims:
+See [native effects](./effects.md), [scroll](./scroll.md), and
+[architecture](../ARCHITECTURE.md) for ownership details.
 
-- declaration registered;
-- resource ready;
-- renderable active;
-- automated final-canvas evidence;
-- real-browser visual acceptance.
+## Migrate from 0.1.x
 
-Ready/active state alone does not prove correct final pixels.
+The 0.2 release is a breaking replacement with no compatibility backend.
+Framework-independent runtime creation is no longer supported. Move visual
+ownership into React components before removing the old declarations.
 
-## Next
+| Previous responsibility | React/R3F replacement |
+| --- | --- |
+| Managed scene, mesh, model and light declarations | Native R3F components in the host's `scene` prop |
+| Effect registry and material/object facades | Three.js refs, materials and `useFrame` |
+| Runtime loaders, model mixers and resource cache | R3F `useLoader`, Drei helpers and explicit owned/shared disposal |
+| Camera controllers, pointer picking, physics and postprocessing | Native R3F/Three.js or chosen ecosystem tools |
+| Automatic source-to-DOM visual replacement | `WebGLTarget`, `useDOMTarget` and explicit readiness |
+| Effect frame delta in milliseconds | R3F frame delta in seconds |
 
-- [Effect authoring](./effects.md)
-- [Scroll integration](./scroll.md)
-- [Architecture](../ARCHITECTURE.md)
-- [Capability status](../../skills/viselora-dom-webgl/references/capability-status.md)
-- [Example app](../../apps/example/README.md)
-- [Copy and compose visual components](../../apps/example/src/recipes/README.md)
+Keep one host and Canvas. Retain semantic HTML and fallback while moving each
+scene. Port animation math with its original units, declare the lighting your
+materials need, and compare forward/reverse scroll, input, resize and context
+recovery in the browser. Passing types alone does not establish visual parity.

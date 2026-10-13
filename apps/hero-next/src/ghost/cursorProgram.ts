@@ -1,7 +1,9 @@
-import type {
-  WebGLEffectMaterialProgram,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import type { ShaderMaterialParameters } from "three";
+import {
+  createHeroUniforms,
+  heroPlaneVertexShader,
+  type HeroUniformValue,
+} from "../shared/shaderUniforms";
 
 export type HeroGhostLayer = "background" | "foreground";
 
@@ -32,22 +34,25 @@ export type HeroGhostCursorProgramOptions = {
 export function createHeroGhostCursorMaterialProgram(
   layer: HeroGhostLayer,
   options: HeroGhostCursorProgramOptions,
-): WebGLEffectMaterialProgram {
+): ShaderMaterialParameters {
   return {
     defines: {
       HERO_FOREGROUND: layer === "foreground" ? 1 : 0,
       MAX_TRAIL_LENGTH: heroGhostTrailLengths[layer],
     },
     fragmentShader: heroGhostCursorFragmentShader,
-    uniforms: createHeroGhostCursorUniforms(layer, options),
-    blend: "normal",
+    uniforms: createHeroUniforms(createHeroGhostCursorUniforms(layer, options)),
+    vertexShader: heroPlaneVertexShader,
+    transparent: true,
+    depthWrite: false,
+    toneMapped: false,
   };
 }
 
 export function createHeroGhostCursorUniforms(
   layer: HeroGhostLayer,
   options: HeroGhostCursorProgramOptions,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, HeroUniformValue> {
   const width = positive(options.width, 1);
   const height = positive(options.height, 1);
   const pointer = [

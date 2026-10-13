@@ -1,7 +1,13 @@
-import type {
-  WebGLEffectMaterialProgram,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import {
+  CanvasTexture,
+  LinearFilter,
+  type ShaderMaterialParameters,
+} from "three";
+import {
+  createHeroUniforms,
+  heroPlaneVertexShader,
+  type HeroUniformValue,
+} from "../shared/shaderUniforms";
 import type { AxiomsArtwork } from "./artwork";
 import type { AxiomsTexture } from "./texture";
 import { axiomsReaderConfig } from "./config";
@@ -13,17 +19,23 @@ export function createAxiomsProgram(
   artwork: AxiomsArtwork,
   texture: AxiomsTexture,
   frame: AxiomsFrame,
-): WebGLEffectMaterialProgram {
+): ShaderMaterialParameters {
   const articleCount = artwork.papers.length;
   const sheetCount = Math.max(1, articleCount * 2);
   const stamps = artwork.layout.papers.map((paper) =>
     resolveAxiomsStamp(paper.width, paper.height),
   );
+  const atlas = new CanvasTexture(texture.canvas);
+  atlas.minFilter = LinearFilter;
+  atlas.magFilter = LinearFilter;
+  atlas.generateMipmaps = false;
   return {
-    blend: "normal",
-    uniforms: {
+    vertexShader: heroPlaneVertexShader,
+    toneMapped: false,
+    depthWrite: true,
+    uniforms: createHeroUniforms({
       ...createAxiomsUniforms(artwork, frame, false),
-      inkAtlas: { kind: "canvas-texture", source: texture.canvas },
+      inkAtlas: atlas,
       atlasSize: [
         texture.cellWidth * texture.columns,
         texture.cellHeight * texture.rows,
@@ -36,7 +48,7 @@ export function createAxiomsProgram(
       stampRadii: stamps.length
         ? stamps.map((stamp) => [stamp.radius, 0])
         : [[0, 0]],
-    },
+    }),
     fragmentShader: `
       uniform sampler2D inkAtlas;
       uniform vec2 atlasSize;
@@ -111,7 +123,7 @@ export function createAxiomsUniforms(
   artwork: AxiomsArtwork,
   frame: AxiomsFrame,
   inverted: boolean,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, HeroUniformValue> {
   const sheets = [...frame.fans, ...frame.papers];
   const origin = ({ rect: r }: AxiomsSheetFrame): [number, number] => [
     r.x,

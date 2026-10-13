@@ -1,461 +1,198 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
+import type { DOMTextGlyph } from "@viselora/dom-webgl";
+import { createTextGlyphCommands } from "../src/textEffects";
+import { readTargetViewportProgress } from "../src/effectMath";
 
-import type { WebGLTextGlyphRenderCommand } from "@viselora/dom-webgl";
+export const createGlyph = (index: number, char: string): DOMTextGlyph => ({
+  index,
+  char,
+  line: 0,
+  x: index * 16,
+  y: 0,
+  width: 16,
+  height: 24,
+  baseline: 18,
+});
+const input = {
+  time: 1000,
+  width: 360,
+  height: 180,
+  progress: 0.5,
+  pointer: { active: true, x: 54, y: 42 },
+};
+const near = { ...createGlyph(0, "P"), x: 42, y: 32, width: 18, height: 28 };
+const far = { ...createGlyph(1, "r"), x: 280, y: 32, width: 18, height: 28 };
 
-import { createEffectContext, createGlyph } from "./effectContext";
-import {
-  exampleTextPressureEffect,
-  exampleTextRevealEffect,
-  exampleTextScrambleEffect,
-  exampleTextSpotlightPressureScrambleWaveEffect,
-  exampleTextSpotlightEffect,
-  exampleTextWaveEffect,
-} from "../src/textEffects";
-
-describe("text example effects", () => {
-  test("text wave rewrites glyph commands using elapsed runtime time", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Wave",
-        textLayer,
-      },
-      time: 1000,
-    });
-
-    exampleTextWaveEffect.update(context, undefined, {
-      kind: "example.textWave",
-      amplitude: 8,
-    });
-
-    expect(exampleTextWaveEffect.source).toBe("dom/text");
-    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      createGlyph(0, "W"),
-      createGlyph(1, "a"),
-    ]);
-    expect(commands?.[0]).toMatchObject({ index: 0, char: "W" });
-    expect(commands?.[0]?.y).not.toBe(0);
+describe("native text glyph animation", () => {
+  test("wave uses elapsed time and preserves glyph identity", () => {
+    const commands = createTextGlyphCommands(
+      "wave",
+      [createGlyph(0, "W"), createGlyph(1, "a")],
+      input,
+      { amplitude: 8 },
+    );
+    expect(commands[0]).toMatchObject({ index: 0, char: "W" });
+    expect(commands[0].y).not.toBe(0);
+    expect(
+      createTextGlyphCommands(
+        "wave",
+        [createGlyph(0, "W")],
+        { ...input, time: 0 },
+        { amplitude: 8 },
+      )[0].y,
+    ).not.toBe(commands[0].y);
   });
-
-  test("text reveal maps scroll progress to glyph opacity and scale", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Reveal",
-        textLayer,
-      },
-      layout: { top: 354, height: 60, viewport: { width: 1024, height: 768 } },
-      scrollProgress: 0.5,
-    });
-
-    exampleTextRevealEffect.update(context, undefined, {
-      kind: "example.textReveal",
-      color: "#d95f42",
-    });
-
-    expect(exampleTextRevealEffect.source).toBe("dom/text");
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      createGlyph(0, "R"),
-      createGlyph(1, "e"),
-      createGlyph(2, "v"),
-      createGlyph(3, "e"),
-    ]);
-    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1, color: "#d95f42" });
-    expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
+  test("reveal maps progress to glyph opacity and scale", () => {
+    const commands = createTextGlyphCommands(
+      "reveal",
+      Array.from("Reveal", (char, i) => createGlyph(i, char)),
+      input,
+      { color: "#d95f42" },
+    );
+    expect(commands[0]).toMatchObject({ opacity: 1, color: "#d95f42" });
+    expect(commands[3]).toMatchObject({ opacity: 0.18, scaleX: 0.82 });
   });
-
-  test("text reveal uses target viewport position when global scroll progress is still low", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Reveal",
-        textLayer,
-      },
-      layout: { top: 120, height: 240, viewport: { width: 1024, height: 768 } },
-      scrollProgress: 0,
+  test("viewport reveal progresses independently of page scroll percentage", () => {
+    const progress = readTargetViewportProgress({
+      top: 120,
+      height: 240,
+      viewport: { height: 768 },
     });
-
-    exampleTextRevealEffect.update(context, undefined, {
-      kind: "example.textReveal",
-      color: "#d95f42",
-    });
-
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      createGlyph(0, "R"),
-      createGlyph(1, "e"),
-      createGlyph(2, "v"),
-      createGlyph(3, "e"),
-    ]);
-
-    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1 });
-    expect(commands?.[1]).toMatchObject({ index: 1, opacity: 1 });
+    const commands = createTextGlyphCommands(
+      "reveal",
+      Array.from("Card", (c, i) => createGlyph(i, c)),
+      { ...input, progress },
+    );
+    expect(commands[0].opacity).toBe(1);
+    expect(commands[1].opacity).toBe(1);
   });
-
-  test("text reveal uses keyed pinned progress when progressKey is provided", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Card",
-        textLayer,
-      },
-      layout: { top: 120, height: 240, viewport: { width: 1024, height: 768 } },
-      scrollProgress: 1,
-      progress: { get: (key) => (key === "example.video.scrub" ? 0.25 : 0) },
+  test("keyed progress supports reversible pinned glyph reveal", () => {
+    const glyphs = Array.from("Card", (c, i) => createGlyph(i, c));
+    const commands = createTextGlyphCommands("reveal", glyphs, {
+      ...input,
+      progress: 0.25,
     });
-
-    exampleTextRevealEffect.update(context, undefined, {
-      kind: "example.textReveal",
-      color: "#f4f4f5",
-      progressKey: "example.video.scrub",
-    });
-
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      createGlyph(0, "C"),
-      createGlyph(1, "a"),
-      createGlyph(2, "r"),
-      createGlyph(3, "d"),
-    ]);
-
-    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1 });
-    expect(commands?.[1]).toMatchObject({ index: 1, opacity: 0.18, scaleX: 0.82 });
-    expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.18, scaleX: 0.82 });
+    expect(commands[0].opacity).toBe(1);
+    expect(commands[1].opacity).toBe(0.18);
+    expect(
+      createTextGlyphCommands("reveal", glyphs, {
+        ...input,
+        progress: 0,
+      }).every((c) => c.opacity === 0.18),
+    ).toBe(true);
   });
-
-  test("text spotlight highlights glyphs near the local pointer", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Spotlight",
-        textLayer,
-      },
-      layout: { left: 20, top: 10, width: 320, height: 160 },
-      pointer: { x: 68, y: 48, isInside: true },
-    });
-
-    exampleTextSpotlightEffect.update(context, undefined, {
-      kind: "example.textSpotlight",
+  test("spotlight highlights only nearby local glyphs", () => {
+    const commands = createTextGlyphCommands("spotlight", [near, far], input, {
       color: "#f6c453",
       radius: 80,
     });
-
-    expect(exampleTextSpotlightEffect.source).toBe("dom/text");
-    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const nearGlyph = { ...createGlyph(0, "近"), x: 40, y: 30 };
-    const farGlyph = { ...createGlyph(1, "远"), x: 240, y: 30 };
-    const commands = transform?.([nearGlyph, farGlyph]);
-
-    expect(commands?.[0]).toMatchObject({
-      index: 0,
-      char: "近",
-      color: "#f6c453",
-      opacity: expect.any(Number),
-      scaleX: expect.any(Number),
-      scaleY: expect.any(Number),
-    });
-    expect(commands?.[1]).toMatchObject({
-      index: 1,
-      char: "远",
+    expect(commands[0].color).toBe("#f6c453");
+    expect(commands[1]).toMatchObject({
+      char: "r",
       color: "#1d2a2e",
       opacity: 0.28,
     });
   });
-
-  test("text pressure scales WebGL glyphs near the local pointer", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Pressure",
-        textLayer,
-      },
-      layout: { left: 20, top: 10, width: 360, height: 180 },
-      pointer: { x: 74, y: 52, isInside: true },
-    });
-
-    exampleTextPressureEffect.update(context, undefined, {
-      kind: "example.textPressure",
-      color: "#f4f4f5",
+  test("pressure expands nearby glyphs with bounded distant compression", () => {
+    const commands = createTextGlyphCommands("pressure", [near, far], input, {
       radius: 140,
     });
-
-    expect(exampleTextPressureEffect.source).toBe("dom/text");
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const nearGlyph = { ...createGlyph(0, "P"), x: 42, y: 32, width: 18, height: 28 };
-    const farGlyph = { ...createGlyph(1, "r"), x: 280, y: 32, width: 18, height: 28 };
-    const commands = transform?.([nearGlyph, farGlyph]);
-
-    expect(commands?.[0]).toMatchObject({
-      index: 0,
-      char: "P",
-      color: "#f4f4f5",
-      scaleX: expect.any(Number),
-      scaleY: expect.any(Number),
-      opacity: 1,
-    });
-    expect(commands?.[0]?.scaleX).toBeGreaterThan(commands?.[1]?.scaleX ?? 0);
-    expect(commands?.[0]?.scaleY).toBeGreaterThan(commands?.[1]?.scaleY ?? 0);
-    expect(commands?.[1]).toMatchObject({
-      index: 1,
-      char: "r",
-      color: "#f4f4f5",
-      opacity: 1,
-    });
+    expect(commands[0].scaleX).toBeGreaterThan(commands[1].scaleX!);
+    expect(commands[0].scaleY).toBeGreaterThan(commands[1].scaleY!);
+    expect(commands[1].opacity).toBe(1);
   });
-
-  test("text pressure reflows the whole line after nearby glyphs expand", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "ABCD",
-        textLayer,
-      },
-      layout: { left: 0, top: 0, width: 240, height: 120 },
-      pointer: { x: 103, y: 24, isInside: true },
-    });
-
-    exampleTextPressureEffect.update(context, undefined, {
-      kind: "example.textPressure",
-      color: "#f4f4f5",
-      radius: 90,
-    });
-
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const glyphs = [
-      { ...createGlyph(0, "A"), x: 0, y: 10, width: 24, height: 28 },
-      { ...createGlyph(1, "B"), x: 36, y: 10, width: 24, height: 28 },
-      { ...createGlyph(2, "C"), x: 72, y: 10, width: 24, height: 28 },
-      { ...createGlyph(3, "D"), x: 108, y: 10, width: 24, height: 28 },
-    ];
-    const commands = transform?.(glyphs) as
-      | readonly WebGLTextGlyphRenderCommand[]
-      | undefined;
-
-    expect(commands?.map((command) => command.index)).toEqual([0, 1, 2, 3]);
-    expect(commands?.every((command) => typeof command.x === "number")).toBe(true);
-    expect(commands?.[2]?.scaleX).toBeGreaterThan(1);
-    expect(commands?.[0]?.scaleX).toBeLessThan(1);
-    expect(commands?.[1]?.scaleX).toBeLessThan(commands?.[2]?.scaleX ?? 0);
-    expect(commands?.[1]?.x).not.toBe(glyphs[1]?.x);
-    expect(commands?.[3]?.x).not.toBe(glyphs[3]?.x);
-    expect(commands?.[3]?.x ?? 0).toBeGreaterThan(commands?.[2]?.x ?? 0);
+  test("pressure reflows a whole line in stable glyph order", () => {
+    const glyphs = Array.from("ABCD", (char, index) => ({
+      ...createGlyph(index, char),
+      x: index * 36,
+      y: 10,
+      width: 24,
+      height: 28,
+    }));
+    const commands = createTextGlyphCommands(
+      "pressure",
+      glyphs,
+      { ...input, pointer: { active: true, x: 103, y: 24 } },
+      { radius: 90 },
+    );
+    expect(commands.map((c) => c.index)).toEqual([0, 1, 2, 3]);
+    expect(commands[2].scaleX).toBeGreaterThan(1);
+    expect(commands[0].scaleX).toBeLessThan(1);
+    expect(commands[1].scaleX).toBeLessThan(commands[2].scaleX!);
+    expect(commands[1].x).not.toBe(glyphs[1].x);
+    expect(commands[3].x).not.toBe(glyphs[3].x);
+    expect(commands[3].x).toBeGreaterThan(commands[2].x!);
   });
-
-  test("text pressure does not collapse the entire line on pointer enter", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "PRESSURE",
-        textLayer,
-      },
-      layout: { left: 0, top: 0, width: 320, height: 120 },
-      pointer: { x: 18, y: 24, isInside: true },
-    });
-
-    exampleTextPressureEffect.update(context, undefined, {
-      kind: "example.textPressure",
-      color: "#f4f4f5",
-      radius: 70,
-    });
-
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const glyphs = Array.from("PRESSURE").map((char, index) => ({
+  test("pointer entry never collapses the line", () => {
+    const glyphs = Array.from("PRESSURE", (char, index) => ({
       ...createGlyph(index, char),
       x: index * 30,
       y: 10,
       width: 22,
       height: 28,
     }));
-    const commands = transform?.(glyphs) as
-      | readonly WebGLTextGlyphRenderCommand[]
-      | undefined;
-    const originalStart = glyphs[0]?.x ?? 0;
-    const originalEnd = (glyphs.at(-1)?.x ?? 0) + (glyphs.at(-1)?.width ?? 0);
-    const commandStart = commands?.[0]?.x ?? 0;
-    const lastCommand = commands?.at(-1);
-    const commandEnd =
-      (lastCommand?.x ?? 0) +
-      (glyphs.at(-1)?.width ?? 0) * (lastCommand?.scaleX ?? 1);
-
-    expect(commands?.some((command) => (command.scaleX ?? 1) > 1)).toBe(true);
-    expect(commands?.every((command) => (command.scaleX ?? 1) >= 0.82)).toBe(true);
-    expect(commandEnd - commandStart).toBeGreaterThan((originalEnd - originalStart) * 0.92);
+    const commands = createTextGlyphCommands(
+      "pressure",
+      glyphs,
+      { ...input, pointer: { active: true, x: 18, y: 24 } },
+      { radius: 70 },
+    );
+    expect(commands.some((c) => c.scaleX! > 1)).toBe(true);
+    expect(commands.every((c) => c.scaleX! >= 0.82)).toBe(true);
+    const last = commands.at(-1)!;
+    expect(last.x! + 22 * last.scaleX! - commands[0].x!).toBeGreaterThan(
+      232 * 0.92,
+    );
   });
-
-  test("text pressure stays neutral until the pointer enters the target", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Pressure",
-        textLayer,
+  test("pressure stays neutral while the pointer is outside", () => {
+    const commands = createTextGlyphCommands("pressure", [near, far], {
+      ...input,
+      pointer: { active: false, x: 0, y: 0 },
+    });
+    expect(commands.map(({ x, y, ...command }) => command)).toEqual([
+      {
+        index: 0,
+        char: "P",
+        color: "#f4f4f5",
+        opacity: 1,
+        scaleX: 1,
+        scaleY: 1,
       },
-      layout: { left: 20, top: 10, width: 360, height: 180 },
-      pointer: { x: 0, y: 0, isInside: false },
-      time: 1200,
-    });
-
-    exampleTextPressureEffect.update(context, undefined, {
-      kind: "example.textPressure",
-      color: "#f4f4f5",
-      radius: 140,
-    });
-
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      { ...createGlyph(0, "P"), x: 42, y: 32, width: 18, height: 28 },
-      { ...createGlyph(1, "r"), x: 280, y: 32, width: 18, height: 28 },
-    ]);
-
-    expect(commands).toEqual([
-      { index: 0, char: "P", color: "#f4f4f5", opacity: 1, scaleX: 1, scaleY: 1 },
-      { index: 1, char: "r", color: "#f4f4f5", opacity: 1, scaleX: 1, scaleY: 1 },
+      {
+        index: 1,
+        char: "r",
+        color: "#f4f4f5",
+        opacity: 1,
+        scaleX: 1,
+        scaleY: 1,
+      },
     ]);
   });
-
-  test("text scramble replaces nearby WebGL glyph chars deterministically", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Scramble",
-        textLayer,
-      },
-      layout: { left: 20, top: 10, width: 360, height: 180 },
-      pointer: { x: 74, y: 52, isInside: true },
-      time: 640,
-    });
-
-    exampleTextScrambleEffect.update(context, undefined, {
-      kind: "example.textScramble",
-      color: "#172124",
-      scrambleChars: ".:",
-      radius: 120,
-      speed: 0.42,
-    });
-
-    expect(exampleTextScrambleEffect.source).toBe("dom/text");
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const nearGlyph = { ...createGlyph(0, "S"), x: 42, y: 32, width: 18, height: 28 };
-    const farGlyph = { ...createGlyph(1, "c"), x: 280, y: 32, width: 18, height: 28 };
-    const commands = transform?.([nearGlyph, farGlyph]);
-
-    expect(commands?.[0]).toMatchObject({
-      index: 0,
-      color: "#172124",
-      opacity: expect.any(Number),
-    });
-    expect([".", ":"]).toContain(commands?.[0]?.char);
-    expect(commands?.[1]).toMatchObject({
-      index: 1,
-      char: "c",
-      color: "#172124",
-      opacity: expect.any(Number),
-    });
+  test("scramble is deterministic, local and leaves distant characters intact", () => {
+    const options = { scrambleChars: ".:", radius: 120, speed: 0.42 };
+    const commands = createTextGlyphCommands(
+      "scramble",
+      [near, far],
+      input,
+      options,
+    );
+    expect([".", ":"]).toContain(commands[0].char);
+    expect(commands[1].char).toBe("r");
+    expect(
+      createTextGlyphCommands("scramble", [near, far], input, options),
+    ).toEqual(commands);
   });
-
-  test("text spotlight pressure scramble wave composes glyph motion in one pass", () => {
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-        type: "text",
-        element: document.createElement("p"),
-        text: "Fusion",
-        textLayer,
-      },
-      layout: { left: 20, top: 10, width: 420, height: 180 },
-      pointer: { x: 76, y: 52, isInside: true },
-      time: 720,
-    });
-
-    exampleTextSpotlightPressureScrambleWaveEffect.update(context, undefined, {
-      kind: "example.textSpotlightPressureScrambleWave",
-      spotlightColor: "#f6c453",
-      baseColor: "#f4f4f5",
-      scrambleChars: "01",
-      radius: 128,
-      amplitude: 7,
-      speed: 0.42,
-    });
-
-    expect(exampleTextSpotlightPressureScrambleWaveEffect.source).toBe("dom/text");
-    expect(textLayer.setGlyphs).toHaveBeenCalledTimes(1);
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const nearGlyph = { ...createGlyph(0, "F"), x: 42, y: 32, width: 18, height: 28 };
-    const farGlyph = { ...createGlyph(1, "u"), x: 300, y: 32, width: 18, height: 28 };
-    const commands = transform?.([nearGlyph, farGlyph]) as
-      | readonly WebGLTextGlyphRenderCommand[]
-      | undefined;
-
-    expect(commands?.[0]).toMatchObject({
-      index: 0,
-      color: "#f6c453",
-      opacity: expect.any(Number),
-      scaleX: expect.any(Number),
-      scaleY: expect.any(Number),
-    });
-    expect(["0", "1"]).toContain(commands?.[0]?.char);
-    expect(commands?.[0]?.scaleX).toBeGreaterThan(commands?.[1]?.scaleX ?? 0);
-    expect(commands?.[0]?.y).not.toBe(nearGlyph.y);
-    expect(commands?.[1]).toMatchObject({
-      index: 1,
-      char: "u",
-      color: "#f4f4f5",
-    });
+  test("combined pass retains pressure, spotlight, scramble and wave", () => {
+    const commands = createTextGlyphCommands(
+      "combo",
+      [near, far],
+      { ...input, time: 720 },
+      { radius: 128, amplitude: 7, speed: 0.42, scrambleChars: "01" },
+    );
+    expect(commands[0].color).toBe("#f6c453");
+    expect(["0", "1"]).toContain(commands[0].char);
+    expect(commands[0].scaleX).toBeGreaterThan(commands[1].scaleX!);
+    expect(commands[0].y).not.toBe(near.y);
+    expect(commands[1]).toMatchObject({ char: "r", color: "#f4f4f5" });
   });
 });

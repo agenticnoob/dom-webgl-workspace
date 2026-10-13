@@ -1,66 +1,14 @@
 # Capability Status
 
-Compatible package version: 0.1.0-alpha.2
+Compatible package version: 0.2.0-alpha.0
 
-This matrix is authoritative for recommendations made by this skill. API
-presence alone does not upgrade a capability's evidence status.
+Status refers only to the evidence named in each row; it does not imply
+universal browser or downstream acceptance. Publication status belongs to
+[repository release truth](../../../docs/STATUS.md#release-truth).
 
-## Contents
-
-- [Status meanings](#status-meanings)
-- [Version matrix](#version-matrix)
-- [Blocked reproductions](#blocked-reproductions)
-
-## Status meanings
-
-- `verified`: an external npm consumer completed the required direct evidence.
-- `experimental`: the public API exists, but the external browser matrix is
-  incomplete for this version.
-- `blocked`: a retained public-boundary reproduction indicates unusable visible
-  output or a package defect candidate for the documented path.
-
-## Version matrix
-
-| Capability id | Status | Required evidence | Consumer guidance |
+| Capability id | Status | Evidence | Consumer guidance |
 | --- | --- | --- | --- |
-| public-imports-ssr | verified | Browser and SSR imports from all selected public entrypoints | Use published entrypoints only. |
-| single-runtime-canvas | verified | Exactly one canvas while mounted | Keep one page-level runtime owner. |
-| runtime-remount | verified | Canvas count `1 -> 0 -> 1` and released resources | Dispose through the owning React/runtime lifecycle. |
-| managed-image-hover | verified | `sourceTextureUniform`, `replace-source`, source sampling, managed pointer, final-canvas pixel change, touch or scroll alternative, loading/error fallback | Preserve the source image in the shader and keep input runtime-owned. |
-| managed-video | verified | Playback, autoplay rejection, network fallback, and offscreen re-entry | Keep a local poster and semantic video fallback. |
-| shared-scroll-progress | verified | Slow, fast, forward, and reverse progress through one source | Share one stable progress key and ScrollTrigger ownership path. |
-| resource-fallback-lifecycle | verified | Loading/error fallback, offscreen re-entry, and cleanup | Never hide fallback while loading or after error. |
-| glb-loading-lifecycle | verified | Local GLB reaches ready/active, fails safely, and re-enters offscreen | This proves loading/lifecycle only, not final model pixels. |
-| reduced-motion-signaling | verified | Content continuity and no required animation | Freeze, shorten, or replace motion without removing meaning. |
-| image-sequence | experimental | Final-canvas pixels, first-frame fallback, bounded cache, forward/reverse scroll | Require explicit experimental acknowledgement until external verification completes. |
-| scene-camera-pass | experimental | Managed declarations and clipped final-canvas pixels | Use public descriptors and collect browser evidence. |
-| procedural-meshes | experimental | Built-in/custom geometry pixels, custom validation, and idempotent geometry/material disposal | Prefer built-ins. Custom users declare `three` directly, return a fresh `BufferGeometry`, keep descriptors stable, and declare physics colliders explicitly. |
-| scene-native-models | experimental | Model ready plus scene-model final-canvas pixels | Keep a poster/text fallback in the story even when the scene object has no DOM fallback. |
-| scene-object-effect-registration | verified | Root-defined effect attaches through the React entrypoint, `ready + attached`, clean errors, final pixels | `0.1.0-alpha.0` is blocked by cross-entrypoint classification. Published `0.1.0-alpha.1` tarballs are verified for registration by the installed-tarball browser gate. |
-| scene-object-interaction | experimental | Managed picking, pointer/touch alternative, final-canvas pixels | Keep controls accessible in DOM. |
-| camera-gestures | experimental | Managed controller, mobile alternative, camera persistence after release | Avoid duplicate wheel/touch ownership. |
-| physics | experimental | Managed descriptors, direct drag/release inertia, fallback without physics | Do not claim solver behavior beyond collected evidence. |
-| advanced-effect-facades | experimental | Public facade, effect resource disposal, managed lit-shader mixed pixels, final-canvas pixels | Managed `material.shader` has local packed-tarball Chromium evidence for mixed intermediate pixels and exactly-once cleanup; other advanced facades still require their own browser preflights. Do not use raw Three.js escape hatches. |
-| surface-pulse-visible-output | blocked | Retained effect-surface versus final-canvas pixel threshold reproduction | Use DOM/CSS or a verified media path in normal projects. |
-| dom-anchored-glb-visible-output | blocked | Retained ready/active GLB versus final-canvas pixel threshold reproduction | Keep fallback visible; do not add private camera/renderer workarounds. |
-
-`glb-loading-lifecycle` being verified does not upgrade
-`dom-anchored-glb-visible-output`. `managed-image-hover` is verified only for
-the explicit source-sampling `replace-source` path.
-
-The exact `0.1.0-alpha.0` registration defect is
-`Effect "<kind>" is not a scene-object effect.` when root and React bundles own
-different classification registries. Registration recovery does not upgrade
-`scene-object-interaction` or `advanced-effect-facades`; those remain
-experimental and need their own browser preflights.
-
-## Blocked reproductions
-
-Blocked ids may be selected only with top-level mode
-`retained-defect-reproduction` and acknowledgement
-`blocked-defect-reproduction`. A reproduction must use public npm imports,
-retain semantic fallback, record ready/active state where relevant, and compare
-clipped final-canvas pixels against a declared threshold. It must not introduce
-private imports, raw Three.js ownership, R3F, a second canvas, or a consumer
-render loop. The controlled custom-geometry factory is allowed, but it must not
-be used to acquire any broader Three.js ownership.
+| react-runtime | verified | Host lifecycle tests and installed-tarball Chromium checks cover rendering, context recovery and remount; both apps passed local browser review | One React 19/R3F 9 host; verify actual Canvas output in the consumer |
+| dom-target-lifecycle | verified | Focused registry tests cover batch reads, readiness identity, opacity fallback, nesting, offscreen entry and disposal | Read live state in native frame callbacks |
+| dom-text | verified | Focused tests cover CSS typography, CJK/Latin wrapping, glyph commands, DPR and disposal | Own the native CanvasTexture lifetime |
+| shared-scroll-progress | verified | Adapter tests, installed-consumer reversible progress and both apps' forward/reverse browser checks | Verify forward/reverse scroll and cleanup in the consumer |

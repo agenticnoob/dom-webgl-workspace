@@ -69,13 +69,13 @@ describe("hero palette and transition boundary", () => {
     }
     expect(sources).toContain("heroChapterDefinitions");
     expect(sources).toContain("useScrollEffectProgressStore");
-    expect(sources).toContain('hitTest: "mesh"');
-    expect(sources).toContain("press: true");
+    expect(sources).toContain("onPointerDown={down}");
+    expect(sources).toContain("event.button !== 0");
     expect(tetrahedronEffect).toContain("publishHeroTransitionSignals");
     expect(backgroundEffect).toContain("readHeroTransitionSignals");
-    expect(experience).toContain("signals: signalWriter");
-    expect(experience).toContain("theme: theme.store");
-    expect(experience).toContain("locale: locale.store");
+    expect(sources).toContain("useFrame");
+    expect(experience).toContain("theme={theme.store}");
+    expect(experience).toContain("locale={locale.store}");
     expect(`${tetrahedronEffect}\n${backgroundEffect}`).not.toMatch(
       /eventBus|dispatchEvent|addEventListener\(["']hero/i,
     );

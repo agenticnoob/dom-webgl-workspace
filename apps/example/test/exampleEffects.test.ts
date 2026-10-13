@@ -1,142 +1,28 @@
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
+import { Color, ShaderMaterial, Texture } from "three";
+import { shaderUniforms, updateUniforms } from "../src/nativeMaterials";
 
-import { exampleEffects, typeSafeDeclarations } from "../src/exampleEffects";
-
-describe("example effect catalog", () => {
-  test("exports the stable runtime effect array in display order", () => {
-    expect(exampleEffects.map((effect) => effect.kind)).toEqual([
-      "example.surfaceFill",
-      "example.surfacePulse",
-      "example.surfaceVideoBackground",
-      "example.surfaceGhostCursor",
-      "example.surfaceWaves",
-      "example.managedTimelineCard",
-      "example.textWave",
-      "example.textReveal",
-      "example.textSpotlight",
-      "example.textPressure",
-      "example.textScramble",
-      "example.textSpotlightPressureScrambleWave",
-      "example.pinnedReveal",
-      "example.sequenceCardSlide",
-      "example.sequenceCardBorderGlow",
-      "example.imagePan",
-      "example.imageZoom",
-      "example.imageKenBurns",
-      "example.imageHoverReveal",
-      "example.mediaPointerParallax",
-      "example.videoPlayback",
-      "example.videoDrift",
-      "example.modelDarkScene",
-      "example.modelSpin",
-      "example.modelFloat",
-      "example.modelFloatGlow",
-      "example.sceneObjectHoverPulse",
-      "example.physicsKinematicSweep",
-    ]);
+test("native shader uniforms preserve texture ownership and flatten GLSL arrays", () => {
+  const texture = new Texture();
+  const uniforms = shaderUniforms({
+    texture,
+    color: "#ffffff",
+    origins: [
+      [1, 2],
+      [3, 4],
+    ],
+    time: 0,
   });
-
-  test("keeps type-safe declarations aligned with the effect catalog", () => {
-    expect(typeSafeDeclarations.map((effect) => effect.kind)).toEqual(
-      exampleEffects.map((effect) => effect.kind),
-    );
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.pinnedReveal",
-      progressKey: "example.pinned.reveal",
-      color: "#172124",
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.sequenceCardSlide",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      minOpacity: 0.18,
-      maxOpacity: 0.82,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.sequenceCardBorderGlow",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      edgeSensitivity: 0.3,
-      colorSensitivity: 0.5,
-      glowRadius: 40,
-      glowIntensity: 1,
-      fillOpacity: 0.42,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.surfaceVideoBackground",
-      videoSrc: "/example/bg.mp4",
-      opacity: 0.84,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.managedTimelineCard",
-      progressKey: "example.managedTimeline",
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.textSpotlight",
-      color: "#f6c453",
-      radius: 180,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.textPressure",
-      color: "#f4f4f5",
-      radius: 180,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.textScramble",
-      color: "#172124",
-      scrambleChars: ".:",
-      radius: 148,
-      speed: 0.45,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.textSpotlightPressureScrambleWave",
-      baseColor: "#f4f4f5",
-      spotlightColor: "#f6c453",
-      scrambleChars: "01",
-      radius: 190,
-      amplitude: 8,
-      speed: 0.42,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.imageKenBurns",
-      distance: 0.16,
-      maxScale: 1.22,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      radius: 132,
-      feather: 42,
-      restoreMs: 2200,
-      roughness: 0.26,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.mediaPointerParallax",
-      bleed: 0.08,
-      strength: 0.72,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.modelDarkScene",
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.modelFloatGlow",
-      speed: 0.46,
-      emissive: "#7dd3fc",
-      lightIntensity: 1.8,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.sceneObjectHoverPulse",
-      baseOpacity: 0.68,
-      hoverOpacity: 0.92,
-      clickOpacity: 1,
-    });
-    expect(typeSafeDeclarations).toContainEqual({
-      kind: "example.physicsKinematicSweep",
-      baseX: 252,
-      amplitude: 96,
-      y: -132,
-      z: -70,
-      speed: 0.0024,
-    });
-  });
+  expect(uniforms.texture.value).toBe(texture);
+  expect(uniforms.color.value).toBeInstanceOf(Color);
+  expect(uniforms.origins.value).toEqual([1, 2, 3, 4]);
+  const material = new ShaderMaterial({ uniforms });
+  const time = material.uniforms.time;
+  updateUniforms(material.uniforms, { time: 100, origins: [[5, 6]] });
+  expect(material.uniforms.time).toBe(time);
+  expect(time.value).toBe(100);
+  expect(material.uniforms.origins.value).toEqual([5, 6]);
+  expect(material.uniforms.texture.value).toBe(texture);
+  material.dispose();
+  texture.dispose();
 });

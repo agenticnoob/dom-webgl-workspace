@@ -1,8 +1,7 @@
 // @vitest-environment node
 import React, { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, test, vi } from "vitest";
-import { WebGLCamera } from "@viselora/dom-webgl/react";
+import { expect, test } from "vitest";
 import ProjectRoomDemo from "../../src/recipe-demos/ProjectRoomDemo";
 import {
   ProjectRoom,
@@ -20,28 +19,17 @@ test("imports and renders meaningful room fallback before browser or GPU initial
   expect(html).toContain("Field archive");
   expect(html).toContain("Shared foundations");
   expect(html).toContain('id="demo.project-room.heading"');
-  expect(html).not.toContain("<canvas");
+  expect(html.match(/<canvas/g)).toHaveLength(1);
 });
 
-test("declares a scoped default camera so the managed pass cannot remain deferred", () => {
-  // A camera declaration has no SSR DOM; observe React's real element creation
-  // while rendering the real component instead of substituting the adapter.
-  const create = vi.spyOn(React, "createElement");
-  try {
-    renderToStaticMarkup(
-      createElement(WebGLScrollRuntime, {
-        children: createElement(ProjectRoomDemo),
-      }),
-    );
-    expect(create).toHaveBeenCalledWith(WebGLCamera, {
-      id: "demo.project-room.camera",
-      default: true,
-      type: "orthographic",
-      mode: "screen",
-    });
-  } finally {
-    create.mockRestore();
-  }
+test("provides an independent transparent viewport and complete loading fallback", () => {
+  const html = renderToStaticMarkup(
+    createElement(WebGLScrollRuntime, null, createElement(ProjectRoomDemo)),
+  );
+  expect(html).toContain('class="recipe-room__surface"');
+  expect(html).toContain('class="recipe-room__fallback"');
+  expect(html.match(/class="recipe-room__surface"/g)).toHaveLength(1);
+  expect(html).not.toContain('class="recipe-room__surface" style="background');
 });
 
 test("rejects duplicate identifiers and invalid palette before scheduling WebGL work", () => {

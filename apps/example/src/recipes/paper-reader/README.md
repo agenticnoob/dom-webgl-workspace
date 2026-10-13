@@ -12,19 +12,15 @@ Copy this entire `paper-reader/` directory into your application. The component
 imports its own prefixed CSS. Install React 19 and the public Viselora packages:
 
 ```bash
-npm install react react-dom @viselora/dom-webgl@0.1.0-alpha.2 @viselora/scroll-adapters@0.1.0-alpha.2
+npm install react react-dom three @react-three/fiber @react-three/drei react-error-boundary @viselora/dom-webgl @viselora/scroll-adapters
 ```
 
-No GSAP, Lenis, Three.js import, external image, or font download is required.
+The recipe uses R3F, Drei and native Three.js textures/materials. No external image or font is required.
 Use a bundler that supports CSS imports. In Next.js, import from a client component.
 
 ```tsx
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-import {
-  PaperReader,
-  paperReaderEffects,
-  type PaperReaderArticle,
-} from "./paper-reader";
+import { VisualPage } from "./VisualPage"; // Shared host from the recipe catalog
+import { PaperReader, type PaperReaderArticle } from "./paper-reader";
 
 const articles = [
   {
@@ -44,18 +40,17 @@ const articles = [
 
 export function ReadingPage() {
   return (
-    <WebGLScrollRuntime effects={paperReaderEffects}>
+    <VisualPage>
       <PaperReader id="field-notes" articles={articles} title="Field notes" />
-    </WebGLScrollRuntime>
+    </VisualPage>
   );
 }
 ```
 
-If the page already has a `WebGLScrollRuntime`, add `...paperReaderEffects` to
-its existing effect array **outside React render**, and mount `PaperReader`
-inside that runtime. The recipe creates one managed DOM surface and a scoped
-scene/camera/pass; it never creates a runtime, WebGL canvas, render loop or renderer.
-Multiple readers use the same canvas and require distinct `id` values.
+Use the [shared VisualPage host](../README.md#shared-host) and copy the shared
+`nativeMaterials.ts` and `useRuntimeReady.ts` helpers with this directory. Each reader owns one Drei View,
+an orthographic camera and a native ShaderMaterial. Readers share the host Canvas
+and require distinct IDs; no effect registration is needed.
 
 ## Props
 
@@ -72,20 +67,17 @@ Multiple readers use the same canvas and require distinct `id` values.
 | `transcriptLabel`                 | Label of the native disclosure below the animation.                                                                                                                   |
 | `onError`                         | Optional texture/layout/material error handler; text fallback is retained. Without a handler the error is logged.                                                     |
 
-Declare data and combined effect arrays outside React render when practical.
+Declare content data outside React render when practical.
 Changes to `id`, article data/order/count, heading copy or palette automatically
-remount the internal target and rebuild its shader and text atlas together.
-Height and sticky offset respond to layout changes. Do not mutate effect
-declarations or material programs after mounting. When composing the lower-level
-files directly, remount your target with a new React key for declaration changes.
+remount the internal scene and rebuild its shader and text atlas together.
+Height and sticky offset respond to layout changes. Materials and atlas textures are replaced together on content/layout changes.
 
 ## Behavior and fallbacks
 
 - Document scroll is measured against this reader's section and published to its
   own `useScrollEffectProgressStore` key. The sticky stage can occupy any container
-  width; shader geometry uses `ctx.layout.width/height`, never the window width.
-  The component registers a matching orthographic camera for its scoped pass; the
-  effect fills that camera plane before the pass maps it onto the stage rectangle.
+  width; shader geometry uses the View dimensions. The component supplies its own
+  orthographic camera; Drei clips its unit plane to the stage rectangle.
   Use normal page scrolling, with no ancestor that clips or replaces sticky scroll.
   Nested scroll containers and transform-based scroll systems need a custom adapter.
 - Only overflowing text adds a reading interval. Later papers remain outside the
@@ -96,7 +88,7 @@ files directly, remount your target with a new React key for declaration changes
   After enhancement, a keyboard-accessible native disclosure below the scroll
   sequence contains the full transcript. Text is selectable there.
 - Media preference listeners, scroll listeners, progress keys, resize observers,
-  managed material layers and uploaded texture references are cleaned up when
+  native materials and atlas textures are cleaned up when
   unmounted. A reduced-motion preference change removes the animated stage.
 - The original atlas is capped at 4096px per dimension. More articles and very long
   text lower effective texture resolution; large counts also consume more fragment
@@ -112,12 +104,12 @@ files directly, remount your target with a new React key for declaration changes
 
 | File                                   | Change here when…                                                                                                    |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `PaperReader.tsx`, `scroll.ts`         | Changing DOM semantics, registration, sticky layout or progress measurement.                                         |
+| `PaperReader.tsx`, `scroll.ts`         | Changing DOM semantics, host composition, sticky layout or progress measurement.                                         |
 | `model.ts`, `config.ts`                | Changing props, validation, default proportions or presentation constants.                                           |
 | `layout.ts`, `frame.ts`                | Changing responsive geometry, circular index, arrivals or reading intervals. Pure functions; preserve reversibility. |
 | `artwork.ts`, `typography.ts`          | Changing plain-text typesetting or heading/paper content.                                                            |
 | `texture.ts`, `program.ts`, `stamp.ts` | Changing atlas packing, GPU composition or perforation geometry. Preserve tile-origin alignment.                     |
-| `effect.ts`                            | Changing managed material creation, scoped layout updates or disposal. Use only public effect facades.               |
+| `PaperReaderSurface.tsx`               | Native material creation, per-View layout updates, progress and disposal.                                            |
 
 Run the focused recipe tests from the workspace root:
 

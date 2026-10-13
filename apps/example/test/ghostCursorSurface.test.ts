@@ -1,3 +1,4 @@
+import { Texture } from "three";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -8,24 +9,31 @@ import {
 
 describe("ghost cursor material program", () => {
   test("uses the controlled ReactBits fbm blob and trail shader model", () => {
-    const program = createGhostCursorMaterialProgram({
-      color: "#b497cf",
-      opacity: 0.9,
-      pointerActive: true,
-      pointerIntensity: 1,
-      pointerX: 160,
-      pointerY: 90,
-      time: 1200,
-      trailLength: 32,
-      width: 320,
-      height: 180,
-    });
+    const program = createGhostCursorMaterialProgram(
+      {
+        color: "#b497cf",
+        opacity: 0.9,
+        pointerActive: true,
+        pointerIntensity: 1,
+        pointerX: 160,
+        pointerY: 90,
+        time: 1200,
+        trailLength: 32,
+        width: 320,
+        height: 180,
+      },
+      new Texture(),
+    );
 
     expect(program.defines).toMatchObject({ MAX_TRAIL_LENGTH: 50 });
-    expect(program.fragmentShader).toContain("uniform vec2  iPrevMouse[MAX_TRAIL_LENGTH]");
+    expect(program.fragmentShader).toContain(
+      "uniform vec2  iPrevMouse[MAX_TRAIL_LENGTH]",
+    );
     expect(program.fragmentShader).toContain("float fbm(vec2 p)");
     expect(program.fragmentShader).toContain("vec4 blob(");
-    expect(program.fragmentShader).toContain("for (int i = 0; i < MAX_TRAIL_LENGTH; i++)");
+    expect(program.fragmentShader).toContain(
+      "for (int i = 0; i < MAX_TRAIL_LENGTH; i++)",
+    );
     expect(program.fragmentShader).not.toContain("smokeLine");
     expect(program.fragmentShader).not.toContain("lineField");
     expect(program.fragmentShader).not.toContain("cursorColor");
@@ -78,11 +86,7 @@ describe("ghost cursor material program", () => {
     expect(uniforms.iTime).toBe(1.2);
     expect(uniforms.iOpacity).toBe(1);
     expect(uniforms.iBrightness).toBe(1.2);
-    expect(uniforms.iBaseColor).toEqual([
-      180 / 255,
-      151 / 255,
-      207 / 255,
-    ]);
+    expect(uniforms.iBaseColor).toEqual([180 / 255, 151 / 255, 207 / 255]);
     expect(uniforms.iScale).toBe(calculateGhostCursorScale(1200, 900));
   });
 });

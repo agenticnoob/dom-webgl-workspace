@@ -1,4 +1,3 @@
-import type { WebGLModelProps } from "@viselora/dom-webgl/react";
 import type { Vector3 } from "./math";
 
 export type FaceIndex = 0 | 1 | 2 | 3;
@@ -25,7 +24,7 @@ export type PortalChapter = {
 
 export type ReliefModel = {
   readonly src: string;
-  readonly loader?: WebGLModelProps["loader"];
+  readonly dracoPath?: string;
   /** Center and largest dimension in the asset's original coordinate system. */
   readonly center?: Vector3;
   readonly size?: number;

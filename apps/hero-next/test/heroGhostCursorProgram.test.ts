@@ -40,7 +40,8 @@ describe("hero Ghost Cursor material programs", () => {
       HERO_FOREGROUND: 0,
       MAX_TRAIL_LENGTH: 36,
     });
-    expect(program.blend).toBe("normal");
+    expect(program.transparent).toBe(true);
+    expect(program.toneMapped).toBe(false);
     expect(program.fragmentShader).toContain("float fbm(vec2 p)");
     expect(program.fragmentShader).toContain("vec4 blob(");
     expect(program.fragmentShader).toContain(
@@ -63,8 +64,12 @@ describe("hero Ghost Cursor material programs", () => {
       "mix(radialBackground, fogTint, fogStrength)",
     );
     expect(program.fragmentShader).not.toContain("vec3(0.72)");
-    expect(program.fragmentShader).not.toContain("uniform vec3 iBackgroundColor");
-    expect(program.fragmentShader).not.toContain("uniform vec3 iForegroundColor");
+    expect(program.fragmentShader).not.toContain(
+      "uniform vec3 iBackgroundColor",
+    );
+    expect(program.fragmentShader).not.toContain(
+      "uniform vec3 iForegroundColor",
+    );
     expect(program.fragmentShader).not.toContain("uSource");
     expect(program.fragmentShader).not.toContain("Boo!");
   });
@@ -81,7 +86,9 @@ describe("hero Ghost Cursor material programs", () => {
       MAX_TRAIL_LENGTH: 12,
     });
     expect(program.fragmentShader).toContain("#if HERO_FOREGROUND == 1");
-    expect(program.fragmentShader).toContain("iBrightness * 1.5 * iSceneOpacity");
+    expect(program.fragmentShader).toContain(
+      "iBrightness * 1.5 * iSceneOpacity",
+    );
     expect(program.fragmentShader).not.toContain("colorAcc * 0.32");
   });
 

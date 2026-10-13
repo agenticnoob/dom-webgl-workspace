@@ -1,25 +1,19 @@
 # Project room
 
-A four-wall spatial index, extracted from Hero Next's project chapter. The
-component owns its content, navigation store, scene/pass declarations and text
-atlas, including its scene's required default screen camera. The parent runtime owns rendering and disposal. No Hero, Next.js, GSAP,
-raw Three.js or private asset dependency is retained.
+A four-wall spatial index with semantic links, an app-owned navigation store and
+one text atlas. A native ShaderMaterial draws the room in a Drei View.
 
 ## Copy and run
 
-Copy this entire directory into a React app with `@viselora/dom-webgl` and
-`@viselora/scroll-adapters` installed at `0.1.0-alpha.2` (or a compatible newer
-version). CSS is imported by the component. Register `projectRoomEffects` once
-on the existing runtime; the component creates no runtime or canvas.
+Copy this directory, `nativeMaterials.ts` and `useRuntimeReady.ts` as described in the
+[recipe catalog](../README.md). Use its shared `VisualPage` host, with React,
+R3F, Drei, Three.js and the public Viselora packages. The component imports its CSS
+and creates no additional Canvas.
 
 ```tsx
 import React from "react";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-import {
-  ProjectRoom,
-  projectRoomEffects,
-  type ProjectRoomItems,
-} from "./recipes/project-room";
+import { VisualPage } from "./VisualPage"; // Shared host from the recipe catalog
+import { ProjectRoom, type ProjectRoomItems } from "./recipes/project-room";
 
 const items = [
   {
@@ -54,22 +48,21 @@ const items = [
 
 export default function Page() {
   return (
-    <WebGLScrollRuntime effects={projectRoomEffects} smooth={false}>
+    <VisualPage>
       <ProjectRoom id="collection" items={items} title="Four viewpoints" />
-    </WebGLScrollRuntime>
+    </VisualPage>
   );
 }
 ```
 
-When combining recipes, create the combined runtime effect array at module scope:
-`const effects = [...existingEffects, ...projectRoomEffects]`. Use one runtime
-for the page. Never add the same effect definition twice.
+Mount several rooms or other recipes inside one `VisualPage`; every room keeps
+its own state and View, and uses a unique ID.
 
 ## Public contract
 
 | Prop              | Contract                                                                                                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`              | Required nonempty ID, unique within the parent runtime. Prefixes viewport, scene, pass and target IDs.                                                                         |
+| `id`              | Required nonempty ID, unique within the parent runtime. Prefixes the viewport and semantic control IDs.                                                                        |
 | `items`           | `ProjectRoomItems`: a readonly tuple of exactly four items, clockwise. Each requires a unique `id`, `label`, `title`, `description`, and real `href`; `linkLabel` is optional. |
 | `title`           | Accessible section heading; defaults to `Project room`.                                                                                                                        |
 | `palette`         | `{ background, foreground }`, both six-digit `#RRGGBB` colors. Defaults to dark green / warm white. Choose readable contrast.                                                  |
@@ -95,18 +88,14 @@ Do not animate or mutate `items` in place.
   until the visual wall settles, preventing a link/content mismatch.
 - Reduced motion keeps the room and direct selection, removing interpolation,
   automatic edge turns and pointer parallax. Links use normal same-tab navigation.
-- The managed pass clips the shader to this component's DOM rect. No page-size
-  assumption or application DOM query is used by the effect.
-  The orthographic camera spans the runtime canvas; the effect fits its unit
-  plane to that full camera frame before the pass maps it into the component.
-  Keep the declared camera when adapting this recipe: a scene without a camera
-  defers its pass even if the material layer has been created successfully.
+- Drei clips the native plane to this component's DOM rect. Its orthographic
+  camera uses a fixed unit plane; shader uniforms use the View dimensions.
 
 ## Read/change map and limits
 
 Start with `types.ts` and `ProjectRoom.tsx`. `room.ts` owns navigation;
-`ProjectRoomControls.tsx` owns semantic controls/fallback; `effect.ts` connects
-target-local input to a managed material layer; `program.ts` casts rays through
+`ProjectRoomControls.tsx` owns semantic controls/fallback; `ProjectRoomSurface.tsx` connects
+R3F pointer input to its native ShaderMaterial; `program.ts` casts rays through
 a square room; `artwork.ts` packs four wall texts into one 2048×1440 alpha atlas.
 
 The four-wall count is an explicit geometry constraint. This is not an arbitrary
@@ -114,8 +103,8 @@ N-item carousel. A wall has bounded typography capacity: a short heading and
 paragraph work best. Overflow reports the offending item ID and preserves DOM
 content; it is never silently truncated. External images/models, custom fonts,
 scroll handoffs and Hero's endpoint atlas are outside this component's contract.
-Unregistering/replacing the effect disposes its managed layer idempotently;
-the runtime releases its GPU resources.
+Unmount disposes the component-owned atlas texture and material and releases
+preference listeners; the DOM navigation store remains independent of GPU readiness.
 
 See the complete app composition in
 [ProjectRoomDemo.tsx](../../recipe-demos/ProjectRoomDemo.tsx) and regression tests

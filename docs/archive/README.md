@@ -23,6 +23,9 @@ source, tests, package metadata, [../STATUS.md](../STATUS.md), and
 Archive paths are organized for evidence retention. Internal links in old files
 may describe their original active locations and may no longer resolve.
 
+The [Hero Next pre-R3F verification record](./reports/2026-10-14-hero-next-pre-r3f-verification.md)
+preserves browser and test evidence from the renderer implementation replaced by 0.2.
+
 ## Archiving rules
 
 - Move a plan/spec/report here once its implementation or investigation ends.

@@ -39,7 +39,6 @@ export function InteractiveSculpture({
   const params = useMemo(
     () =>
       ({
-        kind: "recipe.spatial.mesh",
         stage,
         palette,
         motion,

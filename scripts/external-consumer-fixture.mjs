@@ -7,14 +7,19 @@ export function createExternalConsumerFixture(
   adaptersTarball,
 ) {
   const root = resolve(fixtureRoot);
-  mkdirSync(resolve(root, "src"), { recursive: true });
-  mkdirSync(resolve(root, "scripts"), { recursive: true });
-  mkdirSync(resolve(root, "test"), { recursive: true });
-  mkdirSync(resolve(root, "e2e"), { recursive: true });
-  mkdirSync(resolve(root, "evidence"), { recursive: true });
-  mkdirSync(resolve(root, "public/models"), { recursive: true });
-
-  writeJson(root, "package.json", {
+  for (const dir of [
+    "src",
+    "scripts",
+    "test",
+    "e2e",
+    "evidence",
+    "public/models",
+  ])
+    mkdirSync(resolve(root, dir), { recursive: true });
+  const write = (path, text) => writeFileSync(resolve(root, path), text);
+  const json = (path, value) =>
+    write(path, JSON.stringify(value, null, 2) + "\n");
+  json("package.json", {
     name: "viselora-external-consumer-fixture",
     private: true,
     version: "0.0.0",
@@ -28,26 +33,25 @@ export function createExternalConsumerFixture(
     dependencies: {
       "@viselora/dom-webgl": `file:${resolve(coreTarball)}`,
       "@viselora/scroll-adapters": `file:${resolve(adaptersTarball)}`,
-      gsap: "^3.15.0",
-      lenis: "^1.3.23",
-      react: "^19.1.0",
-      "react-dom": "^19.1.0",
-      three: "^0.178.0",
+      "@react-three/fiber": "^9.8.1",
+      react: "~19.2.0",
+      "react-dom": "~19.2.0",
+      three: "^0.184.0",
     },
     devDependencies: {
-      "@types/react": "^19.1.8",
-      "@types/react-dom": "^19.1.6",
+      "@types/react": "^19.2.0",
+      "@types/react-dom": "^19.2.0",
+      "@types/three": "^0.184.1",
+      "@types/node": "^24.0.0",
       "@playwright/test": "^1.55.0",
       "@types/pngjs": "^6.0.5",
-      jsdom: "^26.1.0",
       pngjs: "^7.0.0",
       typescript: "^5.8.3",
       vite: "^7.3.5",
       vitest: "^3.2.4",
     },
   });
-
-  writeJson(root, "tsconfig.json", {
+  json("tsconfig.json", {
     compilerOptions: {
       target: "ES2022",
       lib: ["ES2022", "DOM", "DOM.Iterable"],
@@ -57,851 +61,194 @@ export function createExternalConsumerFixture(
       jsx: "react-jsx",
       skipLibCheck: true,
       noEmit: true,
-      types: ["vitest/globals"],
+      types: ["vitest/globals", "node"],
     },
-    include: ["src", "test"],
+    include: ["src", "test", "e2e"],
   });
-
-  writeText(
-    root,
+  write(
     "index.html",
-    '<!doctype html>\n<html><head><link rel="icon" href="data:,"></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>\n',
+    '<!doctype html><html><head><title>Viselora R3F consumer</title><link rel="icon" href="data:,"></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>',
   );
-  writeText(root, "src/effects.ts", effectsSource);
-  writeText(root, "src/App.tsx", appSource);
-  writeText(root, "src/main.tsx", mainSource);
-  writeText(root, "playwright.config.ts", playwrightConfigSource);
-  writeText(root, "e2e/capabilities.spec.ts", browserTestSource);
-  writeText(root, "scripts/verify-ssr.mjs", ssrSource);
-  writeText(root, "vitest.config.ts", vitestConfigSource);
-  writeText(root, "test/WebGLRendererMock.ts", rendererMockSource);
-  writeText(root, "test/runtime.test.tsx", runtimeTestSource);
+  write("src/App.tsx", appSource);
+  write("src/main.tsx", mainSource);
+  write("scripts/verify-ssr.mjs", ssrSource);
+  write("test/runtime.test.tsx", runtimeTestSource);
+  write(
+    "vitest.config.ts",
+    'import { defineConfig } from "vitest/config";\nexport default defineConfig({ test: { include: ["test/**/*.test.tsx"] } });\n',
+  );
+  write("playwright.config.ts", playwrightConfigSource);
+  write("e2e/capabilities.spec.ts", browserTestSource);
   cpSync(
     resolve(process.cwd(), "apps/example/public/models/hero.glb"),
     resolve(root, "public/models/hero.glb"),
   );
-
   return root;
 }
 
-function writeJson(root, path, value) {
-  writeText(root, path, `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function writeText(root, path, content) {
-  writeFileSync(resolve(root, path), content);
-}
-
-const effectsSource = `import {
-  defineWebGLEffect,
-  defineWebGLSceneObjectEffect,
-} from "@viselora/dom-webgl";
-
-export const fixtureEffect = defineWebGLEffect({
-  kind: "fixture.surface",
-  source: "dom/element",
-  update(ctx) {
-    ctx.object.opacity = 1;
-    ctx.object.visible = true;
-  },
-});
-
-export const fixtureSceneObjectEffect = defineWebGLSceneObjectEffect({
-  kind: "fixture.sceneObject",
-  source: "mesh",
-  update(ctx) {
-    ctx.object.opacity = 1;
-    ctx.object.visible = true;
-  },
-});
-
-export const fixturePhysicalMaterialEffect = defineWebGLSceneObjectEffect({
-  kind: "fixture.physicalMaterial",
-  source: "mesh",
-  schedule: "reactive",
-  update(ctx) {
-    const physical = ctx.object.material?.physical;
-    if (!physical) {
-      throw new Error("Expected fixture.physical to expose physical material controls.");
-    }
-    const transmissive = ctx.progress.get("fixture.physical") > 0.5;
-    physical.transmission = transmissive ? 0.96 : 0.02;
-    physical.thickness = transmissive ? 2.4 : 0.05;
-    physical.ior = transmissive ? 2.2 : 1.1;
-  },
-});
-
-export const fixtureRadialMaterialEffect = defineWebGLSceneObjectEffect({
-  kind: "fixture.radialMaterial",
-  source: "mesh",
-  schedule: "reactive",
-  setup(ctx) {
-    const shader = ctx.object.material?.shader;
-    if (!shader) {
-      throw new Error("Expected fixture.radial to expose managed shader controls.");
-    }
-    shader.onBeforeCompile({
-      key: "fixture.radial",
-      uniforms: {
-        fixtureRadialOrigin: [0.5, 0.5],
-        fixtureRadialCoverage: 0,
-        fixtureRadialStartColor: "#0ea5e9",
-        fixtureRadialTargetColor: "#f97316",
-      },
-      compile(draft) {
-        const colorChunk = "#include <color_fragment>";
-        if (!draft.fragmentShader.includes(colorChunk)) {
-          throw new Error("Expected the Three color fragment chunk for fixture.radial.");
-        }
-        const uniforms = \`
-uniform vec2 fixtureRadialOrigin;
-uniform float fixtureRadialCoverage;
-uniform vec3 fixtureRadialStartColor;
-uniform vec3 fixtureRadialTargetColor;
-\`;
-        const radialMix = \`\${colorChunk}
-vec2 fixtureFragmentCssPx = gl_FragCoord.xy / domWebGLPixelRatio;
-vec2 fixtureOriginCssPx = fixtureRadialOrigin * domWebGLViewportSize;
-float fixtureMaxRadiusPx = length(domWebGLViewportSize);
-float fixtureRadiusPx = fixtureRadialCoverage * fixtureMaxRadiusPx;
-float fixtureRadialDistancePx = length(fixtureFragmentCssPx - fixtureOriginCssPx);
-float fixtureRadialMask = 1.0 - smoothstep(
-  fixtureRadiusPx - 1.5,
-  fixtureRadiusPx + 1.5,
-  fixtureRadialDistancePx
-);
-diffuseColor.rgb = mix(
-  fixtureRadialStartColor,
-  fixtureRadialTargetColor,
-  fixtureRadialMask
-);\`;
-        draft.fragmentShader = \`\${uniforms}\\n\${draft.fragmentShader.replace(
-          colorChunk,
-          radialMix,
-        )}\`;
-      },
-    });
-    return { shader };
-  },
-  update(ctx, state) {
-    state.shader.setUniforms("fixture.radial", {
-      fixtureRadialCoverage: ctx.progress.get("fixture.radial"),
-    });
-  },
-});
-
-export const fixtureModelEffect = defineWebGLSceneObjectEffect({
-  kind: "fixture.modelCapability",
-  source: "model/glb",
-  schedule: "frame",
-  setup(ctx) {
-    const model = ctx.object.model;
-    if (!model) return {};
-    const positions = model.sampling.vertices({ maxPoints: 500 });
-    const pointLayer = model.points.create({
-      positions,
-      color: "#63e6ff",
-      size: 3,
-    });
-    pointLayer.setVisible(false);
-    ctx.resources.addDisposable(() => pointLayer.dispose());
-    return { pointLayer };
-  },
-  update(ctx, state) {
-    const progress = ctx.progress.get("fixture.progress");
-    const modelVisible = ctx.progress.get("fixture.visible") > 0.5;
-    const pointsVisible = progress >= 0.68;
-    ctx.object.visible = modelVisible;
-    ctx.object.position.set(
-      (progress - 0.35) * 220 + ctx.pointer.normalizedX * 42,
-      -150 + ctx.pointer.normalizedY * 24,
-      -70,
-    );
-    ctx.object.rotation.set(
-      ctx.pointer.normalizedY * 0.18,
-      -0.35 + progress * 1.5 + ctx.pointer.normalizedX * 0.24,
-      0,
-    );
-    ctx.object.scale.setScalar(12 + Math.max(0, progress - 0.68) * 22);
-    state.pointLayer?.setVisible(modelVisible && pointsVisible);
-    ctx.object.model?.meshes.forEach((mesh) => {
-      mesh.setOpacity?.(pointsVisible ? 0 : 1);
-    });
-  },
-});
-
-export const runtimeEffects = [
-  fixtureEffect,
-  fixtureSceneObjectEffect,
-  fixturePhysicalMaterialEffect,
-  fixtureRadialMaterialEffect,
-  fixtureModelEffect,
-] as const;
-`;
-
-const appSource = `import type { WebGLDebugState, WebGLDeclaration } from "@viselora/dom-webgl";
-import { BoxGeometry } from "three/src/geometries/BoxGeometry.js";
-import {
-  WebGLCamera,
-  WebGLLight,
-  WebGLMesh,
-  WebGLModel,
-  WebGLRenderPass,
-  WebGLRuntime,
-  WebGLScene,
-  WebGLTarget,
-} from "@viselora/dom-webgl/react";
+const appSource = `import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { Mesh } from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { createDOMTextTexture, type RuntimeDebugState } from "@viselora/dom-webgl";
+import { WebGLRuntime, WebGLTarget, useDOMTarget, useWebGLRuntime } from "@viselora/dom-webgl/react";
 import { createScrollEffectProgressStore } from "@viselora/scroll-adapters";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-
-import { runtimeEffects } from "./effects";
 
 export const fixtureProgress = createScrollEffectProgressStore();
-fixtureProgress.set("fixture.progress", 0.2);
-fixtureProgress.set("fixture.visible", 1);
-fixtureProgress.set("fixture.physical", 0);
-fixtureProgress.set("fixture.radial", 0);
-
-const cameraPosition = [120, 132, 620] as const;
-const cameraTarget = [120, -78, -70] as const;
-const modelEffects = [{ kind: "fixture.modelCapability" }] as const;
-const meshEffects = [{ kind: "fixture.sceneObject" }] as const;
-const physicalEffects = [{ kind: "fixture.physicalMaterial" }] as const;
-const radialEffects = [{ kind: "fixture.radialMaterial" }] as const;
-const customGeometry = {
-  kind: "custom",
-  create: () => new BoxGeometry(1, 1, 1),
-} as const;
-
-const targetDeclaration = {
-  key: "fixture.target",
-  source: { kind: "dom", type: "element" },
-  lifecycle: {
-    hideWhenReady: false,
-    hideMode: "self",
-    offscreen: { strategy: "restore-dom" },
-  },
-  effects: [{ kind: "fixture.surface" }],
-} satisfies WebGLDeclaration;
-
-void createScrollEffectProgressStore;
-void WebGLScrollRuntime;
-
-export function App({
-  onDebugStateChange,
-  includeModel = false,
-}: {
-  onDebugStateChange?: (state: WebGLDebugState) => void;
-  includeModel?: boolean;
-}) {
-  return (
-    <WebGLRuntime
-      className="fixture-runtime"
-      effects={runtimeEffects}
-      progressSignals={fixtureProgress.source}
-      onDebugStateChange={onDebugStateChange}
-    >
-      <WebGLTarget data-fixture-target="true" webgl={targetDeclaration}>
-        <p>Visible DOM fallback</p>
-      </WebGLTarget>
-      <WebGLScene id="fixture.scene" projection="perspective-stage">
-        <WebGLCamera
-          id="fixture.camera"
-          type="perspective"
-          mode="perspective-stage"
-          fov={42}
-          position={cameraPosition}
-          target={cameraTarget}
-          default
-        />
-        <WebGLRenderPass
-          id="fixture.pass"
-          camera="fixture.camera"
-          order={10}
-          clear
-        />
-        <WebGLMesh
-          id="fixture.stage"
-          geometry={customGeometry}
-          position={[10000, 10000, 10000]}
-          visible={false}
-          material={{ kind: "basic", color: "#ffffff" }}
-          effects={meshEffects}
-        />
-        <WebGLMesh
-          id="fixture.physical.backdrop"
-          geometry={{ kind: "box", size: [180, 180, 20] }}
-          position={[-170, 40, -80]}
-          material={{ kind: "basic", color: "#ff2d8d" }}
-        />
-        <WebGLMesh
-          id="fixture.physical"
-          geometry={{ kind: "box", size: [200, 200, 24] }}
-          position={[-170, 40, 20]}
-          material={{
-            kind: "physical",
-            color: "#60a5fa",
-            emissive: "#020617",
-            emissiveIntensity: 0.05,
-            opacity: 1,
-            metalness: 0,
-            roughness: 0.04,
-            transmission: 0.02,
-            thickness: 0.05,
-            ior: 1.1,
-          }}
-          effects={physicalEffects}
-        />
-        <WebGLMesh
-          id="fixture.radial"
-          geometry={{ kind: "box", size: [220, 220, 52] }}
-          position={[310, 40, 0]}
-          material={{
-            kind: "standard",
-            color: "#0ea5e9",
-            emissive: "#020617",
-            emissiveIntensity: 0.04,
-            opacity: 1,
-            metalness: 0.08,
-            roughness: 0.42,
-          }}
-          effects={radialEffects}
-        />
-        {includeModel ? (
-          <>
-            <WebGLModel
-              id="fixture.model"
-              src="/models/hero.glb"
-              effects={modelEffects}
-            />
-            <WebGLLight id="fixture.ambient" kind="ambient" intensity={0.42} />
-            <WebGLLight
-              id="fixture.key"
-              kind="point"
-              color="#63e6ff"
-              intensity={2.4}
-              position={[-160, 160, 180]}
-            />
-          </>
-        ) : null}
-      </WebGLScene>
-    </WebGLRuntime>
-  );
+function TitleProjection() {
+  const target = useDOMTarget("title");
+  const runtime = useWebGLRuntime();
+  const mesh = useRef<Mesh>(null);
+  const [snapshot, setSnapshot] = useState<ReturnType<typeof createDOMTextTexture>>();
+  useEffect(() => {
+    if (!target) return;
+    const next = createDOMTextTexture(target.element);
+    setSnapshot(next);
+    return () => { runtime.setTargetReady("title", false, target); next.dispose(); };
+  }, [runtime, target]);
+  useEffect(() => {
+    if (snapshot && target) runtime.setTargetReady("title", true, target);
+  }, [runtime, snapshot, target]);
+  useFrame(({ size, viewport }) => {
+    if (!mesh.current || !target) return;
+    const rect = target.rect;
+    mesh.current.position.set((rect.left + rect.width / 2 - size.width / 2) * viewport.width / size.width, (size.height / 2 - rect.top - rect.height / 2) * viewport.height / size.height, 0);
+    mesh.current.scale.set(rect.width * viewport.width / size.width, rect.height * viewport.height / size.height, 1);
+  });
+  return snapshot ? <mesh ref={mesh}><planeGeometry /><meshBasicMaterial map={snapshot.texture} transparent depthTest={false} /></mesh> : null;
+}
+function Model() {
+  const asset = useLoader(GLTFLoader, "/models/hero.glb");
+  const object = useMemo(() => asset.scene.clone(true), [asset]);
+  useEffect(() => {
+    object.traverse((child) => {
+      if (child instanceof Mesh) child.onAfterRender = () => { window.__fixtureModelReady = true; };
+    });
+  }, [object]);
+  return <primitive object={object} position={[-1.6, -1.1, 0]} scale={0.6} dispose={null} />;
+}
+function Scene() {
+  const runtime = useWebGLRuntime();
+  const mesh = useRef<Mesh>(null);
+  useFrame(() => {
+    if (mesh.current) mesh.current.rotation.y = runtime.progress.get("fixture.progress") * Math.PI;
+  });
+  return <>
+    <ambientLight intensity={1.4} /><directionalLight position={[3, 4, 5]} intensity={3} />
+    <TitleProjection />
+    <mesh ref={mesh} position={[0, -0.2, 0]} rotation={[0.4, 0.3, 0]}><boxGeometry args={[1.1, 1.1, 1.1]} /><meshStandardMaterial color="#ff6633" /></mesh>
+    <mesh position={[1.6, -1, 0]}><sphereGeometry args={[0.6, 32, 16]} /><meshPhysicalMaterial color="#33bbff" roughness={0.15} metalness={0.25} clearcoat={1} /></mesh>
+    <Suspense fallback={null}><Model /></Suspense>
+  </>;
+}
+export function App({ onDebugStateChange }: { onDebugStateChange?: (state: RuntimeDebugState) => void }) {
+  return <WebGLRuntime progressSignals={fixtureProgress.source} onDebugStateChange={onDebugStateChange} canvas={{ camera: { position: [0, 0, 5], fov: 50 }, gl: { preserveDrawingBuffer: true } }} scene={<Scene />}>
+    <WebGLTarget id="title" hideWhenReady><h1 style={{ position: "fixed", left: 32, top: 70, margin: 0, fontSize: 32, color: "white" }}>Semantic DOM projection</h1></WebGLTarget>
+  </WebGLRuntime>;
 }
 `;
 
-const mainSource = `import { createElement, useState } from "react";
+const mainSource = `import { useState } from "react";
 import { createRoot } from "react-dom/client";
-
-import type { WebGLDebugState } from "@viselora/dom-webgl";
-
+import type { RuntimeDebugState } from "@viselora/dom-webgl";
 import { App, fixtureProgress } from "./App";
-
-document.documentElement.style.background = "#05070a";
-document.body.style.margin = "0";
-document.body.style.background = "#05070a";
-document.body.style.overflow = "hidden";
-
-function BrowserFixture() {
+declare global { interface Window { __fixtureDebug?: RuntimeDebugState; __fixtureModelReady?: boolean; __fixtureSetProgress(value: number): void } }
+document.body.style.cssText = "margin:0;background:#05070a;min-height:100vh";
+window.__fixtureSetProgress = (value) => fixtureProgress.set("fixture.progress", value);
+function Fixture() {
   const [mounted, setMounted] = useState(true);
-  return createElement(
-    "div",
-    { style: { width: "100vw", height: "100vh", background: "#05070a" } },
-    createElement(
-      "button",
-      {
-        type: "button",
-        "data-runtime-toggle": true,
-        style: { position: "fixed", zIndex: 10, top: 8, left: 8 },
-        onClick: () => setMounted((value) => !value),
-      },
-      mounted ? "Unmount runtime" : "Remount runtime",
-    ),
-    mounted
-      ? createElement(App, {
-          includeModel: true,
-          onDebugStateChange(state: WebGLDebugState) {
-            (window as unknown as { __fixtureDebug?: WebGLDebugState }).__fixtureDebug = state;
-          },
-        })
-      : null,
-  );
+  return <><button style={{ position: "fixed", zIndex: 10, top: 8, left: 8 }} onClick={() => setMounted((value) => !value)}>{mounted ? "Unmount runtime" : "Remount runtime"}</button>{mounted && <App onDebugStateChange={(state) => { window.__fixtureDebug = state; }} />}</>;
 }
-
-(window as unknown as {
-  __fixtureSetProgress(value: number): void;
-  __fixtureSetVisible(value: boolean): void;
-}).__fixtureSetProgress = (value) => fixtureProgress.set("fixture.progress", value);
-(window as unknown as {
-  __fixtureSetVisible(value: boolean): void;
-}).__fixtureSetVisible = (value) => fixtureProgress.set("fixture.visible", value ? 1 : 0);
-(window as unknown as {
-  __fixtureSetPhysical(value: boolean): void;
-}).__fixtureSetPhysical = (value) => fixtureProgress.set("fixture.physical", value ? 1 : 0);
-(window as unknown as {
-  __fixtureSetRadial(coverage: number): void;
-}).__fixtureSetRadial = (coverage) => fixtureProgress.set("fixture.radial", coverage);
-
-const container = document.getElementById("root");
-if (!container) throw new Error("Missing #root");
-createRoot(container).render(createElement(BrowserFixture));
-`;
-
-const playwrightConfigSource = `import { existsSync } from "node:fs";
-import { defineConfig, devices } from "@playwright/test";
-
-const systemChromium = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
-  (existsSync(systemChromium) ? systemChromium : undefined);
-
-export default defineConfig({
-  testDir: "./e2e",
-  timeout: 60_000,
-  workers: 1,
-  webServer: {
-    command: "npx vite --host 127.0.0.1 --port 4179",
-    port: 4179,
-    reuseExistingServer: false,
-  },
-  use: { baseURL: "http://127.0.0.1:4179", viewport: { width: 960, height: 720 } },
-  projects: [{
-    name: "chromium",
-    use: {
-      ...devices["Desktop Chrome"],
-      launchOptions: executablePath ? { executablePath } : {},
-    },
-  }],
-});
-`;
-
-const browserTestSource = `import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { expect, test } from "@playwright/test";
-import { PNG } from "pngjs";
-
-test("packed scene/model effects pass real Chromium final-canvas gates", async ({ page }) => {
-  const consoleErrors: string[] = [];
-  const consoleWarnings: string[] = [];
-  const pageErrors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
-    if (message.type() === "warning") consoleWarnings.push(message.text());
-  });
-  page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.goto("/");
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveCount(1);
-  await expect.poll(() => readModelDebug(page)).toMatchObject({
-    resourceStatus: "ready",
-    attached: true,
-    visible: true,
-  });
-  const debug = await readDebug(page);
-  expect(debug.meshes).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ id: "fixture.stage", effects: ["fixture.sceneObject"] }),
-    ]),
-  );
-  const model = debug.models.find((entry: { id: string }) => entry.id === "fixture.model");
-  expect(model).not.toHaveProperty("error");
-
-  const targetRegion = { x: 0, y: 0, width: 360, height: 440 } as const;
-  await setPhysical(page, false);
-  const physicalOpaque = await canvas.screenshot({ path: evidencePath("physical-opaque.png") });
-  await setPhysical(page, true);
-  const physicalTransmissive = await canvas.screenshot({ path: evidencePath("physical-transmissive.png") });
-  const physicalPixelChange = changedPixelCountInRegion(
-    physicalOpaque,
-    physicalTransmissive,
-    targetRegion,
-  );
-  expect(physicalPixelChange).toBeGreaterThan(250);
-
-  const radialRegion = { x: 480, y: 90, width: 460, height: 520 } as const;
-  await setRadial(page, 0);
-  const radialStart = await canvas.screenshot({ path: evidencePath("radial-start.png") });
-  await setRadial(page, 0.22);
-  const radialMiddle = await canvas.screenshot({ path: evidencePath("radial-middle.png") });
-  await setRadial(page, 1);
-  const radialTarget = await canvas.screenshot({ path: evidencePath("radial-target.png") });
-  const {
-    endpointChangedPixels: radialEndpointChangedPixels,
-    startLikePixels: radialStartLikePixels,
-    targetLikePixels: radialTargetLikePixels,
-  } = classifyRadialMix(radialStart, radialMiddle, radialTarget, radialRegion);
-  expect(radialEndpointChangedPixels).toBeGreaterThan(500);
-  expect(radialStartLikePixels).toBeGreaterThan(100);
-  expect(radialTargetLikePixels).toBeGreaterThan(100);
-
-  await setVisible(page, false);
-  const empty = await canvas.screenshot({ path: evidencePath("empty.png") });
-  await setVisible(page, true);
-  await setProgress(page, 0.2);
-  const solidStart = await canvas.screenshot({ path: evidencePath("solid-start.png") });
-  const staticScene = changedPixelCount(empty, solidStart);
-  expect(staticScene).toBeGreaterThan(100);
-
-  await setProgress(page, 0.52);
-  const progressed = await canvas.screenshot({ path: evidencePath("progress.png") });
-  const progressTransform = changedPixelCount(solidStart, progressed);
-  expect(progressTransform).toBeGreaterThan(100);
-
-  await page.mouse.move(480, 360);
-  await page.waitForTimeout(180);
-  const pointerCenter = await canvas.screenshot({ path: evidencePath("pointer-center.png") });
-  await page.mouse.move(900, 80, { steps: 8 });
-  await page.waitForTimeout(220);
-  const pointerCorner = await canvas.screenshot({ path: evidencePath("pointer-corner.png") });
-  const pointerTransform = changedPixelCount(pointerCenter, pointerCorner);
-  expect(pointerTransform).toBeGreaterThan(100);
-
-  await page.mouse.move(480, 360);
-  await setProgress(page, 0.58);
-  const solid = await canvas.screenshot({ path: evidencePath("solid.png") });
-  await setProgress(page, 0.82);
-  const points = await canvas.screenshot({ path: evidencePath("points.png") });
-  const solidToPoints = changedPixelCount(solid, points);
-  expect(solidToPoints).toBeGreaterThan(100);
-  await setProgress(page, 0.58);
-  const solidReturn = await canvas.screenshot({ path: evidencePath("solid-return.png") });
-  const pointsToSolid = changedPixelCount(points, solidReturn);
-  expect(pointsToSolid).toBeGreaterThan(100);
-
-  await page.getByRole("button", { name: "Unmount runtime" }).click();
-  await expect(canvas).toHaveCount(0);
-  await page.getByRole("button", { name: "Remount runtime" }).click();
-  await expect(page.locator("canvas")).toHaveCount(1);
-  await expect.poll(() => readModelDebug(page)).toMatchObject({
-    resourceStatus: "ready",
-    attached: true,
-    visible: true,
-  });
-
-  expect(consoleErrors).toEqual([]);
-  expect(consoleWarnings).toEqual([]);
-  expect(pageErrors).toEqual([]);
-  const evidence = {
-    packageVersion: "0.1.0-alpha.1",
-    capabilityId: "scene-object-effect-registration",
-    passed: true,
-    capture: "canvas-element-only",
-    domOverlayPixelsExcluded: true,
-    measurements: {
-      staticScene,
-      physicalPixelChange,
-      targetRegion,
-      radialRegion,
-      radialEndpointChangedPixels,
-      radialStartLikePixels,
-      radialTargetLikePixels,
-      progressTransform,
-      pointerTransform,
-      solidToPoints,
-      pointsToSolid,
-    },
-    consoleErrors,
-    consoleWarnings,
-    pageErrors,
-    canvasLifecycle: [1, 0, 1],
-  };
-  mkdirSync(resolve("evidence"), { recursive: true });
-  writeFileSync(evidencePath("browser-capabilities.json"), JSON.stringify(evidence, null, 2) + "\\n");
-});
-
-function evidencePath(name: string): string {
-  return resolve("evidence", name);
-}
-
-async function readDebug(page: import("@playwright/test").Page): Promise<any> {
-  return page.evaluate(() => (window as unknown as { __fixtureDebug: unknown }).__fixtureDebug);
-}
-
-async function readModelDebug(page: import("@playwright/test").Page): Promise<any> {
-  const debug = await readDebug(page);
-  return debug?.models?.find((entry: { id: string }) => entry.id === "fixture.model");
-}
-
-async function setProgress(page: import("@playwright/test").Page, value: number): Promise<void> {
-  await page.evaluate((next) => {
-    (window as unknown as { __fixtureSetProgress(value: number): void }).__fixtureSetProgress(next);
-  }, value);
-  await page.waitForTimeout(240);
-}
-
-async function setVisible(page: import("@playwright/test").Page, visible: boolean): Promise<void> {
-  await page.evaluate((next) => {
-    (window as unknown as { __fixtureSetVisible(value: boolean): void }).__fixtureSetVisible(next);
-  }, visible);
-  await page.waitForTimeout(240);
-}
-
-async function setPhysical(page: import("@playwright/test").Page, value: boolean): Promise<void> {
-  await page.evaluate((next) => {
-    (window as unknown as { __fixtureSetPhysical(value: boolean): void }).__fixtureSetPhysical(next);
-  }, value);
-  await page.waitForTimeout(240);
-}
-
-async function setRadial(page: import("@playwright/test").Page, coverage: number): Promise<void> {
-  await page.evaluate((next) => {
-    (window as unknown as { __fixtureSetRadial(coverage: number): void }).__fixtureSetRadial(next);
-  }, coverage);
-  await page.waitForTimeout(240);
-}
-
-function changedPixelCount(first: Buffer, second: Buffer): number {
-  const a = PNG.sync.read(first);
-  const b = PNG.sync.read(second);
-  expect([a.width, a.height]).toEqual([b.width, b.height]);
-  let changed = 0;
-  for (let index = 0; index < a.data.length; index += 4) {
-    const delta =
-      Math.abs(a.data[index] - b.data[index]) +
-      Math.abs(a.data[index + 1] - b.data[index + 1]) +
-      Math.abs(a.data[index + 2] - b.data[index + 2]) +
-      Math.abs(a.data[index + 3] - b.data[index + 3]);
-    if (delta > 24) changed += 1;
-  }
-  return changed;
-}
-
-function changedPixelCountInRegion(
-  first: Buffer,
-  second: Buffer,
-  region: { x: number; y: number; width: number; height: number },
-): number {
-  const a = PNG.sync.read(first);
-  const b = PNG.sync.read(second);
-  expect([a.width, a.height]).toEqual([b.width, b.height]);
-  let changed = 0;
-  const maxX = Math.min(a.width, region.x + region.width);
-  const maxY = Math.min(a.height, region.y + region.height);
-  for (let y = Math.max(0, region.y); y < maxY; y += 1) {
-    for (let x = Math.max(0, region.x); x < maxX; x += 1) {
-      const index = (y * a.width + x) * 4;
-      const delta =
-        Math.abs(a.data[index] - b.data[index]) +
-        Math.abs(a.data[index + 1] - b.data[index + 1]) +
-        Math.abs(a.data[index + 2] - b.data[index + 2]) +
-        Math.abs(a.data[index + 3] - b.data[index + 3]);
-      if (delta > 24) changed += 1;
-    }
-  }
-  return changed;
-}
-
-function classifyRadialMix(
-  start: Buffer,
-  middle: Buffer,
-  target: Buffer,
-  region: { x: number; y: number; width: number; height: number },
-): {
-  endpointChangedPixels: number;
-  startLikePixels: number;
-  targetLikePixels: number;
-} {
-  const a = PNG.sync.read(start);
-  const b = PNG.sync.read(middle);
-  const c = PNG.sync.read(target);
-  expect([a.width, a.height]).toEqual([b.width, b.height]);
-  expect([a.width, a.height]).toEqual([c.width, c.height]);
-  let endpointChangedPixels = 0;
-  let startLikePixels = 0;
-  let targetLikePixels = 0;
-  const maxX = Math.min(a.width, region.x + region.width);
-  const maxY = Math.min(a.height, region.y + region.height);
-  for (let y = Math.max(0, region.y); y < maxY; y += 1) {
-    for (let x = Math.max(0, region.x); x < maxX; x += 1) {
-      const index = (y * a.width + x) * 4;
-      const endpointDelta = rgbManhattan(a.data, c.data, index);
-      if (endpointDelta <= 24) continue;
-      endpointChangedPixels += 1;
-      const startDelta = rgbManhattan(a.data, b.data, index);
-      const targetDelta = rgbManhattan(c.data, b.data, index);
-      if (startDelta <= targetDelta) startLikePixels += 1;
-      else targetLikePixels += 1;
-    }
-  }
-  return { endpointChangedPixels, startLikePixels, targetLikePixels };
-}
-
-function rgbManhattan(
-  first: Uint8Array,
-  second: Uint8Array,
-  index: number,
-): number {
-  return Math.abs(first[index] - second[index]) +
-    Math.abs(first[index + 1] - second[index + 1]) +
-    Math.abs(first[index + 2] - second[index + 2]);
-}
+const root = document.getElementById("root");
+if (!root) throw new Error("Missing root");
+createRoot(root).render(<Fixture />);
 `;
 
 const ssrSource = `delete globalThis.window;
 delete globalThis.document;
-
 const core = await import("@viselora/dom-webgl");
 const react = await import("@viselora/dom-webgl/react");
 const adapters = await import("@viselora/scroll-adapters");
 const adaptersReact = await import("@viselora/scroll-adapters/react");
-
-for (const [name, value] of Object.entries({
-  createWebGLRuntime: core.createWebGLRuntime,
-  WebGLRuntime: react.WebGLRuntime,
-  createLenisGsapScrollStack: adapters.createLenisGsapScrollStack,
-  WebGLScrollRuntime: adaptersReact.WebGLScrollRuntime,
-})) {
-  if (typeof value !== "function") throw new Error(\`Missing public export \${name}\`);
+const { createElement } = await import("react");
+const { renderToString } = await import("react-dom/server");
+for (const value of [core.createDOMTextTexture, react.WebGLRuntime, react.WebGLTarget, adapters.createScrollEffectProgressStore, adaptersReact.WebGLScrollRuntime]) {
+  if (typeof value !== "function") throw new Error("Missing public React runtime export");
 }
-
-console.log("SSR imports OK");
+const html = renderToString(createElement(react.WebGLRuntime, null, createElement("h1", null, "Server content")));
+if (!html.includes("Server content")) throw new Error("SSR semantic DOM missing");
+if ("createWebGLRuntime" in core) throw new Error("Retired imperative renderer export remains");
+console.log("SSR imports and semantic DOM OK");
 `;
 
-const vitestConfigSource = `import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
-
-export default defineConfig(({ mode }) => ({
-  resolve:
-    mode === "test"
-      ? {
-          alias: {
-            "three/src/renderers/WebGLRenderer.js": fileURLToPath(
-              new URL("./test/WebGLRendererMock.ts", import.meta.url),
-            ),
-          },
-        }
-      : undefined,
-  test: {
-    environment: "jsdom",
-    include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
-    server: {
-      deps: {
-        inline: ["@viselora/dom-webgl"],
-      },
-    },
-  },
-}));
-`;
-
-const rendererMockSource = `export class WebGLRendererMock {
-  readonly canvas: HTMLCanvasElement;
-  autoClear = true;
-  readonly info = {
-    render: { calls: 0, triangles: 0 },
-    memory: { geometries: 0, textures: 0 },
-    programs: [],
-  };
-  constructor(options: { canvas: HTMLCanvasElement }) {
-    this.canvas = options.canvas;
-  }
-  setAnimationLoop(_callback: ((time: number) => void) | null) {}
-  setPixelRatio(_ratio: number) {}
-  setSize(_width: number, _height: number, _updateStyle?: boolean) {}
-  setClearAlpha(_alpha: number) {}
-  setViewport(_x: number, _y: number, _width: number, _height: number) {}
-  setScissor(_x: number, _y: number, _width: number, _height: number) {}
-  setScissorTest(_enabled: boolean) {}
-  setRenderTarget(_target: object | null) {}
-  clear() {}
-  clearDepth() {}
-  render(_scene: object, _camera: object) {}
-  dispose() {}
-}
-
-export { WebGLRendererMock as WebGLRenderer };
-`;
-
-const runtimeTestSource = `// @vitest-environment jsdom
-
-import { act, createElement } from "react";
-import { createRoot } from "react-dom/client";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
-
-import type { WebGLDebugState } from "@viselora/dom-webgl";
-
-import { App } from "../src/App";
-
-let host: HTMLDivElement;
-
-beforeEach(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  host = document.createElement("div");
-  document.body.append(host);
-  Object.defineProperty(globalThis, "ResizeObserver", {
-    configurable: true,
-    value: class ResizeObserverMock {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
+const runtimeTestSource = `import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
+import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
+import { createScrollEffectProgressStore } from "@viselora/scroll-adapters";
+describe("installed consumer", () => {
+  it("preserves semantic content in SSR", () => {
+    const html = renderToString(createElement(WebGLRuntime, { children: createElement(WebGLTarget, { id: "title", hideWhenReady: true, children: createElement("h1", null, "Accessible title") }) }));
+    expect(html).toContain("Accessible title");
+    expect(html).not.toContain("opacity:0");
   });
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement) {
-    return createCanvasContext(this) as unknown as CanvasRenderingContext2D;
+  it("shares reversible progress without requiring a renderer", () => {
+    const store = createScrollEffectProgressStore();
+    store.set("chapter", 0.9); expect(store.source.get("chapter")).toBe(0.9);
+    store.set("chapter", 0.2); expect(store.source.get("chapter")).toBe(0.2);
   });
 });
+`;
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  document.body.replaceChildren();
+const playwrightConfigSource = `import { existsSync } from "node:fs";
+import { defineConfig, devices } from "@playwright/test";
+const systemChromium = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ?? (existsSync(systemChromium) ? systemChromium : undefined);
+export default defineConfig({
+  testDir: "./e2e", timeout: 60000, workers: 1,
+  webServer: { command: "npx vite --host 127.0.0.1 --port 4179", port: 4179, reuseExistingServer: false },
+  use: { baseURL: "http://127.0.0.1:4179", viewport: { width: 960, height: 720 } },
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions: executablePath ? { executablePath } : {} } }],
 });
+`;
 
-test("mounts one runtime canvas and one target from installed tarballs", async () => {
-  const debugStates: WebGLDebugState[] = [];
-  const runtimeErrors: string[] = [];
-  const originalConsoleError = console.error;
-  console.error = (...args: unknown[]) => {
-    runtimeErrors.push(args.map(String).join(" "));
-    originalConsoleError(...args);
-  };
-  const root = createRoot(host);
-
-  try {
-    await act(async () => {
-      root.render(createElement(App, { onDebugStateChange: (state) => debugStates.push(state) }));
-    });
-
-    expect(
-      host.querySelectorAll("canvas"),
-      JSON.stringify(debugStates),
-    ).toHaveLength(1);
-    expect(host.querySelectorAll("[data-fixture-target]")).toHaveLength(1);
-    expect(debugStates.some((state) => state.targetCount === 1)).toBe(true);
-    expect(
-      debugStates.some((state) =>
-        state.meshes?.some(
-          (mesh) => mesh.effects?.includes("fixture.sceneObject"),
-        ),
-      ),
-    ).toBe(true);
-    expect(runtimeErrors).toEqual([]);
-
-    await act(async () => root.unmount());
-    expect(host.querySelectorAll("canvas")).toHaveLength(0);
-  } finally {
-    console.error = originalConsoleError;
-  }
-});
-
-function createCanvasContext(canvas: HTMLCanvasElement) {
-  return {
-    canvas,
-    globalAlpha: 1,
-    fillStyle: "#000000",
-    font: "16px sans-serif",
-    textAlign: "start",
-    textBaseline: "alphabetic",
-    beginPath() {},
-    arc() {},
-    fill() {},
-    clearRect() {},
-    drawImage() {},
-    fillRect() {},
-    fillText() {},
-    measureText(text: string) { return { width: text.length * 8 }; },
-    restore() {},
-    save() {},
-    scale() {},
-    setTransform() {},
-    translate() {},
-  };
+const browserTestSource = `import { writeFileSync } from "node:fs";
+import { test, expect } from "@playwright/test";
+import { PNG } from "pngjs";
+function changedPixels(left: Buffer, right: Buffer) {
+  const a = PNG.sync.read(left), b = PNG.sync.read(right); let count = 0;
+  for (let i = 0; i < a.data.length; i += 4) if (Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i+1] - b.data[i+1]) + Math.abs(a.data[i+2] - b.data[i+2]) > 20) count++;
+  return count;
 }
+test("R3F native objects, DOM fallback, progress, and remount", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  const model = page.waitForResponse((response) => response.url().endsWith("/models/hero.glb") && response.ok());
+  await page.goto("/"); await model;
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => window.__fixtureModelReady)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__fixtureDebug?.targets[0]?.ready)).toBe(true);
+  await expect(page.locator("h1")).toHaveCSS("opacity", "0");
+  await expect.poll(async () => {
+    const png = PNG.sync.read(await page.locator("canvas").screenshot()); let colored = 0;
+    for (let i = 0; i < png.data.length; i += 4) if (png.data[i] > 50 || png.data[i+1] > 50 || png.data[i+2] > 50) colored++;
+    return colored;
+  }).toBeGreaterThan(2000);
+  const before = await page.locator("canvas").screenshot();
+  await page.evaluate(() => window.__fixtureSetProgress(0.7));
+  await expect.poll(async () => changedPixels(before, await page.locator("canvas").screenshot())).toBeGreaterThan(500);
+  await page.evaluate(() => window.__fixtureSetProgress(0));
+  await expect.poll(async () => changedPixels(before, await page.locator("canvas").screenshot())).toBeLessThan(100);
+  await page.screenshot({ path: "evidence/native-scene.png" });
+  await page.evaluate(() => { const gl = document.querySelector("canvas")?.getContext("webgl2"); gl?.getExtension("WEBGL_lose_context")?.loseContext(); });
+  await expect(page.locator("h1")).toHaveCSS("opacity", "1");
+  await page.getByRole("button", { name: "Unmount runtime" }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await page.getByRole("button", { name: "Remount runtime" }).click();
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.locator("h1")).toHaveCSS("opacity", "0");
+  expect(errors).toEqual([]);
+  writeFileSync("evidence/browser-capabilities.json", JSON.stringify({ oneCanvas: true, nativeGLTF: true, nativePhysicalMaterial: true, renderedPixels: true, reversibleProgress: true, contextLossFallback: true, remount: true, errors }, null, 2));
+});
 `;

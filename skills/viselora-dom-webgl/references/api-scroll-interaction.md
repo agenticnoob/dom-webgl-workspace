@@ -1,104 +1,31 @@
-# Scroll And Interaction API
-
-Compatible package version: 0.1.0-alpha.2
-
-## Contents
-
-- [Scroll ownership and adapters](#scroll-ownership-and-adapters)
-- [ScrollTrigger bridges](#scrolltrigger-bridges)
-- [Progress stores and timelines](#progress-stores-and-timelines)
-- [Scroll runtime](#scroll-runtime)
-- [Pointer picking gestures and physics](#pointer-picking-gestures-and-physics)
+# Scroll and interaction
 
 ## Scroll ownership and adapters
 
-**When to use:** use `createGsapTickerLenisBridge`,
-`createLenisScrollAdapter` or `createLenisGsapScrollStack` only when the app
-intentionally owns one Lenis/GSAP lifecycle.
-**Public entrypoint:** `@viselora/scroll-adapters`.
-**Declaration/props shape:** pass stable Lenis/GSAP/ScrollTrigger instances and
-use `manageLenis: false` when the app owns Lenis cleanup.
-**Ownership and stability:** create one stack outside React render.
-**Fallback and lifecycle:** native scroll remains the fallback when smooth
-scroll is absent.
-**Version limitations:** these helpers do not validate story pixels.
-
-```ts
-import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
-const stack = createLenisGsapScrollStack({ lenis, gsap, ScrollTrigger, manageLenis: false });
-```
-
-**Direct verification:** assert one scroll source, cleanup and forward/reverse
-progress.
-
-## ScrollTrigger bridges
-
-**When to use:** choose `createScrollTriggerBridge` or
-`createScrollTriggerSection` for lower-level non-React ownership.
-**Public entrypoint:** `@viselora/scroll-adapters`.
-**Declaration/props shape:** pass a stable ScrollTrigger-like object and bounded
-section vars/update callbacks.
-**Ownership and stability:** one integration layer creates and disposes trigger
-instances.
-**Fallback and lifecycle:** content stays in normal DOM flow without JS.
-**Version limitations:** avoid mixing this route with a React timeline owner.
-
-```ts
-import { createScrollTriggerSection } from "@viselora/scroll-adapters";
-const section = createScrollTriggerSection({ ScrollTrigger, trigger, onUpdate });
-```
-
-**Direct verification:** assert trigger disposal and bounded reversible values.
+`createLenisScrollAdapter`, `createGsapTickerLenisBridge` and
+`createLenisGsapScrollStack` connect the chosen page scroll source. Dispose
+owned bridges when their consumer unmounts. Keep R3F as the render-loop owner.
 
 ## Progress stores and timelines
 
-**When to use:** choose `createScrollEffectProgressStore`,
-`WebGLScrollTimeline`, `ScrollEffectSection` or
-`useScrollEffectProgressStore` for one named progress path.
-**Public entrypoints:** `@viselora/scroll-adapters` and
-`@viselora/scroll-adapters/react`.
-**Declaration/props shape:** use a stable id/progressKey, pin/scrub options and
-the same key in declarations/effects.
-**Ownership and stability:** do not write mounted target props per scroll frame.
-**Fallback and lifecycle:** semantic sections remain readable without WebGL.
-**Version limitations:** scene/camera/advanced capabilities retain their own
-experimental statuses.
+`createScrollEffectProgressStore` exposes set/get/clear and a subscribable
+source. A scene reads `runtime.progress.get(key)` during `useFrame`.
+`WebGLScrollTimeline`, `ScrollEffectSection` and
+`useScrollEffectProgressStore` share the React scroll host's store. A section
+needs an active ScrollTrigger to automate its progress; otherwise update the
+store from your native scroll mapping.
 
-```tsx
-import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
-<WebGLScrollTimeline id="story.progress" pin scrub ScrollTrigger={ScrollTrigger}>{children}</WebGLScrollTimeline>;
-```
+## ScrollTrigger bridges
 
-**Direct verification:** test slow, fast, forward and reverse progress.
+`createScrollTriggerBridge` and `createScrollTriggerSection` connect external
+ScrollTrigger instances to runtime progress and restore their subscriptions on
+cleanup. Verify reverse scroll and layout refresh after resize.
 
 ## Scroll runtime
 
-**When to use:** choose `WebGLScrollRuntime` as the one page-level React owner
-when any beat uses adapter timelines.
-**Public entrypoint:** `@viselora/scroll-adapters/react`.
-**Declaration/props shape:** pass stable module-scope effects and optional smooth
-options; nest all scroll timelines under it.
-**Ownership and stability:** do not mount `WebGLRuntime` beside it.
-**Fallback and lifecycle:** unmount restores target fallbacks and removes canvas.
-**Version limitations:** the static verifier does not execute browser scroll.
+`WebGLScrollRuntime` hosts the same single R3F Canvas and accepts native visual
+content in `scene`. Optional smooth integration owns the configured Lenis/GSAP
+stack. It does not add a second rendering backend.
 
-```tsx
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-<WebGLScrollRuntime effects={runtimeEffects}>{story}</WebGLScrollRuntime>;
-```
-
-**Direct verification:** assert one canvas and one scroll source across remount.
-
-`smooth={false}` disables the smooth-scroll stack; it does not create a
-timeline ScrollTrigger. A reduced-mode timeline must still pass
-`ScrollTrigger={ScrollTrigger}` explicitly (or use stable immediate Lenis/
-ScrollTrigger options) when progress is required.
-
-## Pointer picking gestures and physics
-
-Use target `pointer` declarations and `ctx.targetPointer`; scene objects use
-managed `interaction.pickable` and `ctx.objectPointer`. Cameras use managed
-controller descriptors; scene-native physics uses descriptor-only bodies,
-colliders and constraints. Do not add component/window pointer, wheel or touch
-listeners. Keep buttons/forms in DOM and provide touch or scroll alternatives
-for hover. These advanced paths are experimental in 0.1.0-alpha.1.
+Mesh pointer events use R3F. DOM controls remain DOM controls. Preserve keyboard
+and touch paths when a desktop visual uses hover or dragging.

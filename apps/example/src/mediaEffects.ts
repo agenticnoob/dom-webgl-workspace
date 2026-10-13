@@ -1,398 +1,24 @@
-import {
-  defineWebGLEffect,
-  type WebGLEffectMaterialLayerHandle,
-} from "@viselora/dom-webgl";
-
-import { clampNumber, readTargetViewportProgress } from "./effectMath";
-import { readTargetLocalPointer } from "./surfacePointer";
-
-type ImagePanParams = {
-  kind: "example.imagePan";
-  distance?: number;
-};
-
-type ImageZoomParams = {
-  kind: "example.imageZoom";
-  maxScale?: number;
-};
-
-type ImageKenBurnsParams = {
-  kind: "example.imageKenBurns";
-  distance?: number;
-  maxScale?: number;
-};
-
-type MediaPointerParallaxParams = {
-  kind: "example.mediaPointerParallax";
-  bleed?: number;
-  strength?: number;
-};
-
-type ImageHoverRevealParams = {
-  kind: "example.imageHoverReveal";
-  revealSrc?: string;
+import { clampNumber } from "./effectMath";
+import type { TargetLocalPointer } from "./surfacePointer";
+export type ImageHoverRevealParams = {
   radius?: number;
   feather?: number;
   restoreMs?: number;
   roughness?: number;
 };
-
-type VideoPlaybackParams = {
-  kind: "example.videoPlayback";
-  playbackRate?: number;
+type ImageHoverRevealPoint = { x: number; y: number };
+export type ImageHoverRevealState = {
+  maskCanvas?: HTMLCanvasElement;
+  maskSize?: { width: number; height: number };
+  previousPoint?: ImageHoverRevealPoint;
+  lastInteractionTime?: number;
 };
 
-type VideoDriftParams = {
-  kind: "example.videoDrift";
-  distance?: number;
-};
-
-type VideoPlaybackState = {
-  configured: boolean;
-};
-
-type ImageHoverRevealState = {
-  layer: WebGLEffectMaterialLayerHandle | undefined;
-  revealPlaceholder: HTMLCanvasElement | undefined;
-  revealImage: HTMLImageElement | undefined;
-  revealReady: boolean;
-  revealSrc: string | undefined;
-  maskCanvas: HTMLCanvasElement | undefined;
-  maskSize: { width: number; height: number } | undefined;
-  previousPoint: ImageHoverRevealPoint | undefined;
-  lastInteractionTime: number | undefined;
-};
-
-type ImageHoverRevealPoint = {
-  x: number;
-  y: number;
-};
-
-export const exampleImagePanEffect = defineWebGLEffect<ImagePanParams>({
-  kind: "example.imagePan",
-  source: "media/image",
-  update(ctx, _state, params) {
-    if (!ctx.object.texture) {
-      return;
-    }
-
-    const distance = clampNumber(params.distance, 0, 0.5, 0.16);
-    const progress = Math.max(
-      clampNumber(ctx.scrollProgress, 0, 1, 0),
-      readTargetViewportProgress(ctx.layout),
-    );
-    ctx.object.texture.setTransform({
-      repeatX: 1.12,
-      repeatY: 1.12,
-      offsetX: distance * progress,
-      offsetY: 0,
-    });
-  },
-});
-
-export const exampleImageZoomEffect = defineWebGLEffect<ImageZoomParams>({
-  kind: "example.imageZoom",
-  source: "media/image",
-  update(ctx, _state, params) {
-    if (!ctx.object.texture) {
-      return;
-    }
-
-    const maxScale = clampNumber(params.maxScale, 1, 2.4, 1.42);
-    const phase = 0.5 + Math.sin(ctx.time / 800) * 0.5;
-    const scale = 1 + (maxScale - 1) * phase;
-
-    ctx.object.visible = true;
-    ctx.object.scale.set(scale, scale, 1);
-  },
-});
-
-export const exampleImageKenBurnsEffect = defineWebGLEffect<ImageKenBurnsParams>({
-  kind: "example.imageKenBurns",
-  source: "media/image",
-  update(ctx, _state, params) {
-    if (!ctx.object.texture) {
-      return;
-    }
-
-    const distance = clampNumber(params.distance, 0, 0.36, 0.14);
-    const maxScale = clampNumber(params.maxScale, 1, 1.8, 1.18);
-    const phase = 0.5 + Math.sin(ctx.time / 1200) * 0.5;
-    const scale = 1 + (maxScale - 1) * (0.35 + phase * 0.65);
-
-    ctx.object.texture.setTransform({
-      repeatX: scale,
-      repeatY: scale,
-      offsetX: distance * phase,
-      offsetY: distance * (1 - phase),
-    });
-    ctx.object.visible = true;
-    ctx.object.scale.set(1 + phase * 0.04, 1 + phase * 0.04, 1);
-  },
-});
-
-export const exampleImageHoverRevealEffect = defineWebGLEffect<
-  ImageHoverRevealParams,
-  ImageHoverRevealState
->({
-  kind: "example.imageHoverReveal",
-  source: "media/image",
-  setup(ctx, params) {
-    const state = createImageHoverRevealState();
-    prepareImageHoverReveal(ctx, state, params);
-    return state;
-  },
-  update(ctx, state, params) {
-    prepareImageHoverReveal(ctx, state, params);
-    updateImageHoverReveal(ctx, state, params);
-  },
-  dispose(_ctx, state) {
-    disposeImageHoverReveal(state);
-  },
-});
-
-export const exampleMediaPointerParallaxEffect =
-  defineWebGLEffect<MediaPointerParallaxParams>({
-    kind: "example.mediaPointerParallax",
-    source: ["media/image", "media/video", "media/image-sequence"],
-    update(ctx, _state, params) {
-      if (!ctx.object.texture) {
-        return;
-      }
-
-      const bleed = clampNumber(params.bleed, 0, 0.24, 0.08);
-      const strength = clampNumber(params.strength, 0, 1, 0.72);
-      const repeat = 1 - bleed;
-      const centerOffset = bleed * 0.5;
-      const maxOffset = centerOffset * strength;
-      const pointer = readTargetLocalPointer({
-        layout: ctx.layout,
-        pointer: ctx.targetPointer,
-      });
-      const normalizedX = readNormalizedPointerAxis(pointer.x, ctx.layout.width);
-      const normalizedY = readNormalizedPointerAxis(pointer.y, ctx.layout.height);
-
-      ctx.object.texture.setTransform({
-        repeatX: repeat,
-        repeatY: repeat,
-        offsetX: clampNumber(
-          centerOffset + normalizedX * maxOffset,
-          0,
-          bleed,
-          centerOffset,
-        ),
-        offsetY: clampNumber(
-          centerOffset + normalizedY * maxOffset,
-          0,
-          bleed,
-          centerOffset,
-        ),
-      });
-      ctx.object.visible = true;
-      ctx.object.opacity = 1;
-    },
-  });
-
-export const exampleVideoPlaybackEffect = defineWebGLEffect<
-  VideoPlaybackParams,
-  VideoPlaybackState
->({
-  kind: "example.videoPlayback",
-  source: "media/video",
-  setup(ctx, params) {
-    const state = { configured: false };
-    configureVideo(ctx, params, state);
-    return state;
-  },
-  update(ctx, state, params) {
-    configureVideo(ctx, params, state);
-  },
-});
-
-export const exampleVideoDriftEffect = defineWebGLEffect<VideoDriftParams>({
-  kind: "example.videoDrift",
-  source: "media/video",
-  update(ctx, _state, params) {
-    if (!ctx.object.texture) {
-      return;
-    }
-
-    const distance = clampNumber(params.distance, 0, 0.32, 0.12);
-    const phase = 0.5 + Math.sin(ctx.time / 900) * 0.5;
-
-    ctx.object.texture.setTransform({
-      repeatX: 1.08,
-      repeatY: 1.08,
-      offsetX: distance * phase,
-      offsetY: distance * (1 - phase) * 0.5,
-    });
-  },
-});
-
-function configureVideo(
-  ctx: Parameters<typeof exampleVideoPlaybackEffect.update>[0],
-  params: VideoPlaybackParams,
-  state: VideoPlaybackState,
-): void {
-  if (!ctx.object.video || state.configured) {
-    return;
-  }
-
-  ctx.object.video.setMuted(true);
-  ctx.object.video.setPlaybackRate(clampNumber(params.playbackRate, 0.25, 2, 1));
-  void ctx.object.video.play();
-  state.configured = true;
-}
-
-function readNormalizedPointerAxis(value: number, size: number): number {
-  if (size <= 0) {
-    return 0;
-  }
-
-  return clampNumber((value / size - 0.5) * 2, -1, 1, 0);
-}
-
-function createImageHoverRevealState(): ImageHoverRevealState {
-  return {
-    layer: undefined,
-    revealPlaceholder: undefined,
-    revealImage: undefined,
-    revealReady: false,
-    revealSrc: undefined,
-    maskCanvas: undefined,
-    maskSize: undefined,
-    previousPoint: undefined,
-    lastInteractionTime: undefined,
-  };
-}
-
-function prepareImageHoverReveal(
-  ctx: Parameters<typeof exampleImageHoverRevealEffect.update>[0],
-  state: ImageHoverRevealState,
-  params: ImageHoverRevealParams,
-): void {
-  const texture = ctx.object.texture;
-  if (!texture) {
-    return;
-  }
-
-  const revealSrc = params.revealSrc ?? "/example/mask.png";
-  if (!state.revealImage || state.revealSrc !== revealSrc) {
-    const image = new Image();
-    const placeholder = readImageHoverRevealPlaceholder(state);
-    state.revealImage = image;
-    state.revealReady = false;
-    state.revealSrc = revealSrc;
-    state.layer?.setUniforms({
-      uRevealReady: false,
-      uRevealTexture: { kind: "canvas-texture", source: placeholder },
-    });
-    image.onload = () => {
-      state.revealReady = true;
-      state.layer?.setUniforms({
-        uRevealReady: true,
-        uRevealTexture: { kind: "image-texture", source: image },
-      });
-      texture.invalidate();
-    };
-    image.src = revealSrc;
-  }
-
-  if (state.layer || !state.revealImage) {
-    return;
-  }
-
-  const uvTransform = texture.shaderInputs.uvTransform;
-  const maskCanvas = readImageHoverRevealMaskCanvas(state, ctx.layout);
-  state.layer = texture.material.createMaterialLayer({
-    key: "example.imageHoverReveal",
-    mode: "replace-source",
-    sourceTextureUniform: "uBaseTexture",
-    program: {
-      fragmentShader: imageHoverRevealFragmentShader,
-      uniforms: {
-        uRevealTexture: {
-          kind: "canvas-texture",
-          source: readImageHoverRevealPlaceholder(state),
-        },
-        uMaskTexture: {
-          kind: "canvas-texture",
-          source: maskCanvas,
-        },
-        uPointer: [ctx.layout.width * 0.5, ctx.layout.height * 0.5],
-        uPointerActive: false,
-        uRevealReady: false,
-        uRadius: clampNumber(params.radius, 8, 360, 120),
-        uFeather: clampNumber(params.feather, 1, 160, 36),
-        uRoughness: readImageHoverRevealRoughness(params),
-        uTargetSize: [ctx.layout.width, ctx.layout.height],
-        uTrailOpacity: readImageHoverRevealTrailOpacity(ctx.time, state, params),
-        uUvRepeat: [uvTransform.repeatX, uvTransform.repeatY],
-        uUvOffset: [uvTransform.offsetX, uvTransform.offsetY],
-      },
-    },
-  });
-}
-
-function updateImageHoverReveal(
-  ctx: Parameters<typeof exampleImageHoverRevealEffect.update>[0],
-  state: ImageHoverRevealState,
-  params: ImageHoverRevealParams,
-): void {
-  const texture = ctx.object.texture;
-  if (!texture || !state.layer) {
-    return;
-  }
-
-  const pointer = readTargetLocalPointer({
-    layout: ctx.layout,
-    pointer: ctx.targetPointer,
-  });
-  const maskCanvas = updateImageHoverRevealMask(ctx.time, state, params, pointer, ctx.layout);
-  const uvTransform = texture.shaderInputs.uvTransform;
-
-  state.layer.setUniforms({
-    uPointer: [pointer.x, pointer.y],
-    uPointerActive: pointer.active,
-    uRevealReady: state.revealReady,
-    uRadius: clampNumber(params.radius, 8, 360, 120),
-    uFeather: clampNumber(params.feather, 1, 160, 36),
-    uRoughness: readImageHoverRevealRoughness(params),
-    uTargetSize: [ctx.layout.width, ctx.layout.height],
-    uMaskTexture: {
-      kind: "canvas-texture",
-      source: maskCanvas,
-    },
-    uTrailOpacity: readImageHoverRevealTrailOpacity(ctx.time, state, params),
-    uUvRepeat: [uvTransform.repeatX, uvTransform.repeatY],
-    uUvOffset: [uvTransform.offsetX, uvTransform.offsetY],
-  });
-  texture.invalidate();
-  ctx.object.visible = true;
-  ctx.object.opacity = 1;
-}
-
-function disposeImageHoverReveal(state: ImageHoverRevealState): void {
-  state.layer?.dispose();
-  state.layer = undefined;
-  if (state.revealImage) {
-    state.revealImage.onload = null;
-  }
-  state.revealImage = undefined;
-  state.revealPlaceholder = undefined;
-  state.revealReady = false;
-  state.revealSrc = undefined;
-  state.maskCanvas = undefined;
-  state.maskSize = undefined;
-  state.previousPoint = undefined;
-  state.lastInteractionTime = undefined;
-}
-
-function updateImageHoverRevealMask(
+export function updateImageHoverRevealMask(
   time: number,
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
-  pointer: ReturnType<typeof readTargetLocalPointer>,
+  pointer: TargetLocalPointer,
   layout: { width: number; height: number },
 ): HTMLCanvasElement {
   const maskCanvas = readImageHoverRevealMaskCanvas(state, layout);
@@ -533,9 +159,7 @@ function clearImageHoverRevealMask(state: ImageHoverRevealState): void {
   state.maskCanvas.width = state.maskCanvas.width;
 }
 
-function readImageHoverRevealRestoreMs(
-  params: ImageHoverRevealParams,
-): number {
+function readImageHoverRevealRestoreMs(params: ImageHoverRevealParams): number {
   return clampNumber(params.restoreMs, 250, 6000, 1800);
 }
 
@@ -543,13 +167,11 @@ function readImageHoverRevealRadius(params: ImageHoverRevealParams): number {
   return clampNumber(params.radius, 8, 360, 120);
 }
 
-function readImageHoverRevealRoughness(
-  params: ImageHoverRevealParams,
-): number {
+function readImageHoverRevealRoughness(params: ImageHoverRevealParams): number {
   return clampNumber(params.roughness, 0, 0.55, 0.24);
 }
 
-function readImageHoverRevealTrailOpacity(
+export function readImageHoverRevealTrailOpacity(
   time: number,
   state: ImageHoverRevealState,
   params: ImageHoverRevealParams,
@@ -601,21 +223,7 @@ function readImageHoverRevealMaskContext(
   }
 }
 
-function readImageHoverRevealPlaceholder(
-  state: ImageHoverRevealState,
-): HTMLCanvasElement {
-  if (state.revealPlaceholder) {
-    return state.revealPlaceholder;
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = 1;
-  canvas.height = 1;
-  state.revealPlaceholder = canvas;
-  return canvas;
-}
-
-const imageHoverRevealFragmentShader = `
+export const imageHoverRevealFragmentShader = `
   uniform sampler2D uBaseTexture;
   uniform sampler2D uRevealTexture;
   uniform sampler2D uMaskTexture;

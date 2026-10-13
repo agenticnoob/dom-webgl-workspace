@@ -1,144 +1,42 @@
-# Scroll Integration
+# Scroll integration
 
-Native browser scroll is the default. Add `@viselora/scroll-adapters` only when
-the application needs named progress timelines, Lenis smoothing, GSAP ticker
-integration, or ScrollTrigger sections.
+The runtime reads shared progress and scroll state; R3F continues to own
+rendering. Use one scroll source for the page.
 
-## Install
+## Progress store
 
-```bash
-npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha
-```
+`createScrollEffectProgressStore()` from `@viselora/scroll-adapters` provides
+`set(key, progress)`, `get(key)` and a subscribable `source`. Pass that source as
+`progressSignals` to `WebGLRuntime`, and read
+`useWebGLRuntime().progress.get(key)` inside native scene frame callbacks.
+Progress notifications invalidate on-demand scenes.
 
-Install only the optional peers you use:
+## React sections
 
-```bash
-npm install gsap lenis
-```
+`WebGLScrollRuntime` combines the R3F host with a progress store.
+`WebGLScrollTimeline`, `ScrollEffectSection` and `useScrollEffectProgressStore`
+share that store. A section with an active ScrollTrigger records its progress;
+without a ScrollTrigger instance, update the store explicitly from your chosen
+native scroll measurement.
 
-Core and adapter versions move in exact lockstep.
+Pass native R3F content through the host's `scene` prop. Scroll components do
+not create an additional renderer, Canvas or visual effect registry.
 
-## Native scroll
+## Lenis and GSAP
 
-`WebGLRuntime` reads native page scroll without an adapter. Prefer this path
-when effects only need current scroll position or ordinary page movement.
+Use `createLenisScrollAdapter`, `createGsapTickerLenisBridge`,
+`createScrollTriggerBridge`, `createScrollTriggerSection`, or
+`createLenisGsapScrollStack` for the integration you actually need. Dispose
+bridges and subscriptions on unmount. App-created Lenis instances remain owned
+by the app unless the chosen stack explicitly manages them.
 
-Do not add Lenis or GSAP merely to animate WebGL. Effects and progress signals
-already run inside the runtime-owned frame loop.
+A GSAP ticker can advance Lenis and notify scroll progress; do not use it to
+render a second Three.js frame loop. For native visual animation read progress
+in `useFrame`, using refs rather than per-frame React state.
 
-## Named React timelines
+## Verification
 
-`WebGLScrollRuntime` creates one stable progress store and passes it to the core
-runtime. `WebGLScrollTimeline` writes ScrollTrigger progress under its `id` (or
-an explicit `progressKey`):
-
-```tsx
-import {
-  WebGLScrollRuntime,
-  WebGLScrollTimeline,
-} from "@viselora/scroll-adapters/react";
-
-const runtimeEffects = [storyEffect];
-
-export function Story() {
-  return (
-    <WebGLScrollRuntime effects={runtimeEffects}>
-      <WebGLScrollTimeline
-        id="story.hero"
-        start="top top"
-        end="+=200%"
-        pin
-        scrub
-      >
-        <section>Semantic story content</section>
-      </WebGLScrollTimeline>
-    </WebGLScrollRuntime>
-  );
-}
-```
-
-The effect reads the same stable key from the managed progress source. Do not
-mirror per-frame progress into React state.
-
-`ScrollEffectSection` is the same section mechanism with an explicit
-`progressKey`. `useScrollEffectProgressStore()` is available for app-owned
-writers/readers that still use the runtime's one shared store.
-
-## Lenis, GSAP, and ScrollTrigger
-
-For React-owned setup, pass one stable `smooth` object:
-
-```tsx
-import gsap from "gsap";
-import Lenis from "lenis";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-
-gsap.registerPlugin(ScrollTrigger);
-
-const smooth = {
-  createLenis: () => new Lenis(),
-  gsap,
-  ScrollTrigger,
-};
-
-<WebGLScrollRuntime effects={runtimeEffects} smooth={smooth}>
-  {children}
-</WebGLScrollRuntime>;
-```
-
-Keep `smooth` referentially stable. The React adapter creates and disposes the
-Lenis/GSAP stack it owns.
-
-For application-owned Lenis, create the stack outside render:
-
-```ts
-import { createLenisGsapScrollStack } from "@viselora/scroll-adapters";
-
-const stack = createLenisGsapScrollStack({
-  lenis,
-  gsap,
-  ScrollTrigger,
-  manageLenis: false,
-});
-```
-
-Pass `stack.scrollAdapter` to the runtime. Dispose the stack and the app-owned
-Lenis instance in the owning application cleanup.
-
-## Scene gates
-
-Scene gates are an advanced alternative to ordinary pinned progress:
-
-```ts
-scroll: {
-  type: "gate",
-  start: "top top",
-  duration: 1,
-  release: "both-directions-complete",
-}
-```
-
-A gate can lock page scroll and map wheel/touch delta to `sceneProgress`.
-Default to ordinary native or pinned scroll. Use a gate only when deliberate
-scroll capture is part of the interaction and test forward, reverse, keyboard,
-touch, and escape behavior.
-
-## Ownership rules
-
-- One runtime, one scroll source, and one progress store per experience.
-- Do not create a consumer render loop.
-- Do not construct Lenis/GSAP integrations during React render.
-- Do not let both Lenis and the browser independently own the same scroll
-  mutation.
-- Keep timeline declarations stable; write high-frequency values to the shared
-  progress store.
-- Preserve reduced-motion content and an accessible non-gesture path.
-- Test slow/fast and forward/reverse progress, cleanup, and offscreen re-entry.
-
-## Further reference
-
-- [Same-page reader, model, portal and perspective timeline examples](../../apps/example/src/recipes/README.md)
-- [Scroll and interaction API](../../skills/viselora-dom-webgl/references/api-scroll-interaction.md)
-- [Capability status](../../skills/viselora-dom-webgl/references/capability-status.md)
-- [Example app](../../apps/example/README.md)
+Verify slow/fast forward and reverse scroll, resize, route unmount/remount,
+keyboard/touch alternatives and restored DOM fallback. Reaching the same
+progress while scrolling in either direction should reproduce the same scene
+state for reversible narrative effects.

@@ -1,7 +1,5 @@
-import type {
-  WebGLEffectMaterialProgram,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import { ShaderMaterial, type Texture } from "three";
+import { shaderUniforms, surfaceVertexShader } from "./nativeMaterials";
 
 import { defaultWavesConfig } from "./wavesConfig";
 
@@ -18,22 +16,26 @@ type WavesMaterialOptions = {
 
 export function createSurfaceWavesMaterialProgram(
   options: WavesMaterialOptions,
-): WebGLEffectMaterialProgram {
-  return {
+  source: Texture,
+): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader: surfaceVertexShader,
+    toneMapped: false,
     fragmentShader: surfaceWavesFragmentShader,
-    uniforms: createSurfaceWavesUniforms(options),
-    blend: "screen",
-  };
+    uniforms: shaderUniforms({
+      ...createSurfaceWavesUniforms(options),
+      uSource: source,
+    }),
+  });
 }
 
 export function createSurfaceWavesUniforms(
   options: WavesMaterialOptions,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, unknown> {
   const width = Math.max(1, options.width);
   const height = Math.max(1, options.height);
 
   return {
-    uSource: { kind: "source-texture" },
     uResolution: [width, height],
     uTime: options.time,
     uPointer: [
@@ -47,14 +49,8 @@ export function createSurfaceWavesUniforms(
       Math.max(1, defaultWavesConfig.xGap),
       Math.max(1, defaultWavesConfig.yGap),
     ],
-    uWaveAmplitude: [
-      defaultWavesConfig.waveAmpX,
-      defaultWavesConfig.waveAmpY,
-    ],
-    uWaveSpeed: [
-      defaultWavesConfig.waveSpeedX,
-      defaultWavesConfig.waveSpeedY,
-    ],
+    uWaveAmplitude: [defaultWavesConfig.waveAmpX, defaultWavesConfig.waveAmpY],
+    uWaveSpeed: [defaultWavesConfig.waveSpeedX, defaultWavesConfig.waveSpeedY],
     uPointerStrength: defaultWavesConfig.cursorForce * 520,
   };
 }

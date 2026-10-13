@@ -1,194 +1,112 @@
 # Architecture
 
-Viselora is a DOM-first managed WebGL runtime. The DOM remains the source of
-layout, semantic content, fallback, and accessibility; WebGL is a runtime-owned
-visual projection of declared targets and scene objects.
+Viselora is a DOM coordination runtime for React 19 and Next.js, built on React
+Three Fiber 9 and Three.js. DOM remains the layout, semantic and accessibility
+anchor. Visual components are ordinary R3F components.
 
 ## Core flow
 
 ```text
-DOM element
-  -> target declaration
-  -> source declaration
-  -> layout/content measurement
-  -> render role
-  -> runtime-owned renderable
-  -> scene object
-  -> runtime-owned renderer
+DOM element -> WebGLTarget registration -> batched rect measurement
+            -> useDOMTarget live state -> application useFrame -> native mesh
+
+progress store / scroll adapter -> runtime input -> application useFrame
+
+R3F Canvas -> Three.js renderer -> scene -> camera -> final canvas
 ```
 
-Each runtime owns one fixed, transparent canvas. It batches DOM measurements,
-projects them into scene coordinates, synchronizes sources and effects, renders,
-and publishes descriptor-only debug state.
+## Ownership
 
-## Ownership model
+The application owns semantic DOM, scene composition, native Three.js objects,
+materials, loaders, animation, model instances and custom texture lifetimes.
+Use R3F JSX, `useFrame`, `useThree`, `useLoader` or suitable Drei helpers directly.
 
-The application owns:
+R3F owns the single Canvas, reconciliation, rendering, resize handling,
+event raycasting and the frame loop. The runtime-owned host configures that
+Canvas and connects runtime invalidations to R3F's `invalidate()`.
 
-- semantic DOM and fallback content;
-- stable target, scene, mesh, model, and effect declarations;
-- app-specific effect definitions and parameters;
-- assets and asset provenance;
-- the lifecycle of app-created external instances such as Lenis when explicitly
-  configured that way.
+Viselora owns DOM registration and measurements, shared progress/scroll input,
+DOM fallback paint, renderer availability and observer cleanup. It does
+not declare a parallel scene graph or wrap materials, lights, models, physics,
+camera controls or postprocessing.
 
-The runtime owns:
+## React host
 
-- canvas, renderer, scenes, cameras, passes, scene objects, and frame scheduling;
-- DOM measurement and projection;
-- resource loading, caching, cloning, texture updates, and release;
-- material, light, animation, postprocess, picking, and bounded physics state;
-- scroll/pointer normalization, interaction priority, offscreen policy, and
-  fallback visibility;
-- idempotent disposal.
+`WebGLRuntime` accepts semantic `children`, R3F `scene`, optional `canvas`
+configuration and progress/scroll inputs. It bridges one runtime context into
+the DOM and Canvas trees. Hooks must be descendants of this host.
 
-The public API does not transfer raw Three.js ownership to the application.
+`WebGLTarget` clones one ref-capable DOM child. `useDOMTarget(id)` observes
+registration identity; the returned object's rect, visibility and revision
+remain live and should be read in `useFrame`. Do not put per-frame transforms
+into React state.
 
-## Authoring levels
+The host measures targets with a negative frame priority before ordinary
+application frame subscribers run. R3F remains the only renderer loop owner.
+A positive `useFrame` priority takes over rendering and should only be used by
+an explicitly owned pass/composer.
 
-### DOM-backed targets
+Hidden tabs and lost WebGL contexts suspend R3F's frame loop and restore DOM
+fallback. On recovery the host restores the configured `canvas.frameloop` and
+invalidates a frame; a visibility change cannot clear an ongoing context loss.
 
-`WebGLTarget` is the default path. It connects a DOM element to a source,
-layout, fallback, lifecycle, pointer state, and target effect declarations.
+## DOM and fallback
 
-Sources use one strict shape:
+Measurements are read in a batch before fallback styles are written. Scroll,
+resize, DOM mutations and font completion invalidate the scene. A target
+revision changes when text/style/dimensions need a new content snapshot.
 
-```ts
-type SourceKind = "dom" | "media" | "model";
-```
+`hideWhenReady` defaults to false. A replacement visual opts in and explicitly
+reports readiness through `runtime.setTargetReady(id, true, target)` once it
+can render. Keep the captured target identity when reporting asynchronous
+completion so an older load cannot hide a newly mounted target.
 
-The subtype is declared with `type`, for example:
+Unavailable WebGL, unregistration and disposal restore the opacity property
+owned by the runtime. Other current inline styles and classes remain intact.
+Fallback paint uses opacity rather than visibility so semantic content remains
+in the accessibility tree. Only registered leaves are hidden: a target that
+contains another registered target keeps its own DOM paint, allowing an unready
+child to remain visible.
 
-- `{ kind: "dom", type: "element" }`
-- `{ kind: "dom", type: "text" }`
-- `{ kind: "media", type: "image" }`
-- `{ kind: "media", type: "video" }`
-- `{ kind: "media", type: "image-sequence" }`
-- `{ kind: "model", type: "glb" }`
+`restore-dom` restores fallback when a target leaves the viewport. `park` keeps
+ready fallback hidden while offscreen. Both expose `visible` so applications
+can pause animation; resource retention or unmounting is the visual component's
+explicit policy, using normal React/Three.js lifetimes.
 
-Default render roles are inferred from the source: DOM elements become
-surfaces, DOM text becomes content, media becomes media, and GLB becomes model.
-DOM text snapshots preserve the source element's computed typography and color
-so runtime rasterization follows the active semantic theme.
+## Text and assets
 
-### Managed scenes
+`measureDOMText` reads CSS typography and produces wrapped lines and glyphs.
+`drawDOMText` draws CSS-pixel glyph commands on a caller-owned canvas.
+`createDOMTextTexture` creates a native sRGB `CanvasTexture`, capped at 2x DPR,
+with a separate CSS width/height and an idempotent disposal function.
 
-`WebGLScene`, `WebGLCamera`, `WebGLRenderPass`, `WebGLPassViewport`, and
-`WebGLLight` are opt-in declarations for explicit projection, pass, viewport,
-camera, and lighting ownership. They refine the managed model; they do not
-expose raw scene graph handles.
+Image, video and GLB loading use Three.js/R3F/Drei. Shared `useLoader` assets,
+cloned model instances and externally created primitives require explicit
+ownership decisions; unmounting one consumer must not dispose another's cached
+resources. There is no duplicate Viselora loader or resource cache.
 
-### Scene-native objects
+## Scroll and interaction
 
-`WebGLMesh` declares procedural geometry. `WebGLModel` declares a scene-native
-GLB. Use these for 3D objects that do not require a DOM target's fallback and
-layout semantics.
+Progress values are shared inputs, independent of rendering. The optional
+scroll-adapter package retains native, Lenis and GSAP/ScrollTrigger integration.
+A scene reads `runtime.progress.get(key)` during its frame callback.
 
-Use `WebGLTarget` with a model source when the GLB must follow a DOM rect or keep
-DOM fallback behavior.
-
-## Effect model
-
-Target effects are defined with `defineWebGLEffect(...)`. Scene-native mesh and
-model effects are defined with `defineWebGLSceneObjectEffect(...)`.
-
-Declarations always use array form:
-
-```ts
-effects: [{ kind: "app.effect", intensity: 0.5 }]
-```
-
-Effects receive controlled context. `ctx.object` exposes managed Three-like
-vocabulary for transforms and supported visual modules while the runtime owns
-the underlying renderer, objects, materials, textures, lights, loaders, mixers,
-passes, and cleanup.
-
-Important boundaries:
-
-- `ctx.object.position` is scene-space, not DOM `left`/`top`.
-- Writing model position/scale takes over runtime DOM-fit placement.
-- Postprocess requests are canvas/pass scoped.
-- Effects do not scan DOM or create their own resource pipeline.
-- Effect-owned resources must be released through their managed facades.
-- Runtime and scene-object effect definition lists remain referentially stable.
-
-## React model
-
-The React adapter registers stable declarations with the runtime:
-
-- `WebGLRuntime` owns the runtime lifetime.
-- `WebGLTarget` owns a DOM-backed declaration.
-- managed scene components register optional advanced declarations.
-- hooks expose runtime/progress stores without transferring render-loop
-  ownership.
-
-A mounted target declaration is immutable in practice. If source, effects,
-scroll, pointer, or lifecycle semantics must change, remount with a new React
-key. High-frequency visual state belongs in effects/progress stores, not React
-prop churn.
-
-## Layout and hierarchy
-
-DOM rects are read in a batched layout pass. Nested registered targets form an
-internal layer tree based on DOM ancestry and sibling order.
-
-`transformScope: "subtree"` gives a parent target a managed group transform.
-Children keep independent source, texture, effects, fallback, lifecycle, and
-offscreen ownership. Inverse-transformed picking is not part of this contract.
-
-Managed scenes support DOM-aligned, screen, and perspective-stage projection
-policies. Pass viewports clip rendering to a registered DOM rect without
-creating a second canvas.
-
-## Lifecycle and resources
-
-Fallback DOM stays visible while a renderable is loading or in error. Once
-ready, `hideWhenReady` and `hideMode` control fallback visibility. Unregistering
-a target or disposing the runtime restores fallback state.
-
-Offscreen policy is explicit:
-
-- `restore-dom` releases WebGL resources and restores fallback;
-- `park` pauses effect work while retaining WebGL resources.
-
-Image, video, image-sequence, and GLB resources are normalized and cached by
-resource key. Draco decoder paths are declarative and app-hosted.
-
-## Scroll and pointer
-
-Native page scroll is the default. Optional adapters connect Lenis, GSAP, and
-ScrollTrigger without giving them renderer ownership.
-
-Progress signals are shared runtime inputs. Scene gates are a separate advanced
-feature that can temporarily lock page scroll and map delta to scene progress.
-
-PointerEvents are normalized once. Target pointer state is layout-local;
-scene-object picking and managed camera gestures follow explicit interaction
-priority. Raw raycasters and intersections remain private.
+Mesh pointer events use R3F. DOM controls retain ordinary pointer/keyboard
+handlers. The host connects R3F events to the page container so a fixed Canvas
+does not replace semantic DOM interaction. Applications handle interaction
+priority, reduced motion and touch alternatives.
 
 ## Repository boundaries
 
-```text
-packages/  reusable public implementation
-apps/      public-entrypoint consumers
-skills/    versioned consumer workflow and generated API navigation
-docs/      current project truth and task guides
-scripts/   build, release, and boundary tooling
-test/      repository-level guards
-```
-
-Applications never import package source paths. Package implementation never
-imports or branches on application details.
+Packages are reusable and cannot reference app identities, content or assets.
+Applications use public Viselora entrypoints and native ecosystem packages.
+Tests stay outside production `src/`. Runtime modules are safe to import during
+SSR; browser resources are created after mount or by explicit DOM utilities.
 
 ## Non-goals
 
-- raw Three.js renderer/scene/camera/object/material ownership;
-- multiple runtime canvases for one page experience;
-- a React Three Fiber compatibility or parity layer;
-- consumer-owned render loops, loaders, mixers, raycasters, or disposal;
-- unrestricted shader, render-graph, physics-engine, or scene-graph escape
-  hatches;
-- app-specific behavior in public packages.
-
-Current implementation and evidence belong in [STATUS.md](./STATUS.md), not in
-this architecture document.
+- a framework-independent/headless WebGL engine;
+- facade parity with Three.js or R3F;
+- custom physics, loaders, mixers, raycasting or render scheduling;
+- a second Canvas for one page experience;
+- legacy 0.1.x managed scene/effect compatibility.

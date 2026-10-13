@@ -1,19 +1,25 @@
-import type { WebGLEffectMaterialProgram } from "@viselora/dom-webgl";
+import { ShaderMaterial } from "three";
+import {
+  canvasTexture,
+  shaderUniforms,
+  surfaceVertexShader,
+} from "../../nativeMaterials";
 import { projectRoomConfig as config } from "./room";
 import type { ProjectRoomPalette } from "./types";
 
 export function createProjectRoomProgram(
   texture: HTMLCanvasElement,
   palette: ProjectRoomPalette,
-): WebGLEffectMaterialProgram {
-  return {
-    blend: "normal",
-    uniforms: {
-      inkAtlas: { kind: "canvas-texture", source: texture },
+): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader: surfaceVertexShader,
+    toneMapped: false,
+    uniforms: shaderUniforms({
+      inkAtlas: canvasTexture(texture),
       viewport: [1440, 900],
       view: [0, 0, 0, 0],
       ...projectRoomColors(palette),
-    },
+    }),
     fragmentShader: `
       uniform sampler2D inkAtlas;
       uniform vec2 viewport;
@@ -68,7 +74,7 @@ export function createProjectRoomProgram(
         gl_FragColor = vec4(color, 1.0);
       }
     `,
-  };
+  });
 }
 
 export const defaultProjectRoomPalette: ProjectRoomPalette = {

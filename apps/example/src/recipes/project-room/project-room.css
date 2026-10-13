@@ -8,7 +8,7 @@
 .recipe-room__surface {
   position: absolute;
   inset: 0;
-  pointer-events: none;
+  pointer-events: auto;
 }
 .recipe-room__fallback {
   position: relative;

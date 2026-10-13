@@ -1,47 +1,27 @@
 # Quickstart
 
-Compatible package version: 0.1.0-alpha.2
+Use React 19, React DOM 19, R3F 9 and Three.js 0.184. This skill targets the 0.2
+alpha API; keep both Viselora packages on the compatible version named in
+[the skill](../SKILL.md). The 0.1.x API is incompatible.
 
-## Install
-
-Pin the public prerelease packages exactly:
-
-```bash
-npm install --save-exact @viselora/dom-webgl@0.1.0-alpha.2 @viselora/scroll-adapters@0.1.0-alpha.2
-npm install react react-dom gsap
-npm install --save-dev typescript vite @types/react@^19.2.0 @types/react-dom@^19.2.0
-```
-
-The published scroll React declarations require `@types/react >=19.2.0`.
-Use strict TypeScript with `skipLibCheck: false`; otherwise declaration drift can
-be hidden. Keep the consumer-local `typescript` dependency because the verifier
-uses its compiler API.
-
-## Start from planning artifacts
-
-Copy and complete, in order:
-
-1. `templates/story-plan.md`
-2. `templates/asset-manifest.json`
-3. `templates/react-vite/viselora.capabilities.json`
-
-Then copy `templates/react-vite/` or adapt an existing React/Vite site. Keep one
-runtime/canvas, one scroll source, one pointer source, module-scope effects, and
-stable mounted target declarations.
-
-For existing visual components, start with the
-[recipe catalog and integration procedure](../../../apps/example/src/recipes/README.md).
-Register their effect definitions on the page's existing runtime.
-
-## Verify
+Copy [the React/Vite template](../templates/react-vite/) for a small runnable
+example of a native mesh following a DOM target. It keeps DOM text visible,
+uses one host, and renders on demand without decorative animation.
+Replace copy and scene components within the consumer's scope.
 
 ```bash
-node /absolute/path/to/viselora-dom-webgl/scripts/verify-consumer.mjs .
+npm install
 npm run typecheck
 npm run build
 ```
 
-The verifier proves static architecture, declarations, assets and planned
-evidence. Complete the browser and narrative matrix in
-[verification.md](verification.md) before claiming the consumer experience is
-verified.
+The template pins the compatible Viselora versions. For an existing application:
+
+```bash
+npm install @viselora/dom-webgl@0.2.0-alpha.0 @viselora/scroll-adapters@0.2.0-alpha.0 react@19 react-dom@19 @react-three/fiber@9 three@0.184
+```
+
+Use locally packed tarballs instead when validating an unpublished candidate.
+
+For Next.js, place the host and native scene in a Client Component. Public
+imports are SSR-safe. Create textures/loaders after mount, never at module scope.

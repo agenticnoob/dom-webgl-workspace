@@ -8,12 +8,14 @@ export function ProjectRoomControls({
   title,
   labels,
   room,
+  available = true,
 }: {
   readonly id: string;
   readonly items: ProjectRoomItems;
   readonly title: string;
   readonly labels: ProjectRoomLabels;
   readonly room: ProjectRoomStore;
+  readonly available?: boolean;
 }) {
   const snapshot = useSyncExternalStore(
     room.subscribe,
@@ -21,9 +23,10 @@ export function ProjectRoomControls({
     room.getServerSnapshot,
   );
   const selected = items[snapshot.selected];
+  const enhanced = snapshot.ready && available;
   return (
     <>
-      <div className="recipe-room__fallback" hidden={snapshot.ready}>
+      <div className="recipe-room__fallback" hidden={enhanced}>
         <h2 id={`${id}.heading`}>{title}</h2>
         {snapshot.error ? <p role="status">{snapshot.error}</p> : null}
         <ol className="recipe-room__list">
@@ -40,7 +43,7 @@ export function ProjectRoomControls({
           ))}
         </ol>
       </div>
-      <div className="recipe-room__controls" hidden={!snapshot.ready}>
+      <div className="recipe-room__controls" hidden={!enhanced}>
         <header className="recipe-room__header">
           <h2>{title}</h2>
           <p>{labels.hint}</p>

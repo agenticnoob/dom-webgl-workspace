@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { createProjectRoomProgram } from "../src/projects/program";
 import {
   createProjectRoomStore,
   projectRoomPoint,
@@ -9,6 +10,11 @@ import {
 } from "../src/projects/room";
 
 describe("project room navigation", () => {
+  test("the room writes depth so portal text behind it is occluded", () => {
+    const program = createProjectRoomProgram(document.createElement("canvas"));
+    expect(program.depthWrite).toBe(true);
+    program.uniforms?.inkAtlas.value.dispose();
+  });
   test("requires a rearmed edge gesture and protects the utility area", () => {
     expect(resolveRoomTurn(0.95, 0, true)).toBe(1);
     expect(resolveRoomTurn(-0.95, 0, true)).toBe(-1);

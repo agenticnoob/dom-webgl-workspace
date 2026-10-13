@@ -1,18 +1,23 @@
-import * as React from "react";
-import {
-  WebGLDebugPanel,
-  WebGLTarget,
-  useWebGLDebugState,
-} from "@viselora/dom-webgl/react";
+import { View } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import React, { useEffect, useRef, useState } from "react";
+import { useWebGLRuntime } from "@viselora/dom-webgl/react";
 import {
   ScrollEffectSection,
   WebGLScrollRuntime,
 } from "@viselora/scroll-adapters/react";
-
 import { EffectDescription } from "./EffectDescription";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
-import { exampleEffects } from "./exampleEffects";
 import { useExampleResources } from "./exampleResourceScheduler";
+import { ExampleVisual } from "./ExampleVisual";
+import {
+  HoverRevealVisual,
+  ImageVisual,
+  ModelVisual,
+  SequenceVisual,
+  TextVisual,
+  VideoVisual,
+} from "./BasicVisuals";
 import { ManagedInteractionExample } from "./ManagedInteractionExample";
 import { ManagedModelAnimationExample } from "./ManagedModelAnimationExample";
 import { ManagedPhysicsExample } from "./ManagedPhysicsExample";
@@ -20,70 +25,125 @@ import { ManagedTimelineExample } from "./ManagedTimelineExample";
 import { ManagedMeshExample } from "./ManagedMeshExample";
 import { PinnedScrollExample } from "./PinnedScrollExample";
 import { SnapshotElementExamples } from "./SnapshotElementExamples";
-import { RecipeExamples, recipeEffects } from "./RecipeExamples";
+import { RecipeExamples } from "./RecipeExamples";
+import type { TextMode, TextOptions } from "./textEffects";
 
-const runtimeEffects = [...exampleEffects, ...recipeEffects];
-const renderQuality = { antialias: true, maxDevicePixelRatio: 2 } as const;
-
-const videoScrubProgressKey = "example.video.scrub";
-const sequenceCardEffects = [
+const canvas = {
+  gl: { antialias: true, alpha: true },
+  dpr: [1, 2] as [number, number],
+  frameloop: "always" as const,
+};
+const textRows: readonly {
+  id: string;
+  title: string;
+  className: string;
+  mode: TextMode;
+  text: string;
+  options?: TextOptions;
+}[] = [
   {
-    kind: "example.sequenceCardSlide",
-    progressKey: videoScrubProgressKey,
-    travel: 96,
-    minOpacity: 0.72,
-    maxOpacity: 1,
+    id: "wave",
+    title: "文字波浪",
+    className: "example-text",
+    mode: "wave",
+    text: "文本内容由 DOM 编写，字形输出由原生 CanvasTexture 接管。",
+    options: { amplitude: 7 },
   },
   {
-    kind: "example.sequenceCardBorderGlow",
-    progressKey: videoScrubProgressKey,
-    travel: 96,
-    edgeSensitivity: 0.28,
-    colorSensitivity: 0.48,
-    glowRadius: 44,
-    glowIntensity: 1,
-    fillOpacity: 0.46,
+    id: "reveal",
+    title: "文字显现",
+    className: "example-text example-text-compact",
+    mode: "reveal",
+    text: "滚动字形显现会把段落按阅读顺序逐步点亮，让还未进入视线的字形保持轻微收起，已经经过视口中心的文字则恢复到清晰、稳定的排版状态。",
+    options: { color: "#d95f42" },
   },
-] as const;
-const imageSequenceScrubEffects = [
-  { kind: "example.mediaPointerParallax", bleed: 0.08, strength: 0.72 },
-] as const;
-const sequenceCardTitleEffects = [
-  { kind: "example.textReveal", color: "#f4f4f5", progressKey: videoScrubProgressKey },
-] as const;
-const sequenceCardDescriptionEffects = [
-  { kind: "example.textReveal", color: "#b7c4c8", progressKey: videoScrubProgressKey },
-] as const;
-const textComboEffects = [
   {
-    kind: "example.textSpotlightPressureScrambleWave",
-    baseColor: "#f4f4f5",
-    spotlightColor: "#f6c453",
-    scrambleChars: "01",
-    radius: 190,
-    amplitude: 8,
-    speed: 0.42,
+    id: "spotlight",
+    title: "文字聚光",
+    className: "example-text example-text-spotlight",
+    mode: "spotlight",
+    text: "指针掠过这段文字时，WebGL 字形会像被手电扫过一样逐个亮起；离指针更远的字符仍保留在暗处，于是同一段内容可以同时表达阅读、距离和聚焦状态。",
+    options: { color: "#f6c453", radius: 180 },
+  },
+  {
+    id: "pressure",
+    title: "文字压感",
+    className: "example-text example-text-pressure",
+    mode: "pressure",
+    text: "Pressure",
+    options: { color: "#f4f4f5", radius: 180 },
+  },
+  {
+    id: "scramble",
+    title: "文字扰码",
+    className: "example-text example-text-scramble",
+    mode: "scramble",
+    text: "指针靠近时，这段文字会在局部出现短暂扰码，字符先被替换成节奏明确的符号，再随着距离拉开回到原文，DOM 中的可访问文本始终保持不变。",
+    options: {
+      color: "#172124",
+      scrambleChars: ".:",
+      radius: 148,
+      speed: 0.45,
+    },
+  },
+  {
+    id: "combo",
+    title: "文字组合",
+    className: "example-text example-text-combo",
+    mode: "combo",
+    text: "Focus driven text can glow, scramble, stretch, and drift in a single pass while the source paragraph stays ordinary DOM content for layout and accessibility.",
+    options: {
+      baseColor: "#f4f4f5",
+      spotlightColor: "#f6c453",
+      scrambleChars: "01",
+      radius: 190,
+      amplitude: 8,
+      speed: 0.42,
+    },
+  },
+];
+const mediaRows = [
+  {
+    id: "pan",
+    title: "图片平移",
+    src: "/example/image.png",
+    mode: "pan",
+    className: "example-media",
+  },
+  {
+    id: "zoom",
+    title: "图片缩放",
+    src: "/example/image.png",
+    mode: "zoom",
+    className: "example-media",
+  },
+  {
+    id: "ken-burns",
+    title: "图片镜头推进",
+    src: "/example/bg.png",
+    mode: "ken-burns",
+    className: "example-media example-media-tall",
   },
 ] as const;
 
 export default function App() {
-  const [debugState, onDebugStateChange] = useWebGLDebugState();
-  const exampleResources = useExampleResources();
-
   return (
     <WebGLScrollRuntime
       className="example-runtime"
-      effects={runtimeEffects}
-      renderQuality={renderQuality}
       smooth={exampleSmoothScrollOptions}
-      onDebugStateChange={onDebugStateChange}
+      canvas={canvas}
+      scene={
+        <>
+          <ClearCanvas />
+          <View.Port />
+        </>
+      }
     >
       <main className="example-shell">
         <section className="example-intro">
-          <p className="example-kicker">效果编写示例</p>
-          <h1>应用侧 WebGL 效果，包只提供运行时原语。</h1>
+          <p className="example-kicker">R3F / Three.js</p>
+          <h1>原生场景与效果，Runtime 管理页面协调。</h1>
         </section>
-
         <div className="example-stack">
           <SnapshotElementExamples />
           <ManagedMeshExample />
@@ -91,428 +151,223 @@ export default function App() {
           <ManagedTimelineExample />
           <ManagedInteractionExample />
           <ManagedPhysicsExample />
-
-          <section className="example-row">
-            <EffectDescription source="dom/text" title="文字波浪">
-              文本仍写在 JSX 里，effect 只改写 WebGL 字形绘制命令。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text"
-              webgl={{
-                key: "example.text.wave",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [{ kind: "example.textWave", amplitude: 7 }],
-              }}
-            >
-              文本内容由 DOM 编写，字形输出由 effect 接管。
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="dom/text" title="文字显现">
-              把当前视口位置和滚动进度映射到每个字形的透明度和缩放。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text example-text-compact"
-              webgl={{
-                key: "example.text.reveal",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [{ kind: "example.textReveal", color: "#d95f42" }],
-              }}
-            >
-              基于包原语实现的滚动字形显现会把段落按阅读顺序逐步点亮，让还未进入视线的字形保持轻微收起，
-              已经经过视口中心的文字则恢复到清晰、稳定的排版状态。
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="dom/text" title="文字聚光">
-              根据 target-local pointer 或 runtime time 计算字形中心距离，只改 WebGL 字形命令。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text example-text-spotlight"
-              webgl={{
-                key: "example.text.spotlight",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [{ kind: "example.textSpotlight", color: "#f6c453", radius: 180 }],
-              }}
-            >
-              指针掠过这段文字时，WebGL 字形会像被手电扫过一样逐个亮起；
-              离指针更远的字符仍保留在暗处，于是同一段内容可以同时表达阅读、距离和聚焦状态。
-            </WebGLTarget>
-          </section>
-
-          <section
-            className="example-row"
-          >
-            <EffectDescription source="dom/text" title="文字压感">
-              用 target-local pointer 距离改写 WebGL 字形缩放、透明度和颜色。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text example-text-pressure"
-              webgl={{
-                key: "example.text.pressure",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [
-                  {
-                    kind: "example.textPressure",
-                    color: "#f4f4f5",
-                    radius: 180,
-                  },
-                ],
-              }}
-            >
-              Pressure
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="dom/text" title="文字扰码">
-              指针附近的 WebGL 字形会临时替换为扰码字符，离开后回到原文。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text example-text-scramble"
-              webgl={{
-                key: "example.text.scramble",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: [
-                  {
-                    kind: "example.textScramble",
-                    color: "#172124",
-                    scrambleChars: ".:",
-                    radius: 148,
-                    speed: 0.45,
-                  },
-                ],
-              }}
-            >
-              指针靠近时，这段文字会在局部出现短暂扰码，字符先被替换成节奏明确的符号，
-              再随着距离拉开回到原文，DOM 中的可访问文本始终保持不变。
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="dom/text" title="文字组合">
-              一个 app-owned effect 同时完成聚光、扰码、压感排版和波浪位移。
-            </EffectDescription>
-            <WebGLTarget
-              as="p"
-              className="example-text example-text-combo"
-              webgl={{
-                key: "example.text.combo",
-                source: { kind: "dom", type: "text" },
-                lifecycle: { hideWhenReady: true, hideMode: "self" },
-                effects: textComboEffects,
-              }}
-            >
-              Focus driven text can glow, scramble, stretch, and drift in a single pass while the
-              source paragraph stays ordinary DOM content for layout and accessibility.
-            </WebGLTarget>
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/image" title="图片平移">
-              不修改 DOM 图片元素，按当前视口位置移动 WebGL 纹理采样。
-            </EffectDescription>
-            <WebGLTarget
-              as="img"
-              className="example-media"
-              src="/example/image.png"
-              alt="图片纹理平移示例"
-              webgl={{
-                key: "example.image.pan",
-                source: { kind: "media", type: "image", src: "/example/image.png" },
-                effects: [{ kind: "example.imagePan", distance: 0.2 }],
-              }}
-            />
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/image" title="图片缩放">
-              从 image source 创建渲染对象，再由 effect 驱动 target 缩放。
-            </EffectDescription>
-            <WebGLTarget
-              as="img"
-              className="example-media"
-              src="/example/image.png"
-              alt="图片缩放示例"
-              webgl={{
-                key: "example.image.zoom",
-                source: { kind: "media", type: "image", src: "/example/image.png" },
-                effects: [{ kind: "example.imageZoom", maxScale: 1.36 }],
-              }}
-            />
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/image" title="图片镜头推进">
-              对 image source 同时使用纹理采样偏移和 target scale，模拟慢速镜头运动。
-            </EffectDescription>
-            <WebGLTarget
-              as="img"
-              className="example-media example-media-tall"
-              src="/example/bg.png"
-              alt="图片镜头推进示例"
-              webgl={{
-                key: "example.image.ken-burns",
-                source: { kind: "media", type: "image", src: "/example/bg.png" },
-                effects: [{ kind: "example.imageKenBurns", distance: 0.16, maxScale: 1.22 }],
-              }}
-            />
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/image" title="图片悬停叠层">
-              像橡皮擦一样划开秋景，经过的位置短暂显露绿景纹理后慢慢恢复。
-            </EffectDescription>
-            <WebGLTarget
-              as="img"
-              className="example-media example-media-wide"
-              src="/example/show.png"
-              alt="图片悬停叠层示例"
-              webgl={{
-                key: "example.image.hover-reveal",
-                source: { kind: "media", type: "image", src: "/example/show.png" },
-                effects: [
-                  {
-                    kind: "example.imageHoverReveal",
-                    revealSrc: "/example/mask.png",
-                    radius: 132,
-                    feather: 42,
-                    restoreMs: 2200,
-                    roughness: 0.26,
-                  },
-                ],
-              }}
-            />
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/video" title="视频播放">
-              通过 video capability handle 配置静音、播放和播放速度。
-            </EffectDescription>
-            <WebGLTarget
-              as="video"
-              className="example-media"
-              src="/example/video.mp4"
-              muted
-              playsInline
-              loop
-              webgl={{
-                key: "example.video.playback",
-                source: { kind: "media", type: "video", src: "/example/video.mp4" },
-                effects: [{ kind: "example.videoPlayback", playbackRate: 0.8 }],
-              }}
-            />
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="media/video" title="视频漂移">
-              对同一种 video source 叠加实时纹理漂移。
-            </EffectDescription>
-            <WebGLTarget
-              as="video"
-              className="example-media"
-              src="/example/video.mp4"
-              muted
-              playsInline
-              loop
-              webgl={{
-                key: "example.video.drift",
-                source: { kind: "media", type: "video", src: "/example/video.mp4" },
-                effects: [
-                  { kind: "example.videoPlayback", playbackRate: 1.05 },
-                  { kind: "example.videoDrift", distance: 0.12 },
-                ],
-              }}
-            />
-          </section>
-
-          <ScrollEffectSection
-            className="example-row example-video-scrub-row"
-            progressKey={videoScrubProgressKey}
-            start="top top"
-            end="+=900%"
-            pin
-            scrub
-          >
-            <EffectDescription source="media/image-sequence" title="滚动控制图片序列">
-              这个区域固定在视口中，滚动进度由 runtime 映射到 WebGL 图片序列帧。
-            </EffectDescription>
-            {exampleResources.imageSequenceReady ? (
-              <WebGLTarget
-                as="section"
-                className="example-media example-media-video-bg example-media-sequence"
-                webgl={{
-                  key: "example.image-sequence.scrub",
-                  source: {
-                    kind: "media",
-                    type: "image-sequence",
-                    frameCount: exampleResources.imageSequenceFrames.length,
-                    frames: exampleResources.imageSequenceFrames,
-                    progressKey: videoScrubProgressKey,
-                  },
-                  lifecycle: { hideWhenReady: true, hideMode: "self" },
-                  effects: imageSequenceScrubEffects,
-                }}
+          {textRows.map((row) => (
+            <section className="example-row" key={row.id}>
+              <EffectDescription source="DOM → CanvasTexture" title={row.title}>
+                DOM 保留语义与布局，useFrame 更新 Three.js 纹理。
+              </EffectDescription>
+              <ExampleVisual
+                id={`example.text.${row.id}`}
+                visual={
+                  <TextVisual
+                    id={`example.text.${row.id}`}
+                    mode={row.mode}
+                    options={row.options}
+                  />
+                }
               >
-                <WebGLTarget
-                  as="aside"
-                  className="example-sequence-card"
-                  webgl={{
-                    key: "example.image-sequence.card",
-                    source: { kind: "dom", type: "element" },
-                    transformScope: "subtree",
-                    lifecycle: { hideWhenReady: true, hideMode: "self" },
-                    effects: sequenceCardEffects,
-                  }}
-                >
-                  <WebGLTarget
-                    as="strong"
-                    webgl={{
-                      key: "example.image-sequence.card.title",
-                      source: { kind: "dom", type: "text" },
-                      lifecycle: { hideWhenReady: true, hideMode: "self" },
-                      effects: sequenceCardTitleEffects,
-                    }}
-                  >
-                    固定区间卡片
-                  </WebGLTarget>
-                  <WebGLTarget
-                    as="span"
-                    webgl={{
-                      key: "example.image-sequence.card.description",
-                      source: { kind: "dom", type: "text" },
-                      lifecycle: { hideWhenReady: true, hideMode: "self" },
-                      effects: sequenceCardDescriptionEffects,
-                    }}
-                  >
-                    卡片留在 pinned 区间内，由 effect 控制偏移和边缘光效。
-                  </WebGLTarget>
-                </WebGLTarget>
-              </WebGLTarget>
-            ) : (
-              <section
-                aria-busy="true"
-                className="example-media example-media-video-bg example-media-sequence"
+                <p className={row.className}>{row.text}</p>
+              </ExampleVisual>
+            </section>
+          ))}
+          {mediaRows.map((row) => (
+            <section className="example-row" key={row.id}>
+              <EffectDescription source="Texture" title={row.title}>
+                使用 Drei 加载图片，直接更新 Three.js 纹理与网格。
+              </EffectDescription>
+              <ExampleVisual
+                id={`example.image.${row.id}`}
+                visual={
+                  <ImageVisual
+                    id={`example.image.${row.id}`}
+                    src={row.src}
+                    mode={row.mode}
+                  />
+                }
               >
                 <img
-                  alt=""
-                  aria-hidden="true"
-                  className="example-media-sequence-fallback"
-                  src="/example/bg-sequence/frame_0001.webp"
+                  className={row.className}
+                  src={row.src}
+                  alt={`${row.title}示例`}
                 />
-              </section>
-            )}
-          </ScrollEffectSection>
-
+              </ExampleVisual>
+            </section>
+          ))}
           <section className="example-row">
-            <EffectDescription source="model/glb" title="模型旋转">
-              通过公开 target controls 旋转 runtime 持有的 GLB。
+            <EffectDescription source="ShaderMaterial" title="图片悬停叠层">
+              像橡皮擦一样划开秋景，经过的位置短暂显露绿景纹理后慢慢恢复。
             </EffectDescription>
-            {exampleResources.modelReady ? (
-              <WebGLTarget
-                as="section"
-                className="example-panel example-panel-model"
-                webgl={{
-                  key: "example.model.spin",
-                  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
-                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                  effects: [{ kind: "example.modelSpin", speed: 0.25 }],
-                }}
-              >
-                <strong>用 target controls 旋转 runtime 持有的模型。</strong>
-              </WebGLTarget>
-            ) : (
-              <section className="example-panel example-panel-model" />
-            )}
+            <ExampleVisual
+              id="example.image.hover-reveal"
+              visual={<HoverRevealVisual id="example.image.hover-reveal" />}
+            >
+              <img
+                className="example-media example-media-wide"
+                src="/example/show.png"
+                alt="图片悬停叠层示例"
+              />
+            </ExampleVisual>
           </section>
-
-          <section className="example-row">
-            <EffectDescription source="model/glb" title="模型浮动">
-              结合布局数据和 runtime time 移动、旋转 GLB。
-            </EffectDescription>
-            {exampleResources.modelReady ? (
-              <WebGLTarget
-                as="section"
-                className="example-panel example-panel-model example-panel-model-float"
-                webgl={{
-                  key: "example.model.float",
-                  source: { kind: "model", type: "glb", src: "/models/hero.glb" },
-                  lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                  effects: [{ kind: "example.modelFloat", amplitude: 24 }],
-                }}
-              >
-                <strong>根据布局位置让模型持续浮动。</strong>
-              </WebGLTarget>
-            ) : (
-              <section className="example-panel example-panel-model example-panel-model-float" />
-            )}
-          </section>
-
-          <section className="example-row">
-            <EffectDescription source="model/glb" title="模型自发光">
-              纯黑 WebGL 暗场景承托 GLB，再用 managed facade 控制轻微自发光和局部点光源。
-            </EffectDescription>
-            {exampleResources.modelReady ? (
-              <React.Fragment>
-                <WebGLTarget
-                  as="section"
-                  aria-hidden="true"
-                  className="example-model-scene"
-                  webgl={{
-                    key: "example.model.dark-scene",
-                    source: { kind: "dom", type: "element" },
-                    renderRole: "surface",
-                    lifecycle: { hideWhenReady: true, hideMode: "self" },
-                    effects: [{ kind: "example.modelDarkScene" }],
-                  }}
-                />
-                <WebGLTarget
-                  as="section"
-                  className="example-panel example-panel-model example-panel-model-glow"
-                  webgl={{
-                    key: "example.model.float-glow",
-                    source: {
-                      kind: "model",
-                      type: "glb",
-                      src: "/models/4.glb",
-                      loader: { draco: { decoderPath: "/draco/gltf/" } },
-                    },
-                    lifecycle: { hideWhenReady: true, hideMode: "subtree" },
-                    effects: [
-                      {
-                        kind: "example.modelFloatGlow",
-                        speed: 0.46,
-                        emissive: "#7dd3fc",
-                        lightIntensity: 1.8,
-                      },
-                    ],
-                  }}
+          {([false, true] as const).map((drift) => {
+            const id = drift ? "example.video.drift" : "example.video.playback";
+            return (
+              <section className="example-row" key={id}>
+                <EffectDescription
+                  source="VideoTexture"
+                  title={drift ? "视频漂移" : "视频播放"}
                 >
-                  <strong>Managed Three-like API 控制模型自发光和局部灯光。</strong>
-                </WebGLTarget>
-              </React.Fragment>
-            ) : (
-              <section className="example-panel example-panel-model example-panel-model-glow" />
-            )}
-          </section>
-
+                  同一个 DOM video 提供播放、降级与原生 Three.js 视频纹理。
+                </EffectDescription>
+                <ExampleVisual
+                  id={id}
+                  visual={
+                    <VideoVisual
+                      id={id}
+                      src="/example/video.mp4"
+                      playbackRate={drift ? 1.05 : 0.8}
+                      drift={drift}
+                    />
+                  }
+                >
+                  <video
+                    className="example-media"
+                    src="/example/video.mp4"
+                    muted
+                    playsInline
+                    loop
+                    controls
+                  />
+                </ExampleVisual>
+              </section>
+            );
+          })}
+          <SequenceExample />
+          {(["spin", "float", "glow"] as const).map((mode) => {
+            const id = `example.model.${mode}`;
+            const src = mode === "glow" ? "/models/4.glb" : "/models/hero.glb";
+            return (
+              <section className="example-row" key={id}>
+                <EffectDescription
+                  source="useGLTF"
+                  title={
+                    mode === "spin"
+                      ? "模型旋转"
+                      : mode === "float"
+                        ? "模型浮动"
+                        : "模型自发光"
+                  }
+                >
+                  Drei 负责加载，useFrame 直接控制原生 Object3D 与材质。
+                </EffectDescription>
+                <ExampleVisual
+                  id={id}
+                  perspective
+                  visual={
+                    <ModelVisual
+                      id={id}
+                      src={src}
+                      mode={mode}
+                      dracoPath={mode === "glow" ? "/draco/gltf/" : undefined}
+                    />
+                  }
+                >
+                  <section
+                    className={`example-panel example-panel-model${mode === "spin" ? "" : ` example-panel-model-${mode}`}`}
+                  >
+                    <strong>
+                      {mode === "spin"
+                        ? "模型持续旋转"
+                        : mode === "float"
+                          ? "模型随时间浮动"
+                          : "模型自发光与局部灯光"}
+                    </strong>
+                  </section>
+                </ExampleVisual>
+              </section>
+            );
+          })}
           <PinnedScrollExample />
           <RecipeExamples />
         </div>
       </main>
-      <WebGLDebugPanel state={debugState} />
+      <RuntimeDebugPanel />
     </WebGLScrollRuntime>
+  );
+}
+
+function SequenceExample() {
+  const resources = useExampleResources();
+  const card = useRef<HTMLElement>(null);
+  const id = "example.image-sequence.scrub";
+  const progressKey = "example.video.scrub";
+  return (
+    <ScrollEffectSection
+      className="example-row example-video-scrub-row"
+      progressKey={progressKey}
+      start="top top"
+      end="+=900%"
+      pin
+      scrub
+    >
+      <EffectDescription source="Texture / scroll" title="滚动控制图片序列">
+        固定区间中的图片序列、卡片移动与边缘光共享滚动进度。
+      </EffectDescription>
+      <ExampleVisual
+        id={id}
+        visual={
+          resources.imageSequenceReady ? (
+            <SequenceVisual
+              id={id}
+              frames={resources.imageSequenceFrames}
+              progressKey={progressKey}
+              card={card}
+            />
+          ) : null
+        }
+      >
+        <section
+          className="example-media example-media-video-bg example-media-sequence"
+          aria-busy={!resources.imageSequenceReady}
+        >
+          <img
+            alt="图片序列首帧"
+            className="example-media-sequence-fallback"
+            src="/example/bg-sequence/frame_0001.webp"
+          />
+          <aside ref={card} className="example-sequence-card">
+            <strong>固定区间卡片</strong>
+            <span>卡片留在 pinned 区间内，由滚动进度控制偏移和边缘光效。</span>
+          </aside>
+        </section>
+      </ExampleVisual>
+    </ScrollEffectSection>
+  );
+}
+
+function ClearCanvas() {
+  useFrame(({ gl, size }) => {
+    gl.setScissorTest(false);
+    gl.setViewport(0, 0, size.width, size.height);
+    gl.setClearColor(0x000000, 0);
+    gl.clear();
+  }, 0);
+  return null;
+}
+
+function RuntimeDebugPanel() {
+  const runtime = useWebGLRuntime();
+  const [state, setState] = useState(() => runtime.getDebugState());
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setState(runtime.getDebugState()),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [runtime]);
+  return (
+    <details className="example-runtime-debug">
+      <summary>Runtime</summary>
+      <pre>{JSON.stringify(state, null, 2)}</pre>
+    </details>
   );
 }

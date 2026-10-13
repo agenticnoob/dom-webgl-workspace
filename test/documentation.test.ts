@@ -35,11 +35,7 @@ describe("repository documentation governance", () => {
       .map((file) => displayFrom(docsRoot, file))
       .sort();
 
-    expect(rootMarkdown).toEqual([
-      "AGENTS.md",
-      "CONTRIBUTING.md",
-      "README.md",
-    ]);
+    expect(rootMarkdown).toEqual(["AGENTS.md", "CONTRIBUTING.md", "README.md"]);
     expect(docsMarkdown).toEqual(activeDocs);
 
     for (const retiredDirectory of [
@@ -85,7 +81,8 @@ describe("repository documentation governance", () => {
     expect(docsIndex).toContain("## Document responsibilities");
     expect(docsIndex).toContain("Archived documents are not current truth");
     expect(status).toContain("**Last verified:");
-    expect(status).toContain("0.1.0-alpha.2");
+    expect(status).toContain("## Release truth");
+    expect(status).toContain("`alpha`");
     expect(architecture).toContain("DOM element");
     expect(architecture).toContain("runtime-owned");
 
@@ -111,11 +108,11 @@ describe("repository documentation governance", () => {
     );
     const status = read("docs/STATUS.md");
 
-    expect(corePackage.version).toBe("0.1.0-alpha.2");
+    expect(corePackage.version).toMatch(/^0\.2\.0-alpha\.\d+$/);
     expect(adapterPackage.version).toBe(corePackage.version);
-    expect(
-      adapterPackage.dependencies?.["@viselora/dom-webgl"],
-    ).toBe(corePackage.version);
+    expect(adapterPackage.dependencies?.["@viselora/dom-webgl"]).toBe(
+      corePackage.version,
+    );
     expect(status).toContain(`@viselora/dom-webgl@${corePackage.version}`);
     expect(status).toContain(
       `@viselora/scroll-adapters@${adapterPackage.version}`,
@@ -203,6 +200,10 @@ describe("repository documentation governance", () => {
                   "packages/dom-webgl-runtime/src/react.ts",
                 ],
                 react: ["node_modules/@types/react/index.d.ts"],
+                "@react-three/fiber": [
+                  "node_modules/@react-three/fiber/dist/declarations/src/index.d.ts",
+                ],
+                three: ["node_modules/@types/three/index.d.ts"],
                 "react/jsx-runtime": [
                   "node_modules/@types/react/jsx-runtime.d.ts",
                 ],
@@ -218,8 +219,8 @@ describe("repository documentation governance", () => {
       expect(examples.map((example) => example.name)).toEqual([
         "root-quick-start",
         "getting-started-runtime",
-        "target-effect-definition",
-        "scene-object-effect-definition",
+        "native-frame-animation",
+        "native-text-texture",
       ]);
       const result = spawnSync(
         resolve(repoRoot, "node_modules/.bin/tsc"),

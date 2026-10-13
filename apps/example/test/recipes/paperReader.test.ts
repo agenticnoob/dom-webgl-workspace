@@ -125,7 +125,9 @@ describe("extracted paper reader geometry", () => {
       expect(program.fragmentShader).toContain(
         `origins[${Math.max(1, 2 * count)}]`,
       );
-      expect(program.uniforms?.tileOrigins).toEqual(packed.tileOrigins);
+      expect(program.uniforms.tileOrigins.value).toEqual(
+        packed.tileOrigins.flat(),
+      );
       for (const [i, stop] of resolvePaperReaderReadingStops(
         artwork.layout,
       ).entries()) {

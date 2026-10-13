@@ -1,24 +1,17 @@
-import type {
-  WebGLEffectMaterialLayerHandle,
-  WebGLEffectUpdateContext,
-} from "@viselora/dom-webgl";
-
 import type { TargetLocalPointer } from "./surfacePointer";
 
 export type SurfaceGhostCursorState = {
   intensity: number;
-  layer: WebGLEffectMaterialLayerHandle | undefined;
   pointerX: number;
   pointerY: number;
   trail: readonly [number, number][];
 };
 
-export function createSurfaceGhostCursorState(
-  ctx: WebGLEffectUpdateContext,
-): SurfaceGhostCursorState {
+export function createSurfaceGhostCursorState(ctx: {
+  readonly layout: { readonly width: number; readonly height: number };
+}): SurfaceGhostCursorState {
   return {
     intensity: 0,
-    layer: undefined,
     pointerX: ctx.layout.width * 0.5,
     pointerY: ctx.layout.height * 0.5,
     trail: createInitialTrail(ctx.layout.width * 0.5, ctx.layout.height * 0.5),

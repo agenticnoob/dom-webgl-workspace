@@ -2,7 +2,6 @@ import type {
   WebGLProgressSignalSource,
   WebGLScrollAdapter,
 } from "@viselora/dom-webgl";
-import type { WebGLEffectDefinition } from "@viselora/dom-webgl";
 import type { WebGLRuntimeProps } from "@viselora/dom-webgl/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -110,24 +109,19 @@ describe("@viselora/scroll-adapters/react", () => {
     }).toThrow("ScrollEffectSection must be rendered inside WebGLScrollRuntime.");
   });
 
-  test("updates and clears section progress without mutating effect props", async () => {
+  test("updates and clears section progress while preserving the native scene", async () => {
     const { ScrollEffectSection, WebGLScrollRuntime } = await import(
       "@viselora/scroll-adapters/react"
     );
     const { root } = createTestRoot();
     const smooth = createSmoothDeps();
-    const effects = [
-      {
-        kind: "test.pinned",
-        update() {},
-      },
-    ] satisfies readonly WebGLEffectDefinition[];
+    const scene = createElement("group", { name: "test.pinned" });
 
     await act(async () => {
       root.render(
         createElement(
           WebGLScrollRuntime,
-          { effects },
+          { scene },
           createElement(
             ScrollEffectSection,
             {
@@ -149,7 +143,7 @@ describe("@viselora/scroll-adapters/react", () => {
     });
 
     expect(progressSignals.get("hero.reveal")).toBe(0.6);
-    expect(readLatestRuntimeProps().effects).toBe(effects);
+    expect(readLatestRuntimeProps().scene).toBe(scene);
 
     act(() => {
       root.unmount();

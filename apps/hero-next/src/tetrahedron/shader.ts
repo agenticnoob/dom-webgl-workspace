@@ -1,7 +1,13 @@
-import type {
-  WebGLEffectMaterialShaderDefinition,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import {
+  CanvasTexture,
+  LinearFilter,
+  MeshStandardMaterial,
+  type IUniform,
+} from "three";
+import {
+  createHeroUniforms,
+  type HeroUniformValue,
+} from "../shared/shaderUniforms";
 
 import {
   resolveHeroRadialGeometry,
@@ -30,38 +36,54 @@ const emissiveChunk = "#include <emissivemap_fragment>";
 const opaqueChunk = "#include <opaque_fragment>";
 const heroChapterFaceAtlasShader = createHeroChapterFaceAtlasShader();
 
-export function createHeroTetrahedronRadialShader(
+export function createHeroTetrahedronMaterial(
   chapterAtlas: HTMLCanvasElement,
-): WebGLEffectMaterialShaderDefinition {
-  return {
-    key: heroTetrahedronRadialShaderKey,
-    uniforms: {
-      ...createHeroTetrahedronRadialUniforms(
-        {
-          committedScheme: "initial",
-          targetScheme: "initial",
-          origin: { x: 0.5, y: 0.5 },
-          coverage: 0,
-          phase: "idle",
-          shakeActive: false,
-        },
-        { width: 1, height: 1 },
-        resolveHeroChapterScrollState(0, 0),
-      ),
-      heroChapterAtlas: { kind: "canvas-texture", source: chapterAtlas },
-    },
-    compile: compileHeroTetrahedronRadialShader,
-  } satisfies WebGLEffectMaterialShaderDefinition;
+): {
+  material: MeshStandardMaterial;
+  uniforms: Record<string, IUniform>;
+  texture: CanvasTexture;
+} {
+  const texture = new CanvasTexture(chapterAtlas);
+  texture.minFilter = LinearFilter;
+  texture.magFilter = LinearFilter;
+  texture.generateMipmaps = false;
+  const uniforms = createHeroUniforms({
+    ...createHeroTetrahedronRadialUniforms(
+      {
+        committedScheme: "initial",
+        targetScheme: "initial",
+        origin: { x: 0.5, y: 0.5 },
+        coverage: 0,
+        phase: "idle",
+        shakeActive: false,
+      },
+      { width: 1, height: 1 },
+    ),
+    heroChapterAtlas: texture,
+    domWebGLPixelRatio: 1,
+    domWebGLViewportSize: [1, 1],
+  });
+  const material = new MeshStandardMaterial({
+    color: heroTransitionConfig.colors.dark,
+    emissive: heroTransitionConfig.colors.dark,
+    emissiveIntensity: heroTransitionConfig.motion.emissiveIntensity,
+    opacity: heroTransitionConfig.motion.initialOpacity,
+    transparent: true,
+    metalness: heroTransitionConfig.visual.metalness,
+    roughness: heroTransitionConfig.visual.roughness,
+  });
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    compileHeroTetrahedronRadialShader(shader);
+  };
+  material.customProgramCacheKey = () => heroTetrahedronRadialShaderKey;
+  return { material, uniforms, texture };
 }
 
-export function compileHeroTetrahedronRadialShader(
-  draft: Parameters<WebGLEffectMaterialShaderDefinition["compile"]>[0],
-): void {
-  if (draft.materialKind === "basic") {
-    throw new Error(
-      "Hero tetrahedron radial shader requires a Standard or Physical managed material.",
-    );
-  }
+export function compileHeroTetrahedronRadialShader(draft: {
+  vertexShader: string;
+  fragmentShader: string;
+}): void {
   if (!draft.fragmentShader.includes(emissiveChunk)) {
     throw new Error(
       "Hero tetrahedron radial shader could not find the Three emissivemap fragment chunk.",
@@ -86,6 +108,8 @@ varying vec3 heroObjectNormal;
   const fresnelStrength = heroTransitionConfig.visual.fresnelStrength;
   const fresnelPower = heroTransitionConfig.visual.fresnelPower;
   const uniforms = `${varyings}
+uniform float domWebGLPixelRatio;
+uniform vec2 domWebGLViewportSize;
 uniform vec3 heroCommittedColor;
 uniform vec3 heroTargetColor;
 uniform vec3 heroCommittedEmissive;
@@ -201,7 +225,7 @@ export function createHeroTetrahedronRadialUniforms(
   viewport: HeroViewport,
   chapter: HeroChapterScrollState = resolveHeroChapterScrollState(0, 0),
   tailChapterIds: readonly HeroChapterId[] = [],
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, HeroUniformValue> {
   const visual = resolveHeroTransitionVisual(transition);
   const radial = resolveHeroRadialGeometry(
     transition.coverage,

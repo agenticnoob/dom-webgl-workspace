@@ -4,7 +4,6 @@ import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import { expect, test } from "vitest";
 import {
   PerspectiveTimeline,
-  perspectiveTimelineEffects,
   type PerspectiveTimelineProps,
 } from "../../src/recipes/perspective-timeline";
 
@@ -23,7 +22,6 @@ const props = {
 const render = (overrides: Partial<PerspectiveTimelineProps> = {}) =>
   renderToStaticMarkup(
     createElement(WebGLScrollRuntime, {
-      effects: perspectiveTimelineEffects,
       children: createElement(PerspectiveTimeline, { ...props, ...overrides }),
     }),
   );
@@ -47,7 +45,7 @@ test("SSR renders every complete semantic entry in caller order without a canvas
     template.content.querySelectorAll("[data-timeline-panel]"),
   ).toHaveLength(0);
   expect(
-    template.content.querySelectorAll("[data-dom-webgl-runtime-content]"),
+    template.content.querySelectorAll("[data-webgl-runtime]"),
   ).toHaveLength(1);
 });
 
@@ -70,7 +68,6 @@ test("rejects ambiguous entry identities before runtime registration", () => {
 test("two instances keep unique DOM IDs under the same runtime", () => {
   const html = renderToStaticMarkup(
     createElement(WebGLScrollRuntime, {
-      effects: perspectiveTimelineEffects,
       children: [
         createElement(PerspectiveTimeline, { ...props, key: "first" }),
         createElement(PerspectiveTimeline, {
@@ -89,6 +86,6 @@ test("two instances keep unique DOM IDs under the same runtime", () => {
   );
   expect(new Set(ids).size).toBe(ids.length);
   expect(
-    template.content.querySelectorAll("[data-dom-webgl-runtime-content]"),
+    template.content.querySelectorAll("[data-webgl-runtime]"),
   ).toHaveLength(1);
 });

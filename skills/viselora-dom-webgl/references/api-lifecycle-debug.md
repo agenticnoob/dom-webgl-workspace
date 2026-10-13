@@ -1,99 +1,33 @@
-# Lifecycle And Debug API
+# Runtime lifecycle
 
-Compatible package version: 0.1.0-alpha.2
+## Runtime host
 
-## Contents
+`WebGLRuntime` takes native R3F `scene`, semantic DOM `children`, ordinary
+`canvas` props and optional progress/scroll sources. `useWebGLRuntime` returns
+DOM coordination and shared inputs, not a duplicate renderer API.
 
-- [Runtime debug state](#runtime-debug-state)
-- [Debug panel](#debug-panel)
-- [Fallback offscreen and disposal](#fallback-offscreen-and-disposal)
-- [Ready active but no final pixels](#ready-active-but-no-final-pixels)
+Hidden tabs and lost contexts suspend frames and restore DOM fallback. Recovery
+restores the configured `canvas.frameloop` and invalidates the scene. A visible
+tab still waits for context restoration before rendering again.
 
-## Runtime debug state
+## DOM targets
 
-**When to use:** choose `useWebGLDebugState` or `onDebugStateChange` to inspect
-descriptor-only resource/lifecycle facts.
-**Public entrypoint:** `@viselora/dom-webgl/react` plus public
-`WebGLDebugState` from `@viselora/dom-webgl`.
-**Declaration/props shape:** derive only fields needed by UI rather than storing
-the full frame-frequency state.
-**Ownership and stability:** keep the callback stable and skip state updates
-when selected values are unchanged.
-**Fallback and lifecycle:** debug values explain loading/ready/error and
-active/inactive/parked state; they do not own fallback.
-**Version limitations:** ready/active is not proof of visible final pixels.
-For scene-native models, verify `resourceStatus`, `attached`, `error` and final
-pixels together. Decoded `resourceStatus: "ready"` does not imply assembly or
-attachment succeeded.
+`WebGLTarget` clones one ref-capable DOM child. `useDOMTarget(id)` tracks its
+registration; read the live rect, visible flag and content revision in a frame.
+Measurements run before ordinary scene frame subscribers.
 
-```tsx
-import type { WebGLDebugState } from "@viselora/dom-webgl";
-import { useWebGLDebugState } from "@viselora/dom-webgl/react";
-const [debugState, setDebugState] = useWebGLDebugState();
-```
+Fallback hiding defaults off. A replacement visual opts in to `hideWhenReady`
+and calls `runtime.setTargetReady(id, true, capturedTarget)` when renderable.
+A failed or released visual reports false. The captured identity prevents a
+stale load from hiding a remounted target.
 
-For React UI, use a narrow selector:
+Hiding uses opacity so semantic content stays accessible. A registered parent
+with registered descendants stays visible; hide only independently replaced
+leaves. `restore-dom` restores offscreen paint; `park` retains hidden fallback
+and ready state. Visual components choose their own resource retention policy.
 
-```tsx
-const [modelState, setModelState] = useState({
-  resourceStatus: "loading",
-  lifecycleState: "inactive",
-  visible: false,
-  error: undefined as string | undefined,
-});
+## Debug state
 
-const onDebugStateChange = useCallback((state: WebGLDebugState) => {
-  const target = state.targets.find((entry) => entry.key === "story.product-model");
-  if (!target) return;
-  const next = {
-    resourceStatus: target.resourceStatus,
-    lifecycleState: target.lifecycleState,
-    visible: target.visible,
-    error: target.error,
-  };
-  setModelState((current) => shallowEqual(current, next) ? current : next);
-}, []);
-```
-
-**Direct verification:** simulate only meaningful field changes and confirm no
-frame-frequency React rerender loop.
-
-## Debug panel
-
-**When to use:** choose `WebGLDebugPanel` for development-only inspection.
-**Public entrypoint:** `@viselora/dom-webgl/react`.
-**Declaration/props shape:** pass one public `WebGLDebugState` value.
-**Ownership and stability:** do not treat panel output as production state.
-**Fallback and lifecycle:** removing the panel does not alter resource state.
-**Version limitations:** panel summaries are not browser pixel assertions.
-
-```tsx
-import { WebGLDebugPanel } from "@viselora/dom-webgl/react";
-<WebGLDebugPanel state={debugState} />;
-```
-
-**Direct verification:** confirm diagnostics change while runtime/canvas count
-remains stable.
-
-## Fallback offscreen and disposal
-
-Use explicit target lifecycle. `restore-dom` releases distant resources and
-restores fallback; `park` retains warm media/model state. Loading and error keep
-fallback visible. Unregister/runtime dispose restores fallback. Module imports
-remain SSR-safe; browser APIs run only after runtime creation. Performance
-budgets and warnings are descriptor data, not permission for consumer-owned
-renderer state.
-
-## Ready active but no final pixels
-
-Classify source URL/format, browser decoding, lifecycle, viewport, placement,
-camera/light and console state before changing architecture. Then compare a
-clipped final-canvas region across the intended behavior. If resources are
-ready, lifecycle is active, the console is clean and pixels remain unchanged,
-keep fallback visible and create a minimal reproduction using only public npm
-entrypoints. Do not add private imports, raw loaders/cameras/renderers, R3F, a
-second canvas or a consumer render loop.
-
-For models, `ready != attached`: treat `resourceStatus: "ready"`,
-`attached: false` and a populated `error` as an assembly failure, not visible
-model success.
+`runtime.getDebugState()` and `onDebugStateChange` report availability and
+registered target readiness/visibility. A ready flag does not prove pixels
+were drawn. Public modules are SSR-safe; browser work occurs after mounting.

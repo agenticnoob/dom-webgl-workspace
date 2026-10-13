@@ -1,862 +1,148 @@
-import { describe, expect, test, vi } from "vitest";
-
-import { createEffectContext } from "./effectContext";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  exampleImageHoverRevealEffect,
-  exampleImageKenBurnsEffect,
-  exampleMediaPointerParallaxEffect,
-  exampleImagePanEffect,
-  exampleImageZoomEffect,
-  exampleVideoDriftEffect,
-  exampleVideoPlaybackEffect,
+  updateImageHoverRevealMask,
+  readImageHoverRevealTrailOpacity,
+  imageHoverRevealFragmentShader,
+  type ImageHoverRevealState,
 } from "../src/mediaEffects";
+const layout = { width: 480, height: 280 };
+const params = { radius: 60, feather: 24, restoreMs: 2000, roughness: 0.24 };
+const pointer = { active: true, x: 80, y: 80 };
+let context: ReturnType<typeof createFakeCanvasContext>;
+beforeEach(() => {
+  context = createFakeCanvasContext();
+  vi.stubGlobal(
+    "CanvasRenderingContext2D",
+    function CanvasRenderingContext2D() {},
+  );
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+    context as unknown as CanvasRenderingContext2D,
+  );
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
-describe("media example effects", () => {
-  test("image pan applies a texture transform only to image sources", () => {
-    const image = {
-      setTextureTransform: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/image.png",
-        image,
-      },
-      layout: { top: 354, height: 60, viewport: { width: 1024, height: 768 } },
-      scrollProgress: 0.5,
-    });
-
-    exampleImagePanEffect.update(context, undefined, {
-      kind: "example.imagePan",
-      distance: 0.2,
-    });
-
-    expect(exampleImagePanEffect.source).toBe("media/image");
-    expect(image.setTextureTransform).toHaveBeenCalledWith({
-      repeatX: 1.12,
-      repeatY: 1.12,
-      offsetX: 0.1,
-      offsetY: 0,
-    });
-  });
-
-  test("image pan uses target viewport position when global scroll progress is still low", () => {
-    const image = {
-      setTextureTransform: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/image.png",
-        image,
-      },
-      layout: { top: 120, height: 240, viewport: { width: 1024, height: 768 } },
-      scrollProgress: 0,
-    });
-
-    exampleImagePanEffect.update(context, undefined, {
-      kind: "example.imagePan",
-      distance: 0.2,
-    });
-
-    expect(image.setTextureTransform).toHaveBeenCalledWith(
-      expect.objectContaining({
-        offsetX: expect.any(Number),
-      }),
-    );
-    expect(image.setTextureTransform.mock.calls[0]?.[0].offsetX).toBeGreaterThan(0);
-  });
-
-  test("image zoom drives target scale for image sources", () => {
-    const target = {
-      setScale: vi.fn(),
-      setVisible: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/image.png",
-        image: {},
-      },
-      target,
-      time: 800,
-    });
-
-    exampleImageZoomEffect.update(context, undefined, {
-      kind: "example.imageZoom",
-      maxScale: 1.36,
-    });
-
-    expect(exampleImageZoomEffect.source).toBe("media/image");
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setScale).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1);
-  });
-
-  test("image ken burns combines texture transform and target scale", () => {
-    const image = {
-      setTextureTransform: vi.fn(),
-    };
-    const target = {
-      setScale: vi.fn(),
-      setVisible: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/bg.png",
-        image,
-      },
-      target,
-      time: 1200,
-    });
-
-    exampleImageKenBurnsEffect.update(context, undefined, {
-      kind: "example.imageKenBurns",
-      distance: 0.16,
-      maxScale: 1.22,
-    });
-
-    expect(exampleImageKenBurnsEffect.source).toBe("media/image");
-    expect(image.setTextureTransform).toHaveBeenCalledWith({
-      repeatX: expect.any(Number),
-      repeatY: expect.any(Number),
-      offsetX: expect.any(Number),
-      offsetY: expect.any(Number),
-    });
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setScale).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 1);
-  });
-
-  test("image hover reveal creates a material layer with a second image texture", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const image = {
-      createMaterialLayer: vi.fn(() => layer),
-      invalidate: vi.fn(),
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const target = {
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image,
-      },
-      target,
-      layout: { left: 20, top: 30, width: 320, height: 180 },
-      pointer: { x: 140, y: 102, isInside: true },
-    });
-
-    const state = exampleImageHoverRevealEffect.setup?.(context, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      radius: 84,
-      feather: 20,
-      roughness: 0.28,
-    });
-    if (!state) {
-      throw new Error("Expected example.imageHoverReveal setup state");
-    }
-
-    exampleImageHoverRevealEffect.update(context, state, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      radius: 84,
-      feather: 20,
-      roughness: 0.28,
-    });
-
-    expect(exampleImageHoverRevealEffect.source).toBe("media/image");
-    expect(image.createMaterialLayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        key: "example.imageHoverReveal",
-        mode: "replace-source",
-        program: expect.objectContaining({
-          fragmentShader: expect.stringContaining("uMaskTexture"),
-          uniforms: expect.objectContaining({
-            uMaskTexture: expect.objectContaining({ kind: "canvas-texture" }),
-            uRevealTexture: expect.objectContaining({ kind: "canvas-texture" }),
-            uRoughness: 0.28,
-          }),
-        }),
-        sourceTextureUniform: "uBaseTexture",
-      }),
-    );
-    expect(state.revealImage?.src).toContain("/example/mask.png");
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        uPointer: [120, 72],
-        uPointerActive: true,
-        uRadius: 84,
-        uFeather: 20,
-        uRoughness: 0.28,
-        uTrailOpacity: 1,
-        uMaskTexture: expect.objectContaining({ kind: "canvas-texture" }),
-        uTargetSize: [320, 180],
-      }),
-    );
-    expect(image.createMaterialLayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        program: expect.objectContaining({
-          fragmentShader: expect.not.stringContaining("dissolveNoise"),
-        }),
-      }),
-    );
-    expect(layer.setUniforms.mock.calls.at(-1)?.[0]).not.toHaveProperty("uRevealTexture");
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setOpacity).toHaveBeenCalledWith(1);
-  });
-
-  test("image hover reveal accumulates the trail into a mask texture instead of a point window", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const image = {
-      createMaterialLayer: vi.fn(() => layer),
-      invalidate: vi.fn(),
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image,
-      },
-      layout: { left: 0, top: 0, width: 320, height: 180 },
-      pointer: { x: 12, y: 20, isInside: true },
-      time: 0,
-    });
-
-    const state = exampleImageHoverRevealEffect.setup?.(context, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-    });
-    if (!state) {
-      throw new Error("Expected example.imageHoverReveal setup state");
-    }
-
-    expect(image.createMaterialLayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        program: expect.objectContaining({
-          fragmentShader: expect.stringContaining("uMaskTexture"),
-        }),
-      }),
-    );
-    expect(image.createMaterialLayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        program: expect.objectContaining({
-          fragmentShader: expect.not.stringContaining("uTrailPoints"),
-        }),
-      }),
-    );
-    expect(image.createMaterialLayer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        program: expect.objectContaining({
-          fragmentShader: expect.not.stringContaining("uTrailCount"),
-        }),
-      }),
-    );
-
-    for (let index = 0; index < 80; index++) {
-      exampleImageHoverRevealEffect.update(
-        createEffectContext({
-          source: {
-            kind: "media",
-            type: "image",
-            element: document.createElement("img"),
-            src: "/example/show.png",
-            image,
-          },
-          layout: { left: 0, top: 0, width: 320, height: 180 },
-          pointer: { x: 12 + index * 2, y: 20, isInside: true },
-          time: index * 50,
-        }),
-        state,
-        {
-          kind: "example.imageHoverReveal",
-          revealSrc: "/example/mask.png",
-        },
-      );
-    }
-
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.not.objectContaining({
-        uTrailPoints: expect.anything(),
-        uTrailCount: expect.anything(),
-      }),
-    );
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        uMaskTexture: expect.objectContaining({ kind: "canvas-texture" }),
-        uTrailOpacity: 1,
-      }),
-    );
-  });
-
-  test("image hover reveal refreshes the reveal texture after the image loads", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const image = {
-      createMaterialLayer: vi.fn(() => layer),
-      invalidate: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image,
-      },
-    });
-
-    const state = exampleImageHoverRevealEffect.setup?.(context, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-    });
-    if (!state?.revealImage?.onload) {
-      throw new Error("Expected reveal image load handler");
-    }
-
-    state.revealImage.onload(new Event("load"));
-
-    expect(layer.setUniforms).toHaveBeenCalledWith(
-      expect.objectContaining({
-        uRevealReady: true,
-        uRevealTexture: { kind: "image-texture", source: state.revealImage },
-      }),
-    );
-    expect(image.invalidate).toHaveBeenCalled();
-  });
-
-  test("image hover reveal keeps an eraser trail that fades as one layer after the pointer leaves", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const image = {
-      createMaterialLayer: vi.fn(() => layer),
-      invalidate: vi.fn(),
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const insideContext = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image,
-      },
-      layout: { left: 20, top: 30, width: 320, height: 180 },
-      pointer: { x: 140, y: 102, isInside: true },
-      time: 100,
-    });
-
-    const state = exampleImageHoverRevealEffect.setup?.(insideContext, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      restoreMs: 2000,
-    });
-    if (!state?.revealImage?.onload) {
-      throw new Error("Expected example.imageHoverReveal setup state");
-    }
-    state.revealImage.onload(new Event("load"));
-
-    exampleImageHoverRevealEffect.update(insideContext, state, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      restoreMs: 2000,
-    });
-
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        uMaskTexture: expect.objectContaining({ kind: "canvas-texture" }),
-        uTrailOpacity: 1,
-      }),
-    );
-
-    const outsideContext = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image,
-      },
-      layout: { left: 20, top: 30, width: 320, height: 180 },
-      pointer: { x: 0, y: 0, isInside: false },
-      time: 1000,
-    });
-
-    exampleImageHoverRevealEffect.update(outsideContext, state, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      restoreMs: 2000,
-    });
-
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        uPointerActive: false,
-        uTrailOpacity: 0.55,
-      }),
-    );
-  });
-
-  test("image hover reveal fades while the pointer is stationary inside the target", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const image = {
-      createMaterialLayer: vi.fn(() => layer),
-      invalidate: vi.fn(),
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const state = exampleImageHoverRevealEffect.setup?.(
-      createEffectContext({
-        source: {
-          kind: "media",
-          type: "image",
-          element: document.createElement("img"),
-          src: "/example/show.png",
-          image,
-        },
-        layout: { left: 20, top: 30, width: 320, height: 180 },
-        pointer: { x: 140, y: 102, isInside: true },
-        time: 100,
-      }),
-      {
-        kind: "example.imageHoverReveal",
-        revealSrc: "/example/mask.png",
-        restoreMs: 2000,
-      },
-    );
-    if (!state?.revealImage?.onload) {
-      throw new Error("Expected example.imageHoverReveal setup state");
-    }
-    state.revealImage.onload(new Event("load"));
-
-    const params = {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-      restoreMs: 2000,
-    } as const;
-    exampleImageHoverRevealEffect.update(
-      createEffectContext({
-        source: {
-          kind: "media",
-          type: "image",
-          element: document.createElement("img"),
-          src: "/example/show.png",
-          image,
-        },
-        layout: { left: 20, top: 30, width: 320, height: 180 },
-        pointer: { x: 140, y: 102, isInside: true },
-        time: 100,
-      }),
+describe("image reveal brush and native shader", () => {
+  test("accumulates a mask texture instead of a limited point window", () => {
+    const state: ImageHoverRevealState = {};
+    const canvas = updateImageHoverRevealMask(
+      0,
       state,
       params,
+      pointer,
+      layout,
     );
-    exampleImageHoverRevealEffect.update(
-      createEffectContext({
-        source: {
-          kind: "media",
-          type: "image",
-          element: document.createElement("img"),
-          src: "/example/show.png",
-          image,
-        },
-        layout: { left: 20, top: 30, width: 320, height: 180 },
-        pointer: { x: 140, y: 102, isInside: true },
-        time: 1000,
-      }),
+    for (let i = 1; i <= 40; i++)
+      expect(
+        updateImageHoverRevealMask(
+          i * 10,
+          state,
+          params,
+          { ...pointer, x: 80 + i * 8 },
+          layout,
+        ),
+      ).toBe(canvas);
+    expect(context.fill.mock.calls.length).toBeGreaterThan(100);
+    expect(state.previousPoint?.x).toBe(400);
+    expect(imageHoverRevealFragmentShader).toContain("uMaskTexture");
+    expect(imageHoverRevealFragmentShader).toContain("uRevealTexture");
+  });
+  test("the whole trail fades when the pointer leaves", () => {
+    const state: ImageHoverRevealState = {};
+    updateImageHoverRevealMask(0, state, params, pointer, layout);
+    updateImageHoverRevealMask(
+      1000,
       state,
       params,
+      { ...pointer, active: false },
+      layout,
     );
-
-    expect(layer.setUniforms).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        uPointerActive: true,
-        uTrailOpacity: 0.55,
-      }),
+    expect(readImageHoverRevealTrailOpacity(1000, state, params)).toBe(0.5);
+    expect(state.previousPoint).toBeUndefined();
+    updateImageHoverRevealMask(
+      2001,
+      state,
+      params,
+      { ...pointer, active: false },
+      layout,
     );
+    expect(readImageHoverRevealTrailOpacity(2001, state, params)).toBe(0);
+    expect(state.lastInteractionTime).toBeUndefined();
+    expect(context.clearRect).toHaveBeenCalled();
   });
-
-  test("image hover reveal bakes faded mask opacity before drawing a new stroke", () => {
-    const fakeContext = createFakeCanvasContext();
-    vi.stubGlobal("CanvasRenderingContext2D", function CanvasRenderingContext2D() {});
-    const getContext = vi
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockReturnValue(fakeContext as unknown as CanvasRenderingContext2D);
-    try {
-      const layer = {
-        setProgram: vi.fn(),
-        setUniforms: vi.fn(),
-        clear: vi.fn(),
-        dispose: vi.fn(),
-      };
-      const image = {
-        createMaterialLayer: vi.fn(() => layer),
-        invalidate: vi.fn(),
-        setVisible: vi.fn(),
-        setOpacity: vi.fn(),
-      };
-      const state = exampleImageHoverRevealEffect.setup?.(
-        createEffectContext({
-          source: {
-            kind: "media",
-            type: "image",
-            element: document.createElement("img"),
-            src: "/example/show.png",
-            image,
-          },
-          layout: { left: 0, top: 0, width: 320, height: 180 },
-          pointer: { x: 50, y: 50, isInside: true },
-          time: 100,
-        }),
-        {
-          kind: "example.imageHoverReveal",
-          revealSrc: "/example/mask.png",
-          restoreMs: 2000,
-        },
-      );
-      if (!state?.revealImage?.onload) {
-        throw new Error("Expected example.imageHoverReveal setup state");
-      }
-      state.revealImage.onload(new Event("load"));
-
-      const params = {
-        kind: "example.imageHoverReveal",
-        revealSrc: "/example/mask.png",
-        restoreMs: 2000,
-      } as const;
-      exampleImageHoverRevealEffect.update(
-        createEffectContext({
-          source: {
-            kind: "media",
-            type: "image",
-            element: document.createElement("img"),
-            src: "/example/show.png",
-            image,
-          },
-          layout: { left: 0, top: 0, width: 320, height: 180 },
-          pointer: { x: 50, y: 50, isInside: true },
-          time: 100,
-        }),
-        state,
-        params,
-      );
-      exampleImageHoverRevealEffect.update(
-        createEffectContext({
-          source: {
-            kind: "media",
-            type: "image",
-            element: document.createElement("img"),
-            src: "/example/show.png",
-            image,
-          },
-          layout: { left: 0, top: 0, width: 320, height: 180 },
-          pointer: { x: 50, y: 50, isInside: true },
-          time: 1000,
-        }),
-        state,
-        params,
-      );
-      exampleImageHoverRevealEffect.update(
-        createEffectContext({
-          source: {
-            kind: "media",
-            type: "image",
-            element: document.createElement("img"),
-            src: "/example/show.png",
-            image,
-          },
-          layout: { left: 0, top: 0, width: 320, height: 180 },
-          pointer: { x: 90, y: 50, isInside: true },
-          time: 1100,
-        }),
-        state,
-        params,
-      );
-
-      expect(fakeContext.operations).toContain("composite:destination-in");
-      expect(fakeContext.alphaValues).toContain(0.5);
-      expect(layer.setUniforms).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          uTrailOpacity: 1,
-        }),
-      );
-    } finally {
-      getContext.mockRestore();
-      vi.unstubAllGlobals();
-    }
+  test("a stationary pointer does not renew the trail lifetime", () => {
+    const state: ImageHoverRevealState = {};
+    updateImageHoverRevealMask(0, state, params, pointer, layout);
+    const stamps = context.fill.mock.calls.length;
+    updateImageHoverRevealMask(1000, state, params, pointer, layout);
+    expect(context.fill).toHaveBeenCalledTimes(stamps);
+    expect(state.lastInteractionTime).toBe(0);
+    expect(readImageHoverRevealTrailOpacity(1000, state, params)).toBe(0.5);
   });
-
-  test("image hover reveal draws irregular polygon stamps without radial circle gradients", () => {
-    const fakeContext = createFakeCanvasContext();
-    vi.stubGlobal("CanvasRenderingContext2D", function CanvasRenderingContext2D() {});
-    const getContext = vi
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockReturnValue(fakeContext as unknown as CanvasRenderingContext2D);
-    try {
-      const layer = {
-        setProgram: vi.fn(),
-        setUniforms: vi.fn(),
-        clear: vi.fn(),
-        dispose: vi.fn(),
-      };
-      const image = {
-        createMaterialLayer: vi.fn(() => layer),
-        invalidate: vi.fn(),
-        setVisible: vi.fn(),
-        setOpacity: vi.fn(),
-      };
-      const context = createEffectContext({
-        source: {
-          kind: "media",
-          type: "image",
-          element: document.createElement("img"),
-          src: "/example/show.png",
-          image,
-        },
-        layout: { left: 0, top: 0, width: 320, height: 180 },
-        pointer: { x: 80, y: 80, isInside: true },
-        time: 100,
-      });
-
-      const state = exampleImageHoverRevealEffect.setup?.(context, {
-        kind: "example.imageHoverReveal",
-        revealSrc: "/example/mask.png",
-        roughness: 0.3,
-      });
-      if (!state?.revealImage?.onload) {
-        throw new Error("Expected example.imageHoverReveal setup state");
-      }
-      state.revealImage.onload(new Event("load"));
-      exampleImageHoverRevealEffect.update(context, state, {
-        kind: "example.imageHoverReveal",
-        revealSrc: "/example/mask.png",
-        roughness: 0.3,
-      });
-
-      expect(fakeContext.createRadialGradient).not.toHaveBeenCalled();
-      expect(fakeContext.lineTo.mock.calls.length).toBeGreaterThan(50);
-      expect(fakeContext.lineTo.mock.calls.length).toBeLessThan(200);
-    } finally {
-      getContext.mockRestore();
-      vi.unstubAllGlobals();
-    }
+  test("new strokes bake previously faded opacity before appending", () => {
+    const state: ImageHoverRevealState = {};
+    updateImageHoverRevealMask(0, state, params, pointer, layout);
+    updateImageHoverRevealMask(
+      1000,
+      state,
+      params,
+      { ...pointer, x: 180 },
+      layout,
+    );
+    expect(context.operations).toContain("composite:destination-in");
+    expect(context.alphaValues).toContain(0.5);
+    expect(readImageHoverRevealTrailOpacity(1000, state, params)).toBe(1);
   });
-
-  test("image hover reveal disposes the material layer", () => {
-    const layer = {
-      setProgram: vi.fn(),
-      setUniforms: vi.fn(),
-      clear: vi.fn(),
-      dispose: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image",
-        element: document.createElement("img"),
-        src: "/example/show.png",
-        image: {
-          createMaterialLayer: vi.fn(() => layer),
-        },
-      },
-    });
-
-    const state = exampleImageHoverRevealEffect.setup?.(context, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-    });
-    if (!state) {
-      throw new Error("Expected example.imageHoverReveal setup state");
-    }
-
-    exampleImageHoverRevealEffect.dispose?.(context, state, {
-      kind: "example.imageHoverReveal",
-      revealSrc: "/example/mask.png",
-    });
-
-    expect(layer.dispose).toHaveBeenCalledTimes(1);
-    expect(state.layer).toBeUndefined();
-    expect(state.revealImage).toBeUndefined();
+  test("irregular polygon stamps interpolate fast movement without radial circles", () => {
+    const state: ImageHoverRevealState = {};
+    updateImageHoverRevealMask(0, state, params, pointer, layout);
+    const stamps = context.fill.mock.calls.length;
+    updateImageHoverRevealMask(
+      10,
+      state,
+      params,
+      { ...pointer, x: 400 },
+      layout,
+    );
+    expect(context.fill.mock.calls.length).toBeGreaterThan(stamps + 20);
+    expect(context.lineTo).toHaveBeenCalled();
+    expect(context.createRadialGradient).not.toHaveBeenCalled();
+    expect(
+      new Set(context.lineTo.mock.calls.map((call) => call.join(","))).size,
+    ).toBeGreaterThan(100);
   });
-
-  test("media pointer parallax crops and offsets image-sequence textures from target-local pointer", () => {
-    const image = {
-      setTextureTransform: vi.fn(),
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const target = {
-      setVisible: vi.fn(),
-      setOpacity: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "image-sequence",
-        element: document.createElement("section"),
-        frame: 4,
-        src: "/example/bg-sequence/frame_0004.webp",
-        image,
-      },
-      target,
-      layout: { left: 20, top: 30, width: 320, height: 180 },
-      pointer: { x: 340, y: 30, isInside: true },
-    });
-
-    exampleMediaPointerParallaxEffect.update(context, undefined, {
-      kind: "example.mediaPointerParallax",
-      bleed: 0.08,
-      strength: 1,
-    });
-
-    expect(exampleMediaPointerParallaxEffect.source).toEqual([
-      "media/image",
-      "media/video",
-      "media/image-sequence",
-    ]);
-    expect(image.setTextureTransform).toHaveBeenCalledWith({
-      repeatX: 0.92,
-      repeatY: 0.92,
-      offsetX: 0.08,
-      offsetY: 0,
-    });
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setOpacity).toHaveBeenCalledWith(1);
+  test("resize resets only that instance's brush history", () => {
+    const first: ImageHoverRevealState = {};
+    const second: ImageHoverRevealState = {};
+    const initial = updateImageHoverRevealMask(
+      0,
+      first,
+      params,
+      pointer,
+      layout,
+    );
+    const other = updateImageHoverRevealMask(
+      0,
+      second,
+      params,
+      pointer,
+      layout,
+    );
+    const resized = updateImageHoverRevealMask(
+      1,
+      first,
+      params,
+      { ...pointer, active: false },
+      { width: 200, height: 100 },
+    );
+    expect(resized).not.toBe(initial);
+    expect(resized.width).toBe(200);
+    expect(first.previousPoint).toBeUndefined();
+    expect(second.maskCanvas).toBe(other);
+    expect(second.previousPoint).toEqual({ x: 80, y: 80 });
   });
-
-  test("media pointer parallax recenters cropped media when the pointer leaves", () => {
-    const video = {
-      setTextureTransform: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "video",
-        element: document.createElement("video"),
-        src: "/example/video.mp4",
-        video,
-      },
-      layout: { left: 20, top: 30, width: 320, height: 180 },
-      pointer: { x: 800, y: 600, isInside: false },
-    });
-
-    exampleMediaPointerParallaxEffect.update(context, undefined, {
-      kind: "example.mediaPointerParallax",
-      bleed: 0.1,
-      strength: 0.5,
-    });
-
-    expect(video.setTextureTransform).toHaveBeenCalledWith({
-      repeatX: 0.9,
-      repeatY: 0.9,
-      offsetX: 0.05,
-      offsetY: 0.05,
-    });
-  });
-
-  test("video playback configures media once during setup", () => {
-    const video = {
-      play: vi.fn(),
-      setMuted: vi.fn(),
-      setPlaybackRate: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "video",
-        element: document.createElement("video"),
-        src: "/example/video.mp4",
-        video,
-      },
-    });
-
-    const state = exampleVideoPlaybackEffect.setup?.(context, {
-      kind: "example.videoPlayback",
-      playbackRate: 0.8,
-    });
-    if (!state) {
-      throw new Error("Expected example.videoPlayback setup state");
-    }
-    exampleVideoPlaybackEffect.update(context, state, {
-      kind: "example.videoPlayback",
-      playbackRate: 0.8,
-    });
-
-    expect(exampleVideoPlaybackEffect.source).toBe("media/video");
-    expect(video.setMuted).toHaveBeenCalledWith(true);
-    expect(video.setPlaybackRate).toHaveBeenCalledWith(0.8);
-    expect(video.play).toHaveBeenCalledTimes(1);
-  });
-
-  test("video drift applies a texture transform to video sources", () => {
-    const video = {
-      setTextureTransform: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "media",
-        type: "video",
-        element: document.createElement("video"),
-        src: "/example/video.mp4",
-        video,
-      },
-      time: 900,
-    });
-
-    exampleVideoDriftEffect.update(context, undefined, {
-      kind: "example.videoDrift",
-      distance: 0.12,
-    });
-
-    expect(exampleVideoDriftEffect.source).toBe("media/video");
-    expect(video.setTextureTransform).toHaveBeenCalledWith({
-      repeatX: 1.08,
-      repeatY: 1.08,
-      offsetX: expect.any(Number),
-      offsetY: expect.any(Number),
-    });
-  });
-
 });
 
 function createFakeCanvasContext() {

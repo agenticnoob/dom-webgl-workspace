@@ -6,17 +6,11 @@ import React, {
   useSyncExternalStore,
   type CSSProperties,
 } from "react";
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
-import {
-  WebGLCamera,
-  WebGLPassViewport,
-  WebGLScene,
-  WebGLTarget,
-  type WebGLSceneRenderOptions,
-} from "@viselora/dom-webgl/react";
+import { OrthographicCamera, View } from "@react-three/drei";
+import { PaperReaderSurface } from "./PaperReaderSurface";
+import { useRuntimeReady } from "../../useRuntimeReady";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
 import { resolvePaperReaderScrollHeight } from "./config";
-import type { PaperReaderEffectParams } from "./effect";
 import {
   defaultPaperReaderPalette,
   validatePaperReader,
@@ -26,13 +20,12 @@ import { resolvePaperReaderProgress } from "./scroll";
 import "./paper-reader.css";
 
 const motionQuery = "(prefers-reduced-motion: reduce)";
-const passViewport = { mode: "dom-rect", scissor: true } as const;
 
 /** A source-distributed recipe. The caller owns the single WebGLScrollRuntime. */
 export function PaperReader(props: PaperReaderProps) {
   validatePaperReader(props);
-  // Runtime declarations are immutable while mounted. Data edits must rebuild the
-  // target, shader capacity and texture together, even when article count changes.
+  // Content edits rebuild the shader capacity and texture together, including
+  // changes to the number of article sheets.
   const revision = JSON.stringify([
     props.id,
     props.articles,
@@ -58,6 +51,7 @@ function PaperReaderInstance({
   onError,
 }: PaperReaderProps) {
   const progressStore = useScrollEffectProgressStore();
+  const runtimeReady = useRuntimeReady();
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef(onError);
@@ -65,51 +59,30 @@ function PaperReaderInstance({
     errorRef.current = onError;
   }, [onError]);
   const [ready, setReady] = useState(false);
+  const [viewport, setViewport] = useState({ width: 1, height: 1 });
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     readMotion,
     () => true,
   );
   const animated = !reducedMotion && articles.length > 0;
-  const enhanced = animated && ready;
+  const enhanced = animated && ready && runtimeReady;
   const progressKey = `${id}.paper-reader.progress`;
   const headingId = `${id}.paper-reader.heading`;
-  const declaration = useMemo(
-    () =>
-      ({
-        key: `${id}.paper-reader.surface`,
-        source: { kind: "dom", type: "element" },
-        lifecycle: { hideWhenReady: false, offscreen: { strategy: "park" } },
-        effects: [
-          {
-            kind: "recipe.paper-reader",
-            progressKey,
-            content: { title, intro: description, sections: articles },
-            eyebrow,
-            palette,
-            onReady: setReady,
-            onError(error) {
-              if (errorRef.current) errorRef.current(error);
-              else
-                console.error(
-                  "PaperReader reverted to its text transcript:",
-                  error,
-                );
-            },
-          } satisfies PaperReaderEffectParams,
-        ],
-      }) satisfies WebGLDeclaration,
-    [id, progressKey, title, description, articles, eyebrow, palette],
-  );
-  const render = useMemo(
-    () =>
-      ({
-        id: `${id}.paper-reader.pass`,
-        camera: `${id}.paper-reader.camera`,
-        viewport: passViewport,
-        clearDepth: true,
-      }) satisfies WebGLSceneRenderOptions,
-    [id],
+  const surface = useMemo(
+    () => ({
+      progressKey,
+      content: { title, intro: description, sections: articles },
+      eyebrow,
+      palette,
+      onReady: setReady,
+      onError(error: Error) {
+        if (errorRef.current) errorRef.current(error);
+        else
+          console.error("PaperReader reverted to its text transcript:", error);
+      },
+    }),
+    [progressKey, title, description, articles, eyebrow, palette],
   );
 
   useEffect(() => {
@@ -121,7 +94,13 @@ function PaperReaderInstance({
     const update = () => {
       if (disposed) return;
       const rect = section.getBoundingClientRect();
-      const stageHeight = stage.getBoundingClientRect().height;
+      const stageRect = stage.getBoundingClientRect();
+      const stageHeight = stageRect.height;
+      setViewport((current) =>
+        current.width === stageRect.width && current.height === stageHeight
+          ? current
+          : { width: stageRect.width, height: stageHeight },
+      );
       section.style.setProperty(
         "--paper-reader-runway",
         `${(stageHeight * resolvePaperReaderScrollHeight(articles.length)) / 100}px`,
@@ -187,29 +166,27 @@ function PaperReaderInstance({
             className="paper-reader__stage"
             aria-hidden="true"
           >
-            <WebGLPassViewport
+            <View
               id={`${id}.paper-reader.viewport`}
-              as="div"
               className="paper-reader__viewport"
             >
-              <WebGLScene
-                id={`${id}.paper-reader.scene`}
-                projection="dom-aligned"
-                render={render}
-              >
-                <WebGLCamera
-                  id={`${id}.paper-reader.camera`}
-                  default
-                  type="orthographic"
-                  mode="dom-aligned"
-                />
-                <WebGLTarget
-                  as="div"
-                  className="paper-reader__surface"
-                  webgl={declaration}
-                />
-              </WebGLScene>
-            </WebGLPassViewport>
+              <OrthographicCamera
+                makeDefault
+                manual
+                position={[0, 0, 1]}
+                left={-1}
+                right={1}
+                top={1}
+                bottom={-1}
+                near={0.01}
+                far={10}
+              />
+              <PaperReaderSurface
+                {...surface}
+                progress={progressStore.source}
+                viewport={viewport}
+              />
+            </View>
           </div>
         )}
         <div className="paper-reader__fallback" hidden={enhanced}>

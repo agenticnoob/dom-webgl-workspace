@@ -1,33 +1,12 @@
-import {
-  defineWebGLEffect,
-  type WebGLEffectUpdateContext,
-} from "@viselora/dom-webgl";
-
 import { clampNumber } from "./effectMath";
-import {
-  readTargetLocalPointer,
-  type TargetLocalPointer,
-} from "./surfacePointer";
-
-type SequenceCardSlideParams = {
-  kind: "example.sequenceCardSlide";
-  progressKey: string;
-  travel?: number;
-  minOpacity?: number;
-  maxOpacity?: number;
-};
-
+import type { TargetLocalPointer } from "./surfacePointer";
 type SequenceCardBorderGlowParams = {
-  kind: "example.sequenceCardBorderGlow";
-  progressKey?: string;
-  travel?: number;
   edgeSensitivity?: number;
   colorSensitivity?: number;
   glowIntensity?: number;
   glowRadius?: number;
   fillOpacity?: number;
 };
-
 type SequenceCardGlow = {
   active: boolean;
   edgeProximity: number;
@@ -41,105 +20,18 @@ type SequenceCardGlow = {
 
 const borderGlowColors = ["#c084fc", "#f472b6", "#38bdf8"] as const;
 
-export const exampleSequenceCardSlideEffect =
-  defineWebGLEffect<SequenceCardSlideParams>({
-    kind: "example.sequenceCardSlide",
-    source: "dom/element",
-    update(ctx, _state, params) {
-      const minOpacity = clampNumber(params.minOpacity, 0, 1, 0.18);
-      const maxOpacity = clampNumber(params.maxOpacity, minOpacity, 1, 0.82);
-      const motion = readSequenceCardMotion(ctx, params);
-      const opacity = roundTo(
-        minOpacity + (maxOpacity - minOpacity) * motion.presence,
-        1000,
-      );
-      const anchor = readSceneAnchor(ctx.layout);
-
-      ctx.object.visible = true;
-      ctx.object.opacity = opacity;
-      ctx.object.position.set(
-        anchor.x + motion.offsetX,
-        anchor.y,
-        anchor.z,
-      );
-    },
-  });
-
-export const exampleSequenceCardBorderGlowEffect =
-  defineWebGLEffect<SequenceCardBorderGlowParams>({
-    kind: "example.sequenceCardBorderGlow",
-    source: "dom/element",
-    update(ctx, _state, params) {
-      const surface = ctx.object.surface;
-      if (!surface) {
-        return;
-      }
-
-      const offsetX = readSequenceCardMotion(ctx, params).offsetX;
-      const pointer = readTargetLocalPointer({
-        layout: readVisualLayout(ctx.layout, offsetX),
-        pointer: {
-          ...ctx.targetPointer,
-          localX: ctx.targetPointer.localX - offsetX,
-          isInside: ctx.pointer.isInside,
-        },
-      });
-      const glow = readSequenceCardGlow(pointer, ctx.layout, params);
-
-      surface.draw(({ context, width, height }) => {
-        drawSequenceCardSurface(context, width, height, glow);
-      });
-      surface.setVisible?.(true);
-      surface.setOpacity?.(1);
-    },
-  });
-
-function readSequenceCardMotion(
-  ctx: WebGLEffectUpdateContext,
-  params: { readonly progressKey?: string; readonly travel?: number },
-): { offsetX: number; presence: number } {
-  if (!params.progressKey) {
-    return { offsetX: 0, presence: 1 };
-  }
-
-  const progress = clampNumber(ctx.progress.get(params.progressKey), 0, 1, 0);
-  const travel = clampNumber(params.travel, 0, 640, 280);
+export function readSequenceCardMotion(progress: number, travel = 96) {
   const entry = smoothstep(0.08, 0.3, progress);
   const exit = smoothstep(0.7, 0.92, progress);
-
   return {
     offsetX: (1 - entry) * -travel + exit * travel,
     presence: clampNumber(entry * (1 - exit), 0, 1, 0),
   };
 }
 
-function readVisualLayout(
-  layout: WebGLEffectUpdateContext["layout"],
-  offsetX: number,
-): Parameters<typeof readTargetLocalPointer>[0]["layout"] {
-  return {
-    height: layout.height,
-    width: layout.width,
-  };
-}
-
-function readSceneAnchor(
-  layout: WebGLEffectUpdateContext["layout"],
-): {
-  x: number;
-  y: number;
-  z: number;
-} {
-  return {
-    x: readSceneX(layout),
-    y: readSceneY(layout),
-    z: 0,
-  };
-}
-
-function readSequenceCardGlow(
+export function readSequenceCardGlow(
   pointer: TargetLocalPointer,
-  layout: WebGLEffectUpdateContext["layout"],
+  layout: { width: number; height: number },
   params: SequenceCardBorderGlowParams,
 ): SequenceCardGlow {
   const width = Math.max(layout.width, 1);
@@ -219,19 +111,7 @@ function projectPointerToRectEdge(
   };
 }
 
-function readSceneX(layout: { left: number; width: number }): number {
-  return layout.left + layout.width / 2;
-}
-
-function readSceneY(layout: {
-  top: number;
-  height: number;
-  viewport: { height: number };
-}): number {
-  return layout.viewport.height - (layout.top + layout.height / 2);
-}
-
-function drawSequenceCardSurface(
+export function drawSequenceCardSurface(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -280,9 +160,18 @@ function drawPointerBorderGlow(
     glow.edgeY,
     glow.glowRadius * 2.2,
   );
-  glowGradient.addColorStop(0, `rgba(248, 226, 178, ${0.86 * glow.glowOpacity})`);
-  glowGradient.addColorStop(0.34, `rgba(244, 114, 182, ${0.46 * glow.glowOpacity})`);
-  glowGradient.addColorStop(0.68, `rgba(56, 189, 248, ${0.2 * glow.glowOpacity})`);
+  glowGradient.addColorStop(
+    0,
+    `rgba(248, 226, 178, ${0.86 * glow.glowOpacity})`,
+  );
+  glowGradient.addColorStop(
+    0.34,
+    `rgba(244, 114, 182, ${0.46 * glow.glowOpacity})`,
+  );
+  glowGradient.addColorStop(
+    0.68,
+    `rgba(56, 189, 248, ${0.2 * glow.glowOpacity})`,
+  );
   glowGradient.addColorStop(1, "rgba(56, 189, 248, 0)");
 
   context.save();

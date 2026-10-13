@@ -1,18 +1,32 @@
-import type { WebGLEffectMaterialProgram } from "@viselora/dom-webgl";
+import {
+  CanvasTexture,
+  LinearFilter,
+  type ShaderMaterialParameters,
+} from "three";
+import {
+  createHeroUniforms,
+  heroPlaneVertexShader,
+} from "../shared/shaderUniforms";
 import { projectRoomConfig as config } from "./room";
 import { heroTransitionConfig } from "../transition/transitionConfig";
 
 export function createProjectRoomProgram(
   texture: HTMLCanvasElement,
-): WebGLEffectMaterialProgram {
+): ShaderMaterialParameters {
+  const atlas = new CanvasTexture(texture);
+  atlas.minFilter = LinearFilter;
+  atlas.magFilter = LinearFilter;
+  atlas.generateMipmaps = false;
   return {
-    blend: "normal",
-    uniforms: {
-      inkAtlas: { kind: "canvas-texture", source: texture },
+    vertexShader: heroPlaneVertexShader,
+    toneMapped: false,
+    depthWrite: true,
+    uniforms: createHeroUniforms({
+      inkAtlas: atlas,
       viewport: [1440, 900],
       view: [0, 0, 0, 0],
       ...projectRoomColors(false),
-    },
+    }),
     fragmentShader: `
       uniform sampler2D inkAtlas;
       uniform vec2 viewport;

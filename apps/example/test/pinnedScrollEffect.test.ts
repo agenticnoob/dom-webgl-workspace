@@ -1,44 +1,32 @@
-import { describe, expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
+import { createTextGlyphCommands } from "../src/textEffects";
 
-import { createEffectContext, createGlyph } from "./effectContext";
-import { examplePinnedRevealEffect } from "../src/pinnedScrollEffect";
-
-describe("pinned scroll reveal effect", () => {
-  test("maps keyed adapter progress to high-contrast glyph reveal", () => {
-    const progressGet = vi.fn((key: string) => (key === "example.pinned.reveal" ? 0.75 : 0));
-    const textLayer = {
-      setGlyphs: vi.fn(),
-    };
-    const context = createEffectContext({
-      source: {
-        kind: "dom",
-          type: "text",
-        element: document.createElement("p"),
-        text: "Pinned",
-        textLayer,
-      },
-      progress: {
-        get: progressGet,
-      },
-      scrollProgress: 0,
-    });
-
-    examplePinnedRevealEffect.update(context, undefined, {
-      kind: "example.pinnedReveal",
-      color: "#172124",
-      progressKey: "example.pinned.reveal",
-    });
-
-    expect(examplePinnedRevealEffect.source).toBe("dom/text");
-    expect(progressGet).toHaveBeenCalledWith("example.pinned.reveal");
-    const transform = textLayer.setGlyphs.mock.calls[0]?.[0];
-    const commands = transform?.([
-      createGlyph(0, "P"),
-      createGlyph(1, "i"),
-      createGlyph(2, "n"),
-      createGlyph(3, "n"),
-    ]);
-    expect(commands?.[0]).toMatchObject({ index: 0, opacity: 1, color: "#172124" });
-    expect(commands?.[3]).toMatchObject({ index: 3, opacity: 0.32, scaleX: 0.78 });
+test("pinned progress preserves high contrast and reverses without history", () => {
+  const glyphs = Array.from("Pinn", (char, index) => ({
+    index,
+    char,
+    line: 0,
+    x: index * 16,
+    y: 0,
+    width: 16,
+    height: 24,
+    baseline: 18,
+  }));
+  const input = {
+    time: 0,
+    width: 100,
+    height: 30,
+    progress: 0.75,
+    pointer: { active: false, x: 0, y: 0 },
+  };
+  const commands = createTextGlyphCommands("pinned", glyphs, input, {
+    color: "#172124",
   });
+  expect(commands[0]).toMatchObject({ opacity: 1, color: "#172124" });
+  expect(commands[3]).toMatchObject({ opacity: 0.32, scaleX: 0.78 });
+  expect(
+    createTextGlyphCommands("pinned", glyphs, { ...input, progress: 0 }).every(
+      (c) => c.opacity === 0.32,
+    ),
+  ).toBe(true);
 });

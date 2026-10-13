@@ -1,7 +1,9 @@
-import type {
-  WebGLEffectMaterialProgram,
-  WebGLEffectUniformValue,
-} from "@viselora/dom-webgl";
+import { ShaderMaterial } from "three";
+import {
+  canvasTexture,
+  shaderUniforms,
+  surfaceVertexShader,
+} from "../../nativeMaterials";
 import type { PaperReaderArtwork } from "./artwork";
 import type { PaperReaderTexture } from "./texture";
 import { paperReaderConfig } from "./config";
@@ -14,17 +16,18 @@ export function createPaperReaderProgram(
   texture: PaperReaderTexture,
   frame: PaperReaderFrame,
   palette: PaperReaderPalette,
-): WebGLEffectMaterialProgram {
+): ShaderMaterial {
   const articleCount = artwork.papers.length;
   const sheetCount = Math.max(1, articleCount * 2);
   const stamps = artwork.layout.papers.map((paper) =>
     resolvePaperReaderStamp(paper.width, paper.height),
   );
-  return {
-    blend: "normal",
-    uniforms: {
+  return new ShaderMaterial({
+    vertexShader: surfaceVertexShader,
+    toneMapped: false,
+    uniforms: shaderUniforms({
       ...createPaperReaderUniforms(artwork, frame, palette),
-      inkAtlas: { kind: "canvas-texture", source: texture.canvas },
+      inkAtlas: canvasTexture(texture.canvas),
       atlasSize: [
         texture.cellWidth * texture.columns,
         texture.cellHeight * texture.rows,
@@ -37,7 +40,7 @@ export function createPaperReaderProgram(
       stampRadii: stamps.length
         ? stamps.map((stamp) => [stamp.radius, 0])
         : [[0, 0]],
-    },
+    }),
     fragmentShader: `
       uniform sampler2D inkAtlas;
       uniform vec2 atlasSize;
@@ -105,14 +108,14 @@ export function createPaperReaderProgram(
         gl_FragColor = vec4(color, 1.0);
       }
     `,
-  };
+  });
 }
 
 export function createPaperReaderUniforms(
   artwork: PaperReaderArtwork,
   frame: PaperReaderFrame,
   palette: PaperReaderPalette,
-): Record<string, WebGLEffectUniformValue> {
+): Record<string, number | readonly number[] | readonly (readonly number[])[]> {
   const sheets = [...frame.fans, ...frame.papers];
   const origin = ({ rect: r }: PaperReaderSheetFrame): [number, number] => [
     r.x,

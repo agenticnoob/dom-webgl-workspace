@@ -2,68 +2,93 @@
 
 This document owns the example app's verification evidence and limitations.
 Use the [component catalog](../src/recipes/README.md) for integration contracts
-and [repository status](../../../docs/STATUS.md) for release and package truth.
+and [repository status](../../../docs/STATUS.md) for repository-wide gate status.
 
 ## Automated checks
 
-Verified on 2026-09-14: 21 recipe test files / 97 tests and the App integration
-test passed. The complete repository passed 197 files / 1292 tests. Example
-and root typechecking, workspace production builds, public import,
-documentation and package-version checks passed.
+All Example tests passed in the repository suite on 2026-10-14, covering
+native scenes, DOM, pure math and SSR. The app-specific and repository TypeScript
+checks passed. The app configuration clears source aliases so this consumer
+checks public package declarations.
 
-Coverage includes geometry and reversible progress, scoped registration,
-fallback semantics, stable declarations, cleanup, simultaneous instances and
-one shared runtime. A regression test checks pointer offsets when the scrolling
-host is far above the viewport; offsets remain relative to the fixed canvas.
+Coverage includes:
+
+- One shared Canvas, 22 basic visual bindings, five native scene demonstrations,
+  nine recipes, unique DOM IDs and semantic server-rendered fallback.
+- Reversible glyph, sequence, scroll, camera, portal and timeline calculations.
+- Actual Three.js object animation and picking, texture UV cropping, video
+  playback rejection, offscreen parking, and shared GLTF resource ownership.
+- The sequence decoder loads 454 unique frames with at most six concurrent
+  decodes and shares one load. Ordinary images and GLBs use Drei's caches;
+  the app no longer separately warms those assets or creates a metadata video.
+- Text texture rebuilds after same-size content/style revisions. Decorative DOM
+  backgrounds and recipe transcripts return when the Runtime becomes unavailable;
+  prepared scenes remain mounted and resume after recovery.
+- Paper atlas replacement on DOM-only viewport resizing; independent instances;
+  texture/material disposal. Project-room picking, edge rearming, narrow fallback,
+  viewport uniforms, preference listeners and atlas disposal.
+- Native animation-mixer sampling, Rapier world/body behavior, scroll-controller
+  cleanup, reduced-motion changes, bounded timeline windows and complete text.
 
 From the repository root:
 
 ```bash
-npm test -- --run apps/example/test/App.test.tsx apps/example/test/recipes
-npm run typecheck -w @viselora/example
+npm test -- --run apps/example/test
+npx tsc -p apps/example/tsconfig.json
 npm run build -w @viselora/example
 npm run check:imports
 npm run check:docs
 ```
 
+Native-scene tests use `@react-three/test-renderer` and actual Three.js scene
+objects. The test renderer supplies a mocked GPU context; these tests establish
+state and lifecycle behavior, not final shader pixels.
+
 ## Browser evidence
 
-Chromium review on 2026-09-13 at 1440×900 and emulated touch 390×844 covered:
+The migration's desktop Chromium review at 1780×833 confirmed one shared Canvas
+without page/console errors in the sampled states. Inspected output includes the native
+postprocessing stage, real GLTF animation, timeline camera and card, picking and
+physics scenes, paper-reader ink pages and project-room walls. The project-room
+Next wall control changed both the visible project and its source link. An actual
+long press on the radial-theme mesh committed the dark theme. The first surface's
+horizontal texture streaks come from the supplied `bg.png` asset.
 
-- paper arrivals, overflow reading and live reduced-motion fallback;
-- room wall selection, keyboard controls and narrow/touch lists;
-- sculpture motion/light and real-mesh mouse/touch hold commits;
-- model output, scroll turn, captions and text layout;
-- all four portal faces and forward/reverse DOM handoffs;
-- relief expansion and return, complete-text mode and pointer previews.
+OrbitControls changed the camera after a mouse drag. A Rapier box was dragged
+into the air, then rotated, fell and collided after release without scrolling
+the page. ModelStory rendered the actual model and captions. FacePortal's full
+reading control exposed its DOM content; ReliefPortal showed the model and its
+surface. PointerPreview displayed the supplied image on hover. PerspectiveTimeline
+rendered perspective text and its mesh, and switched to complete reading mode.
 
-The initial `/` composition was reviewed with all eight original rows together,
-one runtime and one canvas. Checks included adjacent portal clipping, isolated
-reading/theme controls, model output and narrow layouts without horizontal
-overflow. Final canvas images were inspected; readiness alone was not used as
-visual evidence.
+Lit scenes explicitly retain the old renderer's default ambient and directional
+lights alongside each demo's authored lights. The Runtime no longer adds lights.
 
-On 2026-09-14, the standalone Hero Next final journal was inspected and extracted
-as the ninth inline row, `PerspectiveTimeline`. Desktop Chromium at 1440×900
-covered paired text projection, forward/reverse scrolling, continuous mesh spin,
-the keyboard reading toggle and return. Live reduced motion and emulated touch
-390×844 rendered all six complete demo entries with no timeline text targets or
-horizontal overflow. All nine rows shared one canvas; leaving the timeline removed
-its text targets, and returning restored them. Desktop and mobile screenshots
-were inspected without captured page/console errors in the final sampled states.
-New tests cover 40-entry window selection in both directions,
-multiline content spacing, frame-rate-independent thrust and scoped disposal.
-The new module's React Doctor scan reported no issues; no remote score was used.
+After the final source freeze, the basic CanvasTexture Chinese text, the
+454-frame sequence's initial image and card, and the native composer's bloom and
+geometry were visible. All nine recipes were inspected in the same application.
+
+Real `WEBGL_lose_context` and `restoreContext` calls changed Runtime readiness
+from true to false and back. The room's four semantic links became visible and
+focusable during the loss. Recovery retained one Canvas without page/console
+errors.
+
+Mobile emulation at 390×844 and live reduced-motion changes retained the room's
+complete fallback list and all six timeline entries. The document's scroll width
+remained 390 pixels, and the page still used one Canvas.
 
 ## Limits
 
-- Mobile evidence is browser emulation, not physical-device verification.
-- The example build retains its existing bundle-size warning.
-- The original eight recipes' React Doctor scan reported no errors and four
-  warnings: paragraph index keys for mount-stable content and three callback-effect heuristics for the scheme
-  notification. Stable-content contracts and callback lifecycle tests cover
-  those choices. The remote score service was unavailable; no score is claimed.
-- The recipes use native document scroll. Transformed scroll systems or nested
+- Browser emulation does not establish physical mobile-device behavior.
+- Visual review verifies the observed composition and interactions; it is not a
+  pixel-for-pixel comparison or a performance benchmark.
+- The application retains its existing large-bundle build warning.
+- React Doctor's broader release scan and review are recorded in
+  [repository verification](../../../docs/STATUS.md#verification-truth).
+  Example retains advice about ordered text index keys, shader math and
+  low-frequency scheme callbacks. Reviewed effect cleanup and client-only R3F
+  initialization are covered by runtime/SSR checks; no clean lint score is claimed.
+- Recipes measure native document scroll. Transformed scroll systems or nested
   scrollers require their own integration and browser verification.
-- These results cover the example assets and content. Other GLBs, text lengths,
+- These checks cover the supplied assets and content. Other GLBs, text lengths,
   languages, GPU limits and downstream compositions need consumer verification.

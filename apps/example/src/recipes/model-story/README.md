@@ -1,25 +1,24 @@
 # Model story
 
-`ModelStory` combines a managed GLB, one reversible scroll turn, a fixed-size
+`ModelStory` combines a GLB loaded by Drei, one reversible scroll turn, a fixed-size
 type/hold/delete speech bubble, and text whose **rendered lines** move around
 the model and bubble. Copy this entire directory into a React application.
-It imports only the public Viselora entrypoints; its CSS is imported by the
-component. The existing runtime owns the canvas, model loader, resources,
-scene, camera, pass, and rendering.
+It uses R3F, Drei, Three.js and public Viselora entrypoints. Copy the shared
+helpers and use `VisualPage` from the [catalog](../README.md). Its native camera,
+lights and cloned GLB graph live in a Drei View inside the shared Canvas.
 
 ## Complete minimal usage
 
 Host a centered, unit-sized model at `public/models/object.glb`, or pass its
 actual `framing` as described below. Install React and the matching
-`@viselora/dom-webgl@0.1.0-alpha.2` and
-`@viselora/scroll-adapters@0.1.0-alpha.2` packages.
+`@viselora/dom-webgl` and
+`@viselora/scroll-adapters` packages.
 
 ```tsx
 import React from "react";
-import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+import { VisualPage } from "./VisualPage"; // Shared host from the recipe catalog
 import {
   ModelStory,
-  modelStoryEffects,
   type ModelStoryModel,
   type ModelStorySection,
 } from "./recipes/model-story";
@@ -54,7 +53,7 @@ const messages = {
 
 export function App() {
   return (
-    <WebGLScrollRuntime effects={modelStoryEffects}>
+    <VisualPage>
       <ModelStory
         id="object-story"
         title="A closer look"
@@ -62,27 +61,25 @@ export function App() {
         sections={sections}
         messages={messages}
       />
-    </WebGLScrollRuntime>
+    </VisualPage>
   );
 }
 ```
 
-Remove `poster` if you do not have that image; a text placeholder remains. If
-the page already has `WebGLScrollRuntime`, merge `modelStoryEffects` into its
-effect array **at module scope**, and mount only `ModelStory` inside it. Do not
-nest another runtime. Give every simultaneous instance a unique `id`.
+Remove `poster` if unavailable; a text placeholder remains. Mount ModelStory
+inside the existing shared host, with a unique ID for each simultaneous instance.
 
 ## Props and asset contract
 
 | Prop                | Contract                                                                                                                                                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                | Nonempty, unique in the runtime; scopes progress, scene, camera, lights, model, viewport, and pass.                                                                                                                     |
+| `id`                | Nonempty, unique in the runtime; scopes its progress and semantic DOM IDs.                                                                                                                                              |
 | `title`             | Semantic heading for the story.                                                                                                                                                                                         |
 | `model.src`         | App-hosted or CORS-accessible GLB URL. No loader callbacks.                                                                                                                                                             |
 | `model.description` | Persistent semantic description; also the visual loading/error fallback.                                                                                                                                                |
 | `model.poster`      | Optional public fallback image; failure to load the GLB never hides it.                                                                                                                                                 |
 | `model.framing`     | GLB-root-space `center: [x,y,z]` and bounding-box `size: [width,height,depth]`, including the GLB's internal node transforms. Defaults to a centered unit cube. Values must be finite; each dimension must be positive. |
-| `model.loader`      | Public `WebGLModelProps["loader"]` declaration. Draco example: `{ draco: { decoderPath: "/draco/gltf/", preload: true } }`.                                                                                             |
+| `model.dracoPath`   | Optional decoder directory, passed directly to Drei `useGLTF`.                                                                                                                                                          |
 | `sections`          | Ordered `{ id, heading, paragraphs, side: "left" \| "right" }` records; use stable unique section IDs and alternate sides for the demonstrated layout.                                                                  |
 | `messages`          | Three complete strings: `{ front, side, back }`. Both side views share `side`.                                                                                                                                          |
 | `className`         | Optional wrapper class for app-owned styling.                                                                                                                                                                           |
@@ -126,20 +123,21 @@ owner's responsibility. No decoder CDN or credentials are embedded here.
   canvas can show through. Customize `--model-story-paper` and
   `--model-story-ink` on your wrapper to match the surrounding page.
 
-Keep model, framing, effects, and content declarations stable while mounted.
+Keep model, framing and content stable while mounted.
 Changing the model, loader, messages, IDs, or recipe configuration requires a
 new React `key`. Changing scroll position never causes React state updates.
 Unmount disconnects resize/mutation/font/media/scroll listeners, cancels pending
 measurement, removes line/character mutations, and clears the progress signal;
-the managed components unregister and the runtime releases the model resources.
+R3F removes its scene objects. The cloned graph retains useGLTF cache resources
+through `dispose={null}`; it never disposes another instance's shared model.
 
 ## Read this when adapting
 
-1. `ModelStory.tsx`: public props, semantic DOM, stable managed declarations.
+1. `ModelStory.tsx`: public props, semantic DOM, native R3F scene composition.
 2. `frame.ts`: pure one-turn and reversible caption timeline.
 3. `controller.ts`: scoped DOM measurement and progress publication.
 4. `wrap.ts`: pure ellipse/rounded-rectangle line exclusion geometry.
-5. `effect.ts`: controlled model transform; no DOM search or resource ownership.
+5. `effect.ts`: pure framing validation and model transform.
 6. `model-story.css`: responsive geometry and semantic typography.
 
 Run `npm test -- --run apps/example/test/recipes/modelStory` and

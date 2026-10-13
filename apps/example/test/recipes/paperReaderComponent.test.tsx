@@ -2,10 +2,7 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
-import {
-  PaperReader,
-  paperReaderEffects,
-} from "../../src/recipes/paper-reader";
+import { PaperReader } from "../../src/recipes/paper-reader";
 
 const articles = [
   {
@@ -21,7 +18,7 @@ describe("paper reader semantic component", () => {
     const html = renderToString(
       createElement(
         WebGLScrollRuntime,
-        { effects: paperReaderEffects },
+        null,
         createElement(PaperReader, {
           id: "notes",
           articles,
@@ -31,7 +28,7 @@ describe("paper reader semantic component", () => {
     );
     const container = document.createElement("div");
     container.innerHTML = html;
-    expect(container.querySelectorAll("canvas")).toHaveLength(0);
+    expect(container.querySelectorAll("canvas")).toHaveLength(1);
     expect(container.querySelector("article")?.textContent).toContain(
       articles[0].body,
     );
@@ -48,16 +45,14 @@ describe("paper reader semantic component", () => {
 
   test("supports two independently identified readers within one runtime", () => {
     const html = renderToString(
-      createElement(WebGLScrollRuntime, { effects: paperReaderEffects }, [
+      createElement(WebGLScrollRuntime, null, [
         createElement(PaperReader, { key: "one", id: "one", articles }),
         createElement(PaperReader, { key: "two", id: "two", articles }),
       ]),
     );
     const container = document.createElement("div");
     container.innerHTML = html;
-    expect(
-      container.querySelectorAll("[data-dom-webgl-runtime-content]"),
-    ).toHaveLength(1);
+    expect(container.querySelectorAll("[data-webgl-runtime]")).toHaveLength(1);
     expect(container.querySelectorAll("article")).toHaveLength(2);
     const headingIds = Array.from(
       container.querySelectorAll("h2"),

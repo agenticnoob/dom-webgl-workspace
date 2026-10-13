@@ -1,70 +1,17 @@
 # Verification
 
-Compatible package version: 0.1.0-alpha.2
+Run `scripts/verify-consumer.mjs <consumer-root>` for static dependency/import
+checks. It permits native Three.js/R3F APIs while rejecting private Viselora
+source paths and a second renderer/Canvas owner. It is not a browser test.
 
-## Skill integrity
+Run consumer typecheck and production build. Use installed matching tarballs
+when verifying the package boundary, rather than workspace source aliases.
 
-Maintainers validate frontmatter/links, build both packages, check generated
-`.d.ts` drift, public value/type/status coverage, run skill tests, verify the
-selected template, and typecheck/build a clean temporary template copy.
+In the real browser check one Canvas, visible DOM while loading/error,
+forward/reverse scroll, texture/model readiness, resize, desktop/touch input,
+reduced-motion content continuity and unmount/remount cleanup. Compare retained
+visual checkpoints before claiming effect preservation.
 
-## Selected consumer checks
-
-From the consumer root:
-
-```bash
-node /absolute/path/to/viselora-dom-webgl/scripts/verify-consumer.mjs .
-npm run typecheck
-npm run build
-```
-
-The static verifier checks versions, public imports, one runtime/canvas owner,
-stable declarations, input ownership, selected assets/status/acknowledgements
-and required evidence names. Static success does not prove real-browser output.
-Template typecheck/build proves skill/template self-consistency only.
-
-Successful output is explicit:
-
-```text
-Viselora static consumer contract verification passed.
-Real-browser evidence was not executed by this verifier.
-```
-
-The verifier validates recorded evidence metadata; it does not launch a
-browser. Real-browser evidence was not executed by this verifier.
-
-Each experimental manifest entry requires:
-
-```json
-{
-  "preflight": {
-    "status": "browser-passed",
-    "evidence": "docs/evidence/<capability>.json"
-  }
-}
-```
-
-The evidence file must stay inside the consumer and match the package version
-and capability id, set `passed: true`, contain empty console/page error arrays,
-and include at least one positive direct measurement.
-
-## Real-browser evidence
-
-For every selected dynamic beat, assert final-canvas pixel change or a direct
-behavioral result. Test exactly one canvas, unmount/remount `1 -> 0 -> 1`, slow/
-fast/forward/reverse scroll, pointer plus touch alternative, loading/network
-fallback, video autoplay rejection when selected, offscreen re-entry, clean
-console, desktop/mobile overflow and reduced-motion continuity.
-
-Callbacks, debug ready/active state, effect-owned pixels and build success are
-not substitutes for final-canvas evidence.
-
-## Narrative review
-
-Review the full desktop, mobile and reduced-motion story. Confirm every beat
-advances the message, pacing and text remain legible, interactions are clear,
-semantic content/navigation survives without WebGL, and every production asset
-is local with deployment-compatible licensing.
-
-Do not claim a consumer browser or narrative pass until those observations are
-recorded in the independent consumer project.
+Report implemented, automated, browser-verified, committed and pushed states
+and registry-published states separately. A successful build or workflow dispatch
+does not establish publication; read back package versions and distribution tags.

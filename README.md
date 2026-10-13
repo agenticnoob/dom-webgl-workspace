@@ -1,184 +1,96 @@
 # Viselora DOM WebGL
 
-Viselora is a DOM-first WebGL runtime for React and browser applications. It
-keeps layout, fallback content, accessibility, scroll, pointer input, resources,
-rendering, and disposal under one managed runtime while applications describe
-targets and visual effects through public declarations.
+Viselora coordinates semantic DOM and a single React Three Fiber scene in
+React 19 and Next.js applications. The runtime manages DOM measurements,
+progress inputs, fallback visibility and availability. React Three Fiber and
+Three.js own rendering, scene objects, materials, loaders and animation.
 
-The repository publishes two ESM packages:
-
-- `@viselora/dom-webgl`
-- `@viselora/scroll-adapters`
-
-Current project and release truth lives in [docs/STATUS.md](./docs/STATUS.md).
+Current implementation and publication status live in
+[docs/STATUS.md](./docs/STATUS.md).
 
 ## Install
 
-Install the explicit alpha tag or pin the exact version listed in
-[release truth](./docs/STATUS.md#release-truth):
+Use the matching React/R3F alpha packages. The 0.2 API is a breaking change
+from 0.1.x; see the [migration guide](./docs/guides/getting-started.md#migrate-from-01x)
+and [release status](./docs/STATUS.md#release-truth).
 
 ```bash
-npm install @viselora/dom-webgl@alpha
+npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
+# Optional scroll integration
+npm install @viselora/scroll-adapters@alpha
 ```
 
-For Lenis, GSAP, and ScrollTrigger integration:
-
-```bash
-npm install @viselora/scroll-adapters@alpha gsap lenis
-```
-
-React 18 or newer is an optional peer dependency of the core package and is
-required by the React entrypoints.
+Consumers require React 19, React DOM 19, `@react-three/fiber` 9 and Three.js
+0.184. Optional scroll integrations use Lenis and GSAP. For workspace development,
+follow [Contributing](./CONTRIBUTING.md).
 
 ## Quick start
 
-Define effects and the runtime effect list outside the component so their
-references stay stable:
+Put Three.js elements in `scene` and ordinary HTML in `children`. The runtime
+creates the page's R3F Canvas.
 
 <!-- compile-tsx:root-quick-start -->
 
 ```tsx
-import { defineWebGLEffect } from "@viselora/dom-webgl";
-import {
-  WebGLRuntime,
-  WebGLTarget,
-} from "@viselora/dom-webgl/react";
+"use client";
 
-type FadeParams = {
-  kind: "app.fade";
-  opacity?: number;
-};
-
-const fadeEffect = defineWebGLEffect<FadeParams>({
-  kind: "app.fade",
-  update(ctx, _state, params) {
-    ctx.object.opacity = params.opacity ?? 1;
-  },
-});
-
-const runtimeEffects = [fadeEffect];
+import { WebGLRuntime } from "@viselora/dom-webgl/react";
 
 export function App() {
   return (
-    <WebGLRuntime effects={runtimeEffects}>
-      <WebGLTarget
-        webgl={{
-          key: "hero.title",
-          source: { kind: "dom", type: "text" },
-          effects: [{ kind: "app.fade", opacity: 0.8 }],
-        }}
-      >
-        <h1>Managed DOM-first WebGL</h1>
-      </WebGLTarget>
+    <WebGLRuntime
+      canvas={{ camera: { position: [0, 0, 500] }, frameloop: "demand" }}
+      scene={
+        <mesh>
+          <boxGeometry args={[120, 120, 120]} />
+          <meshNormalMaterial />
+        </mesh>
+      }
+    >
+      <main><h1>DOM content with a native Three.js scene</h1></main>
     </WebGLRuntime>
   );
 }
 ```
 
-Use one public visual path for each job:
-
-```text
-DOM-backed visual      -> WebGLTarget
-Procedural 3D geometry -> WebGLMesh
-GLB scene object       -> WebGLModel
-```
-
-See [Getting started](./docs/guides/getting-started.md) for sources, fallback,
-debugging, and the managed-scene escalation path.
-
-## What the runtime owns
-
-- one transparent canvas and render loop per runtime;
-- DOM measurement and scene projection;
-- source loading, caching, fallback, offscreen policy, and cleanup;
-- managed scenes, cameras, passes, lights, meshes, and models;
-- pointer routing, picking, progress signals, and optional scroll adapters;
-- controlled effect facades for transforms, materials, lights, animation,
-  postprocess, textures, video, models, and scene objects;
-- debug state without exposing raw renderer, scene, camera, material, loader,
-  mixer, raycaster, or render-target handles.
-
-Viselora is not a React Three Fiber replacement and does not provide a raw
-Three.js escape hatch. Consumers use declarations and controlled facades while
-the runtime retains lifecycle ownership.
+Use native R3F JSX, `useFrame`, `useThree`, Three.js objects and ecosystem
+helpers for visual work. Use Viselora to bind that work to the page. See
+[Getting started](./docs/guides/getting-started.md) for DOM targets and Next.js.
 
 ## Public entrypoints
 
 | Entrypoint | Responsibility |
 | --- | --- |
-| `@viselora/dom-webgl` | Runtime creation, declarations, types, and effect definitions |
-| `@viselora/dom-webgl/react` | React runtime, target, scene, camera, pass, light, mesh, model, and debug components |
-| `@viselora/scroll-adapters` | Lenis, GSAP, ScrollTrigger, and progress-store adapters |
-| `@viselora/scroll-adapters/react` | Scroll runtime, timelines, sections, and progress hook |
+| `@viselora/dom-webgl` | DOM text layout/texture tools and runtime input types |
+| `@viselora/dom-webgl/react` | Runtime host, DOM target, runtime and target hooks |
+| `@viselora/scroll-adapters` | Lenis/GSAP/ScrollTrigger bridges and progress store |
+| `@viselora/scroll-adapters/react` | Scroll host, sections, timelines and progress hook |
 
-Do not import `packages/*/src` from an application. The exhaustive generated
-surface is in
-[skills/viselora-dom-webgl/references/api-surface.generated.md](./skills/viselora-dom-webgl/references/api-surface.generated.md);
-capability evidence is in
-[capability-status.md](./skills/viselora-dom-webgl/references/capability-status.md).
+Applications import these package entrypoints plus React, R3F, Three.js and
+chosen ecosystem packages. They never import `packages/*/src`.
+The [generated API inventory](./skills/viselora-dom-webgl/references/api-surface.generated.md)
+contains the complete export list.
 
 ## Repository layout
 
 ```text
-apps/
-  example/                    public-API dogfood and examples
-  hero-next/                  private Next.js public-API consumer
-packages/
-  dom-webgl-runtime/          @viselora/dom-webgl
-  dom-webgl-scroll-adapters/  @viselora/scroll-adapters
-skills/
-  viselora-dom-webgl/         consumer development skill
-docs/
-  STATUS.md                   only current implementation/release truth
-  ARCHITECTURE.md             stable ownership and system model
-  guides/                     task-oriented user guides
-  archive/                    completed and superseded records
-scripts/                      repository and release tooling
-test/                         repository-level tests and guards
+apps/example/                    public API examples
+apps/hero-next/                  Next.js consumer
+packages/dom-webgl-runtime/      @viselora/dom-webgl
+packages/dom-webgl-scroll-adapters/  optional scroll integration
+skills/viselora-dom-webgl/        consumer workflow and runnable template
+docs/                           architecture, status and user guides
 ```
-
-Each package and app has its own README. Repository structure and contribution
-rules are in [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-## Development
-
-```bash
-npm install
-npm run check
-npm run build
-npm run check:imports
-```
-
-Run the example:
-
-```bash
-npm run dev -w @viselora/example
-```
-
-Run the Next.js hero:
-
-```bash
-npm run dev -w @viselora/hero-next
-```
-
-The complete verification sequence is documented in
-[CONTRIBUTING.md](./CONTRIBUTING.md#verification).
 
 ## Documentation
 
-- [Documentation index and policy](./docs/README.md)
-- [Current status](./docs/STATUS.md)
-- [Architecture](./docs/ARCHITECTURE.md)
+- [Current state and verification](./docs/STATUS.md)
+- [Architecture and ownership](./docs/ARCHITECTURE.md)
 - [Getting started](./docs/guides/getting-started.md)
-- [Effect authoring](./docs/guides/effects.md)
+- [Native visual effects](./docs/guides/effects.md)
 - [Scroll integration](./docs/guides/scroll.md)
-- [Core package README](./packages/dom-webgl-runtime/README.md)
-- [Scroll adapters README](./packages/dom-webgl-scroll-adapters/README.md)
-- [Example app](./apps/example/README.md)
-- [Reusable visual components and agent integration](./apps/example/src/recipes/README.md)
-- [Hero app](./apps/hero-next/README.md)
-- [Archived records](./docs/archive/README.md)
+- [Contributing](./CONTRIBUTING.md)
 
 ## License
 
-[MIT](./LICENSE)
+MIT.

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
+import { useRuntimeReady } from "../../useRuntimeReady";
 import {
   resolvePortalGeometryFrame,
   type PortalGeometryFrame,
@@ -63,6 +64,7 @@ export function createSpatialStage(
 }
 
 export function useSpatialStage(id: string, portal: boolean) {
+  const runtimeReady = useRuntimeReady();
   const root = useRef<HTMLElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
@@ -182,7 +184,7 @@ export function useSpatialStage(id: string, portal: boolean) {
       }
     };
   }, [id, portal, progress, stage]);
-  return { root, viewport, stage, ready, scheme, size };
+  return { root, viewport, stage, ready: ready && runtimeReady, scheme, size };
 }
 
 export type SpatialStageRef = RefObject<HTMLDivElement | null>;

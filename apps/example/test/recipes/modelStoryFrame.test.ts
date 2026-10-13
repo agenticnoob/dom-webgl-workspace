@@ -6,7 +6,7 @@ import {
   resolveStoryScrollProgress,
 } from "../../src/recipes/model-story/frame";
 import {
-  createModelStoryEffectDeclaration,
+  validateModelStoryFraming,
   resolveModelStoryTransform,
   type ModelStoryFraming,
 } from "../../src/recipes/model-story/effect";
@@ -86,11 +86,7 @@ describe("model story reversible timeline", () => {
 
   test("rejects invalid framing before registering a model", () => {
     expect(() =>
-      createModelStoryEffectDeclaration(
-        "story",
-        { center: [0, 0, 0], size: [1, 0, 1] },
-        { aspect: 1, reducedMotion: false, setModelReady() {} },
-      ),
+      validateModelStoryFraming({ center: [0, 0, 0], size: [1, 0, 1] }),
     ).toThrow("three positive dimensions");
   });
 

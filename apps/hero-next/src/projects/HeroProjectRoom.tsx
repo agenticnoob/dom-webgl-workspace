@@ -1,40 +1,10 @@
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
-import { WebGLTarget } from "@viselora/dom-webgl/react";
+import { useWebGLRuntime } from "@viselora/dom-webgl/react";
 import { WebGLScrollTimeline } from "@viselora/scroll-adapters/react";
-import React, { useEffect, useMemo, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { HeroChapterBodyProps } from "../chapters/HeroChapter";
 import { formatHeroChapterCounter } from "../chapters/definitions";
-import type { HeroLocale, HeroLocaleStore } from "../preferences/locale";
+import type { HeroLocale } from "../preferences/locale";
 import type { ProjectRoomStore } from "./room";
-
-export function HeroProjectRoomStage({
-  locale,
-  room,
-}: {
-  readonly locale: HeroLocaleStore;
-  readonly room: ProjectRoomStore;
-}) {
-  const declaration = useMemo(
-    () =>
-      ({
-        key: "hero.projects.room",
-        placement: { mode: "screen-depth", depth: 3, size: "dom" },
-        source: { kind: "dom", type: "element" },
-        renderRole: "model",
-        lifecycle: { hideWhenReady: true, hideMode: "self" },
-        effects: [{ kind: "hero.projects.room", locale, room }],
-      }) satisfies WebGLDeclaration,
-    [locale, room],
-  );
-  return (
-    <WebGLTarget
-      as="div"
-      className="hero-projects-surface"
-      aria-hidden="true"
-      webgl={declaration}
-    />
-  );
-}
 
 export function HeroProjectsChapterBody({
   definition,
@@ -47,18 +17,29 @@ export function HeroProjectsChapterBody({
   readonly room: ProjectRoomStore;
   readonly onLayoutChange: () => void;
 }) {
+  const runtime = useWebGLRuntime();
+  const readRuntimeReady = useCallback(
+    () => runtime.getDebugState().ready,
+    [runtime],
+  );
+  const runtimeReady = useSyncExternalStore(
+    runtime.subscribe,
+    readRuntimeReady,
+    () => false,
+  );
   const snapshot = useSyncExternalStore(
     room.subscribe,
     room.getSnapshot,
     room.getServerSnapshot,
   );
+  const ready = runtimeReady && snapshot.ready;
   useEffect(() => {
     onLayoutChange();
-  }, [snapshot.ready, onLayoutChange]);
+  }, [ready, onLayoutChange]);
   const bodyId = `chapter-${definition.ordinal}-body`;
   const projects = content.body.sections;
   const selected = projects[snapshot.selected];
-  const controlsEnabled = snapshot.ready && snapshot.active;
+  const controlsEnabled = ready && snapshot.active;
   const ui =
     locale === "zh"
       ? {
@@ -87,7 +68,7 @@ export function HeroProjectsChapterBody({
       end="bottom bottom"
       scrub
       aria-labelledby={bodyId}
-      data-room-ready={snapshot.ready}
+      data-room-ready={ready}
       data-room-active={controlsEnabled}
       data-room-selected={snapshot.selected}
       data-room-settled={snapshot.settled}
@@ -111,7 +92,7 @@ export function HeroProjectsChapterBody({
                   href={project.link.href}
                   target="_blank"
                   rel="noreferrer"
-                  tabIndex={snapshot.ready ? -1 : undefined}
+                  tabIndex={ready ? -1 : undefined}
                 >
                   {project.link.label} ↗
                 </a>

@@ -1,7 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
 import { wrapRoomText } from "../../src/recipes/project-room/artwork";
-import { fitProjectRoomSurface } from "../../src/recipes/project-room/effect";
-import { createProjectRoomDeclaration } from "../../src/recipes/project-room/ProjectRoom";
 import {
   defaultProjectRoomPalette,
   projectRoomColors,
@@ -35,17 +33,6 @@ const items = [
 ] satisfies ProjectRoomItems;
 
 describe("project room recipe", () => {
-  test("fills the screen-camera frustum before the pass maps it into an inset component", () => {
-    const position = { x: 0, y: 0, z: 0, set: vi.fn() };
-    const scale = { x: 1, y: 1, z: 1, set: vi.fn(), setScalar: vi.fn() };
-    // Even a 700×520 DOM component uses the runtime's 1440×900 camera frame.
-    fitProjectRoomSurface({ position, scale }, { width: 1440, height: 900 });
-    expect(position.set).toHaveBeenCalledWith(720, 450, 0);
-    expect(scale.set).toHaveBeenCalledWith(1440, 900, 1);
-    fitProjectRoomSurface({ position, scale }, { width: 800, height: 600 });
-    expect(position.set).toHaveBeenLastCalledWith(400, 300, 0);
-    expect(scale.set).toHaveBeenLastCalledWith(800, 600, 1);
-  });
   test("wraps exactly four walls and notifies only semantic changes", () => {
     const room = createProjectRoomStore();
     const listener = vi.fn();
@@ -126,19 +113,6 @@ describe("project room recipe", () => {
     expect(() =>
       projectRoomColors({ background: "red", foreground: "#ffffff" }),
     ).toThrow("#RRGGBB");
-    const room = createProjectRoomStore();
-    const declaration = createProjectRoomDeclaration("one.room", {
-      items,
-      room,
-      palette: defaultProjectRoomPalette,
-    });
-    expect(declaration.key).toBe("one.room.surface");
-    expect(declaration.pointer).toEqual({ hover: true });
-    expect(declaration.effects?.[0]).toMatchObject({
-      kind: "recipe.project-room",
-      items,
-      room,
-    });
   });
 
   test("wraps long tokens, CJK and explicit paragraphs without dropping text", () => {

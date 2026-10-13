@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is an npm-workspaces monorepo for a public DOM-first WebGL
+This repository is an npm-workspaces monorepo for a public React/R3F DOM coordination
 runtime, optional scroll adapters, consumer examples, and a versioned
 development skill.
 
@@ -53,16 +53,14 @@ Do not change tests to hide a real correctness failure. Do not use `skip`,
 - Keep module import safe for SSR. Runtime source must not touch `window` or
   `document` at module load.
 - Keep lifecycle disposal idempotent with a `disposed` guard.
-- Runtime-core asynchronous flows use promises and `isPromiseLike()` rather
-  than introducing broad `async` control flow.
 - `node:*` imports belong only in tests and scripts.
 
 ## Public API changes
 
-Public behavior must remain declaration-driven and runtime-owned. New
-capabilities must not expose raw Three.js renderer, scene, camera, object,
-material, texture, loader, mixer, raycaster, render target, scheduling, or
-disposal ownership.
+Public APIs coordinate DOM layout, progress, fallback and availability. Use
+native R3F/Three.js scene components, materials, loaders and animation directly.
+R3F owns the single renderer loop; do not reintroduce scene declarations,
+material facades or duplicate engine subsystems.
 
 When a public type or export changes:
 
@@ -115,6 +113,42 @@ git diff --check
 Release work additionally uses `npm run verify:release`. That command includes
 version, tarball, external-consumer, and skill verification and can be
 substantially slower than normal development checks.
+
+## Publish an alpha release
+
+Core and scroll adapters use one `<major>.<minor>.<patch>-alpha.<number>`
+version. Choose an unused version after checking both packages with `npm view`.
+
+1. Run `npm run release:version -- <version>` to align the manifests, lockfile,
+   app consumers and skill compatibility declaration. Update the skill template,
+   coverage map and capability reference to that version, then run
+   `npm run skill:api:generate`.
+2. Align current guides, package READMEs and migration instructions. Keep
+   publication state in `docs/STATUS.md` pending until registry readback succeeds.
+3. Run `npm run verify:release` and `git diff --check`. Review the diff and commit
+   the verified source. Next.js may rewrite `next-env.d.ts` during builds; keep
+   unrelated generated changes out of the commit.
+4. Push the release commit to `main` through the normal reviewed integration
+   path. The `npm-release` environment currently permits only this branch.
+5. Dispatch the existing release workflow against that commit's branch:
+
+   ```bash
+   gh workflow run release.yml --ref main -f version=<version>
+   ```
+
+6. Approve the workflow's `npm-release` environment gate when authorized to
+   publish. The workflow reruns all release checks, publishes core before
+   adapters with `--tag alpha --provenance`, and verifies registry metadata.
+   It uses the configured CI publishing identity; local npm login is unnecessary.
+7. Confirm the run's source commit and successful conclusion, then read back
+   both packages with `npm view <package>@<version> --json` and
+   `npm view <package> dist-tags --json`. Update `docs/STATUS.md` with the verified
+   release and commit/push that documentation follow-up.
+
+The publisher can resume a partial release only when an existing version's
+integrity and metadata match the locally packed artifact. Never overwrite or
+unpublish a version to repair a mismatch. The `latest` tag is a separate channel
+and is not advanced by this alpha workflow.
 
 ## Commit checklist
 

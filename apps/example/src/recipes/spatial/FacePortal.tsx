@@ -62,7 +62,6 @@ export function FacePortal({
   const params = useMemo(
     () =>
       ({
-        kind: "recipe.spatial.mesh",
         stage,
         palette,
         motion: defaultMotion,

@@ -1,254 +1,96 @@
-import { createElement, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { extend } from "@react-three/fiber";
+import * as THREE from "three";
+
+extend({
+  Mesh: THREE.Mesh,
+  Group: THREE.Group,
+  Object3D: THREE.Object3D,
+  PlaneGeometry: THREE.PlaneGeometry,
+  BoxGeometry: THREE.BoxGeometry,
+  TetrahedronGeometry: THREE.TetrahedronGeometry,
+  MeshStandardMaterial: THREE.MeshStandardMaterial,
+  MeshBasicMaterial: THREE.MeshBasicMaterial,
+  AmbientLight: THREE.AmbientLight,
+  PointLight: THREE.PointLight,
+});
+Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {
+  configurable: true,
+  value: true,
+});
+
+import { createElement } from "react";
+import { create } from "@react-three/test-renderer";
+import { Mesh, MeshStandardMaterial } from "three";
 import { describe, expect, test, vi } from "vitest";
+import {
+  InteractiveFloor,
+  InteractiveModel,
+} from "../src/ManagedInteractionExample";
 
-const sceneProps: SceneMockProps[] = [];
-const cameraProps: CameraMockProps[] = [];
-const stagePlaneProps: MeshMockProps[] = [];
-const stageBoxProps: MeshMockProps[] = [];
-const lightProps: LightMockProps[] = [];
-const modelProps: ModelMockProps[] = [];
-const targetProps: TargetMockProps[] = [];
-const passViewportProps: PassViewportMockProps[] = [];
+const useClonedModel = vi.hoisted(() => vi.fn());
+vi.mock("../src/useClonedModel", () => ({ useClonedModel }));
 
-type SceneMockProps = {
-  readonly id: string;
-  readonly projection?: string;
-  readonly render?: Record<string, unknown>;
-  readonly children?: ReactNode;
-};
+describe("native scene picking", () => {
+  test("real mesh hover and click mutate its owned native material", async () => {
+    const renderer = await create(createElement(InteractiveFloor));
+    const floor = renderer.scene.findByProps({
+      name: "example.interaction.floor",
+    });
+    if (
+      !(floor.instance instanceof Mesh) ||
+      !(floor.instance.material instanceof MeshStandardMaterial)
+    )
+      throw new Error("Missing floor material");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(floor.instance.material.opacity).toBe(0.68);
+    await renderer.fireEvent(floor, "pointerOver");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(floor.instance.material.opacity).toBe(0.92);
+    await renderer.fireEvent(floor, "pointerOut");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(floor.instance.material.opacity).toBe(0.68);
+    await renderer.fireEvent(floor, "click");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(floor.instance.material.opacity).toBe(1);
+    expect(floor.instance.rotation.x).toBeCloseTo(-Math.PI / 2);
+    await renderer.unmount();
+  });
 
-type CameraMockProps = {
-  readonly id: string;
-  readonly default?: boolean;
-  readonly type?: string;
-  readonly mode?: string;
-  readonly fov?: number;
-  readonly position?: readonly [number, number, number];
-  readonly target?: readonly [number, number, number];
-  readonly controller?: Record<string, unknown>;
-};
-
-type MeshMockProps = {
-  readonly id: string;
-  readonly geometry: {
-    readonly kind: string;
-    readonly role?: string;
-    readonly size?: readonly number[];
-  };
-  readonly position?: readonly [number, number, number];
-  readonly rotation?: readonly [number, number, number];
-  readonly material?: Record<string, unknown>;
-  readonly effects?: readonly Record<string, unknown>[];
-  readonly interaction?: Record<string, unknown>;
-  readonly physics?: Record<string, unknown>;
-};
-
-type LightMockProps = {
-  readonly id: string;
-  readonly kind: string;
-  readonly intensity?: number;
-  readonly position?: readonly [number, number, number];
-  readonly color?: string;
-};
-
-type ModelMockProps = {
-  readonly id: string;
-  readonly src: string;
-  readonly loader?: Record<string, unknown>;
-  readonly position?: readonly [number, number, number];
-  readonly rotation?: readonly [number, number, number];
-  readonly scale?: number | readonly [number, number, number];
-  readonly prepare?: Record<string, unknown>;
-  readonly effects?: readonly Record<string, unknown>[];
-  readonly interaction?: Record<string, unknown>;
-  readonly physics?: Record<string, unknown>;
-};
-
-type TargetMockProps = {
-  readonly as?: keyof HTMLElementTagNameMap;
-  readonly children?: ReactNode;
-  readonly className?: string;
-  readonly webgl: {
-    readonly key: string;
-    readonly sceneId?: string;
-    readonly source?: Record<string, unknown>;
-    readonly placement?: Record<string, unknown>;
-    readonly lifecycle?: Record<string, unknown>;
-    readonly effects?: readonly Record<string, unknown>[];
-  };
-};
-
-type PassViewportMockProps = {
-  readonly id: string;
-  readonly as?: string;
-  readonly className?: string;
-  readonly "aria-hidden"?: boolean | "true" | "false";
-  readonly children?: ReactNode;
-};
-
-vi.mock("@viselora/dom-webgl/react", () => ({
-  WebGLPassViewport: ({ children, ...props }: PassViewportMockProps) => {
-    const { as, ...domProps } = props;
-    passViewportProps.push({ ...props, children });
-    return createElement(as ?? "div", domProps, children);
-  },
-  WebGLScene: ({ children, ...props }: SceneMockProps) => {
-    sceneProps.push({ ...props, children });
-    return createElement("div", { "data-webgl-scene": props.id }, children);
-  },
-  WebGLCamera: (props: CameraMockProps) => {
-    cameraProps.push(props);
-    return null;
-  },
-  WebGLMesh: (props: MeshMockProps) => {
-    (props.geometry.kind === "plane" ? stagePlaneProps : stageBoxProps).push(props);
-    return null;
-  },
-  WebGLModel: (props: ModelMockProps) => {
-    modelProps.push(props);
-    return null;
-  },
-  WebGLLight: (props: LightMockProps) => {
-    lightProps.push(props);
-    return null;
-  },
-  WebGLTarget: ({ as = "div", children, webgl, ...props }: TargetMockProps) => {
-    targetProps.push({ as, children, webgl });
-    return createElement(as, props, children);
-  },
-}));
-
-describe("ManagedInteractionExample", () => {
-  test("declares rich camera gesture and picking dogfood on the interaction scene", async () => {
-    const { ManagedInteractionExample } = await import(
-      "../src/ManagedInteractionExample"
-    );
-
-    const markup = renderToStaticMarkup(createElement(ManagedInteractionExample));
-
-    expect(markup).toContain("example-interaction-dogfood");
-    expect(markup).toContain("managed interaction");
-    expect(markup).not.toContain("screen-plane");
-    expect(markup).not.toContain("example-interaction-card");
-    expect(passViewportProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.viewport",
-        as: "div",
-        className: "example-interaction-viewport",
-        "aria-hidden": "true",
-      }),
-    ]);
-    expect(sceneProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.scene",
-        projection: "perspective-stage",
-        render: {
-          camera: "example.interaction.camera",
-          order: -7,
-          clearDepth: true,
-          viewport: { mode: "dom-rect", scissor: true },
-        },
-      }),
-    ]);
-    expect(cameraProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.camera",
-        default: true,
-        type: "perspective",
-        mode: "perspective-stage",
-        fov: 42,
-        position: [120, 132, 620],
-        target: [120, -78, -70],
-        controller: {
-          pointer: {
-            orbit: {
-              drag: { button: "primary" },
-              target: [120, -78, -70],
-              sensitivity: [0.0035, 0.003],
-              minPolarAngle: 0.52,
-              maxPolarAngle: 1.42,
-              minDistance: 240,
-              maxDistance: 980,
-            },
-            pan: {
-              drag: { button: "secondary" },
-              sensitivity: [0.9, 0.9],
-            },
-            dolly: {
-              drag: { button: "primary", modifier: "alt" },
-              sensitivity: 1.4,
-              minDistance: 240,
-              maxDistance: 980,
-            },
-            parallax: {
-              scope: "camera",
-              strength: [16, 8],
-              maxOffset: [28, 16],
-            },
-            damping: { factor: 0.18, settleEpsilon: 0.001 },
-            reset: { onDoubleClick: true, durationMs: 220 },
-          },
-        },
-      }),
-    ]);
-    expect(stagePlaneProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.floor",
-        geometry: { kind: "plane", role: "floor", size: [820, 460] },
-        position: [0, -180, -70],
-        material: { kind: "standard", color: "#23322f", roughness: 0.72 },
-        effects: [
-          {
-            kind: "example.sceneObjectHoverPulse",
-            baseOpacity: 0.68,
-            hoverOpacity: 0.92,
-            clickOpacity: 1,
-          },
-        ],
-        interaction: {
-          pickable: {
-            hitTest: "mesh",
-            pointer: { hover: true, click: true },
-          },
-        },
-      }),
-    ]);
-    expect(stageBoxProps).toEqual([]);
-    expect(modelProps).toEqual([
-      expect.objectContaining({
-        id: "example.interaction.hero",
-        src: "/models/hero.glb",
-        position: [160, -180, -70],
-        rotation: [0, -0.36, 0],
-        scale: 14,
-        prepare: { renderWarmup: "idle" },
-        effects: [
-          {
-            kind: "example.sceneObjectHoverPulse",
-            baseOpacity: 0.86,
-            hoverOpacity: 1,
-            clickOpacity: 1,
-          },
-        ],
-        interaction: {
-          pickable: {
-            hitTest: "bounds",
-            pointer: { hover: true, press: true, click: true, drag: true },
-          },
-        },
-      }),
-    ]);
-    expect(targetProps).toEqual([]);
-    expect(lightProps).toEqual([
-      { id: "example.interaction.ambient", kind: "ambient", intensity: 0.34 },
-      {
-        id: "example.interaction.key",
-        kind: "point",
-        color: "#8bd6ca",
-        intensity: 2.35,
-        position: [-160, 160, 180],
-      },
-    ]);
+  test("model interaction owns material clones without mutating or disposing the GLTF cache", async () => {
+    const cachedMaterial = new MeshStandardMaterial({ color: "#d8d8d8" });
+    const geometry = new THREE.BoxGeometry();
+    const cachedScene = new THREE.Group();
+    cachedScene.add(new Mesh(geometry, cachedMaterial));
+    const scene = cachedScene.clone(true);
+    useClonedModel.mockReturnValue({ scene });
+    const disposeCachedMaterial = vi.spyOn(cachedMaterial, "dispose");
+    const disposeCachedGeometry = vi.spyOn(geometry, "dispose");
+    const renderer = await create(createElement(InteractiveModel));
+    const model = renderer.scene.findByProps({
+      name: "example.interaction.hero",
+    });
+    const mesh = scene.children[0];
+    if (
+      !(mesh instanceof Mesh) ||
+      !(mesh.material instanceof MeshStandardMaterial)
+    )
+      throw new Error("Missing model material");
+    const ownedMaterial = mesh.material;
+    const disposeOwnedMaterial = vi.spyOn(ownedMaterial, "dispose");
+    expect(ownedMaterial).not.toBe(cachedMaterial);
+    expect(ownedMaterial.color.getHexString()).toBe("d8d8d8");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(ownedMaterial.opacity).toBe(0.86);
+    await renderer.fireEvent(model, "pointerOver");
+    await renderer.advanceFrames(1, 1 / 60);
+    expect(ownedMaterial.opacity).toBe(1);
+    expect(cachedMaterial.opacity).toBe(1);
+    expect(cachedMaterial.transparent).toBe(false);
+    await renderer.unmount();
+    expect(disposeOwnedMaterial).toHaveBeenCalledOnce();
+    expect(disposeCachedMaterial).not.toHaveBeenCalled();
+    expect(disposeCachedGeometry).not.toHaveBeenCalled();
+    cachedMaterial.dispose();
+    geometry.dispose();
   });
 });

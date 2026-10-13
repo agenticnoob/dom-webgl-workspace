@@ -1,4 +1,4 @@
-import type { WebGLEffectLightsFacade } from "@viselora/dom-webgl";
+import type { PointLight } from "three";
 
 export type HeroPointerLightState = {
   readonly reducedMotion: boolean;
@@ -60,7 +60,7 @@ export function resolveHeroPointerLightTarget({
 }
 
 export function updateHeroPointerLight(
-  lights: WebGLEffectLightsFacade | undefined,
+  light: PointLight | undefined,
   state: HeroPointerLightState,
   input: HeroPointerLightInput,
 ): void {
@@ -92,20 +92,13 @@ export function updateHeroPointerLight(
     }
   }
 
-  lights?.point(heroPointerLightKey, {
-    color: "#f0f0f0",
-    intensity: state.intensity,
-    distance: 1.8,
-    decay: 3,
-    position: [state.x, state.y, state.z],
-    follow: "none",
-  });
-}
-
-export function disposeHeroPointerLight(
-  lights: WebGLEffectLightsFacade | undefined,
-): void {
-  lights?.remove(heroPointerLightKey);
+  if (light) {
+    light.color.set("#f0f0f0");
+    light.intensity = state.intensity;
+    light.distance = 1.8;
+    light.decay = 3;
+    light.position.set(state.x, state.y, state.z);
+  }
 }
 
 function clamp(value: number, min: number, max: number): number {

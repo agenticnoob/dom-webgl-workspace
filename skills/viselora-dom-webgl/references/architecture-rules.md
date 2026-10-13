@@ -1,49 +1,13 @@
-# Architecture Rules
+# Ownership rules
 
-Compatible package version: 0.1.0-alpha.2
+Keep one R3F host with native scene children. Viselora coordinates DOM layout,
+progress, fallback and availability. Do not rebuild loaders, material controls,
+scene registries or a renderer loop inside the runtime.
 
-## One managed ownership path
+Use public package entrypoints. Keep application assets, copy, shader programs
+and scene behavior in the application. Use refs and frame callbacks for fast
+visual changes; use React state for actual UI changes.
 
-- Mount one runtime and one canvas for the page: `WebGLScrollRuntime` or
-  `WebGLRuntime`, never both.
-- Keep one scroll source and one pointer source. Use managed timeline/progress
-  and target/scene pointer declarations instead of component/window listeners.
-- Let the runtime own renderer, scenes, cameras, loaders, frame loop, resources,
-  scheduling and disposal.
-- Do not add R3F, raw `WebGLRenderer`, a second renderer/canvas/runtime, raw
-  Three.js ownership or a consumer render loop.
-- The only narrow Three.js exception is a stable
-  `geometry: { kind: "custom", create }` descriptor. The consumer declares
-  `three` directly; each call returns a fresh `BufferGeometry`, while the
-  runtime validates, owns and disposes it. The factory runs at runtime, not SSR
-  module evaluation, and grants no scene/renderer/camera/object/material/loader
-  or scheduling ownership.
-
-## Stable React declarations
-
-- Define effect definitions and the runtime effect array at module scope.
-- Keep runtime effects, scroll integration and mounted target declarations
-  reference-stable.
-- Remount with a new key when source/effects/scroll/pointer/lifecycle changes.
-- Mount image sequences only after a complete stable frame declaration exists.
-
-## Semantic DOM and fallback
-
-- Keep semantic DOM responsible for content, layout, accessibility, controls
-  and fallback.
-- Keep loading/error fallback visible; choose `restore-dom` or `park`
-  deliberately and restore fallback on disposal.
-- Keep buttons, links, forms and navigation as accessible DOM controls.
-- Hover must have touch or scroll parity; reduced motion must preserve meaning.
-- The runtime Canvas z-index 0 sits below the React content z-index 1. Keep the
-  content stage transparent; an opaque overlay hides WebGL even when debug is
-  ready/attached. Put opaque/radial backgrounds on the runtime ancestor.
-
-## Assets and effects
-
-- Enforce a no production hotlink rule. Store assets locally with source,
-  author, license, purpose, modifications, metadata and fallback.
-- Use only controlled `ctx.object`, `ctx.runtime`, progress, pointer and resource
-  facades. Dispose effect-owned handles through `ctx.resources`/`dispose`.
-- Treat postprocess as canvas/pass scoped. Do not use it as object-local glow.
-- Leave DOM-fitted model placement runtime-owned unless takeover is intentional.
+DOM remains readable before readiness and after rendering failure. Do not
+blank a page while a model loads. Custom textures and cloned/shared loader
+assets have explicit owners. Cleanup must survive StrictMode and route changes.

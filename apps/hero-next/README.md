@@ -13,7 +13,7 @@ reversible exit that preselects the following portal content under full cover.
 The chapters cover self, AI/philosophy axioms, public builds, and
 public channels. Chapter two is a scroll-driven circular title index
 and a stack of differently sized, postage-edged article sheets, rendered through
-one managed surface in the existing scene. Scroll continuously drives their
+one native ShaderMaterial plane in the existing scene. Scroll continuously drives their
 right-side arc arrivals; only overflowing text adds a reading segment before
 the next sheet. Article data, sizing and motion configuration stay in `src/axioms/`;
 see [the reader design and extension guide](./docs/visual-design.md#第二章扇面目录与文章纸卡).
@@ -45,8 +45,8 @@ balanced heading, model exclusion, and profile speech bubble. Both tiles are
 packed up front, so exit switches to the prepared endpoint without rebuilding or
 uploading a texture on scroll, while face-space UV lock advances continuously
 with the approach. The Hub keeps its no-spin breathing and floating motion with
-stronger damped pointer parallax. Its single managed
-material combines existing directional lighting with an app-owned Fresnel edge
+stronger damped pointer parallax. Its single native
+MeshStandardMaterial combines existing directional lighting with an app-owned Fresnel edge
 light and reduced flat/emissive fill for clearer depth; the edge light fades as
 the target face reaches full screen lock. No ground plane, shadow map, outline
 mesh, duplicate tetrahedron, or additional render pass is used.
@@ -148,32 +148,41 @@ npm run build -w @viselora/hero-next
 - CSS owns semantic DOM layout, accessible theme tokens, stacking, overflow,
   and pointer routing; it does not own the triangular transition window.
 - WebGL geometry, face projection, triangular reveal, lighting, shader behavior,
-  and motion belong to public package declarations and app-owned effects.
-- Do not add raw Three.js ownership, a second renderer, private package imports,
-  duplicate visual state, or a Hero-specific package branch.
-- Keep runtime/effect declarations referentially stable.
+  and motion belong to R3F components, native Three.js objects and app-owned shaders.
+- R3F owns the single renderer and frame loop. The app owns native scene objects,
+  shaders and its generated textures; Runtime owns DOM binding and fallback.
+- Use public package imports and stable Canvas options/stores. Do not add a second
+  renderer, duplicate visual state or a Hero-specific package branch.
+- `useGLTF` owns cached asset loading. Dispose cloned materials and app-created
+  textures without disposing the shared cached model.
 
 ## Source map
 
-| Responsibility                                                  | Path                                                                                                                                     |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Page/runtime composition and subscriptions                      | `src/experience/`                                                                                                                        |
-| Chapter identity, signals, face, and atlas mapping              | `src/chapters/definitions.ts`                                                                                                            |
-| Chapter content, semantic composition, and locale control       | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
-| Chapter-one profile body, model declaration, and scroll effect  | `src/profile/`                                                                                                                           |
-| Chapter-two circular index, article sheets, typesetting, and managed reader effect | `src/axioms/` |
-| Chapter-three project room, pointer navigation, and semantic controls | `src/projects/` |
-| Chapter-four public directory, previews, and endpoint artwork | `src/signals/` |
-| Reversible scroll, geometry, layout, and atlas                  | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts`                             |
-| Theme and locale persistence                                    | `src/preferences/`                                                                                                                       |
-| Hold/radial/portal state, palette/config, and progress encoding | `src/transition/`                                                                                                                        |
-| Tetrahedron effect and managed shader                           | `src/tetrahedron/`                                                                                                                       |
-| Background, cursor, and pointer-light effects                   | `src/ghost/`                                                                                                                             |
-| Shared viewport boundary                                        | `src/shared/viewport.ts`                                                                                                                 |
-| App constraints                                                 | `AGENTS.md`                                                                                                                              |
-| Current visual direction                                        | `docs/visual-design.md`                                                                                                                  |
+| Responsibility                                                                    | Path                                                                                                                                     |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Page/runtime composition and subscriptions                                        | `src/experience/`                                                                                                                        |
+| Chapter identity, signals, face, and atlas mapping                                | `src/chapters/definitions.ts`                                                                                                            |
+| Chapter content, semantic composition, and locale control                         | `src/chapters/content.ts`, `src/chapters/HeroChapterNarrative.tsx`, `src/chapters/HeroChapter.tsx`, `src/chapters/HeroLocaleControl.tsx` |
+| Chapter-one profile body, native GLB component and scroll math                    | `src/profile/`                                                                                                                           |
+| Chapter-two circular index, article sheets, typesetting, and R3F reader component | `src/axioms/`                                                                                                                            |
+| Chapter-three project room, pointer navigation, and semantic controls             | `src/projects/`                                                                                                                          |
+| Chapter-four public directory, previews, and endpoint artwork                     | `src/signals/`                                                                                                                           |
+| Reversible scroll, geometry, layout, and atlas                                    | `src/chapters/scrollState.ts`, `src/chapters/geometry.ts`, `src/chapters/layout.ts`, `src/chapters/atlas.ts`                             |
+| Theme and locale persistence                                                      | `src/preferences/`                                                                                                                       |
+| Hold/radial/portal state, palette/config, and progress encoding                   | `src/transition/`                                                                                                                        |
+| R3F tetrahedron component and native material shader                              | `src/tetrahedron/`                                                                                                                       |
+| R3F background, cursor and native point light                                     | `src/ghost/`                                                                                                                             |
+| Shared viewport boundary                                                          | `src/shared/viewport.ts`                                                                                                                 |
+| App constraints                                                                   | `AGENTS.md`                                                                                                                              |
+| Current visual direction                                                          | `docs/visual-design.md`                                                                                                                  |
 
 ## Current evidence boundary
+
+The current workspace has migrated to R3F and native Three.js. Pure chapter,
+scroll, atlas, model-frame and interaction tests remain in place; component
+tests now verify native materials and the shared Canvas/DOM composition.
+Migration-era verification is recorded in the app's visual design document;
+superseded browser records are archived.
 
 Current automated coverage, desktop/mobile interaction evidence, and remaining
 diagnostics are owned by [the visual direction](./docs/visual-design.md#当前验证边界).

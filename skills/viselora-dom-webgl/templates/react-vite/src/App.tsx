@@ -1,88 +1,74 @@
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import type { WebGLDeclaration } from "@viselora/dom-webgl";
-import { WebGLTarget } from "@viselora/dom-webgl/react";
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import type { Mesh } from "three";
 import {
-  WebGLScrollRuntime,
-  WebGLScrollTimeline,
-} from "@viselora/scroll-adapters/react";
+  useDOMTarget,
+  WebGLRuntime,
+  WebGLTarget,
+} from "@viselora/dom-webgl/react";
 
-import { runtimeEffects } from "./effects";
+function HeadingHighlight() {
+  const target = useDOMTarget("heading");
+  const mesh = useRef<Mesh>(null);
 
-gsap.registerPlugin(ScrollTrigger);
+  useFrame(({ size }) => {
+    if (!mesh.current) return;
+    mesh.current.visible = Boolean(target?.visible);
+    if (!target) return;
+    const { left, top, width, height } = target.rect;
+    mesh.current.position.set(
+      left + width / 2 - size.width / 2,
+      size.height / 2 - top - height / 2,
+      0,
+    );
+    mesh.current.scale.set(width + 32, height + 24, 1);
+  });
 
-const imageDeclaration = {
-  key: "story.product-image",
-  source: {
-    kind: "media",
-    type: "image",
-    src: "/media/product-source.svg",
-  },
-  pointer: { hover: true },
-  timeline: {
-    id: "story.product-progress",
-    progressKey: "story.product-progress",
-  },
-  lifecycle: {
-    hideWhenReady: true,
-    hideMode: "self",
-    offscreen: { strategy: "restore-dom" },
-  },
-  effects: [
-    { kind: "story.imageHover" },
-    { kind: "story.imageScroll", progressKey: "story.product-progress" },
-  ],
-} satisfies WebGLDeclaration;
+  return (
+    <mesh ref={mesh} visible={false}>
+      <planeGeometry />
+      <meshBasicMaterial color="#9d8cff" transparent opacity={0.28} />
+    </mesh>
+  );
+}
 
 export function App() {
   return (
-    <WebGLScrollRuntime effects={runtimeEffects}>
+    <WebGLRuntime
+      canvas={{
+        orthographic: true,
+        camera: { position: [0, 0, 500] },
+        frameloop: "demand",
+      }}
+      scene={<HeadingHighlight />}
+    >
       <main>
-        <header className="hero">
-          <p className="eyebrow">Viselora story template</p>
-          <h1>A semantic page, enhanced by one managed canvas.</h1>
+        <header>
+          <p className="eyebrow">Viselora · React Three Fiber</p>
+          <WebGLTarget id="heading">
+            <h1>
+              The document leads.
+              <br />
+              The canvas follows.
+            </h1>
+          </WebGLTarget>
           <p>
-            The document remains readable before assets load, when WebGL fails,
-            and when reduced motion is preferred.
+            Scroll or resize: a native Three.js plane follows this heading. The
+            heading stays readable while WebGL loads or is unavailable.
           </p>
         </header>
-
-        <WebGLScrollTimeline
-          id="story.product-progress"
-          start="top bottom"
-          end="bottom top"
-          scrub
-          ScrollTrigger={ScrollTrigger}
-        >
-          <section className="product-beat" aria-labelledby="product-title">
-            <div>
-              <p className="eyebrow">Beat 02</p>
-              <h2 id="product-title">Hover, touch, or keep scrolling.</h2>
-              <p>
-                Hover adds a managed source-preserving treatment. Touch users
-                and reduced-motion users receive the same message through copy
-                and scroll progress, without hover-only meaning.
-              </p>
-            </div>
-            <WebGLTarget as="figure" webgl={imageDeclaration}>
-              <img
-                src="/media/product-source.svg"
-                alt="Layered cyan product study on a dark field"
-              />
-              <figcaption>Local CC0 demonstration artwork.</figcaption>
-            </WebGLTarget>
-          </section>
-        </WebGLScrollTimeline>
-
-        <section className="closing-beat">
-          <p className="eyebrow">Beat 03–04</p>
-          <h2>Evidence before polish.</h2>
+        <section aria-labelledby="ownership">
+          <h2 id="ownership">One runtime, ordinary scene components.</h2>
           <p>
-            Replace this copy and local asset only after the story plan,
-            capability manifest, and browser assertions are complete.
+            Viselora measures DOM anchors and coordinates progress and fallback.
+            Use React Three Fiber and Three.js directly for your visual scene.
           </p>
+          <a href="#heading-note">Continue reading</a>
         </section>
+        <footer id="heading-note">
+          Semantic content remains ordinary HTML.
+        </footer>
       </main>
-    </WebGLScrollRuntime>
+    </WebGLRuntime>
   );
 }

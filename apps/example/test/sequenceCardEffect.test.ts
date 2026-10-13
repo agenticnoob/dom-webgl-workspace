@@ -1,282 +1,74 @@
 import { describe, expect, test, vi } from "vitest";
-
-import type { WebGLEffectCanvasDrawer } from "@viselora/dom-webgl";
-
-import { createEffectContext } from "./effectContext";
-
 import {
-  exampleSequenceCardBorderGlowEffect,
-  exampleSequenceCardSlideEffect,
+  drawSequenceCardSurface,
+  readSequenceCardGlow,
+  readSequenceCardMotion,
 } from "../src/sequenceCardEffect";
 
-describe("sequence card example effect", () => {
-  test("slides a DOM card through the image sequence using adapter progress", () => {
-    const target = {
-      setOpacity: vi.fn(),
-      setPosition: vi.fn(),
-      setVisible: vi.fn(),
-    };
-    const context = createEffectContext({
-      progress: { get: () => 0.5 },
-      layout: {
-        left: 120,
-        top: 240,
-        width: 420,
-        height: 164,
-        viewport: { width: 1280, height: 720 },
-      },
-      source: {
-        kind: "dom",
-        type: "element",
-        element: document.createElement("aside"),
-        surface: {},
-      },
-      target,
+describe("native sequence card", () => {
+  test("enters from the left, rests, and exits to the right reversibly", () => {
+    expect(readSequenceCardMotion(0, 280)).toEqual({
+      offsetX: -280,
+      presence: 0,
     });
-
-    exampleSequenceCardSlideEffect.update(context, undefined, {
-      kind: "example.sequenceCardSlide",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      minOpacity: 0.18,
-      maxOpacity: 0.82,
+    expect(readSequenceCardMotion(0.5, 280)).toEqual({
+      offsetX: 0,
+      presence: 1,
     });
-
-    expect(exampleSequenceCardSlideEffect.source).toBe("dom/element");
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setOpacity).toHaveBeenCalledWith(0.82);
-    expect(target.setPosition).toHaveBeenCalledWith(330, 398, 0);
+    expect(readSequenceCardMotion(1, 280)).toEqual({
+      offsetX: 280,
+      presence: 0,
+    });
+    for (const [progress, offset] of [
+      [0.19, -140],
+      [0.81, 140],
+      [0.19, -140],
+    ]) {
+      const motion = readSequenceCardMotion(progress, 280);
+      expect(motion.offsetX).toBeCloseTo(offset);
+      expect(motion.presence).toBeCloseTo(0.5);
+    }
   });
-
-  test("keeps the card half transparent while it waits off the left edge", () => {
-    const target = {
-      setOpacity: vi.fn(),
-      setPosition: vi.fn(),
-      setVisible: vi.fn(),
-    };
-    const context = createEffectContext({
-      progress: { get: () => 0 },
-      layout: {
-        left: 120,
-        top: 240,
-        width: 420,
-        height: 164,
-        viewport: { width: 1280, height: 720 },
-      },
-      source: {
-        kind: "dom",
-        type: "element",
-        element: document.createElement("aside"),
-        surface: {},
-      },
-      target,
-    });
-
-    exampleSequenceCardSlideEffect.update(context, undefined, {
-      kind: "example.sequenceCardSlide",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      minOpacity: 0.18,
-      maxOpacity: 0.82,
-    });
-
-    expect(target.setVisible).toHaveBeenCalledWith(true);
-    expect(target.setOpacity).toHaveBeenCalledWith(0.18);
-    expect(target.setPosition).toHaveBeenCalledWith(50, 398, 0);
+  test("draws the card surface separately from its semantic text", () => {
+    const ctx = createCanvasContextStub();
+    const glow = readSequenceCardGlow(
+      { active: false, x: 0, y: 0 },
+      { width: 420, height: 164 },
+      {},
+    );
+    drawSequenceCardSurface(ctx, 420, 164, glow);
+    expect(ctx.fillText).not.toHaveBeenCalled();
+    expect(ctx.strokeCount).toBe(1);
   });
-
-  test("projects pinned DOM layout without reading runtime scene internals", () => {
-    const target = {
-      setOpacity: vi.fn(),
-      setPosition: vi.fn(),
-      setVisible: vi.fn(),
-    };
-    const context = createEffectContext({
-      progress: { get: () => 0.5 },
-      layout: {
-        left: 120,
-        top: -256,
-        width: 420,
-        height: 164,
-        viewport: { width: 1280, height: 720 },
-      },
-      source: {
-        kind: "dom",
-        type: "element",
-        element: document.createElement("aside"),
-        surface: {},
-      },
-      target,
-    });
-
-    exampleSequenceCardSlideEffect.update(context, undefined, {
-      kind: "example.sequenceCardSlide",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      minOpacity: 0.18,
-      maxOpacity: 0.82,
-    });
-
-    expect(target.setPosition).toHaveBeenCalledWith(330, 894, 0);
+  test("projects local pointer to the nearest border and adds edge glow", () => {
+    const ctx = createCanvasContextStub();
+    const glow = readSequenceCardGlow(
+      { active: true, x: 405, y: 82 },
+      { width: 420, height: 164 },
+      { edgeSensitivity: 0.3, glowIntensity: 1 },
+    );
+    expect(glow.edgeX).toBe(420);
+    expect(glow.edgeY).toBe(82);
+    drawSequenceCardSurface(ctx, 420, 164, glow);
+    expect(ctx.createRadialGradient).toHaveBeenCalled();
+    expect(ctx.shadowBlurValues).toContain(32);
+    expect(ctx.strokeCount).toBeGreaterThan(2);
   });
-
-  test("draws the nested card surface instead of moving an empty element plane", () => {
-    let drawSurface: WebGLEffectCanvasDrawer | undefined;
-    const setVisible = vi.fn();
-    const setOpacity = vi.fn();
-    const context2d = createCanvasContextStub();
-    const element = document.createElement("aside");
-    const title = document.createElement("strong");
-    const copy = document.createElement("span");
-    title.textContent = "嵌套 WebGLTarget";
-    copy.textContent = "图片序列只负责 pinned scrub，卡片作为 sibling 跟随页面滚动。";
-    element.append(title, copy);
-    const context = createEffectContext({
-      progress: { get: () => 0.5 },
-      layout: { width: 420, height: 164, devicePixelRatio: 1 },
-      source: {
-        kind: "dom",
-        type: "element",
-        element,
-        surface: {
-          draw(drawer) {
-            drawSurface = drawer;
-          },
-          setVisible,
-          setOpacity,
-        },
-      },
-      target: {
-        setOpacity: vi.fn(),
-        setPosition: vi.fn(),
-        setVisible: vi.fn(),
-      },
-    });
-
-    exampleSequenceCardBorderGlowEffect.update(context, undefined, {
-      kind: "example.sequenceCardBorderGlow",
-    });
-    drawSurface?.({
-      canvas: document.createElement("canvas"),
-      context: context2d,
-      width: 420,
-      height: 164,
-      devicePixelRatio: 1,
-    });
-
-    expect(drawSurface).toBeDefined();
-    expect(setVisible).toHaveBeenCalledWith(true);
-    expect(setOpacity).toHaveBeenCalledWith(1);
-    expect(context2d.fillText).not.toHaveBeenCalled();
-  });
-
-  test("adds pointer-driven border glow when the cursor is near the card edge", () => {
-    let drawSurface: WebGLEffectCanvasDrawer | undefined;
-    const context2d = createCanvasContextStub();
-    const element = document.createElement("aside");
-    const title = document.createElement("strong");
-    const copy = document.createElement("span");
-    title.textContent = "Border glow";
-    copy.textContent = "Mouse edge glow";
-    element.append(title, copy);
-    const context = createEffectContext({
-      progress: { get: () => 0.5 },
-      layout: {
-        left: 100,
-        top: 120,
-        width: 420,
-        height: 164,
-        viewport: { width: 1280, height: 720 },
-      },
-      pointer: { isInside: true, x: 505, y: 202 },
-      source: {
-        kind: "dom",
-        type: "element",
-        element,
-        surface: {
-          draw(drawer) {
-            drawSurface = drawer;
-          },
-        },
-      },
-      target: {
-        setOpacity: vi.fn(),
-        setPosition: vi.fn(),
-        setVisible: vi.fn(),
-      },
-    });
-
-    exampleSequenceCardBorderGlowEffect.update(context, undefined, {
-      kind: "example.sequenceCardBorderGlow",
-      edgeSensitivity: 0.3,
-      glowIntensity: 1,
-    });
-    drawSurface?.({
-      canvas: document.createElement("canvas"),
-      context: context2d,
-      width: 420,
-      height: 164,
-      devicePixelRatio: 1,
-    });
-
-    expect(context2d.createRadialGradient).toHaveBeenCalled();
-    expect(context2d.shadowBlurValues).toContain(32);
-    expect(context2d.strokeCount).toBeGreaterThan(2);
-  });
-
-  test("tracks pointer glow against the WebGL-translated card position", () => {
-    let drawSurface: WebGLEffectCanvasDrawer | undefined;
-    const context2d = createCanvasContextStub();
-    const element = document.createElement("aside");
-    const title = document.createElement("strong");
-    const copy = document.createElement("span");
-    title.textContent = "Translated card";
-    copy.textContent = "Pointer follows WebGL position";
-    element.append(title, copy);
-    const context = createEffectContext({
-      progress: { get: () => 1 },
-      layout: {
-        left: 120,
-        top: 240,
-        width: 420,
-        height: 164,
-        viewport: { width: 1280, height: 720 },
-      },
-      pointer: { isInside: true, x: 812, y: 322 },
-      source: {
-        kind: "dom",
-        type: "element",
-        element,
-        surface: {
-          draw(drawer) {
-            drawSurface = drawer;
-          },
-        },
-      },
-      target: {
-        setOpacity: vi.fn(),
-        setPosition: vi.fn(),
-        setVisible: vi.fn(),
-      },
-    });
-
-    exampleSequenceCardBorderGlowEffect.update(context, undefined, {
-      kind: "example.sequenceCardBorderGlow",
-      progressKey: "example.video.scrub",
-      travel: 280,
-      edgeSensitivity: 0.3,
-      glowIntensity: 1,
-    });
-    drawSurface?.({
-      canvas: document.createElement("canvas"),
-      context: context2d,
-      width: 420,
-      height: 164,
-      devicePixelRatio: 1,
-    });
-
-    expect(context2d.createRadialGradient).toHaveBeenCalled();
-    expect(context2d.strokeCount).toBeGreaterThan(2);
+  test("center and outside pointers cannot light an edge", () => {
+    expect(
+      readSequenceCardGlow(
+        { active: true, x: 210, y: 82 },
+        { width: 420, height: 164 },
+        {},
+      ).glowOpacity,
+    ).toBe(0);
+    expect(
+      readSequenceCardGlow(
+        { active: false, x: 420, y: 82 },
+        { width: 420, height: 164 },
+        {},
+      ).glowOpacity,
+    ).toBe(0);
   });
 });
 

@@ -10,7 +10,7 @@ This directory contains the repository's current project documentation.
   boundaries, and non-goals.
 - [guides/getting-started.md](./guides/getting-started.md) — install and first
   React integration.
-- [guides/effects.md](./guides/effects.md) — controlled effect authoring.
+- [guides/effects.md](./guides/effects.md) — native R3F effects and DOM text.
 - [guides/scroll.md](./guides/scroll.md) — native scroll, progress timelines,
   Lenis, GSAP, and ScrollTrigger.
 - [archive/README.md](./archive/README.md) — historical records and archive

@@ -1,59 +1,45 @@
-import { defineWebGLEffect } from "@viselora/dom-webgl";
-
 import { clampNumber } from "./effectMath";
 
-type ManagedTimelineCardParams = {
-  kind: "example.managedTimelineCard";
-  progressKey: string;
-};
-
-export const exampleManagedTimelineCardEffect =
-  defineWebGLEffect<ManagedTimelineCardParams>({
-    kind: "example.managedTimelineCard",
-    source: "dom/element",
-    schedule: "frame",
-    update(ctx, _state, params) {
-      const surface = ctx.object.surface;
-      if (!surface) {
-        return;
-      }
-
-      const progress = readManagedTimelineProgress(ctx, params.progressKey);
-      const entry = smoothstep(0.12, 0.38, progress);
-      const travel = smoothstep(0.2, 0.68, progress);
-      const presence = clampNumber(entry, 0, 1, 0);
-      const visible = (ctx.scene?.timeline?.active ?? true) && presence > 0.02;
-
-      ctx.object.visible = visible;
-      ctx.object.opacity = visible ? 0.12 + presence * 0.88 : 0;
-      ctx.object.rotation.set(0, -0.28 + travel * 0.46, 0);
-      surface.draw(({ context, width, height }) => {
-        drawTimelineCard(context, width, height, progress, presence);
-      });
-      surface.setVisible?.(visible);
-      surface.setOpacity?.(visible ? 0.2 + presence * 0.8 : 0);
-    },
-  });
-
-function readManagedTimelineProgress(
-  ctx: Parameters<typeof exampleManagedTimelineCardEffect.update>[0],
-  progressKey: string,
-): number {
-  const runtimeProgress = ctx.runtime.progress.get(progressKey);
-  const timelineProgress = ctx.scene?.timeline?.progress ?? runtimeProgress;
-  if (timelineProgress > 0) {
-    return clampNumber(timelineProgress, 0, 1, 0);
-  }
-  return clampNumber(ctx.scrollProgress, 0, 1, 0);
+export function readTimelineCardFrame(progress: number) {
+  const presence = smoothstep(0.12, 0.38, progress);
+  const travel = smoothstep(0.2, 0.68, progress);
+  const visible = presence > 0.02;
+  return {
+    presence,
+    visible,
+    opacity: visible ? (0.12 + presence * 0.88) * (0.2 + presence * 0.8) : 0,
+    rotationY: -0.28 + travel * 0.46,
+  };
 }
 
-function smoothstep(edge0: number, edge1: number, value: number): number {
+export function smoothstep(
+  edge0: number,
+  edge1: number,
+  value: number,
+): number {
   const t = clampNumber((value - edge0) / (edge1 - edge0), 0, 1, 0);
   return t * t * (3 - 2 * t);
 }
 
-function drawTimelineCard(
-  context: CanvasRenderingContext2D,
+export function drawTimelineCard(
+  context: Pick<
+    CanvasRenderingContext2D,
+    | "clearRect"
+    | "save"
+    | "restore"
+    | "globalAlpha"
+    | "fillStyle"
+    | "font"
+    | "textBaseline"
+    | "fillText"
+    | "fillRect"
+    | "fill"
+    | "beginPath"
+    | "moveTo"
+    | "lineTo"
+    | "quadraticCurveTo"
+    | "closePath"
+  >,
   width: number,
   height: number,
   progress: number,
@@ -71,7 +57,14 @@ function drawTimelineCard(
 
   context.globalAlpha = 0.24;
   context.fillStyle = "#fff3bf";
-  roundRect(context, inset, inset, width - inset * 2, height - inset * 2, radius * 0.72);
+  roundRect(
+    context,
+    inset,
+    inset,
+    width - inset * 2,
+    height - inset * 2,
+    radius * 0.72,
+  );
   context.fill();
 
   context.globalAlpha = 1;
@@ -86,12 +79,20 @@ function drawTimelineCard(
 
   context.globalAlpha = 0.5 + presence * 0.35;
   context.fillStyle = "#172124";
-  context.fillRect(inset * 1.35, height - inset * 1.35, (width - inset * 2.7) * progress, 4);
+  context.fillRect(
+    inset * 1.35,
+    height - inset * 1.35,
+    (width - inset * 2.7) * progress,
+    4,
+  );
   context.restore();
 }
 
 function roundRect(
-  context: CanvasRenderingContext2D,
+  context: Pick<
+    CanvasRenderingContext2D,
+    "beginPath" | "moveTo" | "lineTo" | "quadraticCurveTo" | "closePath"
+  >,
   x: number,
   y: number,
   width: number,
@@ -104,7 +105,12 @@ function roundRect(
   context.lineTo(x + width - safeRadius, y);
   context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
   context.lineTo(x + width, y + height - safeRadius);
-  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  context.quadraticCurveTo(
+    x + width,
+    y + height,
+    x + width - safeRadius,
+    y + height,
+  );
   context.lineTo(x + safeRadius, y + height);
   context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
   context.lineTo(x, y + safeRadius);

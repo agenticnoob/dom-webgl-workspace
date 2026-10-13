@@ -11,22 +11,8 @@ import {
   FacePortalDemo,
   ReliefPortalDemo,
 } from "./recipe-demos/SpatialDemos";
-import { paperReaderEffects } from "./recipes/paper-reader";
-import { projectRoomEffects } from "./recipes/project-room";
-import { modelStoryEffects } from "./recipes/model-story";
-import { spatialEffects } from "./recipes/spatial";
-import { perspectiveTimelineEffects } from "./recipes/perspective-timeline";
 import { recipeCatalog, type RecipeId } from "./recipes/catalog";
 import "./recipe-examples.css";
-
-/** Register once in the same runtime that owns the basic examples. */
-export const recipeEffects = [
-  ...paperReaderEffects,
-  ...projectRoomEffects,
-  ...modelStoryEffects,
-  ...spatialEffects,
-  ...perspectiveTimelineEffects,
-];
 
 const demos = {
   "paper-reader": PaperReaderDemo,
@@ -58,12 +44,6 @@ export function RecipeExamples() {
                 <br />
                 源码与接入说明：
                 <code>apps/example/src/recipes/{recipe.module}/README.md</code>
-                {recipe.effects && (
-                  <>
-                    <br />
-                    在共享 runtime 注册 <code>{recipe.effects}</code>。
-                  </>
-                )}
               </EffectDescription>
             </div>
             <Demo />

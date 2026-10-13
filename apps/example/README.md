@@ -3,9 +3,10 @@
 `@viselora/example` is the Vite/React public-API dogfood application for the
 Viselora packages.
 
-It demonstrates DOM targets, text/media/model sources, custom effects, managed
-scenes and pass viewports, timelines, scene-native meshes/models, interaction,
-postprocess, model animation, and the bounded physics descriptor surface.
+It demonstrates a single Runtime host with native R3F/Drei Views, Three.js
+textures and materials, GLTF animation, scroll progress, OrbitControls and
+pointer events, Three.js postprocessing, and Rapier physics. Viselora manages
+DOM registration, fallback, progress and lifecycle; the app owns visual code.
 
 Open `/` to scroll through the basic effects and all nine Hero Next specimens
 on the same page. Each specimen is rendered directly as a full-width effect row.
@@ -30,7 +31,8 @@ npm run build -w @viselora/example
 
 ## Boundary
 
-- Import only from `@viselora/dom-webgl`,
+- Use React, R3F, Drei, Three.js and ecosystem packages directly. Import Viselora
+  only from `@viselora/dom-webgl`,
   `@viselora/dom-webgl/react`, `@viselora/scroll-adapters`, and
   `@viselora/scroll-adapters/react`.
 - Do not import package source paths.

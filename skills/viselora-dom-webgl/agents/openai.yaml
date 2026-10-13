@@ -1,4 +1,4 @@
 interface:
   display_name: "Viselora Development"
-  short_description: "Build verified scroll narratives with public Viselora packages"
-  default_prompt: "Use $viselora-dom-webgl to turn my brief into a DOM-first scroll narrative with local licensed assets, selected public capabilities, and browser-backed verification."
+  short_description: "Build React/R3F scenes with DOM runtime coordination"
+  default_prompt: "Use $viselora-dom-webgl to build or migrate my React or Next.js experience with native R3F/Three.js visuals and a small DOM runtime."

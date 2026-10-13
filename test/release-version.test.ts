@@ -22,14 +22,30 @@ afterEach(() => {
 });
 
 describe("release version management", () => {
-  test("keeps the current release candidate lockstep at alpha.2", () => {
+  test("keeps the React-only release candidate lockstep at 0.2.0-alpha.0", () => {
     const result = spawnSync(process.execPath, [cliPath, "--check"], {
       cwd: repoRoot,
       encoding: "utf8",
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Release versions OK: 0.1.0-alpha.2");
+    expect(result.stdout).toContain("Release versions OK: 0.2.0-alpha.0");
+  });
+
+  test("resolves both app consumers to workspace packages without nested registry copies", () => {
+    const lock = readJson(repoRoot, "package-lock.json");
+    for (const [name, workspace] of [
+      ["@viselora/dom-webgl", "packages/dom-webgl-runtime"],
+      ["@viselora/scroll-adapters", "packages/dom-webgl-scroll-adapters"],
+    ]) {
+      expect(lock.packages[`node_modules/${name}`]).toEqual({
+        resolved: workspace,
+        link: true,
+      });
+      for (const app of ["apps/example", "apps/hero-next"]) {
+        expect(lock.packages[`${app}/node_modules/${name}`]).toBeUndefined();
+      }
+    }
   });
 
   test("accepts a complete lockstep alpha state", () => {
@@ -49,6 +65,10 @@ describe("release version management", () => {
       ["dependency", (root) => setJson(root, "packages/dom-webgl-scroll-adapters/package.json", ["dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
       ["appRuntime", (root) => setJson(root, "apps/example/package.json", ["dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
       ["appAdapters", (root) => setJson(root, "apps/example/package.json", ["dependencies", "@viselora/scroll-adapters"], "0.1.0-alpha.1")],
+      ["heroRuntime", (root) => setJson(root, "apps/hero-next/package.json", ["dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
+      ["heroAdapters", (root) => setJson(root, "apps/hero-next/package.json", ["dependencies", "@viselora/scroll-adapters"], "0.1.0-alpha.1")],
+      ["lockHeroRuntime", (root) => setJson(root, "package-lock.json", ["packages", "apps/hero-next", "dependencies", "@viselora/dom-webgl"], "0.1.0-alpha.1")],
+      ["lockHeroAdapters", (root) => setJson(root, "package-lock.json", ["packages", "apps/hero-next", "dependencies", "@viselora/scroll-adapters"], "0.1.0-alpha.1")],
       ["skill", (root) => replace(root, "skills/viselora-dom-webgl/SKILL.md", "0.1.0-alpha.0", "0.1.0-alpha.1")],
       ["lockfile", (root) => setJson(root, "package-lock.json", ["packages", "packages/dom-webgl-runtime", "version"], "0.1.0-alpha.1")],
     ];
@@ -62,7 +82,7 @@ describe("release version management", () => {
     }
   });
 
-  test("updates both packages, the exact dependency, skill, app, and lockfile", () => {
+  test("updates both packages, exact dependencies, skill, both apps, and lockfile", () => {
     const root = createFixture("0.1.0-alpha.0");
 
     const result = runCli(root, "0.1.0-alpha.3");
@@ -75,12 +95,16 @@ describe("release version management", () => {
       dependency: "0.1.0-alpha.3",
       appRuntime: "0.1.0-alpha.3",
       appAdapters: "0.1.0-alpha.3",
+      heroRuntime: "0.1.0-alpha.3",
+      heroAdapters: "0.1.0-alpha.3",
       skill: "0.1.0-alpha.3",
       lockRuntime: "0.1.0-alpha.3",
       lockAdapters: "0.1.0-alpha.3",
       lockDependency: "0.1.0-alpha.3",
       lockAppRuntime: "0.1.0-alpha.3",
       lockAppAdapters: "0.1.0-alpha.3",
+      lockHeroRuntime: "0.1.0-alpha.3",
+      lockHeroAdapters: "0.1.0-alpha.3",
     });
   });
 
@@ -117,6 +141,7 @@ function createFixture(version: string): string {
   mkdirSync(resolve(root, "packages/dom-webgl-runtime"), { recursive: true });
   mkdirSync(resolve(root, "packages/dom-webgl-scroll-adapters"), { recursive: true });
   mkdirSync(resolve(root, "apps/example"), { recursive: true });
+  mkdirSync(resolve(root, "apps/hero-next"), { recursive: true });
   mkdirSync(resolve(root, "skills/viselora-dom-webgl"), { recursive: true });
   writeJson(root, "packages/dom-webgl-runtime/package.json", {
     name: "@viselora/dom-webgl",
@@ -135,6 +160,14 @@ function createFixture(version: string): string {
       "@viselora/scroll-adapters": version,
     },
   });
+  writeJson(root, "apps/hero-next/package.json", {
+    name: "@viselora/hero-next",
+    version: "0.0.0",
+    dependencies: {
+      "@viselora/dom-webgl": version,
+      "@viselora/scroll-adapters": version,
+    },
+  });
   writeFileSync(
     resolve(root, "skills/viselora-dom-webgl/SKILL.md"),
     `---\nname: viselora-dom-webgl\ndescription: Fixture.\n---\n\nCompatible package version: ${version}\n`,
@@ -145,6 +178,13 @@ function createFixture(version: string): string {
     packages: {
       "apps/example": {
         name: "@viselora/example",
+        dependencies: {
+          "@viselora/dom-webgl": version,
+          "@viselora/scroll-adapters": version,
+        },
+      },
+      "apps/hero-next": {
+        name: "@viselora/hero-next",
         dependencies: {
           "@viselora/dom-webgl": version,
           "@viselora/scroll-adapters": version,
@@ -195,6 +235,12 @@ function readVersionState(root: string) {
     appAdapters: readJson(root, "apps/example/package.json").dependencies[
       "@viselora/scroll-adapters"
     ],
+    heroRuntime: readJson(root, "apps/hero-next/package.json").dependencies[
+      "@viselora/dom-webgl"
+    ],
+    heroAdapters: readJson(root, "apps/hero-next/package.json").dependencies[
+      "@viselora/scroll-adapters"
+    ],
     skill,
     lockRuntime: lock.packages["packages/dom-webgl-runtime"].version,
     lockAdapters: lock.packages["packages/dom-webgl-scroll-adapters"].version,
@@ -206,6 +252,10 @@ function readVersionState(root: string) {
       lock.packages["apps/example"].dependencies["@viselora/dom-webgl"],
     lockAppAdapters:
       lock.packages["apps/example"].dependencies["@viselora/scroll-adapters"],
+    lockHeroRuntime:
+      lock.packages["apps/hero-next"].dependencies["@viselora/dom-webgl"],
+    lockHeroAdapters:
+      lock.packages["apps/hero-next"].dependencies["@viselora/scroll-adapters"],
   };
 }
 
@@ -215,6 +265,7 @@ function snapshot(root: string): Record<string, string> {
       "packages/dom-webgl-runtime/package.json",
       "packages/dom-webgl-scroll-adapters/package.json",
       "apps/example/package.json",
+      "apps/hero-next/package.json",
       "skills/viselora-dom-webgl/SKILL.md",
       "package-lock.json",
     ].map((path) => [path, readFileSync(resolve(root, path), "utf8")]),

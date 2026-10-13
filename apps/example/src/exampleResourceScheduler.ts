@@ -1,23 +1,17 @@
 import { useEffect, useState } from "react";
 
-import type { WebGLImageSequenceFrame } from "@viselora/dom-webgl";
-
 export type ExampleResourceState = {
-  readonly imageSequenceFrames: readonly WebGLImageSequenceFrame[];
+  readonly imageSequenceFrames: readonly HTMLImageElement[];
   readonly imageSequenceReady: boolean;
-  readonly modelReady: boolean;
 };
 
 const imageSequenceFrameCount = 454;
 const imageSequenceConcurrency = 6;
 
 type ExampleResourceLoad = {
-  readonly imageSequenceComplete: Promise<readonly WebGLImageSequenceFrame[]>;
-  readonly imageSequenceReady: Promise<readonly WebGLImageSequenceFrame[]>;
-  readonly modelReady: Promise<boolean>;
+  readonly imageSequenceReady: Promise<readonly HTMLImageElement[]>;
   readonly all: Promise<{
-    readonly imageSequenceFrames: readonly WebGLImageSequenceFrame[];
-    readonly modelReady: boolean;
+    readonly imageSequenceFrames: readonly HTMLImageElement[];
   }>;
 };
 
@@ -27,7 +21,6 @@ export function useExampleResources(): ExampleResourceState {
   const [state, setState] = useState<ExampleResourceState>({
     imageSequenceFrames: [],
     imageSequenceReady: false,
-    modelReady: false,
   });
 
   useEffect(() => {
@@ -43,15 +36,6 @@ export function useExampleResources(): ExampleResourceState {
         }));
       }
     });
-    resources.modelReady.then((modelReady) => {
-      if (active) {
-        setState((current) => ({
-          ...current,
-          modelReady,
-        }));
-      }
-    });
-
     return () => {
       active = false;
     };
@@ -61,8 +45,7 @@ export function useExampleResources(): ExampleResourceState {
 }
 
 export function loadExampleResources(): Promise<{
-  readonly imageSequenceFrames: readonly WebGLImageSequenceFrame[];
-  readonly modelReady: boolean;
+  readonly imageSequenceFrames: readonly HTMLImageElement[];
 }> {
   return startExampleResourceLoad().all;
 }
@@ -72,9 +55,6 @@ function startExampleResourceLoad(): ExampleResourceLoad {
     return resourceLoad;
   }
 
-  const firstImage = loadImage("/example/image.png");
-  const backgroundImage = loadImage("/example/bg.png");
-  const videoMetadata = loadVideoMetadata("/example/video.mp4");
   const imageSequence = loadImageSequenceFrames({
     count: imageSequenceFrameCount,
     concurrency: imageSequenceConcurrency,
@@ -82,26 +62,12 @@ function startExampleResourceLoad(): ExampleResourceLoad {
       return `/example/bg-sequence/frame_${String(frame).padStart(4, "0")}.webp`;
     },
   });
-  const heroModelReady = warmModel("/models/hero.glb");
-  const fourModelReady = warmModel("/models/4.glb");
-  const modelReady = Promise.all([heroModelReady, fourModelReady]).then((results) =>
-    results.every(Boolean),
-  );
-  const all = Promise.all([
-    firstImage,
-    backgroundImage,
-    videoMetadata,
-    imageSequence.complete,
-    modelReady,
-  ]).then(([_firstImage, _backgroundImage, _videoMetadata, frames, model]) => ({
+  const all = imageSequence.complete.then((frames) => ({
     imageSequenceFrames: frames,
-    modelReady: model,
   }));
 
   resourceLoad = {
-    imageSequenceComplete: imageSequence.complete,
     imageSequenceReady: imageSequence.ready,
-    modelReady,
     all,
   };
 
@@ -123,35 +89,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return Promise.resolve(image);
 }
 
-function loadVideoMetadata(src: string): Promise<void> {
-  const video = document.createElement("video");
-  video.preload = "metadata";
-  video.src = src;
-
-  return new Promise((resolve) => {
-    let settled = false;
-    const settle = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve();
-    };
-
-    video.addEventListener("loadedmetadata", settle, { once: true });
-    video.addEventListener("error", settle, { once: true });
-    video.load();
-    window.setTimeout(settle, 3_000);
-  });
-}
-
 function loadImageSequenceFrames(options: {
   readonly count: number;
   readonly concurrency: number;
   srcForFrame(frame: number): string;
 }): {
-  readonly complete: Promise<readonly WebGLImageSequenceFrame[]>;
-  readonly ready: Promise<readonly WebGLImageSequenceFrame[]>;
+  readonly complete: Promise<readonly HTMLImageElement[]>;
+  readonly ready: Promise<readonly HTMLImageElement[]>;
 } {
   const frames = new Array<HTMLImageElement>(options.count);
   let nextFrame = 2;
@@ -178,7 +122,12 @@ function loadImageSequenceFrames(options: {
     return loadFrame(frame).then(loadNextFrame);
   };
   const workers = Array.from(
-    { length: Math.min(Math.max(0, options.concurrency - 1), Math.max(0, options.count - 1)) },
+    {
+      length: Math.min(
+        Math.max(0, options.concurrency - 1),
+        Math.max(0, options.count - 1),
+      ),
+    },
     loadNextFrame,
   );
   const complete = Promise.all([ready, ...workers]).then(() => frames);
@@ -187,17 +136,4 @@ function loadImageSequenceFrames(options: {
     complete,
     ready,
   };
-}
-
-async function warmModel(src: string): Promise<boolean> {
-  if (typeof fetch !== "function") {
-    return true;
-  }
-
-  try {
-    const response = await fetch(src, { cache: "force-cache" });
-    return response.ok;
-  } catch {
-    return false;
-  }
 }
