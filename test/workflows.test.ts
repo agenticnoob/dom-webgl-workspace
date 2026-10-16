@@ -52,10 +52,10 @@ describe("Viselora GitHub workflows", () => {
     const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 
     expect(manifest.scripts["skill:api:generate"]).toBe(
-      "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs",
+      "node scripts/generate-skill-api-surface.mjs",
     );
     expect(manifest.scripts["skill:api:check"]).toBe(
-      "node skills/viselora-dom-webgl/scripts/generate-api-surface.mjs --check && node skills/viselora-dom-webgl/scripts/check-api-coverage.mjs",
+      "node scripts/generate-skill-api-surface.mjs --check && node scripts/check-skill-api-coverage.mjs",
     );
     expect(manifest.scripts["verify:skill:template"]).toBe(
       "node ./scripts/verify-skill-template.mjs",

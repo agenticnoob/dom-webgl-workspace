@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   collectPublicApi,
   renderApiSurface,
-} from "./generate-api-surface.mjs";
+} from "./generate-skill-api-surface.mjs";
 
 const skillRoot = "skills/viselora-dom-webgl";
 
@@ -178,13 +178,13 @@ function readError(error) {
 }
 
 function parseCli(argv) {
-  let root = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+  let root = resolve(fileURLToPath(new URL("..", import.meta.url)));
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--root" && argv[index + 1]) {
       root = resolve(argv[index + 1]);
       index += 1;
     } else {
-      throw new Error("Usage: check-api-coverage.mjs [--root <path>]");
+      throw new Error("Usage: check-skill-api-coverage.mjs [--root <path>]");
     }
   }
   return root;

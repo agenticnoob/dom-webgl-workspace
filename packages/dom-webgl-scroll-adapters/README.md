@@ -11,6 +11,14 @@ npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha react@19 r
 npm install lenis gsap
 ```
 
+## AI agents
+
+Coding agents can install the matching usage skill:
+
+```bash
+npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl
+```
+
 ## Entrypoints
 
 - `@viselora/scroll-adapters`: Lenis/GSAP/ScrollTrigger bridges and a shared

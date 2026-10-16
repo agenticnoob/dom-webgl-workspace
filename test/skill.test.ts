@@ -3,12 +3,14 @@ import {
   cpSync,
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 const repoRoot = process.cwd();
@@ -25,12 +27,18 @@ afterEach(() => {
 describe("React/R3F consumer skill", () => {
   test("routes users to the actual public contract and verification scope", () => {
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toMatch(
-      /^---\nname: viselora-dom-webgl\ndescription: .+\n---/,
-    );
+    const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+    expect(frontmatter).toMatch(/^name: viselora-dom-webgl$/m);
+    const description = frontmatter.match(/^description: (.+)$/m)?.[1] ?? "";
+    expect(description.length).toBeGreaterThan(0);
+    expect(description.length).toBeLessThanOrEqual(1024);
+    expect(description).toContain("Use when");
+    expect(frontmatter).toMatch(/^license: MIT$/m);
     expect(skill).toContain("React 19, R3F 9 and Three.js 0.184");
     expect(skill).toContain("breaking React/R3F 0.2 alpha API");
-    expect(skill).toContain("[release status](../../docs/STATUS.md#release-truth)");
+    expect(skill).toContain(
+      "[release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth)",
+    );
     expect(skill).toContain(
       "Static checks do not establish browser visual correctness",
     );
@@ -42,6 +50,27 @@ describe("React/R3F consumer skill", () => {
       "utf8",
     );
     expect(metadata).toContain("$viselora-dom-webgl");
+  });
+
+  test("stays self-contained when installed outside this repository", () => {
+    const escaping = collectSkillFiles(skillRoot)
+      .filter((file) => file.endsWith(".md"))
+      .flatMap((file) =>
+        [...readFileSync(file, "utf8").matchAll(/\]\(([^)#]+)(?:#[^)]*)?\)/g)]
+          .map((match) => match[1])
+          .filter((target) => !/^[a-z][a-z0-9+.-]*:/i.test(target))
+          .filter((target) => {
+            const path = relative(skillRoot, resolve(dirname(file), target));
+            return path.startsWith("..") || isAbsolute(path);
+          })
+          .map((target) => `${relative(skillRoot, file)} -> ${target}`),
+      );
+    expect(escaping).toEqual([]);
+    expect(
+      readdirSync(resolve(skillRoot, "scripts")).filter(
+        (name) => name !== "verify-consumer.mjs",
+      ),
+    ).toEqual([]);
   });
 
   test("ships a small runnable native scene and explicit semantic DOM", () => {
@@ -164,6 +193,14 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     expect(run(root).status).toBe(0);
   });
 });
+
+function collectSkillFiles(directory: string): string[] {
+  return readdirSync(directory).flatMap((entry) => {
+    if (entry === "node_modules") return [];
+    const path = resolve(directory, entry);
+    return statSync(path).isDirectory() ? collectSkillFiles(path) : [path];
+  });
+}
 
 function copyTemplate(): string {
   const root = mkdtempSync(resolve(tmpdir(), "viselora-consumer-contract-"));

@@ -23,7 +23,8 @@ Package and application details stay with their owners:
 - [example app](../apps/example/README.md)
 - [reusable visual components](../apps/example/src/recipes/README.md)
 - [hero app](../apps/hero-next/README.md)
-- [consumer development skill](../skills/viselora-dom-webgl/SKILL.md)
+- [consumer agent skill](../skills/viselora-dom-webgl/SKILL.md), installed with
+  `npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl`
 
 ## Document responsibilities
 
@@ -32,6 +33,7 @@ Package and application details stay with their owners:
 | Root `README.md` | Product discovery, install, minimal example, repository map | Exhaustive API, implementation history |
 | Root `CONTRIBUTING.md` | Human workflow, code/test rules, verification | Current feature status |
 | Root/subtree `AGENTS.md` | Agent execution constraints | Product tutorial or feature diary |
+| Root/subtree `CLAUDE.md` | `@AGENTS.md` import for Claude Code | Any rule of its own |
 | `STATUS.md` | Only repository-wide current truth | Tutorials or detailed design |
 | `ARCHITECTURE.md` | Stable ownership, flow, boundaries, non-goals | Dated status or test logs |
 | `guides/*` | One user task per file | Roadmap, backlog, project diary |

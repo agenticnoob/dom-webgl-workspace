@@ -35,7 +35,12 @@ describe("repository documentation governance", () => {
       .map((file) => displayFrom(docsRoot, file))
       .sort();
 
-    expect(rootMarkdown).toEqual(["AGENTS.md", "CONTRIBUTING.md", "README.md"]);
+    expect(rootMarkdown).toEqual([
+      "AGENTS.md",
+      "CLAUDE.md",
+      "CONTRIBUTING.md",
+      "README.md",
+    ]);
     expect(docsMarkdown).toEqual(activeDocs);
 
     for (const retiredDirectory of [
@@ -117,6 +122,13 @@ describe("repository documentation governance", () => {
     expect(status).toContain(
       `@viselora/scroll-adapters@${adapterPackage.version}`,
     );
+  });
+
+  test("keeps every CLAUDE.md a pure import of its sibling AGENTS.md", () => {
+    for (const directory of [".", "apps/hero-next"]) {
+      expect(existsSync(resolve(repoRoot, directory, "AGENTS.md"))).toBe(true);
+      expect(read(`${directory}/CLAUDE.md`)).toBe("@AGENTS.md\n");
+    }
   });
 
   test("gives every workspace and archive an owner-local entrypoint", () => {

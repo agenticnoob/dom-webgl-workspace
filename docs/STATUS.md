@@ -103,6 +103,13 @@ Use `npm run verify:release` for the package-surface migration. It validates
 publication artifacts without publishing them. Keep implemented, automated,
 browser-verified, committed and pushed states separate.
 
+## Agent skill
+
+`skills/viselora-dom-webgl` is self-contained for installation through the
+`skills` CLI; `npx skills add . --list` discovers exactly this one skill locally.
+Installation from GitHub and the skills.sh listing are not yet verified; they
+depend on the public `main` branch and on CLI installs.
+
 ## Known boundaries
 
 - React 19 and R3F 9 are required; framework-independent consumers are unsupported.

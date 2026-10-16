@@ -1,6 +1,10 @@
 ---
 name: viselora-dom-webgl
-description: Build or migrate a React or Next.js DOM-first visual experience using Viselora for DOM/progress/fallback coordination and React Three Fiber with native Three.js objects for rendering.
+description: Build, migrate or debug React 19 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using the @viselora/dom-webgl and @viselora/scroll-adapters packages. Use when adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D progress (Lenis, GSAP ScrollTrigger), DOM fallback while models load, or when code imports @viselora/*.
+license: MIT
+metadata:
+  author: agenticnoob
+  repository: https://github.com/agenticnoob/dom-webgl-workspace
 ---
 
 # Viselora React/R3F Development
@@ -10,7 +14,7 @@ Compatible package version: 0.2.0-alpha.0
 This skill targets the breaking React/R3F 0.2 alpha API. Install matching package
 versions from the `alpha` channel or use reviewed local tarballs. The 0.1.x
 packages implement a different API. Check the repository
-[release status](../../docs/STATUS.md#release-truth) for registry confirmation.
+[release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth) for registry confirmation.
 
 ## Workflow
 
@@ -43,7 +47,6 @@ packages implement a different API. Check the repository
 | Verification scope | [verification.md](references/verification.md) |
 | Automated capability evidence | [capability-status.md](references/capability-status.md) |
 | Exhaustive exports | [api-surface.generated.md](references/api-surface.generated.md) |
-| Maintainer coverage map | [api-coverage.json](references/api-coverage.json) |
 
 ## Boundaries
 
