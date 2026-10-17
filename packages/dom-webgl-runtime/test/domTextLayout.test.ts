@@ -105,10 +105,11 @@ describe("DOM text layout", () => {
       "Beta",
       "Gamma",
     ]);
+    // 20px lines, 12px content area: 4px half-leading + 10px ascent.
     expect(context.fillText.mock.calls).toEqual([
-      ["Alpha", 10, 10],
-      ["Beta", 10, 30],
-      ["Gamma", 10, 50],
+      ["Alpha", 10, 24],
+      ["Beta", 10, 44],
+      ["Gamma", 10, 64],
     ]);
   });
 
@@ -125,7 +126,7 @@ describe("DOM text layout", () => {
       y: 20,
       width: 10,
       height: 20,
-      baseline: 40,
+      baseline: 34,
     });
   });
 
@@ -162,7 +163,7 @@ describe("DOM text layout", () => {
       width: 50,
     });
     drawDOMText(context, layout);
-    expect(context.fillText).toHaveBeenCalledWith("Title", 160, 70);
+    expect(context.fillText).toHaveBeenCalledWith("Title", 160, 94);
     expect(context.textAlign).toBe("left");
   });
 
@@ -218,9 +219,57 @@ describe("DOM text layout", () => {
     expect(context.translate).toHaveBeenCalledWith(30, 40);
     expect(context.rotate).toHaveBeenCalledWith(0.2);
     expect(context.scale).toHaveBeenCalledWith(1.5, 0.8);
-    expect(context.fillText).toHaveBeenCalledWith("X", 0, 0);
+    expect(context.fillText).toHaveBeenCalledWith("X", 0, 14);
     expect(context.globalAlpha).toBe(0.5);
     expect(context.fillStyle).toBe("red");
     expect(layout.glyphs[1]).toMatchObject({ char: "B", x: 10, y: 0 });
+  });
+
+  test.each([
+    { lineHeight: "16px", resolved: 16, baseline: 12 },
+    { lineHeight: "normal", resolved: 12, baseline: 10 },
+    { lineHeight: "1.5", resolved: 24, baseline: 16 },
+  ])(
+    "places the alphabetic baseline inside CSS half-leading for line-height $lineHeight",
+    ({ lineHeight, resolved, baseline }) => {
+      const context = createContext();
+      const element = createText("Alpha Beta", 60);
+      element.style.lineHeight = lineHeight;
+      const layout = measureDOMText(element, { context });
+      expect(layout.lineHeight).toBe(resolved);
+      expect(layout.lines.map((line) => line.y)).toEqual([0, resolved]);
+      expect(layout.glyphs.map((glyph) => glyph.baseline - glyph.y)).toEqual(
+        layout.glyphs.map(() => baseline),
+      );
+      drawDOMText(context, layout);
+      expect(context.textBaseline).toBe("alphabetic");
+      expect(context.fillText.mock.calls).toEqual([
+        ["Alpha", 0, baseline],
+        ["Beta", 0, resolved + baseline],
+      ]);
+    },
+  );
+
+  test("keeps per-glyph transforms on the line top while drawing on the baseline", () => {
+    const context = createContext();
+    const element = createText("AB CD", 30);
+    element.style.lineHeight = "30px";
+    const layout = measureDOMText(element, { context });
+    drawDOMText(context, layout, [{ index: 2 }]);
+    expect(layout.glyphs[2]).toMatchObject({ char: "C", line: 1, y: 30 });
+    expect(context.translate).toHaveBeenCalledWith(0, 30);
+    expect(context.fillText).toHaveBeenCalledWith("C", 0, 19);
+  });
+
+  test("estimates the content area when the canvas reports no font metrics", () => {
+    const context = createContext();
+    context.measureText.mockImplementation(
+      (text: string) => ({ width: Array.from(text).length * 10 }) as TextMetrics,
+    );
+    const element = createText("Alpha");
+    element.style.lineHeight = "normal";
+    const layout = measureDOMText(element, { context });
+    expect(layout.lineHeight).toBe(20);
+    expect(layout.glyphs[0]?.baseline).toBeCloseTo(14.8);
   });
 });

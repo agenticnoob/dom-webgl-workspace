@@ -42,7 +42,8 @@ coding agent 搭建的「DOM + WebGL」页面质量是否更好？
    line-height 的 half-leading：在 72px 字号下，纹理里的墨迹顶部固定在 5px，而 DOM
    墨迹顶部随 line-height 移动（`1` → 9px，`normal` → 16px，`1.5` → 27px）。
    skill 推荐了这个 helper，但没有提到这个偏差；照 skill 做的 agent 会直接继承这个 bug。
-   这是 `packages/` 的问题，本次没有修改，列为后续工作。
+   源码已在后续提交中修复（尚未发布）：修复后，对照 C 在 `line-height: normal` 下从
+   8.5 分（偏移 −12px）变为 10 分（偏移 0px）。
 3. **`revision` 的用法示例。** 文档只用一句话说明要在 frame 中读取 `revision`。
    它是一个可变字段，变化时不会触发 React 重渲染。写对照实现时我自己就犯了这个错误：resize
    后纹理没有重建，被拉伸显示。一个 recipe 示例就能避免这个问题。
