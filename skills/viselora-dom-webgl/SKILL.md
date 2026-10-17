@@ -16,6 +16,64 @@ versions from the `alpha` channel or use reviewed local tarballs. The 0.1.x
 packages implement a different API. Check the repository
 [release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth) for registry confirmation.
 
+`<skill-dir>` below is the directory containing this file (for example
+`.claude/skills/viselora-dom-webgl` or `.agents/skills/viselora-dom-webgl`).
+
+## Rules that are easy to get wrong
+
+1. **Pin Viselora exactly, without `^` or `~`.** `package.json` must say
+   `"@viselora/dom-webgl": "0.2.0-alpha.0"` (and the same for
+   `@viselora/scroll-adapters` if used). `npm install` writes a caret by
+   default, so use `--save-exact`:
+   `npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.0`.
+   React 19, R3F 9 and Three.js 0.184 may use normal ranges.
+2. **Run the static verifier before finishing:**
+   `node <skill-dir>/scripts/verify-consumer.mjs <project-root>`. It rejects
+   caret pins, private Viselora imports, a second Canvas/WebGLRenderer/R3F
+   root and unsupported React/R3F/Three versions.
+3. **`target.rect`, `target.visible` and `target.revision` are mutable fields.**
+   They update before every frame and do not re-render React. Read them inside
+   `useFrame`. To rebuild a texture when `revision` changes, poll it in
+   `useFrame` and copy it into state; reading it during render leaves a stale,
+   stretched texture after resize or font loading.
+4. **Report readiness only for a visual that exists**, with the captured target:
+   `runtime.setTargetReady(id, true, target)` after the model/texture is
+   created, `false` in the effect cleanup, never on a load error. Wrap the
+   fallback in `<WebGLTarget id hideWhenReady>` so the DOM stays visible while
+   loading, on failure and without WebGL.
+5. **`createDOMTextTexture`/`drawDOMText` ignore CSS half-leading** in
+   0.2.0-alpha.0: the texture sits higher than the DOM text whenever
+   line-height exceeds the font's content height (about 11px at 72px with
+   `line-height: normal`). Use `createAlignedTextTexture` from the text recipe
+   and give the text an explicit line-height. (Fixed in repository source, not
+   yet in a published release.)
+6. **SSR-safe render.** No `window`, `document`, `matchMedia`, loaders or
+   textures in render bodies, `useState` initializers or module scope; create
+   them in `useEffect`. Public Viselora imports are SSR-safe.
+7. **Update shader uniforms through the material ref.** Recent R3F 9 releases copy the
+   values of a `uniforms` prop into the material's own uniform objects, so
+   mutating your memoized object does nothing; write
+   `materialRef.current.uniforms.uTime.value` in `useFrame`.
+8. **Scroll-driven state is a pure function of progress**: no clock, no
+   accumulated deltas, no damping, so reverse scroll and resize restore the same
+   frame. Time-based animation (idle spin, waves) uses `useFrame` delta in
+   seconds and the default `frameloop: "always"`.
+9. **Pixel-space placement**: with `canvas={{ orthographic: true, camera:
+   { position: [0, 0, 1000], far: 4000 } }}` one world unit is one CSS pixel
+   and the centre of a target is
+   `x = left + width / 2 - size.width / 2`, `y = size.height / 2 - top - height / 2`.
+
+## Recipes: copy, then adapt
+
+Each file typechecks against the template and contains a usage example.
+Copy it into the consumer's `src/` instead of rewriting the pattern.
+
+| Pattern | Recipe |
+| --- | --- |
+| GLB model that follows a DOM card, fallback while loading, load error keeps fallback, owned disposal | [recipes/ModelTarget.tsx](recipes/ModelTarget.tsx) |
+| Scroll progress of a story section mapped to deterministic keyframes (reverse scroll and resize safe) | [recipes/ScrollStory.tsx](recipes/ScrollStory.tsx) |
+| DOM text texture with a wave shader, rebuilt on `target.revision`, half-leading-correct | [recipes/TextWave.tsx](recipes/TextWave.tsx) |
+
 ## Workflow
 
 1. Read the consumer's actual scene, DOM and assets before changing ownership.
@@ -28,6 +86,24 @@ packages implement a different API. Check the repository
    readiness to the captured target. Choose resource retention explicitly.
 5. Verify focused behavior, types and builds, then compare actual browser
    pixels, forward/reverse scroll, resize, input and remount behavior.
+
+## Verify
+
+```bash
+node <skill-dir>/scripts/verify-consumer.mjs .
+npx tsc --noEmit
+npm run build
+```
+
+With a dev server running and `playwright-core` installed, check real pixels,
+following, determinism and fallback paths:
+
+```bash
+node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --follow "#card-model" --fallback "#card-model" --block "**/*.glb"
+node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --deterministic --fallback main
+```
+
+Unmount/remount cleanup still needs a test of the consumer component.
 
 ## Load only what the task needs
 
