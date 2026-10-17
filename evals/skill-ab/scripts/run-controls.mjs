@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Grader calibration: builds the empty scaffold, the three hand-written
-// reference implementations and deliberately broken variants in the temp eval
-// root, grades them and compares the failing rubric items with expectations.
+// reference implementations, pages assembled from the skill's recipes
+// (skills/viselora-dom-webgl/recipes, copied into src/recipes/) and
+// deliberately broken variants in the temp eval root, grades them and compares
+// the failing rubric items with expectations.
 //
-//   node evals/skill-ab/scripts/run-controls.mjs [--root DIR]
+//   node evals/skill-ab/scripts/run-controls.mjs [--root DIR] [--only name,name]
 // Requires run-eval.mjs to have prepared <root>/base and <root>/tools.
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,8 +15,11 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const evalRoot = resolve(scriptDir, "..");
-const rootIndex = process.argv.indexOf("--root");
-const root = resolve(rootIndex === -1 ? join(tmpdir(), "viselora-skill-ab") : process.argv[rootIndex + 1]);
+const argValue = (name) => {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+};
+const root = resolve(argValue("--root") ?? join(tmpdir(), "viselora-skill-ab"));
 if (!existsSync(join(root, "base/node_modules"))) throw new Error("run run-eval.mjs first to prepare base/");
 
 const cases = [
@@ -22,6 +27,18 @@ const cases = [
   { name: "control-a", task: "a", app: "a-App.tsx", expectFail: [] },
   { name: "control-b", task: "b", app: "b-App.tsx", expectFail: [] },
   { name: "control-c", task: "c", app: "c-App.tsx", expectFail: [] },
+  { name: "recipe-a", task: "a", app: "recipe-a-App.tsx", recipes: true, expectFail: [] },
+  { name: "recipe-b", task: "b", app: "recipe-b-App.tsx", recipes: true, expectFail: [] },
+  { name: "recipe-c", task: "c", app: "recipe-c-App.tsx", recipes: true, expectFail: [] },
+  {
+    // createDOMTextTexture ignores CSS half-leading: at line-height 1.5 the
+    // texture sits ~22px above the DOM glyphs (the recipe-c page does not).
+    name: "broken-c-helper-leading",
+    task: "c",
+    app: "c-App.tsx",
+    edit: ['lineHeight: 1, margin: 0', 'lineHeight: 1.5, margin: 0'],
+    expectFail: ["scroll_resize", "task_effect"],
+  },
   {
     // Model drawn at the viewport centre instead of following the card.
     name: "broken-a-not-following",
@@ -63,7 +80,9 @@ const controlDeps = [
 ];
 
 let mismatches = 0;
-for (const { name, task, app, edit, expectFail } of cases) {
+const only = argValue("--only")?.split(",");
+for (const { name, task, app, edit, recipes, expectFail } of cases) {
+  if (only && !only.includes(name)) continue;
   const dir = join(root, "calibration", name);
   rmSync(dir, { recursive: true, force: true });
   cpSync(join(root, "base"), dir, { recursive: true, verbatimSymlinks: true });
@@ -75,6 +94,7 @@ for (const { name, task, app, edit, expectFail } of cases) {
       source = source.replace(edit[0], edit[1]);
     }
     writeFileSync(join(dir, "src/App.tsx"), source);
+    if (recipes) cpSync(join(evalRoot, "../../skills/viselora-dom-webgl/recipes"), join(dir, "src/recipes"), { recursive: true });
   }
   must(
     spawnSync(process.execPath, [join(scriptDir, "grade.mjs"), dir, "--task", task, "--tools", join(root, "tools")], {

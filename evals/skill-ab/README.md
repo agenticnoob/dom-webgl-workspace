@@ -163,6 +163,46 @@ claude 的 full B 组更快、更便宜，但 n=3，而且 minimal 组没有出�
 - 检查运行在 Vite dev server 上（StrictMode）和 SwiftShader 上，没有覆盖生产构建的运行时、真实 GPU 和移动设备。
 - prompt 直接点名 Viselora 和版本，减弱了 skill「告诉 agent 用什么」的作用。
 
+## 第二轮：按上述缺口改进 skill（待重跑）
+
+针对「skill 缺少的内容」做了以下修改，尚未用 agent 重跑评测：
+
+- 新增三个可直接复制、在模板里通过 strict typecheck 的 recipe：
+  [`ModelTarget.tsx`](../../skills/viselora-dom-webgl/recipes/ModelTarget.tsx)、
+  [`ScrollStory.tsx`](../../skills/viselora-dom-webgl/recipes/ScrollStory.tsx)、
+  [`TextWave.tsx`](../../skills/viselora-dom-webgl/recipes/TextWave.tsx)。
+  `TextWave.tsx` 自带 `createAlignedTextTexture`，按 CSS half-leading 计算 baseline，
+  绕开 `createDOMTextTexture` 的竖直偏移。源码修复在 c079697（分支 `claude/zealous-varahamihira-774e48`），
+  尚未合并、未发布；评测安装的是 npm 上的 0.2.0-alpha.0，所以 recipe 仍保留这个绕行写法。
+- SKILL.md 正文新增「Rules that are easy to get wrong」：精确版本 pin（`--save-exact`）、
+  运行 `verify-consumer.mjs`、`target.revision` 是可变字段需要在 `useFrame` 轮询、
+  text helper 的 half-leading 问题、uniforms 要通过 material ref 更新等。
+- 新增 skill 自带的浏览器检查脚本 `scripts/browser-check.mjs`（由本目录的
+  `instrument.js` / `grade.mjs` 精简而来，不依赖 `data-testid`）。
+- 校准新增 `recipe-a/b/c`（用 recipe 拼出的页面，期望 10/10）和
+  `broken-c-helper-leading`（对照 C 改成 `line-height: 1.5`，复现 helper 的偏移）。
+  2026-10-17 在 npm 版 0.2.0-alpha.0 上跑完 12 个用例，全部符合预期：recipe-a/b/c 都是 10/10
+  （recipe-c 使用 `line-height: 1.5`），broken-c-helper-leading 8.5（scroll_resize、task_effect）。
+- `browser-check.mjs` 冒烟测试：三个 recipe 页面全部通过；broken-b-time-animation
+  （`--deterministic`）和 broken-a-not-following（`--follow`）都以非零退出码被检出。
+
+写对照页时发现的第二个坑：R3F 9 较新的版本会把 `uniforms` prop 的值复制进材质自己的 uniforms，
+修改 `useMemo` 返回的对象不会生效，WebGL 文字一直是空白（recipe-c 第一版 7/10）。
+已写进 recipe 和 SKILL.md。
+
+重跑时使用新的 root，避免复用第一轮的运行结果（`run-eval.mjs` 会跳过已完成的运行）。
+B 组通过 `npx skills add <repo>` 从本仓库安装 skill，所以要在包含改进后 skill 的 checkout 里运行：
+
+```bash
+node evals/skill-ab/scripts/run-eval.mjs --root "$TMPDIR/viselora-skill-ab-r2" --concurrency 6
+node evals/skill-ab/scripts/run-eval.mjs --root "$TMPDIR/viselora-skill-ab-r2" --variant minimal --concurrency 6
+node evals/skill-ab/scripts/report.mjs --root "$TMPDIR/viselora-skill-ab-r2" --out evals/skill-ab/results-r2.json
+node evals/skill-ab/scripts/run-controls.mjs --root "$TMPDIR/viselora-skill-ab-r2"
+```
+
+只想测 skill 组时加 `--conditions B`，再与第一轮 A 组对比；但每格 n=1，两轮 A 组之间的差异本身就是噪声的估计，建议 A、B 都重跑。
+重点看：claude B 组 `verify-consumer`（精确 pin）是否通过、任务 C 的对齐、生成代码的行数和用时。
+
 ## 复现
 
 ```bash

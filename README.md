@@ -78,7 +78,7 @@ apps/example/                    public API examples
 apps/hero-next/                  Next.js consumer
 packages/dom-webgl-runtime/      @viselora/dom-webgl
 packages/dom-webgl-scroll-adapters/  optional scroll integration
-skills/viselora-dom-webgl/        consumer workflow and runnable template
+skills/viselora-dom-webgl/        consumer workflow, runnable template and recipes
 docs/                           architecture, status and user guides
 ```
 

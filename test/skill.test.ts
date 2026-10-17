@@ -34,7 +34,7 @@ describe("React/R3F consumer skill", () => {
     expect(skill).toContain(
       "Static checks do not establish browser visual correctness",
     );
-    for (const match of skill.matchAll(/\]\((references\/[^)]+)\)/g)) {
+    for (const match of skill.matchAll(/\]\(((?:references|recipes)\/[^)]+)\)/g)) {
       expect(existsSync(resolve(skillRoot, match[1])), match[1]).toBe(true);
     }
     const metadata = readFileSync(
@@ -42,6 +42,46 @@ describe("React/R3F consumer skill", () => {
       "utf8",
     );
     expect(metadata).toContain("$viselora-dom-webgl");
+  });
+
+  test("states the constraints agents miss in the SKILL.md body", () => {
+    // Agents often read only SKILL.md, so these must not live only in references.
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.0"');
+    expect(skill).toContain("--save-exact");
+    expect(skill).toContain("scripts/verify-consumer.mjs");
+    expect(skill).toContain("scripts/browser-check.mjs");
+    expect(skill).toMatch(/`target\.revision`.+mutable/s);
+    expect(skill).toContain("half-leading");
+    for (const recipe of ["ModelTarget.tsx", "ScrollStory.tsx", "TextWave.tsx"]) {
+      expect(skill).toContain(`](recipes/${recipe})`);
+    }
+  });
+
+  test("ships recipes that satisfy the static consumer contract", () => {
+    const root = copyTemplate();
+    cpSync(resolve(skillRoot, "recipes"), resolve(root, "src/recipes"), {
+      recursive: true,
+    });
+    const result = run(root);
+    expect(result.status, result.stderr).toBe(0);
+    const text = readFileSync(resolve(root, "src/recipes/TextWave.tsx"), "utf8");
+    expect(text).toContain("target.revision !== revision");
+    expect(text).not.toContain("createDOMTextTexture(");
+    const model = readFileSync(resolve(root, "src/recipes/ModelTarget.tsx"), "utf8");
+    expect(model).toContain("runtime.setTargetReady(targetId, true, target)");
+    expect(model).toContain("disposeObject");
+  });
+
+  test("ships a browser check that explains its usage", () => {
+    const result = spawnSync(
+      process.execPath,
+      [resolve(skillRoot, "scripts/browser-check.mjs")],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Missing page URL");
+    expect(result.stderr).toContain("--deterministic");
   });
 
   test("ships a small runnable native scene and explicit semantic DOM", () => {
