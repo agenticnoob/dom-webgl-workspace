@@ -42,6 +42,12 @@ Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
 successful publish; a mirror's 404 is not evidence that the official release is
 missing. Production application deployment is separate from npm publication.
 
+**Unreleased source fix:** DOM text layout now places glyphs on the CSS
+alphabetic baseline, including half-leading and font-metric `line-height: normal`.
+The published `0.2.0-alpha.0` draws `drawDOMText`/`createDOMTextTexture` text
+about half the leading too high (for example 11px for 72px text at `normal`).
+`DOMTextGlyph.y` remains the line-box top; `baseline` is now the real baseline.
+
 ## Workspace applications
 
 `apps/example` and `apps/hero-next` are migrated through public package

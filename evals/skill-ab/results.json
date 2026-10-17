@@ -1,0 +1,1253 @@
+{
+  "generatedAt": "2026-10-16T09:33:44.229Z",
+  "rows": [
+    {
+      "id": "claude-a-A",
+      "agent": "claude",
+      "task": "a",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "useLoader",
+          "GLTFLoader"
+        ],
+        "sourceLines": 217
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.831813,
+        "turns": 20,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 201848
+      }
+    },
+    {
+      "id": "claude-a-A-min",
+      "agent": "claude",
+      "task": "a",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "useLoader",
+          "GLTFLoader",
+          "ErrorBoundary"
+        ],
+        "sourceLines": 185
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": false,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.5728894,
+        "turns": 18,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 237912
+      }
+    },
+    {
+      "id": "claude-a-B",
+      "agent": "claude",
+      "task": "a",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "GLTFLoader"
+        ],
+        "sourceLines": 235
+      },
+      "process": {
+        "skillFileMentions": 1,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.7351586000000002,
+        "turns": 23,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 332534
+      }
+    },
+    {
+      "id": "claude-a-B-min",
+      "agent": "claude",
+      "task": "a",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "useLoader",
+          "GLTFLoader"
+        ],
+        "sourceLines": 205
+      },
+      "process": {
+        "skillFileMentions": 57,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/templates/asset-manifest.json",
+          "skills/viselora-dom-webgl/templates/story-plan.md",
+          "skills/viselora-dom-webgl/templates/react-vite/asset-manifest.json",
+          "skills/viselora-dom-webgl/templates/react-vite/viselora.capabilities.json",
+          "skills/viselora-dom-webgl/templates/react-vite/story-plan.md",
+          "skills/viselora-dom-webgl/templates/react-vite/package.json",
+          "skills/viselora-dom-webgl/templates/react-vite/tsconfig.json",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/templates/react-vite/src/main.tsx"
+        ],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.5649284,
+        "turns": 19,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 168145
+      }
+    },
+    {
+      "id": "claude-b-A",
+      "agent": "claude",
+      "task": "b",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useWebGLRuntime"
+        ],
+        "sourceLines": 271
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": false,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.9811095999999998,
+        "turns": 32,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 1154418
+      }
+    },
+    {
+      "id": "claude-b-A-min",
+      "agent": "claude",
+      "task": "b",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useWebGLRuntime"
+        ],
+        "sourceLines": 270
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.4809726000000001,
+        "turns": 17,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 463152
+      }
+    },
+    {
+      "id": "claude-b-B",
+      "agent": "claude",
+      "task": "b",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime"
+        ],
+        "sourceLines": 284
+      },
+      "process": {
+        "skillFileMentions": 2,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/references/api-surface.generated.md"
+        ],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.8599805999999999,
+        "turns": 28,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 210584
+      }
+    },
+    {
+      "id": "claude-b-B-min",
+      "agent": "claude",
+      "task": "b",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget"
+        ],
+        "sourceLines": 194
+      },
+      "process": {
+        "skillFileMentions": 1,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.606327,
+        "turns": 21,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 160717
+      }
+    },
+    {
+      "id": "claude-c-A",
+      "agent": "claude",
+      "task": "c",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "measureDOMText"
+        ],
+        "sourceLines": 397
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 1.4196825999999998,
+        "turns": 31,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 434848
+      }
+    },
+    {
+      "id": "claude-c-A-min",
+      "agent": "claude",
+      "task": "c",
+      "condition": "A",
+      "total": 8.83,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 0.5,
+        "scroll_resize": 0.33,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "createDOMTextTexture"
+        ],
+        "sourceLines": 207
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.6043628,
+        "turns": 20,
+        "viseloraSkillCalls": 0
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 131170
+      }
+    },
+    {
+      "id": "claude-c-B",
+      "agent": "claude",
+      "task": "c",
+      "condition": "B",
+      "total": 8.83,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 0.5,
+        "scroll_resize": 0.33,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "createDOMTextTexture"
+        ],
+        "sourceLines": 213
+      },
+      "process": {
+        "skillFileMentions": 1,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.8277264,
+        "turns": 27,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 214226
+      }
+    },
+    {
+      "id": "claude-c-B-min",
+      "agent": "claude",
+      "task": "c",
+      "condition": "B",
+      "total": 9.17,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 0.5,
+        "scroll_resize": 0.67,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": false,
+      "verifyConsumerViolations": [
+        "@viselora/dom-webgl must use 0.2.0-alpha.0 or its reviewed local tarball"
+      ],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "createDOMTextTexture"
+        ],
+        "sourceLines": 222
+      },
+      "process": {
+        "skillFileMentions": 2,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "model": "claude-opus-5-5",
+        "costUsd": 0.5505728,
+        "turns": 20,
+        "viseloraSkillCalls": 1
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 124759
+      }
+    },
+    {
+      "id": "codex-a-A",
+      "agent": "codex",
+      "task": "a",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "GLTFLoader"
+        ],
+        "sourceLines": 492
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 3902402,
+        "outputTokens": 38831,
+        "commands": 51
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 851485
+      }
+    },
+    {
+      "id": "codex-a-A-min",
+      "agent": "codex",
+      "task": "a",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "useLoader",
+          "GLTFLoader"
+        ],
+        "sourceLines": 207
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 3209866,
+        "outputTokens": 32232,
+        "commands": 45
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 943999
+      }
+    },
+    {
+      "id": "codex-a-B",
+      "agent": "codex",
+      "task": "a",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "GLTFLoader"
+        ],
+        "sourceLines": 296
+      },
+      "process": {
+        "skillFileMentions": 27,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-scenes-models.md",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/references/verification.md",
+          "skills/viselora-dom-webgl/scripts/check-api-coverage.mjs",
+          "skills/viselora-dom-webgl/scripts/verify-consumer.mjs",
+          "skills/viselora-dom-webgl/scripts/generate-api-surface.mjs"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 2132367,
+        "outputTokens": 42884,
+        "commands": 38
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 931253
+      }
+    },
+    {
+      "id": "codex-a-B-min",
+      "agent": "codex",
+      "task": "a",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "useLoader",
+          "GLTFLoader"
+        ],
+        "sourceLines": 416
+      },
+      "process": {
+        "skillFileMentions": 24,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-scenes-models.md",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/references/verification.md",
+          "skills/viselora-dom-webgl/references/api-effects-rendering.md",
+          "skills/viselora-dom-webgl/references/api-surface.generated.md",
+          "skills/viselora-dom-webgl/scripts/verify-consumer.mjs"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 2480187,
+        "outputTokens": 35375,
+        "commands": 39
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 891716
+      }
+    },
+    {
+      "id": "codex-b-A",
+      "agent": "codex",
+      "task": "b",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget"
+        ],
+        "sourceLines": 272
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 3967141,
+        "outputTokens": 37979,
+        "commands": 55
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 901744
+      }
+    },
+    {
+      "id": "codex-b-A-min",
+      "agent": "codex",
+      "task": "b",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget"
+        ],
+        "sourceLines": 477
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 4189800,
+        "outputTokens": 40436,
+        "commands": 49
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 1014592
+      }
+    },
+    {
+      "id": "codex-b-B",
+      "agent": "codex",
+      "task": "b",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "createScrollEffectProgressStore",
+          "progressSignals"
+        ],
+        "sourceLines": 326
+      },
+      "process": {
+        "skillFileMentions": 24,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-scroll-interaction.md",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/verification.md",
+          "skills/viselora-dom-webgl/references/api-surface.generated.md",
+          "skills/viselora-dom-webgl/scripts/verify-consumer.mjs"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 3394473,
+        "outputTokens": 35579,
+        "commands": 46
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 909486
+      }
+    },
+    {
+      "id": "codex-b-B-min",
+      "agent": "codex",
+      "task": "b",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useWebGLRuntime",
+          "createScrollEffectProgressStore",
+          "progressSignals"
+        ],
+        "sourceLines": 566
+      },
+      "process": {
+        "skillFileMentions": 27,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-scroll-interaction.md",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/references/verification.md",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/scripts/check-api-coverage.mjs",
+          "skills/viselora-dom-webgl/scripts/verify-consumer.mjs",
+          "skills/viselora-dom-webgl/scripts/generate-api-surface.mjs"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 3095071,
+        "outputTokens": 37393,
+        "commands": 42
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 1625557
+      }
+    },
+    {
+      "id": "codex-c-A",
+      "agent": "codex",
+      "task": "c",
+      "condition": "A",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "measureDOMText"
+        ],
+        "sourceLines": 313
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 2769232,
+        "outputTokens": 35714,
+        "commands": 47
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 778722
+      }
+    },
+    {
+      "id": "codex-c-A-min",
+      "agent": "codex",
+      "task": "c",
+      "condition": "A",
+      "total": 9,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 0,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "measureDOMText",
+          "drawDOMText"
+        ],
+        "sourceLines": 434
+      },
+      "process": {
+        "skillFileMentions": 0,
+        "skillFilesTouched": [],
+        "readPackageDist": true,
+        "inputTokens": 3076474,
+        "outputTokens": 36238,
+        "commands": 47
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 965331
+      }
+    },
+    {
+      "id": "codex-c-B",
+      "agent": "codex",
+      "task": "c",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "full",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "measureDOMText"
+        ],
+        "sourceLines": 339
+      },
+      "process": {
+        "skillFileMentions": 16,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-effects-rendering.md",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/api-surface.generated.md"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 3529276,
+        "outputTokens": 42231,
+        "commands": 47
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 1178354
+      }
+    },
+    {
+      "id": "codex-c-B-min",
+      "agent": "codex",
+      "task": "c",
+      "condition": "B",
+      "total": 10,
+      "scores": {
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "ssr_safe": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "scroll_resize": 1,
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "cleanup": 1
+      },
+      "verifyConsumerPassed": true,
+      "verifyConsumerViolations": [],
+      "usesViselora": true,
+      "variant": "minimal",
+      "apiUsage": {
+        "used": [
+          "WebGLRuntime",
+          "WebGLTarget",
+          "useDOMTarget",
+          "useWebGLRuntime",
+          "setTargetReady",
+          "hideWhenReady",
+          "createDOMTextTexture"
+        ],
+        "sourceLines": 527
+      },
+      "process": {
+        "skillFileMentions": 24,
+        "skillFilesTouched": [
+          "skills/viselora-dom-webgl/SKILL.md",
+          "skills/viselora-dom-webgl/references/quickstart.md",
+          "skills/viselora-dom-webgl/references/api-effects-rendering.md",
+          "skills/viselora-dom-webgl/references/api-lifecycle-debug.md",
+          "skills/viselora-dom-webgl/references/public-api.md",
+          "skills/viselora-dom-webgl/templates/react-vite/src/App.tsx",
+          "skills/viselora-dom-webgl/references/architecture-rules.md",
+          "skills/viselora-dom-webgl/references/verification.md",
+          "skills/viselora-dom-webgl/scripts/verify-consumer.mjs"
+        ],
+        "readPackageDist": true,
+        "inputTokens": 4610468,
+        "outputTokens": 42804,
+        "commands": 60
+      },
+      "agentExit": {
+        "exitCode": 0,
+        "timedOut": false,
+        "durationMs": 1180096
+      }
+    }
+  ]
+}
