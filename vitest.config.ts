@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 const workspacePackageAliases = [
   {
@@ -48,6 +48,8 @@ export default defineConfig({
     include: [
       "**/*.test.ts",
       "**/*.test.tsx"
-    ]
+    ],
+    // Agent worktrees (.claude/worktrees) nest full repository copies.
+    exclude: [...configDefaults.exclude, ".claude/**"]
   }
 });
