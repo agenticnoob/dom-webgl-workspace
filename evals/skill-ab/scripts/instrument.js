@@ -1,7 +1,8 @@
 // Injected before any page script by grade.mjs (Playwright addInitScript).
 // Counts WebGL contexts, window/document listeners, observers and rAF calls,
 // forces preserveDrawingBuffer so the grader can read canvas pixels, and can
-// simulate "WebGL unavailable" when window.__evalDisableWebGL is set.
+// simulate "WebGL unavailable" when window.__evalDisableWebGL is set, and can
+// lose/restore the page's WebGL context.
 (() => {
   const stats = {
     contextsCreated: 0,
@@ -25,6 +26,8 @@
     );
     if (isGL && context && !seen.has(context)) {
       seen.add(context);
+      if (!attributes?.preserveDrawingBuffer) context.__evalEmulateClear = true;
+      this.__evalContext = context;
       stats.contextsCreated += 1;
       stats.glCanvases.add(this);
       this.addEventListener("webglcontextlost", () => {
@@ -96,10 +99,64 @@
     };
   }
 
+  // preserveDrawingBuffer keeps last frame's pixels, while a normal canvas
+  // starts every presented frame cleared. Pages that clear only part of the
+  // canvas (scissored views such as drei <View>) would otherwise show stale
+  // pixels to the grader, so the first draw to the default framebuffer in each
+  // animation frame first clears the whole buffer, as the browser would.
+  let frameTime = -1;
+  const fullClear = (gl, clear) => {
+    const scissor = gl.isEnabled(gl.SCISSOR_TEST);
+    const color = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+    const colorMask = gl.getParameter(gl.COLOR_WRITEMASK);
+    const depth = gl.getParameter(gl.DEPTH_CLEAR_VALUE);
+    const depthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
+    const stencil = gl.getParameter(gl.STENCIL_CLEAR_VALUE);
+    const stencilMask = gl.getParameter(gl.STENCIL_WRITEMASK);
+    if (scissor) gl.disable(gl.SCISSOR_TEST);
+    gl.colorMask(true, true, true, true);
+    gl.depthMask(true);
+    gl.stencilMask(0xffffffff);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clearDepth(1);
+    gl.clearStencil(0);
+    clear.call(gl, gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+    gl.clearColor(color[0], color[1], color[2], color[3]);
+    gl.clearDepth(depth);
+    gl.clearStencil(stencil);
+    gl.colorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+    gl.depthMask(depthMask);
+    gl.stencilMask(stencilMask);
+    if (scissor) gl.enable(gl.SCISSOR_TEST);
+  };
+  for (const Context of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
+    if (!Context) continue;
+    const clear = Context.prototype.clear;
+    for (const name of ["clear", "drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced", "drawRangeElements"]) {
+      const original = Context.prototype[name];
+      if (!original) continue;
+      Context.prototype[name] = function (...rest) {
+        if (
+          this.__evalEmulateClear &&
+          this.__evalClearedAt !== frameTime &&
+          !this.isContextLost() &&
+          this.getParameter(this.FRAMEBUFFER_BINDING) === null
+        ) {
+          this.__evalClearedAt = frameTime;
+          fullClear(this, clear);
+        }
+        return original.apply(this, rest);
+      };
+    }
+  }
+
   const raf = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = (callback) => {
     stats.raf += 1;
-    return raf(callback);
+    return raf((time) => {
+      frameTime = time;
+      callback(time);
+    });
   };
 
   window.__evalSnapshot = () => {
@@ -159,6 +216,29 @@
     };
   };
 
+  // Simulate a GPU reset on the largest connected WebGL canvas
+  // (WEBGL_lose_context), then restore it.
+  window.__evalLoseContext = () => {
+    const canvas = [...stats.glCanvases]
+      .filter((c) => c.isConnected)
+      .sort((x, y) => y.width * y.height - x.width * x.height)[0];
+    const extension = canvas?.__evalContext?.getExtension("WEBGL_lose_context");
+    if (!extension) return false;
+    window.__evalLoseExtension = extension;
+    extension.loseContext();
+    return true;
+  };
+  window.__evalRestoreContext = () => {
+    const extension = window.__evalLoseExtension;
+    if (!extension) return false;
+    try {
+      extension.restoreContext();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   window.__evalVisible = (selector) => {
     const element = document.querySelector(selector);
     if (!element) return { exists: false, visible: false };
@@ -179,6 +259,13 @@
       opacity,
       ariaHidden,
       text: element.textContent?.trim().slice(0, 200) ?? "",
+      // Text nodes joined by spaces, so adjacent elements do not merge words.
+      words: (() => {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        const parts = [];
+        while (walker.nextNode()) parts.push(walker.currentNode.nodeValue);
+        return parts.join(" ").replace(/\s+/g, " ").trim().slice(0, 400);
+      })(),
       rect: {
         left: rect.left,
         top: rect.top,
