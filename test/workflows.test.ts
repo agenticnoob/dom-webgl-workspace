@@ -48,6 +48,23 @@ describe("Viselora GitHub workflows", () => {
     expect(workflow).toMatch(/alpha|provenance/);
   });
 
+  test("skill sync publishes skills/ from main to the generated repository", () => {
+    const workflow = readWorkflow("sync-skill.yml");
+
+    expect(workflow).toMatch(/branches:\n\s+- main\n/);
+    expect(workflow).toContain('- "skills/**"');
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("contents: read");
+    expect(workflow).not.toContain("contents: write");
+    expect(workflow).toContain("repository: agenticnoob/viselora-skills");
+    expect(workflow).toContain("ssh-key: ${{ secrets.SKILL_REPO_DEPLOY_KEY }}");
+    expectInOrder(workflow, [
+      'node scripts/build-skill-repo.mjs "$RUNNER_TEMP/skill-repo"',
+      "git diff --cached --quiet",
+      "git push origin HEAD:main",
+    ]);
+  });
+
   test("root scripts keep skill verification portable and release publication explicit", () => {
     const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 

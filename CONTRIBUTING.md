@@ -129,11 +129,28 @@ Check what the CLI discovers before pushing:
 npx skills add . --list
 ```
 
-[skills.sh](https://skills.sh) has no submission form. The skill appears there
-after it is pushed to the public GitHub repository and installed with
-`npx skills add agenticnoob/dom-webgl-workspace`; ranking comes from anonymous
-CLI install telemetry. Keep the `name` equal to the directory name and keep the
-`description` specific about when to use the skill.
+Users install from the generated
+[agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
+repository, because the CLI clones the whole source repository and this
+workspace's demo assets make that slow. `skills/` here is its only source:
+`scripts/build-skill-repo.mjs` writes the tracked skill files, a README from
+`scripts/skill-repo.README.md` and the LICENSE, and the
+[skill sync workflow](./.github/workflows/sync-skill.yml) pushes the result
+whenever those inputs change on `main`. Preview the output locally:
+
+```bash
+node scripts/build-skill-repo.mjs /tmp/viselora-skills
+```
+
+The workflow authenticates with the `SKILL_REPO_DEPLOY_KEY` secret: the private
+half of an SSH deploy key that has write access to `viselora-skills` only.
+Without it the sync job fails at checkout and nothing is published.
+
+[skills.sh](https://skills.sh) has no submission form. A skill appears there
+after users install it with `npx skills add agenticnoob/viselora-skills`;
+ranking comes from anonymous CLI install telemetry. Keep the `name` equal to
+the directory name and keep the `description` specific about when to use the
+skill.
 
 ## Publish an alpha release
 

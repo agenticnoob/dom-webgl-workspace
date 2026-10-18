@@ -16,7 +16,7 @@ npm install lenis gsap
 Coding agents can install the matching usage skill:
 
 ```bash
-npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl
+npx skills add agenticnoob/viselora-skills --skill viselora-dom-webgl
 ```
 
 ## Entrypoints
