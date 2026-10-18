@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-14 (React/R3F alpha publication).**
+**Last verified: 2026-10-18 (0.2.0-alpha.1 publication).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -25,33 +25,34 @@ are retired. No legacy compatibility backend is maintained.
 
 ## Release truth
 
-`@viselora/dom-webgl@0.2.0-alpha.0` and
-`@viselora/scroll-adapters@0.2.0-alpha.0` are **published** on the official npm
-registry. Both `alpha` tags resolve to this breaking React/R3F revision. The
-separate `latest` tags remain at `0.1.0-alpha.0`, which implements the previous
-API; install `@alpha` or pin the exact 0.2 version.
+`@viselora/dom-webgl@0.2.0-alpha.1` and
+`@viselora/scroll-adapters@0.2.0-alpha.1` are **published** on the official npm
+registry, and both `alpha` tags resolve to them. The separate `latest` tags
+remain at `0.1.0-alpha.0`, which implements the previous API; install `@alpha`
+or pin the exact 0.2 version.
 
-Release source is [7b9c361](https://github.com/agenticnoob/dom-webgl-workspace/commit/7b9c361361d5bbfd07dcf4c124030e76204c00b3),
-committed and pushed to `main` and `codex/hero-next`.
-The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/38448043343)
-completed successfully and verified registry integrity, exports, the exact
-core dependency and both distribution tags. Both packages include GitHub Actions
-provenance; registry integrity matches the locally verified tarballs.
+0.2.0-alpha.1 places DOM text glyphs on the CSS alphabetic baseline, including
+half-leading and font-metric `line-height: normal`; `DOMTextGlyph.y` remains the
+line-box top and `baseline` is the real baseline. `0.2.0-alpha.0` drew
+`drawDOMText`/`createDOMTextTexture` text about half the leading too high (for
+example 11px for 72px text at `normal`). The release also documents
+agent-critical constraints in the public JSDoc of both packages.
+
+Release source is [7c82976](https://github.com/agenticnoob/dom-webgl-workspace/commit/7c829761c41cf311fa76e1e3dac0d08f9be4f113)
+on `main`. The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39133782681)
+completed successfully after `npm-release` approval and verified registry
+integrity, exports, the exact core dependency and both distribution tags. Both
+packages carry SLSA provenance attestations. An
+[earlier run](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39126440622)
+failed in verification on a test teardown race and published nothing.
+
+A fresh install of both packages from the official registry exposes the JSDoc
+in the published declarations, the alphabetic-baseline drawing in `dist`, and
+importable ESM entrypoints.
 
 Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
 successful publish; a mirror's 404 is not evidence that the official release is
 missing. Production application deployment is separate from npm publication.
-
-**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.1` and
-`@viselora/scroll-adapters@0.2.0-alpha.1` are versioned in source and not yet
-on the registry. This version places DOM text glyphs on the
-CSS alphabetic baseline, including half-leading and font-metric
-`line-height: normal`. The published `0.2.0-alpha.0` draws
-`drawDOMText`/`createDOMTextTexture` text about half the leading too high (for
-example 11px for 72px text at `normal`). `DOMTextGlyph.y` remains the line-box
-top; `baseline` is now the real baseline. The release also documents
-agent-critical constraints in the public JSDoc. The consumer skill and template
-target `0.2.0-alpha.1`; they resolve only after that version is published.
 
 ## Workspace applications
 
@@ -68,8 +69,9 @@ Application details and verification belong to:
 
 ## Verification truth
 
-`npm run verify:release` passed, including root typecheck, the complete suite
-(104 files / 526 tests), package and application production builds, public import
+The release workflow's `npm run verify:release` passed on the release source,
+including root typecheck, the complete suite
+(105 files / 548 tests), package and application production builds, public import
 guards, version alignment, tarball inspection, an installed external consumer,
 and the runnable skill template. Version/lockfile guards cover both applications
 and reject nested old registry copies. Unused postprocessing dependencies and
@@ -116,10 +118,18 @@ browser-verified, committed and pushed states separate.
 
 ## Agent skill
 
-`skills/viselora-dom-webgl` is self-contained for installation through the
-`skills` CLI; `npx skills add . --list` discovers exactly this one skill locally.
-Installation from GitHub and the skills.sh listing are not yet verified; they
-depend on the public `main` branch and on CLI installs.
+`skills/viselora-dom-webgl` targets `0.2.0-alpha.1` and is self-contained for
+the `skills` CLI: three runnable recipes, `verify-consumer.mjs` and
+`browser-check.mjs`. `npx skills add agenticnoob/dom-webgl-workspace --list`
+discovers exactly this one skill from GitHub. A full install from GitHub has
+not been verified: the CLI clones the whole repository (about 237 MB on GitHub,
+including a 60 MB demo video) and the attempt timed out after 300 seconds on a
+slow connection. A local-path install into Claude Code, Codex and Hermes
+succeeded. The skills.sh listing is not verified.
+
+The [skill A/B evaluation](../evals/skill-ab/README.md) found no measurable
+difference with or without the earlier skill (9.83 vs 9.82 of 10 across 24
+runs); it predates the recipes and JSDoc.
 
 ## Known boundaries
 
