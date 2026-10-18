@@ -64,12 +64,14 @@ Install the consumer skill so Codex, Claude Code, Hermes or another
 public API and verification steps:
 
 ```bash
-npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl
+npx skills add agenticnoob/viselora-skills --skill viselora-dom-webgl
 ```
 
 Add `-a codex`, `-a claude-code` or `-a hermes-agent` to target one agent, and
-`-g` to install for every project. The skill lives in
-[skills/viselora-dom-webgl](./skills/viselora-dom-webgl/SKILL.md).
+`-g` to install for every project. The source is
+[skills/viselora-dom-webgl](./skills/viselora-dom-webgl/SKILL.md); the small
+[agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
+repository is generated from it so installs do not clone this workspace.
 
 ## Public entrypoints
 

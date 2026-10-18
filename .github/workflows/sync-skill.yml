@@ -1,0 +1,54 @@
+name: Sync skill repository
+
+# skills/ is the only source of agenticnoob/viselora-skills, a lightweight
+# repository that `npx skills add` can clone quickly.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "skills/**"
+      - "scripts/build-skill-repo.mjs"
+      - "scripts/skill-repo.README.md"
+      - "LICENSE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-skill-repository
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build generated skill repository
+        run: node scripts/build-skill-repo.mjs "$RUNNER_TEMP/skill-repo"
+      - name: Check out agenticnoob/viselora-skills
+        uses: actions/checkout@v4
+        with:
+          repository: agenticnoob/viselora-skills
+          ssh-key: ${{ secrets.SKILL_REPO_DEPLOY_KEY }}
+          path: viselora-skills
+      - name: Publish when content changed
+        working-directory: viselora-skills
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R "$RUNNER_TEMP/skill-repo/." .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Skill repository already matches ${SOURCE_SHA}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "sync: skills from agenticnoob/dom-webgl-workspace@${SOURCE_SHA}"
+          git push origin HEAD:main

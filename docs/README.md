@@ -24,7 +24,7 @@ Package and application details stay with their owners:
 - [reusable visual components](../apps/example/src/recipes/README.md)
 - [hero app](../apps/hero-next/README.md)
 - [consumer agent skill](../skills/viselora-dom-webgl/SKILL.md), installed with
-  `npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl`
+  `npx skills add agenticnoob/viselora-skills --skill viselora-dom-webgl`
 
 ## Document responsibilities
 

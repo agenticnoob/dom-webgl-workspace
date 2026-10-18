@@ -42,6 +42,8 @@ source. Markdown and configuration files may be read directly.
   other projects by `npx skills add`. Everything it links to or runs must stay
   inside that directory; link repository docs by absolute GitHub URL. Maintainer
   scripts for it live in `scripts/`.
+- `skills/` is the only source of the generated `agenticnoob/viselora-skills`
+  repository. Never edit that repository directly; `sync-skill.yml` overwrites it.
 - `.agents/skills/` holds third-party Three.js skills restored from
   `skills-lock.json`; do not edit them or move Viselora rules there.
 
