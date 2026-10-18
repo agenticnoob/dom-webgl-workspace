@@ -125,9 +125,12 @@ the `skills` CLI: three runnable recipes, `verify-consumer.mjs` and
 repository (about 180 KB), whose only source is `skills/` here. Its first sync
 was pushed manually from `main` 702971f; `npx skills add agenticnoob/viselora-skills`
 then installed the skill into Claude Code, Codex and Hermes in 7 seconds. The
-same install from this 237 MB workspace timed out while cloning. Automatic sync
-through `sync-skill.yml` needs the `SKILL_REPO_DEPLOY_KEY` secret and has not run
-yet. The skills.sh listing is not verified.
+same install from this 237 MB workspace timed out while cloning.
+`sync-skill.yml` authenticates with a write-scoped deploy key
+(`SKILL_REPO_DEPLOY_KEY`). Its first run on `main` 102b336 checked out
+`viselora-skills` with that key and found the content already matching, so it
+made no commit; the push path runs on the next change under `skills/`. The
+skills.sh listing is not verified.
 
 The [skill A/B evaluation](../evals/skill-ab/README.md) found no measurable
 difference with or without the earlier skill (9.83 vs 9.82 of 10 across 24
