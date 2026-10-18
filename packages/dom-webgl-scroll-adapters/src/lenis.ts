@@ -15,9 +15,14 @@ export type LenisLike = {
 export type LenisScrollAdapterOptions = {
   getViewportHeight?: () => number;
   getScrollHeight?: () => number;
+  /** When true, the adapter's `dispose()` also destroys the Lenis instance. */
   manageInstance?: boolean;
 };
 
+/**
+ * Reads scroll metrics from a Lenis instance. The creator owns the adapter and
+ * calls `dispose()` on unmount; Lenis is destroyed only with `manageInstance`.
+ */
 export function createLenisScrollAdapter(
   lenis: LenisLike,
   options: LenisScrollAdapterOptions = {},

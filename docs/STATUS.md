@@ -42,6 +42,17 @@ Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
 successful publish; a mirror's 404 is not evidence that the official release is
 missing. Production application deployment is separate from npm publication.
 
+**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.1` and
+`@viselora/scroll-adapters@0.2.0-alpha.1` are versioned in source and not yet
+on the registry. This version places DOM text glyphs on the
+CSS alphabetic baseline, including half-leading and font-metric
+`line-height: normal`. The published `0.2.0-alpha.0` draws
+`drawDOMText`/`createDOMTextTexture` text about half the leading too high (for
+example 11px for 72px text at `normal`). `DOMTextGlyph.y` remains the line-box
+top; `baseline` is now the real baseline. The release also documents
+agent-critical constraints in the public JSDoc. The consumer skill and template
+target `0.2.0-alpha.1`; they resolve only after that version is published.
+
 ## Workspace applications
 
 `apps/example` and `apps/hero-next` are migrated through public package
@@ -102,6 +113,13 @@ git diff --check
 Use `npm run verify:release` for the package-surface migration. It validates
 publication artifacts without publishing them. Keep implemented, automated,
 browser-verified, committed and pushed states separate.
+
+## Agent skill
+
+`skills/viselora-dom-webgl` is self-contained for installation through the
+`skills` CLI; `npx skills add . --list` discovers exactly this one skill locally.
+Installation from GitHub and the skills.sh listing are not yet verified; they
+depend on the public `main` branch and on CLI installs.
 
 ## Known boundaries
 

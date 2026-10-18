@@ -47,8 +47,14 @@ const canvasStyle: CSSProperties = {
 };
 
 export type WebGLRuntimeProps = {
+  /** Semantic page DOM, rendered above the fixed Canvas. */
   children?: ReactNode;
+  /** Native R3F/Three.js elements rendered inside the single Canvas. */
   scene?: ReactNode;
+  /**
+   * Props for the runtime-owned R3F Canvas (camera, dpr, frameloop, gl...).
+   * Do not mount another `<Canvas>`, R3F root or `WebGLRenderer`.
+   */
   canvas?: Omit<CanvasProps, "children" | "eventSource">;
   className?: string;
   style?: CSSProperties;
@@ -57,7 +63,12 @@ export type WebGLRuntimeProps = {
   onDebugStateChange?: (state: RuntimeDebugState) => void;
 };
 
-/** One R3F root alongside semantic DOM. Three objects belong in `scene`. */
+/**
+ * The page's single R3F Canvas, renderer and frame loop, alongside semantic DOM.
+ * Three objects belong in `scene`; hooks and targets must be its descendants.
+ * Lost WebGL contexts and hidden tabs pause frames and restore DOM fallback.
+ * Imports are SSR-safe; create textures and loaders after mount.
+ */
 export function WebGLRuntime({
   children,
   scene,
@@ -228,11 +239,16 @@ function useController() {
   return controller;
 }
 
+/** The surrounding runtime's DOM coordination. Throws outside `WebGLRuntime`. */
 export function useWebGLRuntime(): RuntimeManager {
   return useController().manager;
 }
 
-/** Target identity is reactive; read the live rect in useFrame for animation. */
+/**
+ * Re-renders when target `id` registers or unregisters, not when it moves.
+ * Read the returned state's mutable fields (rect, visible, revision) in
+ * `useFrame`, and pass it to `setTargetReady` as the captured target.
+ */
 export function useDOMTarget(id: string) {
   const runtime = useWebGLRuntime();
   return useSyncExternalStore(
@@ -249,6 +265,10 @@ export type WebGLTargetProps = DOMTargetOptions & {
   >;
 };
 
+/**
+ * Registers its single ref-capable DOM child as target `id`. The child remains
+ * the semantic, accessible fallback; see `hideWhenReady` and `offscreen`.
+ */
 export function WebGLTarget({
   id,
   children,

@@ -2,6 +2,7 @@ import { CanvasTexture, LinearFilter, SRGBColorSpace } from "three";
 
 import { drawDOMText, measureDOMText } from "./domTextLayout";
 
+/** A caller-owned texture; `width`/`height` are CSS pixels, not raster size. */
 export type DOMTextTexture = {
   texture: CanvasTexture;
   width: number;
@@ -9,6 +10,12 @@ export type DOMTextTexture = {
   dispose(): void;
 };
 
+/**
+ * Draws an element's text into a new sRGB `CanvasTexture` (raster capped at
+ * 2x DPR, linear filtering, no mipmaps). The caller owns it: call `dispose()`
+ * (idempotent) on unmount, and create a new one when the target `revision`
+ * changes, disposing the old texture after the replacement is in use.
+ */
 export function createDOMTextTexture(
   element: HTMLElement,
   options: { devicePixelRatio?: number } = {},

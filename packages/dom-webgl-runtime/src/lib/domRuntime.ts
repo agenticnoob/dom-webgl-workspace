@@ -1,3 +1,4 @@
+/** Viewport-relative CSS pixels from `getBoundingClientRect()`, top-left origin. */
 export type DOMTargetRect = {
   left: number;
   top: number;
@@ -8,18 +9,41 @@ export type DOMTargetRect = {
 };
 
 export type DOMTargetOptions = {
+  /**
+   * Hide this element's own paint (opacity 0, still in the accessibility tree)
+   * once a visual reports `setTargetReady(id, true, target)`. Default `false`.
+   * Only leaves are hidden: a target containing another target stays visible.
+   * Paint is restored when WebGL is unavailable or the target unregisters.
+   */
   hideWhenReady?: boolean;
+  /**
+   * Offscreen fallback policy. `"restore-dom"` (default) shows the DOM again
+   * while the target is outside the viewport; `"park"` keeps a ready target
+   * hidden. Neither disposes resources; pause or release them using `visible`.
+   */
   offscreen?: "park" | "restore-dom";
 };
 
+/**
+ * Live state of one registered DOM target. The object identity is stable for
+ * one registration; `rect`, `visible`, `ready` and `revision` are mutated in
+ * place before every frame and do not re-render React. Read them inside
+ * `useFrame`, and never cache `rect` (it is replaced on each measurement).
+ */
 export type DOMTargetState = {
   readonly id: string;
   readonly element: HTMLElement;
   readonly offscreen: "park" | "restore-dom";
+  /** Current viewport rect in CSS pixels; read it every frame. */
   rect: DOMTargetRect;
+  /** Connected, non-empty and intersecting the viewport this frame. */
   visible: boolean;
+  /** Set through `RuntimeManager.setTargetReady`. */
   ready: boolean;
-  /** Changes when content, typography, or dimensions need a fresh snapshot. */
+  /**
+   * Changes when content, typography, or dimensions need a fresh snapshot.
+   * Mutable: poll it in `useFrame` and rebuild textures when it changes.
+   */
   revision: number;
 };
 

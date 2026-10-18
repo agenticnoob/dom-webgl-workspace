@@ -1,9 +1,14 @@
 import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 
+/** Keyed progress values shared with the runtime through `source`. */
 export type ScrollEffectProgressStore = {
+  /** Pass as `progressSignals`; scenes read `runtime.progress.get(key)` in `useFrame`. */
   readonly source: WebGLProgressSignalSource;
+  /** Stores `value` clamped to 0..1 (non-finite becomes 0) and notifies subscribers. */
   set(key: string, value: number): void;
+  /** Removes `key`, which then reads 0. */
   reset(key: string): void;
+  /** Removes `key`, which then reads 0. */
   clear(key: string): void;
 };
 

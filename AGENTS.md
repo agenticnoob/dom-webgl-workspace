@@ -31,6 +31,19 @@ source. Markdown and configuration files may be read directly.
 | Scroll adapters | `packages/dom-webgl-scroll-adapters/src/` |
 | Public consumers | `apps/example/`, `apps/hero-next/` |
 | Public API and repository guards | `packages/dom-webgl-runtime/test/`, `test/` |
+| Consumer agent skill | `skills/viselora-dom-webgl/` |
+
+## Agent entrypoints
+
+- `AGENTS.md` is the single source of agent rules for Codex, Hermes and other
+  AGENTS.md readers. Each `CLAUDE.md` only imports its sibling `AGENTS.md`;
+  never put rules in `CLAUDE.md`.
+- `skills/viselora-dom-webgl/` is the published consumer skill, installed into
+  other projects by `npx skills add`. Everything it links to or runs must stay
+  inside that directory; link repository docs by absolute GitHub URL. Maintainer
+  scripts for it live in `scripts/`.
+- `.agents/skills/` holds third-party Three.js skills restored from
+  `skills-lock.json`; do not edit them or move Viselora rules there.
 
 ## Repository boundaries
 

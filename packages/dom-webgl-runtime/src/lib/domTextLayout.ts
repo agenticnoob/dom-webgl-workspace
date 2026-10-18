@@ -1,11 +1,15 @@
+/** One glyph in CSS pixels relative to the measured element's border box. */
 export type DOMTextGlyph = {
   index: number;
   char: string;
   line: number;
   x: number;
+  /** Top of the glyph's line box; per-glyph transforms pivot here. */
   y: number;
   width: number;
+  /** Line height. */
   height: number;
+  /** Alphabetic baseline, including CSS half-leading. */
   baseline: number;
 };
 
@@ -66,6 +70,11 @@ export type DOMTextMeasureOptions = {
   context?: MeasuringContext;
 };
 
+/**
+ * Measures one element's text with its computed typography: wrapped lines and
+ * indexed glyphs in CSS pixels. Uses a single font for the element; it does not
+ * lay out rich nested HTML. Re-measure when the target `revision` changes.
+ */
 export function measureDOMText(
   element: HTMLElement,
   options: DOMTextMeasureOptions = {},
@@ -75,11 +84,11 @@ export function measureDOMText(
     element.ownerDocument.createElement("canvas").getContext("2d");
   if (!context)
     throw new Error("DOM text measurement requires a 2D canvas context.");
-  const style = readTextStyle(element);
+  const text = element.textContent ?? "";
+  const { style, ascent, descent } = readTextStyle(element, context, text);
   const rect = element.getBoundingClientRect();
   const width = Math.max(1, rect.width);
   const height = Math.max(1, rect.height);
-  const text = element.textContent ?? "";
   const rawDpr =
     options.devicePixelRatio ??
     element.ownerDocument.defaultView?.devicePixelRatio ??
@@ -87,7 +96,9 @@ export function measureDOMText(
   const devicePixelRatio = Number.isFinite(rawDpr)
     ? Math.min(2, Math.max(1, rawDpr))
     : 1;
-  context.font = style.font;
+  // CSS centres the font's content area in each line box (half-leading), so
+  // the alphabetic baseline sits this far below the line-box top.
+  const baselineOffset = (style.lineHeight - ascent - descent) / 2 + ascent;
 
   const contentWidth = Math.max(
     1,
@@ -128,7 +139,7 @@ export function measureDOMText(
         y,
         width: glyphWidth,
         height: style.lineHeight,
-        baseline: y + style.lineHeight,
+        baseline: y + baselineOffset,
       });
       cursor +=
         glyphWidth +
@@ -152,12 +163,13 @@ export function drawDOMText(
   context.font = layout.font;
   context.fillStyle = layout.color;
   context.textAlign = "left";
-  context.textBaseline = "top";
+  context.textBaseline = "alphabetic";
+  const baselineOffset = readBaselineOffset(layout);
 
   if (!commands && layout.letterSpacing === 0 && layout.wordSpacing === 0) {
     for (const line of layout.lines) {
       if (line.y <= layout.height - layout.paddingBottom) {
-        context.fillText(line.text, line.x, line.y);
+        context.fillText(line.text, line.x, line.y + baselineOffset);
       }
     }
   } else {
@@ -182,8 +194,15 @@ function drawGlyph(
   context.translate(command.x ?? glyph.x, command.y ?? glyph.y);
   context.rotate(command.rotation ?? 0);
   context.scale(command.scaleX ?? 1, command.scaleY ?? 1);
-  context.fillText(command.char ?? glyph.char, 0, 0);
+  // Transforms pivot on the glyph's line-box top; the text sits on its baseline.
+  context.fillText(command.char ?? glyph.char, 0, glyph.baseline - glyph.y);
   context.restore();
+}
+
+// Every line shares one font and line height, so any glyph carries the offset.
+function readBaselineOffset(layout: DOMTextLayout): number {
+  const glyph = layout.glyphs[0];
+  return glyph ? glyph.baseline - glyph.y : layout.lineHeight;
 }
 
 function wrapText(
@@ -247,7 +266,11 @@ function measureLine(
   );
 }
 
-function readTextStyle(element: HTMLElement): TextStyle {
+function readTextStyle(
+  element: HTMLElement,
+  context: MeasuringContext,
+  text: string,
+): { style: TextStyle; ascent: number; descent: number } {
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   const fontSize = pixels(style?.fontSize) || 16;
   const font =
@@ -261,16 +284,18 @@ function readTextStyle(element: HTMLElement): TextStyle {
     ]
       .filter((value) => value && value !== "normal")
       .join(" ");
+  context.font = font;
+  const metrics = readFontMetrics(context, text, fontSize);
   const textAlign = style?.textAlign;
   const whiteSpace = style?.whiteSpace;
   const alignment = [
     style?.alignContent,
     style?.placeContent?.split(/\s+/)[0],
   ].find((value) => value && value !== "normal" && value !== "stretch");
-  return {
+  const textStyle: TextStyle = {
     font,
     color: style?.color || "#000000",
-    lineHeight: pixels(style?.lineHeight) || Math.ceil(fontSize * 1.2),
+    lineHeight: resolveLineHeight(style?.lineHeight, fontSize, metrics),
     letterSpacing: pixels(style?.letterSpacing),
     wordSpacing: pixels(style?.wordSpacing),
     whiteSpace:
@@ -301,6 +326,44 @@ function readTextStyle(element: HTMLElement): TextStyle {
     paddingBottom: pixels(style?.paddingBottom),
     paddingLeft: pixels(style?.paddingLeft),
   };
+  return { style: textStyle, ascent: metrics.ascent, descent: metrics.descent };
+}
+
+type FontMetrics = { ascent: number; descent: number; measured: boolean };
+
+// The font bounding box is per font, not per string, and matches the content
+// area browsers place inside each line box.
+function readFontMetrics(
+  context: MeasuringContext,
+  text: string,
+  fontSize: number,
+): FontMetrics {
+  const metrics = context.measureText(text || "M");
+  const ascent = metrics.fontBoundingBoxAscent;
+  const descent = metrics.fontBoundingBoxDescent;
+  return Number.isFinite(ascent) &&
+    Number.isFinite(descent) &&
+    ascent + descent > 0
+    ? { ascent, descent, measured: true }
+    : { ascent: fontSize * 0.8, descent: fontSize * 0.2, measured: false };
+}
+
+function resolveLineHeight(
+  value: string | undefined,
+  fontSize: number,
+  metrics: FontMetrics,
+): number {
+  const trimmed = value?.trim() ?? "";
+  const number = Number.parseFloat(trimmed);
+  if (Number.isFinite(number) && number > 0) {
+    if (/^[\d.]+$/.test(trimmed)) return number * fontSize;
+    if (trimmed.endsWith("%")) return (number / 100) * fontSize;
+    return number;
+  }
+  // `normal` follows the font's own ascent and descent.
+  return metrics.measured
+    ? Math.round(metrics.ascent) + Math.round(metrics.descent)
+    : Math.ceil(fontSize * 1.2);
 }
 
 function pixels(value: string | undefined): number {

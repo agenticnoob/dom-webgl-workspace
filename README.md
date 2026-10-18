@@ -57,6 +57,20 @@ Use native R3F JSX, `useFrame`, `useThree`, Three.js objects and ecosystem
 helpers for visual work. Use Viselora to bind that work to the page. See
 [Getting started](./docs/guides/getting-started.md) for DOM targets and Next.js.
 
+## Use with AI agents
+
+Install the consumer skill so Codex, Claude Code, Hermes or another
+[Agent Skills](https://agentskills.io) client knows the ownership rules,
+public API and verification steps:
+
+```bash
+npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl
+```
+
+Add `-a codex`, `-a claude-code` or `-a hermes-agent` to target one agent, and
+`-g` to install for every project. The skill lives in
+[skills/viselora-dom-webgl](./skills/viselora-dom-webgl/SKILL.md).
+
 ## Public entrypoints
 
 | Entrypoint | Responsibility |
@@ -78,7 +92,7 @@ apps/example/                    public API examples
 apps/hero-next/                  Next.js consumer
 packages/dom-webgl-runtime/      @viselora/dom-webgl
 packages/dom-webgl-scroll-adapters/  optional scroll integration
-skills/viselora-dom-webgl/        consumer workflow and runnable template
+skills/viselora-dom-webgl/       published agent skill, runnable template and recipes
 docs/                           architecture, status and user guides
 ```
 

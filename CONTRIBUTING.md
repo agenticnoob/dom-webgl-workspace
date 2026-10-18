@@ -114,6 +114,27 @@ Release work additionally uses `npm run verify:release`. That command includes
 version, tarball, external-consumer, and skill verification and can be
 substantially slower than normal development checks.
 
+## Agent skill
+
+`skills/viselora-dom-webgl/` follows the [Agent Skills](https://agentskills.io)
+format and is installed into consumer projects by the
+[`skills` CLI](https://github.com/vercel-labs/skills). Only that directory is
+copied, so it must be self-contained: relative links stay inside it, repository
+docs use absolute GitHub URLs, and maintainer scripts live in `scripts/`.
+`test/skill.test.ts` enforces this.
+
+Check what the CLI discovers before pushing:
+
+```bash
+npx skills add . --list
+```
+
+[skills.sh](https://skills.sh) has no submission form. The skill appears there
+after it is pushed to the public GitHub repository and installed with
+`npx skills add agenticnoob/dom-webgl-workspace`; ranking comes from anonymous
+CLI install telemetry. Keep the `name` equal to the directory name and keep the
+`description` specific about when to use the skill.
+
 ## Publish an alpha release
 
 Core and scroll adapters use one `<major>.<minor>.<patch>-alpha.<number>`

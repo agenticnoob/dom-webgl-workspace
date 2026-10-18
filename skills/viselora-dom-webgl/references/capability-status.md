@@ -1,10 +1,10 @@
 # Capability Status
 
-Compatible package version: 0.2.0-alpha.0
+Compatible package version: 0.2.0-alpha.1
 
 Status refers only to the evidence named in each row; it does not imply
 universal browser or downstream acceptance. Publication status belongs to
-[repository release truth](../../../docs/STATUS.md#release-truth).
+[repository release truth](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth).
 
 | Capability id | Status | Evidence | Consumer guidance |
 | --- | --- | --- | --- |

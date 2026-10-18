@@ -14,8 +14,8 @@ import { spawnSync } from "node:child_process";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 const repoRoot = process.cwd();
-const generator = resolve(repoRoot, "skills/viselora-dom-webgl/scripts/generate-api-surface.mjs");
-const coverage = resolve(repoRoot, "skills/viselora-dom-webgl/scripts/check-api-coverage.mjs");
+const generator = resolve(repoRoot, "scripts/generate-skill-api-surface.mjs");
+const coverage = resolve(repoRoot, "scripts/check-skill-api-coverage.mjs");
 const fixtures: string[] = [];
 
 beforeAll(() => {

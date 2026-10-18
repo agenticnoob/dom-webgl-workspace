@@ -48,6 +48,11 @@ export type WebGLScrollRuntimeProps = Omit<
   WebGLRuntimeProps,
   "progressSignals"
 > & {
+  /**
+   * Creates and owns a Lenis/GSAP stack for this runtime. Keep the object
+   * stable (module constant or memoized): a new object recreates the stack.
+   * Ignored when `scrollAdapter` is passed.
+   */
   readonly smooth?: false | WebGLScrollSmoothOptions;
 };
 
@@ -76,6 +81,10 @@ export type WebGLScrollTimelineProps = Omit<
 const ScrollEffectProgressContext =
   createContext<ScrollEffectProgressContextValue | null>(null);
 
+/**
+ * `WebGLRuntime` plus a shared progress store for scroll timelines; still one
+ * R3F Canvas. Scenes read section progress with `runtime.progress.get(key)`.
+ */
 export function WebGLScrollRuntime({
   children,
   smooth,
@@ -102,6 +111,11 @@ export function WebGLScrollRuntime({
   );
 }
 
+/**
+ * A section whose ScrollTrigger progress (0..1) is written to `progressKey`
+ * (default `id`). Needs ScrollTrigger from `smooth` or the `ScrollTrigger` prop;
+ * without it, write progress to the store yourself.
+ */
 export function WebGLScrollTimeline({
   id,
   progressKey = id,

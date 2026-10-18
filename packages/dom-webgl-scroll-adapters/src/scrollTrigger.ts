@@ -56,6 +56,7 @@ export type ScrollTriggerBridge = {
   dispose(): void;
 };
 
+/** Applies an optional scroller proxy. The caller owns ScrollTrigger itself. */
 export function createScrollTriggerBridge(
   options: ScrollTriggerBridgeOptions,
 ): ScrollTriggerBridge {
@@ -76,6 +77,7 @@ export function createScrollTriggerBridge(
   };
 }
 
+/** Creates one ScrollTrigger; the caller must `kill()` it on unmount. */
 export function createScrollTriggerSection(
   options: ScrollTriggerSectionOptions,
 ): ScrollTriggerSectionInstance {

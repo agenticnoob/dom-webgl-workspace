@@ -3,12 +3,14 @@ import {
   cpSync,
   existsSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 const repoRoot = process.cwd();
@@ -25,16 +27,22 @@ afterEach(() => {
 describe("React/R3F consumer skill", () => {
   test("routes users to the actual public contract and verification scope", () => {
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toMatch(
-      /^---\nname: viselora-dom-webgl\ndescription: .+\n---/,
-    );
+    const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+    expect(frontmatter).toMatch(/^name: viselora-dom-webgl$/m);
+    const description = frontmatter.match(/^description: (.+)$/m)?.[1] ?? "";
+    expect(description.length).toBeGreaterThan(0);
+    expect(description.length).toBeLessThanOrEqual(1024);
+    expect(description).toContain("Use when");
+    expect(frontmatter).toMatch(/^license: MIT$/m);
     expect(skill).toContain("React 19, R3F 9 and Three.js 0.184");
     expect(skill).toContain("breaking React/R3F 0.2 alpha API");
-    expect(skill).toContain("[release status](../../docs/STATUS.md#release-truth)");
+    expect(skill).toContain(
+      "[release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth)",
+    );
     expect(skill).toContain(
       "Static checks do not establish browser visual correctness",
     );
-    for (const match of skill.matchAll(/\]\((references\/[^)]+)\)/g)) {
+    for (const match of skill.matchAll(/\]\(((?:references|recipes)\/[^)]+)\)/g)) {
       expect(existsSync(resolve(skillRoot, match[1])), match[1]).toBe(true);
     }
     const metadata = readFileSync(
@@ -42,6 +50,67 @@ describe("React/R3F consumer skill", () => {
       "utf8",
     );
     expect(metadata).toContain("$viselora-dom-webgl");
+  });
+
+  test("stays self-contained when installed outside this repository", () => {
+    const escaping = collectSkillFiles(skillRoot)
+      .filter((file) => file.endsWith(".md"))
+      .flatMap((file) =>
+        [...readFileSync(file, "utf8").matchAll(/\]\(([^)#]+)(?:#[^)]*)?\)/g)]
+          .map((match) => match[1])
+          .filter((target) => !/^[a-z][a-z0-9+.-]*:/i.test(target))
+          .filter((target) => {
+            const path = relative(skillRoot, resolve(dirname(file), target));
+            return path.startsWith("..") || isAbsolute(path);
+          })
+          .map((target) => `${relative(skillRoot, file)} -> ${target}`),
+      );
+    expect(escaping).toEqual([]);
+    // Only consumer-facing scripts ship; maintainer scripts live in scripts/.
+    expect(readdirSync(resolve(skillRoot, "scripts")).sort()).toEqual([
+      "browser-check.mjs",
+      "verify-consumer.mjs",
+    ]);
+  });
+
+  test("states the constraints agents miss in the SKILL.md body", () => {
+    // Agents often read only SKILL.md, so these must not live only in references.
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.1"');
+    expect(skill).toContain("--save-exact");
+    expect(skill).toContain("scripts/verify-consumer.mjs");
+    expect(skill).toContain("scripts/browser-check.mjs");
+    expect(skill).toMatch(/`target\.revision`.+mutable/s);
+    expect(skill).toContain("half-leading");
+    for (const recipe of ["ModelTarget.tsx", "ScrollStory.tsx", "TextWave.tsx"]) {
+      expect(skill).toContain(`](recipes/${recipe})`);
+    }
+  });
+
+  test("ships recipes that satisfy the static consumer contract", () => {
+    const root = copyTemplate();
+    cpSync(resolve(skillRoot, "recipes"), resolve(root, "src/recipes"), {
+      recursive: true,
+    });
+    const result = run(root);
+    expect(result.status, result.stderr).toBe(0);
+    const text = readFileSync(resolve(root, "src/recipes/TextWave.tsx"), "utf8");
+    expect(text).toContain("target.revision !== revision");
+    expect(text).toContain("createDOMTextTexture(target.element)");
+    const model = readFileSync(resolve(root, "src/recipes/ModelTarget.tsx"), "utf8");
+    expect(model).toContain("runtime.setTargetReady(targetId, true, target)");
+    expect(model).toContain("disposeObject");
+  });
+
+  test("ships a browser check that explains its usage", () => {
+    const result = spawnSync(
+      process.execPath,
+      [resolve(skillRoot, "scripts/browser-check.mjs")],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Missing page URL");
+    expect(result.stderr).toContain("--deterministic");
   });
 
   test("ships a small runnable native scene and explicit semantic DOM", () => {
@@ -140,7 +209,7 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     const root = copyTemplate();
     const pkg = readJson(root, "package.json");
     pkg.dependencies["@viselora/dom-webgl"] =
-      "file:../viselora-dom-webgl-0.2.0-alpha.0.tgz";
+      "file:../viselora-dom-webgl-0.2.0-alpha.1.tgz";
     writeJson(root, "package.json", pkg);
     expect(run(root).status).toBe(0);
   });
@@ -164,6 +233,14 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     expect(run(root).status).toBe(0);
   });
 });
+
+function collectSkillFiles(directory: string): string[] {
+  return readdirSync(directory).flatMap((entry) => {
+    if (entry === "node_modules") return [];
+    const path = resolve(directory, entry);
+    return statSync(path).isDirectory() ? collectSkillFiles(path) : [path];
+  });
+}
 
 function copyTemplate(): string {
   const root = mkdtempSync(resolve(tmpdir(), "viselora-consumer-contract-"));

@@ -13,6 +13,14 @@ npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9
 Use the `alpha` tag for the React/R3F API; see
 [migration and Next.js integration](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/guides/getting-started.md).
 
+## AI agents
+
+Coding agents can install the matching usage skill:
+
+```bash
+npx skills add agenticnoob/dom-webgl-workspace --skill viselora-dom-webgl
+```
+
 ## Entrypoints
 
 - `@viselora/dom-webgl`: DOM text layout/drawing, native CanvasTexture creation
