@@ -89,11 +89,14 @@ describe("ModelStory React semantics", () => {
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
+    // R3F's react-use-measure debounces scroll by 50ms and does not cancel the
+    // timer on unmount; without debounce the scroll below cannot fire after
+    // the test environment is torn down.
     const render = () =>
       root.render(
         createElement(
           WebGLScrollRuntime,
-          null,
+          { canvas: { resize: { debounce: 0 } } },
           createElement(ModelStory, props),
         ),
       );
