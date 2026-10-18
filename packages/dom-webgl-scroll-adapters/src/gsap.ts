@@ -26,6 +26,10 @@ export type GsapTickerLenisBridge = {
   dispose(): void;
 };
 
+/**
+ * Drives `lenis.raf` from the GSAP ticker (and ScrollTrigger updates on Lenis
+ * scroll). It does not render; R3F keeps the frame loop. Call `dispose()` on unmount.
+ */
 export function createGsapTickerLenisBridge(
   options: GsapTickerLenisBridgeOptions,
 ): GsapTickerLenisBridge {

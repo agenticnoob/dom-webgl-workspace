@@ -1,3 +1,4 @@
+/** Keyed progress values (scroll adapters clamp them to 0..1); unknown keys read 0. */
 export type WebGLProgressSignalSource = {
   get(key: string): number;
   subscribe?(listener: () => void): () => void;

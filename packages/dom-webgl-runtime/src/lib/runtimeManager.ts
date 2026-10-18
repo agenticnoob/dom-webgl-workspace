@@ -9,6 +9,7 @@ import type {
   WebGLScrollMetrics,
 } from "./runtimeTypes";
 
+/** Availability and target readiness. `ready` does not prove pixels were drawn. */
 export type RuntimeDebugState = {
   ready: boolean;
   targetCount: number;
@@ -16,12 +17,23 @@ export type RuntimeDebugState = {
   error?: string;
 };
 
+/** DOM coordination returned by `useWebGLRuntime()`; not a renderer API. */
 export type RuntimeManager = {
+  /** Shared progress inputs; read `progress.get(key)` inside `useFrame`. */
   readonly progress: WebGLProgressSignalSource;
+  /** Current scroll metrics from the scroll adapter or the window. */
   readonly scroll: WebGLScrollMetrics;
   getTarget(id: string): DOMTargetState | undefined;
+  /**
+   * Report whether the visual replacing target `id` can render. Call `true`
+   * only after its model/texture exists and `false` on release; never `true`
+   * after a load error. Pass the target captured when asynchronous work
+   * started as `expected`, so a stale load cannot affect a remounted target.
+   */
   setTargetReady(id: string, ready: boolean, expected?: DOMTargetState): void;
+  /** Request a frame, e.g. after external state changes under `frameloop: "demand"`. */
   invalidate(): void;
+  /** Notified on target registration, readiness and availability changes. */
   subscribe(listener: () => void): () => void;
   getDebugState(): RuntimeDebugState;
 };

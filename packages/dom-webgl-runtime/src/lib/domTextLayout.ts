@@ -1,11 +1,15 @@
+/** One glyph in CSS pixels relative to the measured element's border box. */
 export type DOMTextGlyph = {
   index: number;
   char: string;
   line: number;
   x: number;
+  /** Top of the glyph's line box; per-glyph transforms pivot here. */
   y: number;
   width: number;
+  /** Line height. */
   height: number;
+  /** Alphabetic baseline, including CSS half-leading. */
   baseline: number;
 };
 
@@ -66,6 +70,11 @@ export type DOMTextMeasureOptions = {
   context?: MeasuringContext;
 };
 
+/**
+ * Measures one element's text with its computed typography: wrapped lines and
+ * indexed glyphs in CSS pixels. Uses a single font for the element; it does not
+ * lay out rich nested HTML. Re-measure when the target `revision` changes.
+ */
 export function measureDOMText(
   element: HTMLElement,
   options: DOMTextMeasureOptions = {},

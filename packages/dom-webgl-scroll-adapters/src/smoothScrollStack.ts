@@ -27,6 +27,7 @@ export type LenisGsapScrollStackOptions = {
   proxy?: ScrollTriggerScrollerProxy;
   getViewportHeight?: LenisScrollAdapterOptions["getViewportHeight"];
   getScrollHeight?: LenisScrollAdapterOptions["getScrollHeight"];
+  /** When true, `dispose()` also destroys the Lenis instance. */
   manageLenis?: boolean;
   disableLagSmoothing?: boolean;
 };
@@ -38,6 +39,10 @@ export type LenisGsapScrollStack = {
   dispose(): void;
 };
 
+/**
+ * Lenis adapter + GSAP ticker bridge (+ optional ScrollTrigger bridge) as one
+ * owned unit. Pass `scrollAdapter` to the runtime and `dispose()` on unmount.
+ */
 export function createLenisGsapScrollStack(
   options: LenisGsapScrollStackOptions,
 ): LenisGsapScrollStack {
