@@ -1,6 +1,6 @@
 {
   "name": "@viselora/scroll-adapters",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "type": "module",
   "files": [
     "dist",
@@ -58,6 +58,6 @@
     }
   },
   "dependencies": {
-    "@viselora/dom-webgl": "0.2.0-alpha.0"
+    "@viselora/dom-webgl": "0.2.0-alpha.1"
   }
 }

@@ -76,7 +76,7 @@ describe("React/R3F consumer skill", () => {
   test("states the constraints agents miss in the SKILL.md body", () => {
     // Agents often read only SKILL.md, so these must not live only in references.
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.0"');
+    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.1"');
     expect(skill).toContain("--save-exact");
     expect(skill).toContain("scripts/verify-consumer.mjs");
     expect(skill).toContain("scripts/browser-check.mjs");
@@ -96,7 +96,7 @@ describe("React/R3F consumer skill", () => {
     expect(result.status, result.stderr).toBe(0);
     const text = readFileSync(resolve(root, "src/recipes/TextWave.tsx"), "utf8");
     expect(text).toContain("target.revision !== revision");
-    expect(text).not.toContain("createDOMTextTexture(");
+    expect(text).toContain("createDOMTextTexture(target.element)");
     const model = readFileSync(resolve(root, "src/recipes/ModelTarget.tsx"), "utf8");
     expect(model).toContain("runtime.setTargetReady(targetId, true, target)");
     expect(model).toContain("disposeObject");
@@ -209,7 +209,7 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     const root = copyTemplate();
     const pkg = readJson(root, "package.json");
     pkg.dependencies["@viselora/dom-webgl"] =
-      "file:../viselora-dom-webgl-0.2.0-alpha.0.tgz";
+      "file:../viselora-dom-webgl-0.2.0-alpha.1.tgz";
     writeJson(root, "package.json", pkg);
     expect(run(root).status).toBe(0);
   });

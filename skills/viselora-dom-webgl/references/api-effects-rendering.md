@@ -12,16 +12,10 @@ CanvasTexture, CSS width/height and `dispose()`. The raster is capped at 2x DPR,
 sRGB, linearly filtered, without mipmaps. Own its disposal and recreate it when
 content or target revision changes.
 
-Known issue in 0.2.0-alpha.0: `drawDOMText` (and therefore
-`createDOMTextTexture`) draws each line at the top of its line box with
-`textBaseline = "top"` and ignores CSS half-leading. The texture sits higher
-than the DOM glyphs by roughly `(lineHeight - contentHeight) / 2` (about 11px
-at 72px with `line-height: normal`, 22px with `1.5`). Use
-`createAlignedTextTexture` from [TextWave.tsx](../recipes/TextWave.tsx), which
-draws `measureDOMText` lines on the CSS baseline, and set an explicit
-line-height. The repository source contains an unreleased fix (alphabetic
-baseline with half-leading; `glyph.baseline` becomes the real baseline while
-`glyph.y` stays the line-box top); the published alpha still has the offset.
+Glyph `y` is the top of its line box and `baseline` is the CSS alphabetic
+baseline, including half-leading. Since 0.2.0-alpha.1 both helpers draw on that
+baseline, so textures line up with the DOM text; 0.2.0-alpha.0 drew text
+about half the leading too high.
 
 `target.revision` is a mutable counter, not React state. Poll it in `useFrame`,
 copy changes into state and rebuild the texture in an effect; dispose the old

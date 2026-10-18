@@ -42,11 +42,16 @@ Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
 successful publish; a mirror's 404 is not evidence that the official release is
 missing. Production application deployment is separate from npm publication.
 
-**Unreleased source fix:** DOM text layout now places glyphs on the CSS
-alphabetic baseline, including half-leading and font-metric `line-height: normal`.
-The published `0.2.0-alpha.0` draws `drawDOMText`/`createDOMTextTexture` text
-about half the leading too high (for example 11px for 72px text at `normal`).
-`DOMTextGlyph.y` remains the line-box top; `baseline` is now the real baseline.
+**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.1` and
+`@viselora/scroll-adapters@0.2.0-alpha.1` are versioned in source and not yet
+on the registry. This version places DOM text glyphs on the
+CSS alphabetic baseline, including half-leading and font-metric
+`line-height: normal`. The published `0.2.0-alpha.0` draws
+`drawDOMText`/`createDOMTextTexture` text about half the leading too high (for
+example 11px for 72px text at `normal`). `DOMTextGlyph.y` remains the line-box
+top; `baseline` is now the real baseline. The release also documents
+agent-critical constraints in the public JSDoc. The consumer skill and template
+target `0.2.0-alpha.1`; they resolve only after that version is published.
 
 ## Workspace applications
 

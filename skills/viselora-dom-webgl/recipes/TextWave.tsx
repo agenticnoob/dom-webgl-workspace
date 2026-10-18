@@ -9,86 +9,24 @@
 //   the DOM text does not flash during a resize.
 // - The DOM heading stays the semantic, accessible text (opacity only).
 //
-// Alignment caveat for @viselora/dom-webgl 0.2.0-alpha.0: createDOMTextTexture
-// and drawDOMText draw each line at the top of its line box and ignore CSS
-// half-leading, so the texture sits higher than the DOM glyphs whenever
-// line-height is larger than the font's content height (about 11px too high
-// at 72px with `line-height: normal`, 22px with `line-height: 1.5`). This recipe draws the lines itself from the
-// measureDOMText layout with a half-leading baseline. Give the text an explicit
-// line-height (e.g. 1.1); `normal` is measured as 1.2em and can drift slightly.
-// The repository source has an unreleased fix (alphabetic baseline with
-// half-leading); once a release containing it is the compatible version,
-// createDOMTextTexture can replace createAlignedTextTexture.
+// Text placement: since 0.2.0-alpha.1 createDOMTextTexture draws glyphs on the
+// CSS alphabetic baseline, including half-leading, so the texture matches the
+// DOM text. 0.2.0-alpha.0 drew it too high; upgrade instead of working around.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  CanvasTexture,
-  LinearFilter,
-  SRGBColorSpace,
   Vector2,
+  type CanvasTexture,
   type Mesh,
   type ShaderMaterial,
 } from "three";
-import { measureDOMText } from "@viselora/dom-webgl";
+import { createDOMTextTexture } from "@viselora/dom-webgl";
 import {
   useDOMTarget,
   useWebGLRuntime,
   WebGLRuntime,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
-
-export type AlignedTextTexture = {
-  texture: CanvasTexture;
-  width: number;
-  height: number;
-  dispose(): void;
-};
-
-/** Like createDOMTextTexture, but places glyphs on the CSS baseline. */
-export function createAlignedTextTexture(
-  element: HTMLElement,
-): AlignedTextTexture {
-  const canvas = element.ownerDocument.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("DOM text textures require a 2D canvas.");
-  const layout = measureDOMText(element, { context });
-  const dpr = layout.devicePixelRatio;
-  canvas.width = Math.max(1, Math.ceil(layout.width * dpr));
-  canvas.height = Math.max(1, Math.ceil(layout.height * dpr));
-  context.setTransform(dpr, 0, 0, dpr, 0, 0);
-  context.font = layout.font;
-  context.fillStyle = layout.color;
-  context.textAlign = "left";
-  context.textBaseline = "alphabetic";
-  const metrics = context.measureText("Hg");
-  const ascent = finite(metrics.fontBoundingBoxAscent, metrics.actualBoundingBoxAscent);
-  const descent = finite(metrics.fontBoundingBoxDescent, metrics.actualBoundingBoxDescent);
-  // CSS centres the font's content area (ascent + descent) in the line box.
-  const baseline = (lineTop: number) =>
-    lineTop + (layout.lineHeight - ascent - descent) / 2 + ascent;
-  if (layout.letterSpacing === 0 && layout.wordSpacing === 0) {
-    for (const line of layout.lines)
-      context.fillText(line.text, line.x, baseline(line.y));
-  } else {
-    for (const glyph of layout.glyphs)
-      context.fillText(glyph.char, glyph.x, baseline(glyph.y));
-  }
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
-  texture.generateMipmaps = false;
-  return {
-    texture,
-    width: layout.width,
-    height: layout.height,
-    dispose: () => texture.dispose(),
-  };
-}
-
-function finite(value: number, fallback: number): number {
-  return Number.isFinite(value) ? value : fallback;
-}
 
 const vertexShader = /* glsl */ `
 uniform float uTime;
@@ -111,6 +49,8 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+type DOMTextTexture = ReturnType<typeof createDOMTextTexture>;
+
 export type WaveTextProps = {
   targetId: string;
   /** Peak vertical displacement in CSS pixels. */
@@ -124,7 +64,7 @@ export function WaveText({ targetId, amplitude = 4, frequency = 1.5 }: WaveTextP
   const mesh = useRef<Mesh>(null);
   const material = useRef<ShaderMaterial>(null);
   const [revision, setRevision] = useState<number>();
-  const [snapshot, setSnapshot] = useState<AlignedTextTexture | null>(null);
+  const [snapshot, setSnapshot] = useState<DOMTextTexture | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   // Initial values only: R3F copies them into the material's own uniforms, so
   // per-frame updates go through `material.current.uniforms`.
@@ -150,7 +90,7 @@ export function WaveText({ targetId, amplitude = 4, frequency = 1.5 }: WaveTextP
   // Rebuild for every observed revision of the current target.
   useEffect(() => {
     if (!target || revision === undefined) return;
-    setSnapshot(createAlignedTextTexture(target.element));
+    setSnapshot(createDOMTextTexture(target.element));
   }, [target, revision]);
 
   // Dispose a texture once it has been replaced or the component unmounts.

@@ -8,7 +8,7 @@ entrypoints and ends with a usage example.
 | --- | --- |
 | [ModelTarget.tsx](../recipes/ModelTarget.tsx) | GLB loaded after mount, fit to a target's rect in a pixel-space orthographic camera, readiness against the captured target, load error keeps the fallback, owned geometry/material/texture disposal |
 | [ScrollStory.tsx](../recipes/ScrollStory.tsx) | Story section progress from its live target rect, piecewise keyframes, no clock or damping, `frameloop: "demand"` |
-| [TextWave.tsx](../recipes/TextWave.tsx) | Half-leading-correct DOM text texture, rebuild on polled `target.revision`, deferred disposal, vertex wave, reduced motion |
+| [TextWave.tsx](../recipes/TextWave.tsx) | `createDOMTextTexture` aligned with the DOM baseline, rebuild on polled `target.revision`, deferred disposal, vertex wave, reduced motion |
 
 Adapting them:
 
@@ -20,8 +20,8 @@ Adapting them:
 - Scroll stories under `WebGLScrollRuntime` with ScrollTrigger sections: replace
   `sectionProgress` with `runtime.progress.get(progressKey)`; keep the mapping pure.
 - Per-glyph text effects (scramble, pressure): build commands from
-  `measureDOMText(...).glyphs` and draw them with the same half-leading baseline
-  as `createAlignedTextTexture`; set `texture.needsUpdate = true` after redraws.
+  `measureDOMText(...).glyphs` and draw them with `drawDOMText`, which places
+  each glyph on its CSS baseline; set `texture.needsUpdate = true` after redraws.
 - Images/video: native textures, DOM fallback until the texture has loaded.
 
 Keep application visual math and shaders in the consumer. Avoid wrapping every
