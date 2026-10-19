@@ -14,6 +14,18 @@
   };
   window.__evalStats = stats;
 
+  // The grader scrolls with window.scrollTo and measures after fixed waits.
+  // CSS `scroll-behavior: smooth` would turn that into an animation of unknown
+  // length (it does not affect wheel or touch scrolling), so force instant
+  // programmatic scrolling.
+  const instantScroll = () => {
+    const style = document.createElement("style");
+    style.textContent = "html, body { scroll-behavior: auto !important; }";
+    (document.head ?? document.documentElement).append(style);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", instantScroll, { once: true });
+  else instantScroll();
+
   const getContext = HTMLCanvasElement.prototype.getContext;
   const seen = new WeakSet();
   HTMLCanvasElement.prototype.getContext = function (type, attributes) {

@@ -82,7 +82,8 @@ for (const id of ids) {
 const valid = rows.filter((row) => !row.infraError);
 const output = resolve(option("out") ?? join(root, "results.json"));
 const comparisons = compareConditions(valid);
-writeFileSync(output, JSON.stringify({ generatedAt: new Date().toISOString(), comparisons, rows }, null, 2));
+const runComparisons = compareRuns(valid);
+writeFileSync(output, JSON.stringify({ generatedAt: new Date().toISOString(), comparisons, runComparisons, rows }, null, 2));
 const markdown = [
   "## Per run",
   perRunTable(rows),
@@ -94,6 +95,8 @@ const markdown = [
   taskTable(valid),
   "## Paired comparisons (cell = config × task, mean over reps)",
   comparisonTable(comparisons),
+  "## Run-level comparisons within each config (unpaired)",
+  runComparisonTable(runComparisons),
   "## Process",
   processTable(valid),
 ].join("\n\n");
@@ -231,6 +234,81 @@ function compareConditions(list) {
   return out;
 }
 
+// Within one config: every run is a sample. Mean totalV2 difference with a
+// seeded Monte Carlo permutation p-value, and Fisher's exact test on the
+// number of runs whose page showed no WebGL at all (pixels = 0).
+function compareRuns(list) {
+  const out = [];
+  for (const config of [...new Set(list.map((row) => row.config))].sort()) {
+    const conditions = [...new Set(list.filter((row) => row.config === config).map((row) => row.condition))].sort();
+    for (let i = 0; i < conditions.length; i += 1)
+      for (let j = i + 1; j < conditions.length; j += 1) {
+        const a = list.filter((row) => row.config === config && row.condition === conditions[i]);
+        const b = list.filter((row) => row.config === config && row.condition === conditions[j]);
+        const blankA = a.filter((row) => row.scores.pixels === 0).length;
+        const blankB = b.filter((row) => row.scores.pixels === 0).length;
+        out.push({
+          config,
+          a: conditions[i],
+          b: conditions[j],
+          n: [a.length, b.length],
+          meanA: round(meanOf(a.map((row) => row.totalV2)), 2),
+          meanB: round(meanOf(b.map((row) => row.totalV2)), 2),
+          p: permutationP(a.map((row) => row.totalV2), b.map((row) => row.totalV2)),
+          blank: [blankA, blankB],
+          blankP: fisherP(blankA, a.length - blankA, blankB, b.length - blankB),
+        });
+      }
+  }
+  return out;
+}
+
+function permutationP(a, b, rounds = 20000) {
+  const all = [...a, ...b];
+  const observed = Math.abs(meanOf(b) - meanOf(a));
+  if (observed < 1e-12) return 1;
+  let seed = 12345;
+  const random = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  let extreme = 0;
+  for (let round = 0; round < rounds; round += 1) {
+    const shuffled = [...all];
+    for (let k = shuffled.length - 1; k > 0; k -= 1) {
+      const r = Math.floor(random() * (k + 1));
+      [shuffled[k], shuffled[r]] = [shuffled[r], shuffled[k]];
+    }
+    const x = shuffled.slice(0, a.length);
+    const y = shuffled.slice(a.length);
+    if (Math.abs(meanOf(y) - meanOf(x)) >= observed - 1e-9) extreme += 1;
+  }
+  return round((extreme + 1) / (rounds + 1), 4);
+}
+
+// Two-sided Fisher exact test for the 2×2 table [[a, b], [c, d]].
+function fisherP(a, b, c, d) {
+  const n = a + b + c + d;
+  const logFactorial = (k) => {
+    let sum = 0;
+    for (let i = 2; i <= k; i += 1) sum += Math.log(i);
+    return sum;
+  };
+  const probability = (x) => {
+    const y = a + b - x;
+    const z = a + c - x;
+    const w = n - x - y - z;
+    if (y < 0 || z < 0 || w < 0) return 0;
+    return Math.exp(
+      logFactorial(a + b) + logFactorial(c + d) + logFactorial(a + c) + logFactorial(b + d) - logFactorial(n) - logFactorial(x) - logFactorial(y) - logFactorial(z) - logFactorial(w),
+    );
+  };
+  const observed = probability(a);
+  let p = 0;
+  for (let x = 0; x <= Math.min(a + b, a + c); x += 1) {
+    const value = probability(x);
+    if (value <= observed + 1e-12) p += value;
+  }
+  return round(Math.min(1, p), 4);
+}
+
 function signFlipP(diffs) {
   const observed = Math.abs(diffs.reduce((sum, d) => sum + d, 0));
   const n = diffs.length;
@@ -307,6 +385,25 @@ function comparisonTable(list) {
   const lines = [row(head), row(head.map(() => "---"))];
   for (const c of list.filter((c) => ["totalV2", "core", "robust", ...robust].includes(c.metric) || c.p <= 0.1))
     lines.push(row([c.metric, `${c.a} → ${c.b}`, c.cells, c.meanDiff, c.p <= 0.05 ? `**${c.p}**` : c.p]));
+  return lines.join("\n");
+}
+
+function runComparisonTable(list) {
+  const head = ["config", "A → B", "n", "mean A", "mean B", "p (permutation)", "no-WebGL runs A / B", "p (Fisher)"];
+  const lines = [row(head), row(head.map(() => "---"))];
+  for (const c of list)
+    lines.push(
+      row([
+        c.config,
+        `${c.a} → ${c.b}`,
+        c.n.join(" / "),
+        c.meanA,
+        c.meanB,
+        c.p <= 0.05 ? `**${c.p}**` : c.p,
+        c.blank.join(" / "),
+        c.blankP <= 0.05 ? `**${c.blankP}**` : c.blankP,
+      ]),
+    );
   return lines.join("\n");
 }
 

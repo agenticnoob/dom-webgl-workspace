@@ -468,7 +468,8 @@ async function gradeFeatureCards() {
   const fullyInView = (r) => r && r.top >= 0 && r.left >= 0 && r.top + r.height <= viewport.height && r.left + r.width <= viewport.width;
   const idle = changed(rest, rest2, rects[1]);
   const threshold = Math.max(0.01, idle * 3);
-  await page.mouse.move(rects[1].left + rects[1].width / 2, rects[1].top + rects[1].height / 2, { steps: 6 });
+  // Jump straight to the card: a multi-step path could cross a neighbouring card.
+  await page.mouse.move(rects[1].left + rects[1].width / 2, rects[1].top + rects[1].height / 2);
   await sleep(1200);
   const hovered = await grid(page);
   await page.screenshot({ path: join(shots, "d-hover.png") });
@@ -477,7 +478,7 @@ async function gradeFeatureCards() {
     0,
     ...rects.filter((r, index) => index !== 1 && fullyInView(r)).map((r) => changed(rest2, hovered, r)),
   );
-  await page.mouse.move(2, 2, { steps: 6 });
+  await page.mouse.move(2, 2);
   await sleep(1800);
   const left = await grid(page);
   const releaseChange = changed(rest2, left, rects[1]);
