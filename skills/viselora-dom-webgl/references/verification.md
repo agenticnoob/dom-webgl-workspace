@@ -8,7 +8,8 @@ Run consumer typecheck and production build. Use installed matching tarballs
 when verifying the package boundary, rather than workspace source aliases.
 
 `scripts/browser-check.mjs <url>` drives a headless Chrome through
-`playwright-core` against a running page: one Canvas and WebGL context, drawn
+`playwright-core` (install it with `npm install --save-dev playwright-core`;
+it exits with code 2 until then) against a running page: one Canvas and WebGL context, drawn
 pixels, `--follow <selector>` placement after scroll/reverse/resize,
 `--deterministic` scroll restoration, and `--fallback <selector>` visibility
 without WebGL and while `--block <glob>` requests hang or fail. It does not

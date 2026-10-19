@@ -19,18 +19,20 @@ if (!version) throw new Error("SKILL.md has no compatible package version");
 
 const pkg = readJson(resolve(consumerRoot, "package.json"));
 const dependencies = { ...pkg?.devDependencies, ...pkg?.dependencies };
-for (const [name, prefix] of [
-  ["react", "19"],
-  ["react-dom", "19"],
-  ["@react-three/fiber", "9"],
-  ["three", "0.184"],
+for (const [name, lines] of [
+  ["react", ["19"]],
+  ["react-dom", ["19"]],
+  ["@react-three/fiber", ["9"]],
+  ["three", ["0.184", "0.185", "0.186"]],
 ]) {
   const declared = dependencies[name];
-  if (
-    typeof declared !== "string" ||
-    !new RegExp(`^[~^]?${prefix.replaceAll(".", "\\.")}\\.`).test(declared)
-  ) {
-    violations.push(`${name} must declare a supported ${prefix}.x dependency`);
+  const supported = lines.some((line) =>
+    new RegExp(`^[~^]?${line.replaceAll(".", "\\.")}\\.`).test(declared ?? ""),
+  );
+  if (typeof declared !== "string" || !supported) {
+    violations.push(
+      `${name} must declare a supported ${lines.map((line) => `${line}.x`).join(" / ")} dependency`,
+    );
   }
 }
 validatePackage("@viselora/dom-webgl", true);

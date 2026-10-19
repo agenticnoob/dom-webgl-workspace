@@ -7,7 +7,7 @@ The 0.2 React/R3F API replaces the 0.1.x managed engine API. See the repository
 ## Install
 
 ```bash
-npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
+npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
 ```
 
 Use the `alpha` tag for the React/R3F API; see

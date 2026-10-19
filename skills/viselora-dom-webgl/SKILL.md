@@ -26,7 +26,7 @@ packages implement a different API. Check the repository
    `@viselora/scroll-adapters` if used). `npm install` writes a caret by
    default, so use `--save-exact`:
    `npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.1`.
-   React 19, R3F 9 and Three.js 0.184 may use normal ranges.
+   React 19, R3F 9 and Three.js 0.184–0.186 may use normal ranges.
 2. **Run the static verifier before finishing:**
    `node <skill-dir>/scripts/verify-consumer.mjs <project-root>`. It rejects
    caret pins, private Viselora imports, a second Canvas/WebGLRenderer/R3F
@@ -55,7 +55,8 @@ packages implement a different API. Check the repository
 8. **Scroll-driven state is a pure function of progress**: no clock, no
    accumulated deltas, no damping, so reverse scroll and resize restore the same
    frame. Time-based animation (idle spin, waves) uses `useFrame` delta in
-   seconds and the default `frameloop: "always"`.
+   seconds and the default `frameloop: "always"`, and stops under
+   `prefers-reduced-motion: reduce` (read `matchMedia` in an effect).
 9. **Pixel-space placement**: with `canvas={{ orthographic: true, camera:
    { position: [0, 0, 1000], far: 4000 } }}` one world unit is one CSS pixel
    and the centre of a target is
@@ -93,10 +94,13 @@ npx tsc --noEmit
 npm run build
 ```
 
-With a dev server running and `playwright-core` installed, check real pixels,
-following, determinism and fallback paths:
+Then check real pixels, following, determinism and fallback paths in a browser.
+`browser-check.mjs` needs the `playwright-core` driver in the project, which a
+fresh app does not have; install it first, then start the dev server
+(`npm run dev`) and leave it running:
 
 ```bash
+npm install --save-dev playwright-core
 node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --follow "#card-model" --fallback "#card-model" --block "**/*.glb"
 node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --deterministic --fallback main
 ```
@@ -124,7 +128,7 @@ Unmount/remount cleanup still needs a test of the consumer component.
 
 ## Boundaries
 
-- React 19, R3F 9 and Three.js 0.184 are the supported stack.
+- React 19, R3F 9 and Three.js 0.184–0.186 are the supported stack.
 - Native Three.js ownership and R3F JSX/hooks are the normal visual API.
 - Do not add a second Canvas/WebGLRenderer or custom renderer RAF loop.
 - Do not import private Viselora source or rebuild a scene/material/effect facade.

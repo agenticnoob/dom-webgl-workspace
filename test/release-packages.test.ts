@@ -84,7 +84,7 @@ describe("release package contracts", () => {
       "@react-three/fiber": "^9.8.1",
       react: ">=19.0.0 <19.4.0",
       "react-dom": ">=19.0.0 <19.4.0",
-      three: "^0.184.0",
+      three: ">=0.184.0 <0.187.0",
     });
     expect(runtimePackage).not.toHaveProperty("peerDependenciesMeta");
     expect(runtimePackage).not.toHaveProperty("private");

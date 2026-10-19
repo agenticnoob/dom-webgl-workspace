@@ -33,9 +33,9 @@ const cases = [
   { name: "control-a", task: "a", app: v1("a-App.tsx"), viselora: true, expectFail: ["reduced_motion"] },
   { name: "control-b", task: "b", app: v1("b-App.tsx"), viselora: true, expectFail: [] },
   { name: "control-c", task: "c", app: v1("c-App.tsx"), viselora: true, expectFail: ["reduced_motion"] },
-  // Pages assembled from the skill recipes. ModelTarget spins regardless of
-  // reduced motion; TextWave sets its amplitude to 0.
-  { name: "recipe-a", task: "a", app: v1("recipe-a-App.tsx"), viselora: true, recipes: true, expectFail: ["reduced_motion"] },
+  // Pages assembled from the skill recipes. ModelTarget stops its idle spin
+  // and TextWave sets its amplitude to 0 under reduced motion.
+  { name: "recipe-a", task: "a", app: v1("recipe-a-App.tsx"), viselora: true, recipes: true, expectFail: [] },
   { name: "recipe-b", task: "b", app: v1("recipe-b-App.tsx"), viselora: true, recipes: true, expectFail: [] },
   { name: "recipe-c", task: "c", app: v1("recipe-c-App.tsx"), viselora: true, recipes: true, expectFail: [] },
   // Round-2 references, with and without Viselora.
