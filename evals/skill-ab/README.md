@@ -5,6 +5,8 @@ coding agent 搭建的「DOM + WebGL」页面质量是否更好？
 
 评测日期：2026-10-16。被测包版本：`@viselora/dom-webgl@0.2.0-alpha.0`（npm 官方源）。
 
+第二轮（Viselora + skill 对比原生实现、codex 强/弱两档、新增任务 d/e 和稳健性评分项）见 [`../skill-ab-v2/`](../skill-ab-v2/README.md)。
+
 ## 结论
 
 **在这组评测里，skill 没有带来可测量的提升。** 24 次运行（2 个 agent × 3 个任务 ×

@@ -9,7 +9,9 @@
 创建/丢失、`window`/`document` 监听器、ResizeObserver/IntersectionObserver、
 `requestAnimationFrame` 调用次数；对 WebGL context 强制 `preserveDrawingBuffer`，
 用于直接读取 canvas 像素（只读 WebGL 画布，不受上层 DOM 遮挡影响）；还可以模拟
-WebGL 不可用的情况（`getContext("webgl*")` 返回 `null`）。
+WebGL 不可用的情况（`getContext("webgl*")` 返回 `null`）。第二轮起，它还会在每个动画帧第一次绘制前模拟浏览器的整块清屏
+（否则 scissor 视口会留下残影），并强制 `scroll-behavior: auto`，见
+[第二轮 rubric](../skill-ab-v2/rubric.md#评分器的修正)。
 
 像素分析：把最大的已连接 WebGL canvas 降采样到 2px 网格，出现次数最多的颜色视为背景，
 与背景差异超过阈值的格子组成“前景掩码”，据此计算格子数、质心和包围盒。“状态差异”
