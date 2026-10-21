@@ -46,11 +46,14 @@ packages carry SLSA provenance attestations. An
 [earlier run](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39126440622)
 failed in verification on a test teardown race and published nothing.
 
-**Unreleased source change:** the core peer range is `three >=0.184.0 <0.187.0`.
-Published `0.2.0-alpha.1` still declares `^0.184.0`, so an application on
-`three@0.186` hits ERESOLVE until the next release. The installed-tarball
-consumer passed SSR, typecheck, unit, build and Chromium checks with
-Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs --three`).
+**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.2` and
+`@viselora/scroll-adapters@0.2.0-alpha.2` are versioned in source and not yet on
+the registry. The release widens the core peer range to
+`three >=0.184.0 <0.187.0`; published `0.2.0-alpha.1` still declares
+`^0.184.0`, so an application on `three@0.186` hits ERESOLVE until then. The
+installed-tarball consumer passed SSR, typecheck, unit, build and Chromium
+checks with Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs --three`).
+The consumer skill and template target `0.2.0-alpha.2`.
 
 A fresh install of both packages from the official registry exposes the JSDoc
 in the published declarations, the alphabetic-baseline drawing in `dist`, and

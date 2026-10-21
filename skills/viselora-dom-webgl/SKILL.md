@@ -9,7 +9,7 @@ metadata:
 
 # Viselora React/R3F Development
 
-Compatible package version: 0.2.0-alpha.1
+Compatible package version: 0.2.0-alpha.2
 
 This skill targets the breaking React/R3F 0.2 alpha API. Install matching package
 versions from the `alpha` channel or use reviewed local tarballs. The 0.1.x
@@ -22,10 +22,10 @@ packages implement a different API. Check the repository
 ## Rules that are easy to get wrong
 
 1. **Pin Viselora exactly, without `^` or `~`.** `package.json` must say
-   `"@viselora/dom-webgl": "0.2.0-alpha.1"` (and the same for
+   `"@viselora/dom-webgl": "0.2.0-alpha.2"` (and the same for
    `@viselora/scroll-adapters` if used). `npm install` writes a caret by
    default, so use `--save-exact`:
-   `npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.1`.
+   `npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.2`.
    React 19, R3F 9 and Three.js 0.184–0.186 may use normal ranges.
 2. **Run the static verifier before finishing:**
    `node <skill-dir>/scripts/verify-consumer.mjs <project-root>`. It rejects
@@ -43,7 +43,7 @@ packages implement a different API. Check the repository
    loading, on failure and without WebGL.
 5. **Use 0.2.0-alpha.1 or later for DOM text.** `createDOMTextTexture` and
    `drawDOMText` place glyphs on the CSS baseline, including half-leading,
-   since 0.2.0-alpha.1. 0.2.0-alpha.1 drew text about half the leading too high
+   since 0.2.0-alpha.1. 0.2.0-alpha.0 drew text about half the leading too high
    (11px at 72px with `line-height: normal`); upgrade rather than compensate.
 6. **SSR-safe render.** No `window`, `document`, `matchMedia`, loaders or
    textures in render bodies, `useState` initializers or module scope; create

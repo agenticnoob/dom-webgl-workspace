@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "compatiblePackageVersion": "0.2.0-alpha.1",
+  "compatiblePackageVersion": "0.2.0-alpha.2",
   "capabilities": [
     "react-runtime",
     "dom-target-lifecycle"

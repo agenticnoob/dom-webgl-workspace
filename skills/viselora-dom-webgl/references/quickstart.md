@@ -20,7 +20,7 @@ The template pins the compatible Viselora versions. For an existing application,
 pin Viselora exactly (no `^`); `verify-consumer.mjs` rejects ranges:
 
 ```bash
-npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.1 @viselora/scroll-adapters@0.2.0-alpha.1
+npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.2 @viselora/scroll-adapters@0.2.0-alpha.2
 npm install react@19 react-dom@19 @react-three/fiber@9 three@0.186
 npm install --save-dev @types/three@0.186
 ```

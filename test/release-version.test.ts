@@ -22,14 +22,14 @@ afterEach(() => {
 });
 
 describe("release version management", () => {
-  test("keeps the React-only release candidate lockstep at 0.2.0-alpha.1", () => {
+  test("keeps the React-only release candidate lockstep at 0.2.0-alpha.2", () => {
     const result = spawnSync(process.execPath, [cliPath, "--check"], {
       cwd: repoRoot,
       encoding: "utf8",
     });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Release versions OK: 0.2.0-alpha.1");
+    expect(result.stdout).toContain("Release versions OK: 0.2.0-alpha.2");
   });
 
   test("resolves both app consumers to workspace packages without nested registry copies", () => {
