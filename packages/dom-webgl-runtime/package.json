@@ -1,6 +1,6 @@
 {
   "name": "@viselora/dom-webgl",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "type": "module",
   "files": [
     "dist",
@@ -51,7 +51,7 @@
     "@react-three/fiber": "^9.8.1",
     "react": ">=19.0.0 <19.4.0",
     "react-dom": ">=19.0.0 <19.4.0",
-    "three": "^0.184.0"
+    "three": ">=0.184.0 <0.187.0"
   },
   "devDependencies": {
     "@types/three": "^0.184.1"

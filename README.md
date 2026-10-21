@@ -15,13 +15,13 @@ from 0.1.x; see the [migration guide](./docs/guides/getting-started.md#migrate-f
 and [release status](./docs/STATUS.md#release-truth).
 
 ```bash
-npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
+npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
 # Optional scroll integration
 npm install @viselora/scroll-adapters@alpha
 ```
 
 Consumers require React 19, React DOM 19, `@react-three/fiber` 9 and Three.js
-0.184. Optional scroll integrations use Lenis and GSAP. For workspace development,
+0.184–0.186. Optional scroll integrations use Lenis and GSAP. For workspace development,
 follow [Contributing](./CONTRIBUTING.md).
 
 ## Quick start

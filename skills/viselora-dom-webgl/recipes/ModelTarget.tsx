@@ -5,6 +5,7 @@
 // - Readiness is reported only after the model exists, against the captured
 //   target identity, and is withdrawn on unmount.
 // - The loaded model is owned by this component and disposed on unmount.
+// - The idle spin stops under `prefers-reduced-motion: reduce`.
 //
 // Copy this file, then render <ModelTarget> in the runtime `scene` and wrap the
 // fallback element in <WebGLTarget id=... hideWhenReady>. See ModelCardExample.
@@ -70,7 +71,7 @@ export type ModelTargetProps = {
   url: string;
   /** Fraction of the target's shorter side the model's largest edge fills. */
   fill?: number;
-  /** Idle rotation in radians per second; 0 disables it. */
+  /** Idle rotation in radians per second; 0 disables it. Reduced motion stops it. */
   spinSpeed?: number;
 };
 
@@ -110,6 +111,7 @@ function FittedModel({
   const target = useDOMTarget(targetId);
   const runtime = useWebGLRuntime();
   const group = useRef<Group>(null);
+  const reducedMotion = useRef(false);
   const fit = useMemo(() => {
     const box = new Box3().setFromObject(object);
     const size = box.getSize(new Vector3());
@@ -118,6 +120,17 @@ function FittedModel({
       size: Math.max(size.x, size.y, size.z) || 1,
     };
   }, [object]);
+
+  // A ref, not state: the frame callback reads it without re-rendering.
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      reducedMotion.current = query.matches;
+    };
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (!target) return;
@@ -139,7 +152,7 @@ function FittedModel({
       0,
     );
     node.scale.setScalar((Math.min(width, height) * fill) / fit.size);
-    node.rotation.y += delta * spinSpeed; // delta is in seconds
+    if (!reducedMotion.current) node.rotation.y += delta * spinSpeed; // delta is in seconds
   });
 
   return (

@@ -9,6 +9,9 @@ import { createExternalConsumerFixture } from "./external-consumer-fixture.mjs";
 import { createVerifiedTarballs } from "./package-tarballs.mjs";
 
 const repoRoot = process.cwd();
+// --three <minor> verifies the installed packages against another Three.js line.
+const threeFlag = process.argv.indexOf("--three");
+const threeMinor = threeFlag === -1 ? undefined : process.argv[threeFlag + 1];
 const fixtureRoot = mkdtempSync(join(tmpdir(), "viselora-external-consumer-"));
 let packed;
 
@@ -19,8 +22,11 @@ try {
     fixtureRoot,
     core.tarballPath,
     adapters.tarballPath,
+    threeMinor,
   );
-  process.stdout.write(`External fixture: ${fixtureRoot}\n`);
+  process.stdout.write(
+    `External fixture: ${fixtureRoot} (three ${threeMinor ?? "0.184"})\n`,
+  );
   run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]);
   run(process.execPath, ["scripts/verify-ssr.mjs"]);
   run("npm", ["run", "typecheck"]);

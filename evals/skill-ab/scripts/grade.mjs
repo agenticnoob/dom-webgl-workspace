@@ -4,7 +4,11 @@
 //   node evals/skill-ab/scripts/grade.mjs <runDir> [--tools <dir with playwright-core>]
 //
 // The run directory must contain agent-done.json (written by run-eval.mjs) or
-// pass --task a|b|c. Screenshots go to <runDir>/.eval-shots/ for manual review.
+// pass --task a|b|c|d|e. Screenshots go to <runDir>/.eval-shots/ for manual review.
+// Tasks d and e and the `robust` items (context loss, accessibility tree,
+// reduced motion) were added for evals/skill-ab-v2; `total` stays the sum of
+// the ten core items so round-1 scores remain comparable, `totalV2` adds the
+// three robust items (max 13).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -24,7 +28,7 @@ const meta = existsSync(join(runDir, "agent-done.json"))
   ? JSON.parse(readFileSync(join(runDir, "agent-done.json"), "utf8"))
   : { id: relative(process.cwd(), runDir), task: option("task") };
 const task = meta.task;
-if (!["a", "b", "c"].includes(task)) throw new Error("unknown task");
+if (!["a", "b", "c", "d", "e"].includes(task)) throw new Error("unknown task");
 const toolsDir = resolve(option("tools") ?? join(runDir, "../../tools"));
 const { chromium } = createRequire(join(toolsDir, "package.json"))("playwright-core");
 const shots = join(runDir, ".eval-shots");
@@ -34,8 +38,21 @@ const testIds = {
   a: ["product-card", "model-fallback"],
   b: ["chapter-1", "chapter-2", "chapter-3"],
   c: ["wave-text"],
+  d: [1, 2, 3, 4].map((n) => `feature-card-${n}`),
+  e: [...[1, 2, 3, 4].map((n) => `chapter-${n}`), "outro"],
 }[task];
-const result = { ...meta, scores: {}, details: {}, notes: [] };
+const testSelector = (id) => `[data-testid="${id}"]`;
+// Robust items: where to look, which DOM must stay visible while the WebGL
+// context is lost, and which DOM must stay in the accessibility tree.
+const robustConfig = {
+  a: { focus: testSelector("product-card"), replaced: [testSelector("model-fallback")], settle: 5000 },
+  b: { focus: testSelector("chapter-2"), replaced: [testSelector("chapter-2")], settle: 3500 },
+  c: { focus: null, replaced: [testSelector("wave-text")], settle: 3500 },
+  d: { focus: testSelector("feature-card-2"), replaced: [1, 2, 3, 4].map((n) => testSelector(`feature-card-${n}`)), settle: 4000 },
+  e: { focus: testSelector("chapter-2"), replaced: [testSelector("chapter-2")], settle: 3500 },
+}[task];
+const robustKeys = ["context_loss", "a11y_tree", "reduced_motion"];
+const result = { ...meta, scores: {}, robust: {}, details: {}, notes: [] };
 
 // ---------- static ----------
 const verify = spawnSync(
@@ -122,6 +139,7 @@ try {
   await waitForServer(origin);
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     for (const key of browserScores) delete result.scores[key];
+    result.robust = {};
     browser = await chromium.launch({
       executablePath:
         process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -132,16 +150,26 @@ try {
     browser.on("disconnected", () => (disconnected = true));
     try {
       if (attempt === 1) await warmUp();
-      const browserChecks = { a: gradeModelCard, b: gradeScrollStory, c: gradeTextWave }[task];
+      const browserChecks = {
+        a: gradeModelCard,
+        b: gradeScrollStory,
+        c: gradeTextWave,
+        d: gradeFeatureCards,
+        e: gradeHandoffStory,
+      }[task];
       await browserChecks();
       await gradeCleanup();
+      await gradeRobustness();
       result.details.browserAttempts = attempt;
       break;
     } catch (error) {
       result.notes.push(
         `browser attempt ${attempt} failed${disconnected ? " (browser disconnected)" : ""}: ${String(error?.message ?? error).slice(0, 300)}`,
       );
-      if (attempt === 3) for (const key of browserScores) result.scores[key] = 0;
+      if (attempt === 3) {
+        for (const key of browserScores) result.scores[key] = 0;
+        for (const key of robustKeys) result.robust[key] = 0;
+      }
     } finally {
       await browser.close().catch(() => {});
     }
@@ -167,9 +195,14 @@ for (const key of [
   "task_effect",
 ])
   result.scores[key] = round(result.scores[key] ?? 0);
+for (const key of robustKeys) result.robust[key] = round(result.robust[key] ?? 0);
 result.total = round(Object.values(result.scores).reduce((sum, value) => sum + value, 0));
+result.totalV2 = round(result.total + Object.values(result.robust).reduce((sum, value) => sum + value, 0));
 writeFileSync(join(runDir, "grade.json"), JSON.stringify(result, null, 2));
-console.log(`${meta.id}: total ${result.total}/10`, JSON.stringify(result.scores));
+console.log(
+  `${meta.id}: total ${result.total}/10, v2 ${result.totalV2}/13`,
+  JSON.stringify({ ...result.scores, ...result.robust }),
+);
 
 // ---------- task A ----------
 async function gradeModelCard() {
@@ -387,6 +420,403 @@ async function gradeTextWave() {
   }
 }
 
+// ---------- task D ----------
+async function gradeFeatureCards() {
+  const cards = [1, 2, 3, 4].map((n) => testSelector(`feature-card-${n}`));
+  const page = await openPage();
+  await page.goto(origin, { waitUntil: "load" });
+  await sleep(4000);
+  const checkpoints = [await snapshot(page)];
+  await placeEdge(page, cards[0], "top", 60);
+  await sleep(2000);
+  const first = await followState(page);
+  first.onScreen = await cardsOnScreen(page, first);
+  await page.screenshot({ path: join(shots, "d-normal.png") });
+  await placeEdge(page, cards[0], "bottom", 60);
+  await sleep(1500);
+  const scrolled = await followState(page);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await sleep(1200);
+  await placeEdge(page, cards[0], "top", 60);
+  await sleep(1500);
+  const reversed = await followState(page);
+  checkpoints.push(await snapshot(page));
+  await page.setViewportSize({ width: 820, height: 1000 });
+  await sleep(2000);
+  await placeEdge(page, cards[2], "top", 60);
+  await sleep(1500);
+  const resized = await followState(page);
+  checkpoints.push(await snapshot(page));
+  await page.screenshot({ path: join(shots, "d-resized.png") });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await sleep(1500);
+  result.scores.pixels = first.mask.count >= 150 ? 1 : 0;
+  result.scores.scroll_resize = mean([scrolled.ok, reversed.ok, resized.ok]);
+  result.scores.single_canvas = singleCanvas(checkpoints);
+
+  // Hover: the hovered card's object reacts, its neighbours do not, and it
+  // returns to rest when the pointer leaves.
+  await centerOn(page, cards[1]);
+  await page.mouse.move(2, 2);
+  await sleep(1500);
+  const rest = await grid(page);
+  await sleep(600);
+  const rest2 = await grid(page);
+  const rects = [];
+  for (const card of cards) rects.push((await visible(page, card)).rect);
+  const viewport = page.viewportSize();
+  const fullyInView = (r) => r && r.top >= 0 && r.left >= 0 && r.top + r.height <= viewport.height && r.left + r.width <= viewport.width;
+  const idle = changed(rest, rest2, rects[1]);
+  const threshold = Math.max(0.01, idle * 3);
+  // Jump straight to the card: a multi-step path could cross a neighbouring card.
+  await page.mouse.move(rects[1].left + rects[1].width / 2, rects[1].top + rects[1].height / 2);
+  await sleep(1200);
+  const hovered = await grid(page);
+  await page.screenshot({ path: join(shots, "d-hover.png") });
+  const hoverChange = changed(rest2, hovered, rects[1]);
+  const neighbourChange = Math.max(
+    0,
+    ...rects.filter((r, index) => index !== 1 && fullyInView(r)).map((r) => changed(rest2, hovered, r)),
+  );
+  await page.mouse.move(2, 2);
+  await sleep(1800);
+  const left = await grid(page);
+  const releaseChange = changed(rest2, left, rects[1]);
+  const hoverReact = hoverChange >= threshold;
+  const neighboursCalm = neighbourChange <= Math.max(0.005, hoverChange * 0.25);
+  const released = hoverReact && releaseChange <= Math.max(0.005, hoverChange * 0.25);
+  result.details.browser = { first, scrolled, reversed, resized, checkpoints, errors: page.errors };
+  await page.context().close();
+
+  // Keyboard: count the Tab presses that reach card 3, reload, stop one press
+  // short, centre card 3 and compare its region before/after the last press.
+  const keyboard = { reachable: false, presses: 0, change: 0 };
+  const view = await openPage();
+  await view.goto(origin, { waitUntil: "load" });
+  await sleep(3000);
+  for (let press = 1; press <= 40; press += 1) {
+    await view.keyboard.press("Tab");
+    if (await view.evaluate((s) => Boolean(document.activeElement?.closest(s)), cards[2])) {
+      keyboard.reachable = true;
+      keyboard.presses = press;
+      break;
+    }
+  }
+  if (keyboard.reachable) {
+    await view.reload({ waitUntil: "load" });
+    await sleep(3000);
+    for (let press = 1; press < keyboard.presses; press += 1) await view.keyboard.press("Tab");
+    await centerOn(view, cards[2]);
+    await view.mouse.move(2, 2);
+    await sleep(1500);
+    const before = await grid(view);
+    const rect3 = (await visible(view, cards[2])).rect;
+    await view.keyboard.press("Tab");
+    await sleep(1200);
+    const focused = await grid(view);
+    keyboard.focusedInCard = await view.evaluate((s) => Boolean(document.activeElement?.closest(s)), cards[2]);
+    keyboard.change = changed(before, focused, rect3);
+    await view.screenshot({ path: join(shots, "d-focus.png") });
+  }
+  await view.context().close();
+  const keyboardReact = keyboard.reachable && keyboard.focusedInCard && keyboard.change >= threshold;
+  const cardsRendered = first.ok && first.evaluated >= 2 && first.onScreen;
+  result.scores.task_effect = mean([cardsRendered, hoverReact && neighboursCalm, released, keyboardReact]);
+  result.details.interaction = {
+    idle,
+    threshold,
+    hoverChange,
+    neighbourChange,
+    releaseChange,
+    keyboard,
+    cardsRendered,
+    hoverReact,
+    neighboursCalm,
+    released,
+    keyboardReact,
+  };
+
+  const normal = await openPage();
+  await normal.goto(origin, { waitUntil: "load" });
+  await sleep(3000);
+  const normalVisible = [];
+  for (const card of cards) {
+    await centerOn(normal, card);
+    normalVisible.push((await visible(normal, card)).visible);
+  }
+  await normal.context().close();
+  const noWebGLView = await openPage({ disableWebGL: true });
+  await noWebGLView.goto(origin, { waitUntil: "load" });
+  await sleep(3000);
+  const noWebGL = [];
+  for (const card of cards) {
+    await centerOn(noWebGLView, card);
+    noWebGL.push(await visible(noWebGLView, card));
+  }
+  const noWebGLSnapshot = await snapshot(noWebGLView);
+  await noWebGLView.screenshot({ path: join(shots, "d-no-webgl.png") });
+  await noWebGLView.context().close();
+  result.scores.dom_fallback = mean([
+    normalVisible.every(Boolean),
+    noWebGL.every((state) => state.visible && state.text.length > 10) && noWebGLSnapshot.bodyTextLength > 40,
+  ]);
+  result.details.fallback = { normalVisible, noWebGL, noWebGLSnapshot, errors: noWebGLView.errors };
+
+  // Every card fully inside the viewport must hold a WebGL object: >= 300
+  // foreground cells inside the card, not a filled backdrop, and the centroid
+  // of the foreground around the card inside the card.
+  async function followState(view) {
+    const g = await grid(view);
+    const { background } = analyze(g);
+    const size = view.viewportSize();
+    const states = [];
+    for (const card of cards) {
+      const state = await visible(view, card);
+      const r = state.rect;
+      if (!state.visible || !r || r.top < 0 || r.left < 0 || r.top + r.height > size.height || r.left + r.width > size.width)
+        continue;
+      const inside = regionStats(g, background, r);
+      const around = regionStats(g, background, expand(r, 0.1));
+      const follows =
+        inside.count >= 300 && inside.density < 0.85 && Boolean(around.centroid) && centroidInside({ centroid: around.centroid }, r, 0);
+      states.push({ card, rect: r, count: inside.count, density: round(inside.density, 3), centroid: around.centroid, follows });
+    }
+    return { ok: states.length >= 1 && states.every((s) => s.follows), evaluated: states.length, cards: states, mask: summary(analyze(g)) };
+  }
+
+  // The objects must also be visible on screen, not hidden behind opaque cards.
+  async function cardsOnScreen(view, state) {
+    const visibleCards = [];
+    for (const { rect } of state.cards) {
+      const diff = await canvasDiff(view, rect);
+      visibleCards.push(diff ? diff.count / diff.cells >= 0.01 : false);
+    }
+    state.visibleOnScreen = visibleCards;
+    return visibleCards.length > 0 && visibleCards.every(Boolean);
+  }
+}
+
+// ---------- task E ----------
+async function gradeHandoffStory() {
+  const chapters = [1, 2, 3, 4].map((n) => testSelector(`chapter-${n}`));
+  const outro = testSelector("outro");
+  const page = await openPage();
+  await page.goto(origin, { waitUntil: "load" });
+  await sleep(3000);
+  const checkpoints = [await snapshot(page)];
+  const down = [];
+  for (const [index, chapter] of chapters.entries()) {
+    await centerOn(page, chapter);
+    await sleep(2500);
+    down.push(await grid(page));
+    await page.screenshot({ path: join(shots, `e-down-${index + 1}.png`) });
+  }
+  checkpoints.push(await snapshot(page));
+  const d12 = changed(down[0], down[1]);
+  const d23 = changed(down[1], down[2]);
+  const d34 = changed(down[2], down[3]);
+  const counts = down.map((g) => analyze(g).count);
+  result.scores.pixels = Math.max(...counts) >= 150 ? 1 : 0;
+
+  // Hand-off at two positions: the outro's top edge at mid-viewport (the
+  // story's end is still on screen) and the outro centred.
+  await placeEdge(page, outro, "top", "middle");
+  await sleep(2500);
+  const handoffHalf = await handoffState(page, false);
+  await page.screenshot({ path: join(shots, "e-outro-half.png") });
+  await centerOn(page, outro);
+  await sleep(2500);
+  const handoffFull = await handoffState(page, true);
+  await page.screenshot({ path: join(shots, "e-outro.png") });
+  const handoff = { ok: handoffHalf.ok && handoffFull.ok, half: handoffHalf, full: handoffFull };
+
+  await centerOn(page, chapters[3]);
+  await sleep(2500);
+  const r4 = changed(down[3], await grid(page));
+  await centerOn(page, chapters[1]);
+  await sleep(2500);
+  const r2 = changed(down[1], await grid(page));
+  await centerOn(page, chapters[2]);
+  await page.setViewportSize({ width: 820, height: 1000 });
+  await sleep(2500);
+  const narrow = analyze(await grid(page)).count;
+  checkpoints.push(await snapshot(page));
+  await page.screenshot({ path: join(shots, "e-resized.png") });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await sleep(1500);
+  await centerOn(page, chapters[2]);
+  await sleep(2500);
+  const rr = changed(down[2], await grid(page));
+  const restored = (distance, reference) => reference >= 0.05 && distance <= Math.max(0.01, 0.2 * reference);
+  result.scores.scroll_resize = mean([
+    restored(r4, d34),
+    restored(r2, Math.min(d12, d23)),
+    narrow >= 150 && restored(rr, Math.min(d23, d34)),
+  ]);
+  result.scores.task_effect = mean([d12 >= 0.05, d23 >= 0.05, d34 >= 0.05, handoff.ok]);
+  result.scores.single_canvas = singleCanvas(checkpoints);
+  result.details.browser = { d12, d23, d34, counts, r4, r2, rr, narrow, handoff, checkpoints, errors: page.errors };
+
+  const normalVisible = [];
+  for (const selector of [...chapters, outro]) {
+    await centerOn(page, selector);
+    normalVisible.push((await visible(page, selector)).visible);
+  }
+  await page.context().close();
+  const view = await openPage({ disableWebGL: true });
+  await view.goto(origin, { waitUntil: "load" });
+  await sleep(3000);
+  const noWebGL = [];
+  for (const selector of [...chapters, outro]) {
+    await centerOn(view, selector);
+    noWebGL.push(await visible(view, selector));
+  }
+  const noWebGLSnapshot = await snapshot(view);
+  await view.screenshot({ path: join(shots, "e-no-webgl.png") });
+  await view.context().close();
+  result.scores.dom_fallback = mean([
+    normalVisible.every(Boolean),
+    noWebGL.every((state) => state.visible) && noWebGLSnapshot.bodyTextLength > 40,
+  ]);
+  result.details.fallback = { normalVisible, noWebGL, noWebGLSnapshot, errors: view.errors };
+
+  // With the outro on screen: its heading and link are the topmost elements
+  // (clickable) and at most 3% of the visible outro cells show WebGL content,
+  // i.e. cells where the canvas changes the screenshot and is not its own
+  // background colour.
+  async function handoffState(view, requireLink) {
+    const state = await visible(view, outro);
+    const hits = await view.evaluate((s) => {
+      const section = document.querySelector(s);
+      if (!section) return [];
+      return [section.querySelector("a, button"), section.querySelector("h1, h2, h3, h4")].map((element) => {
+        if (!element) return { exists: false };
+        const r = element.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        if (y < 0 || y > innerHeight || x < 0 || x > innerWidth) return { exists: true, inView: false };
+        const top = document.elementFromPoint(x, y);
+        return { exists: true, inView: true, tag: element.tagName, top: top?.tagName, hit: Boolean(top && (top === element || element.contains(top))) };
+      });
+    }, outro);
+    const rect = state.rect ? clipToViewport(state.rect, view.viewportSize()) : null;
+    let webglCells = 0;
+    let cells = 0;
+    if (rect) {
+      const g = await grid(view);
+      const diff = await canvasDiff(view, rect);
+      if (g && diff) {
+        const { background } = analyze(g);
+        cells = diff.cells;
+        for (let row = 0; row < diff.rows; row += 1)
+          for (let col = 0; col < diff.cols; col += 1) {
+            if (!diff.mask[row * diff.cols + col]) continue;
+            const gx = diff.ox + col;
+            const gy = diff.oy + row;
+            if (gx >= g.cols || gy >= g.rows) continue;
+            const i = (gy * g.cols + gx) * 4;
+            const distance =
+              Math.abs(g.data[i] - background[0]) + Math.abs(g.data[i + 1] - background[1]) + Math.abs(g.data[i + 2] - background[2]) + Math.abs(g.data[i + 3] - background[3]);
+            if (distance > 64) webglCells += 1;
+          }
+      }
+    }
+    const webglFraction = cells ? round(webglCells / cells, 4) : 0;
+    const [link, heading] = hits;
+    const linkOk = requireLink ? link?.exists && link.inView && link.hit : !link?.inView || link.hit;
+    const ok = Boolean(state.visible && rect && linkOk && heading?.exists && (!heading.inView || heading.hit) && webglFraction <= 0.03);
+    return { ok, visible: state.visible, link, heading, webglFraction };
+  }
+}
+
+// ---------- robust items (all tasks) ----------
+async function gradeRobustness() {
+  const position = async (view) => {
+    if (robustConfig.focus) await centerOn(view, robustConfig.focus);
+    else await view.evaluate(() => window.scrollTo(0, 0));
+  };
+  const allVisible = async (view) => {
+    const states = [];
+    for (const selector of robustConfig.replaced) states.push(await visible(view, selector));
+    return states;
+  };
+  const page = await openPage();
+  await page.goto(origin, { waitUntil: "load" });
+  await sleep(robustConfig.settle);
+  await position(page);
+  await sleep(2000);
+  const before = analyze(await grid(page)).count;
+
+  // Accessibility tree: every task test id stays rendered (not display:none,
+  // visibility:hidden or aria-hidden) and >= 80% of its words appear in
+  // Chrome's ARIA snapshot while the WebGL replacement is shown.
+  const aria = normalizeWords(await page.locator("body").ariaSnapshot().catch(() => ""));
+  const ariaWords = new Set(aria);
+  const a11y = [];
+  for (const id of testIds) {
+    const state = await visible(page, testSelector(id));
+    const words = [...new Set(normalizeWords(state.words ?? state.text ?? ""))];
+    const covered = words.length ? words.filter((word) => ariaWords.has(word)).length / words.length : 0;
+    a11y.push({
+      id,
+      exists: state.exists,
+      displayed: state.displayed,
+      ariaHidden: state.ariaHidden,
+      covered: round(covered),
+      ok: Boolean(state.exists && state.displayed && !state.ariaHidden && covered >= 0.8),
+    });
+  }
+  result.robust.a11y_tree = mean(a11y.map((entry) => entry.ok));
+
+  // Context loss: the replaced DOM is visible while the context is lost, the
+  // scene draws again after restoreContext(), and no uncaught errors occur.
+  const pageErrors = () => page.errors.filter((error) => error.startsWith("pageerror") || error === "page crashed").length;
+  const errorsBefore = pageErrors();
+  const lost = await page.evaluate(() => window.__evalLoseContext());
+  await sleep(1500);
+  const during = await allVisible(page);
+  await page.screenshot({ path: join(shots, "robust-context-lost.png") });
+  const restoredCall = await page.evaluate(() => window.__evalRestoreContext());
+  await sleep(3000);
+  await position(page);
+  await sleep(1500);
+  const after = analyze(await grid(page)).count;
+  await page.screenshot({ path: join(shots, "robust-context-restored.png") });
+  const contextLoss = {
+    before,
+    lost,
+    domVisibleWhileLost: lost && during.every((state) => state.visible),
+    during: during.map((state) => ({ visible: state.visible, opacity: state.opacity })),
+    restoredCall,
+    after,
+    recovered: restoredCall && after >= 150,
+    newPageErrors: pageErrors() - errorsBefore,
+  };
+  result.robust.context_loss = lost
+    ? mean([contextLoss.domVisibleWhileLost, contextLoss.recovered, contextLoss.newPageErrors === 0])
+    : 0;
+  await page.context().close();
+
+  // Reduced motion: with prefers-reduced-motion the resting page does not
+  // change over one second and still shows its content (WebGL or DOM).
+  const calm = await openPage({ reducedMotion: true });
+  await calm.goto(origin, { waitUntil: "load" });
+  await sleep(robustConfig.settle);
+  await position(calm);
+  await calm.mouse.move(2, 2);
+  await sleep(2000);
+  const g1 = await grid(calm);
+  await sleep(1000);
+  const g2 = await grid(calm);
+  const motion = g1 && g2 ? changed(g1, g2) : 0;
+  const count = analyze(g1).count;
+  const domVisible = (await allVisible(calm)).every((state) => state.visible);
+  await calm.screenshot({ path: join(shots, "robust-reduced-motion.png") });
+  await calm.context().close();
+  result.robust.reduced_motion = motion <= 0.002 && (count >= 150 || domVisible) ? 1 : 0;
+  result.details.robust = { a11y, contextLoss, reducedMotion: { motion, count, domVisible }, errors: page.errors.slice(0, 10) };
+}
+
 // ---------- cleanup (all tasks) ----------
 async function gradeCleanup() {
   const page = await openPage();
@@ -439,8 +869,12 @@ async function gradeCleanup() {
 }
 
 // ---------- helpers ----------
-async function openPage({ disableWebGL = false, glb } = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+async function openPage({ disableWebGL = false, glb, reducedMotion = false } = {}) {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 1,
+    reducedMotion: reducedMotion ? "reduce" : "no-preference",
+  });
   if (disableWebGL) await context.addInitScript(() => (window.__evalDisableWebGL = true));
   await context.addInitScript({ path: join(scriptDir, "instrument.js") });
   const page = await context.newPage();
@@ -482,6 +916,94 @@ function centerOn(page, selector) {
     const rect = element.getBoundingClientRect();
     window.scrollTo(0, Math.max(0, window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2));
   }, selector);
+}
+
+// Scroll so that an element's top (or bottom) edge sits `offset` px inside the
+// viewport, or at its middle with offset "middle".
+function placeEdge(page, selector, edge, offset) {
+  return page.evaluate(
+    ([s, e, o]) => {
+      const element = document.querySelector(s);
+      if (!element) return;
+      const r = element.getBoundingClientRect();
+      const at = o === "middle" ? innerHeight / 2 : o;
+      const y = e === "top" ? scrollY + r.top - at : scrollY + r.bottom - innerHeight + at;
+      window.scrollTo(0, Math.max(0, y));
+    },
+    [selector, edge, offset],
+  );
+}
+
+// Foreground cells of a grid inside a viewport rect, against a given background.
+function regionStats(g, background, rect) {
+  if (!g || !rect) return { count: 0, density: 0, centroid: null };
+  let count = 0;
+  let total = 0;
+  let sx = 0;
+  let sy = 0;
+  for (let row = 0; row < g.rows; row += 1)
+    for (let col = 0; col < g.cols; col += 1) {
+      const x = col * g.cell;
+      const y = row * g.cell;
+      if (x < rect.left || y < rect.top || x >= rect.left + rect.width || y >= rect.top + rect.height) continue;
+      total += 1;
+      const i = (row * g.cols + col) * 4;
+      const distance =
+        Math.abs(g.data[i] - background[0]) + Math.abs(g.data[i + 1] - background[1]) + Math.abs(g.data[i + 2] - background[2]) + Math.abs(g.data[i + 3] - background[3]);
+      if (distance <= 64) continue;
+      count += 1;
+      sx += x;
+      sy += y;
+    }
+  return { count, density: total ? count / total : 0, centroid: count ? { x: sx / count, y: sy / count } : null };
+}
+
+// Cells (2px) inside a viewport rect where the visible page changes when every
+// canvas is hidden, i.e. where WebGL pixels actually reach the screen.
+async function canvasDiff(page, rect) {
+  const cell = 2;
+  const size = page.viewportSize();
+  const clipped = clipToViewport(rect, size);
+  if (!clipped) return null;
+  const ox = Math.floor(clipped.left / cell);
+  const oy = Math.floor(clipped.top / cell);
+  const cols = Math.max(1, Math.floor((clipped.left + clipped.width) / cell) - ox);
+  const rows = Math.max(1, Math.floor((clipped.top + clipped.height) / cell) - oy);
+  const box = { x: ox * cell, y: oy * cell, width: cols * cell, height: rows * cell };
+  const shown = (await page.screenshot({ clip: box })).toString("base64");
+  await page.evaluate(() => document.querySelectorAll("canvas").forEach((c) => c.style.setProperty("visibility", "hidden", "important")));
+  const hidden = (await page.screenshot({ clip: box })).toString("base64");
+  await page.evaluate(() => document.querySelectorAll("canvas").forEach((c) => c.style.removeProperty("visibility")));
+  const mask = await page.evaluate(
+    async ({ shown, hidden, cols, rows }) => {
+      const read = async (b64) => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${b64}`;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = cols;
+        canvas.height = rows;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        context.drawImage(image, 0, 0, cols, rows);
+        return context.getImageData(0, 0, cols, rows).data;
+      };
+      const a = await read(shown);
+      const b = await read(hidden);
+      const out = [];
+      for (let i = 0; i < a.length; i += 4)
+        out.push(Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 60 ? 1 : 0);
+      return out;
+    },
+    { shown, hidden, cols, rows },
+  );
+  return { ox, oy, cols, rows, mask, cells: mask.length, count: mask.reduce((sum, v) => sum + v, 0) };
+}
+
+function normalizeWords(text) {
+  return String(text)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 4);
 }
 
 function singleCanvas(checkpoints) {

@@ -6,7 +6,7 @@ React Three Fiber host in `@viselora/dom-webgl`.
 ## Install
 
 ```bash
-npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
+npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
 # Only when using the Lenis/GSAP integrations
 npm install lenis gsap
 ```

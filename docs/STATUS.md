@@ -8,7 +8,7 @@ browser evidence belong to each app's documentation.
 ## Project state
 
 The workspace uses a React 19 / Next.js runtime built on React Three Fiber 9
-and Three.js 0.184. Runtime production source is reduced from 124 files / 28,010
+and Three.js 0.184 (source supports 0.184–0.186). Runtime production source is reduced from 124 files / 28,010
 lines to 8 files / 1,168 lines. The public surface is intentionally smaller:
 
 - one R3F Canvas host;
@@ -45,6 +45,15 @@ integrity, exports, the exact core dependency and both distribution tags. Both
 packages carry SLSA provenance attestations. An
 [earlier run](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39126440622)
 failed in verification on a test teardown race and published nothing.
+
+**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.2` and
+`@viselora/scroll-adapters@0.2.0-alpha.2` are versioned in source and not yet on
+the registry. The release widens the core peer range to
+`three >=0.184.0 <0.187.0`; published `0.2.0-alpha.1` still declares
+`^0.184.0`, so an application on `three@0.186` hits ERESOLVE until then. The
+installed-tarball consumer passed SSR, typecheck, unit, build and Chromium
+checks with Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs --three`).
+The consumer skill and template target `0.2.0-alpha.2`.
 
 A fresh install of both packages from the official registry exposes the JSDoc
 in the published declarations, the alphabetic-baseline drawing in `dist`, and
@@ -132,9 +141,15 @@ same install from this 237 MB workspace timed out while cloning.
 made no commit; the push path runs on the next change under `skills/`. The
 skills.sh listing is not verified.
 
-The [skill A/B evaluation](../evals/skill-ab/README.md) found no measurable
-difference with or without the earlier skill (9.83 vs 9.82 of 10 across 24
-runs); it predates the recipes and JSDoc.
+The [first A/B evaluation](../evals/skill-ab/README.md) found no difference
+with or without the earlier skill when prompts named Viselora (9.83 vs 9.82 of
+10, 24 runs). The [second evaluation](../evals/skill-ab-v2/README.md) (120 codex
+runs, five tasks) compared native three.js/R3F with Viselora and the skill:
+codex `xhigh` scored 13/13 in every condition, while codex `low` rose from 11.26
+(native) to 12.94–13.00 (p ≤ 0.034). Five of 15 weak native runs drew no WebGL
+because StrictMode reused a lost context; no skill-installed run did. Without
+being named, the skill led codex to Viselora in 30 of 30 runs. Claude was not
+evaluated in that round, and no human visual review was done.
 
 ## Known boundaries
 

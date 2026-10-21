@@ -1,11 +1,15 @@
 import { cpSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+/** `threeMinor` selects the Three.js release line, e.g. "0.186". */
 export function createExternalConsumerFixture(
   fixtureRoot,
   coreTarball,
   adaptersTarball,
+  threeMinor = "0.184",
 ) {
+  if (!/^0\.\d+$/.test(threeMinor))
+    throw new Error(`Expected a Three.js minor such as 0.186, received ${threeMinor}`);
   const root = resolve(fixtureRoot);
   for (const dir of [
     "src",
@@ -36,12 +40,12 @@ export function createExternalConsumerFixture(
       "@react-three/fiber": "^9.8.1",
       react: "~19.2.0",
       "react-dom": "~19.2.0",
-      three: "^0.184.0",
+      three: `^${threeMinor}.0`,
     },
     devDependencies: {
       "@types/react": "^19.2.0",
       "@types/react-dom": "^19.2.0",
-      "@types/three": "^0.184.1",
+      "@types/three": `^${threeMinor}.0`,
       "@types/node": "^24.0.0",
       "@playwright/test": "^1.55.0",
       "@types/pngjs": "^6.0.5",

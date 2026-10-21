@@ -2,16 +2,16 @@
 
 This guide describes the React/R3F 0.2 alpha API. See
 [release truth](../STATUS.md#release-truth) for the current registry version.
-Use React 19, React DOM 19, R3F 9 and Three.js 0.184.
+Use React 19, React DOM 19, R3F 9 and Three.js 0.184–0.186.
 
 ```bash
-npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.184
+npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
 ```
 
 Install `@viselora/scroll-adapters@alpha` only when using the optional scroll
 integration. Keep both Viselora packages on the same version. TypeScript
 consumers should also install `@types/react@19`, `@types/react-dom@19` and
-`@types/three@0.184` as development dependencies.
+`@types/three@0.186` as development dependencies.
 
 If a configured registry mirror has not synchronized the release, add
 `--registry=https://registry.npmjs.org` to the install command. This affects that

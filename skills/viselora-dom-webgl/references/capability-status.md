@@ -1,6 +1,6 @@
 # Capability Status
 
-Compatible package version: 0.2.0-alpha.1
+Compatible package version: 0.2.0-alpha.2
 
 Status refers only to the evidence named in each row; it does not imply
 universal browser or downstream acceptance. Publication status belongs to

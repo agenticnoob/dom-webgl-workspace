@@ -110,6 +110,9 @@ npm run check:docs
 git diff --check
 ```
 
+To check the packed packages against another Three.js release line, run
+`node scripts/verify-external-consumer.mjs --three 0.186`.
+
 Release work additionally uses `npm run verify:release`. That command includes
 version, tarball, external-consumer, and skill verification and can be
 substantially slower than normal development checks.

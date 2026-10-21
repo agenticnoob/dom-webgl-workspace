@@ -34,7 +34,7 @@ describe("React/R3F consumer skill", () => {
     expect(description.length).toBeLessThanOrEqual(1024);
     expect(description).toContain("Use when");
     expect(frontmatter).toMatch(/^license: MIT$/m);
-    expect(skill).toContain("React 19, R3F 9 and Three.js 0.184");
+    expect(skill).toContain("React 19, R3F 9 and Three.js 0.184–0.186");
     expect(skill).toContain("breaking React/R3F 0.2 alpha API");
     expect(skill).toContain(
       "[release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth)",
@@ -76,10 +76,13 @@ describe("React/R3F consumer skill", () => {
   test("states the constraints agents miss in the SKILL.md body", () => {
     // Agents often read only SKILL.md, so these must not live only in references.
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.1"');
+    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.2"');
     expect(skill).toContain("--save-exact");
     expect(skill).toContain("scripts/verify-consumer.mjs");
     expect(skill).toContain("scripts/browser-check.mjs");
+    expect(skill).toContain("npm install --save-dev playwright-core");
+    expect(skill).toContain("prefers-reduced-motion: reduce");
+    expect(skill).toContain("0.2.0-alpha.0 drew text about half the leading too high");
     expect(skill).toMatch(/`target\.revision`.+mutable/s);
     expect(skill).toContain("half-leading");
     for (const recipe of ["ModelTarget.tsx", "ScrollStory.tsx", "TextWave.tsx"]) {
@@ -100,6 +103,7 @@ describe("React/R3F consumer skill", () => {
     const model = readFileSync(resolve(root, "src/recipes/ModelTarget.tsx"), "utf8");
     expect(model).toContain("runtime.setTargetReady(targetId, true, target)");
     expect(model).toContain("disposeObject");
+    expect(model).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
   });
 
   test("ships a browser check that explains its usage", () => {
@@ -194,6 +198,7 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     ["react", "^18.3.0"],
     ["@react-three/fiber", "^8.18.0"],
     ["three", "^0.170.0"],
+    ["three", "^0.187.0"],
     ["@viselora/dom-webgl", "0.1.0-alpha.2"],
   ])("rejects an incompatible %s dependency", (name, version) => {
     const root = copyTemplate();
@@ -205,11 +210,23 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     expect(result.stderr).toContain(name);
   });
 
+  test.each(["^0.185.0", "~0.186.1"])(
+    "accepts the supported three %s line",
+    (version) => {
+      const root = copyTemplate();
+      const pkg = readJson(root, "package.json");
+      pkg.dependencies.three = version;
+      writeJson(root, "package.json", pkg);
+      const result = run(root);
+      expect(result.status, result.stderr).toBe(0);
+    },
+  );
+
   test("accepts reviewed local tarballs without inventing a publication claim", () => {
     const root = copyTemplate();
     const pkg = readJson(root, "package.json");
     pkg.dependencies["@viselora/dom-webgl"] =
-      "file:../viselora-dom-webgl-0.2.0-alpha.1.tgz";
+      "file:../viselora-dom-webgl-0.2.0-alpha.2.tgz";
     writeJson(root, "package.json", pkg);
     expect(run(root).status).toBe(0);
   });
