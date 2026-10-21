@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-18 (0.2.0-alpha.1 publication).**
+**Last verified: 2026-10-22 (0.2.0-alpha.2 publication).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -8,7 +8,7 @@ browser evidence belong to each app's documentation.
 ## Project state
 
 The workspace uses a React 19 / Next.js runtime built on React Three Fiber 9
-and Three.js 0.184 (source supports 0.184–0.186). Runtime production source is reduced from 124 files / 28,010
+and Three.js 0.184–0.186. Runtime production source is reduced from 124 files / 28,010
 lines to 8 files / 1,168 lines. The public surface is intentionally smaller:
 
 - one R3F Canvas host;
@@ -25,39 +25,30 @@ are retired. No legacy compatibility backend is maintained.
 
 ## Release truth
 
-`@viselora/dom-webgl@0.2.0-alpha.1` and
-`@viselora/scroll-adapters@0.2.0-alpha.1` are **published** on the official npm
+`@viselora/dom-webgl@0.2.0-alpha.2` and
+`@viselora/scroll-adapters@0.2.0-alpha.2` are **published** on the official npm
 registry, and both `alpha` tags resolve to them. The separate `latest` tags
 remain at `0.1.0-alpha.0`, which implements the previous API; install `@alpha`
 or pin the exact 0.2 version.
 
-0.2.0-alpha.1 places DOM text glyphs on the CSS alphabetic baseline, including
-half-leading and font-metric `line-height: normal`; `DOMTextGlyph.y` remains the
-line-box top and `baseline` is the real baseline. `0.2.0-alpha.0` drew
-`drawDOMText`/`createDOMTextTexture` text about half the leading too high (for
-example 11px for 72px text at `normal`). The release also documents
-agent-critical constraints in the public JSDoc of both packages.
+0.2.0-alpha.2 widens the core peer range to `three >=0.184.0 <0.187.0`. The
+installed-tarball consumer passed SSR, typecheck, unit, build and Chromium
+checks with Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs
+--three`), and a fresh registry install of both packages next to
+`three@0.186.1` resolves without ERESOLVE. `0.2.0-alpha.1` declared `^0.184.0`.
 
-Release source is [7c82976](https://github.com/agenticnoob/dom-webgl-workspace/commit/7c829761c41cf311fa76e1e3dac0d08f9be4f113)
-on `main`. The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39133782681)
+Since 0.2.0-alpha.1, DOM text glyphs sit on the CSS alphabetic baseline,
+including half-leading and font-metric `line-height: normal`; `DOMTextGlyph.y`
+remains the line-box top and `baseline` is the real baseline. `0.2.0-alpha.0`
+drew `drawDOMText`/`createDOMTextTexture` text about half the leading too high
+(for example 11px for 72px text at `normal`). Both packages document
+agent-critical constraints in their public JSDoc.
+
+Release source is [2a7f4a4](https://github.com/agenticnoob/dom-webgl-workspace/commit/2a7f4a49a20e40a650e6fcc5861cd7e70c97b758)
+on `main`. The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39640965729)
 completed successfully after `npm-release` approval and verified registry
 integrity, exports, the exact core dependency and both distribution tags. Both
-packages carry SLSA provenance attestations. An
-[earlier run](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39126440622)
-failed in verification on a test teardown race and published nothing.
-
-**Prepared, not yet published:** `@viselora/dom-webgl@0.2.0-alpha.2` and
-`@viselora/scroll-adapters@0.2.0-alpha.2` are versioned in source and not yet on
-the registry. The release widens the core peer range to
-`three >=0.184.0 <0.187.0`; published `0.2.0-alpha.1` still declares
-`^0.184.0`, so an application on `three@0.186` hits ERESOLVE until then. The
-installed-tarball consumer passed SSR, typecheck, unit, build and Chromium
-checks with Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs --three`).
-The consumer skill and template target `0.2.0-alpha.2`.
-
-A fresh install of both packages from the official registry exposes the JSDoc
-in the published declarations, the alphabetic-baseline drawing in `dist`, and
-importable ESM entrypoints.
+packages carry SLSA provenance attestations.
 
 Publication readback uses `https://registry.npmjs.org`. Mirrors can lag after a
 successful publish; a mirror's 404 is not evidence that the official release is
@@ -127,7 +118,7 @@ browser-verified, committed and pushed states separate.
 
 ## Agent skill
 
-`skills/viselora-dom-webgl` targets `0.2.0-alpha.1` and is self-contained for
+`skills/viselora-dom-webgl` targets `0.2.0-alpha.2` and is self-contained for
 the `skills` CLI: three runnable recipes, `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
@@ -136,10 +127,9 @@ was pushed manually from `main` 702971f; `npx skills add agenticnoob/viselora-sk
 then installed the skill into Claude Code, Codex and Hermes in 7 seconds. The
 same install from this 237 MB workspace timed out while cloning.
 `sync-skill.yml` authenticates with a write-scoped deploy key
-(`SKILL_REPO_DEPLOY_KEY`). Its first run on `main` 102b336 checked out
-`viselora-skills` with that key and found the content already matching, so it
-made no commit; the push path runs on the next change under `skills/`. The
-skills.sh listing is not verified.
+(`SKILL_REPO_DEPLOY_KEY`). Its run on `main` 2a7f4a4 pushed
+[c866fec](https://github.com/agenticnoob/viselora-skills/commit/c866fec) with
+the `0.2.0-alpha.2` skill. The skills.sh listing is not verified.
 
 The [first A/B evaluation](../evals/skill-ab/README.md) found no difference
 with or without the earlier skill when prompts named Viselora (9.83 vs 9.82 of
