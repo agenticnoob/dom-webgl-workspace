@@ -16,7 +16,7 @@ Compatible package version: 0.2.0-alpha.2
 | DOMTextGlyph | type | type DOMTextGlyph = { index: number; char: string; line: number; x: number; /** Top of the glyph's line box; per-glyph transforms pivot here. */ y: number; width: number; /** Line height. */ height: number; /** Alphabetic baseline, includi… |  |
 | DOMTextGlyphCommand | type | type DOMTextGlyphCommand = { index: number; char?: string; x?: number; y?: number; opacity?: number; scaleX?: number; scaleY?: number; rotation?: number; color?: string; }; |  |
 | DOMTextLayout | type | type DOMTextLayout = TextStyle & { width: number; height: number; devicePixelRatio: number; text: string; glyphs: readonly DOMTextGlyph[]; lines: readonly { text: string; x: number; y: number; width: number; }[]; }; |  |
-| RuntimeDebugState | type | type RuntimeDebugState = { ready: boolean; targetCount: number; targets: Array<{ id: string; visible: boolean; ready: boolean; }>; error?: string; }; |  |
+| RuntimeDebugState | type | type RuntimeDebugState = { ready: boolean; targetCount: number; targets: Array<{ id: string; visible: boolean; ready: boolean; }>; error?: string; /** Previous frame's renderer cost and recent timing; absent before a frame. */ frame?: Runt… |  |
 | RuntimeManager | type | type RuntimeManager = { /** Shared progress inputs; read \`progress.get(key)\` inside \`useFrame\`. */ readonly progress: WebGLProgressSignalSource; /** Current scroll metrics from the scroll adapter or the window. */ readonly scroll: WebGLScr… |  |
 | WebGLProgressSignalSource | type | type WebGLProgressSignalSource = { get(key: string): number; subscribe?(listener: () => void): () => void; }; |  |
 | WebGLScrollAdapter | type | type WebGLScrollAdapter = { readonly kind?: string; readMetrics(): WebGLScrollMetrics; connectDeltaRouter?(router: WebGLScrollDeltaRouter): () => void; subscribe?(listener: () => void): () => void; onGateStateChange?(state: WebGLScrollGate… |  |
@@ -32,13 +32,16 @@ Compatible package version: 0.2.0-alpha.2
 | useRenderQuality | value | declare function useRenderQuality(): RenderQuality; |  |
 | useSectionState | value | declare function useSectionState(): WebGLSectionState; |  |
 | useWebGLRuntime | value | declare function useWebGLRuntime(): RuntimeManager; |  |
-| WebGLRuntime | value | declare function WebGLRuntime({ children, scene, canvas, className, style, progressSignals, scrollAdapter, onDebugStateChange, quality, }: WebGLRuntimeProps): react.JSX.Element; |  |
+| WebGLRuntime | value | declare function WebGLRuntime({ children, scene, canvas, className, style, progressSignals, scrollAdapter, onDebugStateChange, quality, diagnostics, }: WebGLRuntimeProps): react.JSX.Element; |  |
 | WebGLSection | value | declare function WebGLSection(props: WebGLSectionProps): react.JSX.Element; |  |
 | WebGLTarget | value | declare function WebGLTarget({ id, children, hideWhenReady, offscreen, }: WebGLTargetProps): ReactElement<HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement>; }, string \| react.JSXElementConstructor<any>>; |  |
 | QualityBudgets | type | type QualityBudgets = Readonly<Record<QualityTier, number>>; |  |
 | QualityTier | type | type QualityTier = "high" \| "medium" \| "low"; |  |
 | RenderQuality | type | type RenderQuality = { readonly tier: QualityTier; /** Canvas pixel ratio in effect. */ readonly dpr: number; /** \`prefers-reduced-motion: reduce\`; a signal only, it does not change the tier. */ readonly reducedMotion: boolean; }; |  |
-| RuntimeDebugState | type | type RuntimeDebugState = { ready: boolean; targetCount: number; targets: Array<{ id: string; visible: boolean; ready: boolean; }>; error?: string; }; |  |
+| RuntimeDebugState | type | type RuntimeDebugState = { ready: boolean; targetCount: number; targets: Array<{ id: string; visible: boolean; ready: boolean; }>; error?: string; /** Previous frame's renderer cost and recent timing; absent before a frame. */ frame?: Runt… |  |
+| RuntimeDiagnostic | type | type RuntimeDiagnostic = { readonly code: RuntimeDiagnosticCode; readonly subject: string; readonly message: string; }; |  |
+| RuntimeDiagnosticCode | type | type RuntimeDiagnosticCode = "section-compiled-on-entry" \| "section-contains-lights" \| "over-budget" \| "below-floor" \| "ready-without-pixels"; |  |
+| RuntimeFrameStats | type | type RuntimeFrameStats = { readonly fps: number; readonly p90Ms: number; readonly calls: number; readonly triangles: number; readonly programs: number; readonly textures: number; readonly geometries: number; readonly tier: QualityTier; rea… |  |
 | RuntimeManager | type | type RuntimeManager = { /** Shared progress inputs; read \`progress.get(key)\` inside \`useFrame\`. */ readonly progress: WebGLProgressSignalSource; /** Current scroll metrics from the scroll adapter or the window. */ readonly scroll: WebGLScr… |  |
 | SectionPhase | type | type SectionPhase = "sleep" \| "warm" \| "active"; |  |
 | WebGLQualityOptions | type | type WebGLQualityOptions = { /** Move between tiers from measured frame times (default \`true\`). */ adaptive?: boolean; /** Starting tier (default: \`medium\` on phones, \`low\` with Save-Data, else \`high\`). */ tier?: QualityTier; /** Drawing-b… |  |

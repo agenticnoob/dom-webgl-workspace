@@ -25,3 +25,8 @@ export type {
   WebGLSectionState,
 } from "./lib/Section";
 export type { RuntimeManager, RuntimeDebugState } from "./lib/runtimeManager";
+export type {
+  RuntimeDiagnostic,
+  RuntimeDiagnosticCode,
+  RuntimeFrameStats,
+} from "./lib/diagnostics";

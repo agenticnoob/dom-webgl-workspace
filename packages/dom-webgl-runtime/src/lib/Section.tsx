@@ -3,6 +3,7 @@ import {
   Activity,
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -10,7 +11,7 @@ import {
 } from "react";
 import type { Group } from "three";
 
-import { useWebGLRuntime } from "./Runtime";
+import { useController } from "./Runtime";
 import type { RuntimeManager } from "./runtimeManager";
 import {
   nextSectionPhase,
@@ -69,6 +70,8 @@ export type WebGLSectionProps = SectionTriggerProps & {
   margin?: number;
   /** Largest distance that stays mounted and updated (default 1.5 or 0.15). */
   warmMargin?: number;
+  /** Label in debug state and warnings (default: the target or progress range). */
+  name?: string;
 };
 
 export type WebGLSectionState = {
@@ -97,8 +100,10 @@ type SectionTrigger =
  * camera rig outside sections: a hidden light changes every lit program.
  */
 export function WebGLSection(props: WebGLSectionProps) {
-  const runtime = useWebGLRuntime();
+  const controller = useController();
+  const runtime = controller.manager;
   const trigger = readTrigger(props);
+  const label = props.name ?? describeTrigger(trigger);
   const always = trigger.kind === "always";
   const eager = props.mount === "eager";
   const release = props.retain === "release";
@@ -110,6 +115,11 @@ export function WebGLSection(props: WebGLSectionProps) {
   const [warmup] = useState(createSectionWarmup);
   const current = useRef(phase);
   const currentWarmed = useRef(warmed);
+  const [token] = useState(() => ({}));
+  // Program count when the section last became active from warm.
+  const entry = useRef<{ programs: number; frames: number } | undefined>(
+    undefined,
+  );
   const group = useRef<Group>(null);
   const margins = readMargins(trigger, props.margin, props.warmMargin);
 
@@ -132,11 +142,37 @@ export function WebGLSection(props: WebGLSectionProps) {
         setWarmed(ready);
       }
     }
+    const programs = state.gl.info.programs?.length ?? 0;
+    const pending = entry.current;
+    if (pending) {
+      pending.frames += 1;
+      if (programs > pending.programs) {
+        entry.current = undefined;
+        controller.diagnostics.warn(
+          "section-compiled-on-entry",
+          label,
+          `Section "${label}" compiled ${programs - pending.programs} shader program(s) as it became active, so warmup had not finished. Give it a larger warmMargin or mount it earlier.`,
+        );
+      } else if (pending.frames > 3) entry.current = undefined;
+    }
     if (next === current.current) return;
+    if (next === "active" && current.current === "warm")
+      entry.current = { programs, frames: 0 };
     current.current = next;
     setPhase(next);
     if (next !== "sleep") setApproached(true);
   }, -99);
+
+  useEffect(() => {
+    controller.reportSection(token, { label, phase, warmed });
+  }, [controller, token, label, phase, warmed]);
+  // After commit the content of a newly woken section is attached.
+  useEffect(() => {
+    if (phase === "sleep" || always || !group.current) return;
+    if (controller.diagnostics.enabled)
+      warnAboutLights(group.current, label, controller.diagnostics.warn);
+  }, [controller, phase, always, label]);
+  useEffect(() => () => controller.removeSection(token), [controller, token]);
 
   const mounted = release
     ? phase !== "sleep" || (eager && !approached)
@@ -159,6 +195,35 @@ export function WebGLSection(props: WebGLSectionProps) {
 /** The surrounding section's phase; `active` outside any `WebGLSection`. */
 export function useSectionState(): WebGLSectionState {
   return useContext(SectionContext);
+}
+
+function describeTrigger(trigger: SectionTrigger) {
+  switch (trigger.kind) {
+    case "target":
+      return trigger.id;
+    case "progress":
+      return `${trigger.range.key} ${trigger.range.from}–${trigger.range.to}`;
+    case "always":
+      return "always";
+  }
+}
+
+// Hiding a section hides its lights, which changes every lit program.
+function warnAboutLights(
+  root: Group,
+  label: string,
+  warn: (code: "section-contains-lights", subject: string, message: string) => void,
+) {
+  let lights = 0;
+  root.traverse((object) => {
+    if ("isLight" in object && object.isLight === true) lights += 1;
+  });
+  if (lights > 0)
+    warn(
+      "section-contains-lights",
+      label,
+      `Section "${label}" contains ${lights} light(s). Hiding the section changes the scene's light count and recompiles every lit material; move lights outside sections or switch them by intensity.`,
+    );
 }
 
 function readTrigger(props: SectionTriggerProps): SectionTrigger {

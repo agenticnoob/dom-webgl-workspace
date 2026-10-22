@@ -22,15 +22,18 @@ import {
   benchSectionMargin,
   cameraZ,
   chapterRange,
+  type BenchFixture,
   type BenchVariant,
 } from "./benchLayout";
 
 export function BenchScene({
   controller,
   variant,
+  fixture,
 }: {
   readonly controller: BenchController;
   readonly variant: BenchVariant;
+  readonly fixture: BenchFixture;
 }) {
   return (
     <>
@@ -47,7 +50,10 @@ export function BenchScene({
         <ParticleChapter />
       </Chapter>
       <Chapter index={2} variant={variant}>
-        <TextChapter controller={controller} />
+        <TextChapter
+          controller={controller}
+          replacement={replacementFor(fixture)}
+        />
       </Chapter>
       <Chapter index={3} variant={variant}>
         <SequenceChapter controller={controller} />
@@ -63,6 +69,17 @@ export function BenchScene({
       <BenchProbe controller={controller} />
     </>
   );
+}
+
+function replacementFor(fixture: BenchFixture) {
+  switch (fixture) {
+    case "none":
+      return undefined;
+    case "ready-with-pixels":
+      return "drawn";
+    case "ready-without-pixels":
+      return "missing";
+  }
 }
 
 /** The only difference between the variants: whether a chapter is a section. */
@@ -81,7 +98,10 @@ function Chapter({
     case "sections":
     case "managed":
       return (
-        <WebGLSection progress={chapterRange(index)} margin={benchSectionMargin}>
+        <WebGLSection
+          progress={chapterRange(index)}
+          margin={benchSectionMargin}
+        >
           {children}
         </WebGLSection>
       );

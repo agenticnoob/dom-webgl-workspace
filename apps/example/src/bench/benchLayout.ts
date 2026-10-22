@@ -28,8 +28,17 @@ export const benchProgressKey = "bench";
 export const benchSectionMargin = 0.03;
 export type BenchGpu = "default" | "low-power" | "high-performance";
 
+/**
+ * Diagnostic fixtures for the text chapter. Both hide its DOM title once
+ * ready; `ready-without-pixels` never draws the replacement, and
+ * `ready-with-pixels` draws it normally (no warning expected).
+ */
+export type BenchFixture = "none" | "ready-without-pixels" | "ready-with-pixels";
+
 export type BenchOptions = {
   readonly variant: BenchVariant;
+  readonly diagnostics: boolean;
+  readonly fixture: BenchFixture;
   readonly gpu: BenchGpu;
   readonly maxDpr: number;
   readonly autoplay: boolean;
@@ -44,6 +53,8 @@ export function readBenchOptions(search: string): BenchOptions {
   const duration = Number(params.get("duration") ?? 60);
   return {
     variant: variant === "sections" || variant === "managed" ? variant : "naive",
+    diagnostics: params.get("diagnostics") === "1",
+    fixture: readFixture(params.get("fixture")),
     gpu: gpu === "low-power" || gpu === "high-performance" ? gpu : "default",
     maxDpr: Number.isFinite(maxDpr) ? Math.min(3, Math.max(0.5, maxDpr)) : 2,
     autoplay: params.get("autoplay") === "1",
@@ -51,6 +62,12 @@ export function readBenchOptions(search: string): BenchOptions {
       ? Math.min(600, Math.max(5, duration))
       : 60,
   };
+}
+
+function readFixture(value: string | null): BenchFixture {
+  return value === "ready-without-pixels" || value === "ready-with-pixels"
+    ? value
+    : "none";
 }
 
 /** Whole-page scroll progress, 0 at the top and 1 at the bottom. */

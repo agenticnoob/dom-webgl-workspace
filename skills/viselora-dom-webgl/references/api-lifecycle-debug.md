@@ -58,4 +58,13 @@ uses `canvas.dpr` unchanged.
 
 `runtime.getDebugState()` and `onDebugStateChange` report availability and
 registered target readiness/visibility. A ready flag does not prove pixels
-were drawn. Public modules are SSR-safe; browser work occurs after mounting.
+were drawn.
+
+Unreleased (not in 0.2.0-alpha.2): debug state also reports `frame` (fps,
+p90, draw calls, triangles, programs, textures, tier, DPR), mounted
+`sections` and development `warnings`. With `diagnostics` (default on unless
+`NODE_ENV` is `production`) the runtime warns once per subject about a target
+that hides its DOM while nothing is drawn in its box for 30 frames, a section
+compiling shaders as it becomes active, lights inside a section, sustained
+frames over the tier's draw-call/triangle budget, and frames below 30 fps at
+the lowest tier. Treat any `[viselora]` console warning as a defect to fix. Public modules are SSR-safe; browser work occurs after mounting.

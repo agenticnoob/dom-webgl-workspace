@@ -32,7 +32,10 @@ Warm sections now compile materials and upload textures before drawing
 (`useSectionState().warmed`), cutting frames over 50 ms from 208 to 67 on the
 same run. Adaptive render quality (`quality` prop, `useRenderQuality`) sets the
 canvas pixel ratio from per-tier pixel budgets and steps tiers from frame
-times, undoing downgrades that do not help. Cost diagnostics from the
+times, undoing downgrades that do not help. Development diagnostics report
+frame cost in debug state and warn about ready targets with no pixels,
+sections compiling on entry or containing lights, sustained over-budget frames
+and frames below 30 fps at the lowest tier. Recipes from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are not implemented yet.
 

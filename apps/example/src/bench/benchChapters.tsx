@@ -102,7 +102,10 @@ function useAnimatedModel(src: string, size: number, dracoPath?: string) {
     const box = new Box3().setFromObject(scene);
     const extent = box.getSize(new Vector3());
     const scale = size / Math.max(extent.x, extent.y, extent.z, 1e-3);
-    return { scale, offset: box.getCenter(new Vector3()).multiplyScalar(-scale) };
+    return {
+      scale,
+      offset: box.getCenter(new Vector3()).multiplyScalar(-scale),
+    };
   }, [scene, size]);
   const mixer = useMemo(() => new AnimationMixer(scene), [scene]);
   useEffect(() => {
@@ -192,10 +195,19 @@ function createRandom(seed: number) {
 
 type DOMTextTexture = ReturnType<typeof createDOMTextTexture>;
 
-export function TextChapter({ controller }: ChapterProps) {
+/**
+ * `replacement` adds a camera-attached copy of the title over its DOM box for
+ * the diagnostic fixtures: `drawn` replaces the hidden DOM title, `missing`
+ * reports ready but never renders (the bug the runtime should flag).
+ */
+export function TextChapter({
+  controller,
+  replacement,
+}: ChapterProps & { readonly replacement?: "drawn" | "missing" }) {
   const runtime = useWebGLRuntime();
   const target = useDOMTarget(benchTitleTargetId);
   const material = useRef<ShaderMaterial>(null);
+  const overlay = useRef<Mesh>(null);
   const [revision, setRevision] = useState<number>();
   const [snapshot, setSnapshot] = useState<DOMTextTexture | null>(null);
   const uniforms = useMemo(
@@ -222,8 +234,21 @@ export function TextChapter({ controller }: ChapterProps) {
     return () => runtime.setTargetReady(benchTitleTargetId, false, target);
   }, [controller, hasTexture, runtime, target]);
 
-  useFrame(({ clock }) => {
+  useFrame(({ camera, clock, size }) => {
     if (target && target.revision !== revision) setRevision(target.revision);
+    const plane = overlay.current;
+    if (plane && target && camera instanceof PerspectiveCamera) {
+      // One unit in front of the camera, matching the title's CSS box.
+      const height = 2 * Math.tan((camera.fov * Math.PI) / 360);
+      const width = height * camera.aspect;
+      const { left, top, width: w, height: h } = target.rect;
+      plane.position.set(
+        camera.position.x + ((left + w / 2) / size.width - 0.5) * width,
+        camera.position.y + (0.5 - (top + h / 2) / size.height) * height,
+        camera.position.z - 1,
+      );
+      plane.scale.set((w / size.width) * width, (h / size.height) * height, 1);
+    }
     const live = material.current?.uniforms;
     if (!live || !snapshot) return;
     live.uMap.value = snapshot.texture;
@@ -233,18 +258,36 @@ export function TextChapter({ controller }: ChapterProps) {
 
   const aspect = snapshot ? snapshot.height / Math.max(1, snapshot.width) : 0.2;
   return (
-    <mesh position={[2.5, -2.8, chapterZ(2)]} scale={[8, 8 * aspect, 1]}>
-      <planeGeometry args={[1, 1, 160, 40]} />
-      <shaderMaterial
-        ref={material}
-        uniforms={uniforms}
-        vertexShader={textWaveVertexShader}
-        fragmentShader={textWaveFragmentShader}
-        transparent
-        depthWrite={false}
-        side={DoubleSide}
-      />
-    </mesh>
+    <>
+      {replacement && snapshot ? (
+        <mesh
+          ref={overlay}
+          renderOrder={10}
+          frustumCulled={false}
+          visible={replacement === "drawn"}
+        >
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial
+            map={snapshot.texture}
+            transparent
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+      ) : null}
+      <mesh position={[2.5, -2.8, chapterZ(2)]} scale={[8, 8 * aspect, 1]}>
+        <planeGeometry args={[1, 1, 160, 40]} />
+        <shaderMaterial
+          ref={material}
+          uniforms={uniforms}
+          vertexShader={textWaveVertexShader}
+          fragmentShader={textWaveFragmentShader}
+          transparent
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+    </>
   );
 }
 
@@ -371,14 +414,19 @@ export function CardsChapter({ controller }: ChapterProps) {
   return (
     <group ref={group} position={[0, 0, chapterZ(4)]}>
       {Array.from({ length: cardCount }, (_, index) => {
-        const map = index === videoCard ? video : textures[index % textures.length];
+        const map =
+          index === videoCard ? video : textures[index % textures.length];
         // A material compiled without a map ignores one assigned later, so
         // the video card mounts only once its texture exists.
         if (!map) return null;
         return (
           <mesh
             key={`card-${index}`}
-            position={[((index % 4) - 1.5) * 3.6, (1 - Math.floor(index / 4)) * 2.2, 0]}
+            position={[
+              ((index % 4) - 1.5) * 3.6,
+              (1 - Math.floor(index / 4)) * 2.2,
+              0,
+            ]}
           >
             <planeGeometry args={[3.2, 1.8]} />
             <meshStandardMaterial
@@ -417,7 +465,11 @@ export function RaymarchChapter() {
     const live = material.current?.uniforms;
     if (!node || !live || !(camera instanceof PerspectiveCamera)) return;
     const height = 2 * Math.tan((camera.fov * Math.PI) / 360);
-    node.position.set(camera.position.x, camera.position.y, camera.position.z - 1);
+    node.position.set(
+      camera.position.x,
+      camera.position.y,
+      camera.position.z - 1,
+    );
     node.scale.set(height * camera.aspect * 1.02, height * 1.02, 1);
     live.uTime.value = clock.elapsedTime;
     live.uIntensity.value = chapterWeight(benchProgress(runtime.scroll), 5);

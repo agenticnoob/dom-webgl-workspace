@@ -145,6 +145,24 @@ at `low` it runs at about 24 fps, so the chapter itself must scale its steps by
 tier to reach 30 fps. With 4× CPU throttling the sequence chapter falls to
 6 fps from its per-frame uploads.
 
+## Diagnostics check (2026-10-22, unreleased source)
+
+`--diagnostics` turns on the runtime's development warnings in the production
+build and the script prints every `[viselora]` console warning. `--fixture`
+makes the text chapter hide its DOM title once ready and adds a copy of the
+title over the DOM box: `ready-with-pixels` draws it, `ready-without-pixels`
+never does. Managed variant, UHD 630, 40 s:
+
+| Fixture | Warnings |
+| --- | --- |
+| `ready-with-pixels` | over budget (Sprint set: 535 calls, 1.06 M triangles) |
+| `ready-without-pixels` | over budget; `bench-title` hides its DOM with nothing drawn |
+
+An earlier version passed a target as soon as any pixel appeared in its box,
+which the previous chapter's particles satisfied; the check now samples every
+10 frames for as long as the fallback stays hidden. Frames below 30 fps at
+`low` were reported in one of three runs, from the raymarch chapter.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results; the phone row is
 not yet measured.

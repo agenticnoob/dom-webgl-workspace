@@ -32,6 +32,8 @@ const { values: options } = parseArgs({
     scale: { type: "string", default: "2" },
     headless: { type: "boolean", default: false },
     label: { type: "string", default: "" },
+    diagnostics: { type: "boolean", default: false },
+    fixture: { type: "string", default: "none" },
     out: { type: "string", default: join(root, "output/bench") },
   },
 });
@@ -44,6 +46,8 @@ const query = new URLSearchParams({
   gpu: options.gpu,
   maxDpr: options["max-dpr"],
   duration: String(duration),
+  ...(options.diagnostics ? { diagnostics: "1" } : {}),
+  ...(options.fixture !== "none" ? { fixture: options.fixture } : {}),
 });
 const pageUrl = `${baseUrl}?${query}`;
 
@@ -69,6 +73,7 @@ const browser = await playwright.chromium.launch({
 });
 
 const errors = [];
+const warnings = [];
 try {
   const context = await browser.newContext({
     viewport: { width: Number(options.width), height: Number(options.height) },
@@ -78,6 +83,8 @@ try {
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "warning" && message.text().startsWith("[viselora]"))
+      warnings.push(message.text());
   });
 
   console.log(`Loading ${pageUrl}`);
@@ -112,6 +119,7 @@ try {
     deviceScaleFactor: Number(options.scale),
     url: pageUrl,
     errors,
+    warnings,
     result,
   };
   mkdirSync(options.out, { recursive: true });
@@ -133,7 +141,7 @@ try {
   server?.kill();
 }
 
-function printReport({ result, errors: pageErrors }) {
+function printReport({ result, errors: pageErrors, warnings: runtimeWarnings }) {
   console.log(`\nRenderer: ${result.renderer}`);
   console.log(
     `Viewport ${result.viewport.width}x${result.viewport.height} @ device ${result.devicePixelRatio}, canvas DPR ${result.dpr}, tier ${result.tier}${result.tierChanges.length ? ` (${result.tierChanges.join(", ")})` : ""}${result.assetsTimedOut ? " (assets timed out)" : ""}`,
@@ -146,6 +154,7 @@ function printReport({ result, errors: pageErrors }) {
   const line = (cells) => cells.map((cell, index) => String(cell).padStart(widths[index])).join("  ");
   console.log(line(columns));
   for (const row of rows) console.log(line(columns.map((column) => row[column])));
+  if (runtimeWarnings.length) console.log(`\nRuntime warnings (${runtimeWarnings.length}):\n${runtimeWarnings.join("\n")}`);
   if (pageErrors.length) console.log(`\nPage errors (${pageErrors.length}):\n${pageErrors.join("\n")}`);
 }
 

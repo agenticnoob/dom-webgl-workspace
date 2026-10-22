@@ -141,6 +141,8 @@ describe("benchmark layout", () => {
   it("reads and bounds URL options", () => {
     expect(readBenchOptions("")).toEqual({
       variant: "naive",
+      diagnostics: false,
+      fixture: "none",
       gpu: "default",
       maxDpr: 2,
       autoplay: false,
@@ -150,12 +152,18 @@ describe("benchmark layout", () => {
       readBenchOptions("?variant=sections&gpu=low-power&maxDpr=9&autoplay=1&duration=2"),
     ).toEqual({
       variant: "sections",
+      diagnostics: false,
+      fixture: "none",
       gpu: "low-power",
       maxDpr: 3,
       autoplay: true,
       durationSeconds: 5,
     });
     expect(readBenchOptions("?variant=managed").variant).toBe("managed");
+    expect(readBenchOptions("?diagnostics=1&fixture=ready-without-pixels")).toMatchObject({
+      diagnostics: true,
+      fixture: "ready-without-pixels",
+    });
     expect(readBenchOptions("?variant=x&gpu=fast&maxDpr=abc&duration=x")).toMatchObject({
       variant: "naive",
       gpu: "default",

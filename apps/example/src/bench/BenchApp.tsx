@@ -19,6 +19,7 @@ import {
   benchProgress,
   benchProgressKey,
   cameraZ,
+  type BenchFixture,
   type BenchOptions,
 } from "./benchLayout";
 
@@ -96,15 +97,22 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
       canvas={canvas}
       progressSignals={progressSignals}
       quality={options.variant === "managed" ? undefined : false}
-      scene={<BenchScene controller={controller} variant={options.variant} />}
+      diagnostics={options.diagnostics}
+      scene={
+        <BenchScene
+          controller={controller}
+          variant={options.variant}
+          fixture={options.fixture}
+        />
+      }
     >
-      <BenchPage />
+      <BenchPage fixture={options.fixture} />
       <BenchOverlay controller={controller} />
     </WebGLRuntime>
   );
 }
 
-function BenchPage() {
+function BenchPage({ fixture }: { readonly fixture: BenchFixture }) {
   return (
     <main className="bench-page">
       {benchChapters.map((chapter, index) => (
@@ -114,7 +122,10 @@ function BenchPage() {
               {String(index + 1).padStart(2, "0")} / {chapter.key}
             </p>
             {chapter.key === "text" ? (
-              <WebGLTarget id={benchTitleTargetId}>
+              <WebGLTarget
+                id={benchTitleTargetId}
+                hideWhenReady={fixture !== "none"}
+              >
                 <h2 className="bench-chapter__title">{chapter.title}</h2>
               </WebGLTarget>
             ) : (
