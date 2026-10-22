@@ -41,6 +41,19 @@ compiled and loaded textures uploaded before drawing; `useSectionState()`
 reports `phase` and `warmed`. Keep lights and the camera rig outside sections.
 Hidden objects receive no pointer events.
 
+## Render quality
+
+Unreleased: `useRenderQuality` and the `quality` prop are not in 0.2.0-alpha.2.
+
+By default the canvas pixel ratio follows a per-tier drawing-buffer budget
+(`high` 4.0, `medium` 2.0, `low` 1.0 megapixels), bounded by the device and
+`canvas.dpr` (a number is the maximum). Sustained frames over 22 ms step the
+tier down, far slower frames drop to `low`, and a downgrade that does not
+shorten frames is undone. Frames that keep up with the display step back up.
+`useRenderQuality()` returns `tier`, `dpr` and `reducedMotion`; scale optional
+work such as particle counts or raymarch steps by `tier`. `quality={false}`
+uses `canvas.dpr` unchanged.
+
 ## Debug state
 
 `runtime.getDebugState()` and `onDebugStateChange` report availability and

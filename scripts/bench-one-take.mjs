@@ -136,7 +136,7 @@ try {
 function printReport({ result, errors: pageErrors }) {
   console.log(`\nRenderer: ${result.renderer}`);
   console.log(
-    `Viewport ${result.viewport.width}x${result.viewport.height} @ device ${result.devicePixelRatio}, canvas DPR ${result.dpr}${result.assetsTimedOut ? " (assets timed out)" : ""}`,
+    `Viewport ${result.viewport.width}x${result.viewport.height} @ device ${result.devicePixelRatio}, canvas DPR ${result.dpr}, tier ${result.tier}${result.tierChanges.length ? ` (${result.tierChanges.join(", ")})` : ""}${result.assetsTimedOut ? " (assets timed out)" : ""}`,
   );
   const columns = ["label", "fps", "p50Ms", "p95Ms", "maxMs", "longFrames", "programsAdded", "texturesAdded", "stallFrames", "maxCalls", "longTasks"];
   const rows = [result.summary.overall, ...result.summary.chapters];

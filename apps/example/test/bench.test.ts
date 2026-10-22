@@ -155,6 +155,7 @@ describe("benchmark layout", () => {
       autoplay: true,
       durationSeconds: 5,
     });
+    expect(readBenchOptions("?variant=managed").variant).toBe("managed");
     expect(readBenchOptions("?variant=x&gpu=fast&maxDpr=abc&duration=x")).toMatchObject({
       variant: "naive",
       gpu: "default",

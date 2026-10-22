@@ -125,6 +125,26 @@ not in warmup:
 - Uploading a 1600×900 `HTMLImageElement` costs about 40 ms on the UHD 630;
   the sequence chapter re-uploads one every frame.
 
+## Managed variant: sections, warmup and adaptive quality (2026-10-22)
+
+`--variant managed` uses the runtime's default adaptive quality; the other
+variants pass `quality={false}` and keep the fixed canvas DPR. The canvas
+maximum is `--max-dpr` (2); budgets give DPR 1.76 / 1.24 / 0.88 at 1440×900.
+
+| GPU | CPU | Fixed DPR 2 fps (sections) | Managed fps | Raymarch chapter fps (fixed → managed) | Final tier |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Intel UHD 630 | 1× | 36.8 | 42.2 | 5.5 → 18.2 | low |
+| Radeon Pro 5300M | 1× | 48.0 | 50.2 | 43.1 → 53.8 | high |
+| Intel UHD 630 | 4× | — | 37.4 | — → 21.5 | low |
+
+On the 5300M the sequence chapter (slow from its own uploads) triggered two
+downgrades; both were undone because fewer pixels did not shorten frames. On
+the UHD 630 the light middle chapters returned the tier to `high`, so the
+raymarch chapter spent about three seconds at `high` before dropping to `low`;
+at `low` it runs at about 24 fps, so the chapter itself must scale its steps by
+tier to reach 30 fps. With 4× CPU throttling the sequence chapter falls to
+6 fps from its per-frame uploads.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results; the phone row is
 not yet measured.

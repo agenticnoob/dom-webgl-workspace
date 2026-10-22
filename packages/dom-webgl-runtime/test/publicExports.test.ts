@@ -20,6 +20,7 @@ describe("React/R3F public contract", () => {
       "WebGLSection",
       "WebGLTarget",
       "useDOMTarget",
+      "useRenderQuality",
       "useSectionState",
       "useWebGLRuntime",
     ]);

@@ -56,6 +56,12 @@ contains: `warm` hides its wrapper group, and `sleep` places it in a hidden
 React `Activity`, which R3F hides and whose effects and frame callbacks React
 disconnects. The host's event filter drops hits on undrawn objects.
 
+The host also owns render quality: it passes the Canvas a pixel ratio derived
+from the current tier's drawing-buffer budget, bounded by the device and
+`canvas.dpr` (default range 0.5–2), and steps the tier from frame times
+measured in its own frame callback. Scenes read the tier and scale their own
+work; the runtime never changes their materials or geometry.
+
 ## DOM and fallback
 
 Measurements are read in a batch before fallback styles are written. Scroll,

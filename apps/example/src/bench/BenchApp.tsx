@@ -40,7 +40,7 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
   const canvas = useMemo(
     (): NonNullable<WebGLRuntimeProps["canvas"]> => ({
       camera: { fov: 50, near: 0.1, far: 400, position: [0, 0, cameraZ(0)] },
-      dpr: [1, options.maxDpr],
+      dpr: options.maxDpr,
       gl: { alpha: true, antialias: false, powerPreference: options.gpu },
     }),
     [options],
@@ -95,6 +95,7 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
       className="bench-runtime"
       canvas={canvas}
       progressSignals={progressSignals}
+      quality={options.variant === "managed" ? undefined : false}
       scene={<BenchScene controller={controller} variant={options.variant} />}
     >
       <BenchPage />
@@ -170,8 +171,10 @@ function BenchOverlay({ controller }: { readonly controller: BenchController }) 
         <dd>
           {live.programs} / {live.textures}
         </dd>
-        <dt>DPR</dt>
-        <dd>{live.dpr}</dd>
+        <dt>DPR / 档位</dt>
+        <dd>
+          {live.dpr} / {live.tier}
+        </dd>
         <dt>章节</dt>
         <dd>{benchChapters[live.chapter].key}</dd>
       </dl>

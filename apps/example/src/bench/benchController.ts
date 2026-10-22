@@ -24,6 +24,7 @@ export function requiredBenchAssets(
     case "naive":
       return benchAssets;
     case "sections":
+    case "managed":
       return ["model"];
   }
 }
@@ -32,6 +33,7 @@ export type BenchPhase = "loading" | "ready" | "running" | "done";
 
 export type BenchFrameInput = Omit<BenchFrameSample, "chapter"> & {
   readonly dpr: number;
+  readonly tier: string;
 };
 
 export type BenchLiveStats = {
@@ -42,6 +44,7 @@ export type BenchLiveStats = {
   readonly programs: number;
   readonly textures: number;
   readonly dpr: number;
+  readonly tier: string;
   readonly chapter: number;
 };
 
@@ -51,6 +54,10 @@ export type BenchResult = {
   readonly renderer: string;
   readonly maxDpr: number;
   readonly dpr: number;
+  /** Render quality tier at the end of the run. */
+  readonly tier: string;
+  /** Tier changes during the run, as `seconds:tier`. */
+  readonly tierChanges: readonly string[];
   readonly devicePixelRatio: number;
   readonly viewport: { readonly width: number; readonly height: number };
   readonly userAgent: string;
@@ -82,6 +89,7 @@ export function createBenchController(options: BenchOptions) {
   let renderer = "unknown";
   let assetsTimedOut = false;
   let run: { startedAt: number; durationMs: number } | undefined;
+  let tierChanges: string[] = [];
   let result: BenchResult | undefined;
   let live: BenchLiveStats = {
     fps: 0,
@@ -91,6 +99,7 @@ export function createBenchController(options: BenchOptions) {
     programs: 0,
     textures: 0,
     dpr: 1,
+    tier: "high",
     chapter: 0,
   };
 
@@ -102,6 +111,8 @@ export function createBenchController(options: BenchOptions) {
       renderer,
       maxDpr: options.maxDpr,
       dpr: live.dpr,
+      tier: live.tier,
+      tierChanges,
       devicePixelRatio: window.devicePixelRatio,
       viewport: { width: window.innerWidth, height: window.innerHeight },
       userAgent: navigator.userAgent,
@@ -142,6 +153,7 @@ export function createBenchController(options: BenchOptions) {
       if (phase !== "ready" && phase !== "done") return false;
       recorder.reset();
       result = undefined;
+      tierChanges = [];
       window.scrollTo(0, 0);
       run = { startedAt: performance.now(), durationMs: durationSeconds * 1000 };
       phase = "running";
@@ -150,6 +162,7 @@ export function createBenchController(options: BenchOptions) {
     /** Called once per R3F frame; drives the scripted scroll while running. */
     frame(sample: BenchFrameInput, scroll: WebGLScrollMetrics) {
       const chapter = currentChapter(benchProgress(scroll));
+      const previousTier = live.tier;
       recent.push(sample.deltaMs);
       if (recent.length > liveWindow) recent.shift();
       const totalMs = recent.reduce((sum, value) => sum + value, 0);
@@ -161,10 +174,16 @@ export function createBenchController(options: BenchOptions) {
         programs: sample.programs,
         textures: sample.textures,
         dpr: sample.dpr,
+        tier: sample.tier,
         chapter,
       };
       if (!run) return;
-      recorder.record({ ...sample, chapter });
+      if (sample.tier !== previousTier) {
+        const seconds = (performance.now() - run.startedAt) / 1000;
+        tierChanges.push(`${seconds.toFixed(1)}:${sample.tier}`);
+      }
+      const { dpr: _dpr, tier: _tier, ...frame } = sample;
+      recorder.record({ ...frame, chapter });
       const fraction = Math.min(
         1,
         (performance.now() - run.startedAt) / run.durationMs,

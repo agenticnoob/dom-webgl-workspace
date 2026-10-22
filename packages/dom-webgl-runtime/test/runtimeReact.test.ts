@@ -128,6 +128,21 @@ describe("React runtime host", () => {
     expect(runtime?.getDebugState().targetCount).toBe(1);
   });
 
+  it("bounds the managed pixel ratio by the device and canvas.dpr", async () => {
+    await act(async () =>
+      root.render(
+        createElement(WebGLRuntime, {
+          canvas: { dpr: 1.5 },
+          scene: createElement(Reader),
+        }),
+      ),
+    );
+    const dpr = fiber.props?.dpr;
+    expect(typeof dpr).toBe("number");
+    expect(dpr).toBeLessThanOrEqual(Math.max(window.devicePixelRatio, 0.5));
+    expect(dpr).toBeLessThanOrEqual(1.5);
+  });
+
   it("routes pointer events from the common parent and permits native Canvas settings", async () => {
     await act(async () =>
       root.render(
@@ -135,6 +150,7 @@ describe("React runtime host", () => {
           WebGLRuntime,
           {
             canvas: { frameloop: "demand", dpr: 2 },
+            quality: false,
             scene: createElement(Reader),
           },
           createElement("p", null, "DOM"),

@@ -15,8 +15,12 @@ export const benchChapterSpacing = 30;
 /** Distance from the camera to the chapter it is passing. */
 export const benchViewDistance = 12;
 
-/** `naive`: every chapter always runs. `sections`: each chapter is a `WebGLSection`. */
-export type BenchVariant = "naive" | "sections";
+/**
+ * `naive`: every chapter always runs. `sections`: each chapter is a
+ * `WebGLSection`. `managed`: sections plus adaptive render quality. The first
+ * two keep a fixed pixel ratio so they stay comparable with the baseline.
+ */
+export type BenchVariant = "naive" | "sections" | "managed";
 
 /** Progress signal key the `sections` variant reads. */
 export const benchProgressKey = "bench";
@@ -39,7 +43,7 @@ export function readBenchOptions(search: string): BenchOptions {
   const maxDpr = Number(params.get("maxDpr") ?? 2);
   const duration = Number(params.get("duration") ?? 60);
   return {
-    variant: variant === "sections" ? "sections" : "naive",
+    variant: variant === "sections" || variant === "managed" ? variant : "naive",
     gpu: gpu === "low-power" || gpu === "high-performance" ? gpu : "default",
     maxDpr: Number.isFinite(maxDpr) ? Math.min(3, Math.max(0.5, maxDpr)) : 2,
     autoplay: params.get("autoplay") === "1",

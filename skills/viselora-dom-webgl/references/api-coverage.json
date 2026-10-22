@@ -49,6 +49,11 @@
         "reference": "api-lifecycle-debug.md",
         "section": "Offscreen sections",
         "capability": "offscreen-sections"
+      },
+      "useRenderQuality": {
+        "reference": "api-lifecycle-debug.md",
+        "section": "Render quality",
+        "capability": "render-quality"
       }
     },
     "@viselora/scroll-adapters": {

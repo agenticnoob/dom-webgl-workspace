@@ -29,14 +29,19 @@ Compatible package version: 0.2.0-alpha.2
 | Symbol | Kind | Declaration summary | Re-export origin |
 | --- | --- | --- | --- |
 | useDOMTarget | value | declare function useDOMTarget(id: string): DOMTargetState \| undefined; |  |
+| useRenderQuality | value | declare function useRenderQuality(): RenderQuality; |  |
 | useSectionState | value | declare function useSectionState(): WebGLSectionState; |  |
 | useWebGLRuntime | value | declare function useWebGLRuntime(): RuntimeManager; |  |
-| WebGLRuntime | value | declare function WebGLRuntime({ children, scene, canvas, className, style, progressSignals, scrollAdapter, onDebugStateChange, }: WebGLRuntimeProps): react.JSX.Element; |  |
+| WebGLRuntime | value | declare function WebGLRuntime({ children, scene, canvas, className, style, progressSignals, scrollAdapter, onDebugStateChange, quality, }: WebGLRuntimeProps): react.JSX.Element; |  |
 | WebGLSection | value | declare function WebGLSection(props: WebGLSectionProps): react.JSX.Element; |  |
 | WebGLTarget | value | declare function WebGLTarget({ id, children, hideWhenReady, offscreen, }: WebGLTargetProps): ReactElement<HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement>; }, string \| react.JSXElementConstructor<any>>; |  |
+| QualityBudgets | type | type QualityBudgets = Readonly<Record<QualityTier, number>>; |  |
+| QualityTier | type | type QualityTier = "high" \| "medium" \| "low"; |  |
+| RenderQuality | type | type RenderQuality = { readonly tier: QualityTier; /** Canvas pixel ratio in effect. */ readonly dpr: number; /** \`prefers-reduced-motion: reduce\`; a signal only, it does not change the tier. */ readonly reducedMotion: boolean; }; |  |
 | RuntimeDebugState | type | type RuntimeDebugState = { ready: boolean; targetCount: number; targets: Array<{ id: string; visible: boolean; ready: boolean; }>; error?: string; }; |  |
 | RuntimeManager | type | type RuntimeManager = { /** Shared progress inputs; read \`progress.get(key)\` inside \`useFrame\`. */ readonly progress: WebGLProgressSignalSource; /** Current scroll metrics from the scroll adapter or the window. */ readonly scroll: WebGLScr… |  |
 | SectionPhase | type | type SectionPhase = "sleep" \| "warm" \| "active"; |  |
+| WebGLQualityOptions | type | type WebGLQualityOptions = { /** Move between tiers from measured frame times (default \`true\`). */ adaptive?: boolean; /** Starting tier (default: \`medium\` on phones, \`low\` with Save-Data, else \`high\`). */ tier?: QualityTier; /** Drawing-b… |  |
 | WebGLRuntimeProps | type | type WebGLRuntimeProps = { /** Semantic page DOM, rendered above the fixed Canvas. */ children?: ReactNode; /** Native R3F/Three.js elements rendered inside the single Canvas. */ scene?: ReactNode; /** * Props for the runtime-owned R3F Can… |  |
 | WebGLSectionProgressRange | type | type WebGLSectionProgressRange = { /** Progress signal key, read with \`runtime.progress.get(key)\`. */ readonly key: string; readonly from: number; readonly to: number; }; |  |
 | WebGLSectionProps | type | type WebGLSectionProps = SectionTriggerProps & { /** Native R3F/Three.js content of this section. */ children?: ReactNode; /** * \`"near"\` (default) mounts the content the first time the section comes * within \`warmMargin\`; \`"eager"\` mounts… |  |

@@ -1,5 +1,9 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useWebGLRuntime, WebGLSection } from "@viselora/dom-webgl/react";
+import {
+  useRenderQuality,
+  useWebGLRuntime,
+  WebGLSection,
+} from "@viselora/dom-webgl/react";
 import { Suspense, useEffect, type ReactNode } from "react";
 import { PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -75,6 +79,7 @@ function Chapter({
     case "naive":
       return children;
     case "sections":
+    case "managed":
       return (
         <WebGLSection progress={chapterRange(index)} margin={benchSectionMargin}>
           {children}
@@ -118,6 +123,7 @@ function RoomLighting() {
 
 function BenchProbe({ controller }: { readonly controller: BenchController }) {
   const runtime = useWebGLRuntime();
+  const quality = useRenderQuality();
   const gl = useThree((state) => state.gl);
 
   useEffect(() => {
@@ -154,6 +160,7 @@ function BenchProbe({ controller }: { readonly controller: BenchController }) {
         textures: info.memory.textures,
         geometries: info.memory.geometries,
         dpr: state.gl.getPixelRatio(),
+        tier: quality.tier,
       },
       runtime.scroll,
     );
