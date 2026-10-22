@@ -3,7 +3,7 @@
 // records frame timing per chapter. See apps/example/docs/benchmark.md.
 //
 //   npm run build
-//   node scripts/bench-one-take.mjs --serve [--gpu low-power] [--throttle 4]
+//   node scripts/bench-one-take.mjs --serve [--variant sections] [--gpu low-power] [--throttle 4]
 //
 // Without --headless Chrome uses the real GPU; --headless uses SwiftShader and
 // only checks that the page runs. Results are written to output/bench/.
@@ -24,6 +24,7 @@ const { values: options } = parseArgs({
     port: { type: "string", default: "4173" },
     duration: { type: "string", default: "60" },
     throttle: { type: "string", default: "1" },
+    variant: { type: "string", default: "naive" },
     gpu: { type: "string", default: "default" },
     "max-dpr": { type: "string", default: "2" },
     width: { type: "string", default: "1440" },
@@ -39,6 +40,7 @@ const duration = Number(options.duration);
 const throttle = Number(options.throttle);
 const baseUrl = options.url ?? `http://127.0.0.1:${options.port}/bench.html`;
 const query = new URLSearchParams({
+  variant: options.variant,
   gpu: options.gpu,
   maxDpr: options["max-dpr"],
   duration: String(duration),

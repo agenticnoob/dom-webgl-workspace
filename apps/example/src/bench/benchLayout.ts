@@ -15,7 +15,13 @@ export const benchChapterSpacing = 30;
 /** Distance from the camera to the chapter it is passing. */
 export const benchViewDistance = 12;
 
-export type BenchVariant = "naive";
+/** `naive`: every chapter always runs. `sections`: each chapter is a `WebGLSection`. */
+export type BenchVariant = "naive" | "sections";
+
+/** Progress signal key the `sections` variant reads. */
+export const benchProgressKey = "bench";
+/** Covers the fade overlap between neighbouring chapters. */
+export const benchSectionMargin = 0.03;
 export type BenchGpu = "default" | "low-power" | "high-performance";
 
 export type BenchOptions = {
@@ -28,11 +34,12 @@ export type BenchOptions = {
 
 export function readBenchOptions(search: string): BenchOptions {
   const params = new URLSearchParams(search);
+  const variant = params.get("variant");
   const gpu = params.get("gpu");
   const maxDpr = Number(params.get("maxDpr") ?? 2);
   const duration = Number(params.get("duration") ?? 60);
   return {
-    variant: "naive",
+    variant: variant === "sections" ? "sections" : "naive",
     gpu: gpu === "low-power" || gpu === "high-performance" ? gpu : "default",
     maxDpr: Number.isFinite(maxDpr) ? Math.min(3, Math.max(0.5, maxDpr)) : 2,
     autoplay: params.get("autoplay") === "1",
@@ -67,6 +74,15 @@ export function chapterWeight(progress: number, index: number) {
   const fadeOut =
     index === benchChapterCount - 1 ? 1 : 1 - smoothstep(0.9, 1.15, local);
   return fadeIn * fadeOut;
+}
+
+/** The progress range chapter `index` occupies. */
+export function chapterRange(index: number) {
+  return {
+    key: benchProgressKey,
+    from: index / benchChapterCount,
+    to: (index + 1) / benchChapterCount,
+  };
 }
 
 export function chapterZ(index: number) {

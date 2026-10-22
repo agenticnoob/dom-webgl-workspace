@@ -1,6 +1,6 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useWebGLRuntime } from "@viselora/dom-webgl/react";
-import { Suspense, useEffect } from "react";
+import { useWebGLRuntime, WebGLSection } from "@viselora/dom-webgl/react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { PMREMGenerator } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
@@ -13,28 +13,74 @@ import {
   SequenceChapter,
   TextChapter,
 } from "./benchChapters";
-import { benchProgress, cameraZ } from "./benchLayout";
+import {
+  benchProgress,
+  benchSectionMargin,
+  cameraZ,
+  chapterRange,
+  type BenchVariant,
+} from "./benchLayout";
 
-export function BenchScene({ controller }: { readonly controller: BenchController }) {
+export function BenchScene({
+  controller,
+  variant,
+}: {
+  readonly controller: BenchController;
+  readonly variant: BenchVariant;
+}) {
   return (
     <>
       <CameraRail />
       <RoomLighting />
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 6, 8]} intensity={2.2} />
-      <Suspense fallback={null}>
-        <ModelChapter controller={controller} />
-      </Suspense>
-      <ParticleChapter />
-      <TextChapter controller={controller} />
-      <SequenceChapter controller={controller} />
-      <Suspense fallback={null}>
-        <CardsChapter controller={controller} />
-      </Suspense>
-      <RaymarchChapter />
+      <Chapter index={0} variant={variant}>
+        <Suspense fallback={null}>
+          <ModelChapter controller={controller} />
+        </Suspense>
+      </Chapter>
+      <Chapter index={1} variant={variant}>
+        <ParticleChapter />
+      </Chapter>
+      <Chapter index={2} variant={variant}>
+        <TextChapter controller={controller} />
+      </Chapter>
+      <Chapter index={3} variant={variant}>
+        <SequenceChapter controller={controller} />
+      </Chapter>
+      <Chapter index={4} variant={variant}>
+        <Suspense fallback={null}>
+          <CardsChapter controller={controller} />
+        </Suspense>
+      </Chapter>
+      <Chapter index={5} variant={variant}>
+        <RaymarchChapter />
+      </Chapter>
       <BenchProbe controller={controller} />
     </>
   );
+}
+
+/** The only difference between the variants: whether a chapter is a section. */
+function Chapter({
+  index,
+  variant,
+  children,
+}: {
+  readonly index: number;
+  readonly variant: BenchVariant;
+  readonly children: ReactNode;
+}) {
+  switch (variant) {
+    case "naive":
+      return children;
+    case "sections":
+      return (
+        <WebGLSection progress={chapterRange(index)} margin={benchSectionMargin}>
+          {children}
+        </WebGLSection>
+      );
+  }
 }
 
 /** One continuous shot: scroll progress moves the camera down the rail. */

@@ -82,8 +82,8 @@ describe("release package contracts", () => {
     });
     expect(runtimePackage.peerDependencies).toEqual({
       "@react-three/fiber": "^9.8.1",
-      react: ">=19.0.0 <19.4.0",
-      "react-dom": ">=19.0.0 <19.4.0",
+      react: ">=19.2.0 <19.4.0",
+      "react-dom": ">=19.2.0 <19.4.0",
       three: ">=0.184.0 <0.187.0",
     });
     expect(runtimePackage).not.toHaveProperty("peerDependenciesMeta");
@@ -129,7 +129,7 @@ describe("release package contracts", () => {
     expect(adaptersPackage.peerDependencies).toEqual({
       gsap: ">=3.12.0",
       lenis: ">=1.0.0",
-      react: ">=19.0.0 <19.4.0",
+      react: ">=19.2.0 <19.4.0",
     });
     expect(adaptersPackage.peerDependenciesMeta).toEqual({
       gsap: { optional: true },

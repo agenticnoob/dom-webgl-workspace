@@ -83,6 +83,24 @@ Per chapter on the UHD 630 at DPR 1, the fastest chapter (`raymarch`) reached
 21.3 fps and the slowest (`model`) 16.2 fps. No shader program was compiled
 during scrolling because every chapter mounts and compiles at load.
 
+## Sections variant (2026-10-22, unreleased source)
+
+`--variant sections` (or `?variant=sections`) wraps each chapter in a
+`WebGLSection` over its progress range and changes nothing else. Only the
+first chapter must load before a run; later chapters mount on approach.
+
+| GPU | Canvas DPR | Unmanaged fps / p95 ms | Sections fps / p95 ms |
+| --- | ---: | ---: | ---: |
+| Intel UHD 630 | 2 | 5.3 / 373.4 | 35.1 / 53.0 |
+| Intel UHD 630 | 1 | 19.4 / 83.0 | 42.2 / 52.4 |
+| Radeon Pro 5300M | 2 | 29.6 / 42.8 | 47.3 / 40.2 |
+
+Remaining costs: the raymarch chapter alone still runs at 5.3 fps on the
+UHD 630 at DPR 2 (adaptive quality is not implemented); five shader programs
+and seven textures are created while scrolling, with single frames up to
+300–700 ms on chapter entry (warmup is not implemented); and the sequence
+chapter's own per-frame re-upload holds it near 20 fps.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results; the phone row is
 not yet measured.

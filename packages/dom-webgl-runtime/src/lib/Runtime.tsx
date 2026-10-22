@@ -2,6 +2,7 @@
 
 import {
   Canvas,
+  events as pointerEvents,
   useFrame,
   useThree,
   type CanvasProps,
@@ -31,12 +32,14 @@ import {
   type RuntimeManager,
 } from "./runtimeManager";
 import type { DOMTargetOptions } from "./domRuntime";
+import { withDrawnHits } from "./drawnHits";
 import type {
   WebGLProgressSignalSource,
   WebGLScrollAdapter,
 } from "./runtimeTypes";
 
-const RuntimeContext = createContext<RuntimeController | null>(null);
+// Exported for tests only; not part of the public entrypoints.
+export const RuntimeContext = createContext<RuntimeController | null>(null);
 const canvasStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
@@ -139,6 +142,8 @@ export function WebGLRuntime({
             gl={{ alpha: true, antialias: false }}
             dpr={[1, 1.5]}
             {...canvas}
+            // Objects hidden by a section (or the application) receive no events.
+            events={(store) => withDrawnHits((canvas?.events ?? pointerEvents)(store))}
             eventSource={container}
             eventPrefix="client"
             style={{ ...canvas?.style, ...canvasStyle }}

@@ -26,6 +26,19 @@ with registered descendants stays visible; hide only independently replaced
 leaves. `restore-dom` restores offscreen paint; `park` retains hidden fallback
 and ready state. Visual components choose their own resource retention policy.
 
+## Offscreen sections
+
+Unreleased: `WebGLSection` and `useSectionState` are not in 0.2.0-alpha.2.
+Do not import them from that version.
+
+`WebGLSection` wraps native scene content and pauses it by distance from a
+registered `target` or a `progress` range. `active` draws and updates; `warm`
+updates without drawing; `sleep` keeps the content in a hidden React
+`Activity`, which hides its objects and disconnects its effects and ordinary
+`useFrame` callbacks. Content mounts on first approach unless `mount="eager"`;
+`retain="release"` unmounts it while asleep. Keep lights and the camera rig
+outside sections. Hidden objects receive no pointer events.
+
 ## Debug state
 
 `runtime.getDebugState()` and `onDebugStateChange` report availability and

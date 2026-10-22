@@ -50,6 +50,12 @@ Hidden tabs and lost WebGL contexts suspend R3F's frame loop and restore DOM
 fallback. On recovery the host restores the configured `canvas.frameloop` and
 invalidates a frame; a visibility change cannot clear an ongoing context loss.
 
+`WebGLSection` schedules a native subtree by distance from a DOM target or a
+progress range. It decides when the subtree draws and updates, never what it
+contains: `warm` hides its wrapper group, and `sleep` places it in a hidden
+React `Activity`, which R3F hides and whose effects and frame callbacks React
+disconnects. The host's event filter drops hits on undrawn objects.
+
 ## DOM and fallback
 
 Measurements are read in a batch before fallback styles are written. Scroll,

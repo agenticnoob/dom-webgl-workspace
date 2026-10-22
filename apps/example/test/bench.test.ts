@@ -146,15 +146,16 @@ describe("benchmark layout", () => {
       durationSeconds: 60,
     });
     expect(
-      readBenchOptions("?gpu=low-power&maxDpr=9&autoplay=1&duration=2"),
+      readBenchOptions("?variant=sections&gpu=low-power&maxDpr=9&autoplay=1&duration=2"),
     ).toEqual({
-      variant: "naive",
+      variant: "sections",
       gpu: "low-power",
       maxDpr: 3,
       autoplay: true,
       durationSeconds: 5,
     });
-    expect(readBenchOptions("?gpu=fast&maxDpr=abc&duration=x")).toMatchObject({
+    expect(readBenchOptions("?variant=x&gpu=fast&maxDpr=abc&duration=x")).toMatchObject({
+      variant: "naive",
       gpu: "default",
       maxDpr: 2,
       durationSeconds: 60,

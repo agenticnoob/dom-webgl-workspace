@@ -1,3 +1,4 @@
+import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
 import {
   WebGLRuntime,
   WebGLTarget,
@@ -13,7 +14,13 @@ import {
 } from "./benchController";
 import { benchTitleTargetId } from "./benchChapters";
 import { BenchScene } from "./BenchScene";
-import { benchChapters, cameraZ, type BenchOptions } from "./benchLayout";
+import {
+  benchChapters,
+  benchProgress,
+  benchProgressKey,
+  cameraZ,
+  type BenchOptions,
+} from "./benchLayout";
 
 declare global {
   interface Window {
@@ -37,6 +44,21 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
       gl: { alpha: true, antialias: false, powerPreference: options.gpu },
     }),
     [options],
+  );
+
+  // Page progress as a signal, so sections can use progress ranges.
+  const progressSignals = useMemo(
+    (): WebGLProgressSignalSource => ({
+      get: (key) =>
+        key === benchProgressKey
+          ? benchProgress({
+              scrollY: window.scrollY,
+              scrollHeight: document.documentElement.scrollHeight,
+              viewportHeight: window.innerHeight,
+            })
+          : 0,
+    }),
+    [],
   );
 
   useEffect(() => {
@@ -72,7 +94,8 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
     <WebGLRuntime
       className="bench-runtime"
       canvas={canvas}
-      scene={<BenchScene controller={controller} />}
+      progressSignals={progressSignals}
+      scene={<BenchScene controller={controller} variant={options.variant} />}
     >
       <BenchPage />
       <BenchOverlay controller={controller} />

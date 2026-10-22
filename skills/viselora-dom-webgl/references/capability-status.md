@@ -12,3 +12,4 @@ universal browser or downstream acceptance. Publication status belongs to
 | dom-target-lifecycle | verified | Focused registry tests cover batch reads, readiness identity, opacity fallback, nesting, offscreen entry and disposal | Read live state in native frame callbacks |
 | dom-text | verified | Focused tests cover CSS typography, CJK/Latin wrapping, glyph commands, DPR and disposal | Own the native CanvasTexture lifetime |
 | shared-scroll-progress | verified | Adapter tests, installed-consumer reversible progress and both apps' forward/reverse browser checks | Verify forward/reverse scroll and cleanup in the consumer |
+| offscreen-sections | experimental | Unreleased source only: R3F test-renderer tests cover mount on approach, warm, Activity sleep, release and eager mounting; the one-take benchmark raised UHD 630 throughput from 5.3 to 35.1 fps | Not in 0.2.0-alpha.2; wait for the next release |

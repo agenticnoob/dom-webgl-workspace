@@ -16,6 +16,18 @@ import {
 export const benchAssets = ["model", "text", "sequence", "cards"] as const;
 export type BenchAsset = (typeof benchAssets)[number];
 
+/** Sections mount later chapters only on approach, so only the first must load. */
+export function requiredBenchAssets(
+  variant: BenchOptions["variant"],
+): readonly BenchAsset[] {
+  switch (variant) {
+    case "naive":
+      return benchAssets;
+    case "sections":
+      return ["model"];
+  }
+}
+
 export type BenchPhase = "loading" | "ready" | "running" | "done";
 
 export type BenchFrameInput = Omit<BenchFrameSample, "chapter"> & {
@@ -63,6 +75,7 @@ const liveWindow = 120;
 
 export function createBenchController(options: BenchOptions) {
   const recorder = createBenchRecorder();
+  const required = requiredBenchAssets(options.variant);
   const loaded = new Set<BenchAsset>();
   const recent: number[] = [];
   let phase: BenchPhase = "loading";
@@ -104,8 +117,8 @@ export function createBenchController(options: BenchOptions) {
     snapshot(): BenchSnapshot {
       return {
         phase,
-        loadedAssets: loaded.size,
-        totalAssets: benchAssets.length,
+        loadedAssets: required.filter((asset) => loaded.has(asset)).length,
+        totalAssets: required.length,
         renderer,
         live,
         ...(result ? { result } : {}),
@@ -113,7 +126,7 @@ export function createBenchController(options: BenchOptions) {
     },
     assetReady(asset: BenchAsset) {
       loaded.add(asset);
-      if (phase === "loading" && loaded.size === benchAssets.length)
+      if (phase === "loading" && required.every((item) => loaded.has(item)))
         phase = "ready";
     },
     /** Allows a run on a device that cannot load every asset in time. */

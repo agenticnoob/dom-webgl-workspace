@@ -23,6 +23,15 @@ passes are native R3F/Three.js work. The previous declaration compiler, effect
 facades, loaders, resource cache, physics slice and independent renderer loop
 are retired. No legacy compatibility backend is maintained.
 
+Unreleased on `codex/hero-next`: `WebGLSection` and `useSectionState` pause
+offscreen scene subtrees (draw only when active, React `Activity` while
+asleep), the host ignores pointer hits on undrawn objects, and the React peer
+floor rises to 19.2. On the one-take benchmark this raised Intel UHD 630
+throughput from 5.3 to 35.1 fps at DPR 2 ([benchmark](../apps/example/docs/benchmark.md)).
+Warmup, adaptive quality and cost diagnostics from the
+[performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
+are not implemented yet.
+
 ## Release truth
 
 `@viselora/dom-webgl@0.2.0-alpha.2` and
