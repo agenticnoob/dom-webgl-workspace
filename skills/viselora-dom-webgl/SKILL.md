@@ -94,16 +94,17 @@ npx tsc --noEmit
 npm run build
 ```
 
-Then check real pixels, following, determinism and fallback paths in a browser.
-`browser-check.mjs` needs the `playwright-core` driver in the project, which a
-fresh app does not have; install it first, then start the dev server
-(`npm run dev`) and leave it running:
+Then check real pixels, following, determinism and fallback paths in a browser
+with one command. It installs the `playwright-core` driver (a fresh app does not
+have it), starts the dev server in the background, runs the checks and stops
+the server, so nothing is left running:
 
 ```bash
-npm install --save-dev playwright-core
-node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --follow "#card-model" --fallback "#card-model" --block "**/*.glb"
-node <skill-dir>/scripts/browser-check.mjs http://localhost:5173 --deterministic --fallback main
+npm install --save-dev playwright-core && node <skill-dir>/scripts/browser-check.mjs http://127.0.0.1:5199 --serve "npm run dev -- --host 127.0.0.1 --port 5199 --strictPort" --follow "#card-model" --fallback "#card-model" --block "**/*.glb"
 ```
+
+Use `--deterministic --fallback main` for scroll-driven scenes. Without
+`--serve`, the URL must already be served.
 
 Unmount/remount cleanup still needs a test of the consumer component.
 

@@ -131,15 +131,16 @@ same install from this 237 MB workspace timed out while cloning.
 [c866fec](https://github.com/agenticnoob/viselora-skills/commit/c866fec) with
 the `0.2.0-alpha.2` skill. The skills.sh listing is not verified.
 
-The [first A/B evaluation](../evals/skill-ab/README.md) found no difference
-with or without the earlier skill when prompts named Viselora (9.83 vs 9.82 of
-10, 24 runs). The [second evaluation](../evals/skill-ab-v2/README.md) (120 codex
-runs, five tasks) compared native three.js/R3F with Viselora and the skill:
-codex `xhigh` scored 13/13 in every condition, while codex `low` rose from 11.26
-(native) to 12.94–13.00 (p ≤ 0.034). Five of 15 weak native runs drew no WebGL
-because StrictMode reused a lost context; no skill-installed run did. Without
-being named, the skill led codex to Viselora in 30 of 30 runs. Claude was not
-evaluated in that round, and no human visual review was done.
+Three A/B rounds (256 Claude and codex runs) are summarized in the
+[evaluation summary](../evals/README.md). Latest result (round 3,
+`0.2.0-alpha.2`, three 0.186): under a prompt that lists no robustness
+requirements, native pages scored 10.13–11.67 of 13 against 12.63–13.00 with
+the skill, and the skill beat naming the package without it (p = 0.002). Strong
+agents given every requirement score the same with or without Viselora.
+`browser-check.mjs` produced results in only 14 of 56 round-3 skill runs; the
+skill now runs it as one command with `--serve`, which is verified on the
+template (8/8 checks, no server left running) but not yet re-evaluated with
+agents.
 
 ## Known boundaries
 

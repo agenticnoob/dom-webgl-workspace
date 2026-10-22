@@ -1,8 +1,12 @@
 #!/usr/bin/env node
-// Browser check for a running Viselora page (dev server or preview build).
+// Browser check for a Viselora page (dev server or preview build).
 //
 //   node <skill-dir>/scripts/browser-check.mjs <url> [options]
 //
+//   --serve <command>      Start this server command in the background, wait
+//                          until <url> responds, run the checks, then stop it,
+//                          e.g. "npm run dev -- --port 5173 --strictPort".
+//                          Without it, <url> must already be served.
 //   --follow <selector>    The centroid of the WebGL pixels in view must sit on
 //                          this element after load, scroll, reverse scroll and
 //                          resize (repeatable; assumes it is the main WebGL
@@ -20,12 +24,13 @@
 // directory and a Chrome/Chromium: CHROME_PATH, a system Chrome, or Playwright's
 // own browser. It reads canvas pixels; it does not replace a human visual
 // review, real-GPU/mobile checks, or a remount test of the consumer component.
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
-const valueOptions = new Set(["follow", "fallback", "block", "out", "wait"]);
-const options = { follow: [], fallback: [], block: [], out: [], wait: [] };
+const valueOptions = new Set(["follow", "fallback", "block", "out", "wait", "serve"]);
+const options = { follow: [], fallback: [], block: [], out: [], wait: [], serve: [] };
 const positional = [];
 let deterministic = false;
 const argv = process.argv.slice(2);
@@ -57,6 +62,7 @@ if (!playwright) {
   console.error("Install a browser driver first: npm install --save-dev playwright-core");
   process.exit(2);
 }
+const server = options.serve[0] ? await startServer(options.serve[0], url) : undefined;
 const executablePath = [
   process.env.CHROME_PATH,
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -158,6 +164,7 @@ try {
   }
 } finally {
   await browser.close();
+  server?.stop();
 }
 const failed = results.filter((result) => !result.ok).length;
 console.log(`${results.length - failed}/${results.length} browser checks passed; screenshots in ${out} (do not commit them).`);
@@ -239,7 +246,46 @@ function changed(a, b) {
 }
 
 function usage(message) {
-  console.error(`${message}\nUsage: browser-check.mjs <url> [--follow sel] [--fallback sel] [--block glob] [--deterministic] [--out dir] [--wait ms]`);
+  console.error(`${message}\nUsage: browser-check.mjs <url> [--serve command] [--follow sel] [--fallback sel] [--block glob] [--deterministic] [--out dir] [--wait ms]`);
+  process.exit(2);
+}
+
+// Starts a server in its own process group and stops the whole group on exit,
+// so no dev server is left running after the check.
+async function startServer(command, target) {
+  const child = spawn(command, {
+    shell: true,
+    stdio: "ignore",
+    detached: process.platform !== "win32",
+  });
+  let exited = false;
+  child.on("exit", () => {
+    exited = true;
+  });
+  const stop = () => {
+    if (exited) return;
+    try {
+      if (process.platform === "win32") child.kill();
+      else process.kill(-child.pid, "SIGTERM");
+    } catch {}
+  };
+  process.on("exit", stop);
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.on(signal, () => process.exit(130));
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    if (exited) {
+      console.error(`Server command exited before ${target} responded: ${command}`);
+      process.exit(2);
+    }
+    try {
+      await fetch(target);
+      return { stop };
+    } catch {
+      await sleep(500);
+    }
+  }
+  console.error(`Timed out waiting for ${target} after starting: ${command}`);
   process.exit(2);
 }
 

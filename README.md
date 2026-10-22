@@ -73,6 +73,19 @@ Add `-a codex`, `-a claude-code` or `-a hermes-agent` to target one agent, and
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
 repository is generated from it so installs do not clone this workspace.
 
+### Evaluated with coding agents
+
+Three A/B rounds (256 runs of Claude and codex) compared native three.js / R3F
+pages with Viselora and the skill:
+
+- Without a checklist of robustness requirements, native pages scored 10.1–11.7
+  of 13 (even Claude Opus 11.1) against 12.6–13.0 with the skill.
+- The gap is lifecycle and fallback mistakes (StrictMode lost contexts, extra
+  canvases, blank pages without WebGL), which Viselora prevents by default.
+- A strong agent given every requirement scores the same either way.
+
+See the [evaluation summary](./evals/README.md) for method, data and limits.
+
 ## Public entrypoints
 
 | Entrypoint | Responsibility |
@@ -96,6 +109,7 @@ packages/dom-webgl-runtime/      @viselora/dom-webgl
 packages/dom-webgl-scroll-adapters/  optional scroll integration
 skills/viselora-dom-webgl/       published agent skill, runnable template and recipes
 docs/                           architecture, status and user guides
+evals/                          agent A/B evaluations and reports
 ```
 
 ## Documentation
@@ -105,6 +119,7 @@ docs/                           architecture, status and user guides
 - [Getting started](./docs/guides/getting-started.md)
 - [Native visual effects](./docs/guides/effects.md)
 - [Scroll integration](./docs/guides/scroll.md)
+- [Agent evaluations](./evals/README.md)
 - [Contributing](./CONTRIBUTING.md)
 
 ## License

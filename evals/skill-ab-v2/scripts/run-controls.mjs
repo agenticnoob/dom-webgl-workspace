@@ -6,6 +6,7 @@
 // item fails and nothing outside expectFail ∪ allowFail fails.
 //
 //   node evals/skill-ab-v2/scripts/run-controls.mjs [--root DIR] [--only name,name]
+//     [--viselora-version 0.2.0-alpha.1]
 // Requires run-eval.mjs --prepare-only to have prepared <root>/base and <root>/tools.
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -21,6 +22,7 @@ const argValue = (name) => {
   return index === -1 ? undefined : process.argv[index + 1];
 };
 const root = resolve(argValue("--root") ?? join(tmpdir(), "viselora-skill-ab-v2"));
+const viseloraVersion = argValue("--viselora-version") ?? "0.2.0-alpha.1";
 if (!existsSync(join(root, "base/node_modules"))) throw new Error("run run-eval.mjs --prepare-only first");
 const v1 = (name) => join(v1Root, "controls", name);
 const v2 = (name) => join(v2Root, "controls", name);
@@ -111,7 +113,7 @@ for (const { name, task, app, edit, recipes, viselora, deps = [], expectFail, al
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dirname(dir), { recursive: true });
   must(spawnSync("cp", ["-cR", join(root, "base"), dir], { stdio: "inherit" }));
-  const install = [...(viselora ? ["@viselora/dom-webgl@0.2.0-alpha.1"] : []), ...deps];
+  const install = [...(viselora ? [`@viselora/dom-webgl@${viseloraVersion}`] : []), ...deps];
   if (install.length)
     must(
       spawnSync("npm", ["install", "--no-audit", "--no-fund", "--save-exact", ...install], {

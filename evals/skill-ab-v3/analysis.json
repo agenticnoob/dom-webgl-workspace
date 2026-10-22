@@ -1,0 +1,1403 @@
+{
+  "generatedAt": "2026-10-21T23:38:15.276Z",
+  "cells": [
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "N",
+      "n": 10,
+      "totalV2": 11.67,
+      "core": 8.97,
+      "context_loss": 0.8,
+      "a11y_tree": 0.9,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 0.7,
+        "dom_fallback": 0.7,
+        "ssr_safe": 1,
+        "cleanup": 0.84,
+        "scroll_resize": 0.8,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.93,
+        "context_loss": 0.8,
+        "a11y_tree": 0.9,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 0,
+      "minutes": 3,
+      "costUsd": null,
+      "sourceLines": 116
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "V",
+      "n": 10,
+      "totalV2": 12.13,
+      "core": 9.4,
+      "context_loss": 0.93,
+      "a11y_tree": 1,
+      "reduced_motion": 0.8,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 0.8,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 0.8,
+        "task_effect": 0.8,
+        "context_loss": 0.93,
+        "a11y_tree": 1,
+        "reduced_motion": 0.8
+      },
+      "noWebGL": 2,
+      "usesViselora": 10,
+      "minutes": 3.9,
+      "costUsd": null,
+      "sourceLines": 145
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 10,
+      "totalV2": 12.92,
+      "core": 9.92,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 0.97,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.95,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 10,
+      "minutes": 3.9,
+      "costUsd": null,
+      "sourceLines": 142
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 10,
+      "totalV2": 12.98,
+      "core": 9.98,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.98,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 10,
+      "minutes": 3.8,
+      "costUsd": null,
+      "sourceLines": 143
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "N",
+      "n": 10,
+      "totalV2": 11.03,
+      "core": 8.46,
+      "context_loss": 0.67,
+      "a11y_tree": 1,
+      "reduced_motion": 0.9,
+      "items": {
+        "single_canvas": 0.7,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 0.96,
+        "scroll_resize": 0.6,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 0.6,
+        "task_effect": 0.6,
+        "context_loss": 0.67,
+        "a11y_tree": 1,
+        "reduced_motion": 0.9
+      },
+      "noWebGL": 4,
+      "usesViselora": 0,
+      "minutes": 2.6,
+      "costUsd": null,
+      "sourceLines": 150
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "V",
+      "n": 10,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 10,
+      "minutes": 3.1,
+      "costUsd": null,
+      "sourceLines": 108
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "S",
+      "n": 10,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 10,
+      "minutes": 3.6,
+      "costUsd": null,
+      "sourceLines": 139
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "VS",
+      "n": 10,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 10,
+      "minutes": 3.9,
+      "costUsd": null,
+      "sourceLines": 162
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "N",
+      "n": 4,
+      "totalV2": 10.13,
+      "core": 8,
+      "context_loss": 0.75,
+      "a11y_tree": 0.88,
+      "reduced_motion": 0.5,
+      "items": {
+        "single_canvas": 0.25,
+        "dom_fallback": 0.75,
+        "ssr_safe": 0.75,
+        "cleanup": 0.75,
+        "scroll_resize": 0.75,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.75,
+        "context_loss": 0.75,
+        "a11y_tree": 0.88,
+        "reduced_motion": 0.5
+      },
+      "noWebGL": 0,
+      "usesViselora": 0,
+      "minutes": 3.4,
+      "costUsd": 1.11,
+      "sourceLines": 216
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "V",
+      "n": 4,
+      "totalV2": 12.44,
+      "core": 9.94,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 0.5,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.94,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 0.5
+      },
+      "noWebGL": 0,
+      "usesViselora": 4,
+      "minutes": 4.7,
+      "costUsd": 1.51,
+      "sourceLines": 193
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 4,
+      "totalV2": 12.63,
+      "core": 9.63,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 0.75,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 0.88,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 2,
+      "minutes": 2.3,
+      "costUsd": 0.7,
+      "sourceLines": 198
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 4,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 4,
+      "minutes": 4.8,
+      "costUsd": 1.17,
+      "sourceLines": 227
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "N",
+      "n": 4,
+      "totalV2": 11.14,
+      "core": 9.05,
+      "context_loss": 0.84,
+      "a11y_tree": 0.75,
+      "reduced_motion": 0.5,
+      "items": {
+        "single_canvas": 0.5,
+        "dom_fallback": 0.75,
+        "ssr_safe": 1,
+        "cleanup": 0.8,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 0.84,
+        "a11y_tree": 0.75,
+        "reduced_motion": 0.5
+      },
+      "noWebGL": 0,
+      "usesViselora": 0,
+      "minutes": 3.4,
+      "costUsd": 0.42,
+      "sourceLines": 224
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "V",
+      "n": 4,
+      "totalV2": 12.15,
+      "core": 9.65,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 0.5,
+      "items": {
+        "single_canvas": 0.75,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 0.9,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 0.5
+      },
+      "noWebGL": 0,
+      "usesViselora": 4,
+      "minutes": 4.2,
+      "costUsd": 0.67,
+      "sourceLines": 286
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 4,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 4,
+      "minutes": 4.7,
+      "costUsd": 0.71,
+      "sourceLines": 324
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 4,
+      "totalV2": 13,
+      "core": 10,
+      "context_loss": 1,
+      "a11y_tree": 1,
+      "reduced_motion": 1,
+      "items": {
+        "single_canvas": 1,
+        "dom_fallback": 1,
+        "ssr_safe": 1,
+        "cleanup": 1,
+        "scroll_resize": 1,
+        "public_imports": 1,
+        "typecheck": 1,
+        "build": 1,
+        "pixels": 1,
+        "task_effect": 1,
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "noWebGL": 0,
+      "usesViselora": 4,
+      "minutes": 3.2,
+      "costUsd": 0.46,
+      "sourceLines": 290
+    }
+  ],
+  "versusN": [
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "b": "V",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.67,
+      "meanB": 12.13,
+      "p": 0.4932,
+      "noWebGL": [
+        0,
+        2
+      ],
+      "fisherP": 0.4737
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "b": "S",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.67,
+      "meanB": 12.92,
+      "p": 0.0001,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "b": "VS",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.67,
+      "meanB": 12.98,
+      "p": 0,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "b": "V+S+VS",
+      "n": [
+        10,
+        30
+      ],
+      "meanN": 11.67,
+      "meanB": 12.68,
+      "p": 0.0158,
+      "noWebGL": [
+        0,
+        2
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "b": "V",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.03,
+      "meanB": 13,
+      "p": 0.0313,
+      "noWebGL": [
+        4,
+        0
+      ],
+      "fisherP": 0.0867
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "b": "S",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.03,
+      "meanB": 13,
+      "p": 0.0313,
+      "noWebGL": [
+        4,
+        0
+      ],
+      "fisherP": 0.0867
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "b": "VS",
+      "n": [
+        10,
+        10
+      ],
+      "meanN": 11.03,
+      "meanB": 13,
+      "p": 0.0313,
+      "noWebGL": [
+        4,
+        0
+      ],
+      "fisherP": 0.0867
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "b": "V+S+VS",
+      "n": [
+        10,
+        30
+      ],
+      "meanN": 11.03,
+      "meanB": 13,
+      "p": 0.0001,
+      "noWebGL": [
+        4,
+        0
+      ],
+      "fisherP": 0.0023
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "b": "V",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 10.13,
+      "meanB": 12.44,
+      "p": 0.0833,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "b": "S",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 10.13,
+      "meanB": 12.63,
+      "p": 0.0864,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "b": "VS",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 10.13,
+      "meanB": 13,
+      "p": 0.0264,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "b": "V+S+VS",
+      "n": [
+        4,
+        12
+      ],
+      "meanN": 10.13,
+      "meanB": 12.69,
+      "p": 0.0026,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "b": "V",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 11.14,
+      "meanB": 12.15,
+      "p": 0.2708,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "b": "S",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 11.14,
+      "meanB": 13,
+      "p": 0.0264,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "b": "VS",
+      "n": [
+        4,
+        4
+      ],
+      "meanN": 11.14,
+      "meanB": 13,
+      "p": 0.0264,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "b": "V+S+VS",
+      "n": [
+        4,
+        12
+      ],
+      "meanN": 11.14,
+      "meanB": 12.72,
+      "p": 0.0154,
+      "noWebGL": [
+        0,
+        0
+      ],
+      "fisherP": 1
+    }
+  ],
+  "promptEffect": [
+    {
+      "baseConfig": "codex-low",
+      "condition": "N",
+      "n": [
+        10,
+        10
+      ],
+      "meanFull": 11.03,
+      "meanMinimal": 11.67,
+      "p": 0.4757,
+      "robustFull": {
+        "context_loss": 0.67,
+        "a11y_tree": 1,
+        "reduced_motion": 0.9
+      },
+      "robustMinimal": {
+        "context_loss": 0.8,
+        "a11y_tree": 0.9,
+        "reduced_motion": 1
+      }
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "V",
+      "n": [
+        10,
+        10
+      ],
+      "meanFull": 13,
+      "meanMinimal": 12.13,
+      "p": 0.4702,
+      "robustFull": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "robustMinimal": {
+        "context_loss": 0.93,
+        "a11y_tree": 1,
+        "reduced_motion": 0.8
+      }
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "S",
+      "n": [
+        10,
+        10
+      ],
+      "meanFull": 13,
+      "meanMinimal": 12.92,
+      "p": 1,
+      "robustFull": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "robustMinimal": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      }
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "VS",
+      "n": [
+        10,
+        10
+      ],
+      "meanFull": 13,
+      "meanMinimal": 12.98,
+      "p": 1,
+      "robustFull": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "robustMinimal": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      }
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "V+S+VS",
+      "n": [
+        30,
+        30
+      ],
+      "meanFull": 13,
+      "meanMinimal": 12.68,
+      "p": 0.1161,
+      "robustFull": {
+        "context_loss": 1,
+        "a11y_tree": 1,
+        "reduced_motion": 1
+      },
+      "robustMinimal": {
+        "context_loss": 0.98,
+        "a11y_tree": 1,
+        "reduced_motion": 0.93
+      }
+    }
+  ],
+  "interaction": [
+    {
+      "baseConfig": "codex-low",
+      "gapMinimal": 1.01,
+      "gapFull": 1.97,
+      "diffInDiff": -0.96,
+      "ci95": [
+        -2.65,
+        0.68
+      ]
+    }
+  ],
+  "skillProcess": [
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 10,
+      "skillUsed": 10,
+      "usesViselora": 10,
+      "verifyConsumerPassed": 10,
+      "browserCheckInvoked": 4,
+      "browserCheckProduced": 3,
+      "browserCheckAllPass": 3,
+      "driverMissingMessage": 4,
+      "installedDriver": 3,
+      "installedBeforeFirstCheck": 0,
+      "anyPassFailV2Style": 3,
+      "egoBrowser": 9
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 10,
+      "skillUsed": 10,
+      "usesViselora": 10,
+      "verifyConsumerPassed": 10,
+      "browserCheckInvoked": 4,
+      "browserCheckProduced": 2,
+      "browserCheckAllPass": 2,
+      "driverMissingMessage": 4,
+      "installedDriver": 2,
+      "installedBeforeFirstCheck": 0,
+      "anyPassFailV2Style": 2,
+      "egoBrowser": 8
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "S",
+      "n": 10,
+      "skillUsed": 10,
+      "usesViselora": 10,
+      "verifyConsumerPassed": 10,
+      "browserCheckInvoked": 1,
+      "browserCheckProduced": 1,
+      "browserCheckAllPass": 0,
+      "driverMissingMessage": 1,
+      "installedDriver": 1,
+      "installedBeforeFirstCheck": 0,
+      "anyPassFailV2Style": 1,
+      "egoBrowser": 8
+    },
+    {
+      "baseConfig": "codex-low",
+      "prompt": "full",
+      "condition": "VS",
+      "n": 10,
+      "skillUsed": 10,
+      "usesViselora": 10,
+      "verifyConsumerPassed": 10,
+      "browserCheckInvoked": 3,
+      "browserCheckProduced": 1,
+      "browserCheckAllPass": 1,
+      "driverMissingMessage": 3,
+      "installedDriver": 1,
+      "installedBeforeFirstCheck": 0,
+      "anyPassFailV2Style": 1,
+      "egoBrowser": 9
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 4,
+      "skillUsed": 4,
+      "usesViselora": 2,
+      "verifyConsumerPassed": 2,
+      "browserCheckInvoked": 1,
+      "browserCheckProduced": 1,
+      "browserCheckAllPass": 0,
+      "driverMissingMessage": 1,
+      "installedDriver": 1,
+      "installedBeforeFirstCheck": 1,
+      "anyPassFailV2Style": 1,
+      "egoBrowser": 0
+    },
+    {
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 4,
+      "skillUsed": 4,
+      "usesViselora": 4,
+      "verifyConsumerPassed": 4,
+      "browserCheckInvoked": 2,
+      "browserCheckProduced": 2,
+      "browserCheckAllPass": 1,
+      "driverMissingMessage": 2,
+      "installedDriver": 4,
+      "installedBeforeFirstCheck": 1,
+      "anyPassFailV2Style": 3,
+      "egoBrowser": 0
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "S",
+      "n": 4,
+      "skillUsed": 4,
+      "usesViselora": 4,
+      "verifyConsumerPassed": 4,
+      "browserCheckInvoked": 3,
+      "browserCheckProduced": 2,
+      "browserCheckAllPass": 2,
+      "driverMissingMessage": 2,
+      "installedDriver": 4,
+      "installedBeforeFirstCheck": 2,
+      "anyPassFailV2Style": 2,
+      "egoBrowser": 0
+    },
+    {
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "VS",
+      "n": 4,
+      "skillUsed": 4,
+      "usesViselora": 4,
+      "verifyConsumerPassed": 4,
+      "browserCheckInvoked": 3,
+      "browserCheckProduced": 2,
+      "browserCheckAllPass": 2,
+      "driverMissingMessage": 0,
+      "installedDriver": 4,
+      "installedBeforeFirstCheck": 2,
+      "anyPassFailV2Style": 2,
+      "egoBrowser": 0
+    }
+  ],
+  "versusV2": [
+    {
+      "baseConfig": "codex-low",
+      "condition": "N",
+      "n": [
+        15,
+        10
+      ],
+      "meanV2": 11.26,
+      "meanV3": 11.03,
+      "p": 0.9717,
+      "noWebGL": [
+        5,
+        4
+      ]
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "V",
+      "n": [
+        15,
+        10
+      ],
+      "meanV2": 12.67,
+      "meanV3": 13,
+      "p": 0.7412,
+      "noWebGL": [
+        1,
+        0
+      ]
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "S",
+      "n": [
+        15,
+        10
+      ],
+      "meanV2": 12.94,
+      "meanV3": 13,
+      "p": 1,
+      "noWebGL": [
+        0,
+        0
+      ]
+    },
+    {
+      "baseConfig": "codex-low",
+      "condition": "VS",
+      "n": [
+        15,
+        10
+      ],
+      "meanV2": 13,
+      "meanV3": 13,
+      "p": 1,
+      "noWebGL": [
+        0,
+        0
+      ]
+    }
+  ],
+  "probe": [
+    {
+      "id": "haiku-minimal-a-N-r1",
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "N",
+      "totalV2": 10.27,
+      "adjusted": 11.67
+    },
+    {
+      "id": "haiku-minimal-a-N-r2",
+      "baseConfig": "haiku",
+      "prompt": "minimal",
+      "condition": "N",
+      "totalV2": 8.77,
+      "adjusted": 10.17
+    },
+    {
+      "id": "opus-minimal-a-N-r1",
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "N",
+      "totalV2": 9.77,
+      "adjusted": 11.17
+    },
+    {
+      "id": "opus-minimal-a-N-r2",
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "N",
+      "totalV2": 9.77,
+      "adjusted": 11.17
+    },
+    {
+      "id": "opus-minimal-a-V-r1",
+      "baseConfig": "opus",
+      "prompt": "minimal",
+      "condition": "V",
+      "totalV2": 10.6,
+      "adjusted": 12
+    }
+  ],
+  "failures": [
+    {
+      "id": "codex-low-full-b-N-r1",
+      "totalV2": 8,
+      "failing": [
+        "pixels=0",
+        "task_effect=0",
+        "scroll_resize=0",
+        "single_canvas=0",
+        "context_loss=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-full-d-N-r1",
+      "totalV2": 8,
+      "failing": [
+        "pixels=0",
+        "scroll_resize=0",
+        "single_canvas=0",
+        "task_effect=0",
+        "context_loss=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-full-d-N-r2",
+      "totalV2": 8,
+      "failing": [
+        "pixels=0",
+        "scroll_resize=0",
+        "single_canvas=0",
+        "task_effect=0",
+        "context_loss=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-full-c-N-r2",
+      "totalV2": 8.67,
+      "failing": [
+        "pixels=0",
+        "task_effect=0",
+        "scroll_resize=0",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-c-V-r1",
+      "totalV2": 8.67,
+      "failing": [
+        "pixels=0",
+        "task_effect=0",
+        "scroll_resize=0",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "codex-low-minimal-c-V-r2",
+      "totalV2": 8.67,
+      "failing": [
+        "pixels=0",
+        "task_effect=0",
+        "scroll_resize=0",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "haiku-minimal-a-N-r2",
+      "totalV2": 8.77,
+      "failing": [
+        "ssr_safe=0",
+        "single_canvas=0",
+        "cleanup=0.6",
+        "a11y_tree=0.5",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "haiku-minimal-d-N-r2",
+      "totalV2": 8.97,
+      "failing": [
+        "scroll_resize=0",
+        "single_canvas=0",
+        "task_effect=0",
+        "dom_fallback=0.5",
+        "cleanup=0.8",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "opus-minimal-a-N-r1",
+      "totalV2": 9.77,
+      "failing": [
+        "single_canvas=0",
+        "cleanup=0.6",
+        "a11y_tree=0.5",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "opus-minimal-a-N-r2",
+      "totalV2": 9.77,
+      "failing": [
+        "single_canvas=0",
+        "cleanup=0.6",
+        "a11y_tree=0.5",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-d-N-r1",
+      "totalV2": 9.8,
+      "failing": [
+        "scroll_resize=0",
+        "single_canvas=0",
+        "task_effect=0.5",
+        "dom_fallback=0.5",
+        "cleanup=0.8"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-d-N-r2",
+      "totalV2": 10.05,
+      "failing": [
+        "scroll_resize=0",
+        "single_canvas=0",
+        "task_effect=0.75",
+        "dom_fallback=0.5",
+        "cleanup=0.8"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "haiku-minimal-a-N-r1",
+      "totalV2": 10.27,
+      "failing": [
+        "single_canvas=0",
+        "cleanup=0.6",
+        "context_loss=0.67",
+        "reduced_motion=0"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "opus-minimal-a-V-r1",
+      "totalV2": 10.6,
+      "failing": [
+        "single_canvas=0",
+        "cleanup=0.6",
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "codex-low-minimal-a-N-r2",
+      "totalV2": 10.77,
+      "failing": [
+        "single_canvas=0",
+        "cleanup=0.6",
+        "a11y_tree=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "haiku-minimal-a-V-r1",
+      "totalV2": 12,
+      "failing": [
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "haiku-minimal-a-V-r2",
+      "totalV2": 12,
+      "failing": [
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "haiku-minimal-d-S-r1",
+      "totalV2": 12,
+      "failing": [
+        "task_effect=0.5",
+        "dom_fallback=0.5"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "opus-minimal-a-V-r2",
+      "totalV2": 12,
+      "failing": [
+        "reduced_motion=0"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "codex-low-minimal-a-N-r1",
+      "totalV2": 12.17,
+      "failing": [
+        "a11y_tree=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-b-N-r1",
+      "totalV2": 12.17,
+      "failing": [
+        "dom_fallback=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-b-N-r2",
+      "totalV2": 12.17,
+      "failing": [
+        "dom_fallback=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-c-S-r1",
+      "totalV2": 12.17,
+      "failing": [
+        "task_effect=0.5",
+        "scroll_resize=0.67"
+      ],
+      "usesViselora": true
+    },
+    {
+      "id": "codex-low-minimal-e-N-r1",
+      "totalV2": 12.17,
+      "failing": [
+        "dom_fallback=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    },
+    {
+      "id": "codex-low-minimal-e-N-r2",
+      "totalV2": 12.17,
+      "failing": [
+        "dom_fallback=0.5",
+        "context_loss=0.67"
+      ],
+      "usesViselora": false
+    }
+  ]
+}
