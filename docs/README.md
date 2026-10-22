@@ -13,6 +13,8 @@ This directory contains the repository's current project documentation.
 - [guides/effects.md](./guides/effects.md) — native R3F effects and DOM text.
 - [guides/scroll.md](./guides/scroll.md) — native scroll, progress timelines,
   Lenis, GSAP, and ScrollTrigger.
+- [../evals/README.md](../evals/README.md) — agent A/B evaluation summary and
+  per-round reports.
 - [archive/README.md](./archive/README.md) — historical records and archive
   policy.
 
