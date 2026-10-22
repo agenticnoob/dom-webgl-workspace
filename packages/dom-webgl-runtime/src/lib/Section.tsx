@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Group } from "three";
+import type { Group, Object3D } from "three";
 
 import { useController } from "./Runtime";
 import type { RuntimeManager } from "./runtimeManager";
@@ -129,7 +129,8 @@ export function WebGLSection(props: WebGLSectionProps) {
       ? "active"
       : nextSectionPhase(
           current.current,
-          measureDistance(trigger, runtime, state.size),
+          // Target rects are canvas-relative; inside a View `state.size` is not.
+          measureDistance(trigger, runtime, controller.viewport()),
           margins,
         );
     const root = group.current;
@@ -151,7 +152,7 @@ export function WebGLSection(props: WebGLSectionProps) {
         controller.diagnostics.warn(
           "section-compiled-on-entry",
           label,
-          `Section "${label}" compiled ${programs - pending.programs} shader program(s) as it became active, so warmup had not finished. Give it a larger warmMargin or mount it earlier.`,
+          `Shader programs were compiled as section "${label}" became active (${programs - pending.programs} new in the renderer), so its warmup had not finished. Give it a larger warmMargin or mount it earlier; very fast scrolling can also skip warmup.`,
         );
       } else if (pending.frames > 3) entry.current = undefined;
     }
@@ -208,7 +209,9 @@ function describeTrigger(trigger: SectionTrigger) {
   }
 }
 
-// Hiding a section hides its lights, which changes every lit program.
+// Hiding a section hides its lights. Lit materials elsewhere in the same scene
+// then see a different light count and recompile; content that hides with its
+// own lights (a self-contained View) does not.
 function warnAboutLights(
   root: Group,
   label: string,
@@ -218,12 +221,39 @@ function warnAboutLights(
   root.traverse((object) => {
     if ("isLight" in object && object.isLight === true) lights += 1;
   });
-  if (lights > 0)
+  if (lights === 0) return;
+  let scene: Object3D = root;
+  while (scene.parent) scene = scene.parent;
+  let litOutside = 0;
+  scene.traverse((object) => {
+    if (isInside(object, root) || !("material" in object)) return;
+    const value: unknown = object.material;
+    for (const material of Array.isArray(value) ? value : [value])
+      if (isLit(material)) litOutside += 1;
+  });
+  if (litOutside > 0)
     warn(
       "section-contains-lights",
       label,
-      `Section "${label}" contains ${lights} light(s). Hiding the section changes the scene's light count and recompiles every lit material; move lights outside sections or switch them by intensity.`,
+      `Section "${label}" contains ${lights} light(s) while ${litOutside} lit material(s) outside it share the scene. Hiding the section changes their light count and recompiles them; move the lights outside the section or switch them by intensity.`,
     );
+}
+
+function isInside(object: Object3D, root: Object3D) {
+  for (let node: Object3D | null = object; node; node = node.parent)
+    if (node === root) return true;
+  return false;
+}
+
+function isLit(material: unknown) {
+  if (typeof material !== "object" || material === null) return false;
+  if ("lights" in material && material.lights === true) return true;
+  return [
+    "isMeshStandardMaterial",
+    "isMeshLambertMaterial",
+    "isMeshPhongMaterial",
+    "isMeshToonMaterial",
+  ].some((flag) => flag in material && Reflect.get(material, flag) === true);
 }
 
 function readTrigger(props: SectionTriggerProps): SectionTrigger {

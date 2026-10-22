@@ -63,10 +63,23 @@ function simulate(
 
 const vsync = 1000 / 60;
 
+/** Feeds the startup grace period with frames that neither step up nor down. */
+function pastStartup(governor: ReturnType<typeof createQualityGovernor>, clock: { now: number }) {
+  expect(simulate(governor, { high: 18, medium: 18, low: 18 }, 3.1, clock)).toEqual([]);
+}
+
 describe("quality governor", () => {
+  it("ignores the first three seconds of startup frames", () => {
+    const clock = { now: 0 };
+    const governor = createQualityGovernor("high");
+    expect(simulate(governor, { high: 120, medium: 120, low: 120 }, 2.9, clock)).toEqual([]);
+    expect(governor.tier).toBe("high");
+  });
+
   it("steps down one tier at a time while fewer pixels help", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("high");
+    pastStartup(governor, clock);
     const cost = { high: 40, medium: 28, low: 18 };
     expect(simulate(governor, cost, 1.5, clock)).toEqual([]);
     expect(simulate(governor, cost, 1, clock)).toEqual(["medium"]);
@@ -77,12 +90,14 @@ describe("quality governor", () => {
   it("drops straight to low when frames are far over budget", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("high");
+    pastStartup(governor, clock);
     expect(simulate(governor, { high: 180, medium: 90, low: 30 }, 3, clock)).toEqual(["low"]);
   });
 
   it("undoes a downgrade that does not shorten frames and then waits", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("high");
+    pastStartup(governor, clock);
     const cpuBound = { high: 30, medium: 30, low: 30 };
     expect(simulate(governor, cpuBound, 4.5, clock)).toEqual(["medium", "high"]);
     expect(simulate(governor, cpuBound, 9, clock)).toEqual([]);
@@ -93,6 +108,7 @@ describe("quality governor", () => {
   it("steps up once frames keep up with a 60 Hz display", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("low");
+    pastStartup(governor, clock);
     const cost = { high: vsync, medium: vsync, low: vsync };
     expect(simulate(governor, cost, 4, clock)).toEqual([]);
     expect(simulate(governor, cost, 1.5, clock)).toEqual(["medium"]);
@@ -102,12 +118,14 @@ describe("quality governor", () => {
   it("does not step up from steady slow frames", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("low");
+    pastStartup(governor, clock);
     expect(simulate(governor, { high: 21, medium: 21, low: 21 }, 15, clock)).toEqual([]);
   });
 
   it("ignores pauses", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("medium");
+    pastStartup(governor, clock);
     expect(governor.sample(2000, 2000)).toBeUndefined();
     expect(governor.sample(0, 2000)).toBeUndefined();
     expect(governor.tier).toBe("medium");
@@ -116,6 +134,7 @@ describe("quality governor", () => {
   it("stops upgrading after three recoveries so tiers do not oscillate", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("high");
+    pastStartup(governor, clock);
     const changes = simulate(governor, { high: 26, medium: vsync, low: vsync }, 60, clock);
     expect(changes.filter((tier) => tier === "high")).toHaveLength(3);
     expect(governor.tier).toBe("medium");
@@ -124,6 +143,7 @@ describe("quality governor", () => {
   it("does not step above its ceiling", () => {
     const clock = { now: 0 };
     const governor = createQualityGovernor("medium", "medium");
+    pastStartup(governor, clock);
     expect(simulate(governor, { high: vsync, medium: vsync, low: vsync }, 10, clock)).toEqual([]);
   });
 });
@@ -141,7 +161,7 @@ describe("quality store", () => {
     expect(store.get().tier).toBe("high");
 
     store.configure("high", true);
-    for (let at = 0; at < 3000; at += 40) store.sample(40, at);
+    for (let at = 0; at < 6000; at += 40) store.sample(40, at);
     expect(store.get().tier).toBe("medium");
     store.setDpr(1.24);
     store.setDpr(1.24);

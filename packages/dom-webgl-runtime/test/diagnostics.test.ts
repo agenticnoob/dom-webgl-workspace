@@ -172,25 +172,31 @@ afterEach(async () => {
 });
 
 describe("section diagnostics", () => {
-  it("lists sections in debug state and warns about lights inside them", async () => {
+  async function renderSection(outside: ReturnType<typeof createElement> | null) {
     let progress = 0.5;
     const controller = createRuntimeManager();
     controller.configure({ progressSignals: { get: () => progress } });
-    const reported: string[] = [];
     controller.diagnostics.setEnabled(true);
+    const reported: string[] = [];
     const original = console.warn;
     console.warn = (message: unknown) => {
       if (typeof message === "string" && message.startsWith("[viselora]")) reported.push(message);
     };
     function Lit() {
       useFrame(() => {});
-      return createElement("pointLight");
+      return createElement(
+        "group",
+        null,
+        createElement("pointLight"),
+        createElement("mesh", null, createElement("meshStandardMaterial")),
+      );
     }
     try {
       renderer = await create(
         createElement(
           RuntimeContext.Provider,
           { value: controller },
+          outside,
           createElement(WebGLSection, {
             progress: { key: "story", from: 0.4, to: 0.6 },
             name: "chapter-2",
@@ -208,10 +214,25 @@ describe("section diagnostics", () => {
     } finally {
       console.warn = original;
     }
-    const state = controller.manager.getDebugState();
+    return { state: controller.manager.getDebugState(), reported };
+  }
+
+  it("lists sections in debug state", async () => {
+    const { state } = await renderSection(null);
     expect(state.sections).toEqual([{ label: "chapter-2", phase: "active", warmed: expect.any(Boolean) }]);
+  });
+
+  it("accepts lights that hide together with all lit content of their scene", async () => {
+    const { state, reported } = await renderSection(null);
+    expect(state.warnings).toEqual([]);
+    expect(reported).toEqual([]);
+  });
+
+  it("warns about section lights when lit content outside shares the scene", async () => {
+    const outside = createElement("mesh", null, createElement("meshStandardMaterial"));
+    const { state, reported } = await renderSection(outside);
     expect(state.warnings.map((item) => item.code)).toEqual(["section-contains-lights"]);
     expect(reported).toHaveLength(1);
-    expect(reported[0]).toContain('Section "chapter-2" contains 1 light(s)');
+    expect(reported[0]).toContain('Section "chapter-2" contains 1 light(s) while 1 lit material(s)');
   });
 });

@@ -2,12 +2,16 @@ import { OrthographicCamera, View } from "@react-three/drei";
 import React, { Suspense, type ReactNode } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import {
+  WebGLSection,
   WebGLTarget,
   useWebGLRuntime,
   type WebGLTargetProps,
 } from "@viselora/dom-webgl/react";
 
-/** App composition: semantic DOM plus a Drei viewport in the shared Canvas. */
+/**
+ * App composition: semantic DOM plus a Drei viewport in the shared Canvas. The
+ * visual is a section of its own target, so it pauses while far offscreen.
+ */
 export function ExampleVisual({
   id,
   children,
@@ -45,7 +49,9 @@ export function ExampleVisual({
           fallback={null}
           onError={() => runtime.setTargetReady(id, false)}
         >
-          <Suspense fallback={null}>{visual}</Suspense>
+          <WebGLSection target={id}>
+            <Suspense fallback={null}>{visual}</Suspense>
+          </WebGLSection>
         </ErrorBoundary>
       </View>
     </div>

@@ -151,13 +151,7 @@ export function TextVisual({
   );
   useFrame((state) => {
     const target = runtime.getTarget(id);
-    if (
-      !target ||
-      !target.visible ||
-      !material.current ||
-      target.rect.width <= 0
-    )
-      return;
+    if (!target || !material.current || target.rect.width <= 0) return;
     let current = drawing.current;
     if (
       !current ||
@@ -278,8 +272,7 @@ export function SurfaceVisual({
   );
   useFrame((frame) => {
     const target = runtime.getTarget(id);
-    if (!target || !target.visible || !mesh.current || target.rect.width <= 1)
-      return;
+    if (!target || !mesh.current || target.rect.width <= 1) return;
     const { width, height } = target.rect;
     let current = data.current;
     if (!current || current.width !== width || current.height !== height) {
@@ -437,7 +430,7 @@ export function ImageVisual({
   useEffect(() => () => texture.dispose(), [texture]);
   useFrame((frame) => {
     const target = runtime.getTarget(id);
-    if (!target || !target.visible || !mesh.current) return;
+    if (!target || !mesh.current) return;
     const time = frame.clock.elapsedTime * 1000;
     if (mode === "pan") {
       const progress = readTargetViewportProgress({
@@ -503,7 +496,7 @@ export function HoverRevealVisual({ id }: { readonly id: string }) {
   useEffect(() => () => maskTexture.current?.dispose(), []);
   useFrame((frame) => {
     const target = runtime.getTarget(id);
-    if (!target || !target.visible || !material.current) return;
+    if (!target || !material.current) return;
     const time = frame.clock.elapsedTime * 1000;
     if (base.image instanceof HTMLImageElement) {
       const repeat = readCoverRepeat(
@@ -679,7 +672,7 @@ export function SequenceVisual({
   useEffect(() => () => texture.dispose(), [texture]);
   useFrame(() => {
     const target = runtime.getTarget(id);
-    if (!target || !target.visible || !frames.length) return;
+    if (!target || !frames.length) return;
     const image =
       frames[
         Math.min(
@@ -738,14 +731,7 @@ function SequenceCard({
   useFrame(() => {
     const target = runtime.getTarget(id);
     const element = card.current;
-    if (
-      !target ||
-      !target.visible ||
-      !element ||
-      !mesh.current ||
-      !material.current
-    )
-      return;
+    if (!target || !element || !mesh.current || !material.current) return;
     const rect = element.getBoundingClientRect();
     let current = drawing.current;
     if (

@@ -65,6 +65,7 @@ export function createRuntimeManager() {
   const targetIds = new Set<string>();
   const targets = createDOMTargetRegistry(() => requestFrame());
   const diagnostics = createDiagnostics();
+  let viewport = { width: 0, height: 0 };
   const sections = new Map<object, SectionDebug>();
 
   function notify() {
@@ -168,7 +169,13 @@ export function createRuntimeManager() {
         notify();
       };
     },
-    measure: targets.measure,
+    /** Measures targets against the canvas viewport (the root, not a View). */
+    measure(next: { width: number; height: number }) {
+      viewport = { width: next.width, height: next.height };
+      targets.measure(next);
+    },
+    /** The viewport of the last measurement, which target rects refer to. */
+    viewport: () => viewport,
     setAvailable(next: boolean, cause?: unknown) {
       if (disposed) return;
       available = next;

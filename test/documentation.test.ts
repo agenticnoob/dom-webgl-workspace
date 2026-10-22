@@ -233,6 +233,7 @@ describe("repository documentation governance", () => {
         "getting-started-runtime",
         "native-frame-animation",
         "native-text-texture",
+        "offscreen-sections",
       ]);
       const result = spawnSync(
         resolve(repoRoot, "node_modules/.bin/tsc"),

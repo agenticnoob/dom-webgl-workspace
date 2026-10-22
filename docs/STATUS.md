@@ -35,7 +35,11 @@ canvas pixel ratio from per-tier pixel budgets and steps tiers from frame
 times, undoing downgrades that do not help. Development diagnostics report
 frame cost in debug state and warn about ready targets with no pixels,
 sections compiling on entry or containing lights, sustained over-budget frames
-and frames below 30 fps at the lowest tier. Recipes from the
+and frames below 30 fps at the lowest tier. `apps/example` wraps each visual in
+a target section (no warnings while scrolling 30 viewports at reading speed in
+development); hero-next keeps its own chapter logic and, in a production
+build, stayed at the `high` tier (DPR 1.76 instead of the previous fixed 2)
+with no warnings. Recipes from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are not implemented yet.
 

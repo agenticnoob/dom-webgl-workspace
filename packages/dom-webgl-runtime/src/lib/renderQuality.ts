@@ -72,6 +72,8 @@ export const qualityThresholds = {
   ineffectiveCooldownMs: 10_000,
   /** Frames longer than this are pauses (tab switch, idle demand loop). */
   ignoreFrameMs: 250,
+  /** Startup frames (shader compiles, asset decoding) are not representative. */
+  startupGraceMs: 3_000,
   /** Upgrades allowed after the first downgrade, so tiers do not oscillate. */
   maxUpgrades: 3,
 };
@@ -88,6 +90,7 @@ export function createQualityGovernor(start: QualityTier, ceiling: QualityTier =
   let cooldownUntil = -Infinity;
   // The last downgrade, kept until its effect has been measured.
   let probation: { from: QualityTier; p90: number } | undefined;
+  let startedAt: number | undefined;
 
   function change(next: QualityTier, at: number) {
     tier = next;
@@ -107,6 +110,8 @@ export function createQualityGovernor(start: QualityTier, ceiling: QualityTier =
         samples = [];
         return undefined;
       }
+      startedAt ??= at;
+      if (at - startedAt < qualityThresholds.startupGraceMs) return undefined;
       samples.push({ at, ms: frameMs });
       const oldest = at - qualityThresholds.upgradeWindowMs;
       while (samples.length > 0 && samples[0].at < oldest) samples.shift();
