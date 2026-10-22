@@ -80,7 +80,12 @@ describe("React/R3F consumer skill", () => {
     expect(skill).toContain("--save-exact");
     expect(skill).toContain("scripts/verify-consumer.mjs");
     expect(skill).toContain("scripts/browser-check.mjs");
-    expect(skill).toContain("npm install --save-dev playwright-core");
+    expect(skill).toContain(
+      "npm install --save-dev playwright-core && node <skill-dir>/scripts/browser-check.mjs",
+    );
+    expect(skill).toContain("--serve");
+    // Agents are often told not to leave servers running; the skill must not ask for it.
+    expect(skill).not.toMatch(/leave it running/i);
     expect(skill).toContain("prefers-reduced-motion: reduce");
     expect(skill).toContain("0.2.0-alpha.0 drew text about half the leading too high");
     expect(skill).toMatch(/`target\.revision`.+mutable/s);
@@ -115,6 +120,7 @@ describe("React/R3F consumer skill", () => {
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("Missing page URL");
     expect(result.stderr).toContain("--deterministic");
+    expect(result.stderr).toContain("--serve");
   });
 
   test("ships a small runnable native scene and explicit semantic DOM", () => {
