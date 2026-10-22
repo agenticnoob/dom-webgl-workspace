@@ -185,6 +185,8 @@ codex-xhigh-a-VS-r3 第一次评分时 reduced-motion 检查读到 0 个像素�
 - `verify-consumer.mjs`：60/60 次运行过，60/60 次通过（没有装 skill 的 V 条件：codex-xhigh 15/15 通过，codex-low 4/15 通过，其余 11 次失败在 `^` 版本范围上）。
 - `browser-check.mjs`：transcript 中都提到了它，但真正输出 PASS/FAIL 的只有 15/60 次（codex-xhigh VS 9 次、codex-xhigh S 4 次、codex-low 各 1 次）。
   31 次遇到「先安装浏览器驱动」的提示（`playwright-core` 不在依赖里）；只有少数运行先装了 `playwright-core` 再运行。
+  第三轮复核：这 15 次统计的是「任何命令输出了 PASS/FAIL 行」，多数来自 codex 用全局 `ego-browser` skill 写的检查脚本；
+  只算 `browser-check.mjs` 本身打印 PASS/FAIL 的是 4/60，见 [第三轮](../skill-ab-v3/README.md)。
 
 ## 局限与未验证
 

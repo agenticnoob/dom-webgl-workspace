@@ -7,12 +7,15 @@
 //     [--concurrency 2] [--out results.json] [--md report.md]
 //
 // Runs whose agent hit a usage limit or auth failure (agent-done.json
-// infraError) are listed but excluded from every aggregate.
+// infraError) are listed but excluded from every aggregate. Round-3 runs record
+// the prompt variant in agent-done.json; their `config` becomes
+// "<config>/<prompt>" so every comparison stays within one prompt variant.
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fisherP, meanOf, permutationP, round, signFlipP } from "./stats.mjs";
 
 const v2Root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const grader = resolve(v2Root, "../skill-ab/scripts/grade.mjs");
@@ -58,7 +61,9 @@ for (const id of ids) {
   const grade = JSON.parse(readFileSync(join(dir, "grade.json"), "utf8"));
   rows.push({
     id,
-    config: meta.config,
+    config: meta.prompt ? `${meta.config}/${meta.prompt}` : meta.config,
+    baseConfig: meta.config,
+    prompt: meta.prompt ?? "full",
     agent: meta.agent,
     task: meta.task,
     condition: meta.condition,
@@ -194,6 +199,8 @@ function processMetrics(dir, agent) {
       .filter((line) => line.type === "assistant")
       .flatMap((line) => line.message?.content ?? [])
       .filter((part) => part.type === "tool_use" && part.name === "Skill" && /viselora/.test(JSON.stringify(part.input ?? {}))).length;
+    // Claude may also open SKILL.md with Read instead of the Skill tool.
+    if (!metrics.skillCalls && /skills\/viselora-dom-webgl\/SKILL\.md/.test(text)) metrics.skillCalls = 1;
   } else {
     const usage = lines.filter((line) => line.type === "turn.completed").map((line) => line.usage ?? {});
     metrics.inputTokens = usage.reduce((sum, u) => sum + (u.input_tokens ?? 0), 0);
@@ -202,7 +209,55 @@ function processMetrics(dir, agent) {
     metrics.commands = lines.filter((line) => line.item?.type === "command_execution" && line.type === "item.completed").length;
     metrics.skillCalls = /skills\/viselora-dom-webgl\/SKILL\.md/.test(text) ? 1 : 0;
   }
+  metrics.browserCheck = browserCheckMetrics(shellCommands(lines, agent), readJson(join(dir, "package.json")));
   return metrics;
+}
+
+// Shell commands the agent ran, in order, with their output.
+function shellCommands(lines, agent) {
+  if (agent !== "claude")
+    return lines
+      .filter((line) => line.type === "item.completed" && line.item?.type === "command_execution")
+      .map((line) => ({ command: line.item.command ?? "", output: line.item.aggregated_output ?? "" }));
+  const outputs = new Map();
+  for (const line of lines.filter((l) => l.type === "user"))
+    for (const part of Array.isArray(line.message?.content) ? line.message.content : [])
+      if (part.type === "tool_result")
+        outputs.set(
+          part.tool_use_id,
+          typeof part.content === "string" ? part.content : (part.content ?? []).map((c) => c.text ?? "").join("\n"),
+        );
+  return lines
+    .filter((line) => line.type === "assistant")
+    .flatMap((line) => line.message?.content ?? [])
+    .filter((part) => part.type === "tool_use" && part.name === "Bash")
+    .map((part) => ({ command: part.input?.command ?? "", output: outputs.get(part.id) ?? "" }));
+}
+
+// Round 3: did browser-check.mjs actually report PASS/FAIL lines, and was the
+// playwright-core driver installed (before the first browser-check call)?
+function browserCheckMetrics(commands, pkg) {
+  const install = /\b(npm|pnpm|yarn|bun)\b[^\n;&|]*\b(i|install|add)\b[^\n;&|]*\bplaywright(-core)?\b/;
+  const checks = commands.map((c, index) => ({ ...c, index })).filter((c) => /browser-check\.mjs/.test(c.command));
+  const installs = commands.map((c, index) => ({ ...c, index })).filter((c) => install.test(c.command));
+  const deps = { ...pkg?.dependencies, ...pkg?.devDependencies };
+  return {
+    invoked: checks.length,
+    produced: checks.some((c) => /^(PASS|FAIL) /m.test(c.output)),
+    allPass: checks.some((c) => /^PASS /m.test(c.output)) && !checks.some((c) => /^FAIL /m.test(c.output)),
+    driverMissing: checks.some((c) => /Install a browser driver first/.test(c.output)),
+    installedDriver: installs.length > 0,
+    // An install chained in front of the first check (`npm i -D playwright-core && node …`) counts.
+    installedBeforeFirstCheck:
+      installs.length > 0 &&
+      checks.length > 0 &&
+      (installs[0].index < checks[0].index || (installs[0].index === checks[0].index && !/Install a browser driver first/.test(checks[0].output))),
+    driverInPackageJson: Boolean(deps["playwright-core"] ?? deps.playwright),
+    // Round 2 counted PASS/FAIL lines from any command, including the agent's
+    // own browser scripts (e.g. a globally installed ego-browser skill).
+    anyPassFail: commands.some((c) => /^(PASS|FAIL) /m.test(c.output)),
+    egoBrowser: commands.some((c) => /\bego-browser\b/.test(c.command)),
+  };
 }
 
 // ---------- statistics ----------
@@ -261,66 +316,6 @@ function compareRuns(list) {
       }
   }
   return out;
-}
-
-function permutationP(a, b, rounds = 20000) {
-  const all = [...a, ...b];
-  const observed = Math.abs(meanOf(b) - meanOf(a));
-  if (observed < 1e-12) return 1;
-  let seed = 12345;
-  const random = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
-  let extreme = 0;
-  for (let round = 0; round < rounds; round += 1) {
-    const shuffled = [...all];
-    for (let k = shuffled.length - 1; k > 0; k -= 1) {
-      const r = Math.floor(random() * (k + 1));
-      [shuffled[k], shuffled[r]] = [shuffled[r], shuffled[k]];
-    }
-    const x = shuffled.slice(0, a.length);
-    const y = shuffled.slice(a.length);
-    if (Math.abs(meanOf(y) - meanOf(x)) >= observed - 1e-9) extreme += 1;
-  }
-  return round((extreme + 1) / (rounds + 1), 4);
-}
-
-// Two-sided Fisher exact test for the 2×2 table [[a, b], [c, d]].
-function fisherP(a, b, c, d) {
-  const n = a + b + c + d;
-  const logFactorial = (k) => {
-    let sum = 0;
-    for (let i = 2; i <= k; i += 1) sum += Math.log(i);
-    return sum;
-  };
-  const probability = (x) => {
-    const y = a + b - x;
-    const z = a + c - x;
-    const w = n - x - y - z;
-    if (y < 0 || z < 0 || w < 0) return 0;
-    return Math.exp(
-      logFactorial(a + b) + logFactorial(c + d) + logFactorial(a + c) + logFactorial(b + d) - logFactorial(n) - logFactorial(x) - logFactorial(y) - logFactorial(z) - logFactorial(w),
-    );
-  };
-  const observed = probability(a);
-  let p = 0;
-  for (let x = 0; x <= Math.min(a + b, a + c); x += 1) {
-    const value = probability(x);
-    if (value <= observed + 1e-12) p += value;
-  }
-  return round(Math.min(1, p), 4);
-}
-
-function signFlipP(diffs) {
-  const observed = Math.abs(diffs.reduce((sum, d) => sum + d, 0));
-  const n = diffs.length;
-  if (observed < 1e-12) return 1;
-  let extreme = 0;
-  const total = 2 ** n;
-  for (let mask = 0; mask < total; mask += 1) {
-    let sum = 0;
-    for (let k = 0; k < n; k += 1) sum += mask & (1 << k) ? -diffs[k] : diffs[k];
-    if (Math.abs(sum) >= observed - 1e-9) extreme += 1;
-  }
-  return round(extreme / total, 4);
 }
 
 // ---------- tables ----------
@@ -409,7 +404,7 @@ function runComparisonTable(list) {
 
 function processTable(list) {
   const groups = groupBy(list, (r) => `${r.config} ${r.condition}`);
-  const head = ["group", "n", "mean min", "claude $/run", "codex Mtok in/run", "source lines", "uses Viselora", "skill used", "verify-consumer pass"];
+  const head = ["group", "n", "mean min", "claude $/run", "codex Mtok in/run", "source lines", "uses Viselora", "skill used", "verify-consumer pass", "browser-check output", "driver installed"];
   const lines = [row(head), row(head.map(() => "---"))];
   for (const [key, group] of [...groups.entries()].sort())
     lines.push(
@@ -423,6 +418,8 @@ function processTable(list) {
         `${group.filter((r) => r.usesViselora).length}/${group.length}`,
         `${group.filter((r) => r.process.skillCalls).length}/${group.length}`,
         `${group.filter((r) => r.verifyConsumerPassed).length}/${group.length}`,
+        `${group.filter((r) => r.process.browserCheck?.produced).length}/${group.filter((r) => r.process.browserCheck?.invoked).length} invoked`,
+        `${group.filter((r) => r.process.browserCheck?.installedDriver).length}/${group.length}`,
       ]),
     );
   return lines.join("\n");
@@ -440,14 +437,8 @@ function groupBy(list, keyOf) {
   for (const item of list) groups.set(keyOf(item), [...(groups.get(keyOf(item)) ?? []), item]);
   return groups;
 }
-function meanOf(values) {
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
-}
 function avg(list, pick, digits = 2) {
   return round(meanOf(list.map(pick)), digits);
-}
-function round(value, digits = 2) {
-  return Math.round(value * 10 ** digits) / 10 ** digits;
 }
 function readJson(path) {
   try {

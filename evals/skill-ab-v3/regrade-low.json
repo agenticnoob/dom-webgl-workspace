@@ -1,0 +1,275 @@
+[
+  {
+    "id": "codex-low-full-c-N-r2",
+    "totals": [
+      8.67,
+      8.67
+    ],
+    "final": 8.67
+  },
+  {
+    "id": "codex-low-full-a-N-r1",
+    "totals": [
+      12.6,
+      12.6
+    ],
+    "final": 12.6
+  },
+  {
+    "id": "codex-low-full-b-N-r1",
+    "totals": [
+      8,
+      8
+    ],
+    "final": 8
+  },
+  {
+    "id": "codex-low-minimal-a-N-r1",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "codex-low-full-d-N-r1",
+    "totals": [
+      8,
+      8
+    ],
+    "final": 8
+  },
+  {
+    "id": "codex-low-full-d-N-r2",
+    "totals": [
+      8,
+      8
+    ],
+    "final": 8
+  },
+  {
+    "id": "codex-low-minimal-a-N-r2",
+    "totals": [
+      10.77,
+      10.77
+    ],
+    "final": 10.77
+  },
+  {
+    "id": "codex-low-minimal-b-N-r1",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "codex-low-minimal-b-N-r2",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "codex-low-minimal-c-N-r2",
+    "totals": [
+      12.6,
+      12.6
+    ],
+    "final": 12.6
+  },
+  {
+    "id": "codex-low-minimal-c-N-r1",
+    "totals": [
+      12.6,
+      12.6
+    ],
+    "final": 12.6
+  },
+  {
+    "id": "codex-low-minimal-c-S-r1",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "codex-low-minimal-c-V-r1",
+    "totals": [
+      8.67,
+      8.67
+    ],
+    "final": 8.67
+  },
+  {
+    "id": "codex-low-minimal-c-V-r2",
+    "totals": [
+      8.67,
+      8.67
+    ],
+    "final": 8.67
+  },
+  {
+    "id": "codex-low-minimal-d-N-r1",
+    "totals": [
+      9.8,
+      9.8
+    ],
+    "final": 9.8
+  },
+  {
+    "id": "codex-low-minimal-d-VS-r2",
+    "totals": [
+      12.75,
+      12.75
+    ],
+    "final": 12.75
+  },
+  {
+    "id": "codex-low-minimal-d-N-r2",
+    "totals": [
+      10.05,
+      10.05
+    ],
+    "final": 10.05
+  },
+  {
+    "id": "codex-low-minimal-e-N-r1",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "haiku-minimal-a-N-r1",
+    "totals": [
+      10.27,
+      10.27
+    ],
+    "final": 10.27
+  },
+  {
+    "id": "codex-low-minimal-e-N-r2",
+    "totals": [
+      12.17,
+      12.17
+    ],
+    "final": 12.17
+  },
+  {
+    "id": "haiku-minimal-a-V-r1",
+    "totals": [
+      12,
+      12
+    ],
+    "final": 12
+  },
+  {
+    "id": "haiku-minimal-a-V-r2",
+    "totals": [
+      12,
+      12
+    ],
+    "final": 12
+  },
+  {
+    "id": "haiku-minimal-a-N-r2",
+    "totals": [
+      9.77,
+      8.77,
+      8.77
+    ],
+    "final": 8.77
+  },
+  {
+    "id": "haiku-minimal-d-N-r1",
+    "totals": [
+      12.5,
+      12.5
+    ],
+    "final": 12.5
+  },
+  {
+    "id": "haiku-minimal-d-N-r2",
+    "totals": [
+      8.97,
+      8.97
+    ],
+    "final": 8.97
+  },
+  {
+    "id": "haiku-minimal-d-S-r1",
+    "totals": [
+      12,
+      12
+    ],
+    "final": 12
+  },
+  {
+    "id": "opus-minimal-a-N-r1",
+    "totals": [
+      9.77,
+      9.77
+    ],
+    "final": 9.77
+  },
+  {
+    "id": "haiku-minimal-d-S-r2",
+    "totals": [
+      12.5,
+      12.5
+    ],
+    "final": 12.5
+  },
+  {
+    "id": "haiku-minimal-d-V-r2",
+    "totals": [
+      12.75,
+      12.75
+    ],
+    "final": 12.75
+  },
+  {
+    "id": "opus-minimal-a-N-r2",
+    "totals": [
+      9.77,
+      9.77
+    ],
+    "final": 9.77
+  },
+  {
+    "id": "opus-minimal-a-V-r1",
+    "totals": [
+      10.6,
+      10.6
+    ],
+    "final": 10.6
+  },
+  {
+    "id": "opus-minimal-a-V-r2",
+    "totals": [
+      12,
+      12
+    ],
+    "final": 12
+  },
+  {
+    "id": "opus-minimal-d-N-r1",
+    "totals": [
+      12.5,
+      12.5
+    ],
+    "final": 12.5
+  },
+  {
+    "id": "opus-minimal-d-N-r2",
+    "totals": [
+      12.5,
+      12.5
+    ],
+    "final": 12.5
+  }
+]

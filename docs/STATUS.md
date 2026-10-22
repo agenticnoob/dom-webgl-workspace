@@ -141,6 +141,17 @@ because StrictMode reused a lost context; no skill-installed run did. Without
 being named, the skill led codex to Viselora in 30 of 30 runs. Claude was not
 evaluated in that round, and no human visual review was done.
 
+The [third evaluation](../evals/skill-ab-v3/README.md) (112 runs, `0.2.0-alpha.2`,
+three 0.186) added Claude and a minimal prompt that omits the robustness
+requirements. Under it, native pages scored 10.13 (haiku), 11.14 (opus) and
+11.67 (codex `low`) against 12.63–13.00 with the skill; opus did not reach the
+ceiling. Pooled over agents, the skill also beat naming the package without it
+(12.93 vs 12.21, p = 0.002). Native codex `low` did not lose more under the
+minimal prompt (11.67 vs 11.03); its failures moved from StrictMode lost
+contexts to missing error boundaries, extra canvases and hidden fallbacks.
+`browser-check.mjs` printed results in 14 of 56 skill runs. Claude ran only
+tasks a and d with the minimal prompt.
+
 ## Known boundaries
 
 - React 19 and R3F 9 are required; framework-independent consumers are unsupported.

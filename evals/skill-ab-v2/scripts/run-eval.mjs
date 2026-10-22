@@ -6,6 +6,15 @@
 //     [--configs codex-xhigh,codex-low] [--tasks a,b,c,d,e]
 //     [--conditions N,V,S,VS] [--reps 1,2,3] [--concurrency 6] [--timeout-min 45]
 //     [--dry-run] [--prepare-only]
+//   Round-3 extensions (defaults reproduce round 2):
+//     [--prompt-dir DIR]          _common.md / _common-minimal.md / _viselora.md
+//                                 (falls back to this round's prompts/)
+//     [--prompts full,minimal]    prompt variants; when given, run ids become
+//                                 <config>-<prompt>-<task>-<condition>-r<rep>
+//     [--three 0.184]             three / @types/three line of the scaffold
+//     [--claude-concurrency 2]    at most this many claude runs at once
+//     [--claude-weekly-cap 0.8]   stop starting claude runs above this
+//                                 seven-day subscription utilization
 //
 // Conditions (same scaffold: Vite + React 19 + three 0.184 + R3F 9 + drei 10):
 //   N   prompt does not mention Viselora, no skill
@@ -13,7 +22,7 @@
 //   S   prompt does not mention Viselora, skill installed from this checkout
 //   VS  prompt names Viselora and the skill is installed
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,10 +39,18 @@ const reps = (args.reps ?? "1,2,3").split(",").map(Number);
 const concurrency = Number(args.concurrency ?? 8);
 const timeoutMs = Number(args["timeout-min"] ?? 45) * 60_000;
 const registry = "https://registry.npmjs.org/";
+const promptDir = resolve(args["prompt-dir"] ?? join(v2Root, "prompts"));
+const promptVariants = (args.prompts ?? "full").split(",");
+const variantInId = args.prompts !== undefined;
+const threeLine = args.three ?? "0.184";
+const claudeConcurrency = Number(args["claude-concurrency"] ?? 2);
+const claudeWeeklyCap = Number(args["claude-weekly-cap"] ?? 0.8);
+const commonPrompt = { full: "_common.md", minimal: "_common-minimal.md" };
 
 const agentConfigs = {
   opus: { agent: "claude", model: "claude-opus-5-5", effort: "high" },
   sonnet: { agent: "claude", model: "claude-sonnet-5-5", effort: "high" },
+  haiku: { agent: "claude", model: "claude-haiku-5-5", effort: "high" },
   "codex-xhigh": { agent: "codex", model: "gpt-6.1-sol", effort: "xhigh" },
   "codex-low": { agent: "codex", model: "gpt-6.1-sol", effort: "low" },
 };
@@ -47,12 +64,14 @@ const taskPrompts = {
 const skillAgent = { claude: "claude-code", codex: "codex" };
 for (const config of configs) if (!agentConfigs[config]) throw new Error(`unknown config ${config}`);
 for (const condition of conditions) if (!["N", "V", "S", "VS"].includes(condition)) throw new Error(`unknown condition ${condition}`);
+for (const variant of promptVariants) if (!commonPrompt[variant]) throw new Error(`unknown prompt variant ${variant}`);
 
 const jobs = [];
 for (const rep of reps)
   for (const task of tasks)
     for (const config of configs)
-      for (const condition of conditions) jobs.push({ rep, task, config, condition });
+      for (const prompt of promptVariants)
+        for (const condition of conditions) jobs.push({ rep, task, config, prompt, condition });
 console.log(`eval root: ${root}\n${jobs.length} jobs`);
 if (args["dry-run"] !== undefined) process.exit(0);
 
@@ -61,17 +80,64 @@ prepareTools();
 prepareBase();
 if (args["prepare-only"] !== undefined) process.exit(0);
 
-let next = 0;
+// Claude runs share one subscription: limit their concurrency, wait for the
+// five-hour window to reset when it is nearly used up, and stop starting new
+// ones above the seven-day cap. Runs that still hit a limit are requeued.
+const claudeGate = { running: 0, pauseUntil: 0, weeklyStop: false };
+const queue = [...jobs];
 await Promise.all(
   Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
-    while (next < jobs.length) await runJob(jobs[next++]);
+    for (;;) {
+      const index = queue.findIndex((job) => agentConfigs[job.config].agent !== "claude" || claudeReady());
+      if (index === -1) {
+        if (!queue.length || queue.every((job) => agentConfigs[job.config].agent === "claude" && claudeGate.weeklyStop)) return;
+        await sleep(30_000);
+        continue;
+      }
+      const [job] = queue.splice(index, 1);
+      const claude = agentConfigs[job.config].agent === "claude";
+      if (claude) claudeGate.running += 1;
+      try {
+        const requeue = await runJob(job);
+        if (requeue) queue.push(job);
+      } finally {
+        if (claude) claudeGate.running -= 1;
+      }
+    }
   }),
 );
+if (queue.length) console.log(`${queue.length} claude jobs not started (seven-day cap ${claudeWeeklyCap})`);
 console.log("all generation jobs finished");
 
-async function runJob({ rep, task, config, condition }) {
+function claudeReady() {
+  return !claudeGate.weeklyStop && claudeGate.running < claudeConcurrency && Date.now() >= claudeGate.pauseUntil;
+}
+
+// Reads the last subscription rate-limit event of a finished claude run.
+function updateClaudeGate(dir, id) {
+  const events = readEvents(join(dir, ".eval-transcript.jsonl")).filter((e) => e.type === "rate_limit_event");
+  const info = events.at(-1)?.rate_limit_info;
+  const windows = info?.unifiedWindows;
+  if (!windows) return;
+  const five = windows.five_hour;
+  const week = windows.seven_day;
+  console.log(`[${id}] claude usage: five-hour ${five?.utilization}, seven-day ${week?.utilization}`);
+  if (week && week.utilization >= claudeWeeklyCap) claudeGate.weeklyStop = true;
+  if ((five && five.utilization >= 0.85) || !/^allowed/.test(info.status ?? "allowed")) {
+    const resetsAt = (five?.resetsAt ?? info.resetsAt ?? 0) * 1000 + 60_000;
+    claudeGate.pauseUntil = Math.max(claudeGate.pauseUntil, resetsAt);
+    console.log(`claude paused until ${new Date(claudeGate.pauseUntil).toISOString()}`);
+  }
+}
+
+function sleep(ms) {
+  return new Promise((done) => setTimeout(done, ms));
+}
+
+// Returns true when the job hit a subscription limit and should be retried.
+async function runJob({ rep, task, config, prompt: variant, condition }) {
   const { agent, model, effort } = agentConfigs[config];
-  const id = `${config}-${task}-${condition}-r${rep}`;
+  const id = variantInId ? `${config}-${variant}-${task}-${condition}-r${rep}` : `${config}-${task}-${condition}-r${rep}`;
   const dir = join(root, "runs", id);
   if (existsSync(join(dir, "agent-done.json"))) {
     console.log(`[${id}] already done, skipping`);
@@ -99,8 +165,8 @@ async function runJob({ rep, task, config, condition }) {
   }
 
   const prompt = [
-    readFileSync(join(v2Root, "prompts/_common.md"), "utf8"),
-    condition === "V" || condition === "VS" ? readFileSync(join(v2Root, "prompts/_viselora.md"), "utf8") : "",
+    readFileSync(promptFile(commonPrompt[variant]), "utf8"),
+    condition === "V" || condition === "VS" ? readFileSync(promptFile("_viselora.md"), "utf8") : "",
     readFileSync(taskPrompts[task], "utf8"),
   ]
     .filter(Boolean)
@@ -122,6 +188,10 @@ async function runJob({ rep, task, config, condition }) {
             "--verbose",
             "--dangerously-skip-permissions",
             "--strict-mcp-config",
+            // Only the project's settings and skills: the operator's user-level
+            // CLAUDE.md, skills and hooks would otherwise leak into the run.
+            "--setting-sources",
+            "project,local",
           ],
         ]
       : [
@@ -168,6 +238,7 @@ async function runJob({ rep, task, config, condition }) {
     model,
     effort,
     task,
+    ...(variantInId ? { prompt: variant } : {}),
     condition,
     rep,
     exitCode,
@@ -178,13 +249,22 @@ async function runJob({ rep, task, config, condition }) {
   };
   writeFileSync(join(dir, "agent-done.json"), JSON.stringify(record, null, 2));
   console.log(`[${id}] done exit=${exitCode} ${Math.round(record.durationMs / 1000)}s${record.infraError ? ` INFRA: ${record.infraError}` : ""}`);
+  if (agent === "claude") updateClaudeGate(dir, id);
+  if (!record.infraError || agent !== "claude") return false;
+  // Keep the failed attempt for inspection and retry after the window resets.
+  mkdirSync(join(root, "runs-infra"), { recursive: true });
+  renameSync(dir, join(root, "runs-infra", `${id}-${Date.now()}`));
+  claudeGate.pauseUntil = Math.max(claudeGate.pauseUntil, Date.now() + 15 * 60_000);
+  return true;
 }
 
-// Usage limits and authentication failures are not agent behaviour: report.mjs
-// excludes these runs and they should be deleted and rerun.
-function infraError(dir) {
-  const read = (name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), "utf8") : "");
-  const events = read(".eval-transcript.jsonl")
+function promptFile(name) {
+  return existsSync(join(promptDir, name)) ? join(promptDir, name) : join(v2Root, "prompts", name);
+}
+
+function readEvents(path) {
+  if (!existsSync(path)) return [];
+  return readFileSync(path, "utf8")
     .split("\n")
     .flatMap((line) => {
       try {
@@ -193,6 +273,13 @@ function infraError(dir) {
         return [];
       }
     });
+}
+
+// Usage limits and authentication failures are not agent behaviour: report.mjs
+// excludes these runs and they should be deleted and rerun.
+function infraError(dir) {
+  const read = (name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), "utf8") : "");
+  const events = readEvents(join(dir, ".eval-transcript.jsonl"));
   const limitPattern = /usage limit|rate limit|hit your limit|limit reached|not logged in|authentication|invalid api key|overloaded/i;
   // claude stream-json: rate_limit_event reports "allowed" on every turn; only
   // a rejection or an errored result is an infrastructure failure.
@@ -219,10 +306,10 @@ function prepareBase() {
   writeFileSync(join(base, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
   mkdirSync(join(base, "public/models"), { recursive: true });
   cpSync(join(repoRoot, "apps/example/public/models/hero.glb"), join(base, "public/models/hero.glb"));
-  // three is pinned to the 0.184 line that @viselora/dom-webgl 0.2 supports
-  // (its peer range is ^0.184.0); three@latest would block the V condition.
-  run(base, "npm", ["install", "--no-audit", "--no-fund", "three@~0.184.0", "@react-three/fiber@^9.8.1", "@react-three/drei@^10.7.9"]);
-  run(base, "npm", ["install", "--no-audit", "--no-fund", "-D", "@types/three@~0.184.0"]);
+  // Round 2 pinned three to 0.184 (the peer range of 0.2.0-alpha.1 was
+  // ^0.184.0); round 3 passes --three 0.186, which alpha.2 supports.
+  run(base, "npm", ["install", "--no-audit", "--no-fund", `three@~${threeLine}.0`, "@react-three/fiber@^9.8.1", "@react-three/drei@^10.7.9"]);
+  run(base, "npm", ["install", "--no-audit", "--no-fund", "-D", `@types/three@~${threeLine}.0`]);
 }
 
 function prepareTools() {
