@@ -25,6 +25,8 @@ export type BenchSummaryRow = {
   readonly programsAdded: number;
   /** GPU textures allocated while this chapter was current. */
   readonly texturesAdded: number;
+  /** Long frames that also created a program or texture: compile/upload stalls. */
+  readonly stallFrames: number;
   readonly longTasks: number;
 };
 
@@ -115,6 +117,11 @@ function summarizeRows(
     maxTriangles: Math.max(0, ...samples.map((sample) => sample.triangles)),
     programsAdded: growth.reduce((sum, value) => sum + value.programs, 0),
     texturesAdded: growth.reduce((sum, value) => sum + value.textures, 0),
+    stallFrames: samples.filter(
+      (sample, index) =>
+        sample.deltaMs > longFrameMs &&
+        growth[index].programs + growth[index].textures > 0,
+    ).length,
     longTasks,
   };
 }

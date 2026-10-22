@@ -101,6 +101,30 @@ and seven textures are created while scrolling, with single frames up to
 300–700 ms on chapter entry (warmup is not implemented); and the sequence
 chapter's own per-frame re-upload holds it near 20 fps.
 
+## Sections with warmup (2026-10-22, unreleased source)
+
+Warm sections compile new materials with `compileAsync`, decode image elements
+off the main thread and upload at most two textures per frame. `stallFrames`
+counts frames over 50 ms that also created a program or texture.
+
+| GPU | Canvas DPR | fps | p95 ms | Frames > 50 ms | Long Tasks | Stall frames |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Intel UHD 630 | 2 | 36.8 (35.1) | 43.5 (53.0) | 67 (208) | 4 (127) | 2 |
+| Intel UHD 630 | 1 | 43.8 (42.2) | 51.9 (52.4) | 179 (251) | 3 (61) | 2 |
+| Radeon Pro 5300M | 2 | 48.0 (47.3) | 43.4 (40.2) | 12 (9) | 9 (7) | 2 |
+
+Values in parentheses are the sections variant without warmup. The UHD 630
+frame-time count at DPR 1 is dominated by the raymarch chapter.
+
+WebGL call timing located both remaining stall frames in application loading,
+not in warmup:
+
+- drei `useTexture` calls `gl.initTexture` for every texture when its effects
+  connect, so the four card images (up to 1920×1920) uploaded in one frame:
+  282 ms of `texSubImage2D` on the UHD 630.
+- Uploading a 1600×900 `HTMLImageElement` costs about 40 ms on the UHD 630;
+  the sequence chapter re-uploads one every frame.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results; the phone row is
 not yet measured.

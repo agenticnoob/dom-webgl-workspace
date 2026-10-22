@@ -36,8 +36,10 @@ registered `target` or a `progress` range. `active` draws and updates; `warm`
 updates without drawing; `sleep` keeps the content in a hidden React
 `Activity`, which hides its objects and disconnects its effects and ordinary
 `useFrame` callbacks. Content mounts on first approach unless `mount="eager"`;
-`retain="release"` unmounts it while asleep. Keep lights and the camera rig
-outside sections. Hidden objects receive no pointer events.
+`retain="release"` unmounts it while asleep. While warm, new materials are
+compiled and loaded textures uploaded before drawing; `useSectionState()`
+reports `phase` and `warmed`. Keep lights and the camera rig outside sections.
+Hidden objects receive no pointer events.
 
 ## Debug state
 

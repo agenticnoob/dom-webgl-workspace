@@ -40,7 +40,7 @@ Compatible package version: 0.2.0-alpha.2
 | WebGLRuntimeProps | type | type WebGLRuntimeProps = { /** Semantic page DOM, rendered above the fixed Canvas. */ children?: ReactNode; /** Native R3F/Three.js elements rendered inside the single Canvas. */ scene?: ReactNode; /** * Props for the runtime-owned R3F Can… |  |
 | WebGLSectionProgressRange | type | type WebGLSectionProgressRange = { /** Progress signal key, read with \`runtime.progress.get(key)\`. */ readonly key: string; readonly from: number; readonly to: number; }; |  |
 | WebGLSectionProps | type | type WebGLSectionProps = SectionTriggerProps & { /** Native R3F/Three.js content of this section. */ children?: ReactNode; /** * \`"near"\` (default) mounts the content the first time the section comes * within \`warmMargin\`; \`"eager"\` mounts… |  |
-| WebGLSectionState | type | type WebGLSectionState = { readonly phase: SectionPhase; }; |  |
+| WebGLSectionState | type | type WebGLSectionState = { readonly phase: SectionPhase; /** * True once the mounted content's materials are compiled and its loaded * textures uploaded. Content that appears later is warmed on later frames. */ readonly warmed: boolean; }; |  |
 | WebGLTargetProps | type | type WebGLTargetProps = DOMTargetOptions & { id: string; children: ReactElement<HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement>; }>; }; |  |
 
 ## `@viselora/scroll-adapters`

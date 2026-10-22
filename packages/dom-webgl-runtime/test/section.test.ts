@@ -83,7 +83,7 @@ describe("drawn hits", () => {
   });
 });
 
-type Probe = { frames: number; mounts: number; cleanups: number; phase?: string };
+type Probe = { frames: number; mounts: number; cleanups: number; phase?: string; warmed?: boolean };
 
 function createHarness() {
   let progress = 0;
@@ -95,6 +95,7 @@ function createHarness() {
   function Content() {
     const state = useSectionState();
     probe.phase = state.phase;
+    probe.warmed = state.warmed;
     useFrame(() => {
       probe.frames += 1;
     });
@@ -176,6 +177,17 @@ describe("WebGLSection", () => {
     expect(sectionGroup()?.visible).toBe(true);
     await step();
     expect(harness.probe.frames).toBeGreaterThan(sleepingFrames);
+  });
+
+  it("reports warmed once the warm content is compiled", async () => {
+    const harness = createHarness();
+    harness.setProgress(0.3);
+    renderer = await create(harness.element({ progress: { key: "story", from: 0.4, to: 0.6 } }));
+    await step();
+    expect(harness.probe.phase).toBe("warm");
+    for (let attempt = 0; attempt < 10 && !harness.probe.warmed; attempt += 1) await step(15);
+    expect(harness.probe.warmed).toBe(true);
+    expect(sectionGroup()?.visible).toBe(false);
   });
 
   it("unmounts asleep content with retain release", async () => {

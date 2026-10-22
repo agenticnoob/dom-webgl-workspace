@@ -50,6 +50,7 @@ describe("benchmark statistics", () => {
     expect(summary.overall.longFrames).toBe(1);
     expect(summary.overall.maxCalls).toBe(40);
     expect(summary.overall.longTasks).toBe(1);
+    expect(summary.overall.stallFrames).toBe(1);
     expect(summary.chapters[0]).toMatchObject({
       label: "a",
       frames: 2,

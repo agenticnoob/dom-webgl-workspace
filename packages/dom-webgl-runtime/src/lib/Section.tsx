@@ -21,6 +21,7 @@ import {
   type SectionMargins,
   type SectionPhase,
 } from "./sectionPhase";
+import { createSectionWarmup } from "./sectionWarmup";
 
 export type { SectionPhase } from "./sectionPhase";
 
@@ -72,9 +73,14 @@ export type WebGLSectionProps = SectionTriggerProps & {
 
 export type WebGLSectionState = {
   readonly phase: SectionPhase;
+  /**
+   * True once the mounted content's materials are compiled and its loaded
+   * textures uploaded. Content that appears later is warmed on later frames.
+   */
+  readonly warmed: boolean;
 };
 
-const outsideSection: WebGLSectionState = { phase: "active" };
+const outsideSection: WebGLSectionState = { phase: "active", warmed: true };
 const SectionContext = createContext<WebGLSectionState>(outsideSection);
 
 type SectionTrigger =
@@ -86,7 +92,9 @@ type SectionTrigger =
  * Pauses offscreen content inside the runtime's single Canvas. While `warm`
  * the content updates but is not drawn; while asleep it sits in a hidden
  * React `Activity`, which hides its objects and disconnects its effects and
- * `useFrame` callbacks. Keep lights and the camera rig outside sections.
+ * `useFrame` callbacks. While warm or active, newly mounted materials are
+ * compiled and loaded textures uploaded ahead of drawing. Keep lights and the
+ * camera rig outside sections: a hidden light changes every lit program.
  */
 export function WebGLSection(props: WebGLSectionProps) {
   const runtime = useWebGLRuntime();
@@ -98,7 +106,10 @@ export function WebGLSection(props: WebGLSectionProps) {
     always ? "active" : "sleep",
   );
   const [approached, setApproached] = useState(always);
+  const [warmed, setWarmed] = useState(always);
+  const [warmup] = useState(createSectionWarmup);
   const current = useRef(phase);
+  const currentWarmed = useRef(warmed);
   const group = useRef<Group>(null);
   const margins = readMargins(trigger, props.margin, props.warmMargin);
 
@@ -111,7 +122,16 @@ export function WebGLSection(props: WebGLSectionProps) {
           measureDistance(trigger, runtime, state.size),
           margins,
         );
-    if (group.current) group.current.visible = next === "active";
+    const root = group.current;
+    if (root) root.visible = next === "active";
+    // Compile and upload while not yet drawn, so entering does not stall.
+    if (root && !always && next !== "sleep") {
+      const ready = warmup.step(root, state.gl, state.camera, state.scene);
+      if (ready !== currentWarmed.current) {
+        currentWarmed.current = ready;
+        setWarmed(ready);
+      }
+    }
     if (next === current.current) return;
     current.current = next;
     setPhase(next);
@@ -121,7 +141,7 @@ export function WebGLSection(props: WebGLSectionProps) {
   const mounted = release
     ? phase !== "sleep" || (eager && !approached)
     : approached || eager;
-  const value = useMemo(() => ({ phase }), [phase]);
+  const value = useMemo(() => ({ phase, warmed }), [phase, warmed]);
 
   return (
     <SectionContext.Provider value={value}>

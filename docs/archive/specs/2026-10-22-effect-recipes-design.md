@@ -61,8 +61,15 @@
 | 手机上避免像素回读 | Real Folds Real Fire | recipe 规则 |
 | 看 p95 而不是 p50，p95 才是体感 | Sixty Frames | 基准已按 p95 统计 |
 
-本仓库基准页还发现一条：材质先以 `map={null}` 挂载、之后再赋纹理，three 不会重新编译，
-贴图不生效。recipe 规则要求纹理就绪后再挂载材质，或显式设置 `material.needsUpdate`。
+本仓库基准页还发现三条：
+
+- 材质先以 `map={null}` 挂载、之后再赋纹理，three 不会重新编译，贴图不生效。recipe 规则
+  要求纹理就绪后再挂载材质，或显式设置 `material.needsUpdate`。
+- drei `useTexture` 会在 effect 接上时对所有纹理调用 `gl.initTexture`，多张大图会在同一帧
+  上传（UHD 630 上 4 张图 282ms）。大图用 `ImageBitmapLoader`（后台解码，翻转在解码阶段
+  完成），多张图分帧加载。
+- 在 UHD 630 上上传一张 1600×900 的 `HTMLImageElement` 约 40ms。序列帧只在帧号变化时
+  上传，并使用 `ImageBitmap`。
 
 ## 5. 第一批 recipe（5 个）
 

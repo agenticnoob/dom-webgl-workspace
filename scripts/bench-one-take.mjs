@@ -138,7 +138,7 @@ function printReport({ result, errors: pageErrors }) {
   console.log(
     `Viewport ${result.viewport.width}x${result.viewport.height} @ device ${result.devicePixelRatio}, canvas DPR ${result.dpr}${result.assetsTimedOut ? " (assets timed out)" : ""}`,
   );
-  const columns = ["label", "fps", "p50Ms", "p95Ms", "maxMs", "longFrames", "programsAdded", "texturesAdded", "maxCalls", "longTasks"];
+  const columns = ["label", "fps", "p50Ms", "p95Ms", "maxMs", "longFrames", "programsAdded", "texturesAdded", "stallFrames", "maxCalls", "longTasks"];
   const rows = [result.summary.overall, ...result.summary.chapters];
   const widths = columns.map((column) =>
     Math.max(column.length, ...rows.map((row) => String(row[column]).length)),
