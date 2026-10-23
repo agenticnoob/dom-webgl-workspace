@@ -12,7 +12,9 @@
 //   including when it falls asleep (their effect cleanup hides them).
 // - Label positions are written through refs, never React state.
 // - Reduced motion: the model snaps between stops instead of easing.
-import { useFrame } from "@react-three/fiber";
+// - The loader cache owns the GLTF's geometry and textures; this component
+//   owns only its cloned graph and the studio materials.
+import { useFrame, useLoader } from "@react-three/fiber";
 import {
   WebGLSection,
   useRenderQuality,
@@ -31,8 +33,10 @@ import {
   type Material,
   type Vector3Tuple,
 } from "three";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
-import { useClonedModel } from "../useClonedModel";
 import { damp } from "./screenSpace";
 
 /** Shared between the DOM labels and the scene. */
@@ -116,7 +120,13 @@ function Turntable({
   const runtime = useWebGLRuntime();
   const { reducedMotion } = useRenderQuality();
   const { phase } = useSectionState();
-  const { scene } = useClonedModel(src, dracoPath);
+  const gltf = useLoader(GLTFLoader, src, (loader) => {
+    if (!dracoPath) return;
+    const draco = new DRACOLoader();
+    draco.setDecoderPath(dracoPath);
+    loader.setDRACOLoader(draco);
+  });
+  const scene = useMemo(() => clone(gltf.scene), [gltf.scene]);
   const turn = useRef<Group>(null);
   const angle = useRef<number | undefined>(undefined);
   const fit = useMemo(() => {

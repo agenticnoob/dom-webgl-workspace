@@ -4,8 +4,11 @@
 recipe is one file you can copy into a project and edit; it uses only the
 public Viselora entrypoints, React, R3F and Three.js.
 
-Unreleased: these recipes use `WebGLSection` and `useRenderQuality`, which are
-not in 0.2.0-alpha.2. They move into the consumer skill with the next release.
+These recipes need 0.3.0-alpha.0 (`WebGLSection`, `useRenderQuality`). The
+consumer skill ships identical copies in
+[`skills/viselora-dom-webgl/recipes/one-take/`](../../../../skills/viselora-dom-webgl/recipes/one-take/)
+with a composed `OneTakeExample.tsx`; `test/skill.test.ts` fails when the
+copies drift, so edit here and copy.
 
 | Recipe | File | Effect | Budget at `medium` |
 | --- | --- | --- | --- |

@@ -72,6 +72,7 @@ Copy it into the consumer's `src/` instead of rewriting the pattern.
 | GLB model that follows a DOM card, fallback while loading, load error keeps fallback, owned disposal | [recipes/ModelTarget.tsx](recipes/ModelTarget.tsx) |
 | Scroll progress of a story section mapped to deterministic keyframes (reverse scroll and resize safe) | [recipes/ScrollStory.tsx](recipes/ScrollStory.tsx) |
 | DOM text texture with a wave shader, rebuilt on `target.revision`, aligned with the DOM baseline | [recipes/TextWave.tsx](recipes/TextWave.tsx) |
+| One-take page: camera rail, chapter veils, intro reveal, particle form, grid gallery, product turntable, each a `WebGLSection` scaled by quality tier | [recipes/one-take/OneTakeExample.tsx](recipes/one-take/OneTakeExample.tsx) (copy the whole folder) |
 
 ## Workflow
 
