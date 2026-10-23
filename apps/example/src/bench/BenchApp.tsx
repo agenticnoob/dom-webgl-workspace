@@ -76,6 +76,7 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
           controller={controller}
           variant={options.variant}
           fixture={options.fixture}
+          sequence={options.sequence}
         />
       }
     >

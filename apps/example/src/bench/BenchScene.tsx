@@ -23,6 +23,7 @@ import {
   cameraZ,
   chapterRange,
   type BenchFixture,
+  type BenchSequenceMode,
   type BenchVariant,
 } from "./benchLayout";
 
@@ -30,10 +31,12 @@ export function BenchScene({
   controller,
   variant,
   fixture,
+  sequence,
 }: {
   readonly controller: BenchController;
   readonly variant: BenchVariant;
   readonly fixture: BenchFixture;
+  readonly sequence: BenchSequenceMode;
 }) {
   return (
     <>
@@ -56,7 +59,7 @@ export function BenchScene({
         />
       </Chapter>
       <Chapter index={3} variant={variant}>
-        <SequenceChapter controller={controller} />
+        <SequenceChapter controller={controller} mode={sequence} />
       </Chapter>
       <Chapter index={4} variant={variant}>
         <Suspense fallback={null}>

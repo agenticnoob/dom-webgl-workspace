@@ -35,6 +35,7 @@ const { values: options } = parseArgs({
     label: { type: "string", default: "" },
     diagnostics: { type: "boolean", default: false },
     fixture: { type: "string", default: "none" },
+    sequence: { type: "string", default: "every-frame" },
     out: { type: "string", default: join(root, "output/bench") },
   },
 });
@@ -50,6 +51,7 @@ const query = new URLSearchParams({
   ...(options.page === "bench.html" ? {} : { bench: "1" }),
   ...(options.diagnostics ? { diagnostics: "1" } : {}),
   ...(options.fixture !== "none" ? { fixture: options.fixture } : {}),
+  ...(options.sequence !== "every-frame" ? { sequence: options.sequence } : {}),
 });
 const pageUrl = `${baseUrl}?${query}`;
 

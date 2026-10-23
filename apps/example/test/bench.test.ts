@@ -143,6 +143,7 @@ describe("benchmark layout", () => {
       variant: "naive",
       diagnostics: false,
       fixture: "none",
+      sequence: "every-frame",
       gpu: "default",
       maxDpr: 2,
       autoplay: false,
@@ -154,6 +155,7 @@ describe("benchmark layout", () => {
       variant: "sections",
       diagnostics: false,
       fixture: "none",
+      sequence: "every-frame",
       gpu: "low-power",
       maxDpr: 3,
       autoplay: true,
@@ -164,6 +166,8 @@ describe("benchmark layout", () => {
       diagnostics: true,
       fixture: "ready-without-pixels",
     });
+    expect(readBenchOptions("?sequence=bitmap-half").sequence).toBe("bitmap-half");
+    expect(readBenchOptions("?sequence=nope").sequence).toBe("every-frame");
     expect(readBenchOptions("?variant=x&gpu=fast&maxDpr=abc&duration=x")).toMatchObject({
       variant: "naive",
       gpu: "default",

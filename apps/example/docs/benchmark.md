@@ -243,5 +243,24 @@ The phone started at `medium`, rose to `high` after the startup grace and
 stepped down twice (form, product), undoing both; final tier `high`. Three
 stall frames fell in the form chapter while the gallery uploaded.
 
+## Sequence uploads (2026-10-23)
+
+`--sequence` (or `?sequence=`) changes only how the sequence chapter uploads
+its 114 frames (1600×900 WebP). Sections variant, UHD 630, 4× CPU, 60 s:
+
+| Mode | Sequence fps | p95 ms | Frames > 50 ms | Long Tasks | Overall fps |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `every-frame`: `HTMLImageElement`, `needsUpdate` each frame | 5.2 | 267.2 | 52 | 53 | 31.7 |
+| `on-change`: same, only when the frame index changes | 5.4 | 276.3 | 52 | 52 | 35.0 |
+| `bitmap`: `createImageBitmap(blob, { imageOrientation: "flipY" })`, `flipY = false` | 51.7 | 31.6 | 5 | 2 | 40.0 |
+| `bitmap-half`: the same, decoded at 800×450 | 54.4 | 18.7 | 4 | 1 | 39.4 |
+
+While scrolling the index changes almost every frame, so skipping unchanged
+frames barely helps: each `HTMLImageElement` upload costs about 170 ms here.
+The same frames as pre-flipped `ImageBitmap`s upload within the frame
+budget. The run does not isolate whether the element's decode or the flip
+on upload is the cost. Decoded bitmaps hold their pixels: 114 full frames are
+about 660 MB, half-size frames about 160 MB.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results.

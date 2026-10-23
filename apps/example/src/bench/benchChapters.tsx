@@ -37,6 +37,7 @@ import {
   chapterLocal,
   chapterWeight,
   chapterZ,
+  type BenchSequenceMode,
 } from "./benchLayout";
 import {
   particleFragmentShader,
@@ -299,34 +300,62 @@ const sequenceFrames = Array.from(
 );
 const sequenceConcurrency = 6;
 
-export function SequenceChapter({ controller }: ChapterProps) {
+type SequenceFrame = HTMLImageElement | ImageBitmap;
+
+async function loadSequenceFrame(url: string, mode: BenchSequenceMode) {
+  switch (mode) {
+    case "every-frame":
+    case "on-change": {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      return image;
+    }
+    case "bitmap":
+    case "bitmap-half": {
+      const blob = await (await fetch(url)).blob();
+      return createImageBitmap(blob, {
+        imageOrientation: "flipY",
+        ...(mode === "bitmap-half"
+          ? { resizeWidth: 800, resizeHeight: 450, resizeQuality: "medium" }
+          : {}),
+      });
+    }
+  }
+}
+
+export function SequenceChapter({
+  controller,
+  mode,
+}: ChapterProps & { readonly mode: BenchSequenceMode }) {
   const runtime = useWebGLRuntime();
   const material = useRef<MeshBasicMaterial>(null);
-  const frames = useRef<Array<HTMLImageElement | undefined>>([]);
+  const frames = useRef<Array<SequenceFrame | undefined>>([]);
   const texture = useMemo(() => {
     const created = new Texture();
     created.colorSpace = SRGBColorSpace;
     created.minFilter = LinearFilter;
     created.generateMipmaps = false;
+    // Bitmaps are flipped while decoding; WebGL ignores UNPACK_FLIP_Y for them.
+    created.flipY = mode === "every-frame" || mode === "on-change";
     return created;
-  }, []);
+  }, [mode]);
   useEffect(() => () => texture.dispose(), [texture]);
 
   useEffect(() => {
     let active = true;
     let next = 0;
     let settled = 0;
-    const slots: Array<HTMLImageElement | undefined> = [];
+    const slots: Array<SequenceFrame | undefined> = [];
     frames.current = slots;
     const worker = async () => {
       while (active && next < sequenceFrames.length) {
         const index = next;
         next += 1;
-        const image = new Image();
-        image.src = sequenceFrames[index];
         try {
-          await image.decode();
-          if (active) slots[index] = image;
+          const frame = await loadSequenceFrame(sequenceFrames[index], mode);
+          if (active) slots[index] = frame;
+          else if (frame instanceof ImageBitmap) frame.close();
         } catch {
           // A missing frame keeps the previous image on screen.
         }
@@ -338,17 +367,18 @@ export function SequenceChapter({ controller }: ChapterProps) {
     for (let index = 0; index < sequenceConcurrency; index += 1) void worker();
     return () => {
       active = false;
+      for (const frame of slots) if (frame instanceof ImageBitmap) frame.close();
     };
-  }, [controller]);
+  }, [controller, mode]);
 
   useFrame(() => {
     const progress = benchProgress(runtime.scroll);
     const local = Math.min(1, Math.max(0, chapterLocal(progress, 3)));
     const image =
       frames.current[Math.round(local * (sequenceFrames.length - 1))];
-    if (image) {
+    // `every-frame` re-uploads even when the frame index is unchanged.
+    if (image && (mode === "every-frame" || texture.image !== image)) {
       texture.image = image;
-      // Re-uploads every frame, even when the frame index is unchanged.
       texture.needsUpdate = true;
     }
     if (material.current) material.current.opacity = chapterWeight(progress, 3);

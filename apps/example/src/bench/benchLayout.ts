@@ -35,10 +35,19 @@ export type BenchGpu = "default" | "low-power" | "high-performance";
  */
 export type BenchFixture = "none" | "ready-without-pixels" | "ready-with-pixels";
 
+/**
+ * How the sequence chapter uploads its frames. `every-frame` (the default)
+ * re-uploads an `HTMLImageElement` each frame; `on-change` uploads only when
+ * the frame index changes; `bitmap` also decodes to flipped `ImageBitmap`s;
+ * `bitmap-half` additionally decodes them at half size.
+ */
+export type BenchSequenceMode = "every-frame" | "on-change" | "bitmap" | "bitmap-half";
+
 export type BenchOptions = {
   readonly variant: BenchVariant;
   readonly diagnostics: boolean;
   readonly fixture: BenchFixture;
+  readonly sequence: BenchSequenceMode;
   readonly gpu: BenchGpu;
   readonly maxDpr: number;
   readonly autoplay: boolean;
@@ -55,6 +64,7 @@ export function readBenchOptions(search: string): BenchOptions {
     variant: variant === "sections" || variant === "managed" ? variant : "naive",
     diagnostics: params.get("diagnostics") === "1",
     fixture: readFixture(params.get("fixture")),
+    sequence: readSequenceMode(params.get("sequence")),
     gpu: gpu === "low-power" || gpu === "high-performance" ? gpu : "default",
     maxDpr: Number.isFinite(maxDpr) ? Math.min(3, Math.max(0.5, maxDpr)) : 2,
     autoplay: params.get("autoplay") === "1",
@@ -68,6 +78,12 @@ function readFixture(value: string | null): BenchFixture {
   return value === "ready-without-pixels" || value === "ready-with-pixels"
     ? value
     : "none";
+}
+
+function readSequenceMode(value: string | null): BenchSequenceMode {
+  return value === "on-change" || value === "bitmap" || value === "bitmap-half"
+    ? value
+    : "every-frame";
 }
 
 /** Whole-page scroll progress, 0 at the top and 1 at the bottom. */

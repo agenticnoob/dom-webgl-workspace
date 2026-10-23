@@ -23,6 +23,12 @@ Adapting them:
   `measureDOMText(...).glyphs` and draw them with `drawDOMText`, which places
   each glyph on its CSS baseline; set `texture.needsUpdate = true` after redraws.
 - Images/video: native textures, DOM fallback until the texture has loaded.
+- Scroll-scrubbed image sequences: decode frames with
+  `createImageBitmap(blob, { imageOrientation: "flipY", resizeWidth, resizeHeight })`
+  at the drawn size, set `texture.flipY = false`, and set `needsUpdate` only
+  when the frame changes. Re-uploading `HTMLImageElement` frames measured about
+  170 ms per frame on an integrated GPU with a slow CPU. Bitmaps hold decoded
+  pixels, so keep a window around the current frame and `close()` the rest.
 
 Keep application visual math and shaders in the consumer. Avoid wrapping every
 native object in a new generic facade or recovering retired 0.1.x declarations.

@@ -119,6 +119,34 @@ active, section lights that relight content outside it, sustained frames over
 the tier budget, and frames below 30 fps at the lowest tier. Treat each
 `[viselora]` warning as a defect.
 
+## Scrub image sequences
+
+Decode sequence frames to `ImageBitmap`s flipped at decode time, and upload a
+frame only when the index changes. Re-uploading `HTMLImageElement` frames
+cost about 170 ms each on an integrated GPU with a slow CPU, and while
+scrolling the index changes almost every frame; pre-flipped bitmaps uploaded
+within the frame budget
+([measurements](../../apps/example/docs/benchmark.md#sequence-uploads-2026-10-23)).
+
+```ts
+const blob = await (await fetch(url)).blob();
+const frame = await createImageBitmap(blob, {
+  imageOrientation: "flipY",
+  resizeWidth: 800, // the size the frame is drawn at, not the source size
+  resizeHeight: 450,
+});
+texture.flipY = false; // WebGL ignores UNPACK_FLIP_Y for bitmaps
+// in useFrame:
+if (texture.image !== frame) {
+  texture.image = frame;
+  texture.needsUpdate = true;
+}
+```
+
+Decoded bitmaps keep their pixels in memory (1600×900 is 5.8 MB each). Decode
+at the drawn size, and for long sequences keep only frames near the current
+index, calling `close()` on the rest.
+
 ## Other visuals
 
 Use native mesh events for picking, Three.js or Drei animation helpers for
