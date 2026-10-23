@@ -79,6 +79,24 @@ device scale 2, 60 s.
 | Intel UHD 630 | 1 | 1× | 19.4 | 83.0 | 451 | 97 |
 | Radeon Pro 5300M | 2 | 1× | 29.6 | 42.8 | 0 | 0 |
 
+Huawei P30 (Mali-G76, Huawei Browser 17 on Chromium 132), 360×634 viewport,
+device ratio 3, canvas DPR 2 (0.9 MP), 60 s, 2026-10-23:
+
+| Chapter | fps | p95 ms | Draw calls |
+| --- | ---: | ---: | ---: |
+| overall | 25.0 | 60.4 | 551 |
+| model | 18.0 | 61.6 | 551 |
+| particles | 19.2 | 61.8 | 33 |
+| text | 22.4 | 47.5 | 16 |
+| sequence | 18.7 | 62.5 | 16 |
+| cards | 29.5 | 61.6 | 15 |
+| raymarch | 42.0 | 39.1 | 2 |
+
+The phone draws about a sixth of the laptop's pixels, so the full-screen
+raymarch is its fastest chapter, while the many-draw-call model, the
+per-frame sequence uploads and the particle field are its slowest; 426 Long
+Tasks point at the main thread rather than fill rate.
+
 Per chapter on the UHD 630 at DPR 1, the fastest chapter (`raymarch`) reached
 21.3 fps and the slowest (`model`) 16.2 fps. No shader program was compiled
 during scrolling because every chapter mounts and compiles at load.
@@ -182,6 +200,48 @@ spread them further. On the UHD 630 those stalls also move the quality tier
 up and down several times. In development, scrolling the page produced no
 runtime warnings.
 
+## Huawei P30 (2026-10-23, unreleased source)
+
+Same phone and browser as the baseline, 60 s per run, DPR 2 (0.9 MP). The
+bench page per variant:
+
+| Chapter | Unmanaged fps | Sections fps / p95 ms | Managed fps / p95 ms |
+| --- | ---: | ---: | ---: |
+| overall | 25.0 | 47.7 / 42.7 | 47.5 / 43.9 |
+| model | 18.0 | 59.2 / 18.8 | 59.4 / 17.6 |
+| particles | 19.2 | 59.9 / 18.1 | 60.0 / 20.7 |
+| text | 22.4 | 52.9 / 39.6 | 52.7 / 40.8 |
+| sequence | 18.7 | 22.7 / 60.2 | 22.0 / 62.9 |
+| cards | 29.5 | 47.6 / 44.4 | 47.4 / 45.5 |
+| raymarch | 42.0 | 43.8 / 39.1 | 43.3 / 43.1 |
+
+Long Tasks fell from 426 to 27 (sections) and 45 (managed). Sections remove
+the cost of hidden chapters, which was most of the phone's frame: the
+draw-call-heavy model chapter alone reached 59 fps once nothing else ran.
+
+Managed equals sections here because adaptive quality has nothing to scale:
+the 360×634 viewport is 0.23 MP, so every tier's budget (4 / 2 / 1 MP) allows
+more than the canvas maximum of DPR 2 and the DPR never changed. The governor
+still stepped down six times (to `low` twice, in the sequence and cards
+chapters) and undid each step after it brought no improvement; each step only
+cost frames. The sequence chapter stays below 30 fps from its own per-frame
+1600×900 uploads, which no tier changes.
+
+`/showcase.html?bench=1` on the phone (the five recipes with runtime
+defaults):
+
+| Chapter | fps | p95 ms |
+| --- | ---: | ---: |
+| overall | 58.0 | 23.5 |
+| intro | 59.9 | 19.6 |
+| form | 58.8 | 23.6 |
+| gallery | 58.2 | 20.4 |
+| product | 56.3 | 27.1 |
+| outro | 60.0 | 17.9 |
+
+The phone started at `medium`, rose to `high` after the startup grace and
+stepped down twice (form, product), undoing both; final tier `high`. Three
+stall frames fell in the form chapter while the gallery uploaded.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
-the dual-GPU laptop and its display settings affect results; the phone row is
-not yet measured.
+the dual-GPU laptop and its display settings affect results.
