@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "compatiblePackageVersion": "0.2.0-alpha.2",
+  "compatiblePackageVersion": "0.3.0-alpha.0",
   "entrypoints": {
     "@viselora/dom-webgl": {
       "createDOMTextTexture": {

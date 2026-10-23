@@ -9,7 +9,7 @@ scroll distance. It contains no Hero content, application stores or Next.js code
 ## Copy and run
 
 Copy this entire `paper-reader/` directory into your application. The component
-imports its own prefixed CSS. Install React 19 and the public Viselora packages:
+imports its own prefixed CSS. Install React 19.2 and the public Viselora packages:
 
 ```bash
 npm install react react-dom three @react-three/fiber @react-three/drei react-error-boundary @viselora/dom-webgl @viselora/scroll-adapters

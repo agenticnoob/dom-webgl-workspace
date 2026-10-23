@@ -6,7 +6,7 @@ React Three Fiber host in `@viselora/dom-webgl`.
 ## Install
 
 ```bash
-npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
+npm install @viselora/dom-webgl@alpha @viselora/scroll-adapters@alpha react@19.2 react-dom@19.2 @react-three/fiber@9 three@0.186
 # Only when using the Lenis/GSAP integrations
 npm install lenis gsap
 ```
@@ -26,7 +26,7 @@ npx skills add agenticnoob/viselora-skills --skill viselora-dom-webgl
 - `@viselora/scroll-adapters/react`: `WebGLScrollRuntime`, `WebGLScrollTimeline`,
   `ScrollEffectSection` and `useScrollEffectProgressStore`.
 
-React consumers require React 19. Install Lenis and GSAP only for integrations
+React consumers require React 19.2. Install Lenis and GSAP only for integrations
 that use them. The host forwards native R3F scene content and owns one Canvas.
 
 Core and adapters use matching package versions from the `alpha` channel;

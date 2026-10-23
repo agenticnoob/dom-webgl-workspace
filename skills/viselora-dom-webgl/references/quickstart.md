@@ -1,6 +1,6 @@
 # Quickstart
 
-Use React 19, React DOM 19, R3F 9 and Three.js 0.184–0.186. This skill targets the 0.2
+Use React 19.2, React DOM 19.2, R3F 9 and Three.js 0.184–0.186. This skill targets the 0.2
 alpha API; keep both Viselora packages on the compatible version named in
 [the skill](../SKILL.md). The 0.1.x API is incompatible.
 
@@ -20,8 +20,8 @@ The template pins the compatible Viselora versions. For an existing application,
 pin Viselora exactly (no `^`); `verify-consumer.mjs` rejects ranges:
 
 ```bash
-npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.2 @viselora/scroll-adapters@0.2.0-alpha.2
-npm install react@19 react-dom@19 @react-three/fiber@9 three@0.186
+npm install --save-exact @viselora/dom-webgl@0.3.0-alpha.0 @viselora/scroll-adapters@0.3.0-alpha.0
+npm install react@19.2 react-dom@19.2 @react-three/fiber@9 three@0.186
 npm install --save-dev @types/three@0.186
 ```
 

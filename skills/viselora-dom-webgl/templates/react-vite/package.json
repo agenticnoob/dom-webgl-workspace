@@ -9,8 +9,8 @@
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": {
-    "@viselora/dom-webgl": "0.2.0-alpha.2",
-    "@viselora/scroll-adapters": "0.2.0-alpha.2",
+    "@viselora/dom-webgl": "0.3.0-alpha.0",
+    "@viselora/scroll-adapters": "0.3.0-alpha.0",
     "@react-three/fiber": "^9.3.0",
     "three": "^0.184.0",
     "react": "^19.2.0",

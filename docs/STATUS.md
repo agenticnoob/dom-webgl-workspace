@@ -1,13 +1,13 @@
 # Current Status
 
-**Last verified: 2026-10-22 (0.2.0-alpha.2 publication).**
+**Last verified: 2026-10-23 (0.3.0-alpha.0 prepared, not published).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
 
 ## Project state
 
-The workspace uses a React 19 / Next.js runtime built on React Three Fiber 9
+The workspace uses a React 19.2 / Next.js runtime built on React Three Fiber 9
 and Three.js 0.184–0.186. Runtime production source is reduced from 124 files / 28,010
 lines to 8 files / 1,168 lines. The public surface is intentionally smaller:
 
@@ -23,7 +23,8 @@ passes are native R3F/Three.js work. The previous declaration compiler, effect
 facades, loaders, resource cache, physics slice and independent renderer loop
 are retired. No legacy compatibility backend is maintained.
 
-Unreleased on `codex/hero-next`: `WebGLSection` and `useSectionState` pause
+Prepared as 0.3.0-alpha.0 on `codex/hero-next`, not published:
+`WebGLSection` and `useSectionState` pause
 offscreen scene subtrees (draw only when active, React `Activity` while
 asleep), the host ignores pointer hits on undrawn objects, and the React peer
 floor rises to 19.2. On the one-take benchmark this raised Intel UHD 630
@@ -42,12 +43,22 @@ build, stayed at the `high` tier (DPR 1.76 instead of the previous fixed 2)
 with no warnings. The first five recipes (camera rail and chapter veil, intro
 reveal, DOM grid gallery, particle forms, product turntable) form
 `apps/example/showcase.html`, which held 58–59 fps (p95 under 20 ms) on both
-GPUs and with 4× CPU throttling. They move into the skill with the next
-release. Remaining items from the
+GPUs and with 4× CPU throttling, and 58 fps on a Huawei P30, where sections
+took the benchmark page from 25 to 48 fps. On that phone's 0.23 MP viewport
+the pixel budgets never lower the DPR, so only work scaled by tier changes.
+The skill ships the recipes as copies kept identical to the showcase by a
+test, with a composed example. Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are listed there.
 
 ## Release truth
+
+**Prepared, not yet published:** `@viselora/dom-webgl@0.3.0-alpha.0` and
+`@viselora/scroll-adapters@0.3.0-alpha.0` are versioned in source on
+`codex/hero-next`. It raises the React peer range to
+`>=19.2.0 <19.4.0`. The consumer skill and template already target it, so
+`sync-skill.yml` (on `main`) must not publish the skill before the packages
+reach the registry.
 
 `@viselora/dom-webgl@0.2.0-alpha.2` and
 `@viselora/scroll-adapters@0.2.0-alpha.2` are **published** on the official npm
@@ -142,8 +153,9 @@ browser-verified, committed and pushed states separate.
 
 ## Agent skill
 
-`skills/viselora-dom-webgl` targets `0.2.0-alpha.2` and is self-contained for
-the `skills` CLI: three runnable recipes, `verify-consumer.mjs` and
+`skills/viselora-dom-webgl` targets `0.3.0-alpha.0` in source (the generated
+repository still carries the `0.2.0-alpha.2` skill) and is self-contained for
+the `skills` CLI: three runnable recipes plus the one-take folder, `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
 repository (about 180 KB), whose only source is `skills/` here. Its first sync
@@ -168,7 +180,7 @@ agents.
 
 ## Known boundaries
 
-- React 19 and R3F 9 are required; framework-independent consumers are unsupported.
+- React 19.2 and R3F 9 are required; framework-independent consumers are unsupported.
 - DOM fallback paint hides only on explicitly opted-in, ready registered leaves.
 - Offscreen state does not dispose arbitrary application resources automatically.
 - Shared GLB cache entries, cloned instances and primitive objects need deliberate

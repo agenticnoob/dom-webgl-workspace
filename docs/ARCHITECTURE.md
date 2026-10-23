@@ -1,6 +1,6 @@
 # Architecture
 
-Viselora is a DOM coordination runtime for React 19 and Next.js, built on React
+Viselora is a DOM coordination runtime for React 19.2 and Next.js, built on React
 Three Fiber 9 and Three.js. DOM remains the layout, semantic and accessibility
 anchor. Visual components are ordinary R3F components.
 

@@ -1,13 +1,13 @@
 # @viselora/dom-webgl
 
-DOM coordination for React 19 / Next.js on React Three Fiber 9 and Three.js.
+DOM coordination for React 19.2 / Next.js on React Three Fiber 9 and Three.js.
 The 0.2 React/R3F API replaces the 0.1.x managed engine API. See the repository
 [release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth).
 
 ## Install
 
 ```bash
-npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
+npm install @viselora/dom-webgl@alpha react@19.2 react-dom@19.2 @react-three/fiber@9 three@0.186
 ```
 
 Use the `alpha` tag for the React/R3F API; see

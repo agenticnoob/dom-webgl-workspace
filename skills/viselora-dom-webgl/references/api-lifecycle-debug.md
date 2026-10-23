@@ -28,8 +28,8 @@ and ready state. Visual components choose their own resource retention policy.
 
 ## Offscreen sections
 
-Unreleased: `WebGLSection` and `useSectionState` are not in 0.2.0-alpha.2.
-Do not import them from that version.
+Since 0.3.0-alpha.0. Earlier versions do not export `WebGLSection` or
+`useSectionState`.
 
 `WebGLSection` wraps native scene content and pauses it by distance from a
 registered `target` or a `progress` range. `active` draws and updates; `warm`
@@ -43,7 +43,7 @@ Hidden objects receive no pointer events.
 
 ## Render quality
 
-Unreleased: `useRenderQuality` and the `quality` prop are not in 0.2.0-alpha.2.
+Since 0.3.0-alpha.0; earlier versions use `canvas.dpr` unchanged.
 
 By default the canvas pixel ratio follows a per-tier drawing-buffer budget
 (`high` 4.0, `medium` 2.0, `low` 1.0 megapixels), bounded by the device and
@@ -52,7 +52,9 @@ tier down, far slower frames drop to `low`, and a downgrade that does not
 shorten frames is undone. Frames that keep up with the display step back up.
 `useRenderQuality()` returns `tier`, `dpr` and `reducedMotion`; scale optional
 work such as particle counts or raymarch steps by `tier`. `quality={false}`
-uses `canvas.dpr` unchanged.
+uses `canvas.dpr` unchanged. On a phone-sized viewport every tier's budget
+allows more than DPR 2, so the tier changes only the work components scale by
+it; the one-take recipes do this for particle counts and veil detail.
 
 ## Debug state
 
@@ -60,7 +62,7 @@ uses `canvas.dpr` unchanged.
 registered target readiness/visibility. A ready flag does not prove pixels
 were drawn.
 
-Unreleased (not in 0.2.0-alpha.2): debug state also reports `frame` (fps,
+Since 0.3.0-alpha.0, debug state also reports `frame` (fps,
 p90, draw calls, triangles, programs, textures, tier, DPR), mounted
 `sections` and development `warnings`. With `diagnostics` (default on unless
 `NODE_ENV` is `production`) the runtime warns once per subject about a target

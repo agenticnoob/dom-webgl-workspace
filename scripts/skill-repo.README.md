@@ -2,7 +2,7 @@
 
 Agent skills for [Viselora](https://github.com/agenticnoob/dom-webgl-workspace):
 semantic DOM synchronized with one React Three Fiber / Three.js WebGL scene in
-React 19 and Next.js.
+React 19.2 and Next.js.
 
 > This repository is generated. Its only source is
 > [`skills/` in agenticnoob/dom-webgl-workspace](https://github.com/agenticnoob/dom-webgl-workspace/tree/main/skills).

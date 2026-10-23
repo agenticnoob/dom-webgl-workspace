@@ -67,7 +67,7 @@ it. Set the DPR transform when creating your own canvas.
 
 ## Pause offscreen work and scale cost
 
-Unreleased: available from the next release, not in 0.2.0-alpha.2.
+Since 0.3.0-alpha.0.
 
 Wrap each chapter or DOM-bound visual in `WebGLSection`. Far away it sleeps
 (hidden, effects and `useFrame` disconnected); near it updates and warms up

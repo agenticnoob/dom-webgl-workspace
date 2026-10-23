@@ -20,8 +20,9 @@ if (!version) throw new Error("SKILL.md has no compatible package version");
 const pkg = readJson(resolve(consumerRoot, "package.json"));
 const dependencies = { ...pkg?.devDependencies, ...pkg?.dependencies };
 for (const [name, lines] of [
-  ["react", ["19"]],
-  ["react-dom", ["19"]],
+  // Matches the packages' peer range, >=19.2.0 <19.4.0.
+  ["react", ["19.2", "19.3"]],
+  ["react-dom", ["19.2", "19.3"]],
   ["@react-three/fiber", ["9"]],
   ["three", ["0.184", "0.185", "0.186"]],
 ]) {
