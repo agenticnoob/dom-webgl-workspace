@@ -8,6 +8,12 @@ import type {
   WebGLScrollAdapter,
   WebGLScrollMetrics,
 } from "./runtimeTypes";
+import {
+  createDiagnostics,
+  type RuntimeDiagnostic,
+  type RuntimeFrameStats,
+} from "./diagnostics";
+import type { SectionPhase } from "./sectionPhase";
 
 /** Availability and target readiness. `ready` does not prove pixels were drawn. */
 export type RuntimeDebugState = {
@@ -15,7 +21,15 @@ export type RuntimeDebugState = {
   targetCount: number;
   targets: Array<{ id: string; visible: boolean; ready: boolean }>;
   error?: string;
+  /** Previous frame's renderer cost and recent timing; absent before a frame. */
+  frame?: RuntimeFrameStats;
+  /** Mounted `WebGLSection`s and their phases. */
+  sections: Array<{ label: string; phase: SectionPhase; warmed: boolean }>;
+  /** Development warnings so far; empty when diagnostics are off. */
+  warnings: RuntimeDiagnostic[];
 };
+
+type SectionDebug = RuntimeDebugState["sections"][number];
 
 /** DOM coordination returned by `useWebGLRuntime()`; not a renderer API. */
 export type RuntimeManager = {
@@ -50,6 +64,9 @@ export function createRuntimeManager() {
   const listeners = new Set<() => void>();
   const targetIds = new Set<string>();
   const targets = createDOMTargetRegistry(() => requestFrame());
+  const diagnostics = createDiagnostics();
+  let viewport = { width: 0, height: 0 };
+  const sections = new Map<object, SectionDebug>();
 
   function notify() {
     for (const listener of listeners) listener();
@@ -96,6 +113,7 @@ export function createRuntimeManager() {
       };
     },
     getDebugState() {
+      const frame = diagnostics.frameStats();
       return {
         ready: available,
         targetCount: targetIds.size,
@@ -106,12 +124,23 @@ export function createRuntimeManager() {
             : [];
         }),
         ...(error ? { error } : {}),
+        ...(frame ? { frame } : {}),
+        sections: [...sections.values()],
+        warnings: [...diagnostics.warnings()],
       };
     },
   };
 
   return {
     manager,
+    diagnostics,
+    inspectTargets: () => targets.inspect(),
+    reportSection(token: object, section: SectionDebug) {
+      sections.set(token, section);
+    },
+    removeSection(token: object) {
+      sections.delete(token);
+    },
     configure(next: {
       progressSignals?: WebGLProgressSignalSource;
       scrollAdapter?: WebGLScrollAdapter;
@@ -140,7 +169,13 @@ export function createRuntimeManager() {
         notify();
       };
     },
-    measure: targets.measure,
+    /** Measures targets against the canvas viewport (the root, not a View). */
+    measure(next: { width: number; height: number }) {
+      viewport = { width: next.width, height: next.height };
+      targets.measure(next);
+    },
+    /** The viewport of the last measurement, which target rects refer to. */
+    viewport: () => viewport,
     setAvailable(next: boolean, cause?: unknown) {
       if (disposed) return;
       available = next;
@@ -156,6 +191,7 @@ export function createRuntimeManager() {
       available = false;
       targets.dispose();
       targetIds.clear();
+      sections.clear();
       listeners.clear();
       requestFrame = () => {};
     },

@@ -1,6 +1,6 @@
 {
   "name": "@viselora/scroll-adapters",
-  "version": "0.2.0-alpha.2",
+  "version": "0.3.0-alpha.0",
   "type": "module",
   "files": [
     "dist",
@@ -47,7 +47,7 @@
   "peerDependencies": {
     "gsap": ">=3.12.0",
     "lenis": ">=1.0.0",
-    "react": ">=19.0.0 <19.4.0"
+    "react": ">=19.2.0 <19.4.0"
   },
   "peerDependenciesMeta": {
     "gsap": {
@@ -58,6 +58,6 @@
     }
   },
   "dependencies": {
-    "@viselora/dom-webgl": "0.2.0-alpha.2"
+    "@viselora/dom-webgl": "0.3.0-alpha.0"
   }
 }

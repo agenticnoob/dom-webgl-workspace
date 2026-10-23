@@ -17,8 +17,11 @@ describe("React/R3F public contract", () => {
     ]);
     expect(Object.keys(react).sort()).toEqual([
       "WebGLRuntime",
+      "WebGLSection",
       "WebGLTarget",
       "useDOMTarget",
+      "useRenderQuality",
+      "useSectionState",
       "useWebGLRuntime",
     ]);
   });

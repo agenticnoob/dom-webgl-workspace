@@ -1,6 +1,6 @@
 ---
 name: viselora-dom-webgl
-description: Build, migrate or debug React 19 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using the @viselora/dom-webgl and @viselora/scroll-adapters packages. Use when adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D progress (Lenis, GSAP ScrollTrigger), DOM fallback while models load, or when code imports @viselora/*.
+description: Build, migrate or debug React 19.2 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using the @viselora/dom-webgl and @viselora/scroll-adapters packages. Use when adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D progress (Lenis, GSAP ScrollTrigger), DOM fallback while models load, or when code imports @viselora/*.
 license: MIT
 metadata:
   author: agenticnoob
@@ -9,9 +9,10 @@ metadata:
 
 # Viselora React/R3F Development
 
-Compatible package version: 0.2.0-alpha.2
+Compatible package version: 0.3.0-alpha.0
 
-This skill targets the breaking React/R3F 0.2 alpha API. Install matching package
+This skill targets the React/R3F alpha API (breaking since 0.2; 0.3 adds
+offscreen sections, render quality and React 19.2). Install matching package
 versions from the `alpha` channel or use reviewed local tarballs. The 0.1.x
 packages implement a different API. Check the repository
 [release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth) for registry confirmation.
@@ -22,11 +23,11 @@ packages implement a different API. Check the repository
 ## Rules that are easy to get wrong
 
 1. **Pin Viselora exactly, without `^` or `~`.** `package.json` must say
-   `"@viselora/dom-webgl": "0.2.0-alpha.2"` (and the same for
+   `"@viselora/dom-webgl": "0.3.0-alpha.0"` (and the same for
    `@viselora/scroll-adapters` if used). `npm install` writes a caret by
    default, so use `--save-exact`:
-   `npm install --save-exact @viselora/dom-webgl@0.2.0-alpha.2`.
-   React 19, R3F 9 and Three.js 0.184–0.186 may use normal ranges.
+   `npm install --save-exact @viselora/dom-webgl@0.3.0-alpha.0`.
+   React 19.2, R3F 9 and Three.js 0.184–0.186 may use normal ranges.
 2. **Run the static verifier before finishing:**
    `node <skill-dir>/scripts/verify-consumer.mjs <project-root>`. It rejects
    caret pins, private Viselora imports, a second Canvas/WebGLRenderer/R3F
@@ -72,6 +73,7 @@ Copy it into the consumer's `src/` instead of rewriting the pattern.
 | GLB model that follows a DOM card, fallback while loading, load error keeps fallback, owned disposal | [recipes/ModelTarget.tsx](recipes/ModelTarget.tsx) |
 | Scroll progress of a story section mapped to deterministic keyframes (reverse scroll and resize safe) | [recipes/ScrollStory.tsx](recipes/ScrollStory.tsx) |
 | DOM text texture with a wave shader, rebuilt on `target.revision`, aligned with the DOM baseline | [recipes/TextWave.tsx](recipes/TextWave.tsx) |
+| One-take page: camera rail, chapter veils, intro reveal, particle form, grid gallery, product turntable, each a `WebGLSection` scaled by quality tier | [recipes/one-take/OneTakeExample.tsx](recipes/one-take/OneTakeExample.tsx) (copy the whole folder) |
 
 ## Workflow
 
@@ -129,7 +131,7 @@ Unmount/remount cleanup still needs a test of the consumer component.
 
 ## Boundaries
 
-- React 19, R3F 9 and Three.js 0.184–0.186 are the supported stack.
+- React 19.2, R3F 9 and Three.js 0.184–0.186 are the supported stack.
 - Native Three.js ownership and R3F JSX/hooks are the normal visual API.
 - Do not add a second Canvas/WebGLRenderer or custom renderer RAF loop.
 - Do not import private Viselora source or rebuild a scene/material/effect facade.

@@ -113,7 +113,7 @@ describe("repository documentation governance", () => {
     );
     const status = read("docs/STATUS.md");
 
-    expect(corePackage.version).toMatch(/^0\.2\.0-alpha\.\d+$/);
+    expect(corePackage.version).toMatch(/^0\.3\.0-alpha\.\d+$/);
     expect(adapterPackage.version).toBe(corePackage.version);
     expect(adapterPackage.dependencies?.["@viselora/dom-webgl"]).toBe(
       corePackage.version,
@@ -233,6 +233,7 @@ describe("repository documentation governance", () => {
         "getting-started-runtime",
         "native-frame-animation",
         "native-text-texture",
+        "offscreen-sections",
       ]);
       const result = spawnSync(
         resolve(repoRoot, "node_modules/.bin/tsc"),

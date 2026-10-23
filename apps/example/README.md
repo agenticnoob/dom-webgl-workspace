@@ -52,6 +52,8 @@ npm run check:imports
 - [Design system](./docs/design-system.md)
 - [Component catalog and agent integration](./src/recipes/README.md)
 - [Verification and limitations](./docs/verification.md)
+- [One-take benchmark](./docs/benchmark.md)
+- [One-take showcase recipes](./src/showcase/README.md) (`/showcase.html`)
 - [Getting started](../../docs/guides/getting-started.md)
 - [Effect authoring](../../docs/guides/effects.md)
 - [Scroll integration](../../docs/guides/scroll.md)

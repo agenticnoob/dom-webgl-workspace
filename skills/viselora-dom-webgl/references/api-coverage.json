@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "compatiblePackageVersion": "0.2.0-alpha.2",
+  "compatiblePackageVersion": "0.3.0-alpha.0",
   "entrypoints": {
     "@viselora/dom-webgl": {
       "createDOMTextTexture": {
@@ -39,6 +39,21 @@
         "reference": "api-lifecycle-debug.md",
         "section": "DOM targets",
         "capability": "dom-target-lifecycle"
+      },
+      "WebGLSection": {
+        "reference": "api-lifecycle-debug.md",
+        "section": "Offscreen sections",
+        "capability": "offscreen-sections"
+      },
+      "useSectionState": {
+        "reference": "api-lifecycle-debug.md",
+        "section": "Offscreen sections",
+        "capability": "offscreen-sections"
+      },
+      "useRenderQuality": {
+        "reference": "api-lifecycle-debug.md",
+        "section": "Render quality",
+        "capability": "render-quality"
       }
     },
     "@viselora/scroll-adapters": {

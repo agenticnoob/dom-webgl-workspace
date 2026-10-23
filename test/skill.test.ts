@@ -34,8 +34,8 @@ describe("React/R3F consumer skill", () => {
     expect(description.length).toBeLessThanOrEqual(1024);
     expect(description).toContain("Use when");
     expect(frontmatter).toMatch(/^license: MIT$/m);
-    expect(skill).toContain("React 19, R3F 9 and Three.js 0.184–0.186");
-    expect(skill).toContain("breaking React/R3F 0.2 alpha API");
+    expect(skill).toContain("React 19.2, R3F 9 and Three.js 0.184–0.186");
+    expect(skill).toContain("React/R3F alpha API (breaking since 0.2");
     expect(skill).toContain(
       "[release status](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/docs/STATUS.md#release-truth)",
     );
@@ -76,7 +76,7 @@ describe("React/R3F consumer skill", () => {
   test("states the constraints agents miss in the SKILL.md body", () => {
     // Agents often read only SKILL.md, so these must not live only in references.
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toContain('"@viselora/dom-webgl": "0.2.0-alpha.2"');
+    expect(skill).toContain('"@viselora/dom-webgl": "0.3.0-alpha.0"');
     expect(skill).toContain("--save-exact");
     expect(skill).toContain("scripts/verify-consumer.mjs");
     expect(skill).toContain("scripts/browser-check.mjs");
@@ -109,6 +109,25 @@ describe("React/R3F consumer skill", () => {
     expect(model).toContain("runtime.setTargetReady(targetId, true, target)");
     expect(model).toContain("disposeObject");
     expect(model).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+  });
+
+  test("ships the one-take recipes exactly as the showcase runs them", () => {
+    const showcase = resolve(repoRoot, "apps/example/src/showcase");
+    const recipes = resolve(skillRoot, "recipes/one-take");
+    for (const file of [
+      "screenSpace.ts",
+      "OneTakeRail.tsx",
+      "IntroReveal.tsx",
+      "GalleryReveal.tsx",
+      "ParticleForm.tsx",
+      "ProductTurntable.tsx",
+    ]) {
+      expect(readFileSync(resolve(recipes, file), "utf8"), file).toBe(
+        readFileSync(resolve(showcase, file), "utf8"),
+      );
+    }
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain("](recipes/one-take/OneTakeExample.tsx)");
   });
 
   test("ships a browser check that explains its usage", () => {
@@ -232,7 +251,7 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     const root = copyTemplate();
     const pkg = readJson(root, "package.json");
     pkg.dependencies["@viselora/dom-webgl"] =
-      "file:../viselora-dom-webgl-0.2.0-alpha.2.tgz";
+      "file:../viselora-dom-webgl-0.3.0-alpha.0.tgz";
     writeJson(root, "package.json", pkg);
     expect(run(root).status).toBe(0);
   });

@@ -2,10 +2,10 @@
 
 This guide describes the React/R3F 0.2 alpha API. See
 [release truth](../STATUS.md#release-truth) for the current registry version.
-Use React 19, React DOM 19, R3F 9 and Three.js 0.184–0.186.
+Use React 19.2, React DOM 19.2, R3F 9 and Three.js 0.184–0.186.
 
 ```bash
-npm install @viselora/dom-webgl@alpha react@19 react-dom@19 @react-three/fiber@9 three@0.186
+npm install @viselora/dom-webgl@alpha react@19.2 react-dom@19.2 @react-three/fiber@9 three@0.186
 ```
 
 Install `@viselora/scroll-adapters@alpha` only when using the optional scroll

@@ -26,8 +26,47 @@ with registered descendants stays visible; hide only independently replaced
 leaves. `restore-dom` restores offscreen paint; `park` retains hidden fallback
 and ready state. Visual components choose their own resource retention policy.
 
+## Offscreen sections
+
+Since 0.3.0-alpha.0. Earlier versions do not export `WebGLSection` or
+`useSectionState`.
+
+`WebGLSection` wraps native scene content and pauses it by distance from a
+registered `target` or a `progress` range. `active` draws and updates; `warm`
+updates without drawing; `sleep` keeps the content in a hidden React
+`Activity`, which hides its objects and disconnects its effects and ordinary
+`useFrame` callbacks. Content mounts on first approach unless `mount="eager"`;
+`retain="release"` unmounts it while asleep. While warm, new materials are
+compiled and loaded textures uploaded before drawing; `useSectionState()`
+reports `phase` and `warmed`. Keep lights and the camera rig outside sections.
+Hidden objects receive no pointer events.
+
+## Render quality
+
+Since 0.3.0-alpha.0; earlier versions use `canvas.dpr` unchanged.
+
+By default the canvas pixel ratio follows a per-tier drawing-buffer budget
+(`high` 4.0, `medium` 2.0, `low` 1.0 megapixels), bounded by the device and
+`canvas.dpr` (a number is the maximum). Sustained frames over 22 ms step the
+tier down, far slower frames drop to `low`, and a downgrade that does not
+shorten frames is undone. Frames that keep up with the display step back up.
+`useRenderQuality()` returns `tier`, `dpr` and `reducedMotion`; scale optional
+work such as particle counts or raymarch steps by `tier`. `quality={false}`
+uses `canvas.dpr` unchanged. On a phone-sized viewport every tier's budget
+allows more than DPR 2, so the tier changes only the work components scale by
+it; the one-take recipes do this for particle counts and veil detail.
+
 ## Debug state
 
 `runtime.getDebugState()` and `onDebugStateChange` report availability and
 registered target readiness/visibility. A ready flag does not prove pixels
-were drawn. Public modules are SSR-safe; browser work occurs after mounting.
+were drawn.
+
+Since 0.3.0-alpha.0, debug state also reports `frame` (fps,
+p90, draw calls, triangles, programs, textures, tier, DPR), mounted
+`sections` and development `warnings`. With `diagnostics` (default on unless
+`NODE_ENV` is `production`) the runtime warns once per subject about a target
+that hides its DOM while nothing is drawn in its box for 30 frames, a section
+compiling shaders as it becomes active, lights inside a section, sustained
+frames over the tier's draw-call/triangle budget, and frames below 30 fps at
+the lowest tier. Treat any `[viselora]` console warning as a defect to fix. Public modules are SSR-safe; browser work occurs after mounting.

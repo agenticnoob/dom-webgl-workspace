@@ -65,6 +65,88 @@ Glyph x/y and drawing commands use CSS pixels; y is the top drawing position.
 `drawDOMText` preserves the caller's canvas state and does not clear or resize
 it. Set the DPR transform when creating your own canvas.
 
+## Pause offscreen work and scale cost
+
+Since 0.3.0-alpha.0.
+
+Wrap each chapter or DOM-bound visual in `WebGLSection`. Far away it sleeps
+(hidden, effects and `useFrame` disconnected); near it updates and warms up
+(shaders compiled, textures uploaded) without drawing; in view it draws. Keep
+lights that light content outside the section, and the camera rig, outside it.
+Scale optional work by `useRenderQuality().tier`; the runtime picks the pixel
+ratio from a per-tier pixel budget.
+
+<!-- compile-tsx:offscreen-sections -->
+
+```tsx
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import type { Mesh } from "three";
+import { WebGLSection, useRenderQuality } from "@viselora/dom-webgl/react";
+
+function Particles() {
+  const { tier, reducedMotion } = useRenderQuality();
+  const count = tier === "high" ? 120_000 : tier === "medium" ? 60_000 : 25_000;
+  const mesh = useRef<Mesh>(null);
+  useFrame((_, delta) => {
+    if (mesh.current && !reducedMotion) mesh.current.rotation.y += delta * 0.2;
+  });
+  return (
+    <mesh ref={mesh} userData={{ count }}>
+      <icosahedronGeometry args={[1, 3]} />
+      <meshBasicMaterial wireframe />
+    </mesh>
+  );
+}
+
+export function Chapters() {
+  return (
+    <>
+      <WebGLSection target="chapter-1">
+        <Particles />
+      </WebGLSection>
+      <WebGLSection progress={{ key: "story", from: 0.4, to: 0.6 }}>
+        <Particles />
+      </WebGLSection>
+    </>
+  );
+}
+```
+
+In development the runtime warns once per cause: a target that hides its DOM
+while nothing is drawn in its box, a section compiling shaders as it becomes
+active, section lights that relight content outside it, sustained frames over
+the tier budget, and frames below 30 fps at the lowest tier. Treat each
+`[viselora]` warning as a defect.
+
+## Scrub image sequences
+
+Decode sequence frames to `ImageBitmap`s flipped at decode time, and upload a
+frame only when the index changes. Re-uploading `HTMLImageElement` frames
+cost about 170 ms each on an integrated GPU with a slow CPU, and while
+scrolling the index changes almost every frame; pre-flipped bitmaps uploaded
+within the frame budget
+([measurements](../../apps/example/docs/benchmark.md#sequence-uploads-2026-10-23)).
+
+```ts
+const blob = await (await fetch(url)).blob();
+const frame = await createImageBitmap(blob, {
+  imageOrientation: "flipY",
+  resizeWidth: 800, // the size the frame is drawn at, not the source size
+  resizeHeight: 450,
+});
+texture.flipY = false; // WebGL ignores UNPACK_FLIP_Y for bitmaps
+// in useFrame:
+if (texture.image !== frame) {
+  texture.image = frame;
+  texture.needsUpdate = true;
+}
+```
+
+Decoded bitmaps keep their pixels in memory (1600×900 is 5.8 MB each). Decode
+at the drawn size, and for long sequences keep only frames near the current
+index, calling `close()` on the rest.
+
 ## Other visuals
 
 Use native mesh events for picking, Three.js or Drei animation helpers for

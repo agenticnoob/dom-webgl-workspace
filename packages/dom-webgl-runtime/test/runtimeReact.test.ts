@@ -26,6 +26,13 @@ const fiber = vi.hoisted(() => ({
     | {
         domElement: HTMLCanvasElement;
         getContext: () => { isContextLost: () => boolean };
+        info: {
+          render: { calls: number; triangles: number };
+          memory: { textures: number; geometries: number };
+          programs: unknown[];
+        };
+        getPixelRatio: () => number;
+        getClearAlpha: () => number;
       }
     | undefined,
   invalidate: vi.fn(),
@@ -44,6 +51,7 @@ vi.mock("@react-three/fiber", () => ({
       invalidate: () => void;
       setFrameloop: typeof fiber.setFrameloop;
       gl: typeof fiber.gl;
+      scene: { background: null };
       clock: typeof fiber.clock;
     }) => unknown,
   ) =>
@@ -51,8 +59,10 @@ vi.mock("@react-three/fiber", () => ({
       invalidate: fiber.invalidate,
       setFrameloop: fiber.setFrameloop,
       gl: fiber.gl,
+      scene: { background: null },
       clock: fiber.clock,
     }),
+  addAfterEffect: () => () => {},
   useFrame: (callback: (state: Pick<RootState, "clock" | "size">) => void) => {
     fiber.frame = callback;
   },
@@ -70,6 +80,13 @@ describe("React runtime host", () => {
     fiber.gl = {
       domElement: document.createElement("canvas"),
       getContext: () => ({ isContextLost: () => false }),
+      info: {
+        render: { calls: 0, triangles: 0 },
+        memory: { textures: 0, geometries: 0 },
+        programs: [],
+      },
+      getPixelRatio: () => 1,
+      getClearAlpha: () => 0,
     };
     fiber.invalidate.mockClear();
     fiber.clock = new Clock();
@@ -128,6 +145,21 @@ describe("React runtime host", () => {
     expect(runtime?.getDebugState().targetCount).toBe(1);
   });
 
+  it("bounds the managed pixel ratio by the device and canvas.dpr", async () => {
+    await act(async () =>
+      root.render(
+        createElement(WebGLRuntime, {
+          canvas: { dpr: 1.5 },
+          scene: createElement(Reader),
+        }),
+      ),
+    );
+    const dpr = fiber.props?.dpr;
+    expect(typeof dpr).toBe("number");
+    expect(dpr).toBeLessThanOrEqual(Math.max(window.devicePixelRatio, 0.5));
+    expect(dpr).toBeLessThanOrEqual(1.5);
+  });
+
   it("routes pointer events from the common parent and permits native Canvas settings", async () => {
     await act(async () =>
       root.render(
@@ -135,6 +167,7 @@ describe("React runtime host", () => {
           WebGLRuntime,
           {
             canvas: { frameloop: "demand", dpr: 2 },
+            quality: false,
             scene: createElement(Reader),
           },
           createElement("p", null, "DOM"),
