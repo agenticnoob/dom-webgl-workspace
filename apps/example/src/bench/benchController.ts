@@ -78,12 +78,31 @@ export type BenchSnapshot = {
 
 export type BenchController = ReturnType<typeof createBenchController>;
 
+/** What a measured page reports: its chapters and the assets a run waits for. */
+export type BenchPageConfig = {
+  readonly chapters: readonly string[];
+  /** Chapter index for a page progress value. */
+  chapterAt(progress: number): number;
+  readonly requiredAssets: readonly string[];
+};
+
+export function oneTakeBenchConfig(variant: BenchOptions["variant"]): BenchPageConfig {
+  return {
+    chapters: benchChapters.map((chapter) => chapter.key),
+    chapterAt: currentChapter,
+    requiredAssets: requiredBenchAssets(variant),
+  };
+}
+
 const liveWindow = 120;
 
-export function createBenchController(options: BenchOptions) {
+export function createBenchController(
+  options: BenchOptions,
+  config: BenchPageConfig = oneTakeBenchConfig(options.variant),
+) {
   const recorder = createBenchRecorder();
-  const required = requiredBenchAssets(options.variant);
-  const loaded = new Set<BenchAsset>();
+  const required = config.requiredAssets;
+  const loaded = new Set<string>();
   const recent: number[] = [];
   let phase: BenchPhase = "loading";
   let renderer = "unknown";
@@ -118,7 +137,7 @@ export function createBenchController(options: BenchOptions) {
       userAgent: navigator.userAgent,
       durationSeconds: run.durationMs / 1000,
       assetsTimedOut,
-      summary: recorder.summarize(benchChapters.map((chapter) => chapter.key)),
+      summary: recorder.summarize(config.chapters),
     };
     run = undefined;
     phase = "done";
@@ -135,7 +154,8 @@ export function createBenchController(options: BenchOptions) {
         ...(result ? { result } : {}),
       };
     },
-    assetReady(asset: BenchAsset) {
+    chapters: config.chapters,
+    assetReady(asset: string) {
       loaded.add(asset);
       if (phase === "loading" && required.every((item) => loaded.has(item)))
         phase = "ready";
@@ -161,7 +181,7 @@ export function createBenchController(options: BenchOptions) {
     },
     /** Called once per R3F frame; drives the scripted scroll while running. */
     frame(sample: BenchFrameInput, scroll: WebGLScrollMetrics) {
-      const chapter = currentChapter(benchProgress(scroll));
+      const chapter = config.chapterAt(benchProgress(scroll));
       const previousTier = live.tier;
       recent.push(sample.deltaMs);
       if (recent.length > liveWindow) recent.shift();
@@ -192,7 +212,8 @@ export function createBenchController(options: BenchOptions) {
       if (fraction >= 1) finish();
     },
     longTask(durationMs: number, scroll: WebGLScrollMetrics) {
-      if (run) recorder.longTask(currentChapter(benchProgress(scroll)), durationMs);
+      if (run)
+        recorder.longTask(config.chapterAt(benchProgress(scroll)), durationMs);
     },
   };
 }

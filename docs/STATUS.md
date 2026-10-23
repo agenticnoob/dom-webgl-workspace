@@ -39,9 +39,13 @@ and frames below 30 fps at the lowest tier. `apps/example` wraps each visual in
 a target section (no warnings while scrolling 30 viewports at reading speed in
 development); hero-next keeps its own chapter logic and, in a production
 build, stayed at the `high` tier (DPR 1.76 instead of the previous fixed 2)
-with no warnings. Recipes from the
+with no warnings. The first five recipes (camera rail and chapter veil, intro
+reveal, DOM grid gallery, particle forms, product turntable) form
+`apps/example/showcase.html`, which held 58–59 fps (p95 under 20 ms) on both
+GPUs and with 4× CPU throttling. They move into the skill with the next
+release. Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
-are not implemented yet.
+are listed there.
 
 ## Release truth
 

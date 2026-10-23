@@ -141,7 +141,11 @@ function RoomLighting() {
   return null;
 }
 
-function BenchProbe({ controller }: { readonly controller: BenchController }) {
+export function BenchProbe({
+  controller,
+}: {
+  readonly controller: BenchController;
+}) {
   const runtime = useWebGLRuntime();
   const quality = useRenderQuality();
   const gl = useThree((state) => state.gl);

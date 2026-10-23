@@ -25,6 +25,7 @@ const { values: options } = parseArgs({
     duration: { type: "string", default: "60" },
     throttle: { type: "string", default: "1" },
     variant: { type: "string", default: "naive" },
+    page: { type: "string", default: "bench.html" },
     gpu: { type: "string", default: "default" },
     "max-dpr": { type: "string", default: "2" },
     width: { type: "string", default: "1440" },
@@ -40,12 +41,13 @@ const { values: options } = parseArgs({
 
 const duration = Number(options.duration);
 const throttle = Number(options.throttle);
-const baseUrl = options.url ?? `http://127.0.0.1:${options.port}/bench.html`;
+const baseUrl = options.url ?? `http://127.0.0.1:${options.port}/${options.page}`;
 const query = new URLSearchParams({
   variant: options.variant,
   gpu: options.gpu,
   maxDpr: options["max-dpr"],
   duration: String(duration),
+  ...(options.page === "bench.html" ? {} : { bench: "1" }),
   ...(options.diagnostics ? { diagnostics: "1" } : {}),
   ...(options.fixture !== "none" ? { fixture: options.fixture } : {}),
 });
@@ -180,8 +182,8 @@ function loadPlaywright() {
 }
 
 async function startPreview(url) {
-  if (!existsSync(join(appDir, "dist/bench.html")))
-    throw new Error("apps/example/dist/bench.html is missing; run `npm run build` first.");
+  if (!existsSync(join(appDir, "dist", options.page)))
+    throw new Error(`apps/example/dist/${options.page} is missing; run \`npm run build\` first.`);
   const { hostname, port } = new URL(url);
   const child = spawn(
     "npx",

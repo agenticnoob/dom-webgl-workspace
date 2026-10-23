@@ -62,34 +62,7 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
     [],
   );
 
-  useEffect(() => {
-    window.__vbench = {
-      snapshot: () => controller.snapshot(),
-      start: (durationSeconds) => controller.start(durationSeconds),
-    };
-    const timeout = window.setTimeout(
-      () => controller.assetTimeout(),
-      assetTimeoutMs,
-    );
-    return () => {
-      window.clearTimeout(timeout);
-      delete window.__vbench;
-    };
-  }, [controller]);
-
-  useEffect(() => {
-    if (!options.autoplay) return;
-    let settle: number | undefined;
-    const poll = window.setInterval(() => {
-      if (settle !== undefined || controller.snapshot().phase !== "ready")
-        return;
-      settle = window.setTimeout(() => controller.start(), autoplaySettleMs);
-    }, 250);
-    return () => {
-      window.clearInterval(poll);
-      window.clearTimeout(settle);
-    };
-  }, [controller, options.autoplay]);
+  useBenchAutomation(controller, options.autoplay);
 
   return (
     <WebGLRuntime
@@ -110,6 +83,38 @@ export function BenchApp({ options }: { readonly options: BenchOptions }) {
       <BenchOverlay controller={controller} />
     </WebGLRuntime>
   );
+}
+
+/** Exposes `window.__vbench`, unblocks a stalled load and starts autoplay. */
+export function useBenchAutomation(controller: BenchController, autoplay: boolean) {
+  useEffect(() => {
+    window.__vbench = {
+      snapshot: () => controller.snapshot(),
+      start: (durationSeconds) => controller.start(durationSeconds),
+    };
+    const timeout = window.setTimeout(
+      () => controller.assetTimeout(),
+      assetTimeoutMs,
+    );
+    return () => {
+      window.clearTimeout(timeout);
+      delete window.__vbench;
+    };
+  }, [controller]);
+
+  useEffect(() => {
+    if (!autoplay) return;
+    let settle: number | undefined;
+    const poll = window.setInterval(() => {
+      if (settle !== undefined || controller.snapshot().phase !== "ready")
+        return;
+      settle = window.setTimeout(() => controller.start(), autoplaySettleMs);
+    }, 250);
+    return () => {
+      window.clearInterval(poll);
+      window.clearTimeout(settle);
+    };
+  }, [controller, autoplay]);
 }
 
 function BenchPage({ fixture }: { readonly fixture: BenchFixture }) {
@@ -149,7 +154,11 @@ const phaseLabels = {
   done: "完成",
 } satisfies Record<BenchSnapshot["phase"], string>;
 
-function BenchOverlay({ controller }: { readonly controller: BenchController }) {
+export function BenchOverlay({
+  controller,
+}: {
+  readonly controller: BenchController;
+}) {
   const [snapshot, setSnapshot] = useState(() => controller.snapshot());
   useEffect(() => {
     const poll = window.setInterval(() => setSnapshot(controller.snapshot()), 250);
@@ -187,7 +196,7 @@ function BenchOverlay({ controller }: { readonly controller: BenchController }) 
           {live.dpr} / {live.tier}
         </dd>
         <dt>章节</dt>
-        <dd>{benchChapters[live.chapter].key}</dd>
+        <dd>{controller.chapters[live.chapter]}</dd>
       </dl>
       <p className="bench-overlay__renderer">{snapshot.renderer}</p>
       <button

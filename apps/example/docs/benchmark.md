@@ -163,6 +163,25 @@ which the previous chapter's particles satisfied; the check now samples every
 10 frames for as long as the fallback stays hidden. Frames below 30 fps at
 `low` were reported in one of three runs, from the raymarch chapter.
 
+## Showcase (2026-10-23, unreleased source)
+
+`showcase.html` is the [five recipes](../src/showcase/README.md) composed into
+one page with the runtime's defaults (sections, warmup, adaptive quality).
+`--page showcase.html`, 60 s, 1440×900, device scale 2:
+
+| GPU | CPU | fps | p95 ms | Frames > 50 ms | Stall frames | Final tier |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Intel UHD 630 | 1× | 58.1 | 18.7 | 11 | 6 | low |
+| Radeon Pro 5300M | 1× | 59.4 | 18.2 | 8 | 6 | high |
+| Intel UHD 630 | 4× | 58.0 | 19.9 | 15 | 7 | low |
+
+Every chapter stays above 56 fps. The stall frames (up to 160 ms) fall in the
+particle chapter while the eagerly mounted gallery uploads its 16 textures,
+two per frame; a per-frame upload budget by size rather than count would
+spread them further. On the UHD 630 those stalls also move the quality tier
+up and down several times. In development, scrolling the page produced no
+runtime warnings.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results; the phone row is
 not yet measured.

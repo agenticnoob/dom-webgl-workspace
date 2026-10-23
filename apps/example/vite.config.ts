@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         main: "index.html",
         bench: "bench.html",
+        showcase: "showcase.html",
       },
     },
   },
