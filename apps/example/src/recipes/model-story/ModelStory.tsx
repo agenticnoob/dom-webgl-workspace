@@ -4,8 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
-import { useClonedModel } from "../../useClonedModel";
-import { useRuntimeReady } from "../../useRuntimeReady";
+import { useClonedModel } from "../shared/useClonedModel";
+import { useRuntimeReady } from "../shared/useRuntimeReady";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
 
 import { createModelStoryController } from "./controller";

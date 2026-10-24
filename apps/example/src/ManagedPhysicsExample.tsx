@@ -11,7 +11,7 @@ import {
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { MeshStandardMaterial } from "three";
-import { useClonedModel } from "./useClonedModel";
+import { useClonedModel } from "./recipes/shared/useClonedModel";
 import { readKinematicSweep, useHoverPulse } from "./interactionEffects";
 import { usePhysicsDrag } from "./physicsDrag";
 

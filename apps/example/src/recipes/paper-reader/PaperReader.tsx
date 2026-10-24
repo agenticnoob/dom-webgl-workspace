@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { OrthographicCamera, View } from "@react-three/drei";
 import { PaperReaderSurface } from "./PaperReaderSurface";
-import { useRuntimeReady } from "../../useRuntimeReady";
+import { useRuntimeReady } from "../shared/useRuntimeReady";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
 import { resolvePaperReaderScrollHeight } from "./config";
 import {

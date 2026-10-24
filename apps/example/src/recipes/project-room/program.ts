@@ -3,7 +3,7 @@ import {
   canvasTexture,
   shaderUniforms,
   surfaceVertexShader,
-} from "../../nativeMaterials";
+} from "../shared/nativeMaterials";
 import { projectRoomConfig as config } from "./room";
 import type { ProjectRoomPalette } from "./types";
 

@@ -1,10 +1,13 @@
 # Reusable visual recipes
 
 Nine demonstrations extract Hero Next's visual behavior into six React modules.
-Open `/` and scroll through all recipes on the same page; `/#<id>` links to a row.
+They run together in the
+[example app](https://github.com/agenticnoob/dom-webgl-workspace/tree/main/apps/example)
+(`npm run dev -w @viselora/example`, then scroll `/`; `/#<id>` links to a row).
+The consumer skill ships identical copies in `recipes/hero/`.
 Recipes use React Three Fiber, Drei and Three.js directly. Viselora manages the
 shared Canvas host, DOM fallback, progress and page lifecycle. These modules are
-app source, not exports from `@viselora/dom-webgl`.
+copied source, not exports from `@viselora/dom-webgl`.
 
 | Demo ID                | Component / module                             | Input and behavior                                                                                          | Read first                                               |
 | ---------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -59,11 +62,9 @@ transparent. Drei performs per-View scissoring and event routing.
 ## Copy and adapt
 
 1. Read the selected module's README and `index.ts`, then copy its whole directory.
-2. Preserve its relative source layout. GPU recipes also use
-   [nativeMaterials.ts](../nativeMaterials.ts) and
-   [useRuntimeReady.ts](../useRuntimeReady.ts); GLB recipes use
-   [useClonedModel.ts](../useClonedModel.ts). Copy those helpers to the same level
-   as your `recipes` directory, or adjust their local imports.
+2. Preserve its relative source layout and copy [shared/](./shared/) next to it:
+   GPU recipes use `shared/nativeMaterials.ts` and `shared/useRuntimeReady.ts`;
+   GLB recipes use `shared/useClonedModel.ts`.
 3. Keep IDs unique. Change typed content first; remount components whose README
    specifies a mounted content contract when replacing that content.
 4. Host public assets yourself. Provide real GLB bounds and semantic fallback.
@@ -98,4 +99,4 @@ Pure tests protect reversible geometry and handoffs. DOM tests cover semantic
 fallback, preference changes and listener cleanup. R3F test-renderer tests drive
 real Three.js scene objects and validate allocated texture/material disposal.
 GPU output still needs browser review. Current evidence is recorded in the
-[app verification record](../../docs/verification.md).
+[app verification record](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/docs/verification.md).

@@ -6,7 +6,7 @@ import React, {
   type CSSProperties,
 } from "react";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
-import { useRuntimeReady } from "../../useRuntimeReady";
+import { useRuntimeReady } from "../shared/useRuntimeReady";
 import { createTimelineController } from "./controller";
 import { TimelineScene } from "./TimelineScene";
 import {

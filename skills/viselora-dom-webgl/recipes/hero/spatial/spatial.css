@@ -1,0 +1,172 @@
+.spatial-sculpture,
+.spatial-portal {
+  position: relative;
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  isolation: isolate;
+}
+.spatial-sculpture {
+  min-height: 440px;
+}
+.spatial-portal {
+  overflow: clip;
+}
+.spatial-viewport,
+.spatial-pass {
+  width: 100%;
+  height: 100%;
+}
+.spatial-sculpture > .spatial-viewport {
+  position: absolute;
+  inset: 0;
+}
+.spatial-caption {
+  position: absolute;
+  left: 6%;
+  top: 8%;
+  z-index: 2;
+  max-width: 440px;
+  pointer-events: none;
+}
+.spatial-caption h2 {
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 1.08;
+  margin: 0 0 20px;
+}
+.spatial-caption p {
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 32ch;
+}
+.spatial-caption button,
+.spatial-reader-toggle button {
+  pointer-events: auto;
+  padding: 12px 20px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  font: inherit;
+  cursor: pointer;
+}
+.spatial-caption button:focus-visible,
+.spatial-reader-toggle button:focus-visible,
+.spatial-link:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 5px;
+}
+.spatial-fallback {
+  position: absolute;
+  left: 6%;
+  bottom: 8%;
+  max-width: 80%;
+  font-size: 16px;
+}
+.spatial-portal-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+.spatial-portal-stage[aria-hidden="true"] {
+  display: none;
+}
+.spatial-reader-toggle {
+  position: sticky;
+  top: 12px;
+  z-index: 5;
+  height: 0;
+  text-align: right;
+  padding-right: 16px;
+}
+.spatial-body {
+  position: relative;
+  min-height: 100svh;
+  z-index: 2;
+}
+.spatial-portal[data-ready="true"]
+  [data-spatial-cycle]:not([data-active="true"])
+  .spatial-body {
+  visibility: hidden;
+}
+.spatial-panel {
+  position: relative;
+  min-height: 400px;
+  box-sizing: border-box;
+}
+.spatial-panel > div,
+.spatial-panel > p {
+  position: absolute;
+  margin: 0;
+}
+.spatial-panel span {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.spatial-panel h2 {
+  font-weight: 700;
+  line-height: 1.08;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.spatial-panel > p {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.spatial-prose {
+  width: min(760px, 84%);
+  margin: 0 auto;
+  padding: 100px 0;
+  font-size: clamp(20px, 2.4vw, 28px);
+  line-height: 1.7;
+}
+.spatial-prose p {
+  margin: 0 0 100px;
+}
+.spatial-link {
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 32px 0;
+  color: inherit;
+  font-size: 20px;
+}
+.spatial-hub-gap {
+  height: 25svh;
+}
+.spatial-portal[data-ready="false"] .spatial-runway,
+.spatial-portal[data-ready="false"] .spatial-hub-gap {
+  display: none;
+}
+.spatial-portal[data-ready="false"] .spatial-portal-stage {
+  position: relative;
+  margin: 0;
+  height: 440px;
+}
+.spatial-portal[data-ready="false"] .spatial-body {
+  color: inherit !important;
+  visibility: visible;
+}
+.spatial-portal[data-ready="false"] .spatial-panel {
+  height: auto !important;
+  min-height: 0;
+  padding: 64px 8%;
+}
+.spatial-portal[data-ready="false"] .spatial-panel > div,
+.spatial-portal[data-ready="false"] .spatial-panel > p {
+  position: static;
+  width: auto !important;
+}
+.spatial-portal[data-ready="false"] .spatial-panel span {
+  position: static;
+}
+.spatial-portal[data-ready="false"] .spatial-panel h2 {
+  font-size: clamp(32px, 5vw, 64px) !important;
+  margin: 24px 0;
+}
+.spatial-portal[data-ready="false"] .spatial-panel > p {
+  font-size: 20px !important;
+}

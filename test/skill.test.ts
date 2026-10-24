@@ -130,6 +130,27 @@ describe("React/R3F consumer skill", () => {
     expect(skill).toContain("](recipes/one-take/OneTakeExample.tsx)");
   });
 
+  test("ships the Hero Next component recipes exactly as the example app runs them", () => {
+    const source = resolve(repoRoot, "apps/example/src/recipes");
+    const copy = resolve(skillRoot, "recipes/hero");
+    const files = (root: string): string[] =>
+      readdirSync(root, { recursive: true, encoding: "utf8" })
+        .filter((path) => statSync(resolve(root, path)).isFile())
+        .filter((path) => !path.endsWith(".DS_Store"))
+        .sort();
+    // catalog.ts only indexes the example app's own demo rows.
+    expect(files(copy)).toEqual(files(source).filter((path) => path !== "catalog.ts"));
+    for (const path of files(copy)) {
+      expect(readFileSync(resolve(copy, path), "utf8"), path).toBe(
+        readFileSync(resolve(source, path), "utf8"),
+      );
+    }
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain("](recipes/hero/README.md)");
+    const template = readJson(templateRoot, "package.json");
+    expect(template.dependencies["@react-three/drei"]).toBeDefined();
+  });
+
   test("ships a browser check that explains its usage", () => {
     const result = spawnSync(
       process.execPath,

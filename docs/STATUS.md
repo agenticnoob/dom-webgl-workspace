@@ -151,7 +151,8 @@ browser-verified, committed and pushed states separate.
 ## Agent skill
 
 `skills/viselora-dom-webgl` targets `0.3.0-alpha.0` and is self-contained for
-the `skills` CLI: three runnable recipes plus the one-take folder, `verify-consumer.mjs` and
+the `skills` CLI: three runnable recipes, the one-take folder, the Hero Next
+component recipes (`recipes/hero/`, kept identical to `apps/example` by a test), `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
 repository (about 180 KB), whose only source is `skills/` here. Its first sync

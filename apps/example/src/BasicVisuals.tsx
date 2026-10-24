@@ -31,7 +31,7 @@ import {
   shaderUniforms,
   surfaceVertexShader,
   updateUniforms,
-} from "./nativeMaterials";
+} from "./recipes/shared/nativeMaterials";
 import {
   createTextGlyphCommands,
   type TextMode,
@@ -63,7 +63,7 @@ import {
   readSequenceCardMotion,
 } from "./sequenceCardEffect";
 import type { FrameSequence } from "./frameSequence";
-import { useClonedModel } from "./useClonedModel";
+import { useClonedModel } from "./recipes/shared/useClonedModel";
 
 function usePresentation(id: string, retainText = false) {
   const runtime = useWebGLRuntime();

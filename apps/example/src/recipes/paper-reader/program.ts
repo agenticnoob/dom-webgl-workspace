@@ -3,7 +3,7 @@ import {
   canvasTexture,
   shaderUniforms,
   surfaceVertexShader,
-} from "../../nativeMaterials";
+} from "../shared/nativeMaterials";
 import type { PaperReaderArtwork } from "./artwork";
 import type { PaperReaderTexture } from "./texture";
 import { paperReaderConfig } from "./config";

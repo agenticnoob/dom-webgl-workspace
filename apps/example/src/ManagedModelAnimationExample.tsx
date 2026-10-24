@@ -7,7 +7,7 @@ import {
   useScrollEffectProgressStore,
   WebGLScrollTimeline,
 } from "@viselora/scroll-adapters/react";
-import { useClonedModel } from "./useClonedModel";
+import { useClonedModel } from "./recipes/shared/useClonedModel";
 
 export const managedModelTimelineId = "example.managedModel.timeline";
 

@@ -18,7 +18,7 @@ vi.mock("@viselora/scroll-adapters/react", () => ({
     source: { get: () => progress.value },
   }),
 }));
-vi.mock("../src/useClonedModel", () => {
+vi.mock("../src/recipes/shared/useClonedModel", () => {
   const scene = new THREE.Group();
   const hip = new THREE.Object3D();
   hip.name = "hip";

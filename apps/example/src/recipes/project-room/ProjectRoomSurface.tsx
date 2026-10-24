@@ -1,7 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { type Mesh, type ShaderMaterial, type Texture } from "three";
-import { updateUniforms } from "../../nativeMaterials";
+import { updateUniforms } from "../shared/nativeMaterials";
 import { createProjectRoomTexture } from "./artwork";
 import { createProjectRoomProgram } from "./program";
 import {

@@ -10,6 +10,14 @@ entrypoints and ends with a usage example.
 | [ScrollStory.tsx](../recipes/ScrollStory.tsx) | Story section progress from its live target rect, piecewise keyframes, no clock or damping, `frameloop: "demand"` |
 | [TextWave.tsx](../recipes/TextWave.tsx) | `createDOMTextTexture` aligned with the DOM baseline, rebuild on polled `target.revision`, deferred disposal, vertex wave, reduced motion |
 
+Site component recipes from Hero Next live in [hero/](../recipes/hero/README.md):
+nine demonstrations in six modules (`paper-reader`, `project-room`, `spatial`,
+`model-story`, `pointer-preview`, `perspective-timeline`). They draw through Drei
+`View`s into one `View.Port` and need `@react-three/drei` and
+`react-error-boundary`, which the template includes. Each module README gives
+its typed inputs, a complete example, fallback and ownership; copy the module
+folder together with `shared/`.
+
 One-take recipes live in [one-take/](../recipes/one-take/) and share
 `screenSpace.ts`; [OneTakeExample.tsx](../recipes/one-take/OneTakeExample.tsx)
 composes them into one page. Each file's header states its budget at the

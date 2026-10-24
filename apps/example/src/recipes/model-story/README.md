@@ -142,5 +142,5 @@ through `dispose={null}`; it never disposes another instance's shared model.
 
 Run `npm test -- --run apps/example/test/recipes/modelStory` and
 `npm run typecheck -w @viselora/example` from the repository root. See
-[ModelStoryDemo.tsx](../../recipe-demos/ModelStoryDemo.tsx) for a complete
+[ModelStoryDemo.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/src/recipe-demos/ModelStoryDemo.tsx) for a complete
 checked-in asset example.

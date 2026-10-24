@@ -28,7 +28,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     getDebugState: () => ({ ready: injected.available }),
   }),
 }));
-vi.mock("../src/useClonedModel", () => ({
+vi.mock("../src/recipes/shared/useClonedModel", () => ({
   useClonedModel: () => ({ scene: injected.scene, animations: [] }),
 }));
 vi.mock("@react-three/drei", async (original) => ({

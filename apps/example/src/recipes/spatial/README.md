@@ -172,5 +172,5 @@ screen position as it leaves the shallow face plane.
 Run `npm test -- --run apps/example/test/recipes/spatial` after changing geometry
 or lifecycle, then review desktop/mobile forward and reverse handoffs in the
 browser. The two portal demos and two sculpture demos in
-[../../recipe-demos/SpatialDemos.tsx](../../recipe-demos/SpatialDemos.tsx) are
+[recipe-demos/SpatialDemos.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/src/recipe-demos/SpatialDemos.tsx) are
 complete consumers.
