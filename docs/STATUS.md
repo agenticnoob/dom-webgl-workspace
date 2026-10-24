@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-23 (0.3.0-alpha.0 prepared, not published).**
+**Last verified: 2026-10-24 (0.3.0-alpha.0 publication).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -23,8 +23,7 @@ passes are native R3F/Three.js work. The previous declaration compiler, effect
 facades, loaders, resource cache, physics slice and independent renderer loop
 are retired. No legacy compatibility backend is maintained.
 
-Prepared as 0.3.0-alpha.0 on `codex/hero-next`, not published:
-`WebGLSection` and `useSectionState` pause
+Since 0.3.0-alpha.0, `WebGLSection` and `useSectionState` pause
 offscreen scene subtrees (draw only when active, React `Activity` while
 asleep), the host ignores pointer hits on undrawn objects, and the React peer
 floor rises to 19.2. On the one-take benchmark this raised Intel UHD 630
@@ -53,24 +52,22 @@ are listed there.
 
 ## Release truth
 
-**Prepared, not yet published:** `@viselora/dom-webgl@0.3.0-alpha.0` and
-`@viselora/scroll-adapters@0.3.0-alpha.0` are versioned in source on
-`codex/hero-next`. It raises the React peer range to
-`>=19.2.0 <19.4.0`. The consumer skill and template already target it, so
-`sync-skill.yml` (on `main`) must not publish the skill before the packages
-reach the registry.
-
-`@viselora/dom-webgl@0.2.0-alpha.2` and
-`@viselora/scroll-adapters@0.2.0-alpha.2` are **published** on the official npm
+`@viselora/dom-webgl@0.3.0-alpha.0` and
+`@viselora/scroll-adapters@0.3.0-alpha.0` are **published** on the official npm
 registry, and both `alpha` tags resolve to them. The separate `latest` tags
 remain at `0.1.0-alpha.0`, which implements the previous API; install `@alpha`
-or pin the exact 0.2 version.
+or pin the exact 0.3 version.
 
-0.2.0-alpha.2 widens the core peer range to `three >=0.184.0 <0.187.0`. The
+0.3.0-alpha.0 adds offscreen sections, adaptive render quality and
+development diagnostics, and raises the React peer range to
+`>=19.2.0 <19.4.0`. A fresh registry install of both packages next to
+`react@19.2`, `three@0.186` and R3F 9 resolves without ERESOLVE and exports
+`WebGLSection`, `useSectionState` and `useRenderQuality`.
+
+Since 0.2.0-alpha.2 the core peer range is `three >=0.184.0 <0.187.0`; the
 installed-tarball consumer passed SSR, typecheck, unit, build and Chromium
 checks with Three.js 0.184, 0.185 and 0.186 (`verify-external-consumer.mjs
---three`), and a fresh registry install of both packages next to
-`three@0.186.1` resolves without ERESOLVE. `0.2.0-alpha.1` declared `^0.184.0`.
+--three`). `0.2.0-alpha.1` declared `^0.184.0`.
 
 Since 0.2.0-alpha.1, DOM text glyphs sit on the CSS alphabetic baseline,
 including half-leading and font-metric `line-height: normal`; `DOMTextGlyph.y`
@@ -79,8 +76,8 @@ drew `drawDOMText`/`createDOMTextTexture` text about half the leading too high
 (for example 11px for 72px text at `normal`). Both packages document
 agent-critical constraints in their public JSDoc.
 
-Release source is [2a7f4a4](https://github.com/agenticnoob/dom-webgl-workspace/commit/2a7f4a49a20e40a650e6fcc5861cd7e70c97b758)
-on `main`. The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39640965729)
+Release source is [8d15d8d](https://github.com/agenticnoob/dom-webgl-workspace/commit/8d15d8dfffd83fe1ae2db465653f10ec33116b03)
+on `main`. The [release workflow](https://github.com/agenticnoob/dom-webgl-workspace/actions/runs/39966993154)
 completed successfully after `npm-release` approval and verified registry
 integrity, exports, the exact core dependency and both distribution tags. Both
 packages carry SLSA provenance attestations.
@@ -153,8 +150,7 @@ browser-verified, committed and pushed states separate.
 
 ## Agent skill
 
-`skills/viselora-dom-webgl` targets `0.3.0-alpha.0` in source (the generated
-repository still carries the `0.2.0-alpha.2` skill) and is self-contained for
+`skills/viselora-dom-webgl` targets `0.3.0-alpha.0` and is self-contained for
 the `skills` CLI: three runnable recipes plus the one-take folder, `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
@@ -163,9 +159,11 @@ was pushed manually from `main` 702971f; `npx skills add agenticnoob/viselora-sk
 then installed the skill into Claude Code, Codex and Hermes in 7 seconds. The
 same install from this 237 MB workspace timed out while cloning.
 `sync-skill.yml` authenticates with a write-scoped deploy key
-(`SKILL_REPO_DEPLOY_KEY`). Its run on `main` 2a7f4a4 pushed
-[c866fec](https://github.com/agenticnoob/viselora-skills/commit/c866fec) with
-the `0.2.0-alpha.2` skill. The skills.sh listing is not verified.
+(`SKILL_REPO_DEPLOY_KEY`). Its run on `main` 8d15d8d pushed
+[b54b134](https://github.com/agenticnoob/viselora-skills/commit/b54b134) with
+the `0.3.0-alpha.0` skill. That run finished before it could be cancelled, so
+for the time the release waited for approval the skill named an unpublished
+version; publish the packages before merging a skill version change. The skills.sh listing is not verified.
 
 Three A/B rounds (256 Claude and codex runs) are summarized in the
 [evaluation summary](../evals/README.md). Latest result (round 3,
