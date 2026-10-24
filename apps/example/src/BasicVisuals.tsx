@@ -62,6 +62,7 @@ import {
   readSequenceCardGlow,
   readSequenceCardMotion,
 } from "./sequenceCardEffect";
+import type { FrameSequence } from "./frameSequence";
 import { useClonedModel } from "./useClonedModel";
 
 function usePresentation(id: string, retainText = false) {
@@ -651,12 +652,12 @@ export function VideoVisual({
 
 export function SequenceVisual({
   id,
-  frames,
+  sequence,
   progressKey,
   card,
 }: {
   readonly id: string;
-  readonly frames: readonly HTMLImageElement[];
+  readonly sequence: Pick<FrameSequence, "count" | "frameNear">;
   readonly progressKey: string;
   readonly card: RefObject<HTMLElement | null>;
 }) {
@@ -666,24 +667,24 @@ export function SequenceVisual({
     value.colorSpace = SRGBColorSpace;
     value.minFilter = LinearFilter;
     value.generateMipmaps = false;
+    // Sequence bitmaps are flipped while decoding.
+    value.flipY = false;
     return value;
   }, []);
   const { point, events } = useLocalPointer();
   useEffect(() => () => texture.dispose(), [texture]);
   useFrame(() => {
     const target = runtime.getTarget(id);
-    if (!target || !frames.length) return;
-    const image =
-      frames[
-        Math.min(
-          frames.length - 1,
-          Math.floor(
-            Math.max(0, runtime.progress.get(progressKey)) *
-              (frames.length - 1),
-          ),
-        )
-      ];
-    if (!image || image.naturalWidth === 0) return;
+    if (!target || sequence.count === 0) return;
+    const index = Math.min(
+      sequence.count - 1,
+      Math.floor(
+        Math.max(0, runtime.progress.get(progressKey)) * (sequence.count - 1),
+      ),
+    );
+    // Upload only when the frame changes.
+    const image = sequence.frameNear(index);
+    if (!image) return;
     if (texture.image !== image) {
       texture.image = image;
       texture.needsUpdate = true;

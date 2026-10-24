@@ -315,10 +315,10 @@ function SequenceExample() {
       <ExampleVisual
         id={id}
         visual={
-          resources.imageSequenceReady ? (
+          resources.imageSequence ? (
             <SequenceVisual
               id={id}
-              frames={resources.imageSequenceFrames}
+              sequence={resources.imageSequence}
               progressKey={progressKey}
               card={card}
             />
