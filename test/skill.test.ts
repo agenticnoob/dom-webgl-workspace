@@ -76,7 +76,7 @@ describe("React/R3F consumer skill", () => {
   test("states the constraints agents miss in the SKILL.md body", () => {
     // Agents often read only SKILL.md, so these must not live only in references.
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
-    expect(skill).toContain('"@viselora/dom-webgl": "0.3.0-alpha.0"');
+    expect(skill).toContain('"@viselora/dom-webgl": "0.3.0-alpha.1"');
     expect(skill).toContain("--save-exact");
     expect(skill).toContain("scripts/verify-consumer.mjs");
     expect(skill).toContain("scripts/browser-check.mjs");
@@ -277,7 +277,7 @@ export function Animation() { useThree(); useFrame(() => {}); return null; }
     const root = copyTemplate();
     const pkg = readJson(root, "package.json");
     pkg.dependencies["@viselora/dom-webgl"] =
-      "file:../viselora-dom-webgl-0.3.0-alpha.0.tgz";
+      "file:../viselora-dom-webgl-0.3.0-alpha.1.tgz";
     writeJson(root, "package.json", pkg);
     expect(run(root).status).toBe(0);
   });

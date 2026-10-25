@@ -9,7 +9,7 @@ metadata:
 
 # Viselora React/R3F Development
 
-Compatible package version: 0.3.0-alpha.0
+Compatible package version: 0.3.0-alpha.1
 
 This skill targets the React/R3F alpha API (breaking since 0.2; 0.3 adds
 offscreen sections, render quality and React 19.2). Install matching package
@@ -23,10 +23,10 @@ packages implement a different API. Check the repository
 ## Rules that are easy to get wrong
 
 1. **Pin Viselora exactly, without `^` or `~`.** `package.json` must say
-   `"@viselora/dom-webgl": "0.3.0-alpha.0"` (and the same for
+   `"@viselora/dom-webgl": "0.3.0-alpha.1"` (and the same for
    `@viselora/scroll-adapters` if used). `npm install` writes a caret by
    default, so use `--save-exact`:
-   `npm install --save-exact @viselora/dom-webgl@0.3.0-alpha.0`.
+   `npm install --save-exact @viselora/dom-webgl@0.3.0-alpha.1`.
    React 19.2, R3F 9 and Three.js 0.184–0.186 may use normal ranges.
 2. **Run the static verifier before finishing:**
    `node <skill-dir>/scripts/verify-consumer.mjs <project-root>`. It rejects

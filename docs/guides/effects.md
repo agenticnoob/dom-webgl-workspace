@@ -63,7 +63,7 @@ export function createTitleTexture(element: HTMLElement) {
 Line breaks follow CSS: a word wider than the line overflows on its own line
 unless `overflow-wrap` lets it break, `word-break: break-all | keep-all` is
 honoured, and CJK closing and opening punctuation stays off the start and end of
-a line (in source after 0.3.0-alpha.0, which split long words by character).
+a line (since 0.3.0-alpha.1; earlier versions split long words by character).
 
 Rebuild layout/texture after a target's content revision or dimensions change.
 Glyph x/y and drawing commands use CSS pixels; y is the top drawing position.
