@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-24 (0.3.0-alpha.0 publication).**
+**Last verified: 2026-10-26 (0.3.0-alpha.1 prepared, not yet published).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -49,13 +49,21 @@ The skill ships the recipes as copies kept identical to the showcase by a
 test, with a composed example. `apps/example/index.html` is now the Viselora
 site (built with the runtime and R6–R8, 59.6 fps on the UHD 630 at 1× and 4×
 CPU); the former index, every View-based demo on one page, is
-`effects.html`. Unreleased: `measureDOMText` line breaks now match Chrome's CSS
+`effects.html`. Since 0.3.0-alpha.1, `measureDOMText` line breaks match Chrome's CSS
 on long words, trailing letter spacing, `word-break` and CJK punctuation
 (10 of 10 browser cases, 4 of 10 before). Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are listed there.
 
 ## Release truth
+
+`@viselora/dom-webgl@0.3.0-alpha.1` and
+`@viselora/scroll-adapters@0.3.0-alpha.1` are **prepared and not yet
+published**: both packages, the apps, the lockfile and the skill name them. It fixes `measureDOMText` line
+breaking (long words, trailing letter spacing, `word-break`, CJK punctuation)
+and adds `wordBreak` and `overflowWrap` to `DOMTextLayout`. Its version commit
+is merged with `[skip ci]` so the skill sync waits until the packages are on
+the registry; run `sync-skill.yml` by hand after publishing.
 
 `@viselora/dom-webgl@0.3.0-alpha.0` and
 `@viselora/scroll-adapters@0.3.0-alpha.0` are **published** on the official npm
@@ -155,7 +163,7 @@ browser-verified, committed and pushed states separate.
 
 ## Agent skill
 
-`skills/viselora-dom-webgl` targets `0.3.0-alpha.0` and is self-contained for
+`skills/viselora-dom-webgl` targets `0.3.0-alpha.1` and is self-contained for
 the `skills` CLI: three runnable recipes, the one-take folder, the Hero Next
 component recipes (`recipes/hero/`, kept identical to `apps/example` by a test), `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated

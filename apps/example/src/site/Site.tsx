@@ -244,7 +244,7 @@ function SitePage({
 
       <main className="site" id="top" ref={main}>
         <section className="site-hero" data-chapter="hero">
-          <p className="site-label">React · three.js · 0.3.0-alpha.0</p>
+          <p className="site-label">React · three.js · 0.3.0-alpha.1</p>
           <WebGLTarget id="site-title" hideWhenReady>
             <h1 className="site-title">Viselora</h1>
           </WebGLTarget>
