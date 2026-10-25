@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-26 (0.3.0-alpha.1 prepared, not yet published).**
+**Last verified: 2026-10-26 (0.3.0-alpha.1 publication).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -58,18 +58,19 @@ are listed there.
 ## Release truth
 
 `@viselora/dom-webgl@0.3.0-alpha.1` and
-`@viselora/scroll-adapters@0.3.0-alpha.1` are **prepared and not yet
-published**: both packages, the apps, the lockfile and the skill name them. It fixes `measureDOMText` line
-breaking (long words, trailing letter spacing, `word-break`, CJK punctuation)
-and adds `wordBreak` and `overflowWrap` to `DOMTextLayout`. Its version commit
-is merged with `[skip ci]` so the skill sync waits until the packages are on
-the registry; run `sync-skill.yml` by hand after publishing.
+`@viselora/scroll-adapters@0.3.0-alpha.1` are **published** on the official npm
+registry with provenance (release run 40219043094 on `main` b390abd), and both
+`alpha` tags resolve to them. The separate `latest` tags remain at
+`0.1.0-alpha.0`, which implements the previous API; install `@alpha` or pin the
+exact 0.3 version.
 
-`@viselora/dom-webgl@0.3.0-alpha.0` and
-`@viselora/scroll-adapters@0.3.0-alpha.0` are **published** on the official npm
-registry, and both `alpha` tags resolve to them. The separate `latest` tags
-remain at `0.1.0-alpha.0`, which implements the previous API; install `@alpha`
-or pin the exact 0.3 version.
+0.3.0-alpha.1 fixes `measureDOMText` line breaking (long words, trailing letter
+spacing, `word-break`, CJK punctuation) and adds `wordBreak` and
+`overflowWrap` to `DOMTextLayout`. A fresh registry install matched Chrome's
+own line breaks in all 10 browser cases. Its version commit was merged with
+`[skip ci]`, so no workflow ran on that push; `sync-skill.yml` was run by hand
+after publication. Release that way: a skip token in a branch commit message
+also skips the pull request's checks, so put it only in the merge commit.
 
 0.3.0-alpha.0 adds offscreen sections, adaptive render quality and
 development diagnostics, and raises the React peer range to
@@ -177,7 +178,9 @@ same install from this 237 MB workspace timed out while cloning.
 [b54b134](https://github.com/agenticnoob/viselora-skills/commit/b54b134) with
 the `0.3.0-alpha.0` skill. That run finished before it could be cancelled, so
 for the time the release waited for approval the skill named an unpublished
-version; publish the packages before merging a skill version change. The skills.sh listing is not verified.
+version; publish the packages before merging a skill version change. For
+0.3.0-alpha.1 the sync ran by hand after publication and pushed
+[4595b68](https://github.com/agenticnoob/viselora-skills/commit/4595b68). The skills.sh listing is not verified.
 
 Three A/B rounds (256 Claude and codex runs) are summarized in the
 [evaluation summary](../evals/README.md). Latest result (round 3,
