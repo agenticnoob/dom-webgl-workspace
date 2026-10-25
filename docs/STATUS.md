@@ -49,7 +49,9 @@ The skill ships the recipes as copies kept identical to the showcase by a
 test, with a composed example. `apps/example/index.html` is now the Viselora
 site (built with the runtime and R6–R8, 59.6 fps on the UHD 630 at 1× and 4×
 CPU); the former index, every View-based demo on one page, is
-`effects.html`. Remaining items from the
+`effects.html`. Unreleased: `measureDOMText` line breaks now match Chrome's CSS
+on long words, trailing letter spacing, `word-break` and CJK punctuation
+(10 of 10 browser cases, 4 of 10 before). Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are listed there.
 

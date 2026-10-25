@@ -302,7 +302,7 @@ function SitePage({
           <div className="site-glyphs-pin">
             <p className="site-label">逐字 · GlyphScatter</p>
             <WebGLTarget id="site-glyphs" hideWhenReady>
-              <h2 className="site-glyphs-title">每个字都从 DOM 量出来</h2>
+              <h2 className="site-glyphs-title">每个字都从 DOM 量出来。</h2>
             </WebGLTarget>
             <p className="site-note">
               标题的字形由 measureDOMText 量出位置，画进一张图集，一次绘制完成。滚动时它们归位、停留，再从左到右碎成颗粒；指针靠近会把字推开。文字本身仍可选中、可读屏。

@@ -32,6 +32,10 @@ type TextStyle = {
   letterSpacing: number;
   wordSpacing: number;
   whiteSpace: "normal" | "nowrap" | "pre" | "pre-line" | "pre-wrap";
+  /** CSS `word-break`; `break-word` is read as `overflowWrap: "anywhere"`. */
+  wordBreak: "normal" | "break-all" | "keep-all";
+  /** Whether a word wider than the line may break between characters. */
+  overflowWrap: "normal" | "anywhere";
   textAlign: CanvasTextAlign;
   blockAlignment: "start" | "center" | "end";
   paddingTop: number;
@@ -205,6 +209,47 @@ function readBaselineOffset(layout: DOMTextLayout): number {
   return glyph ? glyph.baseline - glyph.y : layout.lineHeight;
 }
 
+// Close and open punctuation that CSS keeps off the start and end of a line.
+const noLineStart = /^[、。，．：；？！）〕〉》」』】〙〗｝］”’…‥・ー々ゝゞヽヾぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ]$/u;
+const noLineEnd = /[（〔〈《「『【〘〖｛［“‘]$/u;
+const cjk =
+  "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}\\u3000-\\u303F\\uFF00-\\uFFEF";
+const cjkChar = new RegExp(`[${cjk}]`, "gu");
+const cjkRun = new RegExp(`[${cjk}]+`, "gu");
+const otherRun = new RegExp(`[^\\s${cjk}]+`, "gu");
+const space = /^\s+$/u;
+
+/** Break opportunities CSS allows for this `word-break`, as unbreakable tokens. */
+function tokenize(paragraph: string, wordBreak: TextStyle["wordBreak"]): string[] {
+  const pattern = new RegExp(
+    [
+      wordBreak === "keep-all" ? cjkRun.source : cjkChar.source,
+      wordBreak === "break-all" ? `[^\\s${cjk}]` : otherRun.source,
+      "\\s+",
+    ].join("|"),
+    "gu",
+  );
+  const tokens: string[] = [];
+  for (const token of paragraph.match(pattern) ?? []) {
+    const previous = tokens.at(-1);
+    if (
+      previous !== undefined &&
+      !space.test(previous) &&
+      !space.test(token) &&
+      (noLineStart.test(Array.from(token)[0] ?? "") || noLineEnd.test(previous))
+    )
+      tokens[tokens.length - 1] = previous + token;
+    else tokens.push(token);
+  }
+  return tokens;
+}
+
+/**
+ * Measured widths come from canvas text, CSS widths from layout units; a line
+ * this much wider than the box still fits, as a `fit-content` box shows.
+ */
+const fitTolerance = 0.5;
+
 function wrapText(
   context: MeasuringContext,
   text: string,
@@ -222,23 +267,22 @@ function wrapText(
       : [text.replace(/\s+/g, " ").trim()];
   if (style.whiteSpace === "pre" || style.whiteSpace === "nowrap")
     return paragraphs;
+  const fits = (value: string) =>
+    measureLine(context, value, style) <= width + fitTolerance;
   const lines: string[] = [];
   for (const paragraph of paragraphs) {
-    const tokens =
-      paragraph.match(
-        /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[^\s\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|\s+/gu,
-      ) ?? [];
     let line = "";
-    for (const token of tokens) {
+    for (const token of tokenize(paragraph, style.wordBreak)) {
       if (!preserveWhitespace && !line && /^\s+$/.test(token)) continue;
-      if (line && measureLine(context, line + token, style) > width) {
+      if (line && !fits(line + token)) {
         lines.push(preserveWhitespace ? line : line.trimEnd());
         line = "";
         if (!preserveWhitespace && /^\s+$/.test(token)) continue;
       }
-      if (measureLine(context, token, style) > width) {
+      // A word wider than the line overflows unless CSS lets it break anywhere.
+      if (style.overflowWrap === "anywhere" && !fits(token)) {
         for (const char of Array.from(token)) {
-          if (line && measureLine(context, line + char, style) > width) {
+          if (line && !fits(line + char)) {
             lines.push(line);
             line = "";
           }
@@ -259,9 +303,10 @@ function measureLine(
   style: TextStyle,
 ): number {
   const characters = Array.from(text);
+  // Browsers add letter spacing after every character, the last one included.
   return (
     context.measureText(text).width +
-    Math.max(0, characters.length - 1) * style.letterSpacing +
+    characters.length * style.letterSpacing +
     characters.filter((char) => char === " ").length * style.wordSpacing
   );
 }
@@ -288,6 +333,8 @@ function readTextStyle(
   const metrics = readFontMetrics(context, text, fontSize);
   const textAlign = style?.textAlign;
   const whiteSpace = style?.whiteSpace;
+  const wordBreak = style?.wordBreak;
+  const overflowWrap = style?.overflowWrap || style?.getPropertyValue("word-wrap");
   const alignment = [
     style?.alignContent,
     style?.placeContent?.split(/\s+/)[0],
@@ -304,6 +351,14 @@ function readTextStyle(
       whiteSpace === "pre-line" ||
       whiteSpace === "pre-wrap"
         ? whiteSpace
+        : "normal",
+    wordBreak:
+      wordBreak === "break-all" || wordBreak === "keep-all" ? wordBreak : "normal",
+    overflowWrap:
+      overflowWrap === "anywhere" ||
+      overflowWrap === "break-word" ||
+      wordBreak === "break-word"
+        ? "anywhere"
         : "normal",
     textAlign:
       textAlign === "center" ||
