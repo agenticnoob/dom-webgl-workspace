@@ -186,6 +186,7 @@ ul {
 
 .site-hero-actions {
   display: grid;
+  min-width: 0;
   justify-items: start;
   gap: 16px;
 }
@@ -199,6 +200,8 @@ ul {
 }
 
 .site-command code {
+  /* A long command scrolls inside its box instead of widening the page. */
+  min-width: 0;
   overflow-x: auto;
   padding: 11px 14px;
   white-space: nowrap;
@@ -434,6 +437,7 @@ ul {
 
 .site-budget {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 48px;
   padding: 120px 0;
   border-top: 1px solid var(--blue);
@@ -493,6 +497,7 @@ ul {
 
 .site-catalog {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 48px;
   padding: 120px 0;
   border-top: 1px solid var(--blue);
@@ -580,6 +585,7 @@ ul {
 
 .site-install {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 40px;
   padding: 120px 0 40px;
   border-top: 1px solid var(--blue);
@@ -593,6 +599,7 @@ ul {
 
 .site-install-steps > div {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   justify-items: start;
   gap: 12px;
