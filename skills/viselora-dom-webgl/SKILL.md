@@ -1,6 +1,6 @@
 ---
 name: viselora-dom-webgl
-description: Build, migrate or debug React 19.2 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using @viselora/dom-webgl and @viselora/scroll-adapters, with copyable effect components (one-take camera rail, chapter transitions, intro reveal, particle forms, WebGL gallery, 3D product turntable, project room, perspective timeline, paper reader). Use when building an effects-heavy, immersive or award-style landing page, adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D (Lenis, GSAP ScrollTrigger), DOM fallback while models load, keeping WebGL fast on phones, or when code imports @viselora/*.
+description: Build, migrate or debug React 19.2 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using @viselora/dom-webgl and @viselora/scroll-adapters, with copyable effect components (one-take camera rail, chapter transitions, intro reveal, particle forms, WebGL gallery, 3D product turntable, DOM glyph scatter, pointer ink field, glass refraction title, project room, perspective timeline, paper reader). Use when building an effects-heavy, immersive or award-style landing page, adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D (Lenis, GSAP ScrollTrigger), DOM fallback while models load, keeping WebGL fast on phones, or when code imports @viselora/*.
 license: MIT
 metadata:
   author: agenticnoob
@@ -98,6 +98,9 @@ quality tier. Copy the whole [one-take/](recipes/one-take/) folder;
 | A CSS Grid gallery whose images become planes with a hover reveal and scroll bend | `GalleryGrid`, `GalleryPlanes` in [GalleryReveal.tsx](recipes/one-take/GalleryReveal.tsx) |
 | Particles that morph between shapes, including a DOM word, and part around the pointer | `ParticleForm` in [ParticleForm.tsx](recipes/one-take/ParticleForm.tsx) |
 | A product turned by scroll, with stops and DOM hotspot labels | `ProductTurntable` in [ProductTurntable.tsx](recipes/one-take/ProductTurntable.tsx) |
+| A heading whose glyphs fly into place, then dissolve into grain, as the page scrolls | `GlyphScatter` in [GlyphScatter.tsx](recipes/one-take/GlyphScatter.tsx) |
+| Ink in water behind the page that follows the pointer | `InkField` in [InkField.tsx](recipes/one-take/InkField.tsx) |
+| A heading as glass that refracts the page, its background grid and the ink | `GlassTitle` in [GlassTitle.tsx](recipes/one-take/GlassTitle.tsx) |
 
 Site components from Hero Next draw through Drei `View`s into one
 `View.Port`; set up the host in [recipes/hero/README.md](recipes/hero/README.md)

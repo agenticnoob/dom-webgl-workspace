@@ -199,6 +199,18 @@
 DOM 实际位置测量；PBR 产品需要色调映射（`canvas.flat: false`）；预加载的画廊用
 `mount="eager"`。
 
+## 11. 第二批实现记录（2026-10-25）
+
+R6～R8 来自第 6 节候选，组成 `apps/example/specimen.html`（虚构字体工坊的样张页）：
+
+- R6 `GlyphScatter`（DOM 逐字动画）：字形用 `measureDOMText` 量出、按格画进图集，一次实例化
+  绘制；原位留一层淡色压印，散开和溶解时目标框里仍有像素，开发诊断不误报。
+- R7 `InkField`（共享流体光标场）：半浮点渲染目标上的 stable fluids，网格 128 / 96 / 64；
+  最后一笔约 6 秒后停止模拟；不支持半浮点渲染目标时不绘制。
+- R8 `GlassTitle`（玻璃折射标题）：不做第二次场景渲染，在着色器里重建背后的纸色、CSS 基线
+  网格和 R7 的墨，再按高度图法线折射；`low` 档关闭色散、折射减半。
+- 地图和地球仍未实现。
+
 ## 来源
 
 - Awwwards WebGL 标签：https://www.awwwards.com/websites/webgl/

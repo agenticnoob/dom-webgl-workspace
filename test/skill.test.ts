@@ -123,6 +123,9 @@ describe("React/R3F consumer skill", () => {
       "GalleryReveal.tsx",
       "ParticleForm.tsx",
       "ProductTurntable.tsx",
+      "GlyphScatter.tsx",
+      "InkField.tsx",
+      "GlassTitle.tsx",
     ]) {
       expect(readFileSync(resolve(recipes, file), "utf8"), file).toBe(
         readFileSync(resolve(showcase, file), "utf8"),

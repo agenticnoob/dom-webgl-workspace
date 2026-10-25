@@ -30,6 +30,9 @@ composes them into one page. Each file's header states its budget at the
 | [GalleryReveal.tsx](../recipes/one-take/GalleryReveal.tsx) | CSS Grid cards replaced by planes; cell hover reveal and scroll bend | One draw call and two textures per card |
 | [ParticleForm.tsx](../recipes/one-take/ParticleForm.tsx) | Points morph between shapes, including DOM text glyphs, and part around the pointer | One draw call, 60k points |
 | [ProductTurntable.tsx](../recipes/one-take/ProductTurntable.tsx) | Scroll-driven turntable with stops and DOM hotspot labels projected from 3D | The model's draw calls, up to 300k triangles |
+| [GlyphScatter.tsx](../recipes/one-take/GlyphScatter.tsx) | A DOM heading's glyphs assemble, hold and dissolve into grain with scroll, over a faint impression that keeps the box drawn | Two draw calls, one glyph atlas |
+| [InkField.tsx](../recipes/one-take/InkField.tsx) | Pointer-stirred ink (stable fluids) behind the page; stops simulating once the ink fades; draws nothing without half-float targets | About 25 small passes per frame while moving |
+| [GlassTitle.tsx](../recipes/one-take/GlassTitle.tsx) | A DOM heading as glass refracting a rebuilt backdrop (page colour, CSS grid, InkField's dye) instead of a second scene render | One draw call, three samples per pixel |
 
 Rules they follow, which also apply to new effects:
 

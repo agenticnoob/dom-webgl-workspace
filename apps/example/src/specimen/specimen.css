@@ -1,0 +1,166 @@
+:root {
+  --paper: #e6eaed;
+  --ink: #18203a;
+  --ink-muted: #5b6478;
+  --proof: #d7263d;
+  --rule: rgba(24, 32, 58, 0.09);
+  --display: "Unbounded", "Arial Black", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --body: "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+}
+
+/* GlassTitle rebuilds this background: keep it on body and in sync with Specimen.tsx. */
+body {
+  margin: 0;
+  background-color: var(--paper);
+  background-image: linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+  background-size: 100% 32px;
+  color: var(--ink);
+  font-family: var(--body);
+}
+
+.specimen {
+  padding: 0 clamp(16px, 5vw, 88px);
+}
+
+.specimen-label {
+  margin: 0;
+  color: var(--proof);
+  font: 500 12px/32px var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.specimen-title-block {
+  display: flex;
+  min-height: max(640px, 100svh);
+  flex-direction: column;
+  justify-content: center;
+}
+
+.specimen-title {
+  margin: 0;
+  /* One word: CSS will not break it, so it must fit the column. */
+  font: 900 clamp(56px, 14vw, 232px) / 1 var(--display);
+  letter-spacing: -0.02em;
+}
+
+.specimen-lead {
+  max-width: 30rem;
+  margin: 32px 0 0;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 32px;
+}
+
+.specimen-glyphs {
+  min-height: 260vh;
+}
+
+.specimen-glyphs-sticky {
+  position: sticky;
+  top: 22vh;
+  max-width: 1100px;
+}
+
+.specimen-pangram {
+  margin: 16px 0 0;
+  font: 700 clamp(40px, 7vw, 104px) / 1.08 var(--display);
+  letter-spacing: -0.01em;
+}
+
+.specimen-note {
+  max-width: 28rem;
+  margin: 32px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 32px;
+}
+
+.specimen-sheet {
+  display: grid;
+  gap: 64px;
+  padding: 96px 0;
+  border-top: 1px solid var(--ink);
+}
+
+.specimen-weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 32px;
+}
+
+.specimen-weight {
+  margin: 0;
+  font: 48px/64px var(--display);
+}
+
+.specimen-weight figcaption,
+.specimen-size-label {
+  color: var(--ink-muted);
+  font: 400 12px/32px var(--mono);
+}
+
+.specimen-sizes {
+  display: grid;
+}
+
+.specimen-size {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: baseline;
+  margin: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--display);
+  white-space: nowrap;
+}
+
+.specimen-charset {
+  max-width: 900px;
+  margin: 0;
+  font: 500 clamp(22px, 3vw, 36px) / 1.4 var(--display);
+  word-break: break-all;
+}
+
+.specimen-outro {
+  display: grid;
+  min-height: 70vh;
+  place-content: center;
+  justify-items: center;
+  gap: 32px;
+  text-align: center;
+}
+
+.specimen-signoff {
+  margin: 0;
+  font: 900 clamp(64px, 12vw, 180px) / 1 var(--display);
+}
+
+.specimen-download {
+  padding: 12px 24px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  font: 500 14px/1 var(--mono);
+  text-decoration: none;
+}
+
+.specimen-download:hover {
+  border-color: var(--proof);
+  color: var(--proof);
+}
+
+.specimen-download:focus-visible {
+  outline: 2px solid var(--proof);
+  outline-offset: 4px;
+}
+
+@media (max-width: 720px) {
+  .specimen-glyphs {
+    min-height: 220vh;
+  }
+
+  .specimen-size {
+    grid-template-columns: 48px 1fr;
+  }
+}

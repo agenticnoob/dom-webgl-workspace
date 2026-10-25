@@ -285,5 +285,21 @@ frames fell by half or more. Overall fps did not change: with uploads gone,
 the row is bound by work outside script (layout of the pinned section,
 painting and compositing), which this change does not address.
 
+## Specimen (2026-10-25, unreleased source)
+
+`specimen.html` composes R6–R8 (glyph scatter, ink field, glass titles) with
+the runtime defaults. UHD 630, 1440×900, device scale 2:
+
+| Run | CPU | fps | p95 ms | Frames > 50 ms |
+| --- | ---: | ---: | ---: | ---: |
+| Scripted scroll, 40 s, pointer still | 1× | 60.0 | 18.5 | 0 |
+| Scripted scroll, 40 s, pointer still | 4× | 60.0 | 18.0 | 1 |
+| Pointer stirring the ink over the title for 8 s | 1× | 59.4 | 18.5 | 0 |
+| Pointer stirring the ink over the title for 8 s | 4× | 59.4 | 18.1 | 0 |
+
+The scripted scroll never moves the pointer, so the ink simulation is idle
+there; the stirring rows run it with both glass titles in view. Development
+diagnostics reported no warnings while scrolling the page.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results.

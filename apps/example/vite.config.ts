@@ -8,6 +8,7 @@ export default defineConfig({
         main: "index.html",
         bench: "bench.html",
         showcase: "showcase.html",
+        specimen: "specimen.html",
       },
     },
   },
