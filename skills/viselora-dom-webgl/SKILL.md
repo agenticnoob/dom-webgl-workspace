@@ -1,6 +1,6 @@
 ---
 name: viselora-dom-webgl
-description: Build, migrate or debug React 19.2 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using the @viselora/dom-webgl and @viselora/scroll-adapters packages. Use when adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D progress (Lenis, GSAP ScrollTrigger), DOM fallback while models load, or when code imports @viselora/*.
+description: Build, migrate or debug React 19.2 / Next.js pages that sync semantic DOM with one React Three Fiber (R3F) + Three.js WebGL scene using @viselora/dom-webgl and @viselora/scroll-adapters, with copyable effect components (one-take camera rail, chapter transitions, intro reveal, particle forms, WebGL gallery, 3D product turntable, project room, perspective timeline, paper reader). Use when building an effects-heavy, immersive or award-style landing page, adding WebGL/3D visuals that follow DOM elements, DOM text rendered as textures, scroll-driven 3D (Lenis, GSAP ScrollTrigger), DOM fallback while models load, keeping WebGL fast on phones, or when code imports @viselora/*.
 license: MIT
 metadata:
   author: agenticnoob
@@ -62,19 +62,57 @@ packages implement a different API. Check the repository
    { position: [0, 0, 1000], far: 4000 } }}` one world unit is one CSS pixel
    and the centre of a target is
    `x = left + width / 2 - size.width / 2`, `y = size.height / 2 - top - height / 2`.
+10. **Let the runtime manage cost.** Wrap each chapter or DOM-bound visual in
+   `<WebGLSection target={id}>` or `<WebGLSection progress={range}>` so it
+   stops updating and drawing offscreen and compiles shaders before it shows.
+   Keep lights, environment and camera rig outside sections, and put Suspense
+   inside them. Do not fix `canvas.dpr`: the runtime picks the pixel ratio from
+   a per-tier budget. Scale optional work (particle counts, raymarch steps) by
+   `useRenderQuality().tier`. Scrub image sequences from pre-flipped
+   `ImageBitmap`s, not re-uploaded `<img>` elements. Treat every `[viselora]`
+   console warning as a defect. Details:
+   [lifecycle and debug](references/api-lifecycle-debug.md).
 
 ## Recipes: copy, then adapt
 
-Each file typechecks against the template and contains a usage example.
-Copy it into the consumer's `src/` instead of rewriting the pattern.
+Each recipe typechecks against the template and contains a usage example.
+Copy it into the consumer's `src/` instead of rewriting the pattern. Pick by
+what the page needs; read only the recipe you use.
 
-| Pattern | Recipe |
+Patterns:
+
+| Page need | Recipe |
 | --- | --- |
 | GLB model that follows a DOM card, fallback while loading, load error keeps fallback, owned disposal | [recipes/ModelTarget.tsx](recipes/ModelTarget.tsx) |
 | Scroll progress of a story section mapped to deterministic keyframes (reverse scroll and resize safe) | [recipes/ScrollStory.tsx](recipes/ScrollStory.tsx) |
 | DOM text texture with a wave shader, rebuilt on `target.revision`, aligned with the DOM baseline | [recipes/TextWave.tsx](recipes/TextWave.tsx) |
-| Site components from Hero Next: fan-out paper reader, four-wall project room, breathing sculpture with long-press theme change, scroll-turned model story, face portal and relief portal, pointer-following previews, perspective timeline. They share one Drei `View.Port` host | [recipes/hero/README.md](recipes/hero/README.md) (copy a module folder plus `shared/`) |
-| One-take page: camera rail, chapter veils, intro reveal, particle form, grid gallery, product turntable, each a `WebGLSection` scaled by quality tier | [recipes/one-take/OneTakeExample.tsx](recipes/one-take/OneTakeExample.tsx) (copy the whole folder) |
+
+One-take components share the page camera; each is a `WebGLSection` scaled by
+quality tier. Copy the whole [one-take/](recipes/one-take/) folder;
+[OneTakeExample.tsx](recipes/one-take/OneTakeExample.tsx) composes them.
+
+| Page need | Component |
+| --- | --- |
+| The whole page as one continuous camera move, with a cell-dissolve veil between chapters | `OneTakeRail`, `ChapterVeil` in [OneTakeRail.tsx](recipes/one-take/OneTakeRail.tsx) |
+| An intro that clears cell by cell once the first scene can draw | `IntroReveal` in [IntroReveal.tsx](recipes/one-take/IntroReveal.tsx) |
+| A CSS Grid gallery whose images become planes with a hover reveal and scroll bend | `GalleryGrid`, `GalleryPlanes` in [GalleryReveal.tsx](recipes/one-take/GalleryReveal.tsx) |
+| Particles that morph between shapes, including a DOM word, and part around the pointer | `ParticleForm` in [ParticleForm.tsx](recipes/one-take/ParticleForm.tsx) |
+| A product turned by scroll, with stops and DOM hotspot labels | `ProductTurntable` in [ProductTurntable.tsx](recipes/one-take/ProductTurntable.tsx) |
+
+Site components from Hero Next draw through Drei `View`s into one
+`View.Port`; set up the host in [recipes/hero/README.md](recipes/hero/README.md)
+and copy a module folder plus `shared/`. Use one host style per page: either
+one-take components or `View` components (mixing them is untested).
+
+| Page need | Component and module |
+| --- | --- |
+| Articles fanned out on a circular index that open as perforated paper cards | `PaperReader`, [hero/paper-reader](recipes/hero/paper-reader/README.md) |
+| Four projects on the walls of a room that turns at the pointer edge | `ProjectRoom`, [hero/project-room](recipes/hero/project-room/README.md) |
+| A breathing sculpture with pointer parallax and rim light; optional long-press palette change | `InteractiveSculpture`, [hero/spatial](recipes/hero/spatial/README.md) |
+| Chapters on the faces of a portrait that hand off to DOM, optionally from a GLB relief | `FacePortal`, [hero/spatial](recipes/hero/spatial/README.md) |
+| A model turned once by scroll while paragraphs type and avoid it | `ModelStory`, [hero/model-story](recipes/hero/model-story/README.md) |
+| A link list with pointer-following image previews (no WebGL) | `PointerPreviewDirectory`, [hero/pointer-preview](recipes/hero/pointer-preview/README.md) |
+| Records flown past in perspective at scroll speed | `PerspectiveTimeline`, [hero/perspective-timeline](recipes/hero/perspective-timeline/README.md) |
 
 ## Workflow
 

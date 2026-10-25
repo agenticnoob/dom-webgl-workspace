@@ -90,6 +90,8 @@ describe("React/R3F consumer skill", () => {
     expect(skill).toContain("0.2.0-alpha.0 drew text about half the leading too high");
     expect(skill).toMatch(/`target\.revision`.+mutable/s);
     expect(skill).toContain("half-leading");
+    expect(skill).toContain("<WebGLSection target={id}>");
+    expect(skill).toContain("useRenderQuality().tier");
     for (const recipe of ["ModelTarget.tsx", "ScrollStory.tsx", "TextWave.tsx"]) {
       expect(skill).toContain(`](recipes/${recipe})`);
     }
