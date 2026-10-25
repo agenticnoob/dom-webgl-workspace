@@ -46,7 +46,10 @@ GPUs and with 4× CPU throttling, and 58 fps on a Huawei P30, where sections
 took the benchmark page from 25 to 48 fps. On that phone's 0.23 MP viewport
 the pixel budgets never lower the DPR, so only work scaled by tier changes.
 The skill ships the recipes as copies kept identical to the showcase by a
-test, with a composed example. Remaining items from the
+test, with a composed example. `apps/example/index.html` is now the Viselora
+site (built with the runtime and R6–R8, 59.6 fps on the UHD 630 at 1× and 4×
+CPU); the former index, every View-based demo on one page, is
+`effects.html`. Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are listed there.
 

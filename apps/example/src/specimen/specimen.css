@@ -164,3 +164,18 @@ body {
     grid-template-columns: 48px 1fr;
   }
 }
+
+/* Back to the Viselora site. */
+.specimen-home {
+  position: fixed;
+  z-index: 5;
+  top: 16px;
+  left: 16px;
+  color: var(--ink-muted);
+  font: 500 12px/1 var(--mono);
+  text-decoration: none;
+}
+
+.specimen-home:hover {
+  color: var(--proof);
+}

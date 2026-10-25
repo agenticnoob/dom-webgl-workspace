@@ -303,3 +303,24 @@ diagnostics reported no warnings while scrolling the page.
 
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results.
+
+## Site (2026-10-25, unreleased source)
+
+`index.html` is the Viselora site: the two-plate register title, the layer
+stack, GlyphScatter, InkField and GlassTitle on one page, plus a readout of
+the runtime's own debug state. `--page index.html`, 60 s, UHD 630, 1440×900,
+device scale 2, runtime defaults:
+
+| CPU | fps | p95 ms | Frames > 50 ms | Long Tasks | Final tier |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1× | 59.6 | 18.5 | 2 | 2 | `high`, DPR 1.76 |
+| 4× | 59.6 | 18.3 | 3 | 2 | — |
+
+A first 4× run gave 55.6 fps (hero chapter 47.4 fps, p95 47.8 ms): the title
+wrote its offset readout into the DOM on every frame, a layout each time.
+Writing it at most ten times a second, and republishing debug state twice a
+second, removed the difference. `scroll-behavior: smooth` on the page also
+stopped the benchmark's scripted scrolling, so the site does not set it.
+
+Limits: one run per row; the scripted scroll never moves the pointer, so the
+ink simulation stays idle.

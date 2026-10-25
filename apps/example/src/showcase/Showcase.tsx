@@ -275,6 +275,9 @@ function ShowcasePage({
   }, [onLayout]);
   return (
     <main className="showcase-page" ref={main}>
+      <a className="showcase-home" href="/">
+        ← Viselora
+      </a>
       <section
         className="showcase-block showcase-intro"
         data-chapter="intro"

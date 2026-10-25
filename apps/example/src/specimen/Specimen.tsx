@@ -188,6 +188,9 @@ function SpecimenPage({ onLayout }: { readonly onLayout: (layout: SpecimenLayout
 
   return (
     <main className="specimen" id="top" ref={main}>
+      <a className="specimen-home" href="/">
+        ← Viselora
+      </a>
       <section className="specimen-title-block" data-chapter="title">
         <p className="specimen-label">Halden 字体工坊 · 新字体</p>
         <WebGLTarget id="specimen-title" hideWhenReady>
