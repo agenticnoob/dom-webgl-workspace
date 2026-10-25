@@ -30,7 +30,7 @@ import {
   type ShaderMaterial,
 } from "three";
 
-import { useClonedModel } from "../useClonedModel";
+import { useClonedModel } from "../recipes/shared/useClonedModel";
 import type { BenchController } from "./benchController";
 import {
   benchProgress,

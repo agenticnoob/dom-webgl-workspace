@@ -195,9 +195,14 @@ one page with the runtime's defaults (sections, warmup, adaptive quality).
 
 Every chapter stays above 56 fps. The stall frames (up to 160 ms) fall in the
 particle chapter while the eagerly mounted gallery uploads its 16 textures,
-two per frame; a per-frame upload budget by size rather than count would
-spread them further. On the UHD 630 those stalls also move the quality tier
-up and down several times. In development, scrolling the page produced no
+two per frame. On the UHD 630 those stalls also move the quality tier up and
+down several times.
+
+Uploading by a 2 MP pixel budget per frame instead of two textures did not
+reduce them (A/B on the UHD 630, 2026-10-24, one 60 s run each): stall frames
+went from 6 to 8 at 1× CPU and from 7 to 9 at 4×, with the longest frame about
+160 ms either way. The stalls are therefore not the upload count; the change
+was not kept. In development, scrolling the page produced no
 runtime warnings.
 
 ## Huawei P30 (2026-10-23, unreleased source)
@@ -262,5 +267,60 @@ budget. The run does not isolate whether the element's decode or the flip
 on upload is the cost. Decoded bitmaps hold their pixels: 114 full frames are
 about 660 MB, half-size frames about 160 MB.
 
+The example's own sequence row (454 frames) now keeps the WebP files as blobs
+and decodes a window of frames around the current one to 1280×720 bitmaps
+(`apps/example/src/frameSequence.ts`, at most about 17 open). Scrubbing the
+pinned row forward and back in 12 s on the UHD 630 (2026-10-24):
+
+| Build | CPU | fps | p95 ms | Frames > 50 ms | Longest frame ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `HTMLImageElement` frames | 1× | 34.8 | 83.4 | 41 | 466.0 |
+| Bitmap window | 1× | 33.0 | 116.9 | 49 | 250.2 |
+| `HTMLImageElement` frames | 4× | 16.6 | 202.0 | 44 | 635.1 |
+| Bitmap window | 4× | 16.4 | 182.9 | 70 | 201.5 |
+
+A CPU profile of the 4× scrub put 83.5% of main-thread samples in
+`texSubImage2D` with element frames and 1.7% with bitmaps, and the longest
+frames fell by half or more. Overall fps did not change: with uploads gone,
+the row is bound by work outside script (layout of the pinned section,
+painting and compositing), which this change does not address.
+
+## Specimen (2026-10-25, unreleased source)
+
+`specimen.html` composes R6–R8 (glyph scatter, ink field, glass titles) with
+the runtime defaults. UHD 630, 1440×900, device scale 2:
+
+| Run | CPU | fps | p95 ms | Frames > 50 ms |
+| --- | ---: | ---: | ---: | ---: |
+| Scripted scroll, 40 s, pointer still | 1× | 60.0 | 18.5 | 0 |
+| Scripted scroll, 40 s, pointer still | 4× | 60.0 | 18.0 | 1 |
+| Pointer stirring the ink over the title for 8 s | 1× | 59.4 | 18.5 | 0 |
+| Pointer stirring the ink over the title for 8 s | 4× | 59.4 | 18.1 | 0 |
+
+The scripted scroll never moves the pointer, so the ink simulation is idle
+there; the stirring rows run it with both glass titles in view. Development
+diagnostics reported no warnings while scrolling the page.
+
 Limits: one run per row; Chromium CPU throttling does not model a phone GPU;
 the dual-GPU laptop and its display settings affect results.
+
+## Site (2026-10-25, unreleased source)
+
+`index.html` is the Viselora site: the two-plate register title, the layer
+stack, GlyphScatter, InkField and GlassTitle on one page, plus a readout of
+the runtime's own debug state. `--page index.html`, 60 s, UHD 630, 1440×900,
+device scale 2, runtime defaults:
+
+| CPU | fps | p95 ms | Frames > 50 ms | Long Tasks | Final tier |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 1× | 59.6 | 18.5 | 2 | 2 | `high`, DPR 1.76 |
+| 4× | 59.6 | 18.3 | 3 | 2 | — |
+
+A first 4× run gave 55.6 fps (hero chapter 47.4 fps, p95 47.8 ms): the title
+wrote its offset readout into the DOM on every frame, a layout each time.
+Writing it at most ten times a second, and republishing debug state twice a
+second, removed the difference. `scroll-behavior: smooth` on the page also
+stopped the benchmark's scripted scrolling, so the site does not set it.
+
+Limits: one run per row; the scripted scroll never moves the pointer, so the
+ink simulation stays idle.

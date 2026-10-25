@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import React, { useLayoutEffect, useRef } from "react";
 import { type Mesh, type ShaderMaterial, type Texture } from "three";
 import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
-import { updateUniforms } from "../../nativeMaterials";
+import { updateUniforms } from "../shared/nativeMaterials";
 import { createPaperReaderArtwork } from "./artwork";
 import { resolvePaperReaderFrame } from "./frame";
 import type { PaperReaderContent, PaperReaderPalette } from "./model";

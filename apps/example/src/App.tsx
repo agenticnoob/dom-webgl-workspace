@@ -7,6 +7,7 @@ import {
   WebGLScrollRuntime,
 } from "@viselora/scroll-adapters/react";
 import { EffectDescription } from "./EffectDescription";
+import { EffectsGroup, EffectsNav } from "./EffectsGroup";
 import { exampleSmoothScrollOptions } from "./exampleSmoothScroll";
 import { useExampleResources } from "./exampleResourceScheduler";
 import { ExampleVisual } from "./ExampleVisual";
@@ -140,17 +141,21 @@ export default function App() {
       }
     >
       <main className="example-shell">
+        <EffectsNav />
         <section className="example-intro">
-          <p className="example-kicker">R3F / Three.js</p>
+          <p className="example-kicker">Viselora 效果库</p>
           <h1>原生场景与效果，Runtime 管理页面协调。</h1>
         </section>
         <div className="example-stack">
+          <EffectsGroup id="surfaces" />
           <SnapshotElementExamples />
+          <EffectsGroup id="stage" />
           <ManagedMeshExample />
           <ManagedModelAnimationExample />
           <ManagedTimelineExample />
           <ManagedInteractionExample />
           <ManagedPhysicsExample />
+          <EffectsGroup id="text" />
           {textRows.map((row) => (
             <section className="example-row" key={row.id}>
               <EffectDescription source="DOM → CanvasTexture" title={row.title}>
@@ -170,6 +175,7 @@ export default function App() {
               </ExampleVisual>
             </section>
           ))}
+          <EffectsGroup id="media" />
           {mediaRows.map((row) => (
             <section className="example-row" key={row.id}>
               <EffectDescription source="Texture" title={row.title}>
@@ -241,7 +247,10 @@ export default function App() {
               </section>
             );
           })}
+          <EffectsGroup id="scroll" />
           <SequenceExample />
+          <PinnedScrollExample />
+          <EffectsGroup id="models" />
           {(["spin", "float", "glow"] as const).map((mode) => {
             const id = `example.model.${mode}`;
             const src = mode === "glow" ? "/models/4.glb" : "/models/hero.glb";
@@ -286,7 +295,7 @@ export default function App() {
               </section>
             );
           })}
-          <PinnedScrollExample />
+          <EffectsGroup id="site" />
           <RecipeExamples />
         </div>
       </main>
@@ -315,10 +324,10 @@ function SequenceExample() {
       <ExampleVisual
         id={id}
         visual={
-          resources.imageSequenceReady ? (
+          resources.imageSequence ? (
             <SequenceVisual
               id={id}
-              frames={resources.imageSequenceFrames}
+              sequence={resources.imageSequence}
               progressKey={progressKey}
               card={card}
             />

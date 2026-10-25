@@ -10,6 +10,14 @@ entrypoints and ends with a usage example.
 | [ScrollStory.tsx](../recipes/ScrollStory.tsx) | Story section progress from its live target rect, piecewise keyframes, no clock or damping, `frameloop: "demand"` |
 | [TextWave.tsx](../recipes/TextWave.tsx) | `createDOMTextTexture` aligned with the DOM baseline, rebuild on polled `target.revision`, deferred disposal, vertex wave, reduced motion |
 
+Site component recipes from Hero Next live in [hero/](../recipes/hero/README.md):
+nine demonstrations in six modules (`paper-reader`, `project-room`, `spatial`,
+`model-story`, `pointer-preview`, `perspective-timeline`). They draw through Drei
+`View`s into one `View.Port` and need `@react-three/drei` and
+`react-error-boundary`, which the template includes. Each module README gives
+its typed inputs, a complete example, fallback and ownership; copy the module
+folder together with `shared/`.
+
 One-take recipes live in [one-take/](../recipes/one-take/) and share
 `screenSpace.ts`; [OneTakeExample.tsx](../recipes/one-take/OneTakeExample.tsx)
 composes them into one page. Each file's header states its budget at the
@@ -22,6 +30,9 @@ composes them into one page. Each file's header states its budget at the
 | [GalleryReveal.tsx](../recipes/one-take/GalleryReveal.tsx) | CSS Grid cards replaced by planes; cell hover reveal and scroll bend | One draw call and two textures per card |
 | [ParticleForm.tsx](../recipes/one-take/ParticleForm.tsx) | Points morph between shapes, including DOM text glyphs, and part around the pointer | One draw call, 60k points |
 | [ProductTurntable.tsx](../recipes/one-take/ProductTurntable.tsx) | Scroll-driven turntable with stops and DOM hotspot labels projected from 3D | The model's draw calls, up to 300k triangles |
+| [GlyphScatter.tsx](../recipes/one-take/GlyphScatter.tsx) | A DOM heading's glyphs assemble, hold and dissolve into grain with scroll, over a faint impression that keeps the box drawn | Two draw calls, one glyph atlas |
+| [InkField.tsx](../recipes/one-take/InkField.tsx) | Pointer-stirred ink (stable fluids) behind the page; stops simulating once the ink fades; draws nothing without half-float targets | About 25 small passes per frame while moving |
+| [GlassTitle.tsx](../recipes/one-take/GlassTitle.tsx) | A DOM heading as glass refracting a rebuilt backdrop (page colour, CSS grid, InkField's dye) instead of a second scene render | One draw call, three samples per pixel |
 
 Rules they follow, which also apply to new effects:
 

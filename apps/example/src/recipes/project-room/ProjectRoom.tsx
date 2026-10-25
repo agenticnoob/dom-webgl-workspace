@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, type CSSProperties } from "react";
 import { OrthographicCamera, View } from "@react-three/drei";
 import { ProjectRoomSurface } from "./ProjectRoomSurface";
-import { useRuntimeReady } from "../../useRuntimeReady";
+import { useRuntimeReady } from "../shared/useRuntimeReady";
 import { ProjectRoomControls } from "./ProjectRoomControls";
 import { defaultProjectRoomPalette, projectRoomColors } from "./program";
 import { createProjectRoomStore, validateProjectRoomItems } from "./room";

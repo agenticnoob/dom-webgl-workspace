@@ -1,40 +1,29 @@
 import { useEffect, useState } from "react";
 
+import { createFrameSequence, type FrameSequence } from "./frameSequence";
+
 export type ExampleResourceState = {
-  readonly imageSequenceFrames: readonly HTMLImageElement[];
+  readonly imageSequence: FrameSequence | undefined;
   readonly imageSequenceReady: boolean;
 };
 
 const imageSequenceFrameCount = 454;
-const imageSequenceConcurrency = 6;
+// The sources are 1600×900; the row draws them at about this size.
+const imageSequenceSize = { width: 1280, height: 720 };
 
-type ExampleResourceLoad = {
-  readonly imageSequenceReady: Promise<readonly HTMLImageElement[]>;
-  readonly all: Promise<{
-    readonly imageSequenceFrames: readonly HTMLImageElement[];
-  }>;
-};
-
-let resourceLoad: ExampleResourceLoad | undefined;
+let imageSequence: FrameSequence | undefined;
 
 export function useExampleResources(): ExampleResourceState {
   const [state, setState] = useState<ExampleResourceState>({
-    imageSequenceFrames: [],
+    imageSequence: undefined,
     imageSequenceReady: false,
   });
 
   useEffect(() => {
     let active = true;
-    const resources = startExampleResourceLoad();
-
-    resources.imageSequenceReady.then((imageSequenceFrames) => {
-      if (active) {
-        setState((current) => ({
-          ...current,
-          imageSequenceFrames,
-          imageSequenceReady: true,
-        }));
-      }
+    const sequence = startExampleResourceLoad();
+    void sequence.ready.then(() => {
+      if (active) setState({ imageSequence: sequence, imageSequenceReady: true });
     });
     return () => {
       active = false;
@@ -44,96 +33,18 @@ export function useExampleResources(): ExampleResourceState {
   return state;
 }
 
-export function loadExampleResources(): Promise<{
-  readonly imageSequenceFrames: readonly HTMLImageElement[];
-}> {
-  return startExampleResourceLoad().all;
-}
-
-function startExampleResourceLoad(): ExampleResourceLoad {
-  if (resourceLoad) {
-    return resourceLoad;
-  }
-
-  const imageSequence = loadImageSequenceFrames({
-    count: imageSequenceFrameCount,
-    concurrency: imageSequenceConcurrency,
-    srcForFrame(frame) {
-      return `/example/bg-sequence/frame_${String(frame).padStart(4, "0")}.webp`;
-    },
+/**
+ * Shared for the page's lifetime: remounting the row reuses the fetched frames.
+ * Created on first use after mount, never during render or SSR.
+ */
+export function startExampleResourceLoad(): FrameSequence {
+  imageSequence ??= createFrameSequence({
+    urls: Array.from(
+      { length: imageSequenceFrameCount },
+      (_, index) =>
+        `/example/bg-sequence/frame_${String(index + 1).padStart(4, "0")}.webp`,
+    ),
+    ...imageSequenceSize,
   });
-  const all = imageSequence.complete.then((frames) => ({
-    imageSequenceFrames: frames,
-  }));
-
-  resourceLoad = {
-    imageSequenceReady: imageSequence.ready,
-    all,
-  };
-
-  return resourceLoad;
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  const image = new Image();
-  image.decoding = "async";
-  image.src = src;
-
-  if (typeof image.decode === "function") {
-    return image.decode().then(
-      () => image,
-      () => image,
-    );
-  }
-
-  return Promise.resolve(image);
-}
-
-function loadImageSequenceFrames(options: {
-  readonly count: number;
-  readonly concurrency: number;
-  srcForFrame(frame: number): string;
-}): {
-  readonly complete: Promise<readonly HTMLImageElement[]>;
-  readonly ready: Promise<readonly HTMLImageElement[]>;
-} {
-  const frames = new Array<HTMLImageElement>(options.count);
-  let nextFrame = 2;
-  const loadFrame = (frame: number) =>
-    loadImage(options.srcForFrame(frame)).then((image) => {
-      frames[frame - 1] = image;
-      return image;
-    });
-  const ready = loadFrame(1).then((firstFrame) => {
-    for (let index = 0; index < frames.length; index += 1) {
-      frames[index] ??= firstFrame;
-    }
-
-    return frames;
-  });
-
-  const loadNextFrame = (): Promise<void> => {
-    if (nextFrame > options.count) {
-      return Promise.resolve();
-    }
-
-    const frame = nextFrame;
-    nextFrame += 1;
-    return loadFrame(frame).then(loadNextFrame);
-  };
-  const workers = Array.from(
-    {
-      length: Math.min(
-        Math.max(0, options.concurrency - 1),
-        Math.max(0, options.count - 1),
-      ),
-    },
-    loadNextFrame,
-  );
-  const complete = Promise.all([ready, ...workers]).then(() => frames);
-
-  return {
-    complete,
-    ready,
-  };
+  return imageSequence;
 }

@@ -107,6 +107,6 @@ Unmount disposes the component-owned atlas texture and material and releases
 preference listeners; the DOM navigation store remains independent of GPU readiness.
 
 See the complete app composition in
-[ProjectRoomDemo.tsx](../../recipe-demos/ProjectRoomDemo.tsx) and regression tests
-in [projectRoom.test.ts](../../../test/recipes/projectRoom.test.ts) and
-[projectRoomControls.test.tsx](../../../test/recipes/projectRoomControls.test.tsx).
+[ProjectRoomDemo.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/src/recipe-demos/ProjectRoomDemo.tsx) and regression tests
+in [projectRoom.test.ts](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/test/recipes/projectRoom.test.ts) and
+[projectRoomControls.test.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/test/recipes/projectRoomControls.test.tsx).

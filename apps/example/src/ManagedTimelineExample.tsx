@@ -13,7 +13,7 @@ import {
   useScrollEffectProgressStore,
   WebGLScrollTimeline,
 } from "@viselora/scroll-adapters/react";
-import { canvasTexture } from "./nativeMaterials";
+import { canvasTexture } from "./recipes/shared/nativeMaterials";
 import {
   drawTimelineCard,
   readTimelineCardFrame,

@@ -144,3 +144,18 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Back to the Viselora site. */
+.showcase-home {
+  position: fixed;
+  z-index: 5;
+  top: 16px;
+  left: 16px;
+  color: var(--showcase-muted);
+  font: 500 12px/1 ui-monospace, Menlo, monospace;
+  text-decoration: none;
+}
+
+.showcase-home:hover {
+  color: var(--showcase-accent);
+}

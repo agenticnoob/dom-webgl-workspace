@@ -1,5 +1,5 @@
 import { ShaderMaterial, type Texture } from "three";
-import { shaderUniforms, surfaceVertexShader } from "./nativeMaterials";
+import { shaderUniforms, surfaceVertexShader } from "./recipes/shared/nativeMaterials";
 
 import { defaultWavesConfig } from "./wavesConfig";
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useScrollEffectProgressStore } from "@viselora/scroll-adapters/react";
-import { useRuntimeReady } from "../../useRuntimeReady";
+import { useRuntimeReady } from "../shared/useRuntimeReady";
 import {
   resolvePortalGeometryFrame,
   type PortalGeometryFrame,

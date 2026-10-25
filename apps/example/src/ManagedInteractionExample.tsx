@@ -10,7 +10,7 @@ import {
 } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { MOUSE, Material, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { useClonedModel } from "./useClonedModel";
+import { useClonedModel } from "./recipes/shared/useClonedModel";
 import { useHoverPulse } from "./interactionEffects";
 
 export function InteractiveFloor() {

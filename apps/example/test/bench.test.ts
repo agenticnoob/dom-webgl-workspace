@@ -8,6 +8,7 @@ import {
   benchViewDistance,
   readBenchOptions,
 } from "../src/bench/benchLayout";
+import { createBenchController } from "../src/bench/benchController";
 import {
   createBenchRecorder,
   percentile,
@@ -174,5 +175,26 @@ describe("benchmark layout", () => {
       maxDpr: 2,
       durationSeconds: 60,
     });
+  });
+});
+
+describe("benchmark controller", () => {
+  const page = (requiredAssets: readonly string[]) => ({
+    chapters: ["only"],
+    chapterAt: () => 0,
+    requiredAssets,
+  });
+
+  it("is ready at once without required assets", () => {
+    const controller = createBenchController(readBenchOptions(""), page([]));
+    expect(controller.snapshot().phase).toBe("ready");
+  });
+
+  it("waits for every required asset", () => {
+    const controller = createBenchController(readBenchOptions(""), page(["a", "b"]));
+    controller.assetReady("a");
+    expect(controller.snapshot().phase).toBe("loading");
+    controller.assetReady("b");
+    expect(controller.snapshot().phase).toBe("ready");
   });
 });

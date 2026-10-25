@@ -28,7 +28,7 @@ vi.mock("@viselora/dom-webgl/react", () => ({
     getDebugState: () => ({ ready: injected.available }),
   }),
 }));
-vi.mock("../src/useClonedModel", () => ({
+vi.mock("../src/recipes/shared/useClonedModel", () => ({
   useClonedModel: () => ({ scene: injected.scene, animations: [] }),
 }));
 vi.mock("@react-three/drei", async (original) => ({
@@ -264,15 +264,18 @@ describe("native example animation and ownership", () => {
     expect(texture.offset.toArray()).toEqual([0, 0.25]);
   });
   test("sequence scrubs both directions with one GPU texture and recenters on pointer leave", async () => {
-    const frames = [0, 1, 2].map(() => {
-      const image = document.createElement("img");
-      Object.defineProperty(image, "naturalWidth", { value: 400 });
-      return image;
-    });
+    const frames = [0, 1, 2].map(() => fakeBitmap());
+    const requested: number[] = [];
     const renderer = await mount(
       createElement(SequenceVisual, {
         id: "visual",
-        frames,
+        sequence: {
+          count: frames.length,
+          frameNear: (index: number) => {
+            requested.push(index);
+            return frames[index];
+          },
+        },
         progressKey: "sequence",
         card: { current: null },
       }),
@@ -286,9 +289,12 @@ describe("native example animation and ownership", () => {
     injected.progress = 1;
     await renderer.advanceFrames(1, 1 / 60);
     expect(texture.image).toBe(frames[2]);
+    expect(texture.flipY).toBe(false);
     injected.progress = 0;
     await renderer.advanceFrames(1, 1 / 60);
     expect(texture.image).toBe(frames[0]);
+    expect(requested).toContain(2);
+    expect(requested.at(-1)).toBe(0);
     expect(mesh.material.map).toBe(texture);
     await renderer.fireEvent(node, "pointerMove", { uv: { x: 1, y: 0 } });
     await renderer.advanceFrames(1, 1 / 60);
@@ -332,12 +338,11 @@ describe("native example animation and ownership", () => {
     vi.spyOn(title, "getBoundingClientRect").mockReturnValue(
       new DOMRect(40, 200, 200, 40),
     );
-    const frame = document.createElement("img");
-    Object.defineProperty(frame, "naturalWidth", { value: 400 });
+    const frame = fakeBitmap();
     const renderer = await mount(
       createElement(SequenceVisual, {
         id: "visual",
-        frames: [frame],
+        sequence: { count: 1, frameNear: () => frame },
         progressKey: "sequence",
         card: { current: card },
       }),
@@ -483,3 +488,7 @@ describe("native example animation and ownership", () => {
     expect(material.map).toBe(current);
   });
 });
+
+function fakeBitmap(): ImageBitmap {
+  return { width: 400, height: 225, close: () => {} };
+}

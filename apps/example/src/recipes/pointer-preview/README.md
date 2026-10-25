@@ -88,5 +88,5 @@ prefixed `recipe-preview`. The preview has bounded width/height and may crop lon
 copy visually; full descriptions always remain semantic DOM. This is an
 enhancement, so do not place essential instructions only in the image preview.
 
-See [PointerPreviewDemo.tsx](../../recipe-demos/PointerPreviewDemo.tsx) and
-[pointerPreview.test.tsx](../../../test/recipes/pointerPreview.test.tsx).
+See [PointerPreviewDemo.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/src/recipe-demos/PointerPreviewDemo.tsx) and
+[pointerPreview.test.tsx](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/test/recipes/pointerPreview.test.tsx).

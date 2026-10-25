@@ -14,8 +14,8 @@ import {
   shaderUniforms,
   updateUniforms,
   surfaceVertexShader,
-} from "../../nativeMaterials";
-import { useClonedModel } from "../../useClonedModel";
+} from "../shared/nativeMaterials";
+import { useClonedModel } from "../shared/useClonedModel";
 import { createPortalAtlas } from "./atlas";
 import {
   spatialBaseRotation,

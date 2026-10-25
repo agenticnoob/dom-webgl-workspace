@@ -6,8 +6,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "index.html",
+        effects: "effects.html",
         bench: "bench.html",
         showcase: "showcase.html",
+        specimen: "specimen.html",
       },
     },
   },

@@ -104,7 +104,8 @@ export function createBenchController(
   const required = config.requiredAssets;
   const loaded = new Set<string>();
   const recent: number[] = [];
-  let phase: BenchPhase = "loading";
+  // A page without required assets is ready as soon as it mounts.
+  let phase: BenchPhase = required.length === 0 ? "ready" : "loading";
   let renderer = "unknown";
   let assetsTimedOut = false;
   let run: { startedAt: number; durationMs: number } | undefined;

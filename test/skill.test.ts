@@ -90,6 +90,8 @@ describe("React/R3F consumer skill", () => {
     expect(skill).toContain("0.2.0-alpha.0 drew text about half the leading too high");
     expect(skill).toMatch(/`target\.revision`.+mutable/s);
     expect(skill).toContain("half-leading");
+    expect(skill).toContain("<WebGLSection target={id}>");
+    expect(skill).toContain("useRenderQuality().tier");
     for (const recipe of ["ModelTarget.tsx", "ScrollStory.tsx", "TextWave.tsx"]) {
       expect(skill).toContain(`](recipes/${recipe})`);
     }
@@ -121,6 +123,9 @@ describe("React/R3F consumer skill", () => {
       "GalleryReveal.tsx",
       "ParticleForm.tsx",
       "ProductTurntable.tsx",
+      "GlyphScatter.tsx",
+      "InkField.tsx",
+      "GlassTitle.tsx",
     ]) {
       expect(readFileSync(resolve(recipes, file), "utf8"), file).toBe(
         readFileSync(resolve(showcase, file), "utf8"),
@@ -128,6 +133,27 @@ describe("React/R3F consumer skill", () => {
     }
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
     expect(skill).toContain("](recipes/one-take/OneTakeExample.tsx)");
+  });
+
+  test("ships the Hero Next component recipes exactly as the example app runs them", () => {
+    const source = resolve(repoRoot, "apps/example/src/recipes");
+    const copy = resolve(skillRoot, "recipes/hero");
+    const files = (root: string): string[] =>
+      readdirSync(root, { recursive: true, encoding: "utf8" })
+        .filter((path) => statSync(resolve(root, path)).isFile())
+        .filter((path) => !path.endsWith(".DS_Store"))
+        .sort();
+    // catalog.ts only indexes the example app's own demo rows.
+    expect(files(copy)).toEqual(files(source).filter((path) => path !== "catalog.ts"));
+    for (const path of files(copy)) {
+      expect(readFileSync(resolve(copy, path), "utf8"), path).toBe(
+        readFileSync(resolve(source, path), "utf8"),
+      );
+    }
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain("](recipes/hero/README.md)");
+    const template = readJson(templateRoot, "package.json");
+    expect(template.dependencies["@react-three/drei"]).toBeDefined();
   });
 
   test("ships a browser check that explains its usage", () => {

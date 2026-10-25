@@ -28,7 +28,7 @@ import {
 } from "../src/ManagedInteractionExample";
 
 const useClonedModel = vi.hoisted(() => vi.fn());
-vi.mock("../src/useClonedModel", () => ({ useClonedModel }));
+vi.mock("../src/recipes/shared/useClonedModel", () => ({ useClonedModel }));
 
 describe("native scene picking", () => {
   test("real mesh hover and click mutate its owned native material", async () => {

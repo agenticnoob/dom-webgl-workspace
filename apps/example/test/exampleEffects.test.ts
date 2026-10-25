@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { Color, ShaderMaterial, Texture } from "three";
-import { shaderUniforms, updateUniforms } from "../src/nativeMaterials";
+import { shaderUniforms, updateUniforms } from "../src/recipes/shared/nativeMaterials";
 
 test("native shader uniforms preserve texture ownership and flatten GLSL arrays", () => {
   const texture = new Texture();

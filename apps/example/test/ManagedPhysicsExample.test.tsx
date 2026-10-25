@@ -33,7 +33,7 @@ import { describe, expect, test, vi } from "vitest";
 import { dragReleaseVelocity } from "../src/physicsDrag";
 import { PhysicsStage } from "../src/ManagedPhysicsExample";
 
-vi.mock("../src/useClonedModel", () => ({
+vi.mock("../src/recipes/shared/useClonedModel", () => ({
   useClonedModel: () => {
     const scene = new Group();
     scene.add(new Mesh(new BoxGeometry(5, 10, 4), new MeshStandardMaterial()));

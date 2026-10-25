@@ -8,7 +8,7 @@ to scroll speed. Labels can be dates, releases, milestones or chapter names.
 Copy this entire directory and the shared helpers in the [catalog](../README.md).
 It uses React, R3F, Drei, Three.js and public Viselora APIs;
 it needs no model, image, network request, Next.js route or journal service.
-The [live example](../../recipe-demos/PerspectiveTimelineDemo.tsx) appears at
+The [live example](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/src/recipe-demos/PerspectiveTimelineDemo.tsx) appears at
 `/#perspective-timeline`, immediately after the pointer-preview row.
 
 ## Complete usage
@@ -128,4 +128,4 @@ if WebGL is unavailable; the semantic list remains visible until the native scen
 
 Run `npm test -- --run apps/example/test/recipes/perspectiveTimeline` and
 `npm run typecheck -w @viselora/example` from the workspace root. Integration
-and browser evidence live in [the app verification record](../../../docs/verification.md).
+and browser evidence live in [the app verification record](https://github.com/agenticnoob/dom-webgl-workspace/blob/main/apps/example/docs/verification.md).

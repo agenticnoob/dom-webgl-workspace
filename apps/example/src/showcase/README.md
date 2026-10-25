@@ -1,8 +1,9 @@
 # One-take showcase recipes
 
-`showcase.html` composes five copyable effects into one scroll page. Each
-recipe is one file you can copy into a project and edit; it uses only the
-public Viselora entrypoints, React, R3F and Three.js.
+`showcase.html` composes R1–R5 into one scroll page, and `specimen.html` (a
+type specimen for an invented foundry) composes R6–R8. Each recipe is one file
+you can copy into a project and edit; it uses only the public Viselora
+entrypoints, React, R3F and Three.js.
 
 These recipes need 0.3.0-alpha.0 (`WebGLSection`, `useRenderQuality`). The
 consumer skill ships identical copies in
@@ -17,6 +18,9 @@ copies drift, so edit here and copy.
 | R3 | `GalleryReveal.tsx` | CSS Grid gallery; cards replaced by planes with a cell hover reveal and scroll bend | One draw call and two textures per card |
 | R4 | `ParticleForm.tsx` | Points morph between shapes (sphere, torus knot, DOM text glyphs) and part around the pointer | One draw call, 60k points |
 | R5 | `ProductTurntable.tsx` | Scroll-driven turntable with stops and DOM hotspot labels projected from 3D | The model's draw calls, up to 300k triangles |
+| R6 | `GlyphScatter.tsx` | A DOM heading's glyphs assemble, hold and dissolve into grain with scroll, over a faint impression; they lean away from the pointer | Two draw calls, one glyph atlas |
+| R7 | `InkField.tsx` | Ink in water behind the page, stirred by the pointer; fast strokes carry the accent | About 25 small passes per frame while ink moves, none after it fades |
+| R8 | `GlassTitle.tsx` | A DOM heading as cast glass refracting the page colour, a CSS baseline grid and the ink, with dispersion and a pointer highlight | One draw call, three backdrop samples per pixel |
 
 `screenSpace.ts` holds the shared helpers: covering a CSS rect in front of a
 moving perspective camera, frame-rate independent damping, and the cell hash.

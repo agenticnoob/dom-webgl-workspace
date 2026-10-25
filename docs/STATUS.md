@@ -46,7 +46,10 @@ GPUs and with 4× CPU throttling, and 58 fps on a Huawei P30, where sections
 took the benchmark page from 25 to 48 fps. On that phone's 0.23 MP viewport
 the pixel budgets never lower the DPR, so only work scaled by tier changes.
 The skill ships the recipes as copies kept identical to the showcase by a
-test, with a composed example. Remaining items from the
+test, with a composed example. `apps/example/index.html` is now the Viselora
+site (built with the runtime and R6–R8, 59.6 fps on the UHD 630 at 1× and 4×
+CPU); the former index, every View-based demo on one page, is
+`effects.html`. Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
 are listed there.
 
@@ -151,7 +154,8 @@ browser-verified, committed and pushed states separate.
 ## Agent skill
 
 `skills/viselora-dom-webgl` targets `0.3.0-alpha.0` and is self-contained for
-the `skills` CLI: three runnable recipes plus the one-take folder, `verify-consumer.mjs` and
+the `skills` CLI: three runnable recipes, the one-take folder, the Hero Next
+component recipes (`recipes/hero/`, kept identical to `apps/example` by a test), `verify-consumer.mjs` and
 `browser-check.mjs`. Users install it from the generated
 [agenticnoob/viselora-skills](https://github.com/agenticnoob/viselora-skills)
 repository (about 180 KB), whose only source is `skills/` here. Its first sync
