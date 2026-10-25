@@ -54,6 +54,56 @@ function createText(text: string, width = 100, height = 120) {
 }
 
 describe("DOM text layout", () => {
+  test("keeps a word wider than the line whole, as CSS overflows it", () => {
+    const context = createContext();
+    const layout = measureDOMText(createText("Hi Viselora", 50), { context });
+    expect(layout.lines.map((line) => line.text)).toEqual(["Hi", "Viselora"]);
+    const legacy = createText("Viselora", 50);
+    legacy.style.setProperty("word-wrap", "break-word");
+    expect(measureDOMText(legacy, { context }).lines.map((line) => line.text)).toEqual([
+      "Visel",
+      "ora",
+    ]);
+  });
+
+  test("fits a fit-content box measured with negative letter spacing", () => {
+    // CSS sizes the box to 8 glyphs × (10 - 1)px, the trailing spacing included.
+    const element = createText("Viselora", 72);
+    element.style.letterSpacing = "-1px";
+    const layout = measureDOMText(element, { context: createContext() });
+    expect(layout.lines.map((line) => line.text)).toEqual(["Viselora"]);
+    // Sub-pixel differences between canvas and layout widths still fit.
+    const rounded = createText("Viselora", 71.6);
+    rounded.style.letterSpacing = "-1px";
+    expect(measureDOMText(rounded, { context: createContext() }).lines).toHaveLength(1);
+  });
+
+  test("keeps closing CJK punctuation off the start of a line and opening off its end", () => {
+    const context = createContext();
+    const closing = measureDOMText(createText("中文测试。", 40), { context });
+    expect(closing.lines.map((line) => line.text)).toEqual(["中文测", "试。"]);
+    const opening = measureDOMText(createText("中文测「试」", 40), { context });
+    // Without the rule "「" would end the first line: ["中文测「", "试」"].
+    expect(opening.lines.map((line) => line.text)).toEqual(["中文测", "「试」"]);
+  });
+
+  test("follows word-break break-all and keep-all", () => {
+    const context = createContext();
+    const breakAll = createText("ABCD EF", 30);
+    breakAll.style.wordBreak = "break-all";
+    expect(measureDOMText(breakAll, { context }).lines.map((line) => line.text)).toEqual([
+      "ABC",
+      "D E",
+      "F",
+    ]);
+    const keepAll = createText("中文 测试", 30);
+    keepAll.style.wordBreak = "keep-all";
+    expect(measureDOMText(keepAll, { context }).lines.map((line) => line.text)).toEqual([
+      "中文",
+      "测试",
+    ]);
+  });
+
   test("retains computed typography, color, spacing, padding, and CSS dimensions", () => {
     const element = createText("Text snapshot target", 240, 132);
     Object.assign(element.style, {
@@ -136,7 +186,8 @@ describe("DOM text layout", () => {
     element.style.letterSpacing = "1px";
     element.style.wordSpacing = "3px";
     const layout = measureDOMText(element, { context });
-    expect(layout.lines[0]?.width).toBe(35);
+    // Browsers space after the last glyph too: 3 glyphs × 1px + one 3px word gap.
+    expect(layout.lines[0]?.width).toBe(36);
     expect(layout.glyphs.map((glyph) => glyph.x)).toEqual([0, 11, 25]);
     drawDOMText(context, layout);
     expect(context.translate.mock.calls).toEqual([
@@ -184,9 +235,10 @@ describe("DOM text layout", () => {
     expect(measureDOMText(element, { context }).lines).toHaveLength(1);
   });
 
-  test("breaks a long first token and caps finite DPR while preserving fractional CSS size", () => {
+  test("breaks a long first token where overflow-wrap allows and caps finite DPR while preserving fractional CSS size", () => {
     const context = createContext();
     const element = createText("ABCDEF", 20.5, 80.25);
+    element.style.overflowWrap = "anywhere";
     const layout = measureDOMText(element, { context, devicePixelRatio: 3 });
     expect(layout.lines.map((line) => line.text)).toEqual(["AB", "CD", "EF"]);
     expect(layout).toMatchObject({
