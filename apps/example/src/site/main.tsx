@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { readBenchOptions } from "../bench/benchLayout";
 import "../bench/bench.css";
+import "../fonts/site.css";
 import { Site } from "./Site";
 import "./site.css";
 
