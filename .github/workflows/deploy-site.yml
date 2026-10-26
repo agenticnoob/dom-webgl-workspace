@@ -1,0 +1,54 @@
+name: Deploy site
+
+# Publishes apps/example (the Viselora site and its demo pages) to Vercel
+# after Verify passes on main. The site is static: the workflow builds it and
+# uploads the output with the Build Output API, so the Vercel project needs no
+# build settings of its own.
+on:
+  workflow_run:
+    workflows: [Verify]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment:
+      name: site-production
+      url: https://viselora.zzzxc.com
+    env:
+      # Not secrets: they name the Vercel account and project.
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The commit Verify passed on, not whatever main is now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build packages and site
+        run: |
+          npm run build -w @viselora/dom-webgl -w @viselora/scroll-adapters
+          npm run build -w @viselora/example
+      - name: Prepare Vercel build output
+        run: node scripts/prepare-site-output.mjs apps/example/dist .vercel/output
+      - name: Deploy to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@62.7.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
