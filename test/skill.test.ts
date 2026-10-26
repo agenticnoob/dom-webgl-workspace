@@ -183,6 +183,31 @@ describe("React/R3F consumer skill", () => {
     expect(result.stdout).toContain("still require runtime verification");
   });
 
+  test("smooths the page scroll in the template and every recipe host", () => {
+    const recipe = readFileSync(resolve(skillRoot, "recipes/smoothScroll.ts"), "utf8");
+    expect(recipe).toContain("autoRaf: false");
+    expect(recipe).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
+    expect(readFileSync(resolve(templateRoot, "src/smoothScroll.ts"), "utf8")).toBe(recipe);
+    const template = readJson(templateRoot, "package.json");
+    expect(template.dependencies.lenis).toBeDefined();
+    expect(template.dependencies.gsap).toBeDefined();
+    for (const path of [
+      "templates/react-vite/src/App.tsx",
+      "recipes/ModelTarget.tsx",
+      "recipes/ScrollStory.tsx",
+      "recipes/TextWave.tsx",
+      "recipes/one-take/OneTakeExample.tsx",
+      "recipes/hero/README.md",
+    ]) {
+      const source = readFileSync(resolve(skillRoot, path), "utf8");
+      expect(source, path).toContain("<WebGLScrollRuntime");
+      expect(source, path).toContain("smooth={smoothScroll}");
+      expect(source, path).not.toContain("<WebGLRuntime");
+    }
+    const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+    expect(skill).toContain("](recipes/smoothScroll.ts)");
+  });
+
   test("accepts native Three.js materials, geometry, controls and R3F hooks", () => {
     const root = copyTemplate();
     writeSource(

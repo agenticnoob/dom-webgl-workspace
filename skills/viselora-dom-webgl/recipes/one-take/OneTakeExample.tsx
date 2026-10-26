@@ -5,19 +5,22 @@
 // cell-dissolve veil at each hand-over. Copy the folder, then replace the
 // image and model URLs, the copy and the camera path.
 //
-// - Page progress is one signal (`page`); chapter ranges are measured from the
-//   `data-chapter` blocks after layout, never assumed from heights.
+// - Page progress is one signal (`page`), written by a page-long
+//   ScrollEffectSection; chapter ranges are measured from the `data-chapter`
+//   blocks after layout, never assumed from heights.
+// - The host smooths the page scroll with `../smoothScroll` (copy it too).
 // - Lights and the environment sit outside every section.
 // - `canvas.flat: false` gives the PBR product ACES tone mapping.
 // - Requires @viselora/dom-webgl 0.3.0-alpha.0 or later (`WebGLSection`,
 //   `useRenderQuality`, `useSectionState`).
 import { useThree } from "@react-three/fiber";
-import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
-import { WebGLRuntime, WebGLTarget } from "@viselora/dom-webgl/react";
+import { WebGLTarget } from "@viselora/dom-webgl/react";
+import { ScrollEffectSection, WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PMREMGenerator, type Vector3Tuple } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
+import { refreshScrollLayout, smoothScroll } from "../smoothScroll";
 import {
   GalleryGrid,
   GalleryPlanes,
@@ -85,14 +88,6 @@ const initialLayout: Layout = {
   boundaries: [0.4, 0.7],
 };
 
-const progressSignals: WebGLProgressSignalSource = {
-  get: (key) => {
-    if (key !== progressKey) return 0;
-    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-    return scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0;
-  },
-};
-
 /** A chapter starts when its block's top reaches the middle of the viewport. */
 function useMeasuredLayout() {
   const main = useRef<HTMLElement>(null);
@@ -122,7 +117,10 @@ function useMeasuredLayout() {
       });
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver(() => {
+      measure();
+      refreshScrollLayout();
+    });
     observer.observe(root);
     return () => observer.disconnect();
   }, []);
@@ -174,9 +172,9 @@ export function OneTakeExample() {
   const block = (height: number) => ({ minHeight: `${height}vh`, padding: "0 8vw" });
 
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
+      smooth={smoothScroll}
       canvas={{ camera: { fov: 45, near: 0.1, far: 200, position: path[0] }, flat: false }}
-      progressSignals={progressSignals}
       scene={
         <>
           <OneTakeRail progressKey={progressKey} path={path} look={look} />
@@ -215,39 +213,42 @@ export function OneTakeExample() {
       }
     >
       <style>{css}</style>
-      <main ref={main}>
-        <section data-chapter="intro" style={block(120)}>
-          <h1 style={{ margin: 0, paddingTop: "30vh" }}>One continuous shot.</h1>
-        </section>
-        <section data-chapter="form" style={block(240)}>
-          <div style={{ position: "sticky", top: "20vh" }}>
-            <h2>Points become a word.</h2>
-            <WebGLTarget id={wordId}>
-              <p style={{ margin: 0, fontSize: "clamp(40px, 7vw, 88px)", fontWeight: 700 }}>
-                VISELORA
-              </p>
-            </WebGLTarget>
-          </div>
-        </section>
-        <section data-chapter="gallery" style={block(200)}>
-          <h2>The grid stays DOM.</h2>
-          <GalleryGrid id={galleryId} items={gallery} hover={hover} />
-        </section>
-        <section data-chapter="product" style={block(300)}>
-          <h2 style={{ position: "sticky", top: "14vh" }}>Turn it with the page.</h2>
-          <div className="product-hotspots" aria-label="Product notes">
-            <ProductHotspot store={labels} id="top">
-              Top · cast in one piece
-            </ProductHotspot>
-            <ProductHotspot store={labels} id="side">
-              Side · clear lacquer
-            </ProductHotspot>
-          </div>
-        </section>
-        <section data-chapter="outro" style={block(100)}>
-          <h2>End of the shot.</h2>
-        </section>
-      </main>
-    </WebGLRuntime>
+      {/* Whole-page progress: 0 at the top, 1 at the bottom of the document. */}
+      <ScrollEffectSection as="div" progressKey={progressKey} start="top top" end="bottom bottom">
+        <main ref={main}>
+          <section data-chapter="intro" style={block(120)}>
+            <h1 style={{ margin: 0, paddingTop: "30vh" }}>One continuous shot.</h1>
+          </section>
+          <section data-chapter="form" style={block(240)}>
+            <div style={{ position: "sticky", top: "20vh" }}>
+              <h2>Points become a word.</h2>
+              <WebGLTarget id={wordId}>
+                <p style={{ margin: 0, fontSize: "clamp(40px, 7vw, 88px)", fontWeight: 700 }}>
+                  VISELORA
+                </p>
+              </WebGLTarget>
+            </div>
+          </section>
+          <section data-chapter="gallery" style={block(200)}>
+            <h2>The grid stays DOM.</h2>
+            <GalleryGrid id={galleryId} items={gallery} hover={hover} />
+          </section>
+          <section data-chapter="product" style={block(300)}>
+            <h2 style={{ position: "sticky", top: "14vh" }}>Turn it with the page.</h2>
+            <div className="product-hotspots" aria-label="Product notes">
+              <ProductHotspot store={labels} id="top">
+                Top · cast in one piece
+              </ProductHotspot>
+              <ProductHotspot store={labels} id="side">
+                Side · clear lacquer
+              </ProductHotspot>
+            </div>
+          </section>
+          <section data-chapter="outro" style={block(100)}>
+            <h2>End of the shot.</h2>
+          </section>
+        </main>
+      </ScrollEffectSection>
+    </WebGLScrollRuntime>
   );
 }

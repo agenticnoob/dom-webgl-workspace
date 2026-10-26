@@ -24,7 +24,8 @@ copied source, not exports from `@viselora/dom-webgl`.
 ## Shared host
 
 Install React, Three.js, `@react-three/fiber`, `@react-three/drei`,
-`react-error-boundary`, `@viselora/dom-webgl` and `@viselora/scroll-adapters`.
+`react-error-boundary`, `@viselora/dom-webgl`, `@viselora/scroll-adapters`,
+`lenis` and `gsap`.
 Use the versions in this app's package.json. Next.js callers use a client component.
 Each GPU recipe creates a Drei `View`; all Views render through one `View.Port`.
 The page clears the shared canvas before the Views render:
@@ -34,6 +35,8 @@ import type { ReactNode } from "react";
 import { View } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+// The skill's recipes/smoothScroll.ts: Lenis + GSAP smooth page scroll.
+import { smoothScroll } from "./smoothScroll";
 
 function ViewScene() {
   useFrame(({ gl, size }) => {
@@ -47,7 +50,7 @@ function ViewScene() {
 
 export function VisualPage({ children }: { children: ReactNode }) {
   return (
-    <WebGLScrollRuntime scene={<ViewScene />} canvas={{ dpr: [1, 2] }}>
+    <WebGLScrollRuntime smooth={smoothScroll} scene={<ViewScene />} canvas={{ dpr: [1, 2] }}>
       {children}
     </WebGLScrollRuntime>
   );

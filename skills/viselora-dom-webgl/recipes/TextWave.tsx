@@ -24,9 +24,11 @@ import { createDOMTextTexture } from "@viselora/dom-webgl";
 import {
   useDOMTarget,
   useWebGLRuntime,
-  WebGLRuntime,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
+import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+
+import { smoothScroll } from "./smoothScroll";
 
 const vertexShader = /* glsl */ `
 uniform float uTime;
@@ -138,7 +140,8 @@ export function WaveText({ targetId, amplitude = 4, frequency = 1.5 }: WaveTextP
 
 export function TextWaveExample() {
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
+      smooth={smoothScroll}
       canvas={{ orthographic: true, camera: { position: [0, 0, 500] } }}
       scene={<WaveText targetId="wave" />}
     >
@@ -150,6 +153,6 @@ export function TextWaveExample() {
         </WebGLTarget>
         <p>Body copy stays in the DOM.</p>
       </main>
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }
