@@ -33,6 +33,12 @@ npm run typecheck -w @viselora/example
 npm run build -w @viselora/example
 ```
 
+Fonts are self-hosted under `public/fonts` (SIL Open Font License files
+alongside) with `@font-face` sheets in `src/fonts/`; no page loads a
+third-party font host. Refresh them with `node scripts/fetch-site-fonts.mjs`
+after changing a page's families or weights, then update the preload in
+`index.html`.
+
 ## Boundary
 
 - Use React, R3F, Drei, Three.js and ecosystem packages directly. Import Viselora

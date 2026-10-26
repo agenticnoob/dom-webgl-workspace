@@ -19,6 +19,12 @@ const siteOutputConfig = {
       headers: { "cache-control": "public, max-age=31536000, immutable" },
       continue: true,
     },
+    // Font files carry a content hash in their names (scripts/fetch-site-fonts.mjs).
+    {
+      src: "/fonts/(.*)\\.woff2",
+      headers: { "cache-control": "public, max-age=31536000, immutable" },
+      continue: true,
+    },
     { handle: "filesystem" },
     { src: "/(.*)", status: 404, dest: "/index.html" },
   ],

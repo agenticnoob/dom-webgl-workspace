@@ -8,11 +8,13 @@
       content="Viselora：在 React 页面上叠加 three.js 特效，WebGL 与 DOM 对齐，性能由运行时管理。"
     />
     <link rel="icon" href="data:," />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Self-hosted (src/fonts/site.css); the hero heading waits for this face. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@96,700..800&family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap"
+      rel="preload"
+      href="/fonts/bricolage-grotesque-latin-2872cca2.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <title>Viselora · DOM 与 WebGL 协调运行时</title>
   </head>
