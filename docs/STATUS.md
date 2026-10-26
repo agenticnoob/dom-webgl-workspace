@@ -49,7 +49,10 @@ The skill ships the recipes as copies kept identical to the showcase by a
 test, with a composed example. `apps/example/index.html` is now the Viselora
 site (built with the runtime and R6–R8, 59.6 fps on the UHD 630 at 1× and 4×
 CPU); the former index, every View-based demo on one page, is
-`effects.html`. Since 0.3.0-alpha.1, `measureDOMText` line breaks match Chrome's CSS
+`effects.html`. `deploy-site.yml` publishes the built app to the Vercel project
+`viselora-site` at https://viselora.zzzxc.com after Verify passes on `main`
+(needs the `VERCEL_TOKEN` secret and the `VERCEL_ORG_ID` and
+`VERCEL_PROJECT_ID` repository variables). Since 0.3.0-alpha.1, `measureDOMText` line breaks match Chrome's CSS
 on long words, trailing letter spacing, `word-break` and CJK punctuation
 (10 of 10 browser cases, 4 of 10 before). Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
