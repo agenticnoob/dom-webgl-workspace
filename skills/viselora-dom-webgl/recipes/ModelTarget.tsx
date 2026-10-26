@@ -16,9 +16,11 @@ import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import {
   useDOMTarget,
   useWebGLRuntime,
-  WebGLRuntime,
   WebGLTarget,
 } from "@viselora/dom-webgl/react";
+import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+
+import { smoothScroll } from "./smoothScroll";
 
 type ModelLoad =
   | { status: "loading" }
@@ -167,7 +169,8 @@ function FittedModel({
 
 export function ModelCardExample() {
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
+      smooth={smoothScroll}
       canvas={{
         orthographic: true,
         camera: { position: [0, 0, 1000], near: 0.1, far: 4000 },
@@ -192,6 +195,6 @@ export function ModelCardExample() {
           <a href="#buy">Buy now</a>
         </article>
       </main>
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }

@@ -56,7 +56,8 @@ Adapting them:
 - GLB animation: create an `AnimationMixer` for the owned instance and advance it
   with `useFrame` delta (seconds); Drei `useGLTF`/`useAnimations` is fine when
   the consumer already depends on Drei.
-- Scroll stories under `WebGLScrollRuntime` with ScrollTrigger sections: replace
+- Scroll stories run under `WebGLScrollRuntime smooth={smoothScroll}`. With
+  ScrollTrigger sections: replace
   `sectionProgress` with `runtime.progress.get(progressKey)`; keep the mapping pure.
 - Per-glyph text effects (scramble, pressure): build commands from
   `measureDOMText(...).glyphs` and draw them with `drawDOMText`, which places

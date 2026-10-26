@@ -72,6 +72,19 @@ packages implement a different API. Check the repository
    `ImageBitmap`s, not re-uploaded `<img>` elements. Treat every `[viselora]`
    console warning as a defect. Details:
    [lifecycle and debug](references/api-lifecycle-debug.md).
+11. **Smooth the page scroll by default.** Host every page with
+   `<WebGLScrollRuntime smooth={smoothScroll}>` from
+   `@viselora/scroll-adapters/react`, using
+   [recipes/smoothScroll.ts](recipes/smoothScroll.ts) (Lenis + GSAP ticker +
+   ScrollTrigger; install `lenis` and `gsap`). Under native scroll each wheel
+   notch moves the page at once and every DOM-bound or progress-driven visual
+   jumps with it; damping inside an effect does not hide that. Write page or
+   chapter progress with `<ScrollEffectSection progressKey start end>` instead
+   of a `progressSignals` that reads `window.scrollY`
+   (`WebGLScrollRuntime` owns `progressSignals`). Use plain `WebGLRuntime`
+   only when the page does not scroll or another library already owns
+   smooth scrolling (then pass its `scrollAdapter`). Details:
+   [scroll and interaction](references/api-scroll-interaction.md).
 
 ## Recipes: copy, then adapt
 
@@ -86,9 +99,11 @@ Patterns:
 | GLB model that follows a DOM card, fallback while loading, load error keeps fallback, owned disposal | [recipes/ModelTarget.tsx](recipes/ModelTarget.tsx) |
 | Scroll progress of a story section mapped to deterministic keyframes (reverse scroll and resize safe) | [recipes/ScrollStory.tsx](recipes/ScrollStory.tsx) |
 | DOM text texture with a wave shader, rebuilt on `target.revision`, aligned with the DOM baseline | [recipes/TextWave.tsx](recipes/TextWave.tsx) |
+| The page's smooth scroll, imported by every host above and below | [recipes/smoothScroll.ts](recipes/smoothScroll.ts) |
 
 One-take components share the page camera; each is a `WebGLSection` scaled by
-quality tier. Copy the whole [one-take/](recipes/one-take/) folder;
+quality tier. Copy the whole [one-take/](recipes/one-take/) folder and
+`recipes/smoothScroll.ts`;
 [OneTakeExample.tsx](recipes/one-take/OneTakeExample.tsx) composes them.
 
 | Page need | Component |
@@ -121,7 +136,7 @@ one-take components or `View` components (mixing them is untested).
 
 1. Read the consumer's actual scene, DOM and assets before changing ownership.
    Preserve its visual behavior, semantics and existing authorization scope.
-2. Keep one `WebGLRuntime`/`WebGLScrollRuntime` host. Put ordinary R3F components
+2. Keep one `WebGLScrollRuntime` host with `smooth` (rule 11). Put ordinary R3F components
    in `scene`, semantic HTML in `children`, and use public Viselora entrypoints.
 3. Use `WebGLTarget` and `useDOMTarget` for measured DOM anchors. Use native
    Three.js refs, materials, loaders and R3F hooks for visual behavior.

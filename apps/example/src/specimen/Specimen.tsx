@@ -1,15 +1,12 @@
-import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
-import {
-  WebGLRuntime,
-  WebGLTarget,
-  type WebGLRuntimeProps,
-} from "@viselora/dom-webgl/react";
+import { WebGLTarget, type WebGLRuntimeProps } from "@viselora/dom-webgl/react";
+import { ScrollEffectSection, WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { BenchOverlay, useBenchAutomation } from "../bench/BenchApp";
 import { createBenchController, type BenchController } from "../bench/benchController";
-import { benchProgress, type BenchOptions } from "../bench/benchLayout";
+import { type BenchOptions } from "../bench/benchLayout";
 import { BenchProbe } from "../bench/BenchScene";
+import { exampleSmoothScrollOptions } from "../exampleSmoothScroll";
 import { GlassTitle } from "../showcase/GlassTitle";
 import { GlyphScatter } from "../showcase/GlyphScatter";
 import { InkField, createInkStore, type InkStore } from "../showcase/InkField";
@@ -87,25 +84,11 @@ export function Specimen({ options }: { readonly options: SpecimenOptions }) {
     }),
     [options],
   );
-  const progressSignals = useMemo(
-    (): WebGLProgressSignalSource => ({
-      get: (key) =>
-        key === progressKey
-          ? benchProgress({
-              scrollY: window.scrollY,
-              scrollHeight: document.documentElement.scrollHeight,
-              viewportHeight: window.innerHeight,
-            })
-          : 0,
-    }),
-    [],
-  );
-
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
       className="specimen-runtime"
+      smooth={exampleSmoothScrollOptions}
       canvas={canvas}
-      progressSignals={progressSignals}
       diagnostics={options.diagnostics || undefined}
       scene={
         <>
@@ -138,7 +121,7 @@ export function Specimen({ options }: { readonly options: SpecimenOptions }) {
     >
       <SpecimenPage onLayout={setLayout} />
       {options.bench ? <BenchTools controller={controller} options={options} /> : null}
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }
 
@@ -181,70 +164,78 @@ function SpecimenPage({ onLayout }: { readonly onLayout: (layout: SpecimenLayout
       );
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    // Chapter heights settle after fonts and textures; keep the page trigger in step.
+    const observer = new ResizeObserver(() => {
+      measure();
+      exampleSmoothScrollOptions.ScrollTrigger.refresh();
+    });
     observer.observe(root);
     return () => observer.disconnect();
   }, [onLayout]);
 
   return (
-    <main className="specimen" id="top" ref={main}>
-      <a className="specimen-home" href="/">
-        ← Viselora
-      </a>
-      <section className="specimen-title-block" data-chapter="title">
-        <p className="specimen-label">Halden 字体工坊 · 新字体</p>
-        <WebGLTarget id="specimen-title" hideWhenReady>
-          <h1 className="specimen-title">Meridian</h1>
-        </WebGLTarget>
-        <p className="specimen-lead">
-          为大标题而切的宽体无衬线，九百字重的笔画厚到可以透光。把指针划过纸面，墨会跟着流动。
-        </p>
-      </section>
-
-      <section className="specimen-glyphs" data-chapter="glyphs">
-        <div className="specimen-glyphs-sticky">
-          <p className="specimen-label">在运动中保持字形</p>
-          <WebGLTarget id="specimen-pangram" hideWhenReady>
-            <h2 className="specimen-pangram">Sphinx of black quartz, judge my vow.</h2>
-          </WebGLTarget>
-          <p className="specimen-note">
-            每个字母都是从 DOM 里量出来的字形：滚动时它们从四处归位，再从左到右碎成颗粒。文字本身仍可选中、可被读屏。
-          </p>
-        </div>
-      </section>
-
-      <section className="specimen-sheet" data-chapter="specimen">
-        <div className="specimen-weights" aria-label="字重">
-          {weights.map((weight) => (
-            <figure key={weight.value} className="specimen-weight">
-              <span style={{ fontWeight: weight.value }}>Meridian</span>
-              <figcaption>
-                {weight.name} {weight.value}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-        <div className="specimen-sizes" aria-label="字号">
-          {sizes.map((size) => (
-            <p key={size} className="specimen-size">
-              <span className="specimen-size-label">{size}px</span>
-              <span style={{ fontSize: size }}>Quartz grids judge vows</span>
-            </p>
-          ))}
-        </div>
-        <p className="specimen-charset">
-          ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 &amp;?!@#
-        </p>
-      </section>
-
-      <section className="specimen-outro" data-chapter="outro">
-        <WebGLTarget id="specimen-signoff" hideWhenReady>
-          <p className="specimen-signoff">Halden</p>
-        </WebGLTarget>
-        <a className="specimen-download" href="#top">
-          下载试用字体
+    // Lenis smooths the page scroll; this trigger writes whole-page progress
+    // (0 at the top, 1 at the bottom) to `progressKey`.
+    <ScrollEffectSection as="div" progressKey={progressKey} start="top top" end="bottom bottom">
+      <main className="specimen" id="top" ref={main}>
+        <a className="specimen-home" href="/">
+          ← Viselora
         </a>
-      </section>
-    </main>
+        <section className="specimen-title-block" data-chapter="title">
+          <p className="specimen-label">Halden 字体工坊 · 新字体</p>
+          <WebGLTarget id="specimen-title" hideWhenReady>
+            <h1 className="specimen-title">Meridian</h1>
+          </WebGLTarget>
+          <p className="specimen-lead">
+            为大标题而切的宽体无衬线，九百字重的笔画厚到可以透光。把指针划过纸面，墨会跟着流动。
+          </p>
+        </section>
+
+        <section className="specimen-glyphs" data-chapter="glyphs">
+          <div className="specimen-glyphs-sticky">
+            <p className="specimen-label">在运动中保持字形</p>
+            <WebGLTarget id="specimen-pangram" hideWhenReady>
+              <h2 className="specimen-pangram">Sphinx of black quartz, judge my vow.</h2>
+            </WebGLTarget>
+            <p className="specimen-note">
+              每个字母都是从 DOM 里量出来的字形：滚动时它们从四处归位，再从左到右碎成颗粒。文字本身仍可选中、可被读屏。
+            </p>
+          </div>
+        </section>
+
+        <section className="specimen-sheet" data-chapter="specimen">
+          <div className="specimen-weights" aria-label="字重">
+            {weights.map((weight) => (
+              <figure key={weight.value} className="specimen-weight">
+                <span style={{ fontWeight: weight.value }}>Meridian</span>
+                <figcaption>
+                  {weight.name} {weight.value}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <div className="specimen-sizes" aria-label="字号">
+            {sizes.map((size) => (
+              <p key={size} className="specimen-size">
+                <span className="specimen-size-label">{size}px</span>
+                <span style={{ fontSize: size }}>Quartz grids judge vows</span>
+              </p>
+            ))}
+          </div>
+          <p className="specimen-charset">
+            ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 &amp;?!@#
+          </p>
+        </section>
+
+        <section className="specimen-outro" data-chapter="outro">
+          <WebGLTarget id="specimen-signoff" hideWhenReady>
+            <p className="specimen-signoff">Halden</p>
+          </WebGLTarget>
+          <a className="specimen-download" href="#top">
+            下载试用字体
+          </a>
+        </section>
+      </main>
+    </ScrollEffectSection>
   );
 }

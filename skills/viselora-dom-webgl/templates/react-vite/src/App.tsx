@@ -1,11 +1,10 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Mesh } from "three";
-import {
-  useDOMTarget,
-  WebGLRuntime,
-  WebGLTarget,
-} from "@viselora/dom-webgl/react";
+import { useDOMTarget, WebGLTarget } from "@viselora/dom-webgl/react";
+import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+
+import { smoothScroll } from "./smoothScroll";
 
 function HeadingHighlight() {
   const target = useDOMTarget("heading");
@@ -34,7 +33,8 @@ function HeadingHighlight() {
 
 export function App() {
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
+      smooth={smoothScroll}
       canvas={{
         orthographic: true,
         camera: { position: [0, 0, 500] },
@@ -69,6 +69,6 @@ export function App() {
           Semantic content remains ordinary HTML.
         </footer>
       </main>
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }
