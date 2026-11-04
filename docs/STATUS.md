@@ -1,6 +1,6 @@
 # Current Status
 
-**Last verified: 2026-10-26 (0.3.0-alpha.1 publication).**
+**Last verified: 2026-11-05 (official npm dist-tags).**
 
 This is the only repository-wide current-state document. App behavior and
 browser evidence belong to each app's documentation.
@@ -68,10 +68,11 @@ are listed there.
 
 `@viselora/dom-webgl@0.3.0-alpha.1` and
 `@viselora/scroll-adapters@0.3.0-alpha.1` are **published** on the official npm
-registry with provenance (release run 40219043094 on `main` b390abd), and both
-`alpha` tags resolve to them. The separate `latest` tags remain at
-`0.1.0-alpha.0`, which implements the previous API; install `@alpha` or pin the
-exact 0.3 version.
+registry with provenance (release run 40219043094 on `main` b390abd). Both
+`latest` and `alpha` tags resolve to `0.3.0-alpha.1`, verified against the official
+registry on 2026-11-05. The `latest` tags were advanced from `0.1.0-alpha.0`
+without republishing either package; their published integrity values are
+unchanged. Unqualified installs now select the current prerelease API.
 
 0.3.0-alpha.1 fixes `measureDOMText` line breaking (long words, trailing letter
 spacing, `word-break`, CJK punctuation) and adds `wordBreak` and
