@@ -1,15 +1,12 @@
-import type { WebGLProgressSignalSource } from "@viselora/dom-webgl";
-import {
-  WebGLRuntime,
-  WebGLTarget,
-  type WebGLRuntimeProps,
-} from "@viselora/dom-webgl/react";
+import { WebGLTarget, type WebGLRuntimeProps } from "@viselora/dom-webgl/react";
+import { ScrollEffectSection, WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { BenchOverlay, useBenchAutomation } from "../bench/BenchApp";
 import { createBenchController, type BenchController } from "../bench/benchController";
-import { benchProgress, type BenchOptions } from "../bench/benchLayout";
+import { type BenchOptions } from "../bench/benchLayout";
 import { BenchProbe } from "../bench/BenchScene";
+import { exampleSmoothScrollOptions } from "../exampleSmoothScroll";
 import { GlassTitle } from "../showcase/GlassTitle";
 import { GlyphScatter } from "../showcase/GlyphScatter";
 import { InkField, createInkStore, type InkStore } from "../showcase/InkField";
@@ -69,25 +66,12 @@ export function Site({ options }: { readonly options: SiteOptions }) {
     }),
     [options],
   );
-  const progressSignals = useMemo(
-    (): WebGLProgressSignalSource => ({
-      get: (key) =>
-        key === siteProgressKey
-          ? benchProgress({
-              scrollY: window.scrollY,
-              scrollHeight: document.documentElement.scrollHeight,
-              viewportHeight: window.innerHeight,
-            })
-          : 0,
-    }),
-    [],
-  );
 
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
       className="site-runtime"
+      smooth={exampleSmoothScrollOptions}
       canvas={canvas}
-      progressSignals={progressSignals}
       diagnostics={options.diagnostics || undefined}
       onDebugStateChange={(state) => feed.push(state, performance.now())}
       scene={
@@ -132,7 +116,7 @@ export function Site({ options }: { readonly options: SiteOptions }) {
     >
       <SitePage register={register} feed={feed} onLayout={setLayout} />
       {options.bench ? <BenchTools controller={controller} options={options} /> : null}
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }
 
@@ -217,7 +201,11 @@ function SitePage({
       );
     };
     measure();
-    const observer = new ResizeObserver(measure);
+    // Chapter heights settle after fonts and textures; keep the page trigger in step.
+    const observer = new ResizeObserver(() => {
+      measure();
+      exampleSmoothScrollOptions.ScrollTrigger.refresh();
+    });
     observer.observe(root);
     window.addEventListener("resize", measure);
     return () => {
@@ -227,7 +215,9 @@ function SitePage({
   }, [onLayout]);
 
   return (
-    <>
+    // Lenis smooths the page scroll; the page trigger writes whole-page
+    // progress (0 at the top, 1 at the bottom) to `siteProgressKey`.
+    <ScrollEffectSection as="div" progressKey={siteProgressKey} start="top top" end="bottom bottom">
       <header className="site-nav">
         <a className="site-brand" href="/">
           <span className="site-brand-mark" aria-hidden="true" />
@@ -412,6 +402,6 @@ function SitePage({
           </footer>
         </section>
       </main>
-    </>
+    </ScrollEffectSection>
   );
 }

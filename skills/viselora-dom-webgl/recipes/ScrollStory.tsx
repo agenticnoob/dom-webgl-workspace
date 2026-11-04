@@ -7,18 +7,20 @@
 //   before or after the story does not shift the chapters.
 // - The story section is a WebGLTarget that is never marked ready: its DOM
 //   always stays visible. With `frameloop: "demand"` the runtime wakes the
-//   canvas on scroll and resize, so no frames are rendered while idle.
+//   canvas on every eased scroll step and on resize, so no frames are
+//   rendered while idle.
+// - The host smooths the page scroll with `smoothScroll`; the eased scroll
+//   moves the target rect, so progress eases with it and stays deterministic.
 //
 // Copy this file, edit `keyframes` and render <ScrollStoryScene> in `scene`.
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, type Mesh, type MeshStandardMaterial } from "three";
 import type { DOMTargetState } from "@viselora/dom-webgl";
-import {
-  useDOMTarget,
-  WebGLRuntime,
-  WebGLTarget,
-} from "@viselora/dom-webgl/react";
+import { useDOMTarget, WebGLTarget } from "@viselora/dom-webgl/react";
+import { WebGLScrollRuntime } from "@viselora/scroll-adapters/react";
+
+import { smoothScroll } from "./smoothScroll";
 
 export type StoryState = {
   position: readonly [number, number, number];
@@ -126,7 +128,8 @@ const chapter = { minHeight: "100vh", padding: "20vh 8vw", boxSizing: "border-bo
 
 export function ScrollStoryExample() {
   return (
-    <WebGLRuntime
+    <WebGLScrollRuntime
+      smooth={smoothScroll}
       canvas={{ camera: { position: [0, 0, 6], fov: 45 }, frameloop: "demand" }}
       scene={<ScrollStoryScene targetId="story" />}
     >
@@ -142,6 +145,6 @@ export function ScrollStoryExample() {
           </div>
         </WebGLTarget>
       </main>
-    </WebGLRuntime>
+    </WebGLScrollRuntime>
   );
 }

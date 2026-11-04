@@ -54,7 +54,11 @@ CPU); the former index, every View-based demo on one page, is
 (needs the `VERCEL_TOKEN` secret and the `VERCEL_ORG_ID` and
 `VERCEL_PROJECT_ID` repository variables); its first run (40295536315) served
 every page over HTTPS. The app's fonts are self-hosted, so pages load without
-reaching Google Fonts. Since 0.3.0-alpha.1, `measureDOMText` line breaks match Chrome's CSS
+reaching Google Fonts. The site, `showcase.html` and `specimen.html` now
+scroll through Lenis (`WebGLScrollRuntime` with `smooth`, Lenis handling
+in-page anchors; page progress comes from a page-long `ScrollEffectSection`), and
+the skill hosts every recipe and the template that way by default through
+`recipes/smoothScroll.ts`. Since 0.3.0-alpha.1, `measureDOMText` line breaks match Chrome's CSS
 on long words, trailing letter spacing, `word-break` and CJK punctuation
 (10 of 10 browser cases, 4 of 10 before). Remaining items from the
 [performance design](./archive/specs/2026-10-22-runtime-performance-governance-design.md)
