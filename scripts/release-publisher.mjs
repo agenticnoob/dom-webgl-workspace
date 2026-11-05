@@ -124,6 +124,14 @@ export function publishPackages({
       throw new Error(`Registry mismatch: ${entry.name}@${version} is missing after release`);
     }
     assertPublishedMetadata(published, entry, version);
+  }
+
+  for (const entry of packages) {
+    runNpm(
+      ["dist-tag", "add", `${entry.name}@${version}`, "latest"],
+      runCommand,
+      `point ${entry.name} latest at ${version}`,
+    );
     const tags = runNpmJson(
       ["view", entry.name, "dist-tags", "--json"],
       runCommand,
@@ -132,6 +140,11 @@ export function publishPackages({
     if (tags?.alpha !== version) {
       throw new Error(
         `Registry mismatch: ${entry.name} dist-tags.alpha is ${String(tags?.alpha)}, expected ${version}`,
+      );
+    }
+    if (tags?.latest !== version) {
+      throw new Error(
+        `Registry mismatch: ${entry.name} dist-tags.latest is ${String(tags?.latest)}, expected ${version}`,
       );
     }
   }
