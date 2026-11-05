@@ -36,7 +36,7 @@ describe("Viselora GitHub workflows", () => {
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("id-token: write");
     expect(workflow).toContain("node-version: 24");
-    expect(workflow).toContain("npm@11");
+    expect(workflow).toContain("npm@^11.21.0");
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
     expect(workflow).toContain("package-manager-cache: false");
     expect(workflow).not.toContain("cache: npm");

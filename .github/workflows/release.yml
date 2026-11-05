@@ -24,13 +24,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Use npm 11
-        run: npm install --global npm@11
+        run: npm install --global npm@^11.21.0
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Verify release candidate
         run: npm run verify:release
       - run: git diff --check
-      - name: Publish core then adapters with alpha tag and provenance
+      - name: Publish core then adapters with alpha tag and provenance, then point latest at the release
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           # Bootstrap only. Delete this Environment secret after Trusted Publishing is configured.

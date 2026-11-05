@@ -39,6 +39,81 @@ describe("idempotent release publisher", () => {
     expect(fixture.publishNames()).toEqual([]);
   });
 
+  test("points latest at the release in core then adapters order after metadata readback", () => {
+    const fixture = createRegistryFixture();
+    const packages = releasePackages();
+
+    publishPackages({ version, packages, runCommand: fixture.runCommand });
+
+    expect(fixture.commands).toEqual([
+      `npm view @viselora/dom-webgl@${version} --json`,
+      `npm view @viselora/scroll-adapters@${version} --json`,
+      `npm publish ${packages[0].tarballPath} --access public --tag alpha --provenance`,
+      `npm publish ${packages[1].tarballPath} --access public --tag alpha --provenance`,
+      `npm view @viselora/dom-webgl@${version} --json`,
+      `npm view @viselora/scroll-adapters@${version} --json`,
+      `npm dist-tag add @viselora/dom-webgl@${version} latest`,
+      "npm view @viselora/dom-webgl dist-tags --json",
+      `npm dist-tag add @viselora/scroll-adapters@${version} latest`,
+      "npm view @viselora/scroll-adapters dist-tags --json",
+    ]);
+  });
+
+  test("points latest at the release even when both packages are skipped", () => {
+    const tags = registryTags();
+    tags["@viselora/dom-webgl"].latest = "0.0.1-alpha.0";
+    tags["@viselora/scroll-adapters"].latest = "0.0.1-alpha.0";
+    const fixture = createRegistryFixture(registryPackages(), tags);
+
+    const result = publishPackages({
+      version,
+      packages: releasePackages(),
+      runCommand: fixture.runCommand,
+    });
+
+    expect(result).toEqual([
+      { name: "@viselora/dom-webgl", action: "skipped" },
+      { name: "@viselora/scroll-adapters", action: "skipped" },
+    ]);
+    expect(fixture.publishNames()).toEqual([]);
+    expect(fixture.commands.filter((command) => command.startsWith("npm dist-tag "))).toEqual([
+      `npm dist-tag add @viselora/dom-webgl@${version} latest`,
+      `npm dist-tag add @viselora/scroll-adapters@${version} latest`,
+    ]);
+  });
+
+  test("reports the purpose when pointing latest fails", () => {
+    const fixture = createRegistryFixture();
+    const runCommand = (command: string, args: string[]) => {
+      if (command === "npm" && args[0] === "dist-tag" && args[1] === "add") {
+        return { status: 1, stdout: "", stderr: "dist-tag permission denied" };
+      }
+      return fixture.runCommand(command, args);
+    };
+
+    expect(() =>
+      publishPackages({ version, packages: releasePackages(), runCommand }),
+    ).toThrow(
+      `npm command failed while attempting to point @viselora/dom-webgl latest at ${version}: dist-tag permission denied`,
+    );
+  });
+
+  test("rejects a latest mismatch after a successful dist-tag command", () => {
+    const fixture = createRegistryFixture();
+    const runCommand = (command: string, args: string[]) => {
+      if (command === "npm" && args[0] === "view" && args[2] === "dist-tags") {
+        return result({ alpha: version, latest: "0.0.1-alpha.0" });
+      }
+      return fixture.runCommand(command, args);
+    };
+
+    expect(() =>
+      publishPackages({ version, packages: releasePackages(), runCommand }),
+    ).toThrow(
+      `Registry mismatch: @viselora/dom-webgl dist-tags.latest is 0.0.1-alpha.0, expected ${version}`,
+    );
+  });
+
   test("rejects an existing version with different integrity before publishing", () => {
     const existing = registryPackages();
     existing["@viselora/dom-webgl"].dist.integrity = "sha512-other";
@@ -196,7 +271,7 @@ describe("idempotent release publisher", () => {
     expect(waits).toEqual([10, 20, 10, 20]);
   });
 
-  test("accepts the registry-required initial latest tag without mutating it", () => {
+  test("reasserts the registry-required initial latest tag without removing it", () => {
     const tags = registryTags();
     tags["@viselora/dom-webgl"].latest = version;
     tags["@viselora/scroll-adapters"].latest = version;
@@ -322,6 +397,12 @@ function createRegistryFixture(
 
       if (args[0] === "view" && args[2] === "dist-tags") {
         return result(tags[args[1]]);
+      }
+
+      if (args[0] === "dist-tag" && args[1] === "add") {
+        const entry = packages.find(({ name }) => `${name}@${version}` === args[2])!;
+        tags[entry.name].latest = version;
+        return { status: 0, stdout: `+latest: ${entry.name}@${version}`, stderr: "" };
       }
 
       const entry = packages.find(({ name }) => `${name}@${version}` === args[1]);

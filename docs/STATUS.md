@@ -73,6 +73,8 @@ registry with provenance (release run 40219043094 on `main` b390abd). Both
 registry on 2026-11-05. The `latest` tags were advanced from `0.1.0-alpha.0`
 without republishing either package; their published integrity values are
 unchanged. Unqualified installs now select the current prerelease API.
+Future releases point both `alpha` and `latest` at the new version, provided
+the npm trusted publisher has **Allow npm dist-tag** enabled.
 
 0.3.0-alpha.1 fixes `measureDOMText` line breaking (long words, trailing letter
 spacing, `word-break`, CJK punctuation) and adds `wordBreak` and
